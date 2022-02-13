@@ -1,6 +1,10 @@
 use nalgebra as na;
 use std::fmt;
 
+#[cfg(test)]
+#[path = "rotsym_tests.rs"]
+mod rodsym_tests;
+
 
 /// Calculates the absolute or relative difference between two `T`.
 ///
