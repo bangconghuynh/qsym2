@@ -2,7 +2,10 @@
 name = "rustyinspect"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Bang C. Huynh <bang.cong.huynh@gmail.com>"]
+description = "A program to perform symmetry transformation and analysis on wavefunctions."
 
 [dependencies]
+periodic_table = "0.3.1"
+nalgebra = "0.30.0"
+clap = { version = "3.0.5", features = ["cargo"] }
