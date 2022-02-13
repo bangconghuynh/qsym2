@@ -1,10 +1,19 @@
 use nalgebra as na;
 use std::fmt;
 
-use crate::aux::atom::Atom;
-use crate::aux::geometry::Point3D;
 
-
+/// Calculates the absolute or relative difference between two `T`.
+///
+/// # Arguments
+///
+/// * `a` - A value of type `T`.
+/// * `b` - Another value of type `T`.
+/// * `abs_compare` - A flag indicating if absolute or relative difference is
+///     to be calculated.
+///
+/// # Returns
+///
+/// The required difference.
 fn diff<T: na::RealField + Copy>(a: T, b: T, abs_compare: bool) -> T {
     if abs_compare {
         (a - b).abs()
@@ -13,13 +22,28 @@ fn diff<T: na::RealField + Copy>(a: T, b: T, abs_compare: bool) -> T {
     }
 }
 
+
+/// An enum to classify the types of rotational symmetry of a molecular system
+/// based on its principal moments of inertia.
 pub enum RotationalSymmetry {
+    /// All three principal moments of inertia are identical.
     Spherical,
+    /// The unique principal moment of inertia is the largest, the other two
+    /// are equal and sum to the unique one.
     OblatePlanar,
+    /// The unique principal moment of inertia is the largest, the other two
+    /// are equal but do not sum to the unique one.
     OblateNonPlanar,
+    /// The unique principal moment of inertia is zero, the other two are equal.
     ProlateLinear,
+    /// The unique principal moment of inertia is the smallest but non-zero,
+    /// the other two are equal.
     ProlateNonLinear,
+    /// The largest principal moment of inertia is the sum of the other two,
+    /// but they are all distinct.
     AsymmetricPlanar,
+    /// All principal moments of inertia are distinct and do not have any
+    /// special relations between them.
     AsymmetricNonPlanar,
 }
 
@@ -37,50 +61,20 @@ impl fmt::Display for RotationalSymmetry {
     }
 }
 
-pub fn calc_com(atoms: &Vec<Atom>, verbose: u64) -> Point3D<f64> {
-    let mut num: Point3D<f64> = Point3D {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0,
-    };
-    let mut tot_m: f64 = 0.0;
-    for atom in atoms.iter() {
-        let m: f64 = atom.atomic_mass;
-        num += &atom.coordinates * m;
-        tot_m += m;
-    }
-    num *= 1.0 / tot_m;
-    if verbose > 0 {
-        println!("Centre of mass: {}", num);
-    }
-    num
-}
 
-pub fn calc_moi(atoms: &mut Vec<Atom>, com: &Point3D<f64>, verbose: u64) -> na::Matrix3<f64> {
-    let mut inertia_tensor = na::Matrix3::from_element(0.0);
-    for atom in atoms.iter_mut() {
-        atom.coordinates -= com;
-        for i in 0..3 {
-            for j in 0..=i {
-                if i != j {
-                    inertia_tensor[(i, j)] -=
-                        atom.atomic_mass * atom.coordinates[i] * atom.coordinates[j];
-                    inertia_tensor[(j, i)] -=
-                        atom.atomic_mass * atom.coordinates[j] * atom.coordinates[i];
-                } else {
-                    inertia_tensor[(i, j)] += atom.atomic_mass
-                        * (atom.coordinates.sq_norm() - atom.coordinates[i] * atom.coordinates[j]);
-                }
-            }
-        }
-    }
-    if verbose > 1 {
-        println!("Recentred structure:\n{:#?}", atoms);
-        println!("Inertia tensor:\n{}", inertia_tensor);
-    }
-    inertia_tensor
-}
-
+/// Determines the rotational symmetry given an inertia tensor.
+///
+/// # Arguments
+///
+/// * `inertia_tensor` - An inertia tensor which is a $3 \times 3$ matrix.
+/// * `thresh` - A threshold for comparing moments of inertia.
+/// * `verbose` - The print level.
+/// * `abs_compare` - A flag indicating if absolute or relative difference
+///     should be used in moment of inertia comparisons.
+///
+/// # Returns
+///
+/// The rotational symmetry as one of the [`RotationalSymmetry`] variants.
 pub fn calc_rotational_symmetry(
     inertia_tensor: &na::Matrix3<f64>,
     thresh: f64,

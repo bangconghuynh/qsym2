@@ -1,11 +1,15 @@
-use std::fmt;
 use nalgebra as na;
+use std::fmt;
 use std::ops::{Add, AddAssign, Index, Mul, MulAssign, Neg, Sub, SubAssign};
 
+/// A struct representing a point in three dimensions.
 #[derive(Debug)]
 pub struct Point3D<T> {
+    /// The $x$-component of the coordinates of the point.
     pub x: T,
+    /// The $y$-component of the coordinates of the point.
     pub y: T,
+    /// The $z$-component of the coordinates of the point.
     pub z: T,
 }
 
@@ -37,10 +41,21 @@ impl<T: Sub<Output = T>> Sub for Point3D<T> {
     }
 }
 
-impl<T: Sub<Output = T> + Copy> Sub<&Point3D<T>> for Point3D<T> {
-    type Output = Self;
+impl<T: Add<Output = T> + Copy> Add<&Point3D<T>> for &Point3D<T> {
+    type Output = Point3D<T>;
+    fn add(self, other: &Point3D<T>) -> Self::Output {
+        Self::Output {
+            x: self.x + other.x,
+            y: self.y + other.y,
+            z: self.z + other.z,
+        }
+    }
+}
+
+impl<T: Sub<Output = T> + Copy> Sub<&Point3D<T>> for &Point3D<T> {
+    type Output = Point3D<T>;
     fn sub(self, other: &Point3D<T>) -> Self::Output {
-        Self {
+        Self::Output {
             x: self.x - other.x,
             y: self.y - other.y,
             z: self.z - other.z,
@@ -50,8 +65,8 @@ impl<T: Sub<Output = T> + Copy> Sub<&Point3D<T>> for Point3D<T> {
 
 impl<T: Mul<Output = T> + Copy> Mul<T> for &Point3D<T> {
     type Output = Point3D<T>;
-    fn mul(self, other: T) -> Point3D<T> {
-        Point3D {
+    fn mul(self, other: T) -> Self::Output {
+        Self::Output {
             x: self.x * other,
             y: self.y * other,
             z: self.z * other,
@@ -107,10 +122,13 @@ impl<T: Copy> Index<usize> for Point3D<T> {
 }
 
 impl<T: na::ComplexField + Copy> Point3D<T> {
+    /// Calculates the squared norm of the point taken as a position vector.
     pub fn sq_norm(&self) -> T {
         self.x * self.x + self.y * self.y + self.z * self.z
     }
+
+    /// Calculates the norm of the point taken as a position vector.
     pub fn norm(&self) -> T {
-        (self.x * self.x + self.y * self.y + self.z * self.z).sqrt()
+        (self.sq_norm()).sqrt()
     }
 }

@@ -9,3 +9,6 @@ description = "A program to perform symmetry transformation and analysis on wave
 periodic_table = "0.3.1"
 nalgebra = "0.30.0"
 clap = { version = "3.0.5", features = ["cargo"] }
+
+[package.metadata.docs.rs]
+rustdoc-args = [ "--html-in-header", "katex-header.html" ]

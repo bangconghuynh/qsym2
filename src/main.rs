@@ -1,7 +1,7 @@
 use clap::{app_from_crate, arg};
 use std::process;
 
-use rustyinspect::aux::atom::parse_xyz;
+use rustyinspect::aux::molecule::Molecule;
 use rustyinspect::rotsym::calc;
 
 fn main() {
@@ -28,9 +28,9 @@ fn main() {
     let abs_compare = matches.is_present("abs_compare");
     let verbose = matches.occurrences_of("verbose");
 
-    let mut atoms = parse_xyz(filename);
-    let com = calc::calc_com(&atoms, verbose);
-    let inertia = calc::calc_moi(&mut atoms, &com, verbose);
+    let mol = Molecule::from_xyz(filename);
+    let com = mol.calc_com(verbose);
+    let inertia = mol.calc_moi(&com, verbose);
     let rotsym_result = calc::calc_rotational_symmetry(&inertia, thresh, verbose, abs_compare);
     println!("Rotational symmetry: {}", rotsym_result);
 }

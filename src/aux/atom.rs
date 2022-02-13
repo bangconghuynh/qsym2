@@ -1,21 +1,18 @@
 use periodic_table;
 use std::collections::HashMap;
-use std::fs;
-use std::process;
 
 use crate::aux::geometry::Point3D;
 
-
+/// A struct storing a look-up of element symbols to give atomic numbers
+/// and atomic masses.
 pub struct ElementMap<'a> {
+    /// A [HashMap] from a symbol string to a tuple of atomic number and atomic
+    /// mass.
     map: HashMap<&'a str, (u32, f64)>,
 }
 
-fn parse_atomic_mass(mass_str: &str) -> f64 {
-    let mass = mass_str.replace(&['(', ')', '[', ']'][..], "");
-    mass.parse::<f64>().unwrap()
-}
-
 impl ElementMap<'static> {
+    /// Creates a new [`ElementMap`] for all elements in the periodic table.
     pub fn new() -> ElementMap<'static> {
         let mut map = HashMap::new();
         let elements = periodic_table::periodic_table();
@@ -27,22 +24,60 @@ impl ElementMap<'static> {
     }
 }
 
+/// An auxiliary function that parses the atomic mass string in the format of
+/// [`periodic_table`] to a single float value.
+///
+/// # Arguments
+///
+/// * `mass_str` - A string of mass value that is either `x.y(z)` where the
+///     uncertain digit `z` is enclosed in parentheses, or `[x]` where `x`
+///     is the mass number in place of precise experimental values.
+///
+/// # Returns
+///
+/// The mass value as a float.
+fn parse_atomic_mass(mass_str: &str) -> f64 {
+    let mass = mass_str.replace(&['(', ')', '[', ']'][..], "");
+    mass.parse::<f64>().unwrap()
+}
+
+/// A struct representing an atom.
 #[derive(Debug)]
 pub struct Atom {
+    /// The atomic number of the atom.
     atomic_number: u32,
+    /// The atomic symbol of the atom.
     atomic_symbol: String,
+    /// The weighted-average atomic mass for all naturally occuring isotopes.
     pub atomic_mass: f64,
+    /// The position of the atom.
     pub coordinates: Point3D<f64>,
 }
 
 impl Atom {
+    /// Parses an atom line in an `xyz` file to construct an [`Atom`].
+    ///
+    /// # Arguments
+    ///
+    /// * `line` - A line in an `xyz` file containing an atomic symbol and
+    ///     three Cartesian coordinates.
+    /// * `emap` - A hash map between atomic symbols and atomic numbers and
+    ///     masses.
+    ///
+    /// # Returns
+    ///
+    /// The parsed [`Atom`] struct if the line has the correct format,
+    /// otherwise [`None`].
     pub fn from_xyz(line: &str, emap: &ElementMap) -> Option<Atom> {
         let split: Vec<&str> = line.split_whitespace().collect();
         if split.len() != 4 {
             return None;
         };
         let atomic_symbol = split.get(0).unwrap();
-        let (atomic_number, atomic_mass) = emap.map.get(atomic_symbol).expect("Invalid atomic symbol encountered.");
+        let (atomic_number, atomic_mass) = emap
+            .map
+            .get(atomic_symbol)
+            .expect("Invalid atomic symbol encountered.");
         let coordinates = Point3D {
             x: split.get(1).unwrap().parse::<f64>().unwrap(),
             y: split.get(2).unwrap().parse::<f64>().unwrap(),
@@ -56,33 +91,4 @@ impl Atom {
         };
         Some(atom)
     }
-}
-
-pub fn parse_xyz(filename: &str) -> Vec<Atom> {
-    let contents = fs::read_to_string(filename).unwrap_or_else(|err| {
-        println!("Unable to read file {}.", filename);
-        println!("{}", err);
-        process::exit(1);
-    });
-
-    let mut atoms: Vec<Atom> = vec![];
-    let emap = ElementMap::new();
-    let mut n_atoms = 0usize;
-    for (i, line) in contents.lines().enumerate() {
-        if i == 0 {
-            n_atoms = line.parse::<usize>().unwrap();
-        } else if i == 1 {
-            continue;
-        } else {
-            atoms.push(Atom::from_xyz(&line, &emap).unwrap());
-        }
-    }
-    assert_eq!(
-        atoms.len(),
-        n_atoms,
-        "Expected {} atoms, got {} instead.",
-        n_atoms,
-        atoms.len()
-    );
-    atoms
 }
