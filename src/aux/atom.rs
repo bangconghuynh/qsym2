@@ -1,7 +1,6 @@
+use nalgebra::Point3;
 use periodic_table;
 use std::collections::HashMap;
-
-use crate::aux::geometry::Point3D;
 
 /// A struct storing a look-up of element symbols to give atomic numbers
 /// and atomic masses.
@@ -51,7 +50,8 @@ pub struct Atom {
     /// The weighted-average atomic mass for all naturally occuring isotopes.
     pub atomic_mass: f64,
     /// The position of the atom.
-    pub coordinates: Point3D<f64>,
+    // pub coordinates: Point3D<f64>,
+    pub coordinates: Point3<f64>,
 }
 
 impl Atom {
@@ -78,11 +78,11 @@ impl Atom {
             .map
             .get(atomic_symbol)
             .expect("Invalid atomic symbol encountered.");
-        let coordinates = Point3D {
-            x: split.get(1).unwrap().parse::<f64>().unwrap(),
-            y: split.get(2).unwrap().parse::<f64>().unwrap(),
-            z: split.get(3).unwrap().parse::<f64>().unwrap(),
-        };
+        let coordinates = Point3::new(
+            split.get(1).unwrap().parse::<f64>().unwrap(),
+            split.get(2).unwrap().parse::<f64>().unwrap(),
+            split.get(3).unwrap().parse::<f64>().unwrap(),
+        );
         let atom = Atom {
             atomic_number: *atomic_number,
             atomic_symbol: atomic_symbol.to_string(),
