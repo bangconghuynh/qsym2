@@ -33,4 +33,6 @@ fn main() {
     let inertia = mol.calc_moi(&com, verbose);
     let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, thresh, verbose, abs_compare);
     println!("Rotational symmetry: {}", rotsym_result);
+    let sea_groups = mol.calc_sea_groups(1e-4, 1);
+    println!("SEAs: {:?}", sea_groups);
 }

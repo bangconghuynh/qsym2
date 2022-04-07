@@ -1,7 +1,7 @@
-use nalgebra::{Point3, Vector3, Matrix3};
-use crate::aux::atom::{Atom, ElementMap};
+use nalgebra::{Point3, Vector3, Matrix3, DVector, DMatrix};
 use std::fs;
 use std::process;
+use crate::aux::atom::{Atom, ElementMap};
 
 pub struct Molecule {
     /// The atoms constituting this molecule.
@@ -58,7 +58,7 @@ impl Molecule {
     /// The centre of mass.
     pub fn calc_com(&self, verbose: u64) -> Point3<f64> {
         let atoms = &self.atoms;
-        let mut com: Point3<f64> = Point3::new(0.0, 0.0, 0.0);
+        let mut com: Point3<f64> = Point3::origin();
         let mut tot_m: f64 = 0.0;
         for atom in atoms.iter() {
             let m: f64 = atom.atomic_mass;
@@ -84,7 +84,7 @@ impl Molecule {
     /// The inertia tensor as a $3 \times 3$ matrix.
     pub fn calc_moi(&self, origin: &Point3<f64>, verbose: u64) -> Matrix3<f64> {
         let atoms = &self.atoms;
-        let mut inertia_tensor = Matrix3::from_element(0.0);
+        let mut inertia_tensor = Matrix3::zeros();
         for atom in atoms.iter() {
             let rel_coordinates: Vector3<f64> = &atom.coordinates - origin;
             for i in 0..3 {
@@ -106,5 +106,77 @@ impl Molecule {
             println!("Inertia tensor:\n{}", inertia_tensor);
         }
         inertia_tensor
+    }
+
+    /// Determines the sets of symmetry-equivalent atoms.
+    ///
+    /// # Arguments
+    ///
+    /// * `dist_thresh` - The threshold for distance comparison.
+    /// * `verbose` - The print level.
+    ///
+    /// # Returns
+    ///
+    /// The list of sets of symmetry-equivalent atoms.
+    pub fn calc_sea_groups(
+        &self,
+        dist_thresh: f64,
+        verbose: u64,
+    ) -> Vec<Vec<&Atom>> {
+        let atoms = &self.atoms;
+        let mut all_coords: Vec<&Point3<f64>> = vec![];
+        let mut all_masses: Vec<f64> = vec![];
+        for atom in atoms {
+            all_coords.push(&atom.coordinates);
+            all_masses.push(atom.atomic_mass);
+        }
+        let mut columns: Vec<DVector<f64>> = vec![];
+        let decimals = -dist_thresh.log10().round() as i32;
+        let rounding_factor = (10 as f64).powi(decimals);
+
+        // Determine indices of symmetry-equivalent atoms
+        let mut equiv_indicess: Vec<Vec<usize>> = vec![vec![0]];
+        for (j, coord_j) in all_coords.iter().enumerate() {
+            let mut column_j: Vec<f64> = vec![];
+            for (i, coord_i) in all_coords.iter().enumerate() {
+                let diff = *coord_j - *coord_i;
+                column_j.push(
+                    (diff.norm() / all_masses[i] * rounding_factor).round() / rounding_factor
+                );
+            }
+            column_j.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            let column_j_vec = DVector::from_vec(column_j);
+            if j == 0 {
+                columns.push(column_j_vec);
+            } else {
+                let equiv_set_search = equiv_indicess
+                                        .iter()
+                                        .position(
+                                            |equiv_indices|
+                                            columns[equiv_indices[0]].relative_eq(
+                                                &column_j_vec, dist_thresh, dist_thresh
+                                            )
+                                        );
+                columns.push(column_j_vec);
+                if let Some(index) = equiv_set_search {
+                    equiv_indicess[index].push(j);
+                } else {
+                    equiv_indicess.push(vec![j]);
+                };
+            }
+        }
+        if verbose > 0 {
+            println!("Number of SEA groups: {}", equiv_indicess.len());
+        }
+
+        // Convert indices to atom references
+        let mut sea_groups: Vec<Vec<&Atom>> = vec![];
+        for (i, equiv_indices) in equiv_indicess.iter().enumerate() {
+            sea_groups.push(vec![]);
+            for equiv_index in equiv_indices.into_iter() {
+                sea_groups[i].push(&atoms[*equiv_index]);
+            }
+        }
+        sea_groups
     }
 }
