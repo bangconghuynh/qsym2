@@ -5,7 +5,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_rotsym_c60 () {
-    let path: String = format!("{}{}", ROOT, "/src/rotsym/xyz/c60.xyz");
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);
@@ -15,7 +15,7 @@ fn test_rotsym_c60 () {
 
 #[test]
 fn test_rotsym_th () {
-    let path: String = format!("{}{}", ROOT, "/src/rotsym/xyz/th.xyz");
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);
@@ -25,7 +25,7 @@ fn test_rotsym_th () {
 
 #[test]
 fn test_rotsym_h8 () {
-    let path: String = format!("{}{}", ROOT, "/src/rotsym/xyz/h8.xyz");
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);
@@ -35,7 +35,7 @@ fn test_rotsym_h8 () {
 
 #[test]
 fn test_rotsym_n3 () {
-    let path: String = format!("{}{}", ROOT, "/src/rotsym/xyz/n3.xyz");
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);
@@ -45,7 +45,7 @@ fn test_rotsym_n3 () {
 
 #[test]
 fn test_rotsym_h3 () {
-    let path: String = format!("{}{}", ROOT, "/src/rotsym/xyz/h3.xyz");
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h3.xyz");
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);
@@ -55,7 +55,7 @@ fn test_rotsym_h3 () {
 
 #[test]
 fn test_rotsym_c3h3 () {
-    let path: String = format!("{}{}", ROOT, "/src/rotsym/xyz/c3h3.xyz");
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c3h3.xyz");
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);

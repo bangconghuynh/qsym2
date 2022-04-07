@@ -1,7 +1,11 @@
-use nalgebra::{Point3, Vector3, Matrix3, DVector, DMatrix};
+use nalgebra::{Point3, Vector3, Matrix3, DVector};
 use std::fs;
 use std::process;
 use crate::aux::atom::{Atom, ElementMap};
+
+#[cfg(test)]
+#[path = "sea_tests.rs"]
+mod sea_tests;
 
 pub struct Molecule {
     /// The atoms constituting this molecule.
