@@ -50,7 +50,6 @@ pub struct Atom {
     /// The weighted-average atomic mass for all naturally occuring isotopes.
     pub atomic_mass: f64,
     /// The position of the atom.
-    // pub coordinates: Point3D<f64>,
     pub coordinates: Point3<f64>,
 }
 

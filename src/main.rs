@@ -3,6 +3,8 @@ use std::process;
 
 use rustyinspect::aux::molecule::Molecule;
 use rustyinspect::rotsym;
+use rustyinspect::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind};
+use nalgebra::Vector3;
 
 fn main() {
     let matches = app_from_crate!()
@@ -12,7 +14,6 @@ fn main() {
                 .required(false)
                 .default_value("1e-6"),
         )
-        .arg(arg!(-a --abs_compare "Absolute moment of inertia comparison"))
         .arg(arg!(-v --verbose ... "Use verbose output. Maybe specified twice for 'very verbose'."))
         .get_matches();
 
@@ -25,13 +26,12 @@ fn main() {
         .unwrap()
         .parse::<f64>()
         .unwrap();
-    let abs_compare = matches.is_present("abs_compare");
     let verbose = matches.occurrences_of("verbose");
 
     let mol = Molecule::from_xyz(filename);
     let com = mol.calc_com(verbose);
     let inertia = mol.calc_moi(&com, verbose);
-    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, thresh, verbose, abs_compare);
+    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, thresh, verbose);
     println!("Rotational symmetry: {}", rotsym_result);
     let sea_groups = mol.calc_sea_groups(1e-4, 1);
     println!("SEAs: {:?}", sea_groups);

@@ -7,6 +7,8 @@ use crate::aux::atom::{Atom, ElementMap};
 #[path = "sea_tests.rs"]
 mod sea_tests;
 
+
+/// A struct containing the atoms constituting a molecule.
 pub struct Molecule {
     /// The atoms constituting this molecule.
     atoms: Vec<Atom>,

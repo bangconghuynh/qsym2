@@ -9,7 +9,7 @@ fn test_rotsym_c60 () {
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);
-    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-6, 0, false);
+    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-6, 0);
     assert!(matches!(rotsym_result, RotationalSymmetry::Spherical));
 }
 
@@ -19,7 +19,7 @@ fn test_rotsym_th () {
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);
-    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-14, 0, true);
+    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-14, 0);
     assert!(matches!(rotsym_result, RotationalSymmetry::Spherical));
 }
 
@@ -29,7 +29,7 @@ fn test_rotsym_h8 () {
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);
-    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-14, 0, true);
+    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-14, 0);
     assert!(matches!(rotsym_result, RotationalSymmetry::ProlateNonLinear));
 }
 
@@ -39,7 +39,7 @@ fn test_rotsym_n3 () {
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);
-    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-12, 0, true);
+    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-12, 0);
     assert!(matches!(rotsym_result, RotationalSymmetry::ProlateLinear));
 }
 
@@ -49,7 +49,7 @@ fn test_rotsym_h3 () {
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);
-    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-6, 0, true);
+    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-6, 0);
     assert!(matches!(rotsym_result, RotationalSymmetry::OblatePlanar));
 }
 
@@ -59,6 +59,6 @@ fn test_rotsym_c3h3 () {
     let mol = Molecule::from_xyz(&path);
     let com = mol.calc_com(0);
     let inertia = mol.calc_moi(&com, 0);
-    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-6, 0, true);
+    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, 1e-6, 0);
     assert!(matches!(rotsym_result, RotationalSymmetry::AsymmetricPlanar));
 }

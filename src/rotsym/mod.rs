@@ -1,31 +1,10 @@
+use approx;
 use nalgebra as na;
 use std::fmt;
 
 #[cfg(test)]
 #[path = "rotsym_tests.rs"]
 mod rodsym_tests;
-
-
-/// Calculates the absolute or relative difference between two `T`.
-///
-/// # Arguments
-///
-/// * `a` - A value of type `T`.
-/// * `b` - Another value of type `T`.
-/// * `abs_compare` - A flag indicating if absolute or relative difference is
-///     to be calculated.
-///
-/// # Returns
-///
-/// The required difference.
-fn diff<T: na::RealField + Copy>(a: T, b: T, abs_compare: bool) -> T {
-    if abs_compare {
-        (a - b).abs()
-    } else {
-        (a - b).abs() / (a + b).abs()
-    }
-}
-
 
 /// An enum to classify the types of rotational symmetry of a molecular system
 /// based on its principal moments of inertia.
@@ -65,7 +44,6 @@ impl fmt::Display for RotationalSymmetry {
     }
 }
 
-
 /// Determines the rotational symmetry given an inertia tensor.
 ///
 /// # Arguments
@@ -73,7 +51,6 @@ impl fmt::Display for RotationalSymmetry {
 /// * `inertia_tensor` - An inertia tensor which is a $3 \times 3$ matrix.
 /// * `thresh` - A threshold for comparing moments of inertia.
 /// * `verbose` - The print level.
-/// * `abs_compare` - A flag indicating if absolute or relative difference
 ///     should be used in moment of inertia comparisons.
 ///
 /// # Returns
@@ -83,7 +60,6 @@ pub fn calc_rotational_symmetry(
     inertia_tensor: &na::Matrix3<f64>,
     thresh: f64,
     verbose: u64,
-    abs_compare: bool,
 ) -> RotationalSymmetry {
     let moi_mat = inertia_tensor.symmetric_eigenvalues();
     let mut moi: Vec<&f64> = moi_mat.iter().collect();
@@ -93,28 +69,33 @@ pub fn calc_rotational_symmetry(
             "Moments of inertia:\n {:.6}\n {:.6}\n {:.6}",
             moi[0], moi[1], moi[2]
         );
-        if abs_compare {
-            println!("Threshold for absolute MoI comparison: {:.3e}", thresh);
-        } else {
-            println!("Threshold for relative MoI comparison: {:.3e}", thresh);
-        }
     }
-    if diff(*moi[0], *moi[1], abs_compare) < thresh {
-        if diff(*moi[1], *moi[2], abs_compare) < thresh {
+    if approx::relative_eq!(*moi[0], *moi[1], epsilon = thresh, max_relative = thresh) {
+        if approx::relative_eq!(*moi[1], *moi[2], epsilon = thresh, max_relative = thresh) {
             return RotationalSymmetry::Spherical;
         }
-        if diff(*moi[2], *moi[0] + *moi[1], abs_compare) < thresh {
+        if approx::relative_eq!(
+            *moi[2],
+            *moi[0] + *moi[1],
+            epsilon = thresh,
+            max_relative = thresh
+        ) {
             return RotationalSymmetry::OblatePlanar;
         }
         return RotationalSymmetry::OblateNonPlanar;
     }
-    if diff(*moi[1], *moi[2], abs_compare) < thresh {
+    if approx::relative_eq!(*moi[1], *moi[2], epsilon = thresh, max_relative = thresh) {
         if moi[0].abs() < thresh {
             return RotationalSymmetry::ProlateLinear;
         }
         return RotationalSymmetry::ProlateNonLinear;
     }
-    if diff(*moi[2], *moi[0] + *moi[1], abs_compare) < thresh {
+    if approx::relative_eq!(
+        *moi[2],
+        *moi[0] + *moi[1],
+        epsilon = thresh,
+        max_relative = thresh
+    ) {
         return RotationalSymmetry::AsymmetricPlanar;
     }
     RotationalSymmetry::AsymmetricNonPlanar
