@@ -1,6 +1,7 @@
 use nalgebra::Point3;
 use periodic_table;
 use std::collections::HashMap;
+use std::fmt;
 
 /// A struct storing a look-up of element symbols to give atomic numbers
 /// and atomic masses.
@@ -41,7 +42,7 @@ fn parse_atomic_mass(mass_str: &str) -> f64 {
 }
 
 /// A struct representing an atom.
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct Atom {
     /// The atomic number of the atom.
     atomic_number: u32,
@@ -89,5 +90,25 @@ impl Atom {
             coordinates,
         };
         Some(atom)
+    }
+}
+
+impl fmt::Display for Atom {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Atom {}({:+.3}, {:+.3}, {:+.3})",
+            self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2]
+        )
+    }
+}
+
+impl fmt::Debug for Atom {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Atom {}({:+.3}, {:+.3}, {:+.3})",
+            self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2]
+        )
     }
 }

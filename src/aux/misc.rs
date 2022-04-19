@@ -17,7 +17,7 @@ pub trait HashableFloat {
     /// Returns
     ///
     /// The rounded float.
-    fn round_factor(&self, factor: Self) -> Self;
+    fn round_factor(self, factor: Self) -> Self;
 
     /// Returns the mantissa-exponent-sign triplet for a float.
     ///
@@ -30,16 +30,16 @@ pub trait HashableFloat {
     /// # Returns
     ///
     /// The corresponding mantissa-exponent-sign triplet.
-    fn integer_decode(&self) -> (u64, i16, i8);
+    fn integer_decode(self) -> (u64, i16, i8);
 }
 
 
 impl HashableFloat for f64 {
-    fn round_factor(&self, factor: f64) -> Self {
+    fn round_factor(self, factor: f64) -> Self {
         (self * factor).round() / factor
     }
 
-    fn integer_decode(&self) -> (u64, i16, i8) {
+    fn integer_decode(self) -> (u64, i16, i8) {
         let bits: u64 = unsafe { mem::transmute(self) };
         let sign: i8 = if bits >> 63 == 0 { 1 } else { -1 };
         let mut exponent: i16 = ((bits >> 52) & 0x7ff) as i16;

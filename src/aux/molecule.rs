@@ -9,6 +9,7 @@ mod sea_tests;
 
 
 /// A struct containing the atoms constituting a molecule.
+#[derive(Clone, Debug)]
 pub struct Molecule {
     /// The atoms constituting this molecule.
     atoms: Vec<Atom>,
