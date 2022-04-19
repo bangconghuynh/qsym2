@@ -44,12 +44,18 @@ fn parse_atomic_mass(mass_str: &str) -> f64 {
 /// A struct representing an atom.
 #[derive(Clone)]
 pub struct Atom {
+    /// The atom kind.
+    kind: AtomKind,
+
     /// The atomic number of the atom.
     atomic_number: u32,
+
     /// The atomic symbol of the atom.
     atomic_symbol: String,
+
     /// The weighted-average atomic mass for all naturally occuring isotopes.
     pub atomic_mass: f64,
+
     /// The position of the atom.
     pub coordinates: Point3<f64>,
 }
@@ -84,6 +90,7 @@ impl Atom {
             split.get(3).unwrap().parse::<f64>().unwrap(),
         );
         let atom = Atom {
+            kind: AtomKind::Ordinary,
             atomic_number: *atomic_number,
             atomic_symbol: atomic_symbol.to_string(),
             atomic_mass: *atomic_mass,
@@ -91,24 +98,104 @@ impl Atom {
         };
         Some(atom)
     }
+
+    /// Creates a special atom.
+    ///
+    /// Arguments
+    ///
+    /// * kind - The required special kind.
+    /// * coordinates - The coordinates of the special atom.
+    ///
+    /// Rerturns
+    ///
+    /// `None` if `kind` is not one of the special atom kinds, `Some<Atom>`
+    /// otherwise.
+    pub fn new_special(kind: AtomKind, coordinates: Point3<f64>) -> Option<Atom> {
+        match kind {
+            AtomKind::Magnetic(_) | AtomKind::Electric(_) => Some(
+                Atom {
+                    kind,
+                    atomic_number: 0,
+                    atomic_symbol: "".to_owned(),
+                    atomic_mass: 100.0,
+                    coordinates
+                }
+            ),
+            _ => None
+        }
+    }
 }
 
 impl fmt::Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Atom {}({:+.3}, {:+.3}, {:+.3})",
-            self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2]
-        )
+        if let AtomKind::Ordinary = self.kind {
+            write!(
+                f,
+                "Atom {}({:+.3}, {:+.3}, {:+.3})",
+                self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2]
+            )
+        } else {
+            write!(
+                f,
+                "{}({:+.3}, {:+.3}, {:+.3})",
+                self.kind, self.coordinates[0], self.coordinates[1], self.coordinates[2]
+            )
+        }
     }
 }
 
 impl fmt::Debug for Atom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Atom {}({:+.3}, {:+.3}, {:+.3})",
-            self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2]
-        )
+        if let AtomKind::Ordinary = self.kind {
+            write!(
+                f,
+                "Atom {}({:+.3}, {:+.3}, {:+.3})",
+                self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2]
+            )
+        } else {
+            write!(
+                f,
+                "{}({:+.3}, {:+.3}, {:+.3})",
+                self.kind, self.coordinates[0], self.coordinates[1], self.coordinates[2]
+            )
+        }
+    }
+}
+
+
+/// An enum describing the atom kind.
+#[derive(Clone)]
+pub enum AtomKind {
+    /// An ordinary atom.
+    Ordinary,
+
+    /// A fictitious atom representing a magnetic field. This variant contains
+    /// a flag to indicate if the fictitious atom is of positive type or not.
+    Magnetic(bool),
+
+    /// A fictitious atom representing an electric field. This variant contains
+    /// a flag to indicate if the fictitious atom is of positive type or not.
+    Electric(bool),
+}
+
+impl fmt::Display for AtomKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ordinary => write!(f, "{}", "Atom".to_owned()),
+            Self::Magnetic(pos) => {
+                if *pos {
+                    write!(f, "{}", "MagneticAtom+".to_owned())
+                } else {
+                    write!(f, "{}", "MagneticAtom-".to_owned())
+                }
+            },
+            Self::Electric(pos) => {
+                if *pos {
+                    write!(f, "{}", "ElectricAtom+".to_owned())
+                } else {
+                    write!(f, "{}", "ElectricAtom-".to_owned())
+                }
+            },
+        }
     }
 }

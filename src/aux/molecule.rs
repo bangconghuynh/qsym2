@@ -1,18 +1,20 @@
-use nalgebra::{Point3, Vector3, Matrix3, DVector};
+use crate::aux::atom::{Atom, ElementMap, AtomKind};
+use approx;
+use nalgebra::{DVector, Matrix3, Point3, Vector3};
 use std::fs;
 use std::process;
-use crate::aux::atom::{Atom, ElementMap};
 
 #[cfg(test)]
 #[path = "sea_tests.rs"]
 mod sea_tests;
-
 
 /// A struct containing the atoms constituting a molecule.
 #[derive(Clone, Debug)]
 pub struct Molecule {
     /// The atoms constituting this molecule.
     atoms: Vec<Atom>,
+    electric_atoms: Option<(Atom, Atom)>,
+    magnetic_atoms: Option<(Atom, Atom)>,
 }
 
 impl Molecule {
@@ -51,7 +53,11 @@ impl Molecule {
             n_atoms,
             atoms.len()
         );
-        Molecule { atoms }
+        Molecule {
+            atoms,
+            electric_atoms: None,
+            magnetic_atoms: None,
+        }
     }
 
     /// Calculates the centre of mass of the molecule.
@@ -103,7 +109,8 @@ impl Molecule {
                             atom.atomic_mass * rel_coordinates[j] * rel_coordinates[i];
                     } else {
                         inertia_tensor[(i, j)] += atom.atomic_mass
-                            * (rel_coordinates.norm_squared() - rel_coordinates[i] * rel_coordinates[j]);
+                            * (rel_coordinates.norm_squared()
+                                - rel_coordinates[i] * rel_coordinates[j]);
                     }
                 }
             }
@@ -125,11 +132,7 @@ impl Molecule {
     /// # Returns
     ///
     /// The list of sets of symmetry-equivalent atoms.
-    pub fn calc_sea_groups(
-        &self,
-        dist_thresh: f64,
-        verbose: u64,
-    ) -> Vec<Vec<&Atom>> {
+    pub fn calc_sea_groups(&self, dist_thresh: f64, verbose: u64) -> Vec<Vec<&Atom>> {
         let atoms = &self.atoms;
         let mut all_coords: Vec<&Point3<f64>> = vec![];
         let mut all_masses: Vec<f64> = vec![];
@@ -148,7 +151,7 @@ impl Molecule {
             for (i, coord_i) in all_coords.iter().enumerate() {
                 let diff = *coord_j - *coord_i;
                 column_j.push(
-                    (diff.norm() / all_masses[i] * rounding_factor).round() / rounding_factor
+                    (diff.norm() / all_masses[i] * rounding_factor).round() / rounding_factor,
                 );
             }
             column_j.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -156,14 +159,9 @@ impl Molecule {
             if j == 0 {
                 columns.push(column_j_vec);
             } else {
-                let equiv_set_search = equiv_indicess
-                                        .iter()
-                                        .position(
-                                            |equiv_indices|
-                                            columns[equiv_indices[0]].relative_eq(
-                                                &column_j_vec, dist_thresh, dist_thresh
-                                            )
-                                        );
+                let equiv_set_search = equiv_indicess.iter().position(|equiv_indices| {
+                    columns[equiv_indices[0]].relative_eq(&column_j_vec, dist_thresh, dist_thresh)
+                });
                 columns.push(column_j_vec);
                 if let Some(index) = equiv_set_search {
                     equiv_indicess[index].push(j);
@@ -185,5 +183,39 @@ impl Molecule {
             }
         }
         sea_groups
+    }
+
+    /// Adds two fictitious magnetic atoms to represent the magnetic field.
+    ///
+    /// # Arguments
+    ///
+    /// * magnetic_field - The magnetic field vector. If `None`, any magnetic
+    /// field present will be removed.
+    pub fn set_magnetic_field(&mut self, magnetic_field: Option<Vector3<f64>>) {
+        if let Some(b_vec) = magnetic_field {
+            approx::assert_relative_ne!(b_vec.norm(), 0.0);
+            let com = self.calc_com(0);
+            self.magnetic_atoms = Some((
+                Atom::new_special(AtomKind::Magnetic(true), com + b_vec).unwrap(),
+                Atom::new_special(AtomKind::Magnetic(false), com - b_vec).unwrap(),
+            ))
+        } else { self.magnetic_atoms = None; }
+    }
+
+    /// Adds two fictitious magnetic atoms to represent the electric field.
+    ///
+    /// # Arguments
+    ///
+    /// * electric_field - The electric field vector. If `None`, any magnetic
+    /// field present will be removed.
+    pub fn set_electric_field(&mut self, electric_field: Option<Vector3<f64>>) {
+        if let Some(e_vec) = electric_field {
+            approx::assert_relative_ne!(e_vec.norm(), 0.0);
+            let com = self.calc_com(0);
+            self.electric_atoms = Some((
+                Atom::new_special(AtomKind::Electric(true), com + e_vec).unwrap(),
+                Atom::new_special(AtomKind::Electric(false), com - 1.1*e_vec).unwrap(),
+            ))
+        } else { self.electric_atoms = None; }
     }
 }
