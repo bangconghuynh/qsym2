@@ -29,10 +29,16 @@ pub enum SymmetryElementKind {
     ImproperInversionCentre,
 }
 
+/// An enum to handle symmetry element orders which can be integers, floats, or infinity.
 #[derive(Clone, Debug)]
 pub enum ElementOrder {
+    /// Positive integer order.
     Int(u32),
+
+    /// Positive floating point order and a threshold for comparisons.
     Float(f64, f64),
+
+    /// Infinite order.
     Inf,
 }
 

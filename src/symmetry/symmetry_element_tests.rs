@@ -42,6 +42,39 @@ fn test_element_order_comparison() {
 
 
 #[test]
+fn test_element_order_hashability() {
+    let order_1a = ElementOrder::new(1.0, 1e-14);
+    let order_1b = ElementOrder::Int(1);
+    let order_2a = ElementOrder::new(2.0, 1e-14);
+    let order_2b = ElementOrder::Int(2);
+    let order_35a = ElementOrder::new(3.5, 1e-14);
+    let order_35b = ElementOrder::Float(3.5, 1e-7);
+    let order_ia = ElementOrder::new(f64::INFINITY, 1e-14);
+    let order_ib = ElementOrder::Inf;
+
+    let mut orders: HashSet<ElementOrder> = HashSet::new();
+    orders.insert(order_1a);
+    assert_eq!(orders.len(), 1);
+    orders.insert(order_1b);
+    assert_eq!(orders.len(), 1);
+
+    orders.insert(order_2a);
+    assert_eq!(orders.len(), 2);
+    orders.insert(order_2b);
+    assert_eq!(orders.len(), 2);
+
+    orders.insert(order_35a);
+    assert_eq!(orders.len(), 3);
+    orders.insert(order_35b);
+    assert_eq!(orders.len(), 3);
+
+    orders.insert(order_ia);
+    assert_eq!(orders.len(), 4);
+    orders.insert(order_ib);
+    assert_eq!(orders.len(), 4);
+}
+
+#[test]
 fn test_finite_symmetry_element_constructor() {
     // ========================
     // Proper symmetry elements
