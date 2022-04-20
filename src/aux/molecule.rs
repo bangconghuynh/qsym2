@@ -13,8 +13,8 @@ mod sea_tests;
 pub struct Molecule {
     /// The atoms constituting this molecule.
     atoms: Vec<Atom>,
-    electric_atoms: Option<(Atom, Atom)>,
-    magnetic_atoms: Option<(Atom, Atom)>,
+    electric_atoms: Option<[Atom; 2]>,
+    magnetic_atoms: Option<[Atom; 2]>,
 }
 
 impl Molecule {
@@ -62,6 +62,8 @@ impl Molecule {
 
     /// Calculates the centre of mass of the molecule.
     ///
+    /// This does not take into account fictitious special atoms.
+    ///
     /// # Arguments
     ///
     /// * `verbose` - The print level.
@@ -87,6 +89,8 @@ impl Molecule {
 
     /// Calculates the inertia tensor of the molecule.
     ///
+    /// This *does* take into account fictitious special atoms.
+    ///
     /// # Arguments
     ///
     /// * `origin` - An origin about which the inertia tensor is evaluated.
@@ -96,7 +100,21 @@ impl Molecule {
     ///
     /// The inertia tensor as a $3 \times 3$ matrix.
     pub fn calc_moi(&self, origin: &Point3<f64>, verbose: u64) -> Matrix3<f64> {
-        let atoms = &self.atoms;
+        let mut atoms: Vec<&Atom> = vec![];
+        for atom in &self.atoms {
+            atoms.push(atom);
+        }
+        if let Some(magnetic_atoms) = &self.magnetic_atoms {
+            for magnetic_atom in magnetic_atoms.iter() {
+                atoms.push(magnetic_atom);
+            }
+        }
+        if let Some(electric_atoms) = &self.electric_atoms {
+            for electric_atom in electric_atoms.iter() {
+                atoms.push(electric_atom);
+            }
+        }
+
         let mut inertia_tensor = Matrix3::zeros();
         for atom in atoms.iter() {
             let rel_coordinates: Vector3<f64> = &atom.coordinates - origin;
@@ -133,10 +151,24 @@ impl Molecule {
     ///
     /// The list of sets of symmetry-equivalent atoms.
     pub fn calc_sea_groups(&self, dist_thresh: f64, verbose: u64) -> Vec<Vec<&Atom>> {
-        let atoms = &self.atoms;
+        let mut atoms: Vec<&Atom> = vec![];
+        for atom in &self.atoms {
+            atoms.push(atom);
+        }
+        if let Some(magnetic_atoms) = &self.magnetic_atoms {
+            for magnetic_atom in magnetic_atoms.iter() {
+                atoms.push(magnetic_atom);
+            }
+        }
+        if let Some(electric_atoms) = &self.electric_atoms {
+            for electric_atom in electric_atoms.iter() {
+                atoms.push(electric_atom);
+            }
+        }
+
         let mut all_coords: Vec<&Point3<f64>> = vec![];
         let mut all_masses: Vec<f64> = vec![];
-        for atom in atoms {
+        for atom in atoms.iter() {
             all_coords.push(&atom.coordinates);
             all_masses.push(atom.atomic_mass);
         }
@@ -195,10 +227,10 @@ impl Molecule {
         if let Some(b_vec) = magnetic_field {
             approx::assert_relative_ne!(b_vec.norm(), 0.0);
             let com = self.calc_com(0);
-            self.magnetic_atoms = Some((
+            self.magnetic_atoms = Some([
                 Atom::new_special(AtomKind::Magnetic(true), com + b_vec).unwrap(),
                 Atom::new_special(AtomKind::Magnetic(false), com - b_vec).unwrap(),
-            ))
+            ])
         } else { self.magnetic_atoms = None; }
     }
 
@@ -212,10 +244,10 @@ impl Molecule {
         if let Some(e_vec) = electric_field {
             approx::assert_relative_ne!(e_vec.norm(), 0.0);
             let com = self.calc_com(0);
-            self.electric_atoms = Some((
+            self.electric_atoms = Some([
                 Atom::new_special(AtomKind::Electric(true), com + e_vec).unwrap(),
                 Atom::new_special(AtomKind::Electric(false), com - 1.1*e_vec).unwrap(),
-            ))
+            ])
         } else { self.electric_atoms = None; }
     }
 }
