@@ -1,7 +1,8 @@
-use crate::aux::geometry::Transform;
+use crate::aux::geometry::{self, Transform};
 use crate::aux::misc::{self, HashableFloat};
+use crate::symmetry::symmetry_element::SymmetryElementKind;
 use approx;
-use nalgebra::{Point3, Rotation3, Transform3, Translation3, UnitVector3, Vector3};
+use nalgebra::{Matrix3, Point3, Rotation3, Translation3, UnitVector3, Vector3};
 use periodic_table;
 use std::collections::HashMap;
 use std::fmt;
@@ -170,7 +171,7 @@ impl fmt::Debug for Atom {
 }
 
 /// An enum describing the atom kind.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum AtomKind {
     /// An ordinary atom.
     Ordinary,
@@ -207,14 +208,48 @@ impl fmt::Display for AtomKind {
 }
 
 impl Transform for Atom {
-    fn transform_mut(self: &mut Self, transformation: &Transform3<f64>) {
-        self.coordinates = transformation.transform_point(&self.coordinates);
+    fn transform_mut(self: &mut Self, mat: &Matrix3<f64>) {
+        let det = mat.determinant();
+        assert!(
+            approx::relative_eq!(
+                det,
+                1.0,
+                epsilon = self.threshold,
+                max_relative = self.threshold
+            ) || approx::relative_eq!(
+                det,
+                -1.0,
+                epsilon = self.threshold,
+                max_relative = self.threshold
+            )
+        );
+        self.coordinates = mat * &self.coordinates;
+        if approx::relative_eq!(
+            det,
+            -1.0,
+            epsilon = self.threshold,
+            max_relative = self.threshold
+        ) {
+            if let AtomKind::Magnetic(pos) = self.kind {
+                self.kind = AtomKind::Magnetic(!pos);
+            }
+        };
     }
 
     fn rotate_mut(self: &mut Self, angle: f64, axis: &Vector3<f64>) {
         let normalised_axis = UnitVector3::new_normalize(*axis);
         let rotation = Rotation3::from_axis_angle(&normalised_axis, angle);
         self.coordinates = rotation.transform_point(&self.coordinates);
+    }
+
+    fn improper_rotate_mut(
+        self: &mut Self,
+        angle: f64,
+        axis: &Vector3<f64>,
+        kind: SymmetryElementKind,
+    ) {
+        let mat = geometry::improper_rotation_matrix(angle, axis, 1, kind);
+        self.transform_mut(&mat);
     }
 
     fn translate_mut(self: &mut Self, tvec: &Vector3<f64>) {
@@ -226,9 +261,9 @@ impl Transform for Atom {
         self.coordinates = Point3::origin();
     }
 
-    fn transform(self: &Self, transformation: &Transform3<f64>) -> Self {
+    fn transform(self: &Self, mat: &Matrix3<f64>) -> Self {
         let mut transformed_atom = self.clone();
-        transformed_atom.transform_mut(transformation);
+        transformed_atom.transform_mut(mat);
         transformed_atom
     }
 
@@ -236,6 +271,17 @@ impl Transform for Atom {
         let mut rotated_atom = self.clone();
         rotated_atom.rotate_mut(angle, axis);
         rotated_atom
+    }
+
+    fn improper_rotate(
+        self: &Self,
+        angle: f64,
+        axis: &Vector3<f64>,
+        kind: SymmetryElementKind,
+    ) -> Self {
+        let mut improper_rotated_atom = self.clone();
+        improper_rotated_atom.improper_rotate_mut(angle, axis, kind);
+        improper_rotated_atom
     }
 
     fn translate(self: &Self, tvec: &Vector3<f64>) -> Self {
@@ -254,6 +300,7 @@ impl Transform for Atom {
 impl PartialEq for Atom {
     fn eq(&self, other: &Self) -> bool {
         let result = self.atomic_number == other.atomic_number
+            && self.kind == other.kind
             && approx::relative_eq!(
                 self.atomic_mass,
                 other.atomic_mass,
@@ -267,8 +314,6 @@ impl PartialEq for Atom {
                 max_relative = (self.threshold * other.threshold).sqrt()
             );
         if result {
-            println!("self: {}", self);
-            println!("othe: {}", other);
             assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
         }
         result
@@ -281,6 +326,7 @@ impl Hash for Atom {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let factor = 1.0 / self.threshold;
         self.atomic_number.hash(state);
+        self.kind.hash(state);
         self.atomic_mass
             .round_factor(factor)
             .integer_decode()

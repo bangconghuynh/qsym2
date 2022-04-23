@@ -12,7 +12,6 @@ fn test_point_group_detection_atom() {
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.recentre_mut();
     let mut sym = Symmetry::builder()
-        .threshold(1e-14)
         .moi_threshold(1e-14)
         .molecule(&mol)
         .build()

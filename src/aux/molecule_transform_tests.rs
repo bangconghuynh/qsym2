@@ -1,5 +1,6 @@
 use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::geometry::Transform;
+use crate::aux::geometry::{self, Transform};
+use crate::symmetry::symmetry_element::SymmetryElementKind;
 use crate::aux::molecule::Molecule;
 use nalgebra::{Vector3, Reflection3};
 
@@ -65,4 +66,6 @@ fn test_transform_c3h3 () {
     mol.recentre_mut();
     let rotated_mol = mol.rotate(2.0 * std::f64::consts::PI, &Vector3::new(0.0, 0.0, 1.0));
     assert_eq!(mol, rotated_mol);
+
+    println!("{}", geometry::improper_rotation_matrix(0.0, &Vector3::new(0.0, 1.0, 0.0), 1, SymmetryElementKind::ImproperMirrorPlane));
 }

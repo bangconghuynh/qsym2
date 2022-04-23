@@ -1,6 +1,7 @@
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
 use crate::aux::geometry::Transform;
-use nalgebra::{DVector, Matrix3, Point3, Transform3, Vector3};
+use crate::symmetry::symmetry_element::SymmetryElementKind;
+use nalgebra::{DVector, Matrix3, Point3, Vector3};
 use std::collections::HashSet;
 use std::fs;
 use std::process;
@@ -26,7 +27,7 @@ pub struct Molecule {
     magnetic_atoms: Option<[Atom; 2]>,
 
     /// A threshold for approximate equality comparisons.
-    threshold: f64,
+    pub threshold: f64,
 }
 
 impl Molecule {
@@ -73,6 +74,30 @@ impl Molecule {
         }
     }
 
+    /// Retrieves a vector of references to all atoms in this molecule,
+    /// including special ones, if any.
+    ///
+    /// # Returns
+    ///
+    /// All atoms in this molecule.
+    fn get_all_atoms(&self) -> Vec<&Atom> {
+        let mut atoms: Vec<&Atom> = vec![];
+        for atom in &self.atoms {
+            atoms.push(atom);
+        }
+        if let Some(magnetic_atoms) = &self.magnetic_atoms {
+            for magnetic_atom in magnetic_atoms.iter() {
+                atoms.push(magnetic_atom);
+            }
+        }
+        if let Some(electric_atoms) = &self.electric_atoms {
+            for electric_atom in electric_atoms.iter() {
+                atoms.push(electric_atom);
+            }
+        }
+        atoms
+    }
+
     /// Calculates the centre of mass of the molecule.
     ///
     /// This does not take into account fictitious special atoms.
@@ -113,21 +138,7 @@ impl Molecule {
     ///
     /// The inertia tensor as a $3 \times 3$ matrix.
     pub fn calc_moi(&self, origin: &Point3<f64>, verbose: u64) -> Matrix3<f64> {
-        let mut atoms: Vec<&Atom> = vec![];
-        for atom in &self.atoms {
-            atoms.push(atom);
-        }
-        if let Some(magnetic_atoms) = &self.magnetic_atoms {
-            for magnetic_atom in magnetic_atoms.iter() {
-                atoms.push(magnetic_atom);
-            }
-        }
-        if let Some(electric_atoms) = &self.electric_atoms {
-            for electric_atom in electric_atoms.iter() {
-                atoms.push(electric_atom);
-            }
-        }
-
+        let atoms = self.get_all_atoms();
         let mut inertia_tensor = Matrix3::zeros();
         for atom in atoms.iter() {
             let rel_coordinates: Vector3<f64> = &atom.coordinates - origin;
@@ -164,20 +175,7 @@ impl Molecule {
     ///
     /// The vector of vectors of symmetry-equivalent atom indices.
     pub fn calc_sea_groups(&self, verbose: u64) -> Vec<Vec<usize>> {
-        let mut atoms: Vec<&Atom> = vec![];
-        for atom in &self.atoms {
-            atoms.push(atom);
-        }
-        if let Some(magnetic_atoms) = &self.magnetic_atoms {
-            for magnetic_atom in magnetic_atoms.iter() {
-                atoms.push(magnetic_atom);
-            }
-        }
-        if let Some(electric_atoms) = &self.electric_atoms {
-            for electric_atom in electric_atoms.iter() {
-                atoms.push(electric_atom);
-            }
-        }
+        let atoms = self.get_all_atoms();
 
         let mut all_coords: Vec<&Point3<f64>> = vec![];
         let mut all_masses: Vec<f64> = vec![];
@@ -256,8 +254,7 @@ impl Molecule {
             let com = self.calc_com(0);
             self.electric_atoms = Some([
                 Atom::new_special(AtomKind::Electric(true), com + e_vec, self.threshold).unwrap(),
-                Atom::new_special(AtomKind::Electric(false), com - 1.1 * e_vec, self.threshold)
-                    .unwrap(),
+                Atom::new_special(AtomKind::Electric(false), com - e_vec, self.threshold).unwrap(),
             ])
         } else {
             self.electric_atoms = None;
@@ -266,18 +263,18 @@ impl Molecule {
 }
 
 impl Transform for Molecule {
-    fn transform_mut(self: &mut Self, transformation: &Transform3<f64>) {
+    fn transform_mut(self: &mut Self, mat: &Matrix3<f64>) {
         for atom in self.atoms.iter_mut() {
-            atom.transform_mut(transformation);
+            atom.transform_mut(mat);
         }
         if let Some(ref mut mag_atoms) = self.magnetic_atoms {
             for atom in mag_atoms.iter_mut() {
-                atom.transform_mut(transformation);
+                atom.transform_mut(mat);
             }
         }
         if let Some(ref mut ele_atoms) = self.electric_atoms {
             for atom in ele_atoms.iter_mut() {
-                atom.transform_mut(transformation);
+                atom.transform_mut(mat);
             }
         }
     }
@@ -294,6 +291,27 @@ impl Transform for Molecule {
         if let Some(ref mut ele_atoms) = self.electric_atoms {
             for atom in ele_atoms.iter_mut() {
                 atom.rotate_mut(angle, axis);
+            }
+        }
+    }
+
+    fn improper_rotate_mut(
+        self: &mut Self,
+        angle: f64,
+        axis: &Vector3<f64>,
+        kind: SymmetryElementKind,
+    ) {
+        for atom in self.atoms.iter_mut() {
+            atom.improper_rotate_mut(angle, axis, kind);
+        }
+        if let Some(ref mut mag_atoms) = self.magnetic_atoms {
+            for atom in mag_atoms.iter_mut() {
+                atom.improper_rotate_mut(angle, axis, kind);
+            }
+        }
+        if let Some(ref mut ele_atoms) = self.electric_atoms {
+            for atom in ele_atoms.iter_mut() {
+                atom.improper_rotate_mut(angle, axis, kind);
             }
         }
     }
@@ -320,9 +338,9 @@ impl Transform for Molecule {
         self.translate_mut(&tvec);
     }
 
-    fn transform(self: &Self, transformation: &Transform3<f64>) -> Self {
+    fn transform(self: &Self, mat: &Matrix3<f64>) -> Self {
         let mut transformed_mol = self.clone();
-        transformed_mol.transform_mut(transformation);
+        transformed_mol.transform_mut(mat);
         transformed_mol
     }
 
@@ -330,6 +348,17 @@ impl Transform for Molecule {
         let mut rotated_mol = self.clone();
         rotated_mol.rotate_mut(angle, axis);
         rotated_mol
+    }
+
+    fn improper_rotate(
+        self: &Self,
+        angle: f64,
+        axis: &Vector3<f64>,
+        kind: SymmetryElementKind,
+    ) -> Self {
+        let mut improper_rotated_mol = self.clone();
+        improper_rotated_mol.improper_rotate_mut(angle, axis, kind);
+        improper_rotated_mol
     }
 
     fn translate(self: &Self, tvec: &Vector3<f64>) -> Self {

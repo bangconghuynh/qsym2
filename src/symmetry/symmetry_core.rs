@@ -79,10 +79,6 @@ pub struct Symmetry {
     #[builder(setter(skip), default = "HashMap::new()")]
     improper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
-    /// Threshold for relative comparisons.
-    #[builder(setter(custom))]
-    threshold: f64,
-
     /// Threshold for relative comparisons of moments of inertia.
     #[builder(setter(custom))]
     moi_threshold: f64,
@@ -107,19 +103,6 @@ impl SymmetryBuilder {
     pub fn molecule(&mut self, molecule: &Molecule) -> &mut Self {
         // The Symmetry struct now owns a copy of `molecule`.
         self.molecule = Some(molecule.clone());
-        self
-    }
-
-    pub fn threshold(&mut self, thresh: f64) -> &mut Self {
-        if thresh >= f64::EPSILON {
-            self.threshold = Some(thresh);
-        } else {
-            log::error!(
-                "Threshold value {} is invalid. Threshold must be at least the machine epsilon.",
-                thresh
-            );
-            self.threshold = None;
-        }
         self
     }
 
@@ -160,8 +143,8 @@ impl Symmetry {
                 if approx::relative_eq!(
                     vec.norm(),
                     0.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
+                    epsilon = self.molecule.threshold,
+                    max_relative = self.molecule.threshold
                 ) {
                     self.electric_field = e_vector;
                 } else {
@@ -186,8 +169,8 @@ impl Symmetry {
                 if approx::relative_eq!(
                     vec.norm(),
                     0.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
+                    epsilon = self.molecule.threshold,
+                    max_relative = self.molecule.threshold
                 ) {
                     self.magnetic_field = b_vector;
                 } else {
@@ -218,8 +201,8 @@ impl Symmetry {
         approx::assert_relative_eq!(
             com,
             Point3::origin(),
-            epsilon = self.threshold,
-            max_relative = self.threshold
+            epsilon = self.molecule.threshold,
+            max_relative = self.molecule.threshold
         );
         self.rotational_symmetry = Some(rotsym::calc_rotational_symmetry(
             &inertia,
@@ -232,24 +215,21 @@ impl Symmetry {
         self.sea_groups = Some(self.molecule.calc_sea_groups(0));
 
         match &self.rotational_symmetry {
-            Some(rotsym) => {
-                match rotsym {
-                    RotationalSymmetry::Spherical => self.analyse_spherical(&moi),
-                    _ => {}
-                }
-            }
+            Some(rotsym) => match rotsym {
+                RotationalSymmetry::Spherical => self.analyse_spherical(),
+                _ => {}
+            },
             _ => {}
         }
     }
 
     /// Performs point-group detection analysis for a spherical top.
-    fn analyse_spherical(&mut self, moi: &[&f64]) {
+    fn analyse_spherical(&mut self) {
         assert!(matches!(
             self.rotational_symmetry.as_ref().unwrap(),
             RotationalSymmetry::Spherical
         ));
-        if moi.iter().all(|moi_val| moi_val.abs() < self.moi_threshold) {
-            assert_eq!(self.molecule.atoms.len(), 1);
+        if self.molecule.atoms.len() == 1 {
             self.point_group = Some("O(3)".to_owned());
             log::debug!(
                 "Point group determined: {}",
@@ -265,6 +245,7 @@ impl Symmetry {
                 SymmetryElementKind::ImproperMirrorPlane,
                 None,
             );
+            return;
         }
     }
 
@@ -281,9 +262,9 @@ impl Symmetry {
     /// `true` if the specified element is not present and has just been added,
     /// `false` otherwise.
     fn add_proper(&mut self, order: ElementOrder, axis: Vector3<f64>, generator: bool) -> bool {
-        let positive_axis = geometry::get_positive_pole(&axis, self.threshold).normalize();
+        let positive_axis = geometry::get_positive_pole(&axis, self.molecule.threshold).normalize();
         let element = SymmetryElement::builder()
-            .threshold(self.threshold)
+            .threshold(self.molecule.threshold)
             .order(order.clone())
             .axis(positive_axis)
             .kind(SymmetryElementKind::Proper)
@@ -357,11 +338,11 @@ impl Symmetry {
         kind: SymmetryElementKind,
         sigma: Option<String>,
     ) -> bool {
-        let positive_axis = geometry::get_positive_pole(&axis, self.threshold).normalize();
+        let positive_axis = geometry::get_positive_pole(&axis, self.molecule.threshold).normalize();
         let element = if let Some(sigma_str) = sigma {
             assert!(sigma_str == "d" || sigma_str == "v" || sigma_str == "h");
             SymmetryElement::builder()
-                .threshold(self.threshold)
+                .threshold(self.molecule.threshold)
                 .order(order.clone())
                 .axis(positive_axis)
                 .kind(kind)
@@ -371,7 +352,7 @@ impl Symmetry {
                 .unwrap()
         } else {
             SymmetryElement::builder()
-                .threshold(self.threshold)
+                .threshold(self.molecule.threshold)
                 .order(order.clone())
                 .axis(positive_axis)
                 .kind(kind)
@@ -446,8 +427,19 @@ impl Symmetry {
         }
         result
     }
-}
 
+    ///// Checks for the existence of the proper symmetry element $C_n$ along
+    ///// `axis` in `[Self::molecule]`.
+    /////
+    // fn check_proper(&self, order: ElementOrder, axis: Vector3<f64>) -> bool {
+    //     assert_ne!(
+    //         order,
+    //         ElementOrder::Inf,
+    //         "This method is not meant for infinite-order elements."
+    //     );
+    //     let angle = 2.0 * std::f64::consts::PI / order.to_float();
+    // }
+}
 
 // /// Locates and adds all possible and distinct $C_2$ axes present in the
 // /// molecule in `sym`, provided that `sym` is a spherical top.

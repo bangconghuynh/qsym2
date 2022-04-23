@@ -64,7 +64,7 @@ impl ElementOrder {
         Self::Float(rounded_order, thresh)
     }
 
-    fn to_float(&self) -> f64 {
+    pub fn to_float(&self) -> f64 {
         match self {
             Self::Int(s_i) => *s_i as f64,
             Self::Float(s_f, _) => *s_f,
