@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use nalgebra::{Vector3, Transform3};
 
 
 /// Returns the rotation angle adjusted to be in the interval $(-\pi, +\pi]$.
@@ -49,4 +49,77 @@ pub fn get_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
         pole *= pole[1].signum();
     }
     pole
+}
+
+
+pub trait Transform {
+    /// Transforms in-place the coordinates about the origin by a given
+    /// transformation.
+    ///
+    /// # Arguments
+    ///
+    /// * transformation - A three-dimensional transformation.
+    fn transform_ip(self: &mut Self, transformation: &Transform3<f64>);
+
+    /// Rotates in-place the coordinates through `angle` about `axis`.
+    ///
+    /// # Arguments
+    ///
+    /// * angle - The angle of rotation.
+    /// * axis - The axis of rotation.
+    fn rotate_ip(self: &mut Self, angle: f64, axis: &Vector3<f64>);
+
+    /// Translates in-place the coordinates by a specified translation vector in
+    /// three dimensions.
+    ///
+    /// # Arguments
+    ///
+    /// * tvec - The translation vector.
+    fn translate_ip(self: &mut Self, tvec: &Vector3<f64>);
+
+    /// Recentres in-place to put the centre of mass at the origin.
+    fn recentre_ip(self: &mut Self);
+
+    /// Clones and transforms the coordinates about the origin by a given
+    /// transformation.
+    ///
+    /// # Arguments
+    ///
+    /// * transformation - A three-dimensional transformation.
+    ///
+    /// # Returns
+    ///
+    /// A transformed copy.
+    fn transform(self: &Self, transformation: &Transform3<f64>) -> Self;
+
+    /// Clones and rotates the coordinates through `angle` about `axis`.
+    ///
+    /// # Arguments
+    ///
+    /// * angle - The angle of rotation.
+    /// * axis - The axis of rotation.
+    ///
+    /// # Returns
+    ///
+    /// A rotated copy.
+    fn rotate(self: &Self, angle: f64, axis: &Vector3<f64>) -> Self;
+
+    /// Clones and translates in-place the coordinates by a specified
+    /// translation in three dimensions.
+    ///
+    /// # Arguments
+    ///
+    /// * tvec - The translation vector.
+    ///
+    /// # Returns
+    ///
+    /// A translated copy.
+    fn translate(self: &Self, tvec: &Vector3<f64>) -> Self;
+
+    /// Clones and recentres to put the centre of mass at the origin.
+    ///
+    /// # Returns
+    ///
+    /// A recentred copy.
+    fn recentre(self: &Self) -> Self;
 }

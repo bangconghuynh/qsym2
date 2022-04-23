@@ -1,4 +1,6 @@
-use nalgebra::Point3;
+use crate::aux::geometry::Transform;
+use approx::{self, AbsDiffEq, RelativeEq};
+use nalgebra::{Point3, Rotation3, Transform3, Translation3, UnitVector3, Vector3};
 use periodic_table;
 use std::collections::HashMap;
 use std::fmt;
@@ -112,16 +114,14 @@ impl Atom {
     /// otherwise.
     pub fn new_special(kind: AtomKind, coordinates: Point3<f64>) -> Option<Atom> {
         match kind {
-            AtomKind::Magnetic(_) | AtomKind::Electric(_) => Some(
-                Atom {
-                    kind,
-                    atomic_number: 0,
-                    atomic_symbol: "".to_owned(),
-                    atomic_mass: 100.0,
-                    coordinates
-                }
-            ),
-            _ => None
+            AtomKind::Magnetic(_) | AtomKind::Electric(_) => Some(Atom {
+                kind,
+                atomic_number: 0,
+                atomic_symbol: "".to_owned(),
+                atomic_mass: 100.0,
+                coordinates,
+            }),
+            _ => None,
         }
     }
 }
@@ -162,7 +162,6 @@ impl fmt::Debug for Atom {
     }
 }
 
-
 /// An enum describing the atom kind.
 #[derive(Clone)]
 pub enum AtomKind {
@@ -188,14 +187,110 @@ impl fmt::Display for AtomKind {
                 } else {
                     write!(f, "{}", "MagneticAtom-".to_owned())
                 }
-            },
+            }
             Self::Electric(pos) => {
                 if *pos {
                     write!(f, "{}", "ElectricAtom+".to_owned())
                 } else {
                     write!(f, "{}", "ElectricAtom-".to_owned())
                 }
-            },
+            }
         }
+    }
+}
+
+impl Transform for Atom {
+    fn transform_ip(self: &mut Self, transformation: &Transform3<f64>) {
+        self.coordinates = transformation.transform_point(&self.coordinates);
+    }
+
+    fn rotate_ip(self: &mut Self, angle: f64, axis: &Vector3<f64>) {
+        let normalised_axis = UnitVector3::new_normalize(*axis);
+        let rotation = Rotation3::from_axis_angle(&normalised_axis, angle);
+        self.coordinates = rotation.transform_point(&self.coordinates);
+    }
+
+    fn translate_ip(self: &mut Self, tvec: &Vector3<f64>) {
+        let translation = Translation3::from(*tvec);
+        self.coordinates = translation.transform_point(&self.coordinates);
+    }
+
+    fn recentre_ip(self: &mut Self) {
+        self.coordinates = Point3::origin();
+    }
+
+    fn transform(self: &Self, transformation: &Transform3<f64>) -> Self {
+        let mut transformed_atom = self.clone();
+        transformed_atom.transform_ip(transformation);
+        transformed_atom
+    }
+
+    fn rotate(self: &Self, angle: f64, axis: &Vector3<f64>) -> Self {
+        let mut rotated_atom = self.clone();
+        rotated_atom.rotate_ip(angle, axis);
+        rotated_atom
+    }
+
+    fn translate(self: &Self, tvec: &Vector3<f64>) -> Self {
+        let mut translated_atom = self.clone();
+        translated_atom.translate_ip(tvec);
+        translated_atom
+    }
+
+    fn recentre(self: &Self) -> Self {
+        let mut recentred_atom = self.clone();
+        recentred_atom.recentre_ip();
+        recentred_atom
+    }
+}
+
+impl PartialEq for Atom {
+    fn eq(&self, other: &Self) -> bool {
+        self.atomic_number == other.atomic_number
+            && approx::relative_eq!(self.atomic_mass, other.atomic_mass)
+            && approx::relative_eq!(self.coordinates, other.coordinates)
+    }
+}
+
+impl Eq for Atom {}
+
+impl AbsDiffEq for Atom {
+    type Epsilon = f64;
+
+    fn default_epsilon() -> Self::Epsilon {
+        f64::EPSILON
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.atomic_number == other.atomic_number
+            && approx::abs_diff_eq!(self.atomic_mass, other.atomic_mass, epsilon = epsilon)
+            && approx::abs_diff_eq!(self.coordinates, other.coordinates, epsilon = epsilon)
+    }
+}
+
+impl RelativeEq for Atom {
+    fn default_max_relative() -> Self::Epsilon {
+        f64::EPSILON
+    }
+
+    fn relative_eq(
+        &self,
+        other: &Self,
+        epsilon: Self::Epsilon,
+        max_relative: Self::Epsilon,
+    ) -> bool {
+        self.atomic_number == other.atomic_number
+            && approx::relative_eq!(
+                self.atomic_mass,
+                other.atomic_mass,
+                epsilon = epsilon,
+                max_relative = max_relative
+            )
+            && approx::relative_eq!(
+                self.coordinates,
+                other.coordinates,
+                epsilon = epsilon,
+                max_relative = max_relative
+            )
     }
 }
