@@ -1,9 +1,11 @@
 use crate::aux::geometry::Transform;
-use approx::{self, AbsDiffEq, RelativeEq};
+use crate::aux::misc::{self, HashableFloat};
+use approx;
 use nalgebra::{Point3, Rotation3, Transform3, Translation3, UnitVector3, Vector3};
 use periodic_table;
 use std::collections::HashMap;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 /// A struct storing a look-up of element symbols to give atomic numbers
 /// and atomic masses.
@@ -60,6 +62,9 @@ pub struct Atom {
 
     /// The position of the atom.
     pub coordinates: Point3<f64>,
+
+    /// A threshold for approximate equality comparisons.
+    threshold: f64,
 }
 
 impl Atom {
@@ -76,7 +81,7 @@ impl Atom {
     ///
     /// The parsed [`Atom`] struct if the line has the correct format,
     /// otherwise [`None`].
-    pub fn from_xyz(line: &str, emap: &ElementMap) -> Option<Atom> {
+    pub fn from_xyz(line: &str, emap: &ElementMap, thresh: f64) -> Option<Atom> {
         let split: Vec<&str> = line.split_whitespace().collect();
         if split.len() != 4 {
             return None;
@@ -97,6 +102,7 @@ impl Atom {
             atomic_symbol: atomic_symbol.to_string(),
             atomic_mass: *atomic_mass,
             coordinates,
+            threshold: thresh,
         };
         Some(atom)
     }
@@ -112,7 +118,7 @@ impl Atom {
     ///
     /// `None` if `kind` is not one of the special atom kinds, `Some<Atom>`
     /// otherwise.
-    pub fn new_special(kind: AtomKind, coordinates: Point3<f64>) -> Option<Atom> {
+    pub fn new_special(kind: AtomKind, coordinates: Point3<f64>, thresh: f64) -> Option<Atom> {
         match kind {
             AtomKind::Magnetic(_) | AtomKind::Electric(_) => Some(Atom {
                 kind,
@@ -120,6 +126,7 @@ impl Atom {
                 atomic_symbol: "".to_owned(),
                 atomic_mass: 100.0,
                 coordinates,
+                threshold: thresh,
             }),
             _ => None,
         }
@@ -200,97 +207,95 @@ impl fmt::Display for AtomKind {
 }
 
 impl Transform for Atom {
-    fn transform_ip(self: &mut Self, transformation: &Transform3<f64>) {
+    fn transform_mut(self: &mut Self, transformation: &Transform3<f64>) {
         self.coordinates = transformation.transform_point(&self.coordinates);
     }
 
-    fn rotate_ip(self: &mut Self, angle: f64, axis: &Vector3<f64>) {
+    fn rotate_mut(self: &mut Self, angle: f64, axis: &Vector3<f64>) {
         let normalised_axis = UnitVector3::new_normalize(*axis);
         let rotation = Rotation3::from_axis_angle(&normalised_axis, angle);
         self.coordinates = rotation.transform_point(&self.coordinates);
     }
 
-    fn translate_ip(self: &mut Self, tvec: &Vector3<f64>) {
+    fn translate_mut(self: &mut Self, tvec: &Vector3<f64>) {
         let translation = Translation3::from(*tvec);
         self.coordinates = translation.transform_point(&self.coordinates);
     }
 
-    fn recentre_ip(self: &mut Self) {
+    fn recentre_mut(self: &mut Self) {
         self.coordinates = Point3::origin();
     }
 
     fn transform(self: &Self, transformation: &Transform3<f64>) -> Self {
         let mut transformed_atom = self.clone();
-        transformed_atom.transform_ip(transformation);
+        transformed_atom.transform_mut(transformation);
         transformed_atom
     }
 
     fn rotate(self: &Self, angle: f64, axis: &Vector3<f64>) -> Self {
         let mut rotated_atom = self.clone();
-        rotated_atom.rotate_ip(angle, axis);
+        rotated_atom.rotate_mut(angle, axis);
         rotated_atom
     }
 
     fn translate(self: &Self, tvec: &Vector3<f64>) -> Self {
         let mut translated_atom = self.clone();
-        translated_atom.translate_ip(tvec);
+        translated_atom.translate_mut(tvec);
         translated_atom
     }
 
     fn recentre(self: &Self) -> Self {
         let mut recentred_atom = self.clone();
-        recentred_atom.recentre_ip();
+        recentred_atom.recentre_mut();
         recentred_atom
     }
 }
 
 impl PartialEq for Atom {
     fn eq(&self, other: &Self) -> bool {
-        self.atomic_number == other.atomic_number
-            && approx::relative_eq!(self.atomic_mass, other.atomic_mass)
-            && approx::relative_eq!(self.coordinates, other.coordinates)
+        let result = self.atomic_number == other.atomic_number
+            && approx::relative_eq!(
+                self.atomic_mass,
+                other.atomic_mass,
+                epsilon = (self.threshold * other.threshold).sqrt(),
+                max_relative = (self.threshold * other.threshold).sqrt()
+            )
+            && approx::relative_eq!(
+                self.coordinates,
+                other.coordinates,
+                epsilon = (self.threshold * other.threshold).sqrt(),
+                max_relative = (self.threshold * other.threshold).sqrt()
+            );
+        if result {
+            println!("self: {}", self);
+            println!("othe: {}", other);
+            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+        }
+        result
     }
 }
 
 impl Eq for Atom {}
 
-impl AbsDiffEq for Atom {
-    type Epsilon = f64;
-
-    fn default_epsilon() -> Self::Epsilon {
-        f64::EPSILON
-    }
-
-    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        self.atomic_number == other.atomic_number
-            && approx::abs_diff_eq!(self.atomic_mass, other.atomic_mass, epsilon = epsilon)
-            && approx::abs_diff_eq!(self.coordinates, other.coordinates, epsilon = epsilon)
-    }
-}
-
-impl RelativeEq for Atom {
-    fn default_max_relative() -> Self::Epsilon {
-        f64::EPSILON
-    }
-
-    fn relative_eq(
-        &self,
-        other: &Self,
-        epsilon: Self::Epsilon,
-        max_relative: Self::Epsilon,
-    ) -> bool {
-        self.atomic_number == other.atomic_number
-            && approx::relative_eq!(
-                self.atomic_mass,
-                other.atomic_mass,
-                epsilon = epsilon,
-                max_relative = max_relative
-            )
-            && approx::relative_eq!(
-                self.coordinates,
-                other.coordinates,
-                epsilon = epsilon,
-                max_relative = max_relative
-            )
+impl Hash for Atom {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let factor = 1.0 / self.threshold;
+        self.atomic_number.hash(state);
+        self.atomic_mass
+            .round_factor(factor)
+            .integer_decode()
+            .hash(state);
+        self.coordinates[0]
+            .round_factor(factor)
+            .integer_decode()
+            .hash(state);
+        self.coordinates[1]
+            .round_factor(factor)
+            .integer_decode()
+            .hash(state);
+        self.coordinates[2]
+            .round_factor(factor)
+            .integer_decode()
+            .hash(state);
     }
 }

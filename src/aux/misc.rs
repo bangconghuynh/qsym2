@@ -1,5 +1,4 @@
 use std::mem;
-use num;
 use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
 
@@ -40,7 +39,7 @@ impl HashableFloat for f64 {
     }
 
     fn integer_decode(self) -> (u64, i16, i8) {
-        let bits: u64 = unsafe { mem::transmute(self) };
+        let bits: u64 = unsafe { mem::transmute(self + 0.0) };
         let sign: i8 = if bits >> 63 == 0 { 1 } else { -1 };
         let mut exponent: i16 = ((bits >> 52) & 0x7ff) as i16;
         let mantissa = if exponent == 0 {

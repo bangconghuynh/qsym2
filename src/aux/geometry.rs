@@ -59,7 +59,7 @@ pub trait Transform {
     /// # Arguments
     ///
     /// * transformation - A three-dimensional transformation.
-    fn transform_ip(self: &mut Self, transformation: &Transform3<f64>);
+    fn transform_mut(self: &mut Self, transformation: &Transform3<f64>);
 
     /// Rotates in-place the coordinates through `angle` about `axis`.
     ///
@@ -67,7 +67,7 @@ pub trait Transform {
     ///
     /// * angle - The angle of rotation.
     /// * axis - The axis of rotation.
-    fn rotate_ip(self: &mut Self, angle: f64, axis: &Vector3<f64>);
+    fn rotate_mut(self: &mut Self, angle: f64, axis: &Vector3<f64>);
 
     /// Translates in-place the coordinates by a specified translation vector in
     /// three dimensions.
@@ -75,10 +75,10 @@ pub trait Transform {
     /// # Arguments
     ///
     /// * tvec - The translation vector.
-    fn translate_ip(self: &mut Self, tvec: &Vector3<f64>);
+    fn translate_mut(self: &mut Self, tvec: &Vector3<f64>);
 
     /// Recentres in-place to put the centre of mass at the origin.
-    fn recentre_ip(self: &mut Self);
+    fn recentre_mut(self: &mut Self);
 
     /// Clones and transforms the coordinates about the origin by a given
     /// transformation.

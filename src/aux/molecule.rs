@@ -1,7 +1,7 @@
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
 use crate::aux::geometry::Transform;
-use approx::{self, AbsDiffEq, RelativeEq};
 use nalgebra::{DVector, Matrix3, Point3, Transform3, Vector3};
+use std::collections::HashSet;
 use std::fs;
 use std::process;
 
@@ -9,13 +9,24 @@ use std::process;
 #[path = "sea_tests.rs"]
 mod sea_tests;
 
+#[cfg(test)]
+#[path = "molecule_transform_tests.rs"]
+mod molecule_transform_tests;
+
 /// A struct containing the atoms constituting a molecule.
 #[derive(Clone, Debug)]
 pub struct Molecule {
     /// The atoms constituting this molecule.
     pub atoms: Vec<Atom>,
+
+    /// Optional special atoms to represent the electric field applied to this molecule.
     electric_atoms: Option<[Atom; 2]>,
+
+    /// Optional special atoms to represent the magnetic field applied to this molecule.
     magnetic_atoms: Option<[Atom; 2]>,
+
+    /// A threshold for approximate equality comparisons.
+    threshold: f64,
 }
 
 impl Molecule {
@@ -28,7 +39,7 @@ impl Molecule {
     /// # Returns
     ///
     /// The parsed [`Molecule`] struct.
-    pub fn from_xyz(filename: &str) -> Molecule {
+    pub fn from_xyz(filename: &str, thresh: f64) -> Molecule {
         let contents = fs::read_to_string(filename).unwrap_or_else(|err| {
             println!("Unable to read file {}.", filename);
             println!("{}", err);
@@ -44,7 +55,7 @@ impl Molecule {
             } else if i == 1 {
                 continue;
             } else {
-                atoms.push(Atom::from_xyz(&line, &emap).unwrap());
+                atoms.push(Atom::from_xyz(&line, &emap, thresh).unwrap());
             }
         }
         assert_eq!(
@@ -58,6 +69,7 @@ impl Molecule {
             atoms,
             electric_atoms: None,
             magnetic_atoms: None,
+            threshold: thresh,
         }
     }
 
@@ -151,7 +163,7 @@ impl Molecule {
     /// # Returns
     ///
     /// The vector of vectors of symmetry-equivalent atom indices.
-    pub fn calc_sea_groups(&self, dist_thresh: f64, verbose: u64) -> Vec<Vec<usize>> {
+    pub fn calc_sea_groups(&self, verbose: u64) -> Vec<Vec<usize>> {
         let mut atoms: Vec<&Atom> = vec![];
         for atom in &self.atoms {
             atoms.push(atom);
@@ -174,7 +186,7 @@ impl Molecule {
             all_masses.push(atom.atomic_mass);
         }
         let mut columns: Vec<DVector<f64>> = vec![];
-        let decimals = -dist_thresh.log10().round() as i32;
+        let decimals = -self.threshold.log10().round() as i32;
         let rounding_factor = (10 as f64).powi(decimals);
 
         // Determine indices of symmetry-equivalent atoms
@@ -193,7 +205,11 @@ impl Molecule {
                 columns.push(column_j_vec);
             } else {
                 let equiv_set_search = equiv_indicess.iter().position(|equiv_indices| {
-                    columns[equiv_indices[0]].relative_eq(&column_j_vec, dist_thresh, dist_thresh)
+                    columns[equiv_indices[0]].relative_eq(
+                        &column_j_vec,
+                        self.threshold,
+                        self.threshold,
+                    )
                 });
                 columns.push(column_j_vec);
                 if let Some(index) = equiv_set_search {
@@ -207,16 +223,6 @@ impl Molecule {
             println!("Number of SEA groups: {}", equiv_indicess.len());
         }
         equiv_indicess
-
-        // // Convert indices to atom references
-        // let mut sea_groups: Vec<Vec<&Atom>> = vec![];
-        // for (i, equiv_indices) in equiv_indicess.iter().enumerate() {
-        //     sea_groups.push(vec![]);
-        //     for equiv_index in equiv_indices.into_iter() {
-        //         sea_groups[i].push(&atoms[*equiv_index]);
-        //     }
-        // }
-        // sea_groups
     }
 
     /// Adds two fictitious magnetic atoms to represent the magnetic field.
@@ -230,8 +236,8 @@ impl Molecule {
             approx::assert_relative_ne!(b_vec.norm(), 0.0);
             let com = self.calc_com(0);
             self.magnetic_atoms = Some([
-                Atom::new_special(AtomKind::Magnetic(true), com + b_vec).unwrap(),
-                Atom::new_special(AtomKind::Magnetic(false), com - b_vec).unwrap(),
+                Atom::new_special(AtomKind::Magnetic(true), com + b_vec, self.threshold).unwrap(),
+                Atom::new_special(AtomKind::Magnetic(false), com - b_vec, self.threshold).unwrap(),
             ])
         } else {
             self.magnetic_atoms = None;
@@ -249,8 +255,9 @@ impl Molecule {
             approx::assert_relative_ne!(e_vec.norm(), 0.0);
             let com = self.calc_com(0);
             self.electric_atoms = Some([
-                Atom::new_special(AtomKind::Electric(true), com + e_vec).unwrap(),
-                Atom::new_special(AtomKind::Electric(false), com - 1.1 * e_vec).unwrap(),
+                Atom::new_special(AtomKind::Electric(true), com + e_vec, self.threshold).unwrap(),
+                Atom::new_special(AtomKind::Electric(false), com - 1.1 * e_vec, self.threshold)
+                    .unwrap(),
             ])
         } else {
             self.electric_atoms = None;
@@ -259,251 +266,137 @@ impl Molecule {
 }
 
 impl Transform for Molecule {
-    fn transform_ip(self: &mut Self, transformation: &Transform3<f64>) {
+    fn transform_mut(self: &mut Self, transformation: &Transform3<f64>) {
         for atom in self.atoms.iter_mut() {
-            atom.transform_ip(transformation);
+            atom.transform_mut(transformation);
         }
         if let Some(ref mut mag_atoms) = self.magnetic_atoms {
             for atom in mag_atoms.iter_mut() {
-                atom.transform_ip(transformation);
+                atom.transform_mut(transformation);
             }
         }
         if let Some(ref mut ele_atoms) = self.electric_atoms {
             for atom in ele_atoms.iter_mut() {
-                atom.transform_ip(transformation);
+                atom.transform_mut(transformation);
             }
         }
     }
 
-    fn rotate_ip(self: &mut Self, angle: f64, axis: &Vector3<f64>) {
+    fn rotate_mut(self: &mut Self, angle: f64, axis: &Vector3<f64>) {
         for atom in self.atoms.iter_mut() {
-            atom.rotate_ip(angle, axis);
+            atom.rotate_mut(angle, axis);
         }
         if let Some(ref mut mag_atoms) = self.magnetic_atoms {
             for atom in mag_atoms.iter_mut() {
-                atom.rotate_ip(angle, axis);
+                atom.rotate_mut(angle, axis);
             }
         }
         if let Some(ref mut ele_atoms) = self.electric_atoms {
             for atom in ele_atoms.iter_mut() {
-                atom.rotate_ip(angle, axis);
+                atom.rotate_mut(angle, axis);
             }
         }
     }
 
-    fn translate_ip(self: &mut Self, tvec: &Vector3<f64>) {
+    fn translate_mut(self: &mut Self, tvec: &Vector3<f64>) {
         for atom in self.atoms.iter_mut() {
-            atom.translate_ip(tvec);
+            atom.translate_mut(tvec);
         }
         if let Some(ref mut mag_atoms) = self.magnetic_atoms {
             for atom in mag_atoms.iter_mut() {
-                atom.translate_ip(tvec);
+                atom.translate_mut(tvec);
             }
         }
         if let Some(ref mut ele_atoms) = self.electric_atoms {
             for atom in ele_atoms.iter_mut() {
-                atom.translate_ip(tvec);
+                atom.translate_mut(tvec);
             }
         }
     }
 
-    fn recentre_ip(self: &mut Self) {
+    fn recentre_mut(self: &mut Self) {
         let com = self.calc_com(0);
         let tvec = -Vector3::new(com[0], com[1], com[2]);
-        self.translate_ip(&tvec);
+        self.translate_mut(&tvec);
     }
 
     fn transform(self: &Self, transformation: &Transform3<f64>) -> Self {
         let mut transformed_mol = self.clone();
-        transformed_mol.transform_ip(transformation);
+        transformed_mol.transform_mut(transformation);
         transformed_mol
     }
 
     fn rotate(self: &Self, angle: f64, axis: &Vector3<f64>) -> Self {
         let mut rotated_mol = self.clone();
-        rotated_mol.rotate_ip(angle, axis);
+        rotated_mol.rotate_mut(angle, axis);
         rotated_mol
     }
 
     fn translate(self: &Self, tvec: &Vector3<f64>) -> Self {
         let mut translated_mol = self.clone();
-        translated_mol.translate_ip(tvec);
+        translated_mol.translate_mut(tvec);
         translated_mol
     }
 
     fn recentre(self: &Self) -> Self {
         let mut recentred_mol = self.clone();
-        recentred_mol.recentre_ip();
+        recentred_mol.recentre_mut();
         recentred_mol
     }
 }
 
 impl PartialEq for Molecule {
     fn eq(&self, other: &Self) -> bool {
-        let atom_eq = self.atoms.len() == other.atoms.len()
-            && self
-                .atoms
-                .iter()
-                .zip(other.atoms.iter())
-                .all(|(atom_a, atom_b)| atom_a == atom_b);
-        let mag_atom_eq = if let Some(ref self_mag_atoms) = self.magnetic_atoms {
-            if let Some(ref other_mag_atoms) = other.magnetic_atoms {
-                self_mag_atoms
-                    .iter()
-                    .zip(other_mag_atoms.iter())
-                    .all(|(atom_a, atom_b)| atom_a == atom_b)
+        if self.atoms.len() != other.atoms.len() {
+            return false;
+        };
+        let self_atom_set: HashSet<Atom> = self.atoms.iter().cloned().collect();
+        let other_atom_set: HashSet<Atom> = other.atoms.iter().cloned().collect();
+        if self_atom_set.symmetric_difference(&other_atom_set).count() != 0 {
+            return false;
+        };
+
+        if let Some(self_mag_atoms) = &self.magnetic_atoms {
+            if let Some(other_mag_atoms) = &other.magnetic_atoms {
+                let self_mag_atom_set: HashSet<Atom> = self_mag_atoms.iter().cloned().collect();
+                let other_mag_atom_set: HashSet<Atom> = other_mag_atoms.iter().cloned().collect();
+                if self_mag_atom_set
+                    .symmetric_difference(&other_mag_atom_set)
+                    .count()
+                    != 0
+                {
+                    return false;
+                }
             } else {
-                false
+                return false;
             }
         } else {
             if let Some(_) = other.magnetic_atoms {
-                false
-            } else {
-                true
+                return false;
             }
         };
-        let ele_atom_eq = if let Some(ref self_ele_atoms) = self.electric_atoms {
-            if let Some(ref other_ele_atoms) = other.electric_atoms {
-                self_ele_atoms
-                    .iter()
-                    .zip(other_ele_atoms.iter())
-                    .all(|(atom_a, atom_b)| atom_a == atom_b)
+
+        if let Some(self_ele_atoms) = &self.electric_atoms {
+            if let Some(other_ele_atoms) = &other.electric_atoms {
+                let self_ele_atom_set: HashSet<Atom> = self_ele_atoms.iter().cloned().collect();
+                let other_ele_atom_set: HashSet<Atom> = other_ele_atoms.iter().cloned().collect();
+                if self_ele_atom_set
+                    .symmetric_difference(&other_ele_atom_set)
+                    .count()
+                    != 0
+                {
+                    return false;
+                }
             } else {
-                false
+                return false;
             }
         } else {
             if let Some(_) = other.electric_atoms {
-                false
-            } else {
-                true
+                return false;
             }
         };
-        atom_eq && mag_atom_eq && ele_atom_eq
+        true
     }
 }
 
 impl Eq for Molecule {}
-
-impl AbsDiffEq for Molecule {
-    type Epsilon = f64;
-
-    fn default_epsilon() -> Self::Epsilon {
-        f64::EPSILON
-    }
-
-    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        let atom_eq = self.atoms.len() == other.atoms.len()
-            && self
-                .atoms
-                .iter()
-                .zip(other.atoms.iter())
-                .all(|(atom_a, atom_b)| approx::abs_diff_eq!(atom_a, atom_b, epsilon = epsilon));
-        let mag_atom_eq = if let Some(ref self_mag_atoms) = self.magnetic_atoms {
-            if let Some(ref other_mag_atoms) = other.magnetic_atoms {
-                self_mag_atoms
-                    .iter()
-                    .zip(other_mag_atoms.iter())
-                    .all(|(atom_a, atom_b)| approx::abs_diff_eq!(atom_a, atom_b, epsilon = epsilon))
-            } else {
-                false
-            }
-        } else {
-            if let Some(_) = other.magnetic_atoms {
-                false
-            } else {
-                true
-            }
-        };
-        let ele_atom_eq = if let Some(ref self_ele_atoms) = self.electric_atoms {
-            if let Some(ref other_ele_atoms) = other.electric_atoms {
-                self_ele_atoms
-                    .iter()
-                    .zip(other_ele_atoms.iter())
-                    .all(|(atom_a, atom_b)| approx::abs_diff_eq!(atom_a, atom_b, epsilon = epsilon))
-            } else {
-                false
-            }
-        } else {
-            if let Some(_) = other.electric_atoms {
-                false
-            } else {
-                true
-            }
-        };
-        atom_eq && mag_atom_eq && ele_atom_eq
-    }
-}
-
-impl RelativeEq for Molecule {
-    fn default_max_relative() -> Self::Epsilon {
-        f64::EPSILON
-    }
-
-    fn relative_eq(
-        &self,
-        other: &Self,
-        epsilon: Self::Epsilon,
-        max_relative: Self::Epsilon,
-    ) -> bool {
-        let atom_eq = self.atoms.len() == other.atoms.len()
-            && self
-                .atoms
-                .iter()
-                .zip(other.atoms.iter())
-                .all(|(atom_a, atom_b)| {
-                    approx::relative_eq!(
-                        atom_a,
-                        atom_b,
-                        epsilon = epsilon,
-                        max_relative = max_relative
-                    )
-                });
-        let mag_atom_eq = if let Some(ref self_mag_atoms) = self.magnetic_atoms {
-            if let Some(ref other_mag_atoms) = other.magnetic_atoms {
-                self_mag_atoms
-                    .iter()
-                    .zip(other_mag_atoms.iter())
-                    .all(|(atom_a, atom_b)| {
-                        approx::relative_eq!(
-                            atom_a,
-                            atom_b,
-                            epsilon = epsilon,
-                            max_relative = max_relative
-                        )
-                    })
-            } else {
-                false
-            }
-        } else {
-            if let Some(_) = other.magnetic_atoms {
-                false
-            } else {
-                true
-            }
-        };
-        let ele_atom_eq = if let Some(ref self_ele_atoms) = self.electric_atoms {
-            if let Some(ref other_ele_atoms) = other.electric_atoms {
-                self_ele_atoms
-                    .iter()
-                    .zip(other_ele_atoms.iter())
-                    .all(|(atom_a, atom_b)| {
-                        approx::relative_eq!(
-                            atom_a,
-                            atom_b,
-                            epsilon = epsilon,
-                            max_relative = max_relative
-                        )
-                    })
-            } else {
-                false
-            }
-        } else {
-            if let Some(_) = other.electric_atoms {
-                false
-            } else {
-                true
-            }
-        };
-        atom_eq && mag_atom_eq && ele_atom_eq
-    }
-}

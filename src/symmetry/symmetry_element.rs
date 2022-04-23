@@ -7,8 +7,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use crate::aux::geometry;
-use crate::aux::misc;
-use crate::aux::misc::HashableFloat;
+use crate::aux::misc::{self, HashableFloat};
 
 #[cfg(test)]
 #[path = "symmetry_element_tests.rs"]
@@ -245,7 +244,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if the symmetry element is proper.
-    fn is_proper(&self) -> bool {
+    pub fn is_proper(&self) -> bool {
         self.kind == SymmetryElementKind::Proper
     }
 
@@ -254,7 +253,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is an identity element.
-    fn is_identity(&self) -> bool {
+    pub fn is_identity(&self) -> bool {
         self.kind == SymmetryElementKind::Proper && self.order == ElementOrder::Int(1)
     }
 
@@ -263,7 +262,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is an inversion centre.
-    fn is_inversion_centre(&self) -> bool {
+    pub fn is_inversion_centre(&self) -> bool {
         (matches!(self.kind, SymmetryElementKind::ImproperMirrorPlane)
             && self.order == ElementOrder::Int(2))
             || (self.kind == SymmetryElementKind::ImproperInversionCentre
@@ -275,7 +274,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is a binary rotation axis.
-    fn is_binary_rotation_axis(&self) -> bool {
+    pub fn is_binary_rotation_axis(&self) -> bool {
         self.kind == SymmetryElementKind::Proper && self.order == ElementOrder::Int(2)
     }
 
@@ -284,7 +283,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is a mirror plane.
-    fn is_mirror_plane(&self) -> bool {
+    pub fn is_mirror_plane(&self) -> bool {
         (matches!(self.kind, SymmetryElementKind::ImproperMirrorPlane)
             && self.order == ElementOrder::Int(1))
             || (self.kind == SymmetryElementKind::ImproperInversionCentre
@@ -298,30 +297,12 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// The standard symbol for this symmetry element.
-    fn get_standard_symbol(&self) -> String {
+    pub fn get_standard_symbol(&self) -> String {
         let main_symbol: String = match self.kind {
             SymmetryElementKind::Proper => "C".to_owned(),
             SymmetryElementKind::ImproperMirrorPlane => "S".to_owned(),
             SymmetryElementKind::ImproperInversionCentre => "Ṡ".to_owned(),
         };
-
-        // let order_string: String = match approx::relative_eq!(
-        //     self.order,
-        //     self.order.round(),
-        //     epsilon = self.threshold,
-        //     max_relative = self.threshold
-        // ) {
-        //     true => match approx::relative_eq!(
-        //         self.order,
-        //         -1.0,
-        //         epsilon = self.threshold,
-        //         max_relative = self.threshold
-        //     ) {
-        //         true => "∞".to_owned(),
-        //         false => format!("{:.0}", self.order),
-        //     },
-        //     false => format!("{:.3}", self.order),
-        // };
         format!("{}{}", main_symbol, self.order)
     }
 
@@ -331,7 +312,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// The detailed symbol for this symmetry element.
-    fn get_detailed_symbol(&self) -> String {
+    pub fn get_detailed_symbol(&self) -> String {
         let main_symbol: String = match self.kind {
             SymmetryElementKind::Proper => "C".to_owned(),
             SymmetryElementKind::ImproperMirrorPlane => {
