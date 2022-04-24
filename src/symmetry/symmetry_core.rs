@@ -1,4 +1,4 @@
-use crate::aux::geometry;
+use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
 use crate::symmetry::symmetry_element::{ElementOrder, SymmetryElement, SymmetryElementKind};
@@ -428,17 +428,57 @@ impl Symmetry {
         result
     }
 
-    ///// Checks for the existence of the proper symmetry element $C_n$ along
-    ///// `axis` in `[Self::molecule]`.
-    /////
-    // fn check_proper(&self, order: ElementOrder, axis: Vector3<f64>) -> bool {
-    //     assert_ne!(
-    //         order,
-    //         ElementOrder::Inf,
-    //         "This method is not meant for infinite-order elements."
-    //     );
-    //     let angle = 2.0 * std::f64::consts::PI / order.to_float();
-    // }
+    /// Checks for the existence of the proper symmetry element $C_n$ along
+    /// `axis` in `[Self::molecule]`.
+    ///
+    /// # Arguments
+    ///
+    /// * order - The geometrical order $n$ of the rotation axis. Only finite
+    /// orders are supported.
+    /// * axis - The rotation axis.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if the $C_n$ element exists in `[Self::molecule]`.
+    fn check_proper(&self, order: &ElementOrder, axis: &Vector3<f64>) -> bool {
+        assert_ne!(
+            *order,
+            ElementOrder::Inf,
+            "This method does not work for infinite-order elements."
+        );
+        let angle = 2.0 * std::f64::consts::PI / order.to_float();
+        let rotated_mol = self.molecule.rotate(angle, axis);
+        rotated_mol == self.molecule
+    }
+
+    /// Checks for the existence of the improper symmetry element $S_n$ or
+    /// $\dot{S}_n$ along `axis` in `[Self::molecule]`.
+    ///
+    /// # Arguments
+    ///
+    /// * order - The geometrical order $n$ of the improper rotation axis. Only
+    /// finite orders are supported.
+    /// * axis - The rotation axis.
+    /// * kind - The convention in which the improper element is defined.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if the improper element exists in `[Self::molecule]`.
+    fn check_improper(
+        &self,
+        order: &ElementOrder,
+        axis: &Vector3<f64>,
+        kind: &SymmetryElementKind,
+    ) -> bool {
+        assert_ne!(
+            *order,
+            ElementOrder::Inf,
+            "This method does not work for infinite-order elements."
+        );
+        let angle = 2.0 * std::f64::consts::PI / order.to_float();
+        let transformed_mol = self.molecule.improper_rotate(angle, axis, kind);
+        transformed_mol == self.molecule
+    }
 }
 
 // /// Locates and adds all possible and distinct $C_2$ axes present in the

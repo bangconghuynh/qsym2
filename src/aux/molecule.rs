@@ -253,7 +253,7 @@ impl Molecule {
             approx::assert_relative_ne!(e_vec.norm(), 0.0);
             let com = self.calc_com(0);
             self.electric_atoms = Some([
-                Atom::new_special(AtomKind::Electric(true), com + e_vec, self.threshold).unwrap(),
+                Atom::new_special(AtomKind::Electric(true), com + 1.1 * e_vec, self.threshold).unwrap(),
                 Atom::new_special(AtomKind::Electric(false), com - e_vec, self.threshold).unwrap(),
             ])
         } else {
@@ -299,7 +299,7 @@ impl Transform for Molecule {
         self: &mut Self,
         angle: f64,
         axis: &Vector3<f64>,
-        kind: SymmetryElementKind,
+        kind: &SymmetryElementKind,
     ) {
         for atom in self.atoms.iter_mut() {
             atom.improper_rotate_mut(angle, axis, kind);
@@ -354,7 +354,7 @@ impl Transform for Molecule {
         self: &Self,
         angle: f64,
         axis: &Vector3<f64>,
-        kind: SymmetryElementKind,
+        kind: &SymmetryElementKind,
     ) -> Self {
         let mut improper_rotated_mol = self.clone();
         improper_rotated_mol.improper_rotate_mut(angle, axis, kind);
@@ -377,11 +377,13 @@ impl Transform for Molecule {
 impl PartialEq for Molecule {
     fn eq(&self, other: &Self) -> bool {
         if self.atoms.len() != other.atoms.len() {
+            println!("Diff len");
             return false;
         };
         let self_atom_set: HashSet<Atom> = self.atoms.iter().cloned().collect();
         let other_atom_set: HashSet<Atom> = other.atoms.iter().cloned().collect();
         if self_atom_set.symmetric_difference(&other_atom_set).count() != 0 {
+            println!("Diff set {:?}", self_atom_set.symmetric_difference(&other_atom_set));
             return false;
         };
 

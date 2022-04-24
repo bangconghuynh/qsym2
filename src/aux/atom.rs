@@ -246,7 +246,7 @@ impl Transform for Atom {
         self: &mut Self,
         angle: f64,
         axis: &Vector3<f64>,
-        kind: SymmetryElementKind,
+        kind: &SymmetryElementKind,
     ) {
         let mat = geometry::improper_rotation_matrix(angle, axis, 1, kind);
         self.transform_mut(&mat);
@@ -277,7 +277,7 @@ impl Transform for Atom {
         self: &Self,
         angle: f64,
         axis: &Vector3<f64>,
-        kind: SymmetryElementKind,
+        kind: &SymmetryElementKind,
     ) -> Self {
         let mut improper_rotated_atom = self.clone();
         improper_rotated_atom.improper_rotate_mut(angle, axis, kind);

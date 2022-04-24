@@ -1,5 +1,5 @@
 use crate::symmetry::symmetry_element::SymmetryElementKind;
-use nalgebra::{ClosedMul, Matrix3, Rotation3, Scalar, Transform3, UnitVector3, Vector3};
+use nalgebra::{ClosedMul, Matrix3, Rotation3, Scalar, UnitVector3, Vector3};
 
 /// Returns the rotation angle adjusted to be in the interval $(-\pi, +\pi]$.
 ///
@@ -104,7 +104,7 @@ pub fn improper_rotation_matrix(
     angle: f64,
     axis: &Vector3<f64>,
     power: i8,
-    kind: SymmetryElementKind,
+    kind: &SymmetryElementKind,
 ) -> Matrix3<f64> {
     let rotmat = proper_rotation_matrix(angle, axis, power);
     let normalised_axis = UnitVector3::new_normalize(*axis);
@@ -153,7 +153,7 @@ pub trait Transform {
         self: &mut Self,
         angle: f64,
         axis: &Vector3<f64>,
-        kind: SymmetryElementKind,
+        kind: &SymmetryElementKind,
     );
 
     /// Translates in-place the coordinates by a specified translation vector in
@@ -206,7 +206,7 @@ pub trait Transform {
         self: &Self,
         angle: f64,
         axis: &Vector3<f64>,
-        kind: SymmetryElementKind,
+        kind: &SymmetryElementKind,
     ) -> Self;
 
     /// Clones and translates in-place the coordinates by a specified
