@@ -497,23 +497,22 @@ impl Hash for SymmetryElement {
         if self.is_identity() || self.is_inversion_centre() {
             true.hash(state);
         } else {
-            let factor = 1.0 / self.threshold;
             match self.kind {
                 SymmetryElementKind::ImproperMirrorPlane => {
                     let c_self = self
                         .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre);
                     c_self.order.hash(state);
                     let pole = geometry::get_positive_pole(&c_self.axis, c_self.threshold);
-                    pole[0].round_factor(factor).integer_decode().hash(state);
-                    pole[1].round_factor(factor).integer_decode().hash(state);
-                    pole[2].round_factor(factor).integer_decode().hash(state);
+                    pole[0].round_factor(self.threshold).integer_decode().hash(state);
+                    pole[1].round_factor(self.threshold).integer_decode().hash(state);
+                    pole[2].round_factor(self.threshold).integer_decode().hash(state);
                 }
                 _ => {
                     self.order.hash(state);
                     let pole = geometry::get_positive_pole(&self.axis, self.threshold);
-                    pole[0].round_factor(factor).integer_decode().hash(state);
-                    pole[1].round_factor(factor).integer_decode().hash(state);
-                    pole[2].round_factor(factor).integer_decode().hash(state);
+                    pole[0].round_factor(self.threshold).integer_decode().hash(state);
+                    pole[1].round_factor(self.threshold).integer_decode().hash(state);
+                    pole[2].round_factor(self.threshold).integer_decode().hash(state);
                 }
             };
         }

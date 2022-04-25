@@ -2,8 +2,9 @@ use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
 use crate::symmetry::symmetry_element::{ElementOrder, SymmetryElement, SymmetryElementKind};
+use itertools;
 use log;
-use nalgebra::{Point3, Vector3};
+use nalgebra::{Point3, Vector3, UnitVector3};
 use std::collections::{HashMap, HashSet};
 
 use derive_builder::Builder;
@@ -214,6 +215,7 @@ impl Symmetry {
         moi.sort_by(|a, b| a.partial_cmp(b).unwrap());
         self.sea_groups = Some(self.molecule.calc_sea_groups(0));
 
+        println!("Rotsym: {:?} {}", self.rotational_symmetry, self.molecule.threshold);
         match &self.rotational_symmetry {
             Some(rotsym) => match rotsym {
                 RotationalSymmetry::Spherical => self.analyse_spherical(),
@@ -247,6 +249,10 @@ impl Symmetry {
             );
             return;
         }
+
+        // Locating all possible and distinct C2 axes
+        let count_c2 = self.search_c2_spherical();
+        println!("C2 found: {}", count_c2);
     }
 
     /// Adds a proper symmetry element to this struct.
@@ -479,14 +485,61 @@ impl Symmetry {
         let transformed_mol = self.molecule.improper_rotate(angle, axis, kind);
         transformed_mol == self.molecule
     }
-}
 
-// /// Locates and adds all possible and distinct $C_2$ axes present in the
-// /// molecule in `sym`, provided that `sym` is a spherical top.
-// fn search_c2_spherical(
-//     sym: &mut Symmetry,
-// ) -> i8 {
-//     let start_guard: usize = 30;
-//     let stable_c2_ratio: f64 = 0.5;
-//     let c2_termination_counts = HashSet::from([3, 9, 15]);
-// }
+    /// Locates and adds all possible and distinct $C_2$ axes present in the
+    /// molecule in `sym`, provided that `sym` is a spherical top.
+    fn search_c2_spherical(self: &mut Self) -> i8 {
+        assert!(matches!(
+            self.rotational_symmetry,
+            Some(RotationalSymmetry::Spherical)
+        ));
+
+        let start_guard: usize = 30;
+        let stable_c2_ratio: f64 = 0.5;
+        let c2_termination_counts = HashSet::from([3, 9, 15]);
+
+        let mut count_c2 = 0;
+        let mut count_c2_stable = 0;
+        let mut n_pairs = 0;
+
+        let sea_groups = self.sea_groups.clone().unwrap();
+        let order_2 = ElementOrder::Int(2);
+        for sea_group in sea_groups.iter() {
+            if sea_group.len() < 2 {
+                continue;
+            }
+            for (atom_i, atom_j) in itertools::iproduct!(sea_group, sea_group) {
+                n_pairs += 1;
+                let atom_i_pos = self.molecule.get_all_atoms()[*atom_i].coordinates;
+                let atom_j_pos = self.molecule.get_all_atoms()[*atom_j].coordinates;
+
+                // Case B: C2 might cross through any two atoms
+                if self.check_proper(&order_2, &atom_i_pos.coords) {
+                    if self.add_proper(order_2.clone(), atom_i_pos.coords, false) {
+                        count_c2 += 1;
+                        count_c2_stable = 0;
+                    }
+                }
+
+                // Case A: C2 might cross through the midpoint of two atoms
+                let midvec = 0.5 * (&atom_i_pos.coords + &atom_j_pos.coords);
+                if midvec.norm() > self.molecule.threshold && self.check_proper(&order_2, &midvec) {
+                    if self.add_proper(order_2.clone(), midvec, false) {
+                        count_c2 += 1;
+                        count_c2_stable = 0;
+                    }
+                }
+
+                // Check if count_c2 has reached stability.
+                if (count_c2_stable as f64) / (n_pairs as f64) > stable_c2_ratio
+                    && n_pairs > start_guard {
+                    if c2_termination_counts.contains(&count_c2) { break }
+                }
+                count_c2_stable += 1;
+            }
+
+            if c2_termination_counts.contains(&count_c2) { break }
+        }
+        count_c2
+    }
+}

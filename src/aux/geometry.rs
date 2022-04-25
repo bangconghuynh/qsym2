@@ -37,8 +37,7 @@ pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> f64 {
 ///
 /// The positive pole of `axis`.
 pub fn get_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
-    approx::assert_relative_eq!(axis.norm(), 1.0, epsilon = thresh, max_relative = thresh);
-    let mut pole = axis.clone();
+    let mut pole = axis.normalize();
     if pole[2].abs() > thresh {
         pole *= pole[2].signum();
     } else if pole[0].abs() > thresh {

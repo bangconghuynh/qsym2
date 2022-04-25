@@ -2,12 +2,32 @@ use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::geometry::Transform;
 use crate::aux::molecule::Molecule;
 use crate::symmetry::symmetry_element::SymmetryElementKind;
+use std::collections::HashSet;
 use nalgebra::Vector3;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
-fn test_transform_c60 () {
+fn test_atom_comparisons() {
+    let emap = ElementMap::new();
+    let atom_0 = Atom::from_xyz("B 0.0 0.0 1.45823", &emap, 1e-4).unwrap();
+    let atom_1 = Atom::from_xyz("B 0.0 0.0 1.45824", &emap, 1e-4).unwrap();
+    let atom_2 = Atom::from_xyz("B 0.0 0.0 1.45825", &emap, 1e-4).unwrap();
+    let atom_3 = Atom::from_xyz("B 0.0 0.0 1.45826", &emap, 1e-4).unwrap();
+    let atom_4 = Atom::from_xyz("B 0.0 0.0 1.45827", &emap, 1e-4).unwrap();
+    assert_eq!(atom_0, atom_1);
+    assert_ne!(atom_0, atom_2);
+    assert_ne!(atom_1, atom_2);
+    assert_ne!(atom_1, atom_3);
+    assert_eq!(atom_2, atom_3);
+    assert_eq!(atom_2, atom_4);
+    assert_eq!(atom_3, atom_4);
+    let atom_set = HashSet::from([atom_0, atom_1, atom_2, atom_3, atom_4]);
+    assert_eq!(atom_set.len(), 2);
+}
+
+#[test]
+fn test_transform_c60() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.recentre_mut();

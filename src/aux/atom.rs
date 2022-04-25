@@ -298,20 +298,28 @@ impl Transform for Atom {
 }
 
 impl PartialEq for Atom {
+    /// The `[Self::threshold]` value for each atom defines a discrete grid over
+    /// the real number field. All real numbers (*e.g.* atomic mass, coordinates)
+    /// are rounded to take on the values on this discrete grid which are then
+    /// used for hashing and comparisons.
     fn eq(&self, other: &Self) -> bool {
         let result = self.atomic_number == other.atomic_number
             && self.kind == other.kind
             && approx::relative_eq!(
-                self.atomic_mass,
-                other.atomic_mass,
-                epsilon = (self.threshold * other.threshold).sqrt(),
-                max_relative = (self.threshold * other.threshold).sqrt()
+                self.atomic_mass.round_factor(self.threshold),
+                other.atomic_mass.round_factor(other.threshold),
             )
             && approx::relative_eq!(
-                self.coordinates,
-                other.coordinates,
-                epsilon = (self.threshold * other.threshold).sqrt(),
-                max_relative = (self.threshold * other.threshold).sqrt()
+                self.coordinates[0].round_factor(self.threshold),
+                other.coordinates[0].round_factor(other.threshold),
+            )
+            && approx::relative_eq!(
+                self.coordinates[1].round_factor(self.threshold),
+                other.coordinates[1].round_factor(other.threshold),
+            )
+            && approx::relative_eq!(
+                self.coordinates[2].round_factor(self.threshold),
+                other.coordinates[2].round_factor(other.threshold),
             );
         if result {
             assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
@@ -324,23 +332,22 @@ impl Eq for Atom {}
 
 impl Hash for Atom {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let factor = 1.0 / self.threshold;
         self.atomic_number.hash(state);
         self.kind.hash(state);
         self.atomic_mass
-            .round_factor(factor)
+            .round_factor(self.threshold)
             .integer_decode()
             .hash(state);
         self.coordinates[0]
-            .round_factor(factor)
+            .round_factor(self.threshold)
             .integer_decode()
             .hash(state);
         self.coordinates[1]
-            .round_factor(factor)
+            .round_factor(self.threshold)
             .integer_decode()
             .hash(state);
         self.coordinates[2]
-            .round_factor(factor)
+            .round_factor(self.threshold)
             .integer_decode()
             .hash(state);
     }

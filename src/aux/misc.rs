@@ -11,12 +11,13 @@ pub trait HashableFloat {
     ///
     /// Arguments
     ///
-    /// * factor - The factor $k$ used in the rounding of the float.
+    /// * threshold - The inverse $k^{-1}$ of the factor $k$ used in the
+    /// rounding of the float.
     ///
     /// Returns
     ///
     /// The rounded float.
-    fn round_factor(self, factor: Self) -> Self;
+    fn round_factor(self, threshold: Self) -> Self;
 
     /// Returns the mantissa-exponent-sign triplet for a float.
     ///
@@ -35,7 +36,7 @@ pub trait HashableFloat {
 
 impl HashableFloat for f64 {
     fn round_factor(self, factor: f64) -> Self {
-        (self * factor).round() / factor + 0.0
+        (self / factor).round() * factor + 0.0
     }
 
     fn integer_decode(self) -> (u64, i16, i8) {

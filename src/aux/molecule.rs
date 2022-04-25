@@ -1,4 +1,5 @@
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
+use crate::aux::misc::HashableFloat;
 use crate::aux::geometry::Transform;
 use crate::symmetry::symmetry_element::SymmetryElementKind;
 use nalgebra::{DVector, Matrix3, Point3, Vector3};
@@ -80,7 +81,7 @@ impl Molecule {
     /// # Returns
     ///
     /// All atoms in this molecule.
-    fn get_all_atoms(&self) -> Vec<&Atom> {
+    pub fn get_all_atoms(&self) -> Vec<&Atom> {
         let mut atoms: Vec<&Atom> = vec![];
         for atom in &self.atoms {
             atoms.push(atom);
@@ -184,8 +185,6 @@ impl Molecule {
             all_masses.push(atom.atomic_mass);
         }
         let mut columns: Vec<DVector<f64>> = vec![];
-        let decimals = -self.threshold.log10().round() as i32;
-        let rounding_factor = (10 as f64).powi(decimals);
 
         // Determine indices of symmetry-equivalent atoms
         let mut equiv_indicess: Vec<Vec<usize>> = vec![vec![0]];
@@ -194,7 +193,7 @@ impl Molecule {
             for (i, coord_i) in all_coords.iter().enumerate() {
                 let diff = *coord_j - *coord_i;
                 column_j.push(
-                    (diff.norm() / all_masses[i] * rounding_factor).round() / rounding_factor,
+                    (diff.norm() / all_masses[i]).round_factor(self.threshold),
                 );
             }
             column_j.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -377,13 +376,11 @@ impl Transform for Molecule {
 impl PartialEq for Molecule {
     fn eq(&self, other: &Self) -> bool {
         if self.atoms.len() != other.atoms.len() {
-            println!("Diff len");
             return false;
         };
         let self_atom_set: HashSet<Atom> = self.atoms.iter().cloned().collect();
         let other_atom_set: HashSet<Atom> = other.atoms.iter().cloned().collect();
         if self_atom_set.symmetric_difference(&other_atom_set).count() != 0 {
-            println!("Diff set {:?}", self_atom_set.symmetric_difference(&other_atom_set));
             return false;
         };
 

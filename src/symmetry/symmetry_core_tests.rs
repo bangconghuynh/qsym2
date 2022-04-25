@@ -48,3 +48,16 @@ fn test_symmetry_check_proper_improper_h8() {
     assert!(sym.check_improper(&ElementOrder::Int(1), &Vector3::new(0.0, 1.0, 0.0), &sig));
     assert!(sym.check_improper(&ElementOrder::Int(1), &Vector3::new(1.0, 1.0, 0.0), &sig));
 }
+
+#[test]
+fn test_search_c2_spherical_c60() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.recentre_mut();
+    let mut sym = Symmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol)
+        .build()
+        .unwrap();
+    sym.analyse();
+}
