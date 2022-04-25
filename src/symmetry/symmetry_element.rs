@@ -51,8 +51,7 @@ impl ElementOrder {
         if order.is_infinite() {
             return Self::Inf;
         }
-        let factor = 1.0 / thresh;
-        let rounded_order = order.round_factor(factor);
+        let rounded_order = order.round_factor(thresh);
         if approx::relative_eq!(
             rounded_order,
             rounded_order.round(),
