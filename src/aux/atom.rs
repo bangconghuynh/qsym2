@@ -65,7 +65,7 @@ pub struct Atom {
     pub coordinates: Point3<f64>,
 
     /// A threshold for approximate equality comparisons.
-    threshold: f64,
+    pub threshold: f64,
 }
 
 impl Atom {

@@ -178,7 +178,7 @@ pub struct SymmetryElement {
 
     /// The normalised axis of the symmetry element.
     #[builder(setter(custom))]
-    axis: Vector3<f64>,
+    pub axis: Vector3<f64>,
 
     /// The kind of the symmetry element.
     #[builder(default = "SymmetryElementKind::Proper")]

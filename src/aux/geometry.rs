@@ -1,5 +1,13 @@
+use crate::aux::atom::Atom;
+use crate::aux::misc::HashableFloat;
 use crate::symmetry::symmetry_element::SymmetryElementKind;
-use nalgebra::{ClosedMul, Matrix3, Rotation3, Scalar, UnitVector3, Vector3};
+use itertools::{self, Itertools};
+use nalgebra::{ClosedMul, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vector3};
+use std::collections::HashSet;
+
+#[cfg(test)]
+#[path = "geometry_tests.rs"]
+mod geometry_tests;
 
 /// Returns the rotation angle adjusted to be in the interval $(-\pi, +\pi]$.
 ///
@@ -122,6 +130,106 @@ pub fn improper_rotation_matrix(
         }
         _ => panic!("Only improper kinds are allowed."),
     }
+}
+
+/// Checks if a sequence of atoms are vertices of a regular polygon.
+///
+/// # Arguments
+///
+/// * atoms - A sequence of atoms to be tested.
+///
+/// # Returns
+///
+/// A flag indicating if the atoms form the vertices of a regular polygon.
+pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
+    assert!(
+        atoms.len() >= 3,
+        "Polygons can only be formed by three atoms or more."
+    );
+
+    let tot_m: f64 = atoms.iter().fold(0.0, |acc, atom| acc + atom.atomic_mass);
+    let com: Point3<f64> = atoms.iter().fold(Point3::origin(), |acc, atom| {
+        acc + (&atom.coordinates * atom.atomic_mass - Point3::origin())
+    }) / tot_m;
+
+    let radial_dists: HashSet<(u64, i16, i8)> = atoms
+        .iter()
+        .map(|atom| {
+            (&atom.coordinates - &com)
+                .norm()
+                .round_factor(atom.threshold)
+                .integer_decode()
+        })
+        .collect();
+
+    // Check if all atoms are equidistant from the centre of mass
+    if radial_dists.len() != 1 {
+        false
+    } else {
+        let regular_angle = 2.0 * std::f64::consts::PI / (atoms.len() as f64);
+        let thresh = atoms
+            .iter()
+            .fold(0.0_f64, |acc, atom| acc.max(atom.threshold));
+        let mut rad_vectors: Vec<Vector3<f64>> =
+            atoms.iter().map(|atom| atom.coordinates - &com).collect();
+        let (vec_i, vec_j) = itertools::iproduct!(rad_vectors.iter(), rad_vectors.iter())
+            .find(|&(v_i, v_j)| v_i.cross(v_j).norm() > thresh)
+            .unwrap();
+        let normal = UnitVector3::new_normalize(vec_i.cross(vec_j));
+
+        let vec0 = atoms[0].coordinates - &com;
+        rad_vectors.sort_by(|a, b| {
+            get_anticlockwise_angle(&vec0, a, &normal, thresh)
+                .partial_cmp(&get_anticlockwise_angle(&vec0, b, &normal, thresh))
+                .unwrap()
+        });
+        let vector_pairs: Vec<(&Vector3<f64>, &Vector3<f64>)> =
+            rad_vectors.iter().circular_tuple_windows().collect();
+        let mut angles: HashSet<(u64, i16, i8)> = vector_pairs
+            .iter()
+            .map(|(v1, v2)| {
+                get_anticlockwise_angle(*v1, *v2, &normal, thresh)
+                    .round_factor(thresh)
+                    .integer_decode()
+            })
+            .collect();
+        angles.insert(regular_angle.round_factor(thresh).integer_decode());
+
+        angles.len() == 1
+    }
+}
+
+/// Returns the anticlockwise angle $\phi$ from `vec1` to `vec2` when viewed down
+/// the `normal` vector.
+///
+/// This is only well-defined in $\mathbb{R}^3$. The range of the anticlockwise
+/// angle is $[0, 2\pi]$.
+///
+/// # Arguments
+///
+/// * vec1 - The first vector.
+/// * vec2 - The second vector.
+/// * normal - A normal unit vector defining the view.
+///
+/// # Returns
+///
+/// The anticlockwise angle $\phi$.
+fn get_anticlockwise_angle(
+    vec1: &Vector3<f64>,
+    vec2: &Vector3<f64>,
+    normal: &UnitVector3<f64>,
+    thresh: f64,
+) -> f64 {
+    assert!(thresh >= std::f64::EPSILON);
+    assert!(vec1.norm() >= thresh);
+    assert!(vec2.norm() >= thresh);
+    let dot = vec1.dot(&vec2);
+    let det = normal.into_inner().dot(&vec1.cross(&vec2));
+    let mut angle = det.atan2(dot);
+    while angle < -thresh {
+        angle += 2.0 * std::f64::consts::PI;
+    }
+    angle
 }
 
 pub trait Transform {
