@@ -173,9 +173,15 @@ pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
         let mut rad_vectors: Vec<Vector3<f64>> =
             atoms.iter().map(|atom| atom.coordinates - &com).collect();
         let (vec_i, vec_j) = itertools::iproduct!(rad_vectors.iter(), rad_vectors.iter())
-            .find(|&(v_i, v_j)| v_i.cross(v_j).norm() > thresh)
+            .max_by(|&(v_i1, v_j1), &(v_i2, v_j2)| {
+                v_i1.cross(v_j1)
+                    .norm()
+                    .partial_cmp(&v_i2.cross(v_j2).norm())
+                    .unwrap()
+            })
             .unwrap();
         let normal = UnitVector3::new_normalize(vec_i.cross(vec_j));
+        if normal.norm() < thresh { return false }
 
         let vec0 = atoms[0].coordinates - &com;
         rad_vectors.sort_by(|a, b| {

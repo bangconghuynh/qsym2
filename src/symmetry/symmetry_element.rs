@@ -195,11 +195,11 @@ pub struct SymmetryElement {
 
     /// An additional superscript for distinguishing the symmetry element.
     #[builder(default = "\"\".to_owned()")]
-    additional_superscript: String,
+    pub additional_superscript: String,
 
     /// An additional subscript for distinguishing the symmetry element.
     #[builder(default = "\"\".to_owned()")]
-    additional_subscript: String,
+    pub additional_subscript: String,
 }
 
 impl SymmetryElementBuilder {
@@ -353,7 +353,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A copy of the current improper symmetry element that has been converted.
-    fn convert_to_improper_kind(&self, improper_kind: &SymmetryElementKind) -> Self {
+    pub fn convert_to_improper_kind(&self, improper_kind: &SymmetryElementKind) -> Self {
         assert!(
             !self.is_proper(),
             "Only improper elements can be converted."

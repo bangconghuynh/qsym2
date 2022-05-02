@@ -50,7 +50,7 @@ fn parse_atomic_mass(mass_str: &str) -> f64 {
 #[derive(Clone)]
 pub struct Atom {
     /// The atom kind.
-    kind: AtomKind,
+    pub kind: AtomKind,
 
     /// The atomic number of the atom.
     atomic_number: u32,

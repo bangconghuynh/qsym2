@@ -1,6 +1,6 @@
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
-use crate::aux::misc::HashableFloat;
 use crate::aux::geometry::Transform;
+use crate::aux::misc::HashableFloat;
 use crate::symmetry::symmetry_element::SymmetryElementKind;
 use nalgebra::{DVector, Matrix3, Point3, Vector3};
 use std::collections::HashSet;
@@ -192,9 +192,7 @@ impl Molecule {
             let mut column_j: Vec<f64> = vec![];
             for (i, coord_i) in all_coords.iter().enumerate() {
                 let diff = *coord_j - *coord_i;
-                column_j.push(
-                    (diff.norm() / all_masses[i]).round_factor(self.threshold),
-                );
+                column_j.push((diff.norm() / all_masses[i]).round_factor(self.threshold));
             }
             column_j.sort_by(|a, b| a.partial_cmp(b).unwrap());
             let column_j_vec = DVector::from_vec(column_j);
@@ -252,7 +250,8 @@ impl Molecule {
             approx::assert_relative_ne!(e_vec.norm(), 0.0);
             let com = self.calc_com(0);
             self.electric_atoms = Some([
-                Atom::new_special(AtomKind::Electric(true), com + 1.1 * e_vec, self.threshold).unwrap(),
+                Atom::new_special(AtomKind::Electric(true), com + 1.1 * e_vec, self.threshold)
+                    .unwrap(),
                 Atom::new_special(AtomKind::Electric(false), com - e_vec, self.threshold).unwrap(),
             ])
         } else {
@@ -378,21 +377,47 @@ impl PartialEq for Molecule {
         if self.atoms.len() != other.atoms.len() {
             return false;
         };
-        let self_atom_set: HashSet<Atom> = self.atoms.iter().cloned().collect();
-        let other_atom_set: HashSet<Atom> = other.atoms.iter().cloned().collect();
-        if self_atom_set.symmetric_difference(&other_atom_set).count() != 0 {
+        let thresh = self
+            .atoms
+            .iter()
+            .chain(other.atoms.iter())
+            .fold(0.0_f64, |acc, atom| acc.max(atom.threshold));
+
+        let mut other_atoms_ref: HashSet<_> = other.atoms.iter().collect();
+        for s_atom in self.atoms.iter() {
+            let o_atom = other.atoms
+                .iter()
+                .find(|o_atm| (s_atom.coordinates - o_atm.coordinates).norm() < thresh);
+            match o_atom {
+                Some(atm) => {
+                    other_atoms_ref.remove(atm);
+                }
+                None => {
+                    break;
+                }
+            }
+        }
+        if other_atoms_ref.len() != 0 {
             return false;
-        };
+        }
 
         if let Some(self_mag_atoms) = &self.magnetic_atoms {
             if let Some(other_mag_atoms) = &other.magnetic_atoms {
-                let self_mag_atom_set: HashSet<Atom> = self_mag_atoms.iter().cloned().collect();
-                let other_mag_atom_set: HashSet<Atom> = other_mag_atoms.iter().cloned().collect();
-                if self_mag_atom_set
-                    .symmetric_difference(&other_mag_atom_set)
-                    .count()
-                    != 0
-                {
+                let mut other_mag_atoms_ref: HashSet<_> = other_mag_atoms.iter().collect();
+                for s_atom in self_mag_atoms.iter() {
+                    let o_atom = other_mag_atoms
+                        .iter()
+                        .find(
+                            |o_atm|
+                            (s_atom.coordinates - o_atm.coordinates).norm() < thresh
+                            && s_atom.kind == o_atm.kind
+                        );
+                    match o_atom {
+                        Some(atm) => {  other_mag_atoms_ref.remove(atm); },
+                        None => { break; }
+                    }
+                }
+                if other_mag_atoms_ref.len() != 0 {
                     return false;
                 }
             } else {
@@ -406,15 +431,24 @@ impl PartialEq for Molecule {
 
         if let Some(self_ele_atoms) = &self.electric_atoms {
             if let Some(other_ele_atoms) = &other.electric_atoms {
-                let self_ele_atom_set: HashSet<Atom> = self_ele_atoms.iter().cloned().collect();
-                let other_ele_atom_set: HashSet<Atom> = other_ele_atoms.iter().cloned().collect();
-                if self_ele_atom_set
-                    .symmetric_difference(&other_ele_atom_set)
-                    .count()
-                    != 0
-                {
+                let mut other_ele_atoms_ref: HashSet<_> = other_ele_atoms.iter().collect();
+                for s_atom in self_ele_atoms.iter() {
+                    let o_atom = other_ele_atoms
+                        .iter()
+                        .find(
+                            |o_atm|
+                            (s_atom.coordinates - o_atm.coordinates).norm() < thresh
+                            && s_atom.kind == o_atm.kind
+                        );
+                    match o_atom {
+                        Some(atm) => {  other_ele_atoms_ref.remove(atm); },
+                        None => { break; }
+                    }
+                }
+                if other_ele_atoms_ref.len() != 0 {
                     return false;
                 }
+
             } else {
                 return false;
             }
@@ -427,4 +461,4 @@ impl PartialEq for Molecule {
     }
 }
 
-impl Eq for Molecule {}
+// impl Eq for Molecule {}

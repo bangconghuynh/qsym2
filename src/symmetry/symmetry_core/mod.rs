@@ -56,7 +56,8 @@ pub struct Symmetry {
     proper_generators: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
     /// The improper generators possessed by [`Self::molecule`] in the presence
-    /// of any [`Self::electric_field`] and [`Self::magnetic_field`].
+    /// of any [`Self::electric_field`] and [`Self::magnetic_field`]. These
+    /// generators are always defined in the mirror-plane convention.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding improper generators.
@@ -72,7 +73,8 @@ pub struct Symmetry {
     proper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
     /// The improper elements possessed by [`Self::molecule`] in the presence
-    /// of any [`Self::electric_field`] and [`Self::magnetic_field`].
+    /// of any [`Self::electric_field`] and [`Self::magnetic_field`]. These
+    /// elements are always defined in the mirror-plane convention.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding improper elements.
@@ -214,10 +216,6 @@ impl Symmetry {
         moi.sort_by(|a, b| a.partial_cmp(b).unwrap());
         self.sea_groups = Some(self.molecule.calc_sea_groups(0));
 
-        println!(
-            "Rotsym: {:?} {}",
-            self.rotational_symmetry, self.molecule.threshold
-        );
         match &self.rotational_symmetry {
             Some(rotsym) => match rotsym {
                 RotationalSymmetry::Spherical => self.analyse_spherical(),
@@ -284,15 +282,19 @@ impl Symmetry {
                 dest_str,
                 detailed_symbol,
                 standard_symbol,
-                positive_axis[0],
-                positive_axis[1],
-                positive_axis[2],
+                positive_axis[0] + 0.0,
+                positive_axis[1] + 0.0,
+                positive_axis[2] + 0.0,
             );
         }
         result
     }
 
     /// Adds an improper symmetry element to this struct.
+    ///
+    /// The improper symmetry element can be defined in whichever convention
+    /// specified by `kind`, but it will always be added in the mirror-plane
+    /// convention.
     ///
     /// # Arguments
     ///
@@ -328,6 +330,7 @@ impl Symmetry {
                 .additional_subscript(sigma_str)
                 .build()
                 .unwrap()
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane)
         } else {
             SymmetryElement::builder()
                 .threshold(self.molecule.threshold)
@@ -337,6 +340,7 @@ impl Symmetry {
                 .generator(generator)
                 .build()
                 .unwrap()
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane)
         };
         let detailed_symbol = element.get_detailed_symbol();
         let standard_symbol = element.get_standard_symbol();
@@ -377,9 +381,9 @@ impl Symmetry {
                     dest_str,
                     detailed_symbol,
                     standard_symbol,
-                    positive_axis[0],
-                    positive_axis[1],
-                    positive_axis[2],
+                    positive_axis[0] + 0.0,
+                    positive_axis[1] + 0.0,
+                    positive_axis[2] + 0.0,
                 );
             } else if is_inversion_centre {
                 log::debug!(
@@ -387,9 +391,9 @@ impl Symmetry {
                     dest_str,
                     detailed_symbol,
                     standard_symbol,
-                    positive_axis[0],
-                    positive_axis[1],
-                    positive_axis[2],
+                    positive_axis[0] + 0.0,
+                    positive_axis[1] + 0.0,
+                    positive_axis[2] + 0.0,
                 );
             } else {
                 log::debug!(
@@ -397,9 +401,9 @@ impl Symmetry {
                     dest_str,
                     detailed_symbol,
                     standard_symbol,
-                    positive_axis[0],
-                    positive_axis[1],
-                    positive_axis[2],
+                    positive_axis[0] + 0.0,
+                    positive_axis[1] + 0.0,
+                    positive_axis[2] + 0.0,
                 );
             }
         }
@@ -456,6 +460,34 @@ impl Symmetry {
         let angle = 2.0 * std::f64::consts::PI / order.to_float();
         let transformed_mol = self.molecule.improper_rotate(angle, axis, kind);
         transformed_mol == self.molecule
+    }
+
+    pub fn get_sigma_elements(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
+        let order_1 = &ElementOrder::Int(1);
+        if self.improper_elements.contains_key(&order_1) {
+            Some(
+                self.improper_elements[&order_1]
+                    .iter()
+                    .filter(|ele| ele.additional_subscript == sigma)
+                    .collect(),
+            )
+        } else {
+            None
+        }
+    }
+
+    pub fn get_sigma_generators(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
+        let order_1 = &ElementOrder::Int(1);
+        if self.improper_elements.contains_key(&order_1) {
+            Some(
+                self.improper_generators[&order_1]
+                    .iter()
+                    .filter(|ele| ele.additional_subscript == sigma)
+                    .collect(),
+            )
+        } else {
+            None
+        }
     }
 }
 
