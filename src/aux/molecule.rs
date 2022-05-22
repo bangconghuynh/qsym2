@@ -1,8 +1,8 @@
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
-use crate::aux::geometry::Transform;
+use crate::aux::geometry::{self, Transform};
 use crate::aux::misc::HashableFloat;
 use crate::symmetry::symmetry_element::SymmetryElementKind;
-use nalgebra::{DVector, Matrix3, Point3, Vector3};
+use nalgebra::{DVector, Matrix, Matrix3, Point3, Vector3};
 use std::collections::HashSet;
 use std::fs;
 use std::process;
@@ -12,8 +12,8 @@ use std::process;
 mod sea_tests;
 
 #[cfg(test)]
-#[path = "molecule_transform_tests.rs"]
-mod molecule_transform_tests;
+#[path = "molecule_tests.rs"]
+mod molecule_tests;
 
 /// A struct containing the atoms constituting a molecule.
 #[derive(Clone, Debug)]
@@ -138,7 +138,7 @@ impl Molecule {
     /// # Returns
     ///
     /// The inertia tensor as a $3 \times 3$ matrix.
-    pub fn calc_moi(&self, origin: &Point3<f64>, verbose: u64) -> Matrix3<f64> {
+    pub fn calc_inertia_tensor(&self, origin: &Point3<f64>, verbose: u64) -> Matrix3<f64> {
         let atoms = self.get_all_atoms();
         let mut inertia_tensor = Matrix3::zeros();
         for atom in atoms.iter() {
@@ -165,6 +165,60 @@ impl Molecule {
         inertia_tensor
     }
 
+    /// Calculates the moments of inertia and the corresponding principal axes.
+    ///
+    /// This *does* take into account fictitious special atoms.
+    ///
+    /// # Returns
+    ///
+    /// * The moments of inertia in ascending order.
+    /// * The corresponding principal axes.
+    fn calc_moi(&self) -> ([f64; 3], [Vector3<f64>; 3]) {
+        let inertia_eig = self
+            .calc_inertia_tensor(&self.calc_com(0), 0)
+            .symmetric_eigen();
+        let eigenvalues: Vec<f64> = inertia_eig.eigenvalues.iter().cloned().collect();
+        let eigenvectors: Vec<_> = inertia_eig.eigenvectors.column_iter().collect();
+        let mut eigen_tuple: Vec<(f64, _)> = eigenvalues
+            .iter()
+            .cloned()
+            .zip(eigenvectors.iter().cloned())
+            .collect();
+        eigen_tuple.sort_by(|(eigval0, _), (eigval1, _)| eigval0.partial_cmp(eigval1).unwrap());
+        let (sorted_eigenvalues, sorted_eigenvectors): (Vec<f64>, Vec<_>) =
+            eigen_tuple.into_iter().unzip();
+        (
+            [
+                sorted_eigenvalues[0],
+                sorted_eigenvalues[1],
+                sorted_eigenvalues[2],
+            ],
+            [
+                geometry::get_positive_pole(
+                    &Vector3::new(
+                        sorted_eigenvectors[0][(0, 0)],
+                        sorted_eigenvectors[0][(1, 0)],
+                        sorted_eigenvectors[0][(2, 0)],
+                    ), self.threshold
+                ),
+                geometry::get_positive_pole(
+                    &Vector3::new(
+                        sorted_eigenvectors[1][(0, 0)],
+                        sorted_eigenvectors[1][(1, 0)],
+                        sorted_eigenvectors[1][(2, 0)],
+                    ), self.threshold
+                ),
+                geometry::get_positive_pole(
+                    &Vector3::new(
+                        sorted_eigenvectors[2][(0, 0)],
+                        sorted_eigenvectors[2][(1, 0)],
+                        sorted_eigenvectors[2][(2, 0)],
+                    ), self.threshold
+                ),
+            ],
+        )
+    }
+
     /// Determines the sets of symmetry-equivalent atoms.
     ///
     /// # Arguments
@@ -177,36 +231,33 @@ impl Molecule {
     /// The vector of vectors of symmetry-equivalent atom indices.
     pub fn calc_sea_groups(&self, verbose: u64) -> Vec<Vec<usize>> {
         let atoms = self.get_all_atoms();
-
-        let mut all_coords: Vec<&Point3<f64>> = vec![];
-        let mut all_masses: Vec<f64> = vec![];
-        for atom in atoms.iter() {
-            all_coords.push(&atom.coordinates);
-            all_masses.push(atom.atomic_mass);
-        }
-        let mut columns: Vec<DVector<f64>> = vec![];
+        let all_coords: Vec<_> = atoms.iter().map(|atm| atm.coordinates).collect();
+        let all_masses: Vec<_> = atoms.iter().map(|atm| atm.atomic_mass).collect();
+        let mut dist_columns: Vec<DVector<f64>> = vec![];
 
         // Determine indices of symmetry-equivalent atoms
         let mut equiv_indicess: Vec<Vec<usize>> = vec![vec![0]];
         for (j, coord_j) in all_coords.iter().enumerate() {
+            // column_j is the j-th column in the mass-weighted interatomic
+            // distance matrix.
             let mut column_j: Vec<f64> = vec![];
             for (i, coord_i) in all_coords.iter().enumerate() {
-                let diff = *coord_j - *coord_i;
-                column_j.push((diff.norm() / all_masses[i]).round_factor(self.threshold));
+                let diff = coord_j - coord_i;
+                column_j.push(diff.norm() / all_masses[i]);
             }
             column_j.sort_by(|a, b| a.partial_cmp(b).unwrap());
             let column_j_vec = DVector::from_vec(column_j);
             if j == 0 {
-                columns.push(column_j_vec);
+                dist_columns.push(column_j_vec);
             } else {
                 let equiv_set_search = equiv_indicess.iter().position(|equiv_indices| {
-                    columns[equiv_indices[0]].relative_eq(
+                    dist_columns[equiv_indices[0]].relative_eq(
                         &column_j_vec,
                         self.threshold,
                         self.threshold,
                     )
                 });
-                columns.push(column_j_vec);
+                dist_columns.push(column_j_vec);
                 if let Some(index) = equiv_set_search {
                     equiv_indicess[index].push(j);
                 } else {
@@ -385,7 +436,8 @@ impl PartialEq for Molecule {
 
         let mut other_atoms_ref: HashSet<_> = other.atoms.iter().collect();
         for s_atom in self.atoms.iter() {
-            let o_atom = other.atoms
+            let o_atom = other
+                .atoms
                 .iter()
                 .find(|o_atm| (s_atom.coordinates - o_atm.coordinates).norm() < thresh);
             match o_atom {
@@ -405,16 +457,17 @@ impl PartialEq for Molecule {
             if let Some(other_mag_atoms) = &other.magnetic_atoms {
                 let mut other_mag_atoms_ref: HashSet<_> = other_mag_atoms.iter().collect();
                 for s_atom in self_mag_atoms.iter() {
-                    let o_atom = other_mag_atoms
-                        .iter()
-                        .find(
-                            |o_atm|
-                            (s_atom.coordinates - o_atm.coordinates).norm() < thresh
+                    let o_atom = other_mag_atoms.iter().find(|o_atm| {
+                        (s_atom.coordinates - o_atm.coordinates).norm() < thresh
                             && s_atom.kind == o_atm.kind
-                        );
+                    });
                     match o_atom {
-                        Some(atm) => {  other_mag_atoms_ref.remove(atm); },
-                        None => { break; }
+                        Some(atm) => {
+                            other_mag_atoms_ref.remove(atm);
+                        }
+                        None => {
+                            break;
+                        }
                     }
                 }
                 if other_mag_atoms_ref.len() != 0 {
@@ -433,22 +486,22 @@ impl PartialEq for Molecule {
             if let Some(other_ele_atoms) = &other.electric_atoms {
                 let mut other_ele_atoms_ref: HashSet<_> = other_ele_atoms.iter().collect();
                 for s_atom in self_ele_atoms.iter() {
-                    let o_atom = other_ele_atoms
-                        .iter()
-                        .find(
-                            |o_atm|
-                            (s_atom.coordinates - o_atm.coordinates).norm() < thresh
+                    let o_atom = other_ele_atoms.iter().find(|o_atm| {
+                        (s_atom.coordinates - o_atm.coordinates).norm() < thresh
                             && s_atom.kind == o_atm.kind
-                        );
+                    });
                     match o_atom {
-                        Some(atm) => {  other_ele_atoms_ref.remove(atm); },
-                        None => { break; }
+                        Some(atm) => {
+                            other_ele_atoms_ref.remove(atm);
+                        }
+                        None => {
+                            break;
+                        }
                     }
                 }
                 if other_ele_atoms_ref.len() != 0 {
                     return false;
                 }
-
             } else {
                 return false;
             }

@@ -4,6 +4,7 @@ use crate::aux::molecule::Molecule;
 use crate::symmetry::symmetry_element::SymmetryElementKind;
 use std::collections::HashSet;
 use nalgebra::Vector3;
+use approx;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -144,4 +145,62 @@ fn test_transform_c3h3() {
     mol.recentre_mut();
     let rotated_mol = mol.rotate(2.0 * std::f64::consts::PI, &Vector3::new(0.0, 0.0, 1.0));
     assert_eq!(mol, rotated_mol);
+}
+
+#[test]
+fn test_calc_moi_h8() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let (mois, principal_axes) = mol.calc_moi();
+
+    approx::assert_relative_eq!(
+        mois[0], 4.031776,
+        epsilon = 1e-6,
+        max_relative = 1e-6
+    );
+    approx::assert_relative_eq!(
+        mois[1], 10.07944,
+        epsilon = 1e-6,
+        max_relative = 1e-6
+    );
+    approx::assert_relative_eq!(
+        mois[2], 10.07944,
+        epsilon = 1e-6,
+        max_relative = 1e-6
+    );
+
+    approx::assert_relative_eq!(
+        principal_axes[0], Vector3::new(0.0, 0.0, 1.0),
+        epsilon = 1e-6,
+        max_relative = 1e-6
+    );
+}
+
+#[test]
+fn test_calc_moi_n3() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let (mois, principal_axes) = mol.calc_moi();
+
+    approx::assert_relative_eq!(
+        mois[0], 0.0,
+        epsilon = 1e-13,
+        max_relative = 1e-13
+    );
+    approx::assert_relative_eq!(
+        mois[1], 196.09407999999996,
+        epsilon = 1e-13,
+        max_relative = 1e-13
+    );
+    approx::assert_relative_eq!(
+        mois[2], 196.09407999999996,
+        epsilon = 1e-13,
+        max_relative = 1e-13
+    );
+
+    approx::assert_relative_eq!(
+        principal_axes[0], Vector3::new(1.0, 1.0, 1.0) / 3.0_f64.sqrt(),
+        epsilon = 1e-6,
+        max_relative = 1e-6
+    );
 }

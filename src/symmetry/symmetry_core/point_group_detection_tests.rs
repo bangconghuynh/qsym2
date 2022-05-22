@@ -53,6 +53,40 @@ fn test_point_group_detection_ch4() {
 }
 
 #[test]
+fn test_point_group_detection_adamantane() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.recentre_mut();
+    let mut sym = Symmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol)
+        .build()
+        .unwrap();
+    sym.analyse();
+    assert_eq!(sym.point_group, Some("Td".to_owned()));
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 4);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_c165_diamond_nanoparticle() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c165.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.recentre_mut();
+    let mut sym = Symmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol)
+        .build()
+        .unwrap();
+    sym.analyse();
+    assert_eq!(sym.point_group, Some("Td".to_owned()));
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 4);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+}
+
+#[test]
 fn test_point_group_detection_vh2o6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);

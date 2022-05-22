@@ -199,7 +199,7 @@ impl Symmetry {
     /// This sets the fields [`Self::rotational_symmetry`], [`Self::sea_groups`].
     pub fn analyse(&mut self) {
         let com = self.molecule.calc_com(0);
-        let inertia = self.molecule.calc_moi(&com, 0);
+        let inertia = self.molecule.calc_inertia_tensor(&com, 0);
         approx::assert_relative_eq!(
             com,
             Point3::origin(),

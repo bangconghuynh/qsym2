@@ -28,7 +28,7 @@ fn main() {
 
     let mol = Molecule::from_xyz(filename, 1e-4);
     let com = mol.calc_com(verbose);
-    let inertia = mol.calc_moi(&com, verbose);
+    let inertia = mol.calc_inertia_tensor(&com, verbose);
     let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, thresh, verbose);
     println!("Rotational symmetry: {}", rotsym_result);
     let sea_groups = mol.calc_sea_groups(1);

@@ -69,6 +69,7 @@ impl Symmetry {
         }
         count_c2
     }
+
     /// Performs point-group detection analysis for a spherical top.
     pub fn analyse_spherical(&mut self) {
         assert!(matches!(
