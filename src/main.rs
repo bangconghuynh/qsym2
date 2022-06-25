@@ -3,8 +3,6 @@ use std::process;
 
 use rustyinspect::aux::molecule::Molecule;
 use rustyinspect::rotsym;
-use rustyinspect::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind};
-use nalgebra::Vector3;
 
 fn main() {
     let matches = app_from_crate!()
@@ -28,11 +26,11 @@ fn main() {
         .unwrap();
     let verbose = matches.occurrences_of("verbose");
 
-    let mol = Molecule::from_xyz(filename);
+    let mol = Molecule::from_xyz(filename, 1e-4);
     let com = mol.calc_com(verbose);
-    let inertia = mol.calc_moi(&com, verbose);
+    let inertia = mol.calc_inertia_tensor(&com, verbose);
     let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, thresh, verbose);
     println!("Rotational symmetry: {}", rotsym_result);
-    let sea_groups = mol.calc_sea_groups(1e-4, 1);
+    let sea_groups = mol.calc_sea_groups(1);
     println!("SEAs: {:?}", sea_groups);
 }

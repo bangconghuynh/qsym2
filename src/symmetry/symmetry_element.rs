@@ -1,17 +1,17 @@
+use approx;
+use derive_builder::Builder;
+use log;
 use nalgebra::Vector3;
+use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use approx;
-use log;
-use derive_builder::Builder;
 
 use crate::aux::geometry;
-use crate::aux::misc;
-use crate::aux::misc::HashableFloat;
+use crate::aux::misc::{self, HashableFloat};
 
 #[cfg(test)]
-#[path = "symmetry_elements_tests.rs"]
-mod symmetry_elements_tests;
+#[path = "symmetry_element_tests.rs"]
+mod symmetry_element_tests;
 
 /// An enum to classify the types of symmetry element.
 #[derive(Clone, Debug, PartialEq)]
@@ -28,6 +28,144 @@ pub enum SymmetryElementKind {
     ImproperInversionCentre,
 }
 
+/// An enum to handle symmetry element orders which can be integers, floats, or infinity.
+#[derive(Clone, Debug)]
+pub enum ElementOrder {
+    /// Positive integer order.
+    Int(u32),
+
+    /// Positive floating point order and a threshold for comparisons.
+    Float(f64, f64),
+
+    /// Infinite order.
+    Inf,
+}
+
+impl ElementOrder {
+    fn new(order: f64, thresh: f64) -> Self {
+        assert!(
+            order.is_sign_positive(),
+            "Order value {} is invalid. Order values must be strictly positive.",
+            order
+        );
+        if order.is_infinite() {
+            return Self::Inf;
+        }
+        let rounded_order = order.round_factor(thresh);
+        if approx::relative_eq!(
+            rounded_order,
+            rounded_order.round(),
+            epsilon = thresh,
+            max_relative = thresh
+        ) {
+            return Self::Int(rounded_order as u32);
+        }
+        Self::Float(rounded_order, thresh)
+    }
+
+    pub fn to_float(&self) -> f64 {
+        match self {
+            Self::Int(s_i) => *s_i as f64,
+            Self::Float(s_f, _) => *s_f,
+            Self::Inf => f64::INFINITY,
+        }
+    }
+}
+
+impl PartialEq for ElementOrder {
+    fn eq(&self, other: &Self) -> bool {
+        match &self {
+            Self::Int(s_i) => match &other {
+                Self::Int(o_i) => {
+                    return s_i == o_i;
+                }
+                Self::Float(o_f, o_thresh) => {
+                    return approx::relative_eq!(
+                        *s_i as f64,
+                        *o_f,
+                        epsilon = *o_thresh,
+                        max_relative = *o_thresh
+                    );
+                }
+                Self::Inf => return false,
+            },
+            Self::Float(s_f, s_thresh) => match &other {
+                Self::Int(o_i) => {
+                    return approx::relative_eq!(
+                        *s_f,
+                        *o_i as f64,
+                        epsilon = *s_thresh,
+                        max_relative = *s_thresh
+                    );
+                }
+                Self::Float(o_f, o_thresh) => {
+                    return approx::relative_eq!(
+                        *s_f,
+                        *o_f,
+                        epsilon = (*s_thresh * *o_thresh).sqrt(),
+                        max_relative = (*s_thresh * *o_thresh).sqrt(),
+                    );
+                }
+                Self::Inf => {
+                    return s_f.is_infinite() && s_f.is_sign_positive();
+                }
+            },
+            Self::Inf => match &other {
+                Self::Int(_) => return false,
+                Self::Float(o_f, _) => {
+                    return o_f.is_infinite() && o_f.is_sign_positive();
+                }
+                Self::Inf => return true,
+            },
+        }
+    }
+}
+
+impl Eq for ElementOrder {}
+
+impl Hash for ElementOrder {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match &self {
+            Self::Int(s_i) => {
+                s_i.hash(state);
+            }
+            Self::Float(s_f, s_thresh) => {
+                let factor = 1.0 / s_thresh;
+                s_f.round_factor(factor).integer_decode().hash(state);
+            }
+            Self::Inf => {
+                f64::INFINITY.integer_decode().hash(state);
+            }
+        }
+    }
+}
+
+impl PartialOrd for ElementOrder {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.to_float().partial_cmp(&other.to_float())?)
+    }
+}
+
+impl fmt::Display for ElementOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self {
+            Self::Int(s_i) => write!(f, "{}", s_i),
+            Self::Float(s_f, s_thresh) => {
+                match approx::relative_eq!(
+                    *s_f,
+                    s_f.round(),
+                    epsilon = *s_thresh,
+                    max_relative = *s_thresh
+                ) {
+                    true => write!(f, "{:.0}", s_f),
+                    false => write!(f, "{:.3}", s_f),
+                }
+            }
+            Self::Inf => write!(f, "{}", "∞".to_owned()),
+        }
+    }
+}
+
 /// A struct for storing and managing symmetry elements.
 #[derive(Builder, Clone)]
 pub struct SymmetryElement {
@@ -36,12 +174,11 @@ pub struct SymmetryElement {
     /// of the rotation about [`Self::axis`] associated with this element. This
     /// is **not** necessarily an integer, and can also take the special value
     /// of `-1.0` to indicate that this symmetry element is of infinite order.
-    #[builder(setter(custom))]
-    order: f64,
+    order: ElementOrder,
 
     /// The normalised axis of the symmetry element.
     #[builder(setter(custom))]
-    axis: Vector3<f64>,
+    pub axis: Vector3<f64>,
 
     /// The kind of the symmetry element.
     #[builder(default = "SymmetryElementKind::Proper")]
@@ -58,29 +195,14 @@ pub struct SymmetryElement {
 
     /// An additional superscript for distinguishing the symmetry element.
     #[builder(default = "\"\".to_owned()")]
-    additional_superscript: String,
+    pub additional_superscript: String,
 
     /// An additional subscript for distinguishing the symmetry element.
     #[builder(default = "\"\".to_owned()")]
-    additional_subscript: String,
+    pub additional_subscript: String,
 }
 
 impl SymmetryElementBuilder {
-    pub fn order(&mut self, ord: f64) -> &mut Self {
-        let thresh = self.threshold.unwrap();
-        if ord > thresh || approx::relative_eq!(ord, -1.0, epsilon = thresh, max_relative = thresh)
-        {
-            self.order = Some(ord);
-        } else {
-            log::error!(
-                "Order value {} is invalid. Order must be positive or -1.0.",
-                ord
-            );
-            self.order = None;
-        }
-        self
-    }
-
     pub fn axis(&mut self, axs: Vector3<f64>) -> &mut Self {
         let thresh = self.threshold.unwrap();
         if approx::relative_eq!(axs.norm(), 1.0, epsilon = thresh, max_relative = thresh) {
@@ -121,7 +243,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if the symmetry element is proper.
-    fn is_proper(&self) -> bool {
+    pub fn is_proper(&self) -> bool {
         self.kind == SymmetryElementKind::Proper
     }
 
@@ -130,14 +252,8 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is an identity element.
-    fn is_identity(&self) -> bool {
-        self.kind == SymmetryElementKind::Proper
-            && approx::relative_eq!(
-                self.order,
-                1.0,
-                epsilon = self.threshold,
-                max_relative = self.threshold
-            )
+    pub fn is_identity(&self) -> bool {
+        self.kind == SymmetryElementKind::Proper && self.order == ElementOrder::Int(1)
     }
 
     /// Checks if the symmetry element is an inversion centre.
@@ -145,21 +261,11 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is an inversion centre.
-    fn is_inversion_centre(&self) -> bool {
+    pub fn is_inversion_centre(&self) -> bool {
         (matches!(self.kind, SymmetryElementKind::ImproperMirrorPlane)
-            && approx::relative_eq!(
-                self.order,
-                2.0,
-                epsilon = self.threshold,
-                max_relative = self.threshold
-            ))
+            && self.order == ElementOrder::Int(2))
             || (self.kind == SymmetryElementKind::ImproperInversionCentre
-                && approx::relative_eq!(
-                    self.order,
-                    1.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
-                ))
+                && self.order == ElementOrder::Int(1))
     }
 
     /// Checks if the symmetry element is a binary rotation axis.
@@ -167,14 +273,8 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is a binary rotation axis.
-    fn is_binary_rotation_axis(&self) -> bool {
-        self.kind == SymmetryElementKind::Proper
-            && approx::relative_eq!(
-                self.order,
-                2.0,
-                epsilon = self.threshold,
-                max_relative = self.threshold
-            )
+    pub fn is_binary_rotation_axis(&self) -> bool {
+        self.kind == SymmetryElementKind::Proper && self.order == ElementOrder::Int(2)
     }
 
     /// Checks if the symmetry element is a mirror plane.
@@ -182,21 +282,11 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is a mirror plane.
-    fn is_mirror_plane(&self) -> bool {
+    pub fn is_mirror_plane(&self) -> bool {
         (matches!(self.kind, SymmetryElementKind::ImproperMirrorPlane)
-            && approx::relative_eq!(
-                self.order,
-                1.0,
-                epsilon = self.threshold,
-                max_relative = self.threshold
-            ))
+            && self.order == ElementOrder::Int(1))
             || (self.kind == SymmetryElementKind::ImproperInversionCentre
-                && approx::relative_eq!(
-                    self.order,
-                    2.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
-                ))
+                && self.order == ElementOrder::Int(2))
     }
 
     /// Returns the standard symbol for this symmetry element, which does not
@@ -206,31 +296,13 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// The standard symbol for this symmetry element.
-    fn get_standard_symbol(&self) -> String {
+    pub fn get_standard_symbol(&self) -> String {
         let main_symbol: String = match self.kind {
             SymmetryElementKind::Proper => "C".to_owned(),
             SymmetryElementKind::ImproperMirrorPlane => "S".to_owned(),
             SymmetryElementKind::ImproperInversionCentre => "Ṡ".to_owned(),
         };
-
-        let order_string: String = match approx::relative_eq!(
-            self.order,
-            self.order.round(),
-            epsilon = self.threshold,
-            max_relative = self.threshold
-        ) {
-            true => match approx::relative_eq!(
-                self.order,
-                -1.0,
-                epsilon = self.threshold,
-                max_relative = self.threshold
-            ) {
-                true => "∞".to_owned(),
-                false => format!("{:.0}", self.order),
-            },
-            false => format!("{:.3}", self.order),
-        };
-        main_symbol + &order_string
+        format!("{}{}", main_symbol, self.order)
     }
 
     /// Returns the detailed symbol for this symmetry element, which classifies
@@ -239,42 +311,22 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// The detailed symbol for this symmetry element.
-    fn get_detailed_symbol(&self) -> String {
+    pub fn get_detailed_symbol(&self) -> String {
         let main_symbol: String = match self.kind {
             SymmetryElementKind::Proper => "C".to_owned(),
             SymmetryElementKind::ImproperMirrorPlane => {
-                if approx::relative_eq!(
-                    self.order,
-                    1.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
-                ) {
+                if self.order == ElementOrder::Int(1) {
                     "σ".to_owned()
-                } else if approx::relative_eq!(
-                    self.order,
-                    2.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
-                ) {
+                } else if self.order == ElementOrder::Int(2) {
                     "i".to_owned()
                 } else {
                     "S".to_owned()
                 }
             }
             SymmetryElementKind::ImproperInversionCentre => {
-                if approx::relative_eq!(
-                    self.order,
-                    1.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
-                ) {
+                if self.order == ElementOrder::Int(1) {
                     "i".to_owned()
-                } else if approx::relative_eq!(
-                    self.order,
-                    2.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
-                ) {
+                } else if self.order == ElementOrder::Int(2) {
                     "σ".to_owned()
                 } else {
                     "Ṡ".to_owned()
@@ -283,31 +335,8 @@ impl SymmetryElement {
         };
 
         let order_string: String =
-            if (self.is_proper() && self.order > 0.0) || (!self.is_proper() && self.order > 2.0) {
-                match approx::relative_eq!(
-                    self.order,
-                    self.order.round(),
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
-                ) {
-                    true => match approx::relative_eq!(
-                        self.order,
-                        -1.0,
-                        epsilon = self.threshold,
-                        max_relative = self.threshold
-                    ) {
-                        true => "∞".to_owned(),
-                        false => format!("{:.0}", self.order),
-                    },
-                    false => format!("{:.3}", self.order),
-                }
-            } else if approx::relative_eq!(
-                self.order,
-                -1.0,
-                epsilon = self.threshold,
-                max_relative = self.threshold
-            ) {
-                "∞".to_owned()
+            if self.is_proper() || (!self.is_inversion_centre() && !self.is_mirror_plane()) {
+                format!("{}", self.order)
             } else {
                 "".to_owned()
             };
@@ -324,7 +353,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A copy of the current improper symmetry element that has been converted.
-    fn convert_to_improper_kind(&self, improper_kind: &SymmetryElementKind) -> Self {
+    pub fn convert_to_improper_kind(&self, improper_kind: &SymmetryElementKind) -> Self {
         assert!(
             !self.is_proper(),
             "Only improper elements can be converted."
@@ -339,19 +368,23 @@ impl SymmetryElement {
             return self.clone();
         }
 
-        let mut dest_order = self.order.clone();
-        if self.order > 0.0 {
+        let dest_order = if self.order != ElementOrder::Inf {
             let self_basic_angle = geometry::normalise_rotation_angle(
-                2.0 * std::f64::consts::PI / self.order,
+                2.0 * std::f64::consts::PI / self.order.to_float(),
                 self.threshold,
             );
             let dest_basic_angle = std::f64::consts::PI - self_basic_angle;
             if dest_basic_angle.abs() > self.threshold {
-                dest_order = 2.0 * std::f64::consts::PI / dest_basic_angle;
+                ElementOrder::new(
+                    2.0 * std::f64::consts::PI / dest_basic_angle,
+                    self.threshold,
+                )
             } else {
-                dest_order = 1.0;
+                ElementOrder::Int(1)
             }
-        }
+        } else {
+            ElementOrder::Inf
+        };
         Self::builder()
             .threshold(self.threshold)
             .order(dest_order)
@@ -416,35 +449,11 @@ impl PartialEq for SymmetryElement {
         }
 
         let thresh = (self.threshold * other.threshold).sqrt();
-        // if (self.is_binary_rotation_axis() && other.is_binary_rotation_axis())
-        //     || (self.is_mirror_plane() && other.is_mirror_plane())
-        // {
-        //     let result = approx::relative_eq!(
-        //         self.axis,
-        //         other.axis,
-        //         epsilon = thresh,
-        //         max_relative = thresh
-        //     ) || approx::relative_eq!(
-        //         self.axis,
-        //         -other.axis,
-        //         epsilon = thresh,
-        //         max_relative = thresh
-        //     );
-        //     if result {
-        //         assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
-        //     }
-        //     return result;
-        // }
 
         if self.kind != other.kind {
             let converted_other = other.convert_to_improper_kind(&self.kind);
-            let result = approx::relative_eq!(
-                self.order,
-                converted_other.order,
-                epsilon = thresh,
-                max_relative = thresh
-            ) && (
-                approx::relative_eq!(
+            let result = (self.order == converted_other.order)
+                && (approx::relative_eq!(
                     self.axis,
                     converted_other.axis,
                     epsilon = thresh,
@@ -454,20 +463,14 @@ impl PartialEq for SymmetryElement {
                     -converted_other.axis,
                     epsilon = thresh,
                     max_relative = thresh
-                )
-            );
+                ));
             if result {
                 assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
             }
             return result;
         }
-        let result = approx::relative_eq!(
-            self.order,
-            other.order,
-            epsilon = thresh,
-            max_relative = thresh
-        ) && (
-            approx::relative_eq!(
+        let result = (self.order == other.order)
+            && (approx::relative_eq!(
                 self.axis,
                 other.axis,
                 epsilon = thresh,
@@ -477,8 +480,7 @@ impl PartialEq for SymmetryElement {
                 -other.axis,
                 epsilon = thresh,
                 max_relative = thresh
-            )
-        );
+            ));
         if result {
             assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
         }
@@ -486,9 +488,7 @@ impl PartialEq for SymmetryElement {
     }
 }
 
-
-impl Eq for SymmetryElement { }
-
+impl Eq for SymmetryElement {}
 
 impl Hash for SymmetryElement {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -496,12 +496,24 @@ impl Hash for SymmetryElement {
         if self.is_identity() || self.is_inversion_centre() {
             true.hash(state);
         } else {
-            let factor = 1.0 / self.threshold;
-            self.order.round_factor(factor).integer_decode().hash(state);
-            let pole = geometry::get_positive_pole(&self.axis, self.threshold);
-            pole[0].round_factor(factor).integer_decode().hash(state);
-            pole[1].round_factor(factor).integer_decode().hash(state);
-            pole[2].round_factor(factor).integer_decode().hash(state);
+            match self.kind {
+                SymmetryElementKind::ImproperMirrorPlane => {
+                    let c_self = self
+                        .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre);
+                    c_self.order.hash(state);
+                    let pole = geometry::get_positive_pole(&c_self.axis, c_self.threshold);
+                    pole[0].round_factor(self.threshold).integer_decode().hash(state);
+                    pole[1].round_factor(self.threshold).integer_decode().hash(state);
+                    pole[2].round_factor(self.threshold).integer_decode().hash(state);
+                }
+                _ => {
+                    self.order.hash(state);
+                    let pole = geometry::get_positive_pole(&self.axis, self.threshold);
+                    pole[0].round_factor(self.threshold).integer_decode().hash(state);
+                    pole[1].round_factor(self.threshold).integer_decode().hash(state);
+                    pole[2].round_factor(self.threshold).integer_decode().hash(state);
+                }
+            };
         }
     }
 }
