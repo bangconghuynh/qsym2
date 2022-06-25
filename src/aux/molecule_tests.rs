@@ -110,7 +110,7 @@ fn test_transform_c2h2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.recentre_mut();
-    let rotated_mol = mol.rotate(std::f64::consts::PI, &Vector3::new(0.0, 1.0, 0.0));
+    let rotated_mol = mol.rotate(std::f64::consts::PI, &Vector3::new(0.0, 1.0, -1.0));
     assert_eq!(mol, rotated_mol);
 
     let inverted_mol = mol.improper_rotate(

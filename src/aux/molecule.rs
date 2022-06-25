@@ -1,8 +1,7 @@
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
 use crate::aux::geometry::{self, Transform};
-use crate::aux::misc::HashableFloat;
 use crate::symmetry::symmetry_element::SymmetryElementKind;
-use nalgebra::{DVector, Matrix, Matrix3, Point3, Vector3};
+use nalgebra::{DVector, Matrix3, Point3, Vector3};
 use std::collections::HashSet;
 use std::fs;
 use std::process;
@@ -41,7 +40,7 @@ impl Molecule {
     /// # Returns
     ///
     /// The parsed [`Molecule`] struct.
-    pub fn from_xyz(filename: &str, thresh: f64) -> Molecule {
+    pub fn from_xyz(filename: &str, thresh: f64) -> Self {
         let contents = fs::read_to_string(filename).unwrap_or_else(|err| {
             println!("Unable to read file {}.", filename);
             println!("{}", err);
@@ -113,6 +112,9 @@ impl Molecule {
     pub fn calc_com(&self, verbose: u64) -> Point3<f64> {
         let atoms = &self.atoms;
         let mut com: Point3<f64> = Point3::origin();
+        if atoms.len() == 0 {
+            return com;
+        }
         let mut tot_m: f64 = 0.0;
         for atom in atoms.iter() {
             let m: f64 = atom.atomic_mass;
@@ -199,37 +201,43 @@ impl Molecule {
                         sorted_eigenvectors[0][(0, 0)],
                         sorted_eigenvectors[0][(1, 0)],
                         sorted_eigenvectors[0][(2, 0)],
-                    ), self.threshold
+                    ),
+                    self.threshold,
                 ),
                 geometry::get_positive_pole(
                     &Vector3::new(
                         sorted_eigenvectors[1][(0, 0)],
                         sorted_eigenvectors[1][(1, 0)],
                         sorted_eigenvectors[1][(2, 0)],
-                    ), self.threshold
+                    ),
+                    self.threshold,
                 ),
                 geometry::get_positive_pole(
                     &Vector3::new(
                         sorted_eigenvectors[2][(0, 0)],
                         sorted_eigenvectors[2][(1, 0)],
                         sorted_eigenvectors[2][(2, 0)],
-                    ), self.threshold
+                    ),
+                    self.threshold,
                 ),
             ],
         )
     }
 
-    /// Determines the sets of symmetry-equivalent atoms.
+    /// Determines the sets of symmetry-equivalent atoms and stores the result in
+    /// the field [`Self::sea_groups`].
+    ///
+    /// This *does* take into account fictitious special atoms.
     ///
     /// # Arguments
     ///
-    /// * `dist_thresh` - The threshold for distance comparison.
     /// * `verbose` - The print level.
     ///
     /// # Returns
     ///
-    /// The vector of vectors of symmetry-equivalent atom indices.
-    pub fn calc_sea_groups(&self, verbose: u64) -> Vec<Vec<usize>> {
+    /// * Copies of the atoms in the molecule, grouped into symmetry-equivalent
+    /// groups.
+    pub fn calc_sea_groups(&self, verbose: u64) -> Vec<Vec<Atom>> {
         let atoms = self.get_all_atoms();
         let all_coords: Vec<_> = atoms.iter().map(|atm| atm.coordinates).collect();
         let all_masses: Vec<_> = atoms.iter().map(|atm| atm.atomic_mass).collect();
@@ -269,6 +277,9 @@ impl Molecule {
             println!("Number of SEA groups: {}", equiv_indicess.len());
         }
         equiv_indicess
+            .iter()
+            .map(|equiv_indices| equiv_indices.iter().map(|index| atoms[*index].clone()).collect())
+            .collect()
     }
 
     /// Adds two fictitious magnetic atoms to represent the magnetic field.

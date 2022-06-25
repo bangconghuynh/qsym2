@@ -8,7 +8,7 @@ mod rodsym_tests;
 
 /// An enum to classify the types of rotational symmetry of a molecular system
 /// based on its principal moments of inertia.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum RotationalSymmetry {
     /// All three principal moments of inertia are identical.
     Spherical,
