@@ -4,7 +4,7 @@ use std::fmt;
 
 #[cfg(test)]
 #[path = "rotsym_tests.rs"]
-mod rodsym_tests;
+mod rotsym_tests;
 
 /// An enum to classify the types of rotational symmetry of a molecular system
 /// based on its principal moments of inertia.

@@ -307,11 +307,14 @@ impl Molecule {
         if let Some(b_vec) = magnetic_field {
             if approx::relative_ne!(b_vec.norm(), 0.0) {
                 let com = self.calc_com(0);
-                let ave_mag = self
-                    .atoms
-                    .iter()
-                    .fold(0.0, |acc, atom| acc + (atom.coordinates - com).magnitude())
-                    / self.atoms.len() as f64;
+                let ave_mag = {
+                    let average_distance = self
+                        .atoms
+                        .iter()
+                        .fold(0.0, |acc, atom| acc + (atom.coordinates - com).magnitude())
+                        / self.atoms.len() as f64;
+                    if average_distance > 0.0 { average_distance } else { 0.5 }
+                };
                 let b_vec_norm = b_vec.normalize() * ave_mag * 0.5;
                 self.magnetic_atoms = Some([
                     Atom::new_special(AtomKind::Magnetic(true), com + b_vec_norm, self.threshold)
@@ -337,11 +340,14 @@ impl Molecule {
         if let Some(e_vec) = electric_field {
             if approx::relative_ne!(e_vec.norm(), 0.0) {
                 let com = self.calc_com(0);
-                let ave_mag = self
-                    .atoms
-                    .iter()
-                    .fold(0.0, |acc, atom| acc + (atom.coordinates - com).magnitude())
-                    / self.atoms.len() as f64;
+                let ave_mag = {
+                    let average_distance = self
+                        .atoms
+                        .iter()
+                        .fold(0.0, |acc, atom| acc + (atom.coordinates - com).magnitude())
+                        / self.atoms.len() as f64;
+                    if average_distance > 0.0 { average_distance } else { 0.5 }
+                };
                 let e_vec_norm = e_vec.normalize() * ave_mag * 0.5;
                 self.electric_atoms = Some([
                     Atom::new_special(AtomKind::Electric(true), com + 1.1 * e_vec_norm, self.threshold)
