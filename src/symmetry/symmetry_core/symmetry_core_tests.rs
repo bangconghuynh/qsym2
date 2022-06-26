@@ -11,7 +11,7 @@ fn test_symmetry_check_proper_improper_n3() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-14)
-        .molecule(&mol)
+        .molecule(&mol, true)
         .build()
         .unwrap();
     assert!(presym.check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, 1.0, 1.0)));
@@ -32,7 +32,7 @@ fn test_symmetry_check_proper_improper_h8() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-14)
-        .molecule(&mol)
+        .molecule(&mol, true)
         .build()
         .unwrap();
     assert!(presym.check_proper(&ElementOrder::Int(4), &Vector3::new(0.0, 0.0, 1.0)));
@@ -53,7 +53,7 @@ fn test_symmetry_check_proper_improper_h8() {
 //     let mol = Molecule::from_xyz(&path, 1e-6);
 //     let presym = PreSymmetry::builder()
 //         .moi_threshold(1e-6)
-//         .molecule(&mol)
+//         .molecule(&mol, true)
 //         .build()
 //         .unwrap();
 //     // Missing

@@ -26,14 +26,6 @@ pub struct PreSymmetry {
     #[builder(setter(custom))]
     molecule: Molecule,
 
-    /// The static electric field vector being applied to [`Self::molecule`].
-    #[builder(setter(strip_option), default = "None")]
-    electric_field: Option<Vector3<f64>>,
-
-    /// The static magnetic field vector being applied to [`Self::molecule`].
-    #[builder(setter(strip_option), default = "None")]
-    magnetic_field: Option<Vector3<f64>>,
-
     /// The rotational symmetry of [`Self::molecule`] based on its moments of
     /// inertia.
     #[builder(setter(skip), default = "self.calc_rotational_symmetry()")]
@@ -52,9 +44,13 @@ pub struct PreSymmetry {
 
 
 impl PreSymmetryBuilder {
-    pub fn molecule(&mut self, molecule: &Molecule) -> &mut Self {
-        // The Symmetry struct now owns a recentred copy of `molecule`.
-        self.molecule = Some(molecule.recentre());
+    pub fn molecule(&mut self, molecule: &Molecule, recentre: bool) -> &mut Self {
+        if recentre {
+            // The Symmetry struct now owns a recentred copy of `molecule`.
+            self.molecule = Some(molecule.recentre());
+        } else {
+            self.molecule = Some(molecule.clone());
+        }
         self
     }
 
@@ -85,7 +81,6 @@ impl PreSymmetryBuilder {
             self.moi_threshold.unwrap(),
             0,
         )
-        // self
     }
 
     pub fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
@@ -102,54 +97,6 @@ impl PreSymmetry {
     /// A builder to construct a new pre-symmetry struct.
     pub fn builder() -> PreSymmetryBuilder {
         PreSymmetryBuilder::default()
-    }
-
-    /// Sets the electric field vector applied to [`Self::molecule`].
-    ///
-    /// # Arguments
-    ///
-    /// * e_vector - An option for a vector.
-    pub fn set_electric_field(&mut self, e_vector: Option<Vector3<f64>>) {
-        match e_vector {
-            Some(vec) => {
-                if approx::relative_eq!(
-                    vec.norm(),
-                    0.0,
-                    epsilon = self.molecule.threshold,
-                    max_relative = self.molecule.threshold
-                ) {
-                    self.electric_field = e_vector;
-                } else {
-                    self.electric_field = None
-                };
-            }
-            None => self.electric_field = None,
-        }
-        self.molecule.set_electric_field(self.electric_field);
-    }
-
-    /// Sets the magnetic field vector applied to [`Self::molecule`].
-    ///
-    /// # Arguments
-    ///
-    /// * b_vector - An option for a vector.
-    pub fn set_magnetic_field(&mut self, b_vector: Option<Vector3<f64>>) {
-        match b_vector {
-            Some(vec) => {
-                if approx::relative_eq!(
-                    vec.norm(),
-                    0.0,
-                    epsilon = self.molecule.threshold,
-                    max_relative = self.molecule.threshold
-                ) {
-                    self.magnetic_field = b_vector;
-                } else {
-                    self.magnetic_field = None
-                };
-            }
-            None => self.magnetic_field = None,
-        }
-        self.molecule.set_magnetic_field(self.magnetic_field);
     }
 
     /// Checks for the existence of the proper symmetry element $C_n$ along
@@ -281,26 +228,9 @@ impl Symmetry {
     ///
     /// This sets the fields [`Self::rotational_symmetry`].
     pub fn analyse(&mut self, presym: &PreSymmetry) {
-        // let com = self.molecule.calc_com(0);
-        // let inertia = self.molecule.calc_inertia_tensor(&com, 0);
-        // approx::assert_relative_eq!(
-        //     com,
-        //     Point3::origin(),
-        //     epsilon = self.molecule.threshold,
-        //     max_relative = self.molecule.threshold
-        // );
-        // self.rotational_symmetry = Some(rotsym::calc_rotational_symmetry(
-        //     &inertia,
-        //     self.moi_threshold,
-        //     0,
-        // ));
-        // let moi_mat = inertia.symmetric_eigenvalues();
-        // let mut moi: Vec<&f64> = moi_mat.iter().collect();
-        // moi.sort_by(|a, b| a.partial_cmp(b).unwrap());
-
         match &presym.rotational_symmetry {
             RotationalSymmetry::Spherical => self.analyse_spherical(presym),
-            RotationalSymmetry::ProlateNonLinear => self.analyse_linear(presym),
+            RotationalSymmetry::ProlateLinear => self.analyse_linear(presym),
             _ => {}
         }
     }
@@ -507,7 +437,7 @@ impl Symmetry {
 
     pub fn get_sigma_generators(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let order_1 = &ElementOrder::Int(1);
-        if self.improper_elements.contains_key(&order_1) {
+        if self.improper_generators.contains_key(&order_1) {
             Some(
                 self.improper_generators[&order_1]
                     .iter()

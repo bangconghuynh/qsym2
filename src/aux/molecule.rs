@@ -3,6 +3,7 @@ use crate::aux::geometry::{self, Transform};
 use crate::symmetry::symmetry_element::SymmetryElementKind;
 use nalgebra::{DVector, Matrix3, Point3, Vector3};
 use std::collections::HashSet;
+use log;
 use std::fs;
 use std::process;
 
@@ -21,10 +22,10 @@ pub struct Molecule {
     pub atoms: Vec<Atom>,
 
     /// Optional special atoms to represent the electric field applied to this molecule.
-    electric_atoms: Option<[Atom; 2]>,
+    pub electric_atoms: Option<[Atom; 2]>,
 
     /// Optional special atoms to represent the magnetic field applied to this molecule.
-    magnetic_atoms: Option<[Atom; 2]>,
+    pub magnetic_atoms: Option<[Atom; 2]>,
 
     /// A threshold for approximate equality comparisons.
     pub threshold: f64,
@@ -42,8 +43,8 @@ impl Molecule {
     /// The parsed [`Molecule`] struct.
     pub fn from_xyz(filename: &str, thresh: f64) -> Self {
         let contents = fs::read_to_string(filename).unwrap_or_else(|err| {
-            println!("Unable to read file {}.", filename);
-            println!("{}", err);
+            log::error!("Unable to read file {}.", filename);
+            log::error!("{}", err);
             process::exit(1);
         });
 
@@ -123,7 +124,7 @@ impl Molecule {
         }
         com *= 1.0 / tot_m;
         if verbose > 0 {
-            println!("Centre of mass: {}", com);
+            log::info!("Centre of mass: {}", com);
         }
         com
     }
@@ -161,8 +162,8 @@ impl Molecule {
             }
         }
         if verbose > 1 {
-            println!("Origin for inertia tensor: {}", origin);
-            println!("Inertia tensor:\n{}", inertia_tensor);
+            log::info!("Origin for inertia tensor: {}", origin);
+            log::info!("Inertia tensor:\n{}", inertia_tensor);
         }
         inertia_tensor
     }
@@ -175,7 +176,7 @@ impl Molecule {
     ///
     /// * The moments of inertia in ascending order.
     /// * The corresponding principal axes.
-    fn calc_moi(&self) -> ([f64; 3], [Vector3<f64>; 3]) {
+    pub fn calc_moi(&self) -> ([f64; 3], [Vector3<f64>; 3]) {
         let inertia_eig = self
             .calc_inertia_tensor(&self.calc_com(0), 0)
             .symmetric_eigen();
@@ -238,7 +239,7 @@ impl Molecule {
     /// * Copies of the atoms in the molecule, grouped into symmetry-equivalent
     /// groups.
     pub fn calc_sea_groups(&self, verbose: u64) -> Vec<Vec<Atom>> {
-        let atoms = self.get_all_atoms();
+        let atoms = &self.atoms;
         let all_coords: Vec<_> = atoms.iter().map(|atm| atm.coordinates).collect();
         let all_masses: Vec<_> = atoms.iter().map(|atm| atm.atomic_mass).collect();
         let mut dist_columns: Vec<DVector<f64>> = vec![];
@@ -273,29 +274,54 @@ impl Molecule {
                 };
             }
         }
-        if verbose > 0 {
-            println!("Number of SEA groups: {}", equiv_indicess.len());
-        }
-        equiv_indicess
+        let mut sea_groups: Vec<Vec<Atom>> = equiv_indicess
             .iter()
-            .map(|equiv_indices| equiv_indices.iter().map(|index| atoms[*index].clone()).collect())
-            .collect()
+            .map(|equiv_indices| {
+                equiv_indices
+                    .iter()
+                    .map(|index| atoms[*index].clone())
+                    .collect()
+            })
+            .collect();
+
+        if let Some(magnetic_atoms) = &self.magnetic_atoms {
+            sea_groups.push(vec![magnetic_atoms[0].clone(), magnetic_atoms[1].clone()]);
+        }
+        if let Some(electric_atoms) = &self.electric_atoms {
+            sea_groups.push(vec![electric_atoms[0].clone()]);
+            sea_groups.push(vec![electric_atoms[1].clone()]);
+        }
+        if verbose > 0 {
+            log::info!("Number of SEA groups: {}", sea_groups.len());
+        }
+        sea_groups
     }
 
     /// Adds two fictitious magnetic atoms to represent the magnetic field.
     ///
     /// # Arguments
     ///
-    /// * magnetic_field - The magnetic field vector. If `None`, any magnetic
+    /// * magnetic_field - The magnetic field vector. If zero or `None`, any magnetic
     /// field present will be removed.
     pub fn set_magnetic_field(&mut self, magnetic_field: Option<Vector3<f64>>) {
         if let Some(b_vec) = magnetic_field {
-            approx::assert_relative_ne!(b_vec.norm(), 0.0);
-            let com = self.calc_com(0);
-            self.magnetic_atoms = Some([
-                Atom::new_special(AtomKind::Magnetic(true), com + b_vec, self.threshold).unwrap(),
-                Atom::new_special(AtomKind::Magnetic(false), com - b_vec, self.threshold).unwrap(),
-            ])
+            if approx::relative_ne!(b_vec.norm(), 0.0) {
+                let com = self.calc_com(0);
+                let ave_mag = self
+                    .atoms
+                    .iter()
+                    .fold(0.0, |acc, atom| acc + (atom.coordinates - com).magnitude())
+                    / self.atoms.len() as f64;
+                let b_vec_norm = b_vec.normalize() * ave_mag * 0.5;
+                self.magnetic_atoms = Some([
+                    Atom::new_special(AtomKind::Magnetic(true), com + b_vec_norm, self.threshold)
+                        .unwrap(),
+                    Atom::new_special(AtomKind::Magnetic(false), com - b_vec_norm, self.threshold)
+                        .unwrap(),
+                ])
+            } else {
+                self.magnetic_atoms = None;
+            }
         } else {
             self.magnetic_atoms = None;
         }
@@ -305,17 +331,27 @@ impl Molecule {
     ///
     /// # Arguments
     ///
-    /// * electric_field - The electric field vector. If `None`, any magnetic
+    /// * electric_field - The electric field vector. If zero or `None`, any magnetic
     /// field present will be removed.
     pub fn set_electric_field(&mut self, electric_field: Option<Vector3<f64>>) {
         if let Some(e_vec) = electric_field {
-            approx::assert_relative_ne!(e_vec.norm(), 0.0);
-            let com = self.calc_com(0);
-            self.electric_atoms = Some([
-                Atom::new_special(AtomKind::Electric(true), com + 1.1 * e_vec, self.threshold)
-                    .unwrap(),
-                Atom::new_special(AtomKind::Electric(false), com - e_vec, self.threshold).unwrap(),
-            ])
+            if approx::relative_ne!(e_vec.norm(), 0.0) {
+                let com = self.calc_com(0);
+                let ave_mag = self
+                    .atoms
+                    .iter()
+                    .fold(0.0, |acc, atom| acc + (atom.coordinates - com).magnitude())
+                    / self.atoms.len() as f64;
+                let e_vec_norm = e_vec.normalize() * ave_mag * 0.5;
+                self.electric_atoms = Some([
+                    Atom::new_special(AtomKind::Electric(true), com + 1.1 * e_vec_norm, self.threshold)
+                        .unwrap(),
+                    Atom::new_special(AtomKind::Electric(false), com - e_vec_norm, self.threshold)
+                        .unwrap(),
+                ])
+            } else {
+                self.electric_atoms = None;
+            }
         } else {
             self.electric_atoms = None;
         }

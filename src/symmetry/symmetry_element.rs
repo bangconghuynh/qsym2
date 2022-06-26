@@ -517,3 +517,10 @@ impl Hash for SymmetryElement {
         }
     }
 }
+
+pub const ORDER_1: ElementOrder = ElementOrder::Int(1);
+pub const ORDER_2: ElementOrder = ElementOrder::Int(2);
+pub const ORDER_I: ElementOrder = ElementOrder::Inf;
+
+pub const SIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane;
+pub const INV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre;
