@@ -1,15 +1,11 @@
 use super::{PreSymmetry, Symmetry};
-use crate::aux::geometry;
-use crate::aux::molecule::Molecule;
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_element::{
     ElementOrder, SymmetryElementKind, ORDER_1, ORDER_2, ORDER_I, SIG,
 };
 use approx;
-use itertools::{self, Itertools};
 use log;
 use nalgebra::Vector3;
-use std::collections::HashSet;
 
 impl Symmetry {
     /// Performs point-group detection analysis for a linear molecule.

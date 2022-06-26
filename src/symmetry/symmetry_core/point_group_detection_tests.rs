@@ -4,7 +4,7 @@ use crate::symmetry::symmetry_element::ElementOrder;
 use nalgebra::Vector3;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
-use env_logger;
+// use env_logger;
 
 /*
 Spherical
@@ -23,7 +23,8 @@ fn test_point_group_detection_atom() {
         .build()
         .unwrap();
     sym.analyse(&presym);
-    // Missing?
+    assert_eq!(sym.point_group, Some("O(3)".to_owned()));
+    assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 3);
 }
 
 #[test]
@@ -130,6 +131,46 @@ fn test_point_group_detection_vf6() {
 /*
 Linear
 */
+
+#[test]
+fn test_point_group_detection_atom_magnetic_field() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-14)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder()
+        .build()
+        .unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C∞h".to_owned()));
+    assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_atom_electric_field() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-14)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder()
+        .build()
+        .unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C∞v".to_owned()));
+    assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+}
 
 #[test]
 fn test_point_group_detection_c2h2() {
