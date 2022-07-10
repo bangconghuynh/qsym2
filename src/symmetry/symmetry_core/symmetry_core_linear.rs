@@ -9,6 +9,11 @@ use nalgebra::Vector3;
 
 impl Symmetry {
     /// Performs point-group detection analysis for a linear molecule.
+    ///
+    /// # Arguments
+    ///
+    /// * `presym` - A pre-symmetry-analysis struct containing information about
+    /// the molecular system.
     pub fn analyse_linear(&mut self, presym: &PreSymmetry) {
         let (mois, principal_axes) = presym.molecule.calc_moi();
 
@@ -25,17 +30,21 @@ impl Symmetry {
         assert!(approx::relative_eq!(
             mois[0],
             0.0,
-            epsilon = presym.molecule.threshold,
-            max_relative = presym.molecule.threshold
+            epsilon = presym.dist_threshold,
+            max_relative = presym.dist_threshold
         ));
         assert!(self.add_proper(
             ORDER_I.clone(),
             principal_axes[0].clone(),
             true,
-            presym.molecule.threshold
+            presym.dist_threshold
         ));
 
-        if _check_inversion(&presym) {
+        if presym.check_improper(
+            &ElementOrder::Int(2),
+            &Vector3::new(0.0, 0.0, 1.0),
+            &SymmetryElementKind::ImproperMirrorPlane,
+        ) {
             // i
             log::debug!("Located an inversion centre.");
             assert!(self.add_improper(
@@ -44,7 +53,7 @@ impl Symmetry {
                 false,
                 SIG.clone(),
                 None,
-                presym.molecule.threshold
+                presym.dist_threshold
             ));
 
             // σh must exist if C∞ and i both exist.
@@ -56,7 +65,7 @@ impl Symmetry {
                 true,
                 SIG.clone(),
                 Some("h".to_owned()),
-                presym.molecule.threshold
+                presym.dist_threshold
             ));
 
             if presym.check_proper(&ORDER_2, &principal_axes[1]) {
@@ -66,7 +75,7 @@ impl Symmetry {
                     ORDER_2.clone(),
                     principal_axes[1].clone(),
                     true,
-                    presym.molecule.threshold
+                    presym.dist_threshold
                 );
                 self.point_group = Some("D∞h".to_owned());
             } else {
@@ -86,7 +95,7 @@ impl Symmetry {
                     true,
                     SIG.clone(),
                     Some("v".to_owned()),
-                    presym.molecule.threshold
+                    presym.dist_threshold
                 );
                 self.point_group = Some("C∞v".to_owned());
             } else {
@@ -100,12 +109,4 @@ impl Symmetry {
             self.point_group.as_ref().unwrap()
         );
     }
-}
-
-fn _check_inversion(presym: &PreSymmetry) -> bool {
-    presym.check_improper(
-        &ElementOrder::Int(2),
-        &Vector3::new(0.0, 0.0, 1.0),
-        &SymmetryElementKind::ImproperMirrorPlane,
-    )
 }

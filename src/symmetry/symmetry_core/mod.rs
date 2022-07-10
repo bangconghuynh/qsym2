@@ -40,6 +40,10 @@ pub struct PreSymmetry {
     /// Threshold for relative comparisons of moments of inertia.
     #[builder(setter(custom))]
     moi_threshold: f64,
+
+    /// Threshold for relative distance comparisons.
+    #[builder(setter(skip), default = "self.get_dist_threshold()")]
+    dist_threshold: f64,
 }
 
 
@@ -67,7 +71,7 @@ impl PreSymmetryBuilder {
         self
     }
 
-    pub fn calc_rotational_symmetry(&self) -> RotationalSymmetry {
+    fn calc_rotational_symmetry(&self) -> RotationalSymmetry {
         let com = self.molecule.as_ref().unwrap().calc_com(0);
         let inertia = self.molecule.as_ref().unwrap().calc_inertia_tensor(&com, 0);
         approx::assert_relative_eq!(
@@ -83,8 +87,12 @@ impl PreSymmetryBuilder {
         )
     }
 
-    pub fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
+    fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
         self.molecule.as_ref().unwrap().calc_sea_groups(0)
+    }
+
+    fn get_dist_threshold(&self) -> f64 {
+        self.molecule.as_ref().unwrap().threshold
     }
 }
 
@@ -448,7 +456,22 @@ impl Symmetry {
             None
         }
     }
+
+    /// Obtains the highest proper rotation order.
+    ///
+    /// # Returns
+    ///
+    /// The highest proper rotation order.
+    pub fn get_max_proper_order(&self) -> ElementOrder {
+        self.proper_generators
+            .keys()
+            .chain(self.proper_elements.keys())
+            .max()
+            .unwrap()
+            .clone()
+    }
 }
 
 mod symmetry_core_spherical;
 mod symmetry_core_linear;
+mod symmetry_core_symmetric;

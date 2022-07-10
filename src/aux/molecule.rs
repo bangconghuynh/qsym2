@@ -75,6 +75,54 @@ impl Molecule {
         }
     }
 
+    /// Construct a molecule from an array of atoms.
+    ///
+    /// # Arguments
+    ///
+    /// * `all_atoms` - The atoms (of all types) constituting this molecule.
+    /// * `threshold` - A threshold for approximate equality comparisons.
+    ///
+    /// # Returns
+    ///
+    /// The constructed [`Molecule`] struct.
+    pub fn from_atoms(all_atoms: &[Atom], threshold: f64) -> Self {
+        let atoms: Vec<Atom> = all_atoms
+            .iter()
+            .filter(|atom| matches!(atom.kind, AtomKind::Ordinary))
+            .cloned()
+            .collect();
+        let magnetic_atoms_vec: Vec<Atom> = all_atoms
+            .iter()
+            .filter(|atom| matches!(atom.kind, AtomKind::Magnetic(_)))
+            .cloned()
+            .collect();
+        assert!(magnetic_atoms_vec.len() == 2 || magnetic_atoms_vec.len() == 0);
+        let magnetic_atoms = if magnetic_atoms_vec.len() == 2 {
+            Some([magnetic_atoms_vec[0].clone(), magnetic_atoms_vec[1].clone()])
+        } else {
+            None
+        };
+
+        let electric_atoms_vec: Vec<Atom> = all_atoms
+            .iter()
+            .filter(|atom| matches!(atom.kind, AtomKind::Electric(_)))
+            .cloned()
+            .collect();
+        assert!(electric_atoms_vec.len() == 2 || electric_atoms_vec.len() == 0);
+        let electric_atoms = if electric_atoms_vec.len() == 2 {
+            Some([electric_atoms_vec[0].clone(), electric_atoms_vec[1].clone()])
+        } else {
+            None
+        };
+
+        Molecule {
+            atoms,
+            electric_atoms,
+            magnetic_atoms,
+            threshold
+        }
+    }
+
     /// Retrieves a vector of references to all atoms in this molecule,
     /// including special ones, if any.
     ///

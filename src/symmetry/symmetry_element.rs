@@ -42,7 +42,7 @@ pub enum ElementOrder {
 }
 
 impl ElementOrder {
-    fn new(order: f64, thresh: f64) -> Self {
+    pub fn new(order: f64, thresh: f64) -> Self {
         assert!(
             order.is_sign_positive(),
             "Order value {} is invalid. Order values must be strictly positive.",
@@ -123,6 +123,18 @@ impl PartialEq for ElementOrder {
 
 impl Eq for ElementOrder {}
 
+impl PartialOrd for ElementOrder {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.to_float().partial_cmp(&other.to_float())?)
+    }
+}
+
+impl Ord for ElementOrder {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.to_float().total_cmp(&other.to_float())
+    }
+}
+
 impl Hash for ElementOrder {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match &self {
@@ -137,12 +149,6 @@ impl Hash for ElementOrder {
                 f64::INFINITY.integer_decode().hash(state);
             }
         }
-    }
-}
-
-impl PartialOrd for ElementOrder {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.to_float().partial_cmp(&other.to_float())?)
     }
 }
 
@@ -174,7 +180,7 @@ pub struct SymmetryElement {
     /// of the rotation about [`Self::axis`] associated with this element. This
     /// is **not** necessarily an integer, and can also take the special value
     /// of `-1.0` to indicate that this symmetry element is of infinite order.
-    order: ElementOrder,
+    pub order: ElementOrder,
 
     /// The normalised axis of the symmetry element.
     #[builder(setter(custom))]

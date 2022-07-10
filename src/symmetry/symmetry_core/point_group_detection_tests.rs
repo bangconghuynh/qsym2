@@ -312,3 +312,8 @@ fn test_point_group_detection_n3_electric_field() {
     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
 }
+
+
+/*
+Symmetric
+*/

@@ -9,7 +9,12 @@ use std::collections::HashSet;
 
 impl Symmetry {
     /// Locates and adds all possible and distinct $C_2$ axes present in the
-    /// molecule in `sym`, provided that `sym` is a spherical top.
+    /// molecule in `presym`, provided that `presym` is a spherical top.
+    ///
+    /// # Arguments
+    ///
+    /// * presym - A pre-symmetry-analysis struct containing information about
+    /// the molecular system.
     fn search_c2_spherical(self: &mut Self, presym: &PreSymmetry) -> i8 {
         assert!(matches!(
             presym.rotational_symmetry,
@@ -77,6 +82,11 @@ impl Symmetry {
     }
 
     /// Performs point-group detection analysis for a spherical top.
+    ///
+    /// # Arguments
+    ///
+    /// * presym - A pre-symmetry-analysis struct containing information about
+    /// the molecular system.
     pub fn analyse_spherical(&mut self, presym: &PreSymmetry) {
         assert!(matches!(
             presym.rotational_symmetry,
