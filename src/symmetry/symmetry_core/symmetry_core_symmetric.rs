@@ -424,23 +424,14 @@ impl Symmetry {
                 }
             } else if {
                 let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
-                presym.check_improper(
-                    &ORDER_1,
-                    &principal_axis,
-                    &SIG
-                )
+                presym.check_improper(&ORDER_1, &principal_axis, &SIG)
             } {
                 // Cnh (n > 2)
                 assert_eq!(count_sigma, 1);
                 log::debug!("Found no σv planes but one σh plane.");
                 self.point_group = Some(format!("C{max_ord}h"));
                 let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
-                self.add_proper(
-                    max_ord.clone(),
-                    principal_axis,
-                    true,
-                    presym.dist_threshold
-                );
+                self.add_proper(max_ord.clone(), principal_axis, true, presym.dist_threshold);
                 self.add_improper(
                     ORDER_1.clone(),
                     principal_axis,
@@ -454,9 +445,7 @@ impl Symmetry {
                 let non_id_c_elements =
                     self.proper_elements.values().fold(vec![], |acc, c_eles| {
                         acc.into_iter()
-                            .chain(
-                                c_eles.iter().filter(|ele| ele.order != ORDER_1).cloned(),
-                            )
+                            .chain(c_eles.iter().filter(|ele| ele.order != ORDER_1).cloned())
                             .collect()
                     });
                 if max_ord_u32 % 2 == 0 {
@@ -505,11 +494,7 @@ impl Symmetry {
             } else if {
                 let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
                 let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
-                presym.check_improper(
-                    &double_max_ord,
-                    &principal_axis,
-                    &SIG,
-                )
+                presym.check_improper(&double_max_ord, &principal_axis, &SIG)
             } {
                 // S2n
                 let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
@@ -558,12 +543,7 @@ impl Symmetry {
                     self.point_group.as_ref().unwrap()
                 );
                 let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
-                self.add_proper(
-                    max_ord,
-                    principal_axis,
-                    true,
-                    presym.dist_threshold,
-                );
+                self.add_proper(max_ord, principal_axis, true, presym.dist_threshold);
             };
         }
     }
@@ -700,7 +680,10 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                         } else {
                             // Prolate symmetric top
                             log::debug!("A prolate symmetric top SEA set detected.");
-                            for k_fac in divisors::get_divisors(k_sea / 2).iter().skip(1) {
+                            for k_fac in divisors::get_divisors(k_sea / 2)
+                                .iter()
+                                .chain(vec![k_sea / 2].iter())
+                            {
                                 let k_fac_order = ElementOrder::Int(*k_fac as u32);
                                 if presym.check_proper(&k_fac_order, &sea_axes[0]) {
                                     if *k_fac == 2 {
@@ -830,7 +813,6 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
     }
 }
 
-
 /// Determines the mirror-plane symbol given a principal axis.
 ///
 /// Arguments:
@@ -876,7 +858,6 @@ fn _deduce_sigma_symbol(
     sigma_symbol
 }
 
-
 /// Adds improper elements constructed as a product between a $\sigma_h$ and a
 /// rotation axis.
 ///
@@ -894,7 +875,7 @@ fn _add_sigmahcn(
     sym: &mut Symmetry,
     sigma_h: &SymmetryElement,
     non_id_c_elements: Vec<SymmetryElement>,
-    presym: &PreSymmetry
+    presym: &PreSymmetry,
 ) {
     assert!(sigma_h.is_mirror_plane());
     for c_element in non_id_c_elements.into_iter() {

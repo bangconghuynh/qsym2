@@ -1,6 +1,6 @@
+use crate::aux::atom::Atom;
 use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
-use crate::aux::atom::Atom;
 use crate::rotsym::{self, RotationalSymmetry};
 use crate::symmetry::symmetry_element::{ElementOrder, SymmetryElement, SymmetryElementKind};
 use log;
@@ -9,14 +9,13 @@ use std::collections::{HashMap, HashSet};
 
 use derive_builder::Builder;
 
-#[path = "symmetry_core_tests.rs"]
 #[cfg(test)]
+#[path = "symmetry_core_tests.rs"]
 mod symmetry_core_tests;
 
 #[path = "point_group_detection_tests.rs"]
 #[cfg(test)]
 mod point_group_detection_tests;
-
 
 /// A struct for storing and managing information required for symmetry analysis.
 #[derive(Builder)]
@@ -45,7 +44,6 @@ pub struct PreSymmetry {
     #[builder(setter(skip), default = "self.get_dist_threshold()")]
     dist_threshold: f64,
 }
-
 
 impl PreSymmetryBuilder {
     pub fn molecule(&mut self, molecule: &Molecule, recentre: bool) -> &mut Self {
@@ -80,11 +78,7 @@ impl PreSymmetryBuilder {
             epsilon = self.molecule.as_ref().unwrap().threshold,
             max_relative = self.molecule.as_ref().unwrap().threshold
         );
-        rotsym::calc_rotational_symmetry(
-            &inertia,
-            self.moi_threshold.unwrap(),
-            0,
-        )
+        rotsym::calc_rotational_symmetry(&inertia, self.moi_threshold.unwrap(), 0)
     }
 
     fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
@@ -95,7 +89,6 @@ impl PreSymmetryBuilder {
         self.molecule.as_ref().unwrap().threshold
     }
 }
-
 
 impl PreSymmetry {
     /// Returns a builder to construct a new pre-symmetry struct.
@@ -160,7 +153,6 @@ impl PreSymmetry {
     }
 }
 
-
 /// A struct for storing and managing symmetry analysis results.
 #[derive(Builder, Debug)]
 pub struct Symmetry {
@@ -203,7 +195,6 @@ pub struct Symmetry {
     improper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 }
 
-
 impl SymmetryBuilder {
     fn default_proper_elements() -> HashMap<ElementOrder, HashSet<SymmetryElement>> {
         let mut proper_elements = HashMap::new();
@@ -220,7 +211,6 @@ impl SymmetryBuilder {
         proper_elements
     }
 }
-
 
 impl Symmetry {
     /// Returns a builder to construct a new symmetry struct.
@@ -239,6 +229,9 @@ impl Symmetry {
         match &presym.rotational_symmetry {
             RotationalSymmetry::Spherical => self.analyse_spherical(presym),
             RotationalSymmetry::ProlateLinear => self.analyse_linear(presym),
+            RotationalSymmetry::OblatePlanar
+            | RotationalSymmetry::OblateNonPlanar
+            | RotationalSymmetry::ProlateNonLinear => self.analyse_symmetric(presym),
             _ => {}
         }
     }
@@ -255,7 +248,13 @@ impl Symmetry {
     ///
     /// `true` if the specified element is not present and has just been added,
     /// `false` otherwise.
-    fn add_proper(&mut self, order: ElementOrder, axis: Vector3<f64>, generator: bool, threshold: f64) -> bool {
+    fn add_proper(
+        &mut self,
+        order: ElementOrder,
+        axis: Vector3<f64>,
+        generator: bool,
+        threshold: f64,
+    ) -> bool {
         let positive_axis = geometry::get_positive_pole(&axis, threshold).normalize();
         let element = SymmetryElement::builder()
             .threshold(threshold)
@@ -472,6 +471,6 @@ impl Symmetry {
     }
 }
 
-mod symmetry_core_spherical;
 mod symmetry_core_linear;
+mod symmetry_core_spherical;
 mod symmetry_core_symmetric;
