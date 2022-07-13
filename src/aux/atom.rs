@@ -13,7 +13,7 @@ use std::hash::{Hash, Hasher};
 pub struct ElementMap<'a> {
     /// A [HashMap] from a symbol string to a tuple of atomic number and atomic
     /// mass.
-    map: HashMap<&'a str, (u32, f64)>,
+    pub map: HashMap<&'a str, (u32, f64)>,
 }
 
 impl ElementMap<'static> {
@@ -53,10 +53,10 @@ pub struct Atom {
     pub kind: AtomKind,
 
     /// The atomic number of the atom.
-    atomic_number: u32,
+    pub atomic_number: u32,
 
     /// The atomic symbol of the atom.
-    atomic_symbol: String,
+    pub atomic_symbol: String,
 
     /// The weighted-average atomic mass for all naturally occuring isotopes.
     pub atomic_mass: f64,

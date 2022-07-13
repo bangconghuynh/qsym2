@@ -574,7 +574,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                 continue;
             }
             2 => {
-                log::debug!("A linear SEA set detected.");
+                log::debug!("A linear SEA set detected: {:?}.", sea_group);
                 linear_sea_groups.push(sea_group);
             }
             _ => {
@@ -588,21 +588,31 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                     max_relative = presym.moi_threshold,
                 ) {
                     // Planar SEA
-                    let k_fac_range = if approx::relative_eq!(
+                    let k_fac_range: Vec<_> = if approx::relative_eq!(
+                        sea_mois[0],
                         sea_mois[1],
-                        sea_mois[2],
                         epsilon = presym.moi_threshold,
                         max_relative = presym.moi_threshold,
                     ) {
                         // Regular k-sided polygon
-                        log::debug!("A regular {}-sided polygon SEA set detected.", k_sea);
-                        divisors::get_divisors(k_sea)
+                        log::debug!(
+                            "A regular {}-sided polygon SEA set detected: {:?}.",
+                            k_sea,
+                            sea_group
+                        );
+                        let mut divisors = divisors::get_divisors(k_sea);
+                        divisors.push(k_sea);
+                        divisors
                     } else {
                         // Irregular k-sided polygon
-                        log::debug!("An irregular {}-sided polygon SEA set detected.", k_sea);
+                        log::debug!(
+                            "An irregular {}-sided polygon SEA set detected: {:?}.",
+                            k_sea,
+                            sea_group
+                        );
                         divisors::get_divisors(k_sea)
                     };
-                    for k_fac in k_fac_range.iter().skip(1) {
+                    for k_fac in k_fac_range.iter() {
                         match *k_fac {
                             2 => {
                                 count_c2 += sym.add_proper(
@@ -714,7 +724,10 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                         // Oblate symmetry top
                         log::debug!("An oblate symmetric top SEA set detected.");
                         assert_eq!(k_sea % 2, 0);
-                        for k_fac in divisors::get_divisors(k_sea / 2).iter().skip(1) {
+                        for k_fac in divisors::get_divisors(k_sea / 2)
+                            .iter()
+                            .chain(vec![k_sea / 2].iter())
+                        {
                             let k_fac_order = ElementOrder::Int(*k_fac as u32);
                             if presym.check_proper(&k_fac_order, &sea_axes[2]) {
                                 if *k_fac == 2 {

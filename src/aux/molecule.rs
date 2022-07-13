@@ -614,5 +614,3 @@ impl PartialEq for Molecule {
         true
     }
 }
-
-// impl Eq for Molecule {}
