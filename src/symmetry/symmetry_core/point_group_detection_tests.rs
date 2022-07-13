@@ -539,3 +539,54 @@ fn test_point_group_detection_arbitrary_half_sandwich_cnv() {
         assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
     }
 }
+
+/*
+Cnh
+*/
+
+#[test]
+fn test_point_group_detection_bf3_magnetic_field_c3h() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C3h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_xef4_magnetic_field_c4h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C4h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(4)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(4)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(4)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+

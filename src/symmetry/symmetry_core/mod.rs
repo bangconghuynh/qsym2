@@ -360,30 +360,31 @@ impl Symmetry {
                 .unwrap()
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane)
         };
+        let sig_order = element.order.clone();
         let detailed_symbol = element.get_detailed_symbol();
         let standard_symbol = element.get_standard_symbol();
         let is_mirror_plane = element.is_mirror_plane();
         let is_inversion_centre = element.is_inversion_centre();
         let result = if generator {
-            if self.improper_generators.contains_key(&order) {
+            if self.improper_generators.contains_key(&sig_order) {
                 self.improper_generators
-                    .get_mut(&order)
+                    .get_mut(&sig_order)
                     .unwrap()
                     .insert(element)
             } else {
                 self.improper_generators
-                    .insert(order, HashSet::from([element]));
+                    .insert(sig_order, HashSet::from([element]));
                 true
             }
         } else {
-            if self.improper_elements.contains_key(&order) {
+            if self.improper_elements.contains_key(&sig_order) {
                 self.improper_elements
-                    .get_mut(&order)
+                    .get_mut(&sig_order)
                     .unwrap()
                     .insert(element)
             } else {
                 self.improper_elements
-                    .insert(order, HashSet::from([element]));
+                    .insert(sig_order, HashSet::from([element]));
                 true
             }
         };
