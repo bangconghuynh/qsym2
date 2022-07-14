@@ -138,3 +138,76 @@ pub fn gen_arbitrary_half_sandwich(n: u32) -> Molecule {
     };
     Molecule::from_atoms(&atoms, 1e-7)
 }
+
+pub fn gen_arbitrary_eclipsed_sandwich(n: u32) -> Molecule {
+    let emap = ElementMap::new();
+    let mut atoms: Vec<Atom> = vec![];
+    let (h_atomic_number, h_atomic_mass) = emap.map.get("H").unwrap();
+    let (c_atomic_number, c_atomic_mass) = emap.map.get("C").unwrap();
+    let (m_atomic_number, m_atomic_mass) = emap.map.get("Co").unwrap();
+    atoms.push(
+        Atom {
+            kind: AtomKind::Ordinary,
+            atomic_number: *m_atomic_number,
+            atomic_symbol: "Co".to_owned(),
+            atomic_mass: *m_atomic_mass,
+            coordinates: Point3::new(0.0, 0.0, 0.0),
+            threshold: 1e-7
+        },
+    );
+    for i in 0..n {
+        atoms.push(
+            Atom {
+                kind: AtomKind::Ordinary,
+                atomic_number: *c_atomic_number,
+                atomic_symbol: "C".to_owned(),
+                atomic_mass: *c_atomic_mass,
+                coordinates: Point3::new(
+                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
+                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
+                    -1.0 - 0.1 * (n as f64)),
+                threshold: 1e-7
+            }
+        );
+        atoms.push(
+            Atom {
+                kind: AtomKind::Ordinary,
+                atomic_number: *h_atomic_number,
+                atomic_symbol: "H".to_owned(),
+                atomic_mass: *h_atomic_mass,
+                coordinates: Point3::new(
+                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
+                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
+                    -1.0 - 0.1 * (n as f64)),
+                threshold: 1e-7
+            }
+        );
+        atoms.push(
+            Atom {
+                kind: AtomKind::Ordinary,
+                atomic_number: *c_atomic_number,
+                atomic_symbol: "C".to_owned(),
+                atomic_mass: *c_atomic_mass,
+                coordinates: Point3::new(
+                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
+                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
+                    1.0 + 0.1 * (n as f64)),
+                threshold: 1e-7
+            }
+        );
+        atoms.push(
+            Atom {
+                kind: AtomKind::Ordinary,
+                atomic_number: *h_atomic_number,
+                atomic_symbol: "H".to_owned(),
+                atomic_mass: *h_atomic_mass,
+                coordinates: Point3::new(
+                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
+                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
+                    1.0 + 0.1 * (n as f64)),
+                threshold: 1e-7
+            }
+        );
+    };
+    Molecule::from_atoms(&atoms, 1e-7)
+}

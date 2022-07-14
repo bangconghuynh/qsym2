@@ -1,4 +1,5 @@
 use approx;
+use num::integer::gcd;
 use derive_builder::Builder;
 use log;
 use nalgebra::Vector3;
@@ -374,22 +375,23 @@ impl SymmetryElement {
             return self.clone();
         }
 
-        let dest_order = if self.order != ElementOrder::Inf {
-            let self_basic_angle = geometry::normalise_rotation_angle(
-                2.0 * std::f64::consts::PI / self.order.to_float(),
-                self.threshold,
-            );
-            let dest_basic_angle = std::f64::consts::PI - self_basic_angle;
-            if dest_basic_angle.abs() > self.threshold {
-                ElementOrder::new(
-                    2.0 * std::f64::consts::PI / dest_basic_angle,
-                    self.threshold,
-                )
-            } else {
-                ElementOrder::Int(1)
-            }
-        } else {
-            ElementOrder::Inf
+        let dest_order = match self.order {
+            ElementOrder::Int(order_int) => ElementOrder::Int(2 * order_int / (gcd(2 * order_int, order_int + 2))),
+            ElementOrder::Inf => ElementOrder::Inf,
+            ElementOrder::Float(_, _) => { panic!(); },
+            // let self_basic_angle = geometry::normalise_rotation_angle(
+            //     2.0 * std::f64::consts::PI / self.order.to_float(),
+            //     self.threshold,
+            // );
+            // let dest_basic_angle = std::f64::consts::PI - self_basic_angle;
+            // if dest_basic_angle.abs() > self.threshold {
+            //     ElementOrder::new(
+            //         2.0 * std::f64::consts::PI / dest_basic_angle,
+            //         self.threshold,
+            //     )
+            // } else {
+            //     ElementOrder::Int(1)
+            // }
         };
         Self::builder()
             .threshold(self.threshold)

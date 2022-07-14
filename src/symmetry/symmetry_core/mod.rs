@@ -339,16 +339,19 @@ impl Symmetry {
         let positive_axis = geometry::get_positive_pole(&axis, threshold).normalize();
         let element = if let Some(sigma_str) = sigma {
             assert!(sigma_str == "d" || sigma_str == "v" || sigma_str == "h");
-            SymmetryElement::builder()
+            let mut sym_ele = SymmetryElement::builder()
                 .threshold(threshold)
                 .order(order.clone())
                 .axis(positive_axis)
                 .kind(kind)
                 .generator(generator)
-                .additional_subscript(sigma_str)
                 .build()
                 .unwrap()
-                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane)
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane);
+            if sym_ele.order == ElementOrder::Int(1) {
+                sym_ele.additional_subscript = sigma_str;
+            }
+            sym_ele
         } else {
             SymmetryElement::builder()
                 .threshold(threshold)
