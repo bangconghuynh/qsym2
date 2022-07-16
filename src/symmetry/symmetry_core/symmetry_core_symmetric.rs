@@ -613,22 +613,27 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                         divisors::get_divisors(k_sea)
                     };
                     for k_fac in k_fac_range.iter() {
-                        match *k_fac {
-                            2 => {
-                                count_c2 += sym.add_proper(
-                                    ElementOrder::Int(*k_fac as u32),
-                                    sea_axes[2].clone(),
-                                    false,
-                                    presym.dist_threshold,
-                                ) as usize;
-                            }
-                            _ => {
-                                sym.add_proper(
-                                    ElementOrder::Int(*k_fac as u32),
-                                    sea_axes[2].clone(),
-                                    false,
-                                    presym.dist_threshold,
-                                ) as usize;
+                        if presym.check_proper(
+                            &ElementOrder::Int((*k_fac).try_into().unwrap()),
+                            &sea_axes[2],
+                        ) {
+                            match *k_fac {
+                                2 => {
+                                    count_c2 += sym.add_proper(
+                                        ElementOrder::Int(*k_fac as u32),
+                                        sea_axes[2].clone(),
+                                        false,
+                                        presym.dist_threshold,
+                                    ) as usize;
+                                }
+                                _ => {
+                                    sym.add_proper(
+                                        ElementOrder::Int(*k_fac as u32),
+                                        sea_axes[2].clone(),
+                                        false,
+                                        presym.dist_threshold,
+                                    ) as usize;
+                                }
                             }
                         }
                     }

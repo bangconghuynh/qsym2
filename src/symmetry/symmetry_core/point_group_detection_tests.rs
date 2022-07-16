@@ -333,12 +333,46 @@ fn test_point_group_detection_ch4_magnetic_field_c3() {
 }
 
 #[test]
+fn test_point_group_detection_adamantane_magnetic_field_c3() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.1)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C3".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
+}
+
+#[test]
 fn test_point_group_detection_vh2o6_electric_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_electric_field(Some(Vector3::new(-0.2, -0.2, -0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C3".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_65coronane_electric_field_c3() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
         .molecule(&mol, true)
         .build()
         .unwrap();
@@ -452,6 +486,51 @@ fn test_point_group_detection_nh3_c3v() {
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     println!("{}", presym.rotational_symmetry);
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C3v".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 3);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 3);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_bf3_electric_field_c3v() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C3v".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 3);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 3);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_adamantane_electric_field_c3v() {
+    env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.1)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("C3v".to_owned()));
     assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 1);

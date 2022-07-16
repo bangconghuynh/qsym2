@@ -288,15 +288,19 @@ impl Molecule {
     /// groups.
     pub fn calc_sea_groups(&self, verbose: u64) -> Vec<Vec<Atom>> {
         let atoms = &self.atoms;
-        let all_coords: Vec<_> = atoms.iter().map(|atm| atm.coordinates).collect();
-        let all_masses: Vec<_> = atoms.iter().map(|atm| atm.atomic_mass).collect();
+        let all_atoms = &self.get_all_atoms();
+        let ord_coords: Vec<_> = atoms.iter().map(|atm| atm.coordinates).collect();
+        let all_coords: Vec<_> = all_atoms.iter().map(|atm| atm.coordinates).collect();
+        let all_masses: Vec<_> = all_atoms.iter().map(|atm| atm.atomic_mass).collect();
         let mut dist_columns: Vec<DVector<f64>> = vec![];
 
         // Determine indices of symmetry-equivalent atoms
         let mut equiv_indicess: Vec<Vec<usize>> = vec![vec![0]];
-        for (j, coord_j) in all_coords.iter().enumerate() {
+        for (j, coord_j) in ord_coords.iter().enumerate() {
             // column_j is the j-th column in the mass-weighted interatomic
-            // distance matrix.
+            // distance matrix. This column contains distances from ordinary atom j
+            // to all other atoms (both ordinary and fictitious) in the molecule.
+            // So this distance matrix is tall and thin when fictitious atoms are present.
             let mut column_j: Vec<f64> = vec![];
             for (i, coord_i) in all_coords.iter().enumerate() {
                 let diff = coord_j - coord_i;
