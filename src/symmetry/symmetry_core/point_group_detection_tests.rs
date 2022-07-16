@@ -1018,6 +1018,7 @@ fn test_point_group_detection_staggered_ferrocene_d5d() {
     assert_eq!(sym.proper_elements[&ElementOrder::Int(5)].len(), 1);
     assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 5);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 5);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(10)].len(), 1);
     assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 5);
 
@@ -1049,4 +1050,35 @@ fn test_point_group_detection_au26_d6d() {
     assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_arbitrary_staggered_sandwich_dnd() {
+    // env_logger::init();
+    for n in 3..=20 {
+        let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
+        let presym = PreSymmetry::builder()
+            .moi_threshold(1e-7)
+            .molecule(&mol, true)
+            .build()
+            .unwrap();
+        let mut sym = Symmetry::builder().build().unwrap();
+        sym.analyse(&presym);
+        assert_eq!(sym.point_group, Some(format!("D{n}d")));
+        assert_eq!(sym.proper_elements[&ElementOrder::Int(n)].len(), 1);
+        assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len() as u32, n);
+        assert_eq!(sym.improper_elements[&ElementOrder::Int(2*n)].len(), 1);
+        assert_eq!(sym.get_sigma_elements("d").unwrap().len() as u32, n);
+        if n % 2 == 0 {
+            assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len() as u32, n + 1);
+        } else {
+            assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len() as u32, n);
+            assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+        };
+
+        assert_eq!(sym.proper_generators[&ElementOrder::Int(n)].len(), 1);
+        assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+        assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+        assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    }
 }
