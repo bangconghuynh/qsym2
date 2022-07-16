@@ -1004,7 +1004,7 @@ fn test_point_group_detection_s8_d4d() {
 
 #[test]
 fn test_point_group_detection_staggered_ferrocene_d5d() {
-    env_logger::init();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()

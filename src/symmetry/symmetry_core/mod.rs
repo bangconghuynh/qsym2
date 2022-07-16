@@ -432,6 +432,11 @@ impl Symmetry {
         result
     }
 
+    /// Obtains mirror-plane elements by their type (`"h"`, `"v"`, `"d"`, or `""`).
+    ///
+    /// # Returns
+    ///
+    /// A set of the required mirror-plane element type, if exists.
     pub fn get_sigma_elements(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let order_1 = &ElementOrder::Int(1);
         if self.improper_elements.contains_key(&order_1) {
@@ -446,6 +451,11 @@ impl Symmetry {
         }
     }
 
+    /// Obtains mirror-plane generators by their type (`"h"`, `"v"`, `"d"`, or `""`).
+    ///
+    /// # Returns
+    ///
+    /// A set of the required mirror-plane generator type, if exists.
     pub fn get_sigma_generators(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let order_1 = &ElementOrder::Int(1);
         if self.improper_generators.contains_key(&order_1) {
