@@ -17,8 +17,8 @@ impl Symmetry {
     /// The possible symmetric top point groups are:
     ///
     /// * $\mathcal{C}_{n}$ (except $\mathcal{C}_1$ and $\mathcal{C}_2$),
-    /// * $\mathcal{C}_{nh}$ (except $\mathcal{C}_{2h}$),
     /// * $\mathcal{C}_{nv}$ (except $\mathcal{C}_{2v}$),
+    /// * $\mathcal{C}_{nh}$ (except $\mathcal{C}_{2h}$),
     /// * $\mathcal{D}_{n}$ (except $\mathcal{D}_{2}$),
     /// * $\mathcal{D}_{nh}$ (except $\mathcal{D}_{2h}$),
     /// * $\mathcal{D}_{nd}$, and

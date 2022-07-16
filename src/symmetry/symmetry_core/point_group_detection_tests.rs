@@ -455,9 +455,11 @@ fn test_point_group_detection_nh3_c3v() {
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("C3v".to_owned()));
     assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 1);
-    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 3);
     assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 3);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
 }
 
@@ -475,9 +477,11 @@ fn test_point_group_detection_sf5cl_c4v() {
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("C4v".to_owned()));
     assert_eq!(sym.proper_elements[&ElementOrder::Int(4)].len(), 1);
-    assert_eq!(sym.proper_generators[&ElementOrder::Int(4)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 4);
     assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 4);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(4)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
 }
 
@@ -495,9 +499,11 @@ fn test_point_group_detection_cpnico_c5v() {
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("C5v".to_owned()));
     assert_eq!(sym.proper_elements[&ElementOrder::Int(5)].len(), 1);
-    assert_eq!(sym.proper_generators[&ElementOrder::Int(5)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 5);
     assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 5);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(5)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
 }
 
@@ -514,9 +520,11 @@ fn test_point_group_detection_b7_c6v() {
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("C6v".to_owned()));
     assert_eq!(sym.proper_elements[&ElementOrder::Int(6)].len(), 1);
-    assert_eq!(sym.proper_generators[&ElementOrder::Int(6)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 6);
     assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 6);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(6)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
 }
 
@@ -533,9 +541,11 @@ fn test_point_group_detection_arbitrary_half_sandwich_cnv() {
         sym.analyse(&presym);
         assert_eq!(sym.point_group, Some(format!("C{n}v")));
         assert_eq!(sym.proper_elements[&ElementOrder::Int(n)].len(), 1);
-        assert_eq!(sym.proper_generators[&ElementOrder::Int(n)].len(), 1);
         assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len() as u32, n);
         assert_eq!(sym.get_sigma_elements("v").unwrap().len() as u32, n);
+
+        assert_eq!(sym.proper_generators[&ElementOrder::Int(n)].len(), 1);
+        assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
         assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
     }
 }
@@ -558,10 +568,11 @@ fn test_point_group_detection_bf3_magnetic_field_c3h() {
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("C3h".to_owned()));
     assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 1);
-    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(3)].len(), 1);
     assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
 }
@@ -581,11 +592,12 @@ fn test_point_group_detection_xef4_magnetic_field_c4h() {
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("C4h".to_owned()));
     assert_eq!(sym.proper_elements[&ElementOrder::Int(4)].len(), 1);
-    assert_eq!(sym.proper_generators[&ElementOrder::Int(4)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(4)].len(), 1);
     assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(4)].len(), 1);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
 }
@@ -605,10 +617,11 @@ fn test_point_group_detection_eclipsed_ferrocene_magnetic_field_c5h() {
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("C5h".to_owned()));
     assert_eq!(sym.proper_elements[&ElementOrder::Int(5)].len(), 1);
-    assert_eq!(sym.proper_generators[&ElementOrder::Int(5)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(5)].len(), 1);
     assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(5)].len(), 1);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
 }
@@ -628,18 +641,19 @@ fn test_point_group_detection_benzene_magnetic_field_c6h() {
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("C6h".to_owned()));
     assert_eq!(sym.proper_elements[&ElementOrder::Int(6)].len(), 1);
-    assert_eq!(sym.proper_generators[&ElementOrder::Int(6)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
     assert_eq!(sym.improper_elements[&ElementOrder::Int(6)].len(), 1);
     assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(6)].len(), 1);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
 }
 
 #[test]
 fn test_point_group_detection_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
-    env_logger::init();
+    // env_logger::init();
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
@@ -652,15 +666,261 @@ fn test_point_group_detection_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
         sym.analyse(&presym);
         assert_eq!(sym.point_group, Some(format!("C{n}h")));
         assert_eq!(sym.proper_elements[&ElementOrder::Int(n)].len(), 1);
-        assert_eq!(sym.proper_generators[&ElementOrder::Int(n)].len(), 1);
         assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
         assert_eq!(sym.improper_elements[&ElementOrder::Int(n)].len(), 1);
         assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-        assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
-        assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
         if n % 2 == 0 {
             assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 1);
             assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
         };
+
+        assert_eq!(sym.proper_generators[&ElementOrder::Int(n)].len(), 1);
+        assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+        assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    }
+}
+
+
+/*
+Dn
+*/
+
+#[test]
+fn test_point_group_detection_triphenyl_radical_d3() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/triphenylradical.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D3".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_h8_twisted_d4() {
+    let mol = template_molecules::gen_twisted_h8(0.1);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D4".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(4)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(4)].len(), 1);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 5);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_c5ph5_d5() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c5ph5.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D5".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(5)].len(), 1);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 5);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(5)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_c6ph6_d6() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c6ph6.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-6);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D6".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(6)].len(), 1);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 7);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(6)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_arbitrary_twisted_sandwich_dn() {
+    // env_logger::init();
+    for n in 3..=20 {
+        let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.1);
+        let presym = PreSymmetry::builder()
+            .moi_threshold(1e-7)
+            .molecule(&mol, true)
+            .build()
+            .unwrap();
+        let mut sym = Symmetry::builder().build().unwrap();
+        sym.analyse(&presym);
+        assert_eq!(sym.point_group, Some(format!("D{n}")));
+        assert_eq!(sym.proper_elements[&ElementOrder::Int(n)].len(), 1);
+        if n % 2 == 0 {
+            assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len() as u32, n + 1);
+        } else {
+            assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len() as u32, n);
+        };
+
+        assert_eq!(sym.proper_generators[&ElementOrder::Int(n)].len(), 1);
+        assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    }
+}
+
+
+/*
+Dnh
+*/
+
+#[test]
+fn test_point_group_detection_bf3_d3h() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D3h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 4);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 3);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_xef4_d4h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D4h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(4)].len(), 1);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 5);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 5);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(4)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 4);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(4)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_eclipsed_ferrocene_d5h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D5h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(5)].len(), 1);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 5);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 6);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(5)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 5);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(5)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_benzene_d6h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D6h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(6)].len(), 1);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 7);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 7);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(6)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 6);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(6)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_arbitrary_eclipsed_sandwich_dnh() {
+    // env_logger::init();
+    for n in 3..=20 {
+        let mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
+        let presym = PreSymmetry::builder()
+            .moi_threshold(1e-7)
+            .molecule(&mol, true)
+            .build()
+            .unwrap();
+        let mut sym = Symmetry::builder().build().unwrap();
+        sym.analyse(&presym);
+        assert_eq!(sym.point_group, Some(format!("D{n}h")));
+        assert_eq!(sym.proper_elements[&ElementOrder::Int(n)].len(), 1);
+        assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len() as u32, n + 1);
+        assert_eq!(sym.improper_elements[&ElementOrder::Int(n)].len(), 1);
+        assert_eq!(sym.get_sigma_elements("h").unwrap().len() as u32, 1);
+        assert_eq!(sym.get_sigma_elements("v").unwrap().len() as u32, n);
+        if n % 2 == 0 {
+            assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+            assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len() as u32, n + 1);
+        } else {
+        }
+
+        assert_eq!(sym.proper_generators[&ElementOrder::Int(n)].len(), 1);
+        assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+        assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+        assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
     }
 }
