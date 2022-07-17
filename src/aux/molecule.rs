@@ -53,7 +53,11 @@ impl Molecule {
         let mut n_atoms = 0usize;
         for (i, line) in contents.lines().enumerate() {
             if i == 0 {
-                n_atoms = line.parse::<usize>().unwrap();
+                n_atoms = line.parse::<usize>().unwrap_or_else(|err| {
+                    log::error!("Unable to read number of atoms in {}.", filename);
+                    log::error!("{}", err);
+                    process::exit(1);
+                });
             } else if i == 1 {
                 continue;
             } else {

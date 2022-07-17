@@ -1,12 +1,10 @@
 use super::{PreSymmetry, Symmetry};
-use crate::aux::atom::Atom;
-use crate::aux::molecule::Molecule;
 use crate::rotsym::RotationalSymmetry;
+use crate::symmetry::symmetry_core::_search_proper_rotations;
 use crate::symmetry::symmetry_element::{
     ElementOrder, SymmetryElement, INV, ORDER_1, ORDER_2, SIG,
 };
 use approx;
-use divisors;
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
@@ -177,7 +175,7 @@ impl Symmetry {
                         assert!(presym.check_improper(&c_element.order, &c_element.axis, &INV));
                         self.add_improper(
                             c_element.order.clone(),
-                            c_element.axis.clone(),
+                            c_element.axis,
                             false,
                             INV.clone(),
                             sigma_symbol,
@@ -311,7 +309,7 @@ impl Symmetry {
                             assert!(presym.check_improper(&c_element.order, &c_element.axis, &INV));
                             self.add_improper(
                                 c_element.order.clone(),
-                                c_element.axis.clone(),
+                                c_element.axis,
                                 false,
                                 INV.clone(),
                                 sigma_symbol,
@@ -473,7 +471,7 @@ impl Symmetry {
                         assert!(presym.check_improper(&c_element.order, &c_element.axis, &INV));
                         self.add_improper(
                             c_element.order.clone(),
-                            c_element.axis.clone(),
+                            c_element.axis,
                             false,
                             INV.clone(),
                             sigma_symbol,
@@ -549,287 +547,6 @@ impl Symmetry {
     }
 }
 
-/// Locates all proper rotation elements present in [`PreSymmetry::molecule`]
-///
-/// # Arguments
-///
-/// * `presym` - A pre-symmetry-analysis struct containing information about
-/// the molecular system.
-/// * `sym` - A symmetry struct to store the proper rotation elements found.
-/// * `asymmetric` - If `true`, the search assumes that the group is one of the
-/// Abelian point groups for which the highest possible rotation order is $2$
-/// and there can be at most three $\mathcal{C}_2$ axes.
-///
-/// # Returns
-fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric: bool) {
-    let mut linear_sea_groups: Vec<&Vec<Atom>> = vec![];
-    let mut count_c2: usize = 0;
-    for sea_group in presym.sea_groups.iter() {
-        if asymmetric && count_c2 == 3 {
-            break;
-        }
-        let k_sea = sea_group.len();
-        match k_sea {
-            1 => {
-                continue;
-            }
-            2 => {
-                log::debug!("A linear SEA set detected: {:?}.", sea_group);
-                linear_sea_groups.push(sea_group);
-            }
-            _ => {
-                let sea_mol = Molecule::from_atoms(sea_group, presym.dist_threshold);
-                let (sea_mois, sea_axes) = sea_mol.calc_moi();
-                // Search for high-order rotation axes
-                if approx::relative_eq!(
-                    sea_mois[0] + sea_mois[1],
-                    sea_mois[2],
-                    epsilon = presym.moi_threshold,
-                    max_relative = presym.moi_threshold,
-                ) {
-                    // Planar SEA
-                    let k_fac_range: Vec<_> = if approx::relative_eq!(
-                        sea_mois[0],
-                        sea_mois[1],
-                        epsilon = presym.moi_threshold,
-                        max_relative = presym.moi_threshold,
-                    ) {
-                        // Regular k-sided polygon
-                        log::debug!(
-                            "A regular {}-sided polygon SEA set detected: {:?}.",
-                            k_sea,
-                            sea_group
-                        );
-                        let mut divisors = divisors::get_divisors(k_sea);
-                        divisors.push(k_sea);
-                        divisors
-                    } else {
-                        // Irregular k-sided polygon
-                        log::debug!(
-                            "An irregular {}-sided polygon SEA set detected: {:?}.",
-                            k_sea,
-                            sea_group
-                        );
-                        divisors::get_divisors(k_sea)
-                    };
-                    for k_fac in k_fac_range.iter() {
-                        if presym.check_proper(
-                            &ElementOrder::Int((*k_fac).try_into().unwrap()),
-                            &sea_axes[2],
-                        ) {
-                            match *k_fac {
-                                2 => {
-                                    count_c2 += sym.add_proper(
-                                        ElementOrder::Int(*k_fac as u32),
-                                        sea_axes[2].clone(),
-                                        false,
-                                        presym.dist_threshold,
-                                    ) as usize;
-                                }
-                                _ => {
-                                    sym.add_proper(
-                                        ElementOrder::Int(*k_fac as u32),
-                                        sea_axes[2].clone(),
-                                        false,
-                                        presym.dist_threshold,
-                                    ) as usize;
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // Polyhedral SEA
-                    if approx::relative_eq!(
-                        sea_mois[1],
-                        sea_mois[2],
-                        epsilon = presym.moi_threshold,
-                        max_relative = presym.moi_threshold,
-                    ) {
-                        // The number of atoms in this SEA group must be even.
-                        assert_eq!(k_sea % 2, 0);
-                        if approx::relative_eq!(
-                            sea_mois[0],
-                            sea_mois[1],
-                            epsilon = presym.moi_threshold,
-                            max_relative = presym.moi_threshold,
-                        ) {
-                            // Spherical top SEA
-                            log::debug!("A spherical top SEA set detected.");
-                            let sea_presym = PreSymmetry::builder()
-                                .moi_threshold(presym.moi_threshold)
-                                .molecule(&sea_mol, true)
-                                .build()
-                                .unwrap();
-                            let mut sea_sym = Symmetry::builder().build().unwrap();
-                            log::debug!("Symmetry analysis for spherical top SEA begins.");
-                            log::debug!("-----------------------------------------------");
-                            sea_sym.analyse(&sea_presym);
-                            log::debug!("Symmetry analysis for spherical top SEA ends.");
-                            log::debug!("---------------------------------------------");
-                            for (order, proper_elements) in sea_sym.proper_elements.iter() {
-                                for proper_element in proper_elements {
-                                    if presym.check_proper(&order, &proper_element.axis) {
-                                        sym.add_proper(
-                                            order.clone(),
-                                            proper_element.axis,
-                                            false,
-                                            presym.dist_threshold,
-                                        );
-                                    }
-                                }
-                            }
-                            for (order, improper_elements) in sea_sym.improper_elements.iter() {
-                                for improper_element in improper_elements {
-                                    if presym.check_improper(&order, &improper_element.axis, &SIG) {
-                                        sym.add_improper(
-                                            order.clone(),
-                                            improper_element.axis,
-                                            false,
-                                            SIG.clone(),
-                                            None,
-                                            presym.dist_threshold,
-                                        );
-                                    }
-                                }
-                            }
-                        } else {
-                            // Prolate symmetric top
-                            log::debug!("A prolate symmetric top SEA set detected.");
-                            for k_fac in divisors::get_divisors(k_sea / 2)
-                                .iter()
-                                .chain(vec![k_sea / 2].iter())
-                            {
-                                let k_fac_order = ElementOrder::Int(*k_fac as u32);
-                                if presym.check_proper(&k_fac_order, &sea_axes[0]) {
-                                    if *k_fac == 2 {
-                                        count_c2 += sym.add_proper(
-                                            k_fac_order,
-                                            sea_axes[0],
-                                            false,
-                                            presym.dist_threshold,
-                                        )
-                                            as usize;
-                                    } else {
-                                        sym.add_proper(
-                                            k_fac_order,
-                                            sea_axes[0],
-                                            false,
-                                            presym.dist_threshold,
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    } else if approx::relative_eq!(
-                        sea_mois[0],
-                        sea_mois[1],
-                        epsilon = presym.moi_threshold,
-                        max_relative = presym.moi_threshold,
-                    ) {
-                        // Oblate symmetry top
-                        log::debug!("An oblate symmetric top SEA set detected.");
-                        assert_eq!(k_sea % 2, 0);
-                        for k_fac in divisors::get_divisors(k_sea / 2)
-                            .iter()
-                            .chain(vec![k_sea / 2].iter())
-                        {
-                            let k_fac_order = ElementOrder::Int(*k_fac as u32);
-                            if presym.check_proper(&k_fac_order, &sea_axes[2]) {
-                                if *k_fac == 2 {
-                                    count_c2 += sym.add_proper(
-                                        k_fac_order,
-                                        sea_axes[2],
-                                        false,
-                                        presym.dist_threshold,
-                                    ) as usize;
-                                } else {
-                                    sym.add_proper(
-                                        k_fac_order,
-                                        sea_axes[2],
-                                        false,
-                                        presym.dist_threshold,
-                                    );
-                                }
-                            }
-                        }
-                    } else {
-                        // Asymmetric top
-                        log::debug!("An asymmetric top SEA set detected.");
-                        for sea_axis in sea_axes.iter() {
-                            if presym.check_proper(&ORDER_2, sea_axis) {
-                                count_c2 += sym.add_proper(
-                                    ORDER_2.clone(),
-                                    *sea_axis,
-                                    false,
-                                    presym.dist_threshold,
-                                ) as usize;
-                            }
-                        }
-                    }
-                }
-            }
-        } // end match k_sea
-
-        // Search for any remaining C2 axes
-        for atom2s in sea_group.iter().combinations(2) {
-            if asymmetric && count_c2 == 3 {
-                break;
-            } else {
-                let atom_i_pos = atom2s[0].coordinates;
-                let atom_j_pos = atom2s[1].coordinates;
-
-                // Case B: C2 might cross through any two atoms
-                if presym.check_proper(&ORDER_2, &atom_i_pos.coords) {
-                    count_c2 += sym.add_proper(
-                        ORDER_2.clone(),
-                        atom_i_pos.coords,
-                        false,
-                        presym.dist_threshold,
-                    ) as usize;
-                }
-
-                // Case A: C2 might cross through the midpoint of two atoms
-                let midvec = 0.5 * (&atom_i_pos.coords + &atom_j_pos.coords);
-                if midvec.norm() > presym.dist_threshold && presym.check_proper(&ORDER_2, &midvec) {
-                    count_c2 +=
-                        sym.add_proper(ORDER_2.clone(), midvec, false, presym.dist_threshold)
-                            as usize;
-                } else if let Some(electric_atoms) = &presym.molecule.electric_atoms {
-                    let e_vector = electric_atoms[0].coordinates - electric_atoms[1].coordinates;
-                    if presym.check_proper(&ORDER_2, &e_vector) {
-                        count_c2 +=
-                            sym.add_proper(ORDER_2.clone(), e_vector, false, presym.dist_threshold)
-                                as usize;
-                    }
-                }
-            }
-        }
-    } // end for sea_group in presym.sea_groups.iter()
-
-    if asymmetric && count_c2 == 3 {
-        return;
-    } else {
-        // Search for any remaining C2 axes.
-        // Case C: Molecules with two or more sets of non-parallel linear diatomic SEA groups
-        if linear_sea_groups.len() >= 2 {
-            let normal_option = linear_sea_groups.iter().combinations(2).find_map(|pair| {
-                let vec_0 = pair[0][1].coordinates - pair[0][0].coordinates;
-                let vec_1 = pair[1][1].coordinates - pair[1][0].coordinates;
-                let trial_normal = vec_0.cross(&vec_1);
-                if trial_normal.norm() > presym.dist_threshold {
-                    Some(trial_normal)
-                } else {
-                    None
-                }
-            });
-            if let Some(normal) = normal_option {
-                if presym.check_proper(&ORDER_2, &normal) {
-                    sym.add_proper(ORDER_2.clone(), normal, false, presym.dist_threshold);
-                }
-            }
-        }
-    }
-}
 
 /// Determines the mirror-plane symbol given a principal axis.
 ///
