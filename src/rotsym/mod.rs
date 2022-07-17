@@ -49,7 +49,7 @@ impl fmt::Display for RotationalSymmetry {
 ///
 /// # Arguments
 ///
-/// * `inertia_tensor` - An inertia tensor which is a $3 \times 3$ matrix.
+/// * `inertia_tensor` - An inertia tensor which is a $`3 \times 3`$ matrix.
 /// * `thresh` - A threshold for comparing moments of inertia.
 /// * `verbose` - The print level.
 ///     should be used in moment of inertia comparisons.

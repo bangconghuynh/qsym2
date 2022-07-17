@@ -8,7 +8,7 @@ use nalgebra::Vector3;
 use std::collections::HashSet;
 
 impl Symmetry {
-    /// Locates and adds all possible and distinct $C_2$ axes present in the
+    /// Locates and adds all possible and distinct $`C_2`$ axes present in the
     /// molecule in `presym`, provided that `presym` is a spherical top.
     ///
     /// # Arguments

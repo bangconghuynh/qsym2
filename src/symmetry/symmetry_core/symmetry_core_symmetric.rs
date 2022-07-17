@@ -593,7 +593,7 @@ fn _deduce_sigma_symbol(
     sigma_symbol
 }
 
-/// Adds improper elements constructed as a product between a $\sigma_h$ and a
+/// Adds improper elements constructed as a product between a $`\sigma_h`$ and a
 /// rotation axis.
 ///
 /// The constructed improper elements will be added to `sym`.
@@ -601,7 +601,7 @@ fn _deduce_sigma_symbol(
 /// # Arguments
 ///
 /// * `sym` - A symmetry struct to store the improper rotation elements found.
-/// * `sigma_h` - A $\sigma_h$ mirror plane.
+/// * `sigma_h` - A $`\sigma_h`$ mirror plane.
 /// * `non_id_c_elements` - A vector of non-identity rotation elements to
 /// consider.
 /// * `presym` - A pre-symmetry-analysis struct containing information about

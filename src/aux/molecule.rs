@@ -192,7 +192,7 @@ impl Molecule {
     ///
     /// # Returns
     ///
-    /// The inertia tensor as a $3 \times 3$ matrix.
+    /// The inertia tensor as a $`3 \times 3`$ matrix.
     pub fn calc_inertia_tensor(&self, origin: &Point3<f64>, verbose: u64) -> Matrix3<f64> {
         let atoms = self.get_all_atoms();
         let mut inertia_tensor = Matrix3::zeros();
@@ -277,8 +277,7 @@ impl Molecule {
         )
     }
 
-    /// Determines the sets of symmetry-equivalent atoms and stores the result in
-    /// the field [`Self::sea_groups`].
+    /// Determines the sets of symmetry-equivalent atoms.
     ///
     /// This *does* take into account fictitious special atoms.
     ///

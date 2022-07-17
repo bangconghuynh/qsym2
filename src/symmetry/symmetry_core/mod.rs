@@ -101,18 +101,18 @@ impl PreSymmetry {
         PreSymmetryBuilder::default()
     }
 
-    /// Checks for the existence of the proper symmetry element $C_n$ along
+    /// Checks for the existence of the proper symmetry element $`C_n`$ along
     /// `axis` in `[Self::molecule]`.
     ///
     /// # Arguments
     ///
-    /// * order - The geometrical order $n$ of the rotation axis. Only finite
+    /// * order - The geometrical order $`n`$ of the rotation axis. Only finite
     /// orders are supported.
     /// * axis - The rotation axis.
     ///
     /// # Returns
     ///
-    /// A flag indicating if the $C_n$ element exists in `[Self::molecule]`.
+    /// A flag indicating if the $`C_n`$ element exists in `[Self::molecule]`.
     fn check_proper(&self, order: &ElementOrder, axis: &Vector3<f64>) -> bool {
         assert_ne!(
             *order,
@@ -124,12 +124,12 @@ impl PreSymmetry {
         rotated_mol == self.molecule
     }
 
-    /// Checks for the existence of the improper symmetry element $S_n$ or
-    /// $\dot{S}_n$ along `axis` in `[Self::molecule]`.
+    /// Checks for the existence of the improper symmetry element $`S_n`$ or
+    /// $`\dot{S}_n`$ along `axis` in `[Self::molecule]`.
     ///
     /// # Arguments
     ///
-    /// * order - The geometrical order $n$ of the improper rotation axis. Only
+    /// * order - The geometrical order $`n`$ of the improper rotation axis. Only
     /// finite orders are supported.
     /// * axis - The rotation axis.
     /// * kind - The convention in which the improper element is defined.
@@ -161,30 +161,30 @@ pub struct Symmetry {
     #[builder(setter(skip, strip_option), default = "None")]
     point_group: Option<String>,
 
-    /// The proper generators possessed by [`Self::molecule`].
+    /// The proper generators found.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding proper generators.
     #[builder(setter(skip), default = "HashMap::new()")]
     proper_generators: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
-    /// The improper generators possessed by [`Self::molecule`]. These
-    /// generators are always defined in the mirror-plane convention.
+    /// The improper generators found. These generators are always defined in
+    /// the mirror-plane convention.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding improper generators.
     #[builder(setter(skip), default = "HashMap::new()")]
     improper_generators: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
-    /// The proper elements possessed by [`Self::molecule`].
+    /// The proper elements found.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding proper elements.
     #[builder(setter(skip), default = "Self::default_proper_elements()")]
     proper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
-    /// The improper elements possessed by [`Self::molecule`]. These
-    /// elements are always defined in the mirror-plane convention.
+    /// The improper elements found. These elements are always defined in the
+    /// mirror-plane convention.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding improper elements.
@@ -221,7 +221,10 @@ impl Symmetry {
 
     /// Performs point-group detection analysis.
     ///
-    /// This sets the fields [`Self::rotational_symmetry`].
+    /// # Arguments
+    ///
+    /// * presym - A pre-symmetry-analysis struct containing the molecule
+    /// and its rotational symmetry required for point-group detection.
     pub fn analyse(&mut self, presym: &PreSymmetry) {
         log::debug!("Rotational symmetry found: {}", presym.rotational_symmetry);
         match &presym.rotational_symmetry {
@@ -492,8 +495,8 @@ impl Symmetry {
 /// the molecular system.
 /// * `sym` - A symmetry struct to store the proper rotation elements found.
 /// * `asymmetric` - If `true`, the search assumes that the group is one of the
-/// Abelian point groups for which the highest possible rotation order is $2$
-/// and there can be at most three $\mathcal{C}_2$ axes.
+/// Abelian point groups for which the highest possible rotation order is $`2`$
+/// and there can be at most three $`C_2`$ axes.
 fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric: bool) {
     let mut linear_sea_groups: Vec<&Vec<Atom>> = vec![];
     let mut count_c2: usize = 0;
