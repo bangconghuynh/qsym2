@@ -1,9 +1,7 @@
 use super::{PreSymmetry, Symmetry};
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::{
-    ORDER_1, ORDER_2, SIG,
-};
+use crate::symmetry::symmetry_element::{ORDER_1, ORDER_2, SIG};
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
@@ -15,6 +13,7 @@ impl Symmetry {
     ///
     /// * $`\mathcal{C}_{1}`$ and $`\mathcal{C}_{2}`$,
     /// * $`\mathcal{C}_{2v}`$,
+    /// * $`\mathcal{C}_{2h}`$,
     /// * $`\mathcal{C}_{s}`$,
     /// * $`\mathcal{D}_{2}`$,
     /// * $`\mathcal{D}_{2h}`$, and
@@ -143,6 +142,14 @@ impl Symmetry {
             if presym.check_improper(&ORDER_2, &z_vec, &SIG) {
                 // Inversion centre, C2h
                 log::debug!("Located an inversion centre.");
+                self.add_improper(
+                    ORDER_2.clone(),
+                    z_vec,
+                    false,
+                    SIG.clone(),
+                    None,
+                    presym.dist_threshold,
+                );
                 self.point_group = Some("C2h".to_owned());
                 log::debug!(
                     "Point group determined: {}",
@@ -308,21 +315,57 @@ impl Symmetry {
                         RotationalSymmetry::AsymmetricPlanar
                     )
                 {
-                    log::debug!(
-                        "Planar molecule based on MoIs but no σ found from SEA groups."
-                    );
+                    log::debug!("Planar molecule based on MoIs but no σ found from SEA groups.");
                     log::debug!("Locating the planar mirror plane based on MoIs...");
-                    assert!(presym.check_improper(&ORDER_1, &_principal_axes[2], &SIG));
-                    assert!(self.add_improper(
-                        ORDER_1.clone(),
-                        _principal_axes[2],
-                        false,
-                        SIG.clone(),
-                        None,
-                        presym.dist_threshold,
-                    ));
+                    assert!(
+                        presym.check_improper(&ORDER_1, &_principal_axes[2], &SIG),
+                        "Failed to check reflection symmetry from highest-MoI principal axis."
+                    );
+                    assert!(
+                        self.add_improper(
+                            ORDER_1.clone(),
+                            _principal_axes[2],
+                            false,
+                            SIG.clone(),
+                            None,
+                            presym.dist_threshold,
+                        ),
+                        "Failed to add mirror plane from highest-MoI principal axis."
+                    );
                     log::debug!("Located one planar mirror plane based on MoIs.");
                     count_sigma += 1;
+
+                    // Old algorithm
+                    // for atom3s in presym.molecule.atoms.iter().combinations(3) {
+                    //     let normal = (atom3s[1].coordinates.coords - atom3s[0].coordinates.coords)
+                    //         .cross(&(atom3s[2].coordinates.coords - atom3s[0].coordinates.coords));
+                    //     if normal.norm() < presym.dist_threshold {
+                    //         if let Some(e_atoms) = &presym.molecule.electric_atoms {
+                    //             let normal = (atom3s[1].coordinates.coords
+                    //                 - atom3s[0].coordinates.coords)
+                    //                 .cross(
+                    //                     &(e_atoms[1].coordinates.coords
+                    //                         - e_atoms[0].coordinates.coords),
+                    //                 );
+                    //         } else {
+                    //             continue;
+                    //         }
+                    //     }
+                    //     let normal = normal.normalize();
+                    //     if presym.check_improper(&ORDER_1, &normal, &SIG) {
+                    //         count_sigma += self.add_improper(
+                    //             ORDER_1.clone(),
+                    //             normal,
+                    //             false,
+                    //             SIG.clone(),
+                    //             None,
+                    //             presym.dist_threshold,
+                    //         ) as u32;
+                    //         break;
+                    //     }
+                    // }
+                    // assert_eq!(count_sigma, 1);
+                    // log::debug!("Located one planar mirror plane based on MoIs.");
                 }
 
                 log::debug!("Located {} σ.", count_sigma);
@@ -358,7 +401,7 @@ impl Symmetry {
                         ORDER_1.clone(),
                         self.proper_elements[&ORDER_1].iter().next().unwrap().axis,
                         true,
-                        presym.dist_threshold
+                        presym.dist_threshold,
                     );
                     self.point_group = Some("C1".to_owned());
                     log::debug!(
