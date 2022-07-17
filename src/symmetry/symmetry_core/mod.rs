@@ -223,6 +223,7 @@ impl Symmetry {
     ///
     /// This sets the fields [`Self::rotational_symmetry`].
     pub fn analyse(&mut self, presym: &PreSymmetry) {
+        log::debug!("Rotational symmetry found: {}", presym.rotational_symmetry);
         match &presym.rotational_symmetry {
             RotationalSymmetry::Spherical => self.analyse_spherical(presym),
             RotationalSymmetry::ProlateLinear => self.analyse_linear(presym),

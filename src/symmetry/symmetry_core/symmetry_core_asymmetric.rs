@@ -249,6 +249,7 @@ impl Symmetry {
             }
         } else {
             // No C2 axes, so either C1, Ci, or Cs
+            log::debug!("No C2 axes found.");
             let z_vec = Vector3::new(0.0, 0.0, 1.0);
             if presym.check_improper(&ORDER_2, &z_vec, &SIG) {
                 log::debug!("Located an inversion centre.");
@@ -274,6 +275,7 @@ impl Symmetry {
                     presym.dist_threshold,
                 );
             } else {
+                log::debug!("No inversion centres found.");
                 // Locate mirror planes
                 let sea_groups = &presym.sea_groups;
                 let mut count_sigma = 0;
@@ -298,71 +300,71 @@ impl Symmetry {
                             ) as u32;
                         }
                     }
+                }
 
-                    if count_sigma == 0
-                        && matches!(
-                            presym.rotational_symmetry,
-                            RotationalSymmetry::AsymmetricPlanar
-                        )
-                    {
-                        log::debug!(
-                            "Planar molecule based on MoIs but no σ found from SEA groups."
-                        );
-                        log::debug!("Locating the planar mirror plane based on MoIs...");
-                        assert!(presym.check_improper(&ORDER_1, &_principal_axes[2], &SIG));
-                        assert!(self.add_improper(
-                            ORDER_1.clone(),
-                            _principal_axes[2],
-                            false,
-                            SIG.clone(),
-                            None,
-                            presym.dist_threshold,
-                        ));
-                        log::debug!("Located one planar mirror plane based on MoIs.");
-                        count_sigma += 1;
-                    }
+                if count_sigma == 0
+                    && matches!(
+                        presym.rotational_symmetry,
+                        RotationalSymmetry::AsymmetricPlanar
+                    )
+                {
+                    log::debug!(
+                        "Planar molecule based on MoIs but no σ found from SEA groups."
+                    );
+                    log::debug!("Locating the planar mirror plane based on MoIs...");
+                    assert!(presym.check_improper(&ORDER_1, &_principal_axes[2], &SIG));
+                    assert!(self.add_improper(
+                        ORDER_1.clone(),
+                        _principal_axes[2],
+                        false,
+                        SIG.clone(),
+                        None,
+                        presym.dist_threshold,
+                    ));
+                    log::debug!("Located one planar mirror plane based on MoIs.");
+                    count_sigma += 1;
+                }
 
-                    log::debug!("Located {} σ.", count_sigma);
-                    if count_sigma > 0 {
-                        assert_eq!(count_sigma, 1);
-                        let old_sigmas = self.improper_elements.remove(&ORDER_1).unwrap();
-                        assert_eq!(old_sigmas.len(), 1);
-                        let old_sigma = old_sigmas.into_iter().next().unwrap();
-                        self.add_improper(
-                            ORDER_1.clone(),
-                            old_sigma.axis,
-                            false,
-                            SIG.clone(),
-                            Some("h".to_owned()),
-                            presym.dist_threshold,
-                        );
-                        self.add_improper(
-                            ORDER_1.clone(),
-                            old_sigma.axis,
-                            true,
-                            SIG.clone(),
-                            Some("h".to_owned()),
-                            presym.dist_threshold,
-                        );
+                log::debug!("Located {} σ.", count_sigma);
+                if count_sigma > 0 {
+                    assert_eq!(count_sigma, 1);
+                    let old_sigmas = self.improper_elements.remove(&ORDER_1).unwrap();
+                    assert_eq!(old_sigmas.len(), 1);
+                    let old_sigma = old_sigmas.into_iter().next().unwrap();
+                    self.add_improper(
+                        ORDER_1.clone(),
+                        old_sigma.axis,
+                        false,
+                        SIG.clone(),
+                        Some("h".to_owned()),
+                        presym.dist_threshold,
+                    );
+                    self.add_improper(
+                        ORDER_1.clone(),
+                        old_sigma.axis,
+                        true,
+                        SIG.clone(),
+                        Some("h".to_owned()),
+                        presym.dist_threshold,
+                    );
 
-                        self.point_group = Some("Cs".to_owned());
-                        log::debug!(
-                            "Point group determined: {}",
-                            self.point_group.as_ref().unwrap()
-                        );
-                    } else {
-                        self.add_proper(
-                            ORDER_1.clone(),
-                            self.proper_elements[&ORDER_1].iter().next().unwrap().axis,
-                            true,
-                            presym.dist_threshold
-                        );
-                        self.point_group = Some("C1".to_owned());
-                        log::debug!(
-                            "Point group determined: {}",
-                            self.point_group.as_ref().unwrap()
-                        );
-                    }
+                    self.point_group = Some("Cs".to_owned());
+                    log::debug!(
+                        "Point group determined: {}",
+                        self.point_group.as_ref().unwrap()
+                    );
+                } else {
+                    self.add_proper(
+                        ORDER_1.clone(),
+                        self.proper_elements[&ORDER_1].iter().next().unwrap().axis,
+                        true,
+                        presym.dist_threshold
+                    );
+                    self.point_group = Some("C1".to_owned());
+                    log::debug!(
+                        "Point group determined: {}",
+                        self.point_group.as_ref().unwrap()
+                    );
                 }
             }
         }
