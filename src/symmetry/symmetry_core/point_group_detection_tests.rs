@@ -202,21 +202,6 @@ fn test_point_group_detection_linear_c2h2_magnetic_field_dinfh() {
     assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
-
-    // TODO: Finish this
-    // Perpendicular field
-    // mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 0.0)));
-    // let presym = PreSymmetry::builder()
-    //     .moi_threshold(1e-6)
-    //     .molecule(&mol, true)
-    //     .build()
-    //     .unwrap();
-    // let mut sym = Symmetry::builder().build().unwrap();
-    // sym.analyse(&presym);
-    // assert_eq!(sym.point_group, Some("Cs".to_owned()));
-    // assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
-    // assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
-    // assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
 }
 
 #[test]
@@ -235,21 +220,6 @@ fn test_point_group_detection_linear_c2h2_electric_field_cinfv() {
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("C∞v".to_owned()));
     assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
-
-    // TODO: Finish this
-    // Perpendicular field
-    // mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 0.0)));
-    // let presym = PreSymmetry::builder()
-    //     .moi_threshold(1e-6)
-    //     .molecule(&mol, true)
-    //     .build()
-    //     .unwrap();
-    // let mut sym = Symmetry::builder().build().unwrap();
-    // sym.analyse(&presym);
-    // assert_eq!(sym.point_group, Some("Cs".to_owned()));
-    // assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
-    // assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
-    // assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
 }
 
 #[test]
@@ -1427,6 +1397,31 @@ fn test_point_group_detection_symmetric_staggered_c2h6_d3d() {
 }
 
 #[test]
+fn test_point_group_detection_symmetric_cyclohexane_chair_d3d() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexane_chair.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D3d".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(6)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 3);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+}
+
+#[test]
 fn test_point_group_detection_symmetric_s8_d4d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -2247,6 +2242,53 @@ fn test_point_group_detection_asymmetric_h2o2_c2h() {
 }
 
 #[test]
+fn test_point_group_detection_asymmetric_zethrene_c2h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/zethrene.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-6);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C2h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_distorted_vf6_magnetic_field_c2h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C2h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+#[test]
 fn test_point_group_detection_asymmetric_b2h6_magnetic_field_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
@@ -2790,4 +2832,324 @@ fn test_point_group_detection_asymmetric_bf3_magnetic_field_cs() {
 
     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+/*
+D2
+*/
+
+#[test]
+fn test_point_group_detection_asymmetric_i4_biphenyl_d2() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D2".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 2);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_twistane_d2() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/twistane.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D2".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 2);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_22_paracyclophane_d2() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/paracyclophane22.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D2".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 2);
+}
+
+
+/***
+D2h
+***/
+
+#[test]
+fn test_point_group_detection_asymmetric_b2h6_d2h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D2h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("").unwrap().len(), 3);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 2);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_naphthalene_d2h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D2h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("").unwrap().len(), 3);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 2);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_pyrene_d2h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D2h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("").unwrap().len(), 3);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 2);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_c6o6_d2h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D2h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("").unwrap().len(), 3);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 2);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_distorted_vf6_d2h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("D2h".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("").unwrap().len(), 3);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 2);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("").unwrap().len(), 1);
+}
+
+
+/***
+Ci
+***/
+
+#[test]
+fn test_point_group_detection_asymmetric_meso_tartaricacid_ci() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("Ci".to_owned()));
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_dibromodimethylcyclohexane_ci() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/dibromodimethylcyclohexane.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("Ci".to_owned()));
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_h2o2_magnetic_field_ci() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("Ci".to_owned()));
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_symmetric_xef4_magnetic_field_ci() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -2.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("Ci".to_owned()));
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_c2h2_magnetic_field_ci() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("Ci".to_owned()));
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
+
+/***
+C1
+***/
+
+#[test]
+fn test_point_group_detection_asymmetric_butan1ol_c1() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C1".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(1)].len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_subst_5m_ring_c1() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/subst-5m-ring.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C1".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(1)].len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_bf3_magnetic_field_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C1".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(1)].len(), 1);
 }
