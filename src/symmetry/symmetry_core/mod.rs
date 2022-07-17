@@ -1,22 +1,24 @@
+use crate::aux::atom::Atom;
 use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
-use crate::aux::atom::Atom;
 use crate::rotsym::{self, RotationalSymmetry};
-use crate::symmetry::symmetry_element::{ElementOrder, SymmetryElement, SymmetryElementKind};
+use crate::symmetry::symmetry_element::{
+    ElementOrder, SymmetryElement, SymmetryElementKind, ORDER_2, SIG
+};
 use log;
 use nalgebra::{Point3, Vector3};
+use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
 use derive_builder::Builder;
 
-#[path = "symmetry_core_tests.rs"]
 #[cfg(test)]
+#[path = "symmetry_core_tests.rs"]
 mod symmetry_core_tests;
 
 #[path = "point_group_detection_tests.rs"]
 #[cfg(test)]
 mod point_group_detection_tests;
-
 
 /// A struct for storing and managing information required for symmetry analysis.
 #[derive(Builder)]
@@ -26,35 +28,32 @@ pub struct PreSymmetry {
     #[builder(setter(custom))]
     molecule: Molecule,
 
-    /// The static electric field vector being applied to [`Self::molecule`].
-    #[builder(setter(strip_option), default = "None")]
-    electric_field: Option<Vector3<f64>>,
-
-    /// The static magnetic field vector being applied to [`Self::molecule`].
-    #[builder(setter(strip_option), default = "None")]
-    magnetic_field: Option<Vector3<f64>>,
-
     /// The rotational symmetry of [`Self::molecule`] based on its moments of
     /// inertia.
     #[builder(setter(skip), default = "self.calc_rotational_symmetry()")]
     rotational_symmetry: RotationalSymmetry,
 
-    /// The groups of symmetry-equivalent atoms in [`Self`] in the presence of any
-    /// magnetic field and electric field defined by [`Self::magnetic_field`] and
-    /// [`Self::electric_field`], respectively.
+    /// The groups of symmetry-equivalent atoms in [`Self::molecule`].
     #[builder(setter(skip), default = "self.calc_sea_groups()")]
     sea_groups: Vec<Vec<Atom>>,
 
     /// Threshold for relative comparisons of moments of inertia.
     #[builder(setter(custom))]
     moi_threshold: f64,
+
+    /// Threshold for relative distance comparisons.
+    #[builder(setter(skip), default = "self.get_dist_threshold()")]
+    dist_threshold: f64,
 }
 
-
 impl PreSymmetryBuilder {
-    pub fn molecule(&mut self, molecule: &Molecule) -> &mut Self {
-        // The Symmetry struct now owns a recentred copy of `molecule`.
-        self.molecule = Some(molecule.recentre());
+    pub fn molecule(&mut self, molecule: &Molecule, recentre: bool) -> &mut Self {
+        if recentre {
+            // The Symmetry struct now owns a recentred copy of `molecule`.
+            self.molecule = Some(molecule.recentre());
+        } else {
+            self.molecule = Some(molecule.clone());
+        }
         self
     }
 
@@ -71,7 +70,7 @@ impl PreSymmetryBuilder {
         self
     }
 
-    pub fn calc_rotational_symmetry(&self) -> RotationalSymmetry {
+    fn calc_rotational_symmetry(&self) -> RotationalSymmetry {
         let com = self.molecule.as_ref().unwrap().calc_com(0);
         let inertia = self.molecule.as_ref().unwrap().calc_inertia_tensor(&com, 0);
         approx::assert_relative_eq!(
@@ -80,19 +79,17 @@ impl PreSymmetryBuilder {
             epsilon = self.molecule.as_ref().unwrap().threshold,
             max_relative = self.molecule.as_ref().unwrap().threshold
         );
-        rotsym::calc_rotational_symmetry(
-            &inertia,
-            self.moi_threshold.unwrap(),
-            0,
-        )
-        // self
+        rotsym::calc_rotational_symmetry(&inertia, self.moi_threshold.unwrap(), 0)
     }
 
-    pub fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
+    fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
         self.molecule.as_ref().unwrap().calc_sea_groups(0)
     }
-}
 
+    fn get_dist_threshold(&self) -> f64 {
+        self.molecule.as_ref().unwrap().threshold
+    }
+}
 
 impl PreSymmetry {
     /// Returns a builder to construct a new pre-symmetry struct.
@@ -104,66 +101,18 @@ impl PreSymmetry {
         PreSymmetryBuilder::default()
     }
 
-    /// Sets the electric field vector applied to [`Self::molecule`].
-    ///
-    /// # Arguments
-    ///
-    /// * e_vector - An option for a vector.
-    pub fn set_electric_field(&mut self, e_vector: Option<Vector3<f64>>) {
-        match e_vector {
-            Some(vec) => {
-                if approx::relative_eq!(
-                    vec.norm(),
-                    0.0,
-                    epsilon = self.molecule.threshold,
-                    max_relative = self.molecule.threshold
-                ) {
-                    self.electric_field = e_vector;
-                } else {
-                    self.electric_field = None
-                };
-            }
-            None => self.electric_field = None,
-        }
-        self.molecule.set_electric_field(self.electric_field);
-    }
-
-    /// Sets the magnetic field vector applied to [`Self::molecule`].
-    ///
-    /// # Arguments
-    ///
-    /// * b_vector - An option for a vector.
-    pub fn set_magnetic_field(&mut self, b_vector: Option<Vector3<f64>>) {
-        match b_vector {
-            Some(vec) => {
-                if approx::relative_eq!(
-                    vec.norm(),
-                    0.0,
-                    epsilon = self.molecule.threshold,
-                    max_relative = self.molecule.threshold
-                ) {
-                    self.magnetic_field = b_vector;
-                } else {
-                    self.magnetic_field = None
-                };
-            }
-            None => self.magnetic_field = None,
-        }
-        self.molecule.set_magnetic_field(self.magnetic_field);
-    }
-
-    /// Checks for the existence of the proper symmetry element $C_n$ along
+    /// Checks for the existence of the proper symmetry element $`C_n`$ along
     /// `axis` in `[Self::molecule]`.
     ///
     /// # Arguments
     ///
-    /// * order - The geometrical order $n$ of the rotation axis. Only finite
+    /// * order - The geometrical order $`n`$ of the rotation axis. Only finite
     /// orders are supported.
     /// * axis - The rotation axis.
     ///
     /// # Returns
     ///
-    /// A flag indicating if the $C_n$ element exists in `[Self::molecule]`.
+    /// A flag indicating if the $`C_n`$ element exists in `[Self::molecule]`.
     fn check_proper(&self, order: &ElementOrder, axis: &Vector3<f64>) -> bool {
         assert_ne!(
             *order,
@@ -175,12 +124,12 @@ impl PreSymmetry {
         rotated_mol == self.molecule
     }
 
-    /// Checks for the existence of the improper symmetry element $S_n$ or
-    /// $\dot{S}_n$ along `axis` in `[Self::molecule]`.
+    /// Checks for the existence of the improper symmetry element $`S_n`$ or
+    /// $`\dot{S}_n`$ along `axis` in `[Self::molecule]`.
     ///
     /// # Arguments
     ///
-    /// * order - The geometrical order $n$ of the improper rotation axis. Only
+    /// * order - The geometrical order $`n`$ of the improper rotation axis. Only
     /// finite orders are supported.
     /// * axis - The rotation axis.
     /// * kind - The convention in which the improper element is defined.
@@ -205,7 +154,6 @@ impl PreSymmetry {
     }
 }
 
-
 /// A struct for storing and managing symmetry analysis results.
 #[derive(Builder, Debug)]
 pub struct Symmetry {
@@ -213,41 +161,36 @@ pub struct Symmetry {
     #[builder(setter(skip, strip_option), default = "None")]
     point_group: Option<String>,
 
-    /// The proper generators possessed by [`Self::molecule`] in the presence of
-    /// any [`Self::electric_field`] and [`Self::magnetic_field`].
+    /// The proper generators found.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding proper generators.
     #[builder(setter(skip), default = "HashMap::new()")]
     proper_generators: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
-    /// The improper generators possessed by [`Self::molecule`] in the presence
-    /// of any [`Self::electric_field`] and [`Self::magnetic_field`]. These
-    /// generators are always defined in the mirror-plane convention.
+    /// The improper generators found. These generators are always defined in
+    /// the mirror-plane convention.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding improper generators.
     #[builder(setter(skip), default = "HashMap::new()")]
     improper_generators: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
-    /// The proper elements possessed by [`Self::molecule`] in the presence of
-    /// any [`Self::electric_field`] and [`Self::magnetic_field`].
+    /// The proper elements found.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding proper elements.
     #[builder(setter(skip), default = "Self::default_proper_elements()")]
     proper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
-    /// The improper elements possessed by [`Self::molecule`] in the presence
-    /// of any [`Self::electric_field`] and [`Self::magnetic_field`]. These
-    /// elements are always defined in the mirror-plane convention.
+    /// The improper elements found. These elements are always defined in the
+    /// mirror-plane convention.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding improper elements.
     #[builder(setter(skip), default = "HashMap::new()")]
     improper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 }
-
 
 impl SymmetryBuilder {
     fn default_proper_elements() -> HashMap<ElementOrder, HashSet<SymmetryElement>> {
@@ -266,7 +209,6 @@ impl SymmetryBuilder {
     }
 }
 
-
 impl Symmetry {
     /// Returns a builder to construct a new symmetry struct.
     ///
@@ -279,29 +221,20 @@ impl Symmetry {
 
     /// Performs point-group detection analysis.
     ///
-    /// This sets the fields [`Self::rotational_symmetry`].
+    /// # Arguments
+    ///
+    /// * presym - A pre-symmetry-analysis struct containing the molecule
+    /// and its rotational symmetry required for point-group detection.
     pub fn analyse(&mut self, presym: &PreSymmetry) {
-        // let com = self.molecule.calc_com(0);
-        // let inertia = self.molecule.calc_inertia_tensor(&com, 0);
-        // approx::assert_relative_eq!(
-        //     com,
-        //     Point3::origin(),
-        //     epsilon = self.molecule.threshold,
-        //     max_relative = self.molecule.threshold
-        // );
-        // self.rotational_symmetry = Some(rotsym::calc_rotational_symmetry(
-        //     &inertia,
-        //     self.moi_threshold,
-        //     0,
-        // ));
-        // let moi_mat = inertia.symmetric_eigenvalues();
-        // let mut moi: Vec<&f64> = moi_mat.iter().collect();
-        // moi.sort_by(|a, b| a.partial_cmp(b).unwrap());
-
+        log::debug!("Rotational symmetry found: {}", presym.rotational_symmetry);
         match &presym.rotational_symmetry {
             RotationalSymmetry::Spherical => self.analyse_spherical(presym),
-            RotationalSymmetry::ProlateNonLinear => self.analyse_linear(presym),
-            _ => {}
+            RotationalSymmetry::ProlateLinear => self.analyse_linear(presym),
+            RotationalSymmetry::OblatePlanar
+            | RotationalSymmetry::OblateNonPlanar
+            | RotationalSymmetry::ProlateNonLinear => self.analyse_symmetric(presym),
+            RotationalSymmetry::AsymmetricPlanar
+            | RotationalSymmetry::AsymmetricNonPlanar => self.analyse_asymmetric(presym),
         }
     }
 
@@ -317,7 +250,13 @@ impl Symmetry {
     ///
     /// `true` if the specified element is not present and has just been added,
     /// `false` otherwise.
-    fn add_proper(&mut self, order: ElementOrder, axis: Vector3<f64>, generator: bool, threshold: f64) -> bool {
+    fn add_proper(
+        &mut self,
+        order: ElementOrder,
+        axis: Vector3<f64>,
+        generator: bool,
+        threshold: f64,
+    ) -> bool {
         let positive_axis = geometry::get_positive_pole(&axis, threshold).normalize();
         let element = SymmetryElement::builder()
             .threshold(threshold)
@@ -402,16 +341,19 @@ impl Symmetry {
         let positive_axis = geometry::get_positive_pole(&axis, threshold).normalize();
         let element = if let Some(sigma_str) = sigma {
             assert!(sigma_str == "d" || sigma_str == "v" || sigma_str == "h");
-            SymmetryElement::builder()
+            let mut sym_ele = SymmetryElement::builder()
                 .threshold(threshold)
                 .order(order.clone())
                 .axis(positive_axis)
                 .kind(kind)
                 .generator(generator)
-                .additional_subscript(sigma_str)
                 .build()
                 .unwrap()
-                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane)
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane);
+            if sym_ele.order == ElementOrder::Int(1) {
+                sym_ele.additional_subscript = sigma_str;
+            }
+            sym_ele
         } else {
             SymmetryElement::builder()
                 .threshold(threshold)
@@ -423,30 +365,31 @@ impl Symmetry {
                 .unwrap()
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane)
         };
+        let sig_order = element.order.clone();
         let detailed_symbol = element.get_detailed_symbol();
         let standard_symbol = element.get_standard_symbol();
         let is_mirror_plane = element.is_mirror_plane();
         let is_inversion_centre = element.is_inversion_centre();
         let result = if generator {
-            if self.improper_generators.contains_key(&order) {
+            if self.improper_generators.contains_key(&sig_order) {
                 self.improper_generators
-                    .get_mut(&order)
+                    .get_mut(&sig_order)
                     .unwrap()
                     .insert(element)
             } else {
                 self.improper_generators
-                    .insert(order, HashSet::from([element]));
+                    .insert(sig_order, HashSet::from([element]));
                 true
             }
         } else {
-            if self.improper_elements.contains_key(&order) {
+            if self.improper_elements.contains_key(&sig_order) {
                 self.improper_elements
-                    .get_mut(&order)
+                    .get_mut(&sig_order)
                     .unwrap()
                     .insert(element)
             } else {
                 self.improper_elements
-                    .insert(order, HashSet::from([element]));
+                    .insert(sig_order, HashSet::from([element]));
                 true
             }
         };
@@ -491,6 +434,11 @@ impl Symmetry {
         result
     }
 
+    /// Obtains mirror-plane elements by their type (`"h"`, `"v"`, `"d"`, or `""`).
+    ///
+    /// # Returns
+    ///
+    /// A set of the required mirror-plane element type, if exists.
     pub fn get_sigma_elements(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let order_1 = &ElementOrder::Int(1);
         if self.improper_elements.contains_key(&order_1) {
@@ -505,9 +453,14 @@ impl Symmetry {
         }
     }
 
+    /// Obtains mirror-plane generators by their type (`"h"`, `"v"`, `"d"`, or `""`).
+    ///
+    /// # Returns
+    ///
+    /// A set of the required mirror-plane generator type, if exists.
     pub fn get_sigma_generators(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let order_1 = &ElementOrder::Int(1);
-        if self.improper_elements.contains_key(&order_1) {
+        if self.improper_generators.contains_key(&order_1) {
             Some(
                 self.improper_generators[&order_1]
                     .iter()
@@ -518,7 +471,303 @@ impl Symmetry {
             None
         }
     }
+
+    /// Obtains the highest proper rotation order.
+    ///
+    /// # Returns
+    ///
+    /// The highest proper rotation order.
+    pub fn get_max_proper_order(&self) -> ElementOrder {
+        self.proper_generators
+            .keys()
+            .chain(self.proper_elements.keys())
+            .max()
+            .unwrap()
+            .clone()
+    }
 }
 
-mod symmetry_core_spherical;
+/// Locates all proper rotation elements present in [`PreSymmetry::molecule`]
+///
+/// # Arguments
+///
+/// * `presym` - A pre-symmetry-analysis struct containing information about
+/// the molecular system.
+/// * `sym` - A symmetry struct to store the proper rotation elements found.
+/// * `asymmetric` - If `true`, the search assumes that the group is one of the
+/// Abelian point groups for which the highest possible rotation order is $`2`$
+/// and there can be at most three $`C_2`$ axes.
+fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric: bool) {
+    let mut linear_sea_groups: Vec<&Vec<Atom>> = vec![];
+    let mut count_c2: usize = 0;
+    for sea_group in presym.sea_groups.iter() {
+        if asymmetric && count_c2 == 3 {
+            break;
+        }
+        let k_sea = sea_group.len();
+        match k_sea {
+            1 => {
+                continue;
+            }
+            2 => {
+                log::debug!("A linear SEA set detected: {:?}.", sea_group);
+                linear_sea_groups.push(sea_group);
+            }
+            _ => {
+                let sea_mol = Molecule::from_atoms(sea_group, presym.dist_threshold);
+                let (sea_mois, sea_axes) = sea_mol.calc_moi();
+                // Search for high-order rotation axes
+                if approx::relative_eq!(
+                    sea_mois[0] + sea_mois[1],
+                    sea_mois[2],
+                    epsilon = presym.moi_threshold,
+                    max_relative = presym.moi_threshold,
+                ) {
+                    // Planar SEA
+                    let k_fac_range: Vec<_> = if approx::relative_eq!(
+                        sea_mois[0],
+                        sea_mois[1],
+                        epsilon = presym.moi_threshold,
+                        max_relative = presym.moi_threshold,
+                    ) {
+                        // Regular k-sided polygon
+                        log::debug!(
+                            "A regular {}-sided polygon SEA set detected: {:?}.",
+                            k_sea,
+                            sea_group
+                        );
+                        let mut divisors = divisors::get_divisors(k_sea);
+                        divisors.push(k_sea);
+                        divisors
+                    } else {
+                        // Irregular k-sided polygon
+                        log::debug!(
+                            "An irregular {}-sided polygon SEA set detected: {:?}.",
+                            k_sea,
+                            sea_group
+                        );
+                        divisors::get_divisors(k_sea)
+                    };
+                    for k_fac in k_fac_range.iter() {
+                        if presym.check_proper(
+                            &ElementOrder::Int((*k_fac).try_into().unwrap()),
+                            &sea_axes[2],
+                        ) {
+                            match *k_fac {
+                                2 => {
+                                    count_c2 += sym.add_proper(
+                                        ElementOrder::Int(*k_fac as u32),
+                                        sea_axes[2].clone(),
+                                        false,
+                                        presym.dist_threshold,
+                                    ) as usize;
+                                }
+                                _ => {
+                                    sym.add_proper(
+                                        ElementOrder::Int(*k_fac as u32),
+                                        sea_axes[2].clone(),
+                                        false,
+                                        presym.dist_threshold,
+                                    ) as usize;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Polyhedral SEA
+                    if approx::relative_eq!(
+                        sea_mois[1],
+                        sea_mois[2],
+                        epsilon = presym.moi_threshold,
+                        max_relative = presym.moi_threshold,
+                    ) {
+                        // The number of atoms in this SEA group must be even.
+                        assert_eq!(k_sea % 2, 0);
+                        if approx::relative_eq!(
+                            sea_mois[0],
+                            sea_mois[1],
+                            epsilon = presym.moi_threshold,
+                            max_relative = presym.moi_threshold,
+                        ) {
+                            // Spherical top SEA
+                            log::debug!("A spherical top SEA set detected.");
+                            let sea_presym = PreSymmetry::builder()
+                                .moi_threshold(presym.moi_threshold)
+                                .molecule(&sea_mol, true)
+                                .build()
+                                .unwrap();
+                            let mut sea_sym = Symmetry::builder().build().unwrap();
+                            log::debug!("Symmetry analysis for spherical top SEA begins.");
+                            log::debug!("-----------------------------------------------");
+                            sea_sym.analyse(&sea_presym);
+                            log::debug!("Symmetry analysis for spherical top SEA ends.");
+                            log::debug!("---------------------------------------------");
+                            for (order, proper_elements) in sea_sym.proper_elements.iter() {
+                                for proper_element in proper_elements {
+                                    if presym.check_proper(&order, &proper_element.axis) {
+                                        sym.add_proper(
+                                            order.clone(),
+                                            proper_element.axis,
+                                            false,
+                                            presym.dist_threshold,
+                                        );
+                                    }
+                                }
+                            }
+                            for (order, improper_elements) in sea_sym.improper_elements.iter() {
+                                for improper_element in improper_elements {
+                                    if presym.check_improper(&order, &improper_element.axis, &SIG) {
+                                        sym.add_improper(
+                                            order.clone(),
+                                            improper_element.axis,
+                                            false,
+                                            SIG.clone(),
+                                            None,
+                                            presym.dist_threshold,
+                                        );
+                                    }
+                                }
+                            }
+                        } else {
+                            // Prolate symmetric top
+                            log::debug!("A prolate symmetric top SEA set detected.");
+                            for k_fac in divisors::get_divisors(k_sea / 2)
+                                .iter()
+                                .chain(vec![k_sea / 2].iter())
+                            {
+                                let k_fac_order = ElementOrder::Int(*k_fac as u32);
+                                if presym.check_proper(&k_fac_order, &sea_axes[0]) {
+                                    if *k_fac == 2 {
+                                        count_c2 += sym.add_proper(
+                                            k_fac_order,
+                                            sea_axes[0],
+                                            false,
+                                            presym.dist_threshold,
+                                        )
+                                            as usize;
+                                    } else {
+                                        sym.add_proper(
+                                            k_fac_order,
+                                            sea_axes[0],
+                                            false,
+                                            presym.dist_threshold,
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    } else if approx::relative_eq!(
+                        sea_mois[0],
+                        sea_mois[1],
+                        epsilon = presym.moi_threshold,
+                        max_relative = presym.moi_threshold,
+                    ) {
+                        // Oblate symmetry top
+                        log::debug!("An oblate symmetric top SEA set detected.");
+                        assert_eq!(k_sea % 2, 0);
+                        for k_fac in divisors::get_divisors(k_sea / 2)
+                            .iter()
+                            .chain(vec![k_sea / 2].iter())
+                        {
+                            let k_fac_order = ElementOrder::Int(*k_fac as u32);
+                            if presym.check_proper(&k_fac_order, &sea_axes[2]) {
+                                if *k_fac == 2 {
+                                    count_c2 += sym.add_proper(
+                                        k_fac_order,
+                                        sea_axes[2],
+                                        false,
+                                        presym.dist_threshold,
+                                    ) as usize;
+                                } else {
+                                    sym.add_proper(
+                                        k_fac_order,
+                                        sea_axes[2],
+                                        false,
+                                        presym.dist_threshold,
+                                    );
+                                }
+                            }
+                        }
+                    } else {
+                        // Asymmetric top
+                        log::debug!("An asymmetric top SEA set detected.");
+                        for sea_axis in sea_axes.iter() {
+                            if presym.check_proper(&ORDER_2, sea_axis) {
+                                count_c2 += sym.add_proper(
+                                    ORDER_2.clone(),
+                                    *sea_axis,
+                                    false,
+                                    presym.dist_threshold,
+                                ) as usize;
+                            }
+                        }
+                    }
+                }
+            }
+        } // end match k_sea
+
+        // Search for any remaining C2 axes
+        for atom2s in sea_group.iter().combinations(2) {
+            if asymmetric && count_c2 == 3 {
+                break;
+            } else {
+                let atom_i_pos = atom2s[0].coordinates;
+                let atom_j_pos = atom2s[1].coordinates;
+
+                // Case B: C2 might cross through any two atoms
+                if presym.check_proper(&ORDER_2, &atom_i_pos.coords) {
+                    count_c2 += sym.add_proper(
+                        ORDER_2.clone(),
+                        atom_i_pos.coords,
+                        false,
+                        presym.dist_threshold,
+                    ) as usize;
+                }
+
+                // Case A: C2 might cross through the midpoint of two atoms
+                let midvec = 0.5 * (&atom_i_pos.coords + &atom_j_pos.coords);
+                if midvec.norm() > presym.dist_threshold && presym.check_proper(&ORDER_2, &midvec) {
+                    count_c2 +=
+                        sym.add_proper(ORDER_2.clone(), midvec, false, presym.dist_threshold)
+                            as usize;
+                } else if let Some(electric_atoms) = &presym.molecule.electric_atoms {
+                    let e_vector = electric_atoms[0].coordinates - electric_atoms[1].coordinates;
+                    if presym.check_proper(&ORDER_2, &e_vector) {
+                        count_c2 +=
+                            sym.add_proper(ORDER_2.clone(), e_vector, false, presym.dist_threshold)
+                                as usize;
+                    }
+                }
+            }
+        }
+    } // end for sea_group in presym.sea_groups.iter()
+
+    if asymmetric && count_c2 == 3 {
+        return;
+    } else {
+        // Search for any remaining C2 axes.
+        // Case C: Molecules with two or more sets of non-parallel linear diatomic SEA groups
+        if linear_sea_groups.len() >= 2 {
+            let normal_option = linear_sea_groups.iter().combinations(2).find_map(|pair| {
+                let vec_0 = pair[0][1].coordinates - pair[0][0].coordinates;
+                let vec_1 = pair[1][1].coordinates - pair[1][0].coordinates;
+                let trial_normal = vec_0.cross(&vec_1);
+                if trial_normal.norm() > presym.dist_threshold {
+                    Some(trial_normal)
+                } else {
+                    None
+                }
+            });
+            if let Some(normal) = normal_option {
+                if presym.check_proper(&ORDER_2, &normal) {
+                    sym.add_proper(ORDER_2.clone(), normal, false, presym.dist_threshold);
+                }
+            }
+        }
+    }
+}
+
 mod symmetry_core_linear;
+mod symmetry_core_spherical;
+mod symmetry_core_symmetric;
+mod symmetry_core_asymmetric;

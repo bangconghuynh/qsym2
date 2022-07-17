@@ -2,6 +2,7 @@ use approx;
 use derive_builder::Builder;
 use log;
 use nalgebra::Vector3;
+use num::integer::gcd;
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -42,7 +43,7 @@ pub enum ElementOrder {
 }
 
 impl ElementOrder {
-    fn new(order: f64, thresh: f64) -> Self {
+    pub fn new(order: f64, thresh: f64) -> Self {
         assert!(
             order.is_sign_positive(),
             "Order value {} is invalid. Order values must be strictly positive.",
@@ -123,6 +124,18 @@ impl PartialEq for ElementOrder {
 
 impl Eq for ElementOrder {}
 
+impl PartialOrd for ElementOrder {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.to_float().partial_cmp(&other.to_float())?)
+    }
+}
+
+impl Ord for ElementOrder {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.to_float().total_cmp(&other.to_float())
+    }
+}
+
 impl Hash for ElementOrder {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match &self {
@@ -137,12 +150,6 @@ impl Hash for ElementOrder {
                 f64::INFINITY.integer_decode().hash(state);
             }
         }
-    }
-}
-
-impl PartialOrd for ElementOrder {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.to_float().partial_cmp(&other.to_float())?)
     }
 }
 
@@ -169,12 +176,10 @@ impl fmt::Display for ElementOrder {
 /// A struct for storing and managing symmetry elements.
 #[derive(Builder, Clone)]
 pub struct SymmetryElement {
-    /// The rotational order of the symmetry element defined by $2\pi/\phi$
-    /// where $\phi \in (0, \pi] \cup \lbrace2\pi\rbrace$ is the positive angle
-    /// of the rotation about [`Self::axis`] associated with this element. This
-    /// is **not** necessarily an integer, and can also take the special value
-    /// of `-1.0` to indicate that this symmetry element is of infinite order.
-    order: ElementOrder,
+    /// The rotational order of the symmetry element defined by $`2\pi/\phi`$
+    /// where $`\phi \in (0, \pi] \cup \lbrace2\pi\rbrace`$ is the positive angle
+    /// of the rotation about [`Self::axis`] associated with this element.
+    pub order: ElementOrder,
 
     /// The normalised axis of the symmetry element.
     #[builder(setter(custom))]
@@ -346,6 +351,31 @@ impl SymmetryElement {
     /// Returns a copy of the current improper symmetry element that has been
     /// converted to the required improper kind.
     ///
+    /// To convert between the two improper kinds, we essentially seek integers
+    /// $`n, n' \in \mathbb{N}_{+}`$ and $`k \in \mathbb{Z}/n\mathbb{Z}`$,
+    /// $`k' \in \mathbb{Z}/n'\mathbb{Z}`$, such that
+    ///
+    /// ```math
+    /// \sigma C_n^k = i C_{n'}^{k'},
+    /// ```
+    ///
+    /// where the axes of all involved elements are parallel. By noting that
+    /// $`\sigma = i C_2`$, we can easily show that
+    ///
+    /// ```math
+    /// \begin{aligned}
+    ///     n' &= \frac{2n}{\operatorname{gcd}(2n, n + 2k)},\\
+    ///     k' &= \frac{n + 2k}{\operatorname{gcd}(2n, n + 2k)} \mod n'.
+    /// \end{aligned}
+    /// ```
+    ///
+    /// The above relations are self-inversed. It can be further shown that
+    /// $`\operatorname{gcd}(n', k') = 1`$. Hence, for symmetry *element*
+    /// conversions, we can simply take $`k' = 1`$. This is because a symmetry
+    /// element plays the role of a generator, and the coprimality of $`n'`$ and
+    /// $`k'`$ means that $`i C_{n'}`$ is as valid a generator as
+    /// $`i C_{n'}^{k'}`$.
+    ///
     /// # Arguments
     ///
     /// * improper_kind - Reference to the required improper kind.
@@ -368,22 +398,14 @@ impl SymmetryElement {
             return self.clone();
         }
 
-        let dest_order = if self.order != ElementOrder::Inf {
-            let self_basic_angle = geometry::normalise_rotation_angle(
-                2.0 * std::f64::consts::PI / self.order.to_float(),
-                self.threshold,
-            );
-            let dest_basic_angle = std::f64::consts::PI - self_basic_angle;
-            if dest_basic_angle.abs() > self.threshold {
-                ElementOrder::new(
-                    2.0 * std::f64::consts::PI / dest_basic_angle,
-                    self.threshold,
-                )
-            } else {
-                ElementOrder::Int(1)
+        let dest_order = match self.order {
+            ElementOrder::Int(order_int) => ElementOrder::Int(
+                2 * order_int / (gcd(2 * order_int, order_int + 2)),
+            ),
+            ElementOrder::Inf => ElementOrder::Inf,
+            ElementOrder::Float(_, _) => {
+                panic!();
             }
-        } else {
-            ElementOrder::Inf
         };
         Self::builder()
             .threshold(self.threshold)
@@ -502,18 +524,43 @@ impl Hash for SymmetryElement {
                         .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre);
                     c_self.order.hash(state);
                     let pole = geometry::get_positive_pole(&c_self.axis, c_self.threshold);
-                    pole[0].round_factor(self.threshold).integer_decode().hash(state);
-                    pole[1].round_factor(self.threshold).integer_decode().hash(state);
-                    pole[2].round_factor(self.threshold).integer_decode().hash(state);
+                    pole[0]
+                        .round_factor(self.threshold)
+                        .integer_decode()
+                        .hash(state);
+                    pole[1]
+                        .round_factor(self.threshold)
+                        .integer_decode()
+                        .hash(state);
+                    pole[2]
+                        .round_factor(self.threshold)
+                        .integer_decode()
+                        .hash(state);
                 }
                 _ => {
                     self.order.hash(state);
                     let pole = geometry::get_positive_pole(&self.axis, self.threshold);
-                    pole[0].round_factor(self.threshold).integer_decode().hash(state);
-                    pole[1].round_factor(self.threshold).integer_decode().hash(state);
-                    pole[2].round_factor(self.threshold).integer_decode().hash(state);
+                    pole[0]
+                        .round_factor(self.threshold)
+                        .integer_decode()
+                        .hash(state);
+                    pole[1]
+                        .round_factor(self.threshold)
+                        .integer_decode()
+                        .hash(state);
+                    pole[2]
+                        .round_factor(self.threshold)
+                        .integer_decode()
+                        .hash(state);
                 }
             };
         }
     }
 }
+
+pub const ORDER_1: ElementOrder = ElementOrder::Int(1);
+pub const ORDER_2: ElementOrder = ElementOrder::Int(2);
+pub const ORDER_I: ElementOrder = ElementOrder::Inf;
+
+pub const SIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane;
+pub const INV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre;

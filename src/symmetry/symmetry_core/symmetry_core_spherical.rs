@@ -1,15 +1,20 @@
 use super::{PreSymmetry, Symmetry};
 use crate::aux::geometry;
 use crate::rotsym::RotationalSymmetry;
-use crate::symmetry::symmetry_element::{ElementOrder, SymmetryElementKind};
+use crate::symmetry::symmetry_element::{ElementOrder, SymmetryElementKind, ORDER_1, ORDER_2, SIG};
 use itertools::{self, Itertools};
 use log;
 use nalgebra::Vector3;
 use std::collections::HashSet;
 
 impl Symmetry {
-    /// Locates and adds all possible and distinct $C_2$ axes present in the
-    /// molecule in `sym`, provided that `sym` is a spherical top.
+    /// Locates and adds all possible and distinct $`C_2`$ axes present in the
+    /// molecule in `presym`, provided that `presym` is a spherical top.
+    ///
+    /// # Arguments
+    ///
+    /// * presym - A pre-symmetry-analysis struct containing information about
+    /// the molecular system.
     fn search_c2_spherical(self: &mut Self, presym: &PreSymmetry) -> i8 {
         assert!(matches!(
             presym.rotational_symmetry,
@@ -25,7 +30,6 @@ impl Symmetry {
         let mut n_pairs = 0;
 
         let sea_groups = &presym.sea_groups;
-        let order_2 = ElementOrder::Int(2);
         for sea_group in sea_groups.iter() {
             if sea_group.len() < 2 {
                 continue;
@@ -36,9 +40,9 @@ impl Symmetry {
                 let atom_j_pos = atom2s[1].coordinates;
 
                 // Case B: C2 might cross through any two atoms
-                if presym.check_proper(&order_2, &atom_i_pos.coords) {
+                if presym.check_proper(&ORDER_2, &atom_i_pos.coords) {
                     if self.add_proper(
-                        order_2.clone(),
+                        ORDER_2.clone(),
                         atom_i_pos.coords,
                         false,
                         presym.molecule.threshold,
@@ -51,9 +55,9 @@ impl Symmetry {
                 // Case A: C2 might cross through the midpoint of two atoms
                 let midvec = 0.5 * (&atom_i_pos.coords + &atom_j_pos.coords);
                 if midvec.norm() > presym.molecule.threshold
-                    && presym.check_proper(&order_2, &midvec)
+                    && presym.check_proper(&ORDER_2, &midvec)
                 {
-                    if self.add_proper(order_2.clone(), midvec, false, presym.molecule.threshold) {
+                    if self.add_proper(ORDER_2.clone(), midvec, false, presym.molecule.threshold) {
                         count_c2 += 1;
                         count_c2_stable = 0;
                     }
@@ -78,6 +82,11 @@ impl Symmetry {
     }
 
     /// Performs point-group detection analysis for a spherical top.
+    ///
+    /// # Arguments
+    ///
+    /// * presym - A pre-symmetry-analysis struct containing information about
+    /// the molecular system.
     pub fn analyse_spherical(&mut self, presym: &PreSymmetry) {
         assert!(matches!(
             presym.rotational_symmetry,
@@ -115,7 +124,7 @@ impl Symmetry {
                 None,
                 presym.molecule.threshold,
             );
-            return
+            return;
         }
 
         // Locating all possible and distinct C2 axes
@@ -124,14 +133,11 @@ impl Symmetry {
         assert!(HashSet::from([3, 9, 15]).contains(&count_c2));
 
         // Locating improper elements
-        let order_1 = ElementOrder::Int(1);
-        let order_2 = ElementOrder::Int(2);
-        let sig = SymmetryElementKind::ImproperMirrorPlane;
         match count_c2 {
             3 => {
                 // Tetrahedral, so either T, Td, or Th
                 log::debug!("Tetrahedral family.");
-                if presym.check_improper(&order_2, &Vector3::new(0.0, 0.0, 1.0), &sig) {
+                if presym.check_improper(&ORDER_2, &Vector3::new(0.0, 0.0, 1.0), &SIG) {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
                     self.point_group = Some("Th".to_owned());
@@ -140,25 +146,25 @@ impl Symmetry {
                         self.point_group.as_ref().unwrap()
                     );
                     assert!(self.add_improper(
-                        order_2.clone(),
+                        ORDER_2.clone(),
                         Vector3::new(0.0, 0.0, 1.0),
                         false,
-                        sig.clone(),
+                        SIG.clone(),
                         None,
                         presym.molecule.threshold
                     ));
                     assert!(self.add_improper(
-                        order_2.clone(),
+                        ORDER_2.clone(),
                         Vector3::new(0.0, 0.0, 1.0),
                         true,
-                        sig.clone(),
+                        SIG.clone(),
                         None,
                         presym.molecule.threshold
                     ));
                 } else {
-                    let mut c2s = self.proper_elements[&order_2].iter();
+                    let mut c2s = self.proper_elements[&ORDER_2].iter();
                     let normal = c2s.next().unwrap().axis + c2s.next().unwrap().axis;
-                    if presym.check_improper(&order_1, &normal, &sig) {
+                    if presym.check_improper(&ORDER_1, &normal, &SIG) {
                         // σd
                         log::debug!("Located σd.");
                         self.point_group = Some("Td".to_owned());
@@ -168,12 +174,12 @@ impl Symmetry {
                         );
                         let sigmad_normals = {
                             let mut axes = vec![];
-                            for c2s in self.proper_elements[&order_2].iter().combinations(2) {
+                            for c2s in self.proper_elements[&ORDER_2].iter().combinations(2) {
                                 let axis_p = c2s[0].axis + c2s[1].axis;
-                                assert!(presym.check_improper(&order_1, &axis_p, &sig));
+                                assert!(presym.check_improper(&ORDER_1, &axis_p, &SIG));
                                 axes.push(axis_p);
                                 let axis_m = c2s[0].axis - c2s[1].axis;
-                                assert!(presym.check_improper(&order_1, &axis_m, &sig));
+                                assert!(presym.check_improper(&ORDER_1, &axis_m, &SIG));
                                 axes.push(axis_m);
                             }
                             axes
@@ -181,19 +187,19 @@ impl Symmetry {
                         let sigmad_generator_normal = sigmad_normals[0].clone_owned();
                         for axis in sigmad_normals {
                             assert!(self.add_improper(
-                                order_1.clone(),
+                                ORDER_1.clone(),
                                 axis,
                                 false,
-                                sig.clone(),
+                                SIG.clone(),
                                 Some("d".to_owned()),
                                 presym.molecule.threshold
                             ));
                         }
                         assert!(self.add_improper(
-                            order_1.clone(),
+                            ORDER_1.clone(),
                             sigmad_generator_normal,
                             true,
-                            sig.clone(),
+                            SIG.clone(),
                             Some("d".to_owned()),
                             presym.molecule.threshold
                         ));
@@ -210,7 +216,7 @@ impl Symmetry {
             9 => {
                 // 6 C2 and 3 C4^2; Octahedral, so either O or Oh
                 log::debug!("Octahedral family.");
-                if presym.check_improper(&order_2, &Vector3::new(0.0, 0.0, 1.0), &sig) {
+                if presym.check_improper(&ORDER_2, &Vector3::new(0.0, 0.0, 1.0), &SIG) {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
                     self.point_group = Some("Oh".to_owned());
@@ -219,18 +225,18 @@ impl Symmetry {
                         self.point_group.as_ref().unwrap()
                     );
                     assert!(self.add_improper(
-                        order_2.clone(),
+                        ORDER_2.clone(),
                         Vector3::new(0.0, 0.0, 1.0),
                         false,
-                        sig.clone(),
+                        SIG.clone(),
                         None,
                         presym.molecule.threshold
                     ));
                     assert!(self.add_improper(
-                        order_2.clone(),
+                        ORDER_2.clone(),
                         Vector3::new(0.0, 0.0, 1.0),
                         true,
-                        sig.clone(),
+                        SIG.clone(),
                         None,
                         presym.molecule.threshold
                     ));
@@ -246,7 +252,7 @@ impl Symmetry {
             15 => {
                 // Icosahedral, so either I or Ih
                 log::debug!("Icosahedral family.");
-                if presym.check_improper(&order_2, &Vector3::new(0.0, 0.0, 1.0), &sig) {
+                if presym.check_improper(&ORDER_2, &Vector3::new(0.0, 0.0, 1.0), &SIG) {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
                     self.point_group = Some("Ih".to_owned());
@@ -255,18 +261,18 @@ impl Symmetry {
                         self.point_group.as_ref().unwrap()
                     );
                     assert!(self.add_improper(
-                        order_2.clone(),
+                        ORDER_2.clone(),
                         Vector3::new(0.0, 0.0, 1.0),
                         false,
-                        sig.clone(),
+                        SIG.clone(),
                         None,
                         presym.molecule.threshold
                     ));
                     assert!(self.add_improper(
-                        order_2.clone(),
+                        ORDER_2.clone(),
                         Vector3::new(0.0, 0.0, 1.0),
                         true,
-                        sig.clone(),
+                        SIG.clone(),
                         None,
                         presym.molecule.threshold
                     ));
@@ -457,10 +463,10 @@ impl Symmetry {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let improper_s4_axes: Vec<Vector3<f64>> = {
-                self.proper_elements[&order_2]
+                self.proper_elements[&ORDER_2]
                     .iter()
                     .filter_map(|c2_ele| {
-                        if presym.check_improper(&order_4, &c2_ele.axis, &sig) {
+                        if presym.check_improper(&order_4, &c2_ele.axis, &SIG) {
                             Some(c2_ele.axis.clone())
                         } else {
                             None
@@ -474,7 +480,7 @@ impl Symmetry {
                     order_4.clone(),
                     s4_axis,
                     false,
-                    sig.clone(),
+                    SIG.clone(),
                     None,
                     presym.molecule.threshold,
                 ) as i32;
@@ -484,12 +490,11 @@ impl Symmetry {
         // end locating improper axes for Td
         else if *self.point_group.as_ref().unwrap() == "Th" {
             // Locating σh
-            let order_1 = ElementOrder::Int(1);
             let sigmah_normals: Vec<Vector3<f64>> = {
-                self.proper_elements[&order_2]
+                self.proper_elements[&ORDER_2]
                     .iter()
                     .filter_map(|c2_ele| {
-                        if presym.check_improper(&order_1, &c2_ele.axis, &sig) {
+                        if presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG) {
                             Some(c2_ele.axis.clone())
                         } else {
                             None
@@ -500,10 +505,10 @@ impl Symmetry {
             let mut count_sigmah = 0;
             for sigmah_normal in sigmah_normals.into_iter() {
                 count_sigmah += self.add_improper(
-                    order_1.clone(),
+                    ORDER_1.clone(),
                     sigmah_normal,
                     false,
-                    sig.clone(),
+                    SIG.clone(),
                     Some("h".to_owned()),
                     presym.molecule.threshold,
                 ) as i32;
@@ -516,7 +521,7 @@ impl Symmetry {
                 self.proper_elements[&order_3]
                     .iter()
                     .filter_map(|c3_ele| {
-                        if presym.check_improper(&order_6, &c3_ele.axis, &sig) {
+                        if presym.check_improper(&order_6, &c3_ele.axis, &SIG) {
                             Some(c3_ele.axis.clone())
                         } else {
                             None
@@ -527,10 +532,10 @@ impl Symmetry {
             let mut count_s6 = 0;
             for s6_axis in s6_axes.into_iter() {
                 count_s6 += self.add_improper(
-                    order_1.clone(),
+                    ORDER_1.clone(),
                     s6_axis,
                     false,
-                    sig.clone(),
+                    SIG.clone(),
                     None,
                     presym.molecule.threshold,
                 ) as i32;
@@ -542,10 +547,10 @@ impl Symmetry {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let s4_axes: Vec<Vector3<f64>> = {
-                self.proper_elements[&order_2]
+                self.proper_elements[&ORDER_2]
                     .iter()
                     .filter_map(|c2_ele| {
-                        if presym.check_improper(&order_4, &c2_ele.axis, &sig) {
+                        if presym.check_improper(&order_4, &c2_ele.axis, &SIG) {
                             Some(c2_ele.axis.clone())
                         } else {
                             None
@@ -560,15 +565,15 @@ impl Symmetry {
                     order_4.clone(),
                     s4_axis,
                     false,
-                    sig.clone(),
+                    SIG.clone(),
                     None,
                     presym.molecule.threshold,
                 ) as i32;
                 count_sigmah += self.add_improper(
-                    order_1.clone(),
+                    ORDER_1.clone(),
                     s4_axis,
                     false,
-                    sig.clone(),
+                    SIG.clone(),
                     Some("h".to_owned()),
                     presym.molecule.threshold,
                 ) as i32;
@@ -578,11 +583,11 @@ impl Symmetry {
 
             // Locating σd
             let sigmad_normals: Vec<Vector3<f64>> = {
-                self.proper_elements[&order_2]
+                self.proper_elements[&ORDER_2]
                     .iter()
                     .filter_map(|c2_ele| {
-                        if !presym.check_improper(&order_4, &c2_ele.axis, &sig)
-                            && presym.check_improper(&order_1, &c2_ele.axis, &sig)
+                        if !presym.check_improper(&order_4, &c2_ele.axis, &SIG)
+                            && presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG)
                         {
                             Some(c2_ele.axis.clone())
                         } else {
@@ -594,10 +599,10 @@ impl Symmetry {
             let mut count_sigmad = 0;
             for sigmad_normal in sigmad_normals.into_iter() {
                 count_sigmad += self.add_improper(
-                    order_1.clone(),
+                    ORDER_1.clone(),
                     sigmad_normal,
                     false,
-                    sig.clone(),
+                    SIG.clone(),
                     Some("d".to_owned()),
                     presym.molecule.threshold,
                 ) as i32;
@@ -610,7 +615,7 @@ impl Symmetry {
                 self.proper_elements[&order_3]
                     .iter()
                     .filter_map(|c3_ele| {
-                        if presym.check_improper(&order_6, &c3_ele.axis, &sig) {
+                        if presym.check_improper(&order_6, &c3_ele.axis, &SIG) {
                             Some(c3_ele.axis.clone())
                         } else {
                             None
@@ -624,7 +629,7 @@ impl Symmetry {
                     order_6.clone(),
                     s6_axis,
                     false,
-                    sig.clone(),
+                    SIG.clone(),
                     None,
                     presym.molecule.threshold,
                 ) as i32;
@@ -640,7 +645,7 @@ impl Symmetry {
                 self.proper_elements[&order_5]
                     .iter()
                     .filter_map(|c5_ele| {
-                        if presym.check_improper(&order_10, &c5_ele.axis, &sig) {
+                        if presym.check_improper(&order_10, &c5_ele.axis, &SIG) {
                             Some(c5_ele.axis.clone())
                         } else {
                             None
@@ -654,7 +659,7 @@ impl Symmetry {
                     order_10.clone(),
                     s10_axis,
                     false,
-                    sig.clone(),
+                    SIG.clone(),
                     None,
                     presym.molecule.threshold,
                 ) as i32;
@@ -667,7 +672,7 @@ impl Symmetry {
                 self.proper_elements[&order_3]
                     .iter()
                     .filter_map(|c3_ele| {
-                        if presym.check_improper(&order_6, &c3_ele.axis, &sig) {
+                        if presym.check_improper(&order_6, &c3_ele.axis, &SIG) {
                             Some(c3_ele.axis.clone())
                         } else {
                             None
@@ -681,7 +686,7 @@ impl Symmetry {
                     order_6.clone(),
                     s6_axis,
                     false,
-                    sig.clone(),
+                    SIG.clone(),
                     None,
                     presym.molecule.threshold,
                 ) as i32;
@@ -690,10 +695,10 @@ impl Symmetry {
 
             // Locating σ
             let sigma_normals: Vec<Vector3<f64>> = {
-                self.proper_elements[&order_2]
+                self.proper_elements[&ORDER_2]
                     .iter()
                     .filter_map(|c2_ele| {
-                        if presym.check_improper(&order_1, &c2_ele.axis, &sig) {
+                        if presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG) {
                             Some(c2_ele.axis.clone())
                         } else {
                             None
@@ -704,12 +709,12 @@ impl Symmetry {
             let mut count_sigma = 0;
             for sigma_normal in sigma_normals.into_iter() {
                 count_sigma += self.add_improper(
-                    order_1.clone(),
+                    ORDER_1.clone(),
                     sigma_normal,
                     false,
-                    sig.clone(),
+                    SIG.clone(),
                     Some("d".to_owned()),
-                    presym.molecule.threshold
+                    presym.molecule.threshold,
                 ) as i32;
             }
             assert_eq!(count_sigma, 15);
