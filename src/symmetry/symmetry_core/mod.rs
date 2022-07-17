@@ -47,6 +47,15 @@ pub struct PreSymmetry {
 }
 
 impl PreSymmetryBuilder {
+    /// Initialises the molecule to be symmetry-analysed.
+    ///
+    /// # Arguments
+    ///
+    /// * molecule - The molecule to be symmetry-analysed.
+    /// * recentre - A flag indicating if the molecule shall be recentred.
+    ///
+    /// # Returns
+    /// A mutable borrow of `[Self]`.
     pub fn molecule(&mut self, molecule: &Molecule, recentre: bool) -> &mut Self {
         if recentre {
             // The Symmetry struct now owns a recentred copy of `molecule`.
@@ -57,6 +66,14 @@ impl PreSymmetryBuilder {
         self
     }
 
+    /// Initialises the threshold for moment-of-inertia comparisons.
+    ///
+    /// # Arguments
+    ///
+    /// * thresh - The threshold for moment-of-inertia comparisons.
+    ///
+    /// # Returns
+    /// A mutable borrow of `[Self]`.
     pub fn moi_threshold(&mut self, thresh: f64) -> &mut Self {
         if thresh >= f64::EPSILON {
             self.moi_threshold = Some(thresh);
