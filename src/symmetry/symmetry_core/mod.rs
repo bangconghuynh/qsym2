@@ -3,7 +3,7 @@ use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
 use crate::symmetry::symmetry_element::{
-    ElementOrder, SymmetryElement, SymmetryElementKind, INV, ORDER_1, ORDER_2, SIG
+    ElementOrder, SymmetryElement, SymmetryElementKind, ORDER_2, SIG
 };
 use log;
 use nalgebra::{Point3, Vector3};

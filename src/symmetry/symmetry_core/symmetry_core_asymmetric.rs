@@ -2,9 +2,8 @@ use super::{PreSymmetry, Symmetry};
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
 use crate::symmetry::symmetry_element::{
-    ElementOrder, ORDER_1, ORDER_2, SIG,
+    ORDER_1, ORDER_2, SIG,
 };
-use approx;
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;

@@ -2064,3 +2064,134 @@ fn test_point_group_detection_cis_cocl2h4o2_magnetic_field_c2() {
     assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 1);
     assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
 }
+
+#[test]
+fn test_point_group_detection_cuneane_magnetic_field_c2() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C2".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
+
+/***
+C2v
+***/
+
+#[test]
+fn test_point_group_detection_water_c2v() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C2v".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 2);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 2);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_pyridine_c2v() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C2v".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 2);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 2);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_cyclobutene_c2v() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C2v".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 2);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 2);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_azulene_c2v() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C2v".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 2);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 2);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_cuneane_c2v() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-7);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C2v".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 2);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 2);
+
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+}
