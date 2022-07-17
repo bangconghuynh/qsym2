@@ -1,7 +1,8 @@
 use super::{PreSymmetry, Symmetry};
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::{ORDER_1, ORDER_2, SIG};
+use crate::symmetry::symmetry_element::SIG;
+use crate::symmetry::symmetry_element_order::{ORDER_1, ORDER_2};
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;

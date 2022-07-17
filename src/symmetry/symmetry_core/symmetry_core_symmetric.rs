@@ -1,9 +1,8 @@
 use super::{PreSymmetry, Symmetry};
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::{
-    ElementOrder, SymmetryElement, INV, ORDER_1, ORDER_2, SIG,
-};
+use crate::symmetry::symmetry_element::{SymmetryElement, INV, SIG};
+use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use approx;
 use itertools::Itertools;
 use log;

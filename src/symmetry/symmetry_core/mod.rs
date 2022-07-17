@@ -2,9 +2,8 @@ use crate::aux::atom::Atom;
 use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
-use crate::symmetry::symmetry_element::{
-    ElementOrder, SymmetryElement, SymmetryElementKind, ORDER_2, SIG
-};
+use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, SIG};
+use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_2};
 use log;
 use nalgebra::{Point3, Vector3};
 use itertools::Itertools;
