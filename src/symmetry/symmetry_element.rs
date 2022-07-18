@@ -29,14 +29,53 @@ pub enum SymmetryElementKind {
     ImproperInversionCentre,
 }
 
-
 /// A struct for storing and managing symmetry elements.
+///
+/// Each symmetry element is a geometrical object in $`\mathbb{R}^3`$ that encodes
+/// three pieces of information:
+///
+/// * the axis of rotation $`\hat{\mathbf{n}}`$,
+/// * the angle of rotation $`\phi`$, and
+/// * whether the element is proper or improper.
+///
+/// These three pieces of information can be stored in the following
+/// representation of a symmetry element $`\hat{g}`$:
+///
+/// ```math
+/// \hat{g} = \hat{gamma} \hat{C}_n^k,
+/// ```
+///
+/// where $`n \in \mathbb{N}_{+}`$, $`k \in \mathbb{Z}/n\mathbb{Z}`$, and
+/// $`\hat{gamma}`$ is either the identity $`\hat{e}`$, the inversion operation
+/// $`\hat{i}`$, or a reflection operation $`\hat{\sigma}`$. With this definition,
+/// the three pieces of information required to specify a geometrical symmetry
+/// element are given as follows:
+///
+/// * the axis of rotation $`\hat{\mathbf{n}}`$ is given by the axis of $`\hat{C}_n^k`$,
+/// * the angle of rotation $`\phi = 2\pi k/n \in (0, \pi] \cup \lbrace2\pi\rbrace`$, and
+/// * whether the element is proper or improper is given by $`\hat{gamma}`$.
+///
+/// This definition, however, also allows $`\hat{g}`$ to be interpreted as
+/// an element of $`O(3)`$, which means that $`\hat{g}`$ is also a symmetry
+/// operation, and a rather special one that can be used to generate other
+/// symmetry operations of the group. $`\hat{g}`$ thus serves as a bridge between
+/// molecular symmetry and abstract group theory.
+///
+/// There is one small caveat: for infinite-order elements, $`n`$ and $`k`$ can
+/// no longer be used to give the angle of rotation. There must thus be a
+/// mechanism to allow for infinite-order elements to be interpreted as an
+/// arbitrary finite-order one. An explicit specification of the angle of rotation
+/// seems to be the best way to do this.
 #[derive(Builder, Clone)]
 pub struct SymmetryElement {
-    /// The rotational order of the symmetry element defined by $`2\pi/\phi`$
-    /// where $`\phi \in (0, \pi] \cup \lbrace2\pi\rbrace`$ is the positive angle
-    /// of the rotation about [`Self::axis`] associated with this element.
+    /// The rotational order $`n`$ of the proper symmetry element.
     pub order: ElementOrder,
+
+    /// The power $`k`$ of the proper symmetry element.
+    pub proper_power: u32,
+
+    #[builder(setter(custom), default = "self.calc_proper_angle()")]
+    proper_angle: Option<f64>,
 
     /// The normalised axis of the symmetry element.
     #[builder(setter(custom))]
@@ -65,6 +104,26 @@ pub struct SymmetryElement {
 }
 
 impl SymmetryElementBuilder {
+    pub fn proper_angle(&mut self, ang: f64) -> &mut Self {
+        let order = self.order.as_ref().unwrap();
+        self.proper_angle = match order {
+            ElementOrder::Int(_) | ElementOrder::Float(_, _) => panic!(
+                "Arbitrary proper rotation angles can only be set for infinite-order elements."
+            ),
+            ElementOrder::Inf => Some(Some(ang)),
+        };
+        self
+    }
+
+    fn calc_proper_angle(&self) -> Option<f64> {
+        let order = self.order.as_ref().unwrap();
+        match order {
+            ElementOrder::Int(io) => Some((*io * self.proper_power.unwrap()) as f64),
+            ElementOrder::Float(fo, _) => Some(*fo * self.proper_power.unwrap() as f64),
+            ElementOrder::Inf => self.proper_angle.unwrap_or(None),
+        }
+    }
+
     pub fn axis(&mut self, axs: Vector3<f64>) -> &mut Self {
         let thresh = self.threshold.unwrap();
         if approx::relative_eq!(axs.norm(), 1.0, epsilon = thresh, max_relative = thresh) {
@@ -124,10 +183,12 @@ impl SymmetryElement {
     ///
     /// A flag indicating if this symmetry element is an inversion centre.
     pub fn is_inversion_centre(&self) -> bool {
-        (matches!(self.kind, SymmetryElementKind::ImproperMirrorPlane)
-            && self.order == ElementOrder::Int(2))
+        (self.kind == SymmetryElementKind::ImproperMirrorPlane
+            && self.order == ElementOrder::Int(2)
+            && self.proper_power == 1)
             || (self.kind == SymmetryElementKind::ImproperInversionCentre
-                && self.order == ElementOrder::Int(1))
+                && self.order == ElementOrder::Int(1)
+                && self.proper_power == 1)
     }
 
     /// Checks if the symmetry element is a binary rotation axis.
@@ -136,7 +197,9 @@ impl SymmetryElement {
     ///
     /// A flag indicating if this symmetry element is a binary rotation axis.
     pub fn is_binary_rotation_axis(&self) -> bool {
-        self.kind == SymmetryElementKind::Proper && self.order == ElementOrder::Int(2)
+        self.kind == SymmetryElementKind::Proper
+            && self.order == ElementOrder::Int(2)
+            && self.proper_power == 1
     }
 
     /// Checks if the symmetry element is a mirror plane.
@@ -146,9 +209,11 @@ impl SymmetryElement {
     /// A flag indicating if this symmetry element is a mirror plane.
     pub fn is_mirror_plane(&self) -> bool {
         (matches!(self.kind, SymmetryElementKind::ImproperMirrorPlane)
-            && self.order == ElementOrder::Int(1))
+            && self.order == ElementOrder::Int(1)
+            && self.proper_power == 1)
             || (self.kind == SymmetryElementKind::ImproperInversionCentre
-                && self.order == ElementOrder::Int(2))
+                && self.order == ElementOrder::Int(2)
+                && self.proper_power == 1)
     }
 
     /// Returns the standard symbol for this symmetry element, which does not
@@ -256,9 +321,9 @@ impl SymmetryElement {
         }
 
         let dest_order = match self.order {
-            ElementOrder::Int(order_int) => ElementOrder::Int(
-                2 * order_int / (gcd(2 * order_int, order_int + 2)),
-            ),
+            ElementOrder::Int(order_int) => {
+                ElementOrder::Int(2 * order_int / (gcd(2 * order_int, order_int + 2)))
+            }
             ElementOrder::Inf => ElementOrder::Inf,
             ElementOrder::Float(_, _) => {
                 panic!();
@@ -267,6 +332,7 @@ impl SymmetryElement {
         Self::builder()
             .threshold(self.threshold)
             .order(dest_order)
+            .proper_power(1)
             .axis(-self.axis)
             .kind(improper_kind.clone())
             .generator(self.generator)
