@@ -121,11 +121,7 @@ impl SymmetryElementBuilder {
                 } else {
                     Some(residual)
                 }
-            }
-            ElementOrder::Float(_, _) => {
-                log::warn!("Floating-point order detected. Power will not be modulo-ed.");
-                Some(prop_pow)
-            }
+            },
             ElementOrder::Inf => Some(prop_pow),
         };
         self
@@ -134,7 +130,7 @@ impl SymmetryElementBuilder {
     pub fn proper_angle(&mut self, ang: f64) -> &mut Self {
         let order = self.order.as_ref().unwrap();
         self.proper_angle = match order {
-            ElementOrder::Int(_) | ElementOrder::Float(_, _) => panic!(
+            ElementOrder::Int(_) => panic!(
                 "Arbitrary proper rotation angles can only be set for infinite-order elements."
             ),
             ElementOrder::Inf => Some(Some(ang)),
@@ -146,7 +142,6 @@ impl SymmetryElementBuilder {
         let order = self.order.as_ref().unwrap();
         match order {
             ElementOrder::Int(io) => Some(F::new(self.proper_power.unwrap(), *io)),
-            ElementOrder::Float(_, _) => None,
             ElementOrder::Inf => None,
         }
     }
@@ -156,10 +151,7 @@ impl SymmetryElementBuilder {
         match order {
             ElementOrder::Int(io) => {
                 Some((*io * self.proper_power.unwrap()) as f64 * 2.0 * std::f64::consts::PI)
-            }
-            ElementOrder::Float(fo, _) => {
-                Some(*fo * (self.proper_power.unwrap() as f64) * 2.0 * std::f64::consts::PI)
-            }
+            },
             ElementOrder::Inf => self.proper_angle.unwrap_or(None),
         }
     }
@@ -365,9 +357,6 @@ impl SymmetryElement {
                 ElementOrder::Int(2 * order_int / (gcd(2 * order_int, order_int + 2)))
             }
             ElementOrder::Inf => ElementOrder::Inf,
-            ElementOrder::Float(_, _) => {
-                panic!();
-            }
         };
         Self::builder()
             .threshold(self.threshold)

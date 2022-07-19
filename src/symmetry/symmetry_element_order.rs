@@ -11,9 +11,6 @@ pub enum ElementOrder {
     /// Positive integer order.
     Int(u32),
 
-    /// Positive floating point order and a threshold for comparisons.
-    Float(f64, f64),
-
     /// Infinite order.
     Inf,
 }
@@ -37,13 +34,12 @@ impl ElementOrder {
         ) {
             return Self::Int(rounded_order as u32);
         }
-        Self::Float(rounded_order, thresh)
+        panic!("The input order is not an integer.");
     }
 
     pub fn to_float(&self) -> f64 {
         match self {
             Self::Int(s_i) => *s_i as f64,
-            Self::Float(s_f, _) => *s_f,
             Self::Inf => f64::INFINITY,
         }
     }
@@ -56,42 +52,10 @@ impl PartialEq for ElementOrder {
                 Self::Int(o_i) => {
                     return s_i == o_i;
                 }
-                Self::Float(o_f, o_thresh) => {
-                    return approx::relative_eq!(
-                        *s_i as f64,
-                        *o_f,
-                        epsilon = *o_thresh,
-                        max_relative = *o_thresh
-                    );
-                }
                 Self::Inf => return false,
-            },
-            Self::Float(s_f, s_thresh) => match &other {
-                Self::Int(o_i) => {
-                    return approx::relative_eq!(
-                        *s_f,
-                        *o_i as f64,
-                        epsilon = *s_thresh,
-                        max_relative = *s_thresh
-                    );
-                }
-                Self::Float(o_f, o_thresh) => {
-                    return approx::relative_eq!(
-                        *s_f,
-                        *o_f,
-                        epsilon = (*s_thresh * *o_thresh).sqrt(),
-                        max_relative = (*s_thresh * *o_thresh).sqrt(),
-                    );
-                }
-                Self::Inf => {
-                    return s_f.is_infinite() && s_f.is_sign_positive();
-                }
             },
             Self::Inf => match &other {
                 Self::Int(_) => return false,
-                Self::Float(o_f, _) => {
-                    return o_f.is_infinite() && o_f.is_sign_positive();
-                }
                 Self::Inf => return true,
             },
         }
@@ -118,10 +82,6 @@ impl Hash for ElementOrder {
             Self::Int(s_i) => {
                 s_i.hash(state);
             }
-            Self::Float(s_f, s_thresh) => {
-                let factor = 1.0 / s_thresh;
-                s_f.round_factor(factor).integer_decode().hash(state);
-            }
             Self::Inf => {
                 f64::INFINITY.integer_decode().hash(state);
             }
@@ -133,17 +93,6 @@ impl fmt::Display for ElementOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self {
             Self::Int(s_i) => write!(f, "{}", s_i),
-            Self::Float(s_f, s_thresh) => {
-                match approx::relative_eq!(
-                    *s_f,
-                    s_f.round(),
-                    epsilon = *s_thresh,
-                    max_relative = *s_thresh
-                ) {
-                    true => write!(f, "{:.0}", s_f),
-                    false => write!(f, "{:.3}", s_f),
-                }
-            }
             Self::Inf => write!(f, "{}", "∞".to_owned()),
         }
     }

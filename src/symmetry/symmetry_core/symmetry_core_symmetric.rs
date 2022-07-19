@@ -44,19 +44,6 @@ impl Symmetry {
         let max_ord = self.get_max_proper_order();
         let max_ord_u32 = match max_ord {
             ElementOrder::Int(ord_i) => Some(ord_i),
-            ElementOrder::Float(ord_f, ord_f_thresh) => {
-                if approx::relative_eq!(
-                    ord_f,
-                    ord_f.round(),
-                    epsilon = ord_f_thresh,
-                    max_relative = ord_f_thresh
-                ) && ord_f > 0.0
-                {
-                    Some(ord_f as u32)
-                } else {
-                    None
-                }
-            }
             _ => None,
         }
         .unwrap();

@@ -12,18 +12,11 @@ fn test_element_order_equality() {
     assert_eq!(order_1a, order_1b);
     assert_eq!(misc::calculate_hash(&order_1a), misc::calculate_hash(&order_1b));
 
-    let order_35a = ElementOrder::new(3.5, 1e-14);
-    let order_35b = ElementOrder::Float(3.5, 1e-7);
-    assert_eq!(order_35a, order_35b);
-    assert_eq!(misc::calculate_hash(&order_35a), misc::calculate_hash(&order_35b));
-    assert_ne!(order_35a, order_1b);
-
     let order_ia = ElementOrder::new(f64::INFINITY, 1e-14);
     let order_ib = ElementOrder::Inf;
     assert_eq!(order_ia, order_ib);
     assert_eq!(misc::calculate_hash(&order_ia), misc::calculate_hash(&order_ib));
     assert_ne!(order_ia, order_1b);
-    assert_ne!(order_ia, order_35b);
 }
 
 
@@ -31,13 +24,13 @@ fn test_element_order_equality() {
 fn test_element_order_comparison() {
     let order_1 = ElementOrder::Int(1);
     let order_2 = ElementOrder::new(2.0, 1e-14);
-    let order_35 = ElementOrder::new(3.5, 1e-14);
+    let order_3 = ElementOrder::new(3.0, 1e-14);
     let order_i = ElementOrder::Inf;
     let order_ib = ElementOrder::new(f64::INFINITY, 1e-14);
 
     assert!(order_1 < order_2);
-    assert!(order_35 > order_2);
-    assert!(order_i > order_35);
+    assert!(order_3 > order_2);
+    assert!(order_i > order_3);
     assert!(order_1 < order_i);
     assert!(order_i == order_ib);
 }
@@ -49,8 +42,6 @@ fn test_element_order_hashability() {
     let order_1b = ElementOrder::Int(1);
     let order_2a = ElementOrder::new(2.0, 1e-14);
     let order_2b = ElementOrder::Int(2);
-    let order_35a = ElementOrder::new(3.5, 1e-14);
-    let order_35b = ElementOrder::Float(3.5, 1e-7);
     let order_ia = ElementOrder::new(f64::INFINITY, 1e-14);
     let order_ib = ElementOrder::Inf;
 
@@ -65,15 +56,10 @@ fn test_element_order_hashability() {
     orders.insert(order_2b);
     assert_eq!(orders.len(), 2);
 
-    orders.insert(order_35a);
-    assert_eq!(orders.len(), 3);
-    orders.insert(order_35b);
-    assert_eq!(orders.len(), 3);
-
     orders.insert(order_ia);
-    assert_eq!(orders.len(), 4);
+    assert_eq!(orders.len(), 3);
     orders.insert(order_ib);
-    assert_eq!(orders.len(), 4);
+    assert_eq!(orders.len(), 3);
 }
 
 #[test]
@@ -101,15 +87,15 @@ fn test_finite_symmetry_element_constructor() {
         .unwrap();
     assert_eq!(format!("{}", &c2), "C2(+0.707, +0.707, +0.000)");
 
-    let c35 = SymmetryElement::builder()
+    let c3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::new(3.5, 1e-14))
+        .order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::Proper)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &c35), "C3.500(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{}", &c3), "C3(+0.577, +0.577, +0.577)");
 
     let ci = SymmetryElement::builder()
         .threshold(1e-14)
