@@ -419,34 +419,62 @@ impl PartialEq for SymmetryElement {
         if self.kind != other.kind {
             let converted_other = other.convert_to_improper_kind(&self.kind);
             let result = (self.order == converted_other.order)
-                && (approx::relative_eq!(
-                    self.axis,
-                    converted_other.axis,
+                && approx::relative_eq!(
+                    geometry::get_positive_pole(&self.axis, thresh),
+                    geometry::get_positive_pole(&converted_other.axis, thresh),
                     epsilon = thresh,
                     max_relative = thresh
-                ) || approx::relative_eq!(
-                    self.axis,
-                    -converted_other.axis,
-                    epsilon = thresh,
-                    max_relative = thresh
-                ));
+                )
+                && if let ElementOrder::Inf = self.order {
+                    if let Some(s_angle) = self.proper_angle {
+                        if let Some(o_angle) = converted_other.proper_angle {
+                            approx::relative_eq!(
+                                s_angle, o_angle, epsilon = thresh, max_relative = thresh
+                            )
+                        } else {
+                            false
+                        }
+                    } else {
+                        if let Some(_) = converted_other.proper_angle {
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                } else {
+                    self.proper_power == converted_other.proper_power
+                };
             if result {
                 assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
             }
             return result;
         }
         let result = (self.order == other.order)
-            && (approx::relative_eq!(
-                self.axis,
-                other.axis,
+            && approx::relative_eq!(
+                geometry::get_positive_pole(&self.axis, thresh),
+                geometry::get_positive_pole(&other.axis, thresh),
                 epsilon = thresh,
                 max_relative = thresh
-            ) || approx::relative_eq!(
-                self.axis,
-                -other.axis,
-                epsilon = thresh,
-                max_relative = thresh
-            ));
+            )
+            && if let ElementOrder::Inf = self.order {
+                if let Some(s_angle) = self.proper_angle {
+                    if let Some(o_angle) = other.proper_angle {
+                        approx::relative_eq!(
+                            s_angle, o_angle, epsilon = thresh, max_relative = thresh
+                        )
+                    } else {
+                        false
+                    }
+                } else {
+                    if let Some(_) = other.proper_angle {
+                        false
+                    } else {
+                        true
+                    }
+                }
+            } else {
+                self.proper_power == other.proper_power
+            };
         if result {
             assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
         }
