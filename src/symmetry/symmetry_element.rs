@@ -466,7 +466,6 @@ impl Hash for SymmetryElement {
                 SymmetryElementKind::ImproperMirrorPlane => {
                     let c_self = self
                         .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre);
-                    c_self.order.hash(state);
                     let pole = geometry::get_positive_pole(&c_self.axis, c_self.threshold);
                     pole[0]
                         .round_factor(self.threshold)
@@ -480,9 +479,18 @@ impl Hash for SymmetryElement {
                         .round_factor(self.threshold)
                         .integer_decode()
                         .hash(state);
+                    if let ElementOrder::Inf = c_self.order {
+                        if let Some(angle) = c_self.proper_angle {
+                            angle.round_factor(self.threshold).integer_decode().hash(state);
+                        } else {
+                            0.hash(state);
+                        }
+                    } else {
+                        c_self.order.hash(state);
+                        c_self.proper_power.hash(state);
+                    };
                 }
                 _ => {
-                    self.order.hash(state);
                     let pole = geometry::get_positive_pole(&self.axis, self.threshold);
                     pole[0]
                         .round_factor(self.threshold)
@@ -496,6 +504,16 @@ impl Hash for SymmetryElement {
                         .round_factor(self.threshold)
                         .integer_decode()
                         .hash(state);
+                    if let ElementOrder::Inf = self.order {
+                        if let Some(angle) = self.proper_angle {
+                            angle.round_factor(self.threshold).integer_decode().hash(state);
+                        } else {
+                            0.hash(state);
+                        }
+                    } else {
+                        self.order.hash(state);
+                        self.proper_power.hash(state);
+                    };
                 }
             };
         }
