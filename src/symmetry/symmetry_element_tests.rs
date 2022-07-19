@@ -280,6 +280,16 @@ fn test_finite_symmetry_element_comparison() {
         .unwrap();
     assert_eq!(c1, c1p);
 
+    let c1p2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Int(1))
+        .proper_power(2)
+        .axis(Vector3::new(4.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+    assert_eq!(c1, c1p2);
+
     let c2 = SymmetryElement::builder()
         .threshold(1e-14)
         .order(ElementOrder::Int(2))

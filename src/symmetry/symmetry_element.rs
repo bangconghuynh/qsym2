@@ -1,5 +1,6 @@
 use approx;
 use derive_builder::Builder;
+use fraction;
 use log;
 use nalgebra::Vector3;
 use num::integer::gcd;
@@ -9,6 +10,8 @@ use std::hash::{Hash, Hasher};
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
 use crate::symmetry::symmetry_element_order::ElementOrder;
+
+type F = fraction::Fraction;
 
 #[cfg(test)]
 #[path = "symmetry_element_tests.rs"]
@@ -75,6 +78,9 @@ pub struct SymmetryElement {
     #[builder(setter(custom))]
     pub proper_power: u32,
 
+    #[builder(setter(skip), default = "self.calc_proper_fraction()")]
+    proper_fraction: Option<F>,
+
     #[builder(setter(custom), default = "self.calc_proper_angle()")]
     proper_angle: Option<f64>,
 
@@ -115,11 +121,11 @@ impl SymmetryElementBuilder {
                 } else {
                     Some(residual)
                 }
-            },
+            }
             ElementOrder::Float(_, _) => {
                 log::warn!("Floating-point order detected. Power will not be modulo-ed.");
                 Some(prop_pow)
-            },
+            }
             ElementOrder::Inf => Some(prop_pow),
         };
         self
@@ -136,11 +142,24 @@ impl SymmetryElementBuilder {
         self
     }
 
+    fn calc_proper_fraction(&self) -> Option<F> {
+        let order = self.order.as_ref().unwrap();
+        match order {
+            ElementOrder::Int(io) => Some(F::new(self.proper_power.unwrap(), *io)),
+            ElementOrder::Float(_, _) => None,
+            ElementOrder::Inf => None,
+        }
+    }
+
     fn calc_proper_angle(&self) -> Option<f64> {
         let order = self.order.as_ref().unwrap();
         match order {
-            ElementOrder::Int(io) => Some((*io * self.proper_power.unwrap()) as f64),
-            ElementOrder::Float(fo, _) => Some(*fo * self.proper_power.unwrap() as f64),
+            ElementOrder::Int(io) => {
+                Some((*io * self.proper_power.unwrap()) as f64 * 2.0 * std::f64::consts::PI)
+            }
+            ElementOrder::Float(fo, _) => {
+                Some(*fo * (self.proper_power.unwrap() as f64) * 2.0 * std::f64::consts::PI)
+            }
             ElementOrder::Inf => self.proper_angle.unwrap_or(None),
         }
     }
@@ -418,62 +437,83 @@ impl PartialEq for SymmetryElement {
 
         if self.kind != other.kind {
             let converted_other = other.convert_to_improper_kind(&self.kind);
-            let result = (self.order == converted_other.order)
-                && approx::relative_eq!(
+            let result = approx::relative_eq!(
                     geometry::get_positive_pole(&self.axis, thresh),
                     geometry::get_positive_pole(&converted_other.axis, thresh),
                     epsilon = thresh,
                     max_relative = thresh
                 )
                 && if let ElementOrder::Inf = self.order {
-                    if let Some(s_angle) = self.proper_angle {
-                        if let Some(o_angle) = converted_other.proper_angle {
-                            approx::relative_eq!(
-                                s_angle, o_angle, epsilon = thresh, max_relative = thresh
-                            )
+                    if let ElementOrder::Inf = converted_other.order {
+                        if let Some(s_angle) = self.proper_angle {
+                            if let Some(o_angle) = converted_other.proper_angle {
+                                approx::relative_eq!(
+                                    s_angle,
+                                    o_angle,
+                                    epsilon = thresh,
+                                    max_relative = thresh
+                                )
+                            } else {
+                                false
+                            }
                         } else {
-                            false
+                            if let Some(_) = converted_other.proper_angle {
+                                false
+                            } else {
+                                true
+                            }
                         }
                     } else {
-                        if let Some(_) = converted_other.proper_angle {
-                            false
-                        } else {
-                            true
-                        }
+                        false
                     }
                 } else {
-                    self.proper_power == converted_other.proper_power
+                    if let ElementOrder::Inf = converted_other.order {
+                        false
+                    } else {
+                        self.proper_fraction == converted_other.proper_fraction
+                    }
                 };
             if result {
                 assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
             }
             return result;
         }
-        let result = (self.order == other.order)
-            && approx::relative_eq!(
+
+        let result = approx::relative_eq!(
                 geometry::get_positive_pole(&self.axis, thresh),
                 geometry::get_positive_pole(&other.axis, thresh),
                 epsilon = thresh,
                 max_relative = thresh
             )
             && if let ElementOrder::Inf = self.order {
-                if let Some(s_angle) = self.proper_angle {
-                    if let Some(o_angle) = other.proper_angle {
-                        approx::relative_eq!(
-                            s_angle, o_angle, epsilon = thresh, max_relative = thresh
-                        )
+                if let ElementOrder::Inf = other.order {
+                    if let Some(s_angle) = self.proper_angle {
+                        if let Some(o_angle) = other.proper_angle {
+                            approx::relative_eq!(
+                                s_angle,
+                                o_angle,
+                                epsilon = thresh,
+                                max_relative = thresh
+                            )
+                        } else {
+                            false
+                        }
                     } else {
-                        false
+                        if let Some(_) = other.proper_angle {
+                            false
+                        } else {
+                            true
+                        }
                     }
                 } else {
-                    if let Some(_) = other.proper_angle {
-                        false
-                    } else {
-                        true
-                    }
+                    false
                 }
             } else {
-                self.proper_power == other.proper_power
+                if let ElementOrder::Inf = other.order {
+                    false
+                } else {
+                    self.proper_fraction == other.proper_fraction
+                }
             };
         if result {
             assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
@@ -509,7 +549,10 @@ impl Hash for SymmetryElement {
                         .hash(state);
                     if let ElementOrder::Inf = c_self.order {
                         if let Some(angle) = c_self.proper_angle {
-                            angle.round_factor(self.threshold).integer_decode().hash(state);
+                            angle
+                                .round_factor(self.threshold)
+                                .integer_decode()
+                                .hash(state);
                         } else {
                             0.hash(state);
                         }
@@ -534,7 +577,10 @@ impl Hash for SymmetryElement {
                         .hash(state);
                     if let ElementOrder::Inf = self.order {
                         if let Some(angle) = self.proper_angle {
-                            angle.round_factor(self.threshold).integer_decode().hash(state);
+                            angle
+                                .round_factor(self.threshold)
+                                .integer_decode()
+                                .hash(state);
                         } else {
                             0.hash(state);
                         }
