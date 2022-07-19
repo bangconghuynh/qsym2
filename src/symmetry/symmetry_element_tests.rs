@@ -33,11 +33,13 @@ fn test_element_order_comparison() {
     let order_2 = ElementOrder::new(2.0, 1e-14);
     let order_35 = ElementOrder::new(3.5, 1e-14);
     let order_i = ElementOrder::Inf;
+    let order_ib = ElementOrder::new(f64::INFINITY, 1e-14);
 
     assert!(order_1 < order_2);
     assert!(order_35 > order_2);
     assert!(order_i > order_35);
     assert!(order_1 < order_i);
+    assert!(order_i == order_ib);
 }
 
 
@@ -195,7 +197,7 @@ fn test_finite_symmetry_element_improper_conversion() {
         .build()
         .unwrap();
     let sd2 = s1.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre);
-    assert_eq!(format!("{}", &sd2), "σ(+0.000, -1.000, +0.000)");
+    assert_eq!(format!("{}", &sd2), "σ(+0.000, +1.000, +0.000)");
 
     let sd1 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -217,7 +219,7 @@ fn test_finite_symmetry_element_improper_conversion() {
         .build()
         .unwrap();
     let sd6 = s3.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre);
-    assert_eq!(format!("{}", &sd6), "Ṡ6(-0.667, -0.667, -0.333)");
+    assert_eq!(format!("{}", &sd6), "Ṡ6(+0.667, +0.667, +0.333)");
 
     let s4 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -229,7 +231,7 @@ fn test_finite_symmetry_element_improper_conversion() {
         .unwrap();
     let sd4 = s4.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre);
     assert_eq!(sd4.order, ElementOrder::Int(4));
-    assert_eq!(format!("{}", &sd4), "Ṡ4(-0.577, -0.577, -0.577)");
+    assert_eq!(format!("{}", &sd4), "Ṡ4(+0.577, +0.577, +0.577)");
 
     let sd5 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -241,7 +243,7 @@ fn test_finite_symmetry_element_improper_conversion() {
         .unwrap();
     let s10 = sd5.convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane);
     assert_eq!(s10.order, ElementOrder::Int(10));
-    assert_eq!(format!("{}", &s10), "S10(-0.408, -0.816, -0.408)");
+    assert_eq!(format!("{}", &s10), "S10(+0.408, +0.816, +0.408)");
 
     let sd7 = SymmetryElement::builder()
         .threshold(1e-14)

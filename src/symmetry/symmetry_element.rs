@@ -45,8 +45,8 @@ pub enum SymmetryElementKind {
 /// \hat{g} = \hat{gamma} \hat{C}_n^k,
 /// ```
 ///
-/// where $`n \in \mathbb{N}_{+}`$, $`k \in \mathbb{Z}/n\mathbb{Z}`$, and
-/// $`\hat{gamma}`$ is either the identity $`\hat{e}`$, the inversion operation
+/// where $`n \in \mathbb{N}_{+}`$, $`k \in \mathbb{Z}/n\mathbb{Z} = \{1, \ldots, n\}`$,
+/// and $`\hat{gamma}`$ is either the identity $`\hat{e}`$, the inversion operation
 /// $`\hat{i}`$, or a reflection operation $`\hat{\sigma}`$. With this definition,
 /// the three pieces of information required to specify a geometrical symmetry
 /// element are given as follows:
@@ -72,6 +72,7 @@ pub struct SymmetryElement {
     pub order: ElementOrder,
 
     /// The power $`k`$ of the proper symmetry element.
+    #[builder(setter(custom))]
     pub proper_power: u32,
 
     #[builder(setter(custom), default = "self.calc_proper_angle()")]
@@ -104,6 +105,26 @@ pub struct SymmetryElement {
 }
 
 impl SymmetryElementBuilder {
+    pub fn proper_power(&mut self, prop_pow: u32) -> &mut Self {
+        let order = self.order.as_ref().unwrap();
+        self.proper_power = match order {
+            ElementOrder::Int(io) => {
+                let residual = prop_pow % io;
+                if residual == 0 {
+                    Some(*io)
+                } else {
+                    Some(residual)
+                }
+            },
+            ElementOrder::Float(_, _) => {
+                log::warn!("Floating-point order detected. Power will not be modulo-ed.");
+                Some(prop_pow)
+            },
+            ElementOrder::Inf => Some(prop_pow),
+        };
+        self
+    }
+
     pub fn proper_angle(&mut self, ang: f64) -> &mut Self {
         let order = self.order.as_ref().unwrap();
         self.proper_angle = match order {
@@ -333,7 +354,7 @@ impl SymmetryElement {
             .threshold(self.threshold)
             .order(dest_order)
             .proper_power(1)
-            .axis(-self.axis)
+            .axis(self.axis)
             .kind(improper_kind.clone())
             .generator(self.generator)
             .additional_superscript(self.additional_superscript.clone())
