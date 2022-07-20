@@ -368,7 +368,7 @@ impl Symmetry {
                 .generator(generator)
                 .build()
                 .unwrap()
-                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane);
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false);
             if sym_ele.order == ElementOrder::Int(1) {
                 sym_ele.additional_subscript = sigma_str;
             }
@@ -383,7 +383,7 @@ impl Symmetry {
                 .generator(generator)
                 .build()
                 .unwrap()
-                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane)
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false)
         };
         let sig_order = element.order.clone();
         let detailed_symbol = element.get_detailed_symbol();
