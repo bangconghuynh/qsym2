@@ -365,7 +365,7 @@ impl SymmetryElement {
             let pow = self.proper_power.unwrap();
             match self.order {
                 ElementOrder::Int(order_int) => {
-                    order_int + 2 * pow / (gcd(2 * order_int, order_int + 2 * pow))
+                    (order_int + 2 * pow) / (gcd(2 * order_int, order_int + 2 * pow))
                 }
                 ElementOrder::Inf => 1,
             }

@@ -1,24 +1,28 @@
 use crate::aux::misc;
-use std::collections::HashSet;
 use nalgebra::Vector3;
+use std::collections::HashSet;
 
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, ElementOrder};
-
+use crate::symmetry::symmetry_element::{ElementOrder, SymmetryElement, SymmetryElementKind};
 
 #[test]
 fn test_element_order_equality() {
     let order_1a = ElementOrder::new(1.0, 1e-14);
     let order_1b = ElementOrder::Int(1);
     assert_eq!(order_1a, order_1b);
-    assert_eq!(misc::calculate_hash(&order_1a), misc::calculate_hash(&order_1b));
+    assert_eq!(
+        misc::calculate_hash(&order_1a),
+        misc::calculate_hash(&order_1b)
+    );
 
     let order_ia = ElementOrder::new(f64::INFINITY, 1e-14);
     let order_ib = ElementOrder::Inf;
     assert_eq!(order_ia, order_ib);
-    assert_eq!(misc::calculate_hash(&order_ia), misc::calculate_hash(&order_ib));
+    assert_eq!(
+        misc::calculate_hash(&order_ia),
+        misc::calculate_hash(&order_ib)
+    );
     assert_ne!(order_ia, order_1b);
 }
-
 
 #[test]
 fn test_element_order_comparison() {
@@ -34,7 +38,6 @@ fn test_element_order_comparison() {
     assert!(order_1 < order_i);
     assert!(order_i == order_ib);
 }
-
 
 #[test]
 fn test_element_order_hashability() {
@@ -484,6 +487,138 @@ fn test_finite_symmetry_element_power_comparison() {
     // =============
     // Improper only
     // =============
+    let s1 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert!(s1.is_mirror_plane());
+    let s1p2 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(1))
+        .proper_power(2)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert!(s1p2.is_mirror_plane());
+    assert_eq!(s1, s1p2);
+    let sd2 = s1.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
+    let sd2p = s1p2.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
+    assert_eq!(sd2, sd2p);
+
+    let s2 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert!(s2.is_inversion_centre());
+    let s2p2 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(2))
+        .proper_power(2)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert!(s2p2.is_mirror_plane());
+    let s2p3 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(2))
+        .proper_power(3)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert!(s2p3.is_inversion_centre());
+    assert_eq!(s1, s2p2);
+    assert_eq!(s2, s2p3);
+
+    let sd2 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+    assert!(sd2.is_mirror_plane());
+    let sd2b = sd2.convert_to_improper_kind(
+        &SymmetryElementKind::ImproperMirrorPlane, true
+    );
+    let sd2p2 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(2))
+        .proper_power(2)
+        .axis(Vector3::new(1.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+    assert!(sd2p2.is_inversion_centre());
+    let sd2p2b = sd2p2.convert_to_improper_kind(
+        &SymmetryElementKind::ImproperMirrorPlane, true
+    );
+    assert_eq!(sd2, s1);
+    assert_eq!(sd2p2, s2);
+    assert_eq!(sd2b, sd2);
+    assert_eq!(sd2p2b, sd2p2);
+
+    let s3 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    let s3p4 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(3))
+        .proper_power(4)
+        .axis(Vector3::new(1.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    let s3p3 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(3))
+        .proper_power(3)
+        .axis(Vector3::new(1.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert!(s3p3.is_mirror_plane());
+    assert_eq!(s3, s3p4);
+
+    let s6p2 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(6))
+        .proper_power(2)
+        .axis(Vector3::new(1.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    let s6p3 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(6))
+        .proper_power(3)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert!(s6p3.is_inversion_centre());
+    assert_eq!(s3, s6p2);
+
+    // ===================
+    // Proper and improper
+    // ===================
+    assert_ne!(c2, s2);
 }
 
 #[test]
