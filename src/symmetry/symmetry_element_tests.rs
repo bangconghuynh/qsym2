@@ -481,7 +481,8 @@ fn test_finite_symmetry_element_power_comparison() {
     assert_eq!(c4p2, c2);
     assert_eq!(c4p4, c1);
     assert_eq!(c4p4, c1p2);
-    assert_ne!(c4, c4p3);
+    println!("{:?} {:?}", c4.proper_angle, c4p3.proper_angle);
+    assert_eq!(c4, c4p3);
     assert_eq!(c4, c4p5);
 
     // =============
@@ -742,4 +743,47 @@ fn test_finite_symmetry_element_hashset() {
         .unwrap();
     element_set.insert(s3p);
     assert_eq!(element_set.len(), 6);
+}
+
+#[test]
+fn test_infinite_symmetry_element_constructor() {
+    // ========================
+    // Proper symmetry elements
+    // ========================
+    let ci1 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let ci2 = SymmetryElement::builder()
+        .threshold(1e-7)
+        .order(ElementOrder::Inf)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+    assert_eq!(ci1, ci2);
+
+    let ci3 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .proper_angle(std::f64::consts::FRAC_PI_3)
+        .axis(Vector3::new(0.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let ci4 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .proper_angle(2.0*std::f64::consts::PI - std::f64::consts::FRAC_PI_3)
+        .axis(-Vector3::new(0.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+    println!("{:?}, {:?}", ci3.proper_angle, ci4.proper_angle);
+    assert_eq!(ci3, ci4);
 }

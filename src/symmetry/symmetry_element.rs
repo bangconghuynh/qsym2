@@ -5,6 +5,7 @@ use log;
 use nalgebra::Vector3;
 use num::integer::gcd;
 use std::fmt;
+use std::cmp;
 use std::hash::{Hash, Hasher};
 
 use crate::aux::geometry;
@@ -84,6 +85,8 @@ pub struct SymmetryElement {
     #[builder(setter(skip), default = "self.calc_proper_fraction()")]
     proper_fraction: Option<F>,
 
+    /// The normalised proper angle corresponding to the proper rotation
+    /// $`\hat{C}_n^k`$.
     #[builder(setter(custom), default = "self.calc_proper_angle()")]
     proper_angle: Option<f64>,
 
@@ -136,7 +139,10 @@ impl SymmetryElementBuilder {
             ElementOrder::Int(_) => panic!(
                 "Arbitrary proper rotation angles can only be set for infinite-order elements."
             ),
-            ElementOrder::Inf => Some(Some(ang)),
+            ElementOrder::Inf => Some(Some(geometry::normalise_rotation_angle(
+                ang,
+                self.threshold.unwrap(),
+            ))),
         };
         self
     }
@@ -152,9 +158,10 @@ impl SymmetryElementBuilder {
     fn calc_proper_angle(&self) -> Option<f64> {
         let order = self.order.as_ref().unwrap();
         match order {
-            ElementOrder::Int(io) => Some(
+            ElementOrder::Int(io) => Some(geometry::normalise_rotation_angle(
                 (*io * self.proper_power.unwrap().unwrap()) as f64 * 2.0 * std::f64::consts::PI,
-            ),
+                self.threshold.unwrap(),
+            )),
             ElementOrder::Inf => self.proper_angle.unwrap_or(None),
         }
     }
@@ -372,17 +379,47 @@ impl SymmetryElement {
         } else {
             1
         };
-        Self::builder()
-            .threshold(self.threshold)
-            .order(dest_order)
-            .proper_power(dest_proper_power)
-            .axis(self.axis)
-            .kind(improper_kind.clone())
-            .generator(self.generator)
-            .additional_superscript(self.additional_superscript.clone())
-            .additional_subscript(self.additional_subscript.clone())
-            .build()
-            .unwrap()
+        match dest_order {
+            ElementOrder::Int(_) => Self::builder()
+                .threshold(self.threshold)
+                .order(dest_order)
+                .proper_power(dest_proper_power)
+                .axis(self.axis)
+                .kind(improper_kind.clone())
+                .generator(self.generator)
+                .additional_superscript(self.additional_superscript.clone())
+                .additional_subscript(self.additional_subscript.clone())
+                .build()
+                .unwrap(),
+            ElementOrder::Inf => {
+                if let Some(ang) = self.proper_angle {
+                    Self::builder()
+                        .threshold(self.threshold)
+                        .order(dest_order)
+                        .proper_power(dest_proper_power)
+                        .proper_angle(std::f64::consts::PI + ang)
+                        .axis(self.axis)
+                        .kind(improper_kind.clone())
+                        .generator(self.generator)
+                        .additional_superscript(self.additional_superscript.clone())
+                        .additional_subscript(self.additional_subscript.clone())
+                        .build()
+                        .unwrap()
+                } else {
+                    Self::builder()
+                        .threshold(self.threshold)
+                        .order(dest_order)
+                        .proper_power(dest_proper_power)
+                        .axis(self.axis)
+                        .kind(improper_kind.clone())
+                        .generator(self.generator)
+                        .additional_superscript(self.additional_superscript.clone())
+                        .additional_subscript(self.additional_subscript.clone())
+                        .build()
+                        .unwrap()
+                }
+            }
+        }
     }
 }
 
@@ -421,6 +458,15 @@ impl fmt::Debug for SymmetryElement {
 }
 
 impl PartialEq for SymmetryElement {
+    /// Two symmetry elements are equal if and only if the following conditions
+    /// are all satisfied:
+    ///
+    /// * they are both proper or improper;
+    /// * their axes are either parallel or anti-parallel;
+    /// * their proper rotation angles have equal absolute values.
+    ///
+    /// For improper elements, proper rotation angles are taken in the inversion
+    /// centre convention.
     fn eq(&self, other: &Self) -> bool {
         if self.is_proper() != other.is_proper() {
             return false;
@@ -472,7 +518,10 @@ impl PartialEq for SymmetryElement {
                 if let ElementOrder::Inf = converted_other.order {
                     false
                 } else {
-                    self.proper_fraction == converted_other.proper_fraction
+                    (self.proper_fraction == converted_other.proper_fraction)
+                        || (self.proper_fraction.unwrap()
+                            + converted_other.proper_fraction.unwrap()
+                            == F::from(1u64))
                 }
             };
             if result {
@@ -491,8 +540,8 @@ impl PartialEq for SymmetryElement {
                 if let Some(s_angle) = self.proper_angle {
                     if let Some(o_angle) = other.proper_angle {
                         approx::relative_eq!(
-                            s_angle,
-                            o_angle,
+                            s_angle.abs(),
+                            o_angle.abs(),
                             epsilon = thresh,
                             max_relative = thresh
                         )
@@ -513,7 +562,10 @@ impl PartialEq for SymmetryElement {
             if let ElementOrder::Inf = other.order {
                 false
             } else {
-                self.proper_fraction == other.proper_fraction
+                (self.proper_fraction == other.proper_fraction)
+                    || (self.proper_fraction.unwrap()
+                        + other.proper_fraction.unwrap()
+                        == F::from(1u64))
             }
         };
         if result {
@@ -553,6 +605,7 @@ impl Hash for SymmetryElement {
                     if let ElementOrder::Inf = c_self.order {
                         if let Some(angle) = c_self.proper_angle {
                             angle
+                                .abs()
                                 .round_factor(self.threshold)
                                 .integer_decode()
                                 .hash(state);
@@ -560,7 +613,11 @@ impl Hash for SymmetryElement {
                             0.hash(state);
                         }
                     } else {
-                        c_self.proper_fraction.hash(state);
+                        cmp::min_by(
+                            c_self.proper_fraction.unwrap(),
+                            F::from(1u64) - c_self.proper_fraction.unwrap(),
+                            |a, b| a.partial_cmp(b).unwrap()
+                        ).hash(state);
                     };
                 }
                 _ => {
@@ -580,6 +637,7 @@ impl Hash for SymmetryElement {
                     if let ElementOrder::Inf = self.order {
                         if let Some(angle) = self.proper_angle {
                             angle
+                                .abs()
                                 .round_factor(self.threshold)
                                 .integer_decode()
                                 .hash(state);
@@ -587,7 +645,11 @@ impl Hash for SymmetryElement {
                             0.hash(state);
                         }
                     } else {
-                        self.proper_fraction.hash(state);
+                        cmp::min_by(
+                            self.proper_fraction.unwrap(),
+                            F::from(1u64) - self.proper_fraction.unwrap(),
+                            |a, b| a.partial_cmp(b).unwrap()
+                        ).hash(state);
                     };
                 }
             };
