@@ -66,7 +66,7 @@ fn test_element_order_hashability() {
 }
 
 #[test]
-fn test_finite_symmetry_element_constructor() {
+fn test_symmetry_element_constructor() {
     // ========================
     // Proper symmetry elements
     // ========================
@@ -78,7 +78,8 @@ fn test_finite_symmetry_element_constructor() {
         .kind(SymmetryElementKind::Proper)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &c1), "C1");
+    assert_eq!(format!("{}", &c1), "E");
+    assert_eq!(format!("{:?}", &c1), "C1(+0.000, +1.000, +0.000)");
 
     let c2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -89,6 +90,18 @@ fn test_finite_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &c2), "C2(+0.707, +0.707, +0.000)");
+    assert_eq!(format!("{:?}", &c2), "C2(+0.707, +0.707, +0.000)");
+
+    let c2p2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Int(2))
+        .proper_power(2)
+        .axis(Vector3::new(1.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &c2p2), "E");
+    assert_eq!(format!("{:?}", &c2p2), "C2^2(+0.707, +0.707, +0.000)");
 
     let c3 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -99,16 +112,61 @@ fn test_finite_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &c3), "C3(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{:?}", &c3), "C3(+0.577, +0.577, +0.577)");
+
+    let c3p2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::new(3.0, 1e-14))
+        .proper_power(2)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &c3p2), "C3^2(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{:?}", &c3p2), "C3^2(+0.577, +0.577, +0.577)");
+
+    let c3p3 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::new(3.0, 1e-14))
+        .proper_power(3)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &c3p3), "E");
+    assert_eq!(format!("{:?}", &c3p3), "C3^3(+0.577, +0.577, +0.577)");
 
     let ci = SymmetryElement::builder()
         .threshold(1e-14)
         .order(ElementOrder::Inf)
-        .proper_power(1)
         .axis(Vector3::new(1.0, 0.0, -1.0))
         .kind(SymmetryElementKind::Proper)
         .build()
         .unwrap();
     assert_eq!(format!("{}", &ci), "C∞(+0.707, +0.000, -0.707)");
+    assert_eq!(format!("{:?}", &ci), "C∞(+0.707, +0.000, -0.707)");
+
+    let ci2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .proper_angle(0.12)
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &ci2), "C∞(+0.120)(+0.707, +0.000, +0.707)");
+    assert_eq!(format!("{:?}", &ci2), "C∞(+0.120)(+0.707, +0.000, +0.707)");
+
+    let ci3 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .proper_angle(3.160)
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &ci3), "C∞(-3.123)(+0.707, +0.000, +0.707)");
+    assert_eq!(format!("{:?}", &ci3), "C∞(-3.123)(+0.707, +0.000, +0.707)");
 
     // ==========================
     // Improper symmetry elements
@@ -122,6 +180,7 @@ fn test_finite_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &s1), "σ(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", &s1), "S1(+0.000, +1.000, +0.000)");
 
     let sd2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -132,6 +191,18 @@ fn test_finite_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &sd2), "σ(-0.707, +0.707, +0.000)");
+    assert_eq!(format!("{:?}", &sd2), "Ṡ2(-0.707, +0.707, +0.000)");
+
+    let sd2p2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Int(2))
+        .proper_power(2)
+        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &sd2p2), "i");
+    assert_eq!(format!("{:?}", &sd2p2), "iC2^2(-0.707, +0.707, +0.000)");
 
     let s2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -142,6 +213,18 @@ fn test_finite_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &s2), "i");
+    assert_eq!(format!("{:?}", &s2), "S2(+0.667, +0.667, +0.333)");
+
+    let s2p2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Int(2))
+        .proper_power(2)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &s2p2), "σ(+0.667, +0.667, +0.333)");
+    assert_eq!(format!("{:?}", &s2p2), "σC2^2(+0.667, +0.667, +0.333)");
 
     let sd1 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -152,6 +235,7 @@ fn test_finite_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &sd1), "i");
+    assert_eq!(format!("{:?}", &sd1), "Ṡ1(+0.577, +0.577, +0.577)");
     assert_eq!(s2, sd1);
 
     let s3 = SymmetryElement::builder()
@@ -163,6 +247,29 @@ fn test_finite_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &s3), "S3(+0.667, +0.667, +0.333)");
+    assert_eq!(format!("{:?}", &s3), "S3(+0.667, +0.667, +0.333)");
+
+    let s3p2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Int(3))
+        .proper_power(2)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &s3p2), "σC3^2(+0.667, +0.667, +0.333)");
+    assert_eq!(format!("{:?}", &s3p2), "σC3^2(+0.667, +0.667, +0.333)");
+
+    let s3p3 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Int(3))
+        .proper_power(3)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &s3p3), "σ(+0.667, +0.667, +0.333)");
+    assert_eq!(format!("{:?}", &s3p3), "σC3^3(+0.667, +0.667, +0.333)");
 
     let sd3 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -173,6 +280,62 @@ fn test_finite_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &sd3), "Ṡ3(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{:?}", &sd3), "Ṡ3(+0.577, +0.577, +0.577)");
+
+    let sd3p2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Int(3))
+        .proper_power(2)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &sd3p2), "iC3^2(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{:?}", &sd3p2), "iC3^2(+0.577, +0.577, +0.577)");
+
+    let sd3p2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Int(3))
+        .proper_power(3)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &sd3p2), "i");
+    assert_eq!(format!("{:?}", &sd3p2), "iC3^3(+0.577, +0.577, +0.577)");
+
+    let si = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 0.0, -1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &si), "S∞(+0.707, +0.000, -0.707)");
+    assert_eq!(format!("{:?}", &si), "σC∞(+0.707, +0.000, -0.707)");
+
+    let sib = si.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
+    assert_eq!(format!("{}", &sib), "Ṡ∞(+0.707, +0.000, -0.707)");
+    assert_eq!(format!("{:?}", &sib), "iC∞(+0.707, +0.000, -0.707)");
+
+    let si2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .proper_angle(0.121)
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert_eq!(format!("{}", &si2), "S∞(+0.121)(+0.707, +0.000, +0.707)");
+    assert_eq!(format!("{:?}", &si2), "σC∞(+0.121)(+0.707, +0.000, +0.707)");
+
+    let si2b = si2.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
+    assert_eq!(format!("{}", &si2b), "Ṡ∞(-3.021)(+0.707, +0.000, +0.707)");
+    assert_eq!(
+        format!("{:?}", &si2b),
+        "iC∞(-3.021)(+0.707, +0.000, +0.707)"
+    );
 }
 
 #[test]

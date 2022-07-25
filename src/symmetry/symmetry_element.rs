@@ -4,8 +4,8 @@ use fraction;
 use log;
 use nalgebra::Vector3;
 use num::integer::gcd;
-use std::fmt;
 use std::cmp;
+use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use crate::aux::geometry;
@@ -262,48 +262,107 @@ impl SymmetryElement {
     pub fn get_standard_symbol(&self) -> String {
         let main_symbol: String = match self.kind {
             SymmetryElementKind::Proper => "C".to_owned(),
-            SymmetryElementKind::ImproperMirrorPlane => "S".to_owned(),
-            SymmetryElementKind::ImproperInversionCentre => "Ṡ".to_owned(),
+            SymmetryElementKind::ImproperMirrorPlane => {
+                if self.order != ElementOrder::Inf && self.proper_power == Some(1) {
+                    "S".to_owned()
+                } else {
+                    "σC".to_owned()
+                }
+            }
+            SymmetryElementKind::ImproperInversionCentre => {
+                if self.order != ElementOrder::Inf && self.proper_power == Some(1) {
+                    "Ṡ".to_owned()
+                } else {
+                    "iC".to_owned()
+                }
+            }
         };
-        format!("{}{}", main_symbol, self.order)
+        let proper_power = if let Some(pow) = self.proper_power {
+            if pow > 1 {
+                format!("^{}", pow)
+            } else {
+                "".to_owned()
+            }
+        } else {
+            "".to_owned()
+        };
+        format!("{}{}{}", main_symbol, self.order, proper_power)
     }
 
     /// Returns the detailed symbol for this symmetry element, which classifies
-    /// certain improper rotation axes into inversion centres or mirror planes.
+    /// special symmetry elements (identity, inversion centre, mirror planes).
     ///
     /// # Returns
     ///
     /// The detailed symbol for this symmetry element.
     pub fn get_detailed_symbol(&self) -> String {
-        let main_symbol: String = match self.kind {
-            SymmetryElementKind::Proper => "C".to_owned(),
-            SymmetryElementKind::ImproperMirrorPlane => {
-                if self.order == ElementOrder::Int(1) {
-                    "σ".to_owned()
-                } else if self.order == ElementOrder::Int(2) {
-                    "i".to_owned()
+        let (main_symbol, needs_power) = match self.kind {
+            SymmetryElementKind::Proper => {
+                if self.is_identity() {
+                    ("E".to_owned(), false)
                 } else {
-                    "S".to_owned()
+                    ("C".to_owned(), true)
+                }
+            }
+            SymmetryElementKind::ImproperMirrorPlane => {
+                if self.is_mirror_plane() {
+                    ("σ".to_owned(), false)
+                } else if self.is_inversion_centre() {
+                    ("i".to_owned(), false)
+                } else {
+                    if self.order == ElementOrder::Inf || self.proper_power == Some(1) {
+                        ("S".to_owned(), false)
+                    } else {
+                        ("σC".to_owned(), true)
+                    }
                 }
             }
             SymmetryElementKind::ImproperInversionCentre => {
-                if self.order == ElementOrder::Int(1) {
-                    "i".to_owned()
-                } else if self.order == ElementOrder::Int(2) {
-                    "σ".to_owned()
+                if self.is_mirror_plane() {
+                    ("σ".to_owned(), false)
+                } else if self.is_inversion_centre() {
+                    ("i".to_owned(), false)
                 } else {
-                    "Ṡ".to_owned()
+                    if self.order == ElementOrder::Inf || self.proper_power == Some(1) {
+                        ("Ṡ".to_owned(), false)
+                    } else {
+                        ("iC".to_owned(), true)
+                    }
                 }
             }
         };
 
         let order_string: String =
-            if self.is_proper() || (!self.is_inversion_centre() && !self.is_mirror_plane()) {
+            if !self.is_identity() && !self.is_inversion_centre() && !self.is_mirror_plane() {
                 format!("{}", self.order)
             } else {
                 "".to_owned()
             };
-        main_symbol + &self.additional_superscript + &order_string + &self.additional_subscript
+
+        let proper_power = if needs_power {
+            match self.order {
+                ElementOrder::Int(_) => {
+                    if let Some(pow) = self.proper_power {
+                        if pow > 1 {
+                            format!("^{}", pow)
+                        } else {
+                            "".to_owned()
+                        }
+                    } else {
+                        "".to_owned()
+                    }
+                }
+                ElementOrder::Inf => "".to_owned(),
+            }
+        } else {
+            "".to_owned()
+        };
+
+        main_symbol
+            + &self.additional_superscript
+            + &order_string
+            + &proper_power
+            + &self.additional_subscript
     }
 
     /// Returns a copy of the current improper symmetry element that has been
@@ -425,16 +484,25 @@ impl SymmetryElement {
 
 impl fmt::Display for SymmetryElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let proper_angle = match self.order {
+            ElementOrder::Inf => if let Some(ang) = self.proper_angle {
+                format!("({:+.3})", ang)
+            } else {
+                "".to_owned()
+            },
+            _ => "".to_owned()
+        };
         if self.is_identity() || self.is_inversion_centre() {
             write!(f, "{}", self.get_detailed_symbol())
         } else {
             write!(
                 f,
-                "{}({:+.3}, {:+.3}, {:+.3})",
+                "{}{}({:+.3}, {:+.3}, {:+.3})",
                 self.get_detailed_symbol(),
+                proper_angle,
                 self.axis[0] + 0.0,
                 self.axis[1] + 0.0,
-                self.axis[2] + 0.0
+                self.axis[2] + 0.0,
             )
         }
     }
@@ -442,18 +510,23 @@ impl fmt::Display for SymmetryElement {
 
 impl fmt::Debug for SymmetryElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.is_identity() || self.is_inversion_centre() {
-            write!(f, "{}", self.get_detailed_symbol())
-        } else {
-            write!(
-                f,
-                "{}({:+.3}, {:+.3}, {:+.3})",
-                self.get_detailed_symbol(),
-                self.axis[0] + 0.0,
-                self.axis[1] + 0.0,
-                self.axis[2] + 0.0
-            )
-        }
+        let proper_angle = match self.order {
+            ElementOrder::Inf => if let Some(ang) = self.proper_angle {
+                format!("({:+.3})", ang)
+            } else {
+                "".to_owned()
+            },
+            _ => "".to_owned()
+        };
+        write!(
+            f,
+            "{}{}({:+.3}, {:+.3}, {:+.3})",
+            self.get_standard_symbol(),
+            proper_angle,
+            self.axis[0] + 0.0,
+            self.axis[1] + 0.0,
+            self.axis[2] + 0.0,
+        )
     }
 }
 
@@ -563,8 +636,7 @@ impl PartialEq for SymmetryElement {
                 false
             } else {
                 (self.proper_fraction == other.proper_fraction)
-                    || (self.proper_fraction.unwrap()
-                        + other.proper_fraction.unwrap()
+                    || (self.proper_fraction.unwrap() + other.proper_fraction.unwrap()
                         == F::from(1u64))
             }
         };
@@ -616,8 +688,9 @@ impl Hash for SymmetryElement {
                         cmp::min_by(
                             c_self.proper_fraction.unwrap(),
                             F::from(1u64) - c_self.proper_fraction.unwrap(),
-                            |a, b| a.partial_cmp(b).unwrap()
-                        ).hash(state);
+                            |a, b| a.partial_cmp(b).unwrap(),
+                        )
+                        .hash(state);
                     };
                 }
                 _ => {
@@ -648,8 +721,9 @@ impl Hash for SymmetryElement {
                         cmp::min_by(
                             self.proper_fraction.unwrap(),
                             F::from(1u64) - self.proper_fraction.unwrap(),
-                            |a, b| a.partial_cmp(b).unwrap()
-                        ).hash(state);
+                            |a, b| a.partial_cmp(b).unwrap(),
+                        )
+                        .hash(state);
                     };
                 }
             };
