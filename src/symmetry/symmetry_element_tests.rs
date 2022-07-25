@@ -481,9 +481,26 @@ fn test_finite_symmetry_element_power_comparison() {
     assert_eq!(c4p2, c2);
     assert_eq!(c4p4, c1);
     assert_eq!(c4p4, c1p2);
-    println!("{:?} {:?}", c4.proper_angle, c4p3.proper_angle);
     assert_eq!(c4, c4p3);
     assert_eq!(c4, c4p5);
+
+    let c5 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Int(5))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+    let c5p9 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Int(5))
+        .proper_power(9)
+        .axis(-Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+    assert_eq!(c5, c5p9);
 
     // =============
     // Improper only
@@ -550,9 +567,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .build()
         .unwrap();
     assert!(sd2.is_mirror_plane());
-    let sd2b = sd2.convert_to_improper_kind(
-        &SymmetryElementKind::ImproperMirrorPlane, true
-    );
+    let sd2b = sd2.convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, true);
     let sd2p2 = SymmetryElement::builder()
         .threshold(1e-3)
         .order(ElementOrder::Int(2))
@@ -562,9 +577,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .build()
         .unwrap();
     assert!(sd2p2.is_inversion_centre());
-    let sd2p2b = sd2p2.convert_to_improper_kind(
-        &SymmetryElementKind::ImproperMirrorPlane, true
-    );
+    let sd2p2b = sd2p2.convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, true);
     assert_eq!(sd2, s1);
     assert_eq!(sd2p2, s2);
     assert_eq!(sd2b, sd2);
@@ -574,6 +587,14 @@ fn test_finite_symmetry_element_power_comparison() {
         .threshold(1e-3)
         .order(ElementOrder::Int(3))
         .proper_power(1)
+        .axis(Vector3::new(1.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    let s3p2 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(3))
+        .proper_power(2)
         .axis(Vector3::new(1.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
         .build()
@@ -595,6 +616,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .build()
         .unwrap();
     assert!(s3p3.is_mirror_plane());
+    assert_eq!(s3, s3p2);
     assert_eq!(s3, s3p4);
 
     let s6p2 = SymmetryElement::builder()
@@ -613,8 +635,17 @@ fn test_finite_symmetry_element_power_comparison() {
         .kind(SymmetryElementKind::ImproperMirrorPlane)
         .build()
         .unwrap();
+    let s6p4 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .order(ElementOrder::Int(6))
+        .proper_power(4)
+        .axis(-Vector3::new(1.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
     assert!(s6p3.is_inversion_centre());
     assert_eq!(s3, s6p2);
+    assert_eq!(s3, s6p4);
 
     // ===================
     // Proper and improper
@@ -746,7 +777,7 @@ fn test_finite_symmetry_element_hashset() {
 }
 
 #[test]
-fn test_infinite_symmetry_element_constructor() {
+fn test_infinite_symmetry_element_comparison() {
     // ========================
     // Proper symmetry elements
     // ========================
@@ -779,11 +810,84 @@ fn test_infinite_symmetry_element_constructor() {
     let ci4 = SymmetryElement::builder()
         .threshold(1e-14)
         .order(ElementOrder::Inf)
-        .proper_angle(2.0*std::f64::consts::PI - std::f64::consts::FRAC_PI_3)
+        .proper_angle(2.0 * std::f64::consts::PI - std::f64::consts::FRAC_PI_3)
         .axis(-Vector3::new(0.0, 2.0, 1.0))
         .kind(SymmetryElementKind::Proper)
         .build()
         .unwrap();
-    println!("{:?}, {:?}", ci3.proper_angle, ci4.proper_angle);
+    let ci4b = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .proper_angle(2.0 * std::f64::consts::PI - std::f64::consts::FRAC_PI_3)
+        .axis(Vector3::new(0.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
     assert_eq!(ci3, ci4);
+    assert_eq!(ci3, ci4b);
+
+    // ==========================
+    // Improper symmetry elements
+    // ==========================
+    let si1 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let si2 = SymmetryElement::builder()
+        .threshold(1e-7)
+        .order(ElementOrder::Inf)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    let si2c = si2.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, true);
+    let si2b = SymmetryElement::builder()
+        .threshold(1e-7)
+        .order(ElementOrder::Inf)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+    assert_eq!(si1, si2);
+    assert_eq!(si1, si2b); // No proper angle specified, both conventions are the same.
+    assert_eq!(si1, si2c);
+
+    let si3 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .proper_angle(std::f64::consts::FRAC_PI_4)
+        .axis(Vector3::new(1.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    let si3b = si3.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
+    let si3c = si3.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, true);
+    assert_eq!(si3, si3b);
+    assert_eq!(si3, si3c);
+
+    let si4 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .proper_angle(2.0 * std::f64::consts::PI - std::f64::consts::FRAC_PI_4)
+        .axis(Vector3::new(1.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    assert_eq!(si3, si4);
+
+    let si5 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .order(ElementOrder::Inf)
+        .proper_angle(2.0 * std::f64::consts::PI - std::f64::consts::FRAC_PI_4)
+        .axis(Vector3::new(1.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+    let si5b = si5.convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, true);
+    assert_ne!(si3, si5);
+    assert_eq!(si5, si5b);
 }

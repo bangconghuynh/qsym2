@@ -327,7 +327,7 @@ impl SymmetryElement {
     /// \end{aligned}
     /// ```
     ///
-    /// The above relations are self-inversed. It can be further shown that
+    /// The above relations are self-inverse. It can be further shown that
     /// $`\operatorname{gcd}(n', k') = 1`$. Hence, for symmetry *element*
     /// conversions, we can simply take $`k' = 1`$. This is because a symmetry
     /// element plays the role of a generator, and the coprimality of $`n'`$ and
@@ -369,9 +369,9 @@ impl SymmetryElement {
             ElementOrder::Inf => ElementOrder::Inf,
         };
         let dest_proper_power = if preserves_power {
-            let pow = self.proper_power.unwrap();
             match self.order {
                 ElementOrder::Int(order_int) => {
+                    let pow = self.proper_power.unwrap();
                     (order_int + 2 * pow) / (gcd(2 * order_int, order_int + 2 * pow))
                 }
                 ElementOrder::Inf => 1,
