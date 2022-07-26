@@ -2,9 +2,8 @@ use crate::aux::atom::Atom;
 use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
-use crate::symmetry::symmetry_element::{
-    ElementOrder, SymmetryElement, SymmetryElementKind, ORDER_2, SIG
-};
+use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, SIG};
+use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_2};
 use log;
 use nalgebra::{Point3, Vector3};
 use itertools::Itertools;
@@ -47,6 +46,15 @@ pub struct PreSymmetry {
 }
 
 impl PreSymmetryBuilder {
+    /// Initialises the molecule to be symmetry-analysed.
+    ///
+    /// # Arguments
+    ///
+    /// * molecule - The molecule to be symmetry-analysed.
+    /// * recentre - A flag indicating if the molecule shall be recentred.
+    ///
+    /// # Returns
+    /// A mutable borrow of `[Self]`.
     pub fn molecule(&mut self, molecule: &Molecule, recentre: bool) -> &mut Self {
         if recentre {
             // The Symmetry struct now owns a recentred copy of `molecule`.
@@ -57,6 +65,14 @@ impl PreSymmetryBuilder {
         self
     }
 
+    /// Initialises the threshold for moment-of-inertia comparisons.
+    ///
+    /// # Arguments
+    ///
+    /// * thresh - The threshold for moment-of-inertia comparisons.
+    ///
+    /// # Returns
+    /// A mutable borrow of `[Self]`.
     pub fn moi_threshold(&mut self, thresh: f64) -> &mut Self {
         if thresh >= f64::EPSILON {
             self.moi_threshold = Some(thresh);
@@ -197,7 +213,8 @@ impl SymmetryBuilder {
         let mut proper_elements = HashMap::new();
         let c1 = SymmetryElement::builder()
             .threshold(1e-14)
-            .order(ElementOrder::Int(1))
+            .proper_order(ElementOrder::Int(1))
+            .proper_power(1)
             .axis(Vector3::new(0.0, 0.0, 1.0))
             .kind(SymmetryElementKind::Proper)
             .build()
@@ -260,7 +277,8 @@ impl Symmetry {
         let positive_axis = geometry::get_positive_pole(&axis, threshold).normalize();
         let element = SymmetryElement::builder()
             .threshold(threshold)
-            .order(order.clone())
+            .proper_order(order.clone())
+            .proper_power(1)
             .axis(positive_axis)
             .kind(SymmetryElementKind::Proper)
             .generator(generator)
@@ -343,29 +361,31 @@ impl Symmetry {
             assert!(sigma_str == "d" || sigma_str == "v" || sigma_str == "h");
             let mut sym_ele = SymmetryElement::builder()
                 .threshold(threshold)
-                .order(order.clone())
+                .proper_order(order.clone())
+                .proper_power(1)
                 .axis(positive_axis)
                 .kind(kind)
                 .generator(generator)
                 .build()
                 .unwrap()
-                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane);
-            if sym_ele.order == ElementOrder::Int(1) {
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false);
+            if sym_ele.proper_order == ElementOrder::Int(1) {
                 sym_ele.additional_subscript = sigma_str;
             }
             sym_ele
         } else {
             SymmetryElement::builder()
                 .threshold(threshold)
-                .order(order.clone())
+                .proper_order(order.clone())
+                .proper_power(1)
                 .axis(positive_axis)
                 .kind(kind)
                 .generator(generator)
                 .build()
                 .unwrap()
-                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane)
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false)
         };
-        let sig_order = element.order.clone();
+        let sig_order = element.proper_order.clone();
         let detailed_symbol = element.get_detailed_symbol();
         let standard_symbol = element.get_standard_symbol();
         let is_mirror_plane = element.is_mirror_plane();

@@ -1,6 +1,7 @@
 use crate::aux::molecule::Molecule;
 use crate::symmetry::symmetry_core::PreSymmetry;
-use crate::symmetry::symmetry_element::{ElementOrder, SymmetryElementKind};
+use crate::symmetry::symmetry_element::SymmetryElementKind;
+use crate::symmetry::symmetry_element_order::ElementOrder;
 use nalgebra::Vector3;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");

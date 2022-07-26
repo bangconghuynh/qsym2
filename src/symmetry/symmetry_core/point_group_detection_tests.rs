@@ -1,7 +1,7 @@
 use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
-use crate::symmetry::symmetry_element::ElementOrder;
+use crate::symmetry::symmetry_element_order::ElementOrder;
 use nalgebra::Vector3;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
@@ -2819,6 +2819,72 @@ fn test_point_group_detection_asymmetric_bf3_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("Cs".to_owned()));
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+/// This is a special case: Cs point group in a symmetric top.
+#[test]
+fn test_point_group_detection_symmetric_ch4_magnetic_field_cs() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("Cs".to_owned()));
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+/// This is another special case: Cs point group in a symmetric top.
+#[test]
+fn test_point_group_detection_symmetric_ch4_electric_field_cs() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("Cs".to_owned()));
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+#[test]
+fn test_point_group_detection_asymmetric_atom_magnetic_electric_field_cs() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
         .molecule(&mol, true)
