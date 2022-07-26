@@ -73,7 +73,7 @@ pub enum SymmetryElementKind {
 #[derive(Builder, Clone)]
 pub struct SymmetryElement {
     /// The rotational order $`n`$ of the proper symmetry element.
-    pub order: ElementOrder,
+    pub proper_order: ElementOrder,
 
     /// The power $`k`$ of the proper symmetry element. This is only meaningful if
     /// [`Self::order`] is finite.
@@ -118,8 +118,8 @@ pub struct SymmetryElement {
 
 impl SymmetryElementBuilder {
     pub fn proper_power(&mut self, prop_pow: u32) -> &mut Self {
-        let order = self.order.as_ref().unwrap();
-        self.proper_power = match order {
+        let proper_order = self.proper_order.as_ref().unwrap();
+        self.proper_power = match proper_order {
             ElementOrder::Int(io) => {
                 let residual = prop_pow % io;
                 if residual == 0 {
@@ -134,8 +134,8 @@ impl SymmetryElementBuilder {
     }
 
     pub fn proper_angle(&mut self, ang: f64) -> &mut Self {
-        let order = self.order.as_ref().unwrap();
-        self.proper_angle = match order {
+        let proper_order = self.proper_order.as_ref().unwrap();
+        self.proper_angle = match proper_order {
             ElementOrder::Int(_) => panic!(
                 "Arbitrary proper rotation angles can only be set for infinite-order elements."
             ),
@@ -148,16 +148,16 @@ impl SymmetryElementBuilder {
     }
 
     fn calc_proper_fraction(&self) -> Option<F> {
-        let order = self.order.as_ref().unwrap();
-        match order {
+        let proper_order = self.proper_order.as_ref().unwrap();
+        match proper_order {
             ElementOrder::Int(io) => Some(F::new(self.proper_power.unwrap().unwrap(), *io)),
             ElementOrder::Inf => None,
         }
     }
 
     fn calc_proper_angle(&self) -> Option<f64> {
-        let order = self.order.as_ref().unwrap();
-        match order {
+        let proper_order = self.proper_order.as_ref().unwrap();
+        match proper_order {
             ElementOrder::Int(io) => Some(geometry::normalise_rotation_angle(
                 (*io * self.proper_power.unwrap().unwrap()) as f64 * 2.0 * std::f64::consts::PI,
                 self.threshold.unwrap(),
@@ -263,14 +263,14 @@ impl SymmetryElement {
         let main_symbol: String = match self.kind {
             SymmetryElementKind::Proper => "C".to_owned(),
             SymmetryElementKind::ImproperMirrorPlane => {
-                if self.order != ElementOrder::Inf && self.proper_power == Some(1) {
+                if self.proper_order != ElementOrder::Inf && self.proper_power == Some(1) {
                     "S".to_owned()
                 } else {
                     "σC".to_owned()
                 }
             }
             SymmetryElementKind::ImproperInversionCentre => {
-                if self.order != ElementOrder::Inf && self.proper_power == Some(1) {
+                if self.proper_order != ElementOrder::Inf && self.proper_power == Some(1) {
                     "Ṡ".to_owned()
                 } else {
                     "iC".to_owned()
@@ -286,7 +286,7 @@ impl SymmetryElement {
         } else {
             "".to_owned()
         };
-        format!("{}{}{}", main_symbol, self.order, proper_power)
+        format!("{}{}{}", main_symbol, self.proper_order, proper_power)
     }
 
     /// Returns the detailed symbol for this symmetry element, which classifies
@@ -310,7 +310,7 @@ impl SymmetryElement {
                 } else if self.is_inversion_centre() {
                     ("i".to_owned(), false)
                 } else {
-                    if self.order == ElementOrder::Inf || self.proper_power == Some(1) {
+                    if self.proper_order == ElementOrder::Inf || self.proper_power == Some(1) {
                         ("S".to_owned(), false)
                     } else {
                         ("σC".to_owned(), true)
@@ -323,7 +323,7 @@ impl SymmetryElement {
                 } else if self.is_inversion_centre() {
                     ("i".to_owned(), false)
                 } else {
-                    if self.order == ElementOrder::Inf || self.proper_power == Some(1) {
+                    if self.proper_order == ElementOrder::Inf || self.proper_power == Some(1) {
                         ("Ṡ".to_owned(), false)
                     } else {
                         ("iC".to_owned(), true)
@@ -334,13 +334,13 @@ impl SymmetryElement {
 
         let order_string: String =
             if !self.is_identity() && !self.is_inversion_centre() && !self.is_mirror_plane() {
-                format!("{}", self.order)
+                format!("{}", self.proper_order)
             } else {
                 "".to_owned()
             };
 
         let proper_power = if needs_power {
-            match self.order {
+            match self.proper_order {
                 ElementOrder::Int(_) => {
                     if let Some(pow) = self.proper_power {
                         if pow > 1 {
@@ -421,14 +421,14 @@ impl SymmetryElement {
             return self.clone();
         }
 
-        let dest_order = match self.order {
+        let dest_order = match self.proper_order {
             ElementOrder::Int(order_int) => ElementOrder::Int(
                 2 * order_int / (gcd(2 * order_int, order_int + 2 * self.proper_power.unwrap())),
             ),
             ElementOrder::Inf => ElementOrder::Inf,
         };
         let dest_proper_power = if preserves_power {
-            match self.order {
+            match self.proper_order {
                 ElementOrder::Int(order_int) => {
                     let pow = self.proper_power.unwrap();
                     (order_int + 2 * pow) / (gcd(2 * order_int, order_int + 2 * pow))
@@ -441,7 +441,7 @@ impl SymmetryElement {
         match dest_order {
             ElementOrder::Int(_) => Self::builder()
                 .threshold(self.threshold)
-                .order(dest_order)
+                .proper_order(dest_order)
                 .proper_power(dest_proper_power)
                 .axis(self.axis)
                 .kind(improper_kind.clone())
@@ -454,7 +454,7 @@ impl SymmetryElement {
                 if let Some(ang) = self.proper_angle {
                     Self::builder()
                         .threshold(self.threshold)
-                        .order(dest_order)
+                        .proper_order(dest_order)
                         .proper_power(dest_proper_power)
                         .proper_angle(std::f64::consts::PI + ang)
                         .axis(self.axis)
@@ -467,7 +467,7 @@ impl SymmetryElement {
                 } else {
                     Self::builder()
                         .threshold(self.threshold)
-                        .order(dest_order)
+                        .proper_order(dest_order)
                         .proper_power(dest_proper_power)
                         .axis(self.axis)
                         .kind(improper_kind.clone())
@@ -484,13 +484,15 @@ impl SymmetryElement {
 
 impl fmt::Display for SymmetryElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let proper_angle = match self.order {
-            ElementOrder::Inf => if let Some(ang) = self.proper_angle {
-                format!("({:+.3})", ang)
-            } else {
-                "".to_owned()
-            },
-            _ => "".to_owned()
+        let proper_angle = match self.proper_order {
+            ElementOrder::Inf => {
+                if let Some(ang) = self.proper_angle {
+                    format!("({:+.3})", ang)
+                } else {
+                    "".to_owned()
+                }
+            }
+            _ => "".to_owned(),
         };
         if self.is_identity() || self.is_inversion_centre() {
             write!(f, "{}", self.get_detailed_symbol())
@@ -510,13 +512,15 @@ impl fmt::Display for SymmetryElement {
 
 impl fmt::Debug for SymmetryElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let proper_angle = match self.order {
-            ElementOrder::Inf => if let Some(ang) = self.proper_angle {
-                format!("({:+.3})", ang)
-            } else {
-                "".to_owned()
-            },
-            _ => "".to_owned()
+        let proper_angle = match self.proper_order {
+            ElementOrder::Inf => {
+                if let Some(ang) = self.proper_angle {
+                    format!("({:+.3})", ang)
+                } else {
+                    "".to_owned()
+                }
+            }
+            _ => "".to_owned(),
         };
         write!(
             f,
@@ -564,8 +568,8 @@ impl PartialEq for SymmetryElement {
                 geometry::get_positive_pole(&converted_other.axis, thresh),
                 epsilon = thresh,
                 max_relative = thresh
-            ) && if let ElementOrder::Inf = self.order {
-                if let ElementOrder::Inf = converted_other.order {
+            ) && if let ElementOrder::Inf = self.proper_order {
+                if let ElementOrder::Inf = converted_other.proper_order {
                     if let Some(s_angle) = self.proper_angle {
                         if let Some(o_angle) = converted_other.proper_angle {
                             approx::relative_eq!(
@@ -588,7 +592,7 @@ impl PartialEq for SymmetryElement {
                     false
                 }
             } else {
-                if let ElementOrder::Inf = converted_other.order {
+                if let ElementOrder::Inf = converted_other.proper_order {
                     false
                 } else {
                     (self.proper_fraction == converted_other.proper_fraction)
@@ -608,8 +612,8 @@ impl PartialEq for SymmetryElement {
             geometry::get_positive_pole(&other.axis, thresh),
             epsilon = thresh,
             max_relative = thresh
-        ) && if let ElementOrder::Inf = self.order {
-            if let ElementOrder::Inf = other.order {
+        ) && if let ElementOrder::Inf = self.proper_order {
+            if let ElementOrder::Inf = other.proper_order {
                 if let Some(s_angle) = self.proper_angle {
                     if let Some(o_angle) = other.proper_angle {
                         approx::relative_eq!(
@@ -632,7 +636,7 @@ impl PartialEq for SymmetryElement {
                 false
             }
         } else {
-            if let ElementOrder::Inf = other.order {
+            if let ElementOrder::Inf = other.proper_order {
                 false
             } else {
                 (self.proper_fraction == other.proper_fraction)
@@ -674,7 +678,7 @@ impl Hash for SymmetryElement {
                         .round_factor(self.threshold)
                         .integer_decode()
                         .hash(state);
-                    if let ElementOrder::Inf = c_self.order {
+                    if let ElementOrder::Inf = c_self.proper_order {
                         if let Some(angle) = c_self.proper_angle {
                             angle
                                 .abs()
@@ -707,7 +711,7 @@ impl Hash for SymmetryElement {
                         .round_factor(self.threshold)
                         .integer_decode()
                         .hash(state);
-                    if let ElementOrder::Inf = self.order {
+                    if let ElementOrder::Inf = self.proper_order {
                         if let Some(angle) = self.proper_angle {
                             angle
                                 .abs()

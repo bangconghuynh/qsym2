@@ -132,7 +132,7 @@ impl Symmetry {
                 let non_id_c_elements =
                     self.proper_elements.values().fold(vec![], |acc, c_eles| {
                         acc.into_iter()
-                            .chain(c_eles.iter().filter(|ele| ele.order != ORDER_1).cloned())
+                            .chain(c_eles.iter().filter(|ele| ele.proper_order != ORDER_1).cloned())
                             .collect()
                     });
                 if max_ord_u32 % 2 == 0 {
@@ -158,9 +158,9 @@ impl Symmetry {
                             false,
                         );
                         // iCn
-                        assert!(presym.check_improper(&c_element.order, &c_element.axis, &INV));
+                        assert!(presym.check_improper(&c_element.proper_order, &c_element.axis, &INV));
                         self.add_improper(
-                            c_element.order.clone(),
+                            c_element.proper_order.clone(),
                             c_element.axis,
                             false,
                             INV.clone(),
@@ -245,13 +245,13 @@ impl Symmetry {
                             self.proper_elements.values().fold(vec![], |acc, c_eles| {
                                 acc.into_iter()
                                     .chain(
-                                        c_eles.iter().filter(|ele| ele.order != ORDER_1).cloned(),
+                                        c_eles.iter().filter(|ele| ele.proper_order != ORDER_1).cloned(),
                                     )
                                     .collect()
                             });
                         for c_element in non_id_c_elements.into_iter() {
                             let double_order =
-                                ElementOrder::new(2.0 * c_element.order.to_float(), f64::EPSILON);
+                                ElementOrder::new(2.0 * c_element.proper_order.to_float(), f64::EPSILON);
                             if presym.check_improper(&double_order, &c_element.axis, &SIG) {
                                 self.add_improper(
                                     double_order,
@@ -279,7 +279,7 @@ impl Symmetry {
                             self.proper_elements.values().fold(vec![], |acc, c_eles| {
                                 acc.into_iter()
                                     .chain(
-                                        c_eles.iter().filter(|ele| ele.order != ORDER_1).cloned(),
+                                        c_eles.iter().filter(|ele| ele.proper_order != ORDER_1).cloned(),
                                     )
                                     .collect()
                             });
@@ -292,9 +292,9 @@ impl Symmetry {
                                 presym.dist_threshold,
                                 true, // sigma_v forced to become sigma_d
                             );
-                            assert!(presym.check_improper(&c_element.order, &c_element.axis, &INV));
+                            assert!(presym.check_improper(&c_element.proper_order, &c_element.axis, &INV));
                             self.add_improper(
-                                c_element.order.clone(),
+                                c_element.proper_order.clone(),
                                 c_element.axis,
                                 false,
                                 INV.clone(),
@@ -429,7 +429,7 @@ impl Symmetry {
                 let non_id_c_elements =
                     self.proper_elements.values().fold(vec![], |acc, c_eles| {
                         acc.into_iter()
-                            .chain(c_eles.iter().filter(|ele| ele.order != ORDER_1).cloned())
+                            .chain(c_eles.iter().filter(|ele| ele.proper_order != ORDER_1).cloned())
                             .collect()
                     });
                 if max_ord_u32 % 2 == 0 {
@@ -454,9 +454,9 @@ impl Symmetry {
                             false,
                         );
                         // iCn
-                        assert!(presym.check_improper(&c_element.order, &c_element.axis, &INV));
+                        assert!(presym.check_improper(&c_element.proper_order, &c_element.axis, &INV));
                         self.add_improper(
-                            c_element.order.clone(),
+                            c_element.proper_order.clone(),
                             c_element.axis,
                             false,
                             INV.clone(),
@@ -556,7 +556,7 @@ fn _deduce_sigma_symbol(
         0.0,
         epsilon = thresh,
         max_relative = thresh
-    ) && principal_element.order != ORDER_1
+    ) && principal_element.proper_order != ORDER_1
     {
         // Vertical plane containing principal axis
         if force_d {
@@ -569,7 +569,7 @@ fn _deduce_sigma_symbol(
         0.0,
         epsilon = thresh,
         max_relative = thresh
-    ) && principal_element.order != ORDER_1
+    ) && principal_element.proper_order != ORDER_1
     {
         // Horizontal plane perpendicular to principal axis
         Some("h".to_owned())
@@ -608,14 +608,14 @@ fn _add_sigmahcn(
         ) {
             // Cn is orthogonal to σh. The product Cn * σh is Sn.
             log::debug!("Cn is orthogonal to σh.");
-            assert!(presym.check_improper(&c_element.order, &c_element.axis, &SIG));
-            let sigma_symbol = if c_element.order == ORDER_1 {
+            assert!(presym.check_improper(&c_element.proper_order, &c_element.axis, &SIG));
+            let sigma_symbol = if c_element.proper_order == ORDER_1 {
                 Some("h".to_owned())
             } else {
                 None
             };
             sym.add_improper(
-                c_element.order,
+                c_element.proper_order,
                 c_element.axis,
                 false,
                 SIG.clone(),
@@ -631,7 +631,7 @@ fn _add_sigmahcn(
                 epsilon = presym.dist_threshold,
                 max_relative = presym.dist_threshold
             );
-            assert_eq!(c_element.order, ORDER_2);
+            assert_eq!(c_element.proper_order, ORDER_2);
             log::debug!("Cn is C2 and must therefore be contained in σh.");
             let s_axis = c_element.axis.cross(&sigma_h.axis).normalize();
             assert!(presym.check_improper(&ORDER_1, &s_axis, &SIG));

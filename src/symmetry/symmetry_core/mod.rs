@@ -213,7 +213,7 @@ impl SymmetryBuilder {
         let mut proper_elements = HashMap::new();
         let c1 = SymmetryElement::builder()
             .threshold(1e-14)
-            .order(ElementOrder::Int(1))
+            .proper_order(ElementOrder::Int(1))
             .proper_power(1)
             .axis(Vector3::new(0.0, 0.0, 1.0))
             .kind(SymmetryElementKind::Proper)
@@ -277,7 +277,7 @@ impl Symmetry {
         let positive_axis = geometry::get_positive_pole(&axis, threshold).normalize();
         let element = SymmetryElement::builder()
             .threshold(threshold)
-            .order(order.clone())
+            .proper_order(order.clone())
             .proper_power(1)
             .axis(positive_axis)
             .kind(SymmetryElementKind::Proper)
@@ -361,7 +361,7 @@ impl Symmetry {
             assert!(sigma_str == "d" || sigma_str == "v" || sigma_str == "h");
             let mut sym_ele = SymmetryElement::builder()
                 .threshold(threshold)
-                .order(order.clone())
+                .proper_order(order.clone())
                 .proper_power(1)
                 .axis(positive_axis)
                 .kind(kind)
@@ -369,14 +369,14 @@ impl Symmetry {
                 .build()
                 .unwrap()
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false);
-            if sym_ele.order == ElementOrder::Int(1) {
+            if sym_ele.proper_order == ElementOrder::Int(1) {
                 sym_ele.additional_subscript = sigma_str;
             }
             sym_ele
         } else {
             SymmetryElement::builder()
                 .threshold(threshold)
-                .order(order.clone())
+                .proper_order(order.clone())
                 .proper_power(1)
                 .axis(positive_axis)
                 .kind(kind)
@@ -385,7 +385,7 @@ impl Symmetry {
                 .unwrap()
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false)
         };
-        let sig_order = element.order.clone();
+        let sig_order = element.proper_order.clone();
         let detailed_symbol = element.get_detailed_symbol();
         let standard_symbol = element.get_standard_symbol();
         let is_mirror_plane = element.is_mirror_plane();

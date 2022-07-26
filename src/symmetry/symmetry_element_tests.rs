@@ -72,7 +72,7 @@ fn test_symmetry_element_constructor() {
     // ========================
     let c1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -83,7 +83,7 @@ fn test_symmetry_element_constructor() {
 
     let c2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -94,7 +94,7 @@ fn test_symmetry_element_constructor() {
 
     let c2p2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -105,7 +105,7 @@ fn test_symmetry_element_constructor() {
 
     let c3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::new(3.0, 1e-14))
+        .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -116,7 +116,7 @@ fn test_symmetry_element_constructor() {
 
     let c3p2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::new(3.0, 1e-14))
+        .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(2)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -127,7 +127,7 @@ fn test_symmetry_element_constructor() {
 
     let c3p3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::new(3.0, 1e-14))
+        .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(3)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -138,7 +138,7 @@ fn test_symmetry_element_constructor() {
 
     let ci = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, -1.0))
         .kind(SymmetryElementKind::Proper)
         .build()
@@ -148,7 +148,7 @@ fn test_symmetry_element_constructor() {
 
     let ci2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(0.12)
         .kind(SymmetryElementKind::Proper)
@@ -159,7 +159,7 @@ fn test_symmetry_element_constructor() {
 
     let ci3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(3.160)
         .kind(SymmetryElementKind::Proper)
@@ -173,7 +173,7 @@ fn test_symmetry_element_constructor() {
     // ==========================
     let s1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -184,7 +184,7 @@ fn test_symmetry_element_constructor() {
 
     let sd2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
@@ -195,7 +195,7 @@ fn test_symmetry_element_constructor() {
 
     let sd2p2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
@@ -206,7 +206,7 @@ fn test_symmetry_element_constructor() {
 
     let s2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -217,7 +217,7 @@ fn test_symmetry_element_constructor() {
 
     let s2p2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -228,7 +228,7 @@ fn test_symmetry_element_constructor() {
 
     let sd1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
@@ -240,7 +240,7 @@ fn test_symmetry_element_constructor() {
 
     let s3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -251,7 +251,7 @@ fn test_symmetry_element_constructor() {
 
     let s3p2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -262,7 +262,7 @@ fn test_symmetry_element_constructor() {
 
     let s3p3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(3)
         .axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -273,7 +273,7 @@ fn test_symmetry_element_constructor() {
 
     let sd3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
@@ -284,7 +284,7 @@ fn test_symmetry_element_constructor() {
 
     let sd3p2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
@@ -295,7 +295,7 @@ fn test_symmetry_element_constructor() {
 
     let sd3p2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(3)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
@@ -306,7 +306,7 @@ fn test_symmetry_element_constructor() {
 
     let si = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .proper_power(1)
         .axis(Vector3::new(1.0, 0.0, -1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -321,7 +321,7 @@ fn test_symmetry_element_constructor() {
 
     let si2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(0.121)
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -342,7 +342,7 @@ fn test_symmetry_element_constructor() {
 fn test_finite_symmetry_element_improper_conversion() {
     let s1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -353,7 +353,7 @@ fn test_finite_symmetry_element_improper_conversion() {
 
     let sd1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
@@ -364,7 +364,7 @@ fn test_finite_symmetry_element_improper_conversion() {
 
     let s3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -375,38 +375,38 @@ fn test_finite_symmetry_element_improper_conversion() {
 
     let s4 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(4))
+        .proper_order(ElementOrder::Int(4))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
         .build()
         .unwrap();
     let sd4 = s4.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
-    assert_eq!(sd4.order, ElementOrder::Int(4));
+    assert_eq!(sd4.proper_order, ElementOrder::Int(4));
     assert_eq!(format!("{}", &sd4), "Ṡ4(+0.577, +0.577, +0.577)");
 
     let sd5 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(5))
+        .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .axis(Vector3::new(1.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
         .build()
         .unwrap();
     let s10 = sd5.convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false);
-    assert_eq!(s10.order, ElementOrder::Int(10));
+    assert_eq!(s10.proper_order, ElementOrder::Int(10));
     assert_eq!(format!("{}", &s10), "S10(+0.408, +0.816, +0.408)");
 
     let sd7 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(7))
+        .proper_order(ElementOrder::Int(7))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
         .build()
         .unwrap();
     let s14 = sd7.convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false);
-    assert_eq!(s14.order, ElementOrder::Int(14));
+    assert_eq!(s14.proper_order, ElementOrder::Int(14));
 }
 
 #[test]
@@ -416,7 +416,7 @@ fn test_finite_symmetry_element_comparison() {
     // ===========
     let c1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -424,7 +424,7 @@ fn test_finite_symmetry_element_comparison() {
         .unwrap();
     let c1p = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -434,7 +434,7 @@ fn test_finite_symmetry_element_comparison() {
 
     let c1p2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(2)
         .axis(Vector3::new(4.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -444,7 +444,7 @@ fn test_finite_symmetry_element_comparison() {
 
     let c2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -452,7 +452,7 @@ fn test_finite_symmetry_element_comparison() {
         .unwrap();
     let c2p = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(-Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -463,7 +463,7 @@ fn test_finite_symmetry_element_comparison() {
 
     let c3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -471,7 +471,7 @@ fn test_finite_symmetry_element_comparison() {
         .unwrap();
     let c3p = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(-Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -484,7 +484,7 @@ fn test_finite_symmetry_element_comparison() {
     // =============
     let s1 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -495,7 +495,7 @@ fn test_finite_symmetry_element_comparison() {
 
     let sd1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
@@ -508,19 +508,19 @@ fn test_finite_symmetry_element_comparison() {
 
     let s3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
         .build()
         .unwrap();
     let sd6 = s3.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
-    assert_eq!(sd6.order, ElementOrder::Int(6));
+    assert_eq!(sd6.proper_order, ElementOrder::Int(6));
     assert_eq!(s3, sd6);
 
     let s3p = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(-Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -543,7 +543,7 @@ fn test_finite_symmetry_element_power_comparison() {
     // ===========
     let c1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -551,7 +551,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let c1p = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(2)
         .axis(Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -559,7 +559,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let c1p2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(0)
         .axis(-Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -571,7 +571,7 @@ fn test_finite_symmetry_element_power_comparison() {
 
     let c2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -580,7 +580,7 @@ fn test_finite_symmetry_element_power_comparison() {
     assert!(!c2.is_identity());
     let c2p = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -589,7 +589,7 @@ fn test_finite_symmetry_element_power_comparison() {
     assert!(c2p.is_identity());
     let c2p2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(3)
         .axis(-Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -602,7 +602,7 @@ fn test_finite_symmetry_element_power_comparison() {
 
     let c4 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(4))
+        .proper_order(ElementOrder::Int(4))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -610,7 +610,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let c4p2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(4))
+        .proper_order(ElementOrder::Int(4))
         .proper_power(2)
         .axis(-Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -618,7 +618,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let c4p3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(4))
+        .proper_order(ElementOrder::Int(4))
         .proper_power(3)
         .axis(-Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -626,7 +626,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let c4p4 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(4))
+        .proper_order(ElementOrder::Int(4))
         .proper_power(4)
         .axis(-Vector3::new(2.0, 1.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -634,7 +634,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let c4p5 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(4))
+        .proper_order(ElementOrder::Int(4))
         .proper_power(5)
         .axis(-Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -649,7 +649,7 @@ fn test_finite_symmetry_element_power_comparison() {
 
     let c5 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(5))
+        .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -657,7 +657,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let c5p9 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(5))
+        .proper_order(ElementOrder::Int(5))
         .proper_power(9)
         .axis(-Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -670,7 +670,7 @@ fn test_finite_symmetry_element_power_comparison() {
     // =============
     let s1 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -679,7 +679,7 @@ fn test_finite_symmetry_element_power_comparison() {
     assert!(s1.is_mirror_plane());
     let s1p2 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(2)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -693,7 +693,7 @@ fn test_finite_symmetry_element_power_comparison() {
 
     let s2 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -702,7 +702,7 @@ fn test_finite_symmetry_element_power_comparison() {
     assert!(s2.is_inversion_centre());
     let s2p2 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -711,7 +711,7 @@ fn test_finite_symmetry_element_power_comparison() {
     assert!(s2p2.is_mirror_plane());
     let s2p3 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(3)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -723,7 +723,7 @@ fn test_finite_symmetry_element_power_comparison() {
 
     let sd2 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
@@ -733,7 +733,7 @@ fn test_finite_symmetry_element_power_comparison() {
     let sd2b = sd2.convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, true);
     let sd2p2 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
@@ -748,7 +748,7 @@ fn test_finite_symmetry_element_power_comparison() {
 
     let s3 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -756,7 +756,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let s3p2 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .axis(Vector3::new(1.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -764,7 +764,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let s3p4 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(4)
         .axis(Vector3::new(1.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -772,7 +772,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let s3p3 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(3)
         .axis(Vector3::new(1.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -784,7 +784,7 @@ fn test_finite_symmetry_element_power_comparison() {
 
     let s6p2 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(6))
+        .proper_order(ElementOrder::Int(6))
         .proper_power(2)
         .axis(Vector3::new(1.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -792,7 +792,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let s6p3 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(6))
+        .proper_order(ElementOrder::Int(6))
         .proper_power(3)
         .axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -800,7 +800,7 @@ fn test_finite_symmetry_element_power_comparison() {
         .unwrap();
     let s6p4 = SymmetryElement::builder()
         .threshold(1e-3)
-        .order(ElementOrder::Int(6))
+        .proper_order(ElementOrder::Int(6))
         .proper_power(4)
         .axis(-Vector3::new(1.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -821,7 +821,7 @@ fn test_finite_symmetry_element_hashset() {
     let mut element_set = HashSet::new();
     let c1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -832,7 +832,7 @@ fn test_finite_symmetry_element_hashset() {
 
     let c1p = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -843,7 +843,7 @@ fn test_finite_symmetry_element_hashset() {
 
     let c2 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -854,7 +854,7 @@ fn test_finite_symmetry_element_hashset() {
 
     let c2p = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(2))
+        .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(-Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -865,7 +865,7 @@ fn test_finite_symmetry_element_hashset() {
 
     let c3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -876,7 +876,7 @@ fn test_finite_symmetry_element_hashset() {
 
     let c3p = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(-Vector3::new(1.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
@@ -887,7 +887,7 @@ fn test_finite_symmetry_element_hashset() {
 
     let s1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -901,7 +901,7 @@ fn test_finite_symmetry_element_hashset() {
 
     let sd1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(1))
+        .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
@@ -915,7 +915,7 @@ fn test_finite_symmetry_element_hashset() {
 
     let s3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -929,7 +929,7 @@ fn test_finite_symmetry_element_hashset() {
 
     let s3p = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Int(3))
+        .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(-Vector3::new(2.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -946,7 +946,7 @@ fn test_infinite_symmetry_element_comparison() {
     // ========================
     let ci1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
         .build()
@@ -954,7 +954,7 @@ fn test_infinite_symmetry_element_comparison() {
 
     let ci2 = SymmetryElement::builder()
         .threshold(1e-7)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::Proper)
         .build()
@@ -963,7 +963,7 @@ fn test_infinite_symmetry_element_comparison() {
 
     let ci3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .proper_angle(std::f64::consts::FRAC_PI_3)
         .axis(Vector3::new(0.0, 2.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -972,7 +972,7 @@ fn test_infinite_symmetry_element_comparison() {
 
     let ci4 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .proper_angle(2.0 * std::f64::consts::PI - std::f64::consts::FRAC_PI_3)
         .axis(-Vector3::new(0.0, 2.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -980,7 +980,7 @@ fn test_infinite_symmetry_element_comparison() {
         .unwrap();
     let ci4b = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .proper_angle(2.0 * std::f64::consts::PI - std::f64::consts::FRAC_PI_3)
         .axis(Vector3::new(0.0, 2.0, 1.0))
         .kind(SymmetryElementKind::Proper)
@@ -994,7 +994,7 @@ fn test_infinite_symmetry_element_comparison() {
     // ==========================
     let si1 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
         .build()
@@ -1002,7 +1002,7 @@ fn test_infinite_symmetry_element_comparison() {
 
     let si2 = SymmetryElement::builder()
         .threshold(1e-7)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
         .build()
@@ -1010,7 +1010,7 @@ fn test_infinite_symmetry_element_comparison() {
     let si2c = si2.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, true);
     let si2b = SymmetryElement::builder()
         .threshold(1e-7)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
         .build()
@@ -1021,7 +1021,7 @@ fn test_infinite_symmetry_element_comparison() {
 
     let si3 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .proper_angle(std::f64::consts::FRAC_PI_4)
         .axis(Vector3::new(1.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -1034,7 +1034,7 @@ fn test_infinite_symmetry_element_comparison() {
 
     let si4 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .proper_angle(2.0 * std::f64::consts::PI - std::f64::consts::FRAC_PI_4)
         .axis(Vector3::new(1.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane)
@@ -1044,7 +1044,7 @@ fn test_infinite_symmetry_element_comparison() {
 
     let si5 = SymmetryElement::builder()
         .threshold(1e-14)
-        .order(ElementOrder::Inf)
+        .proper_order(ElementOrder::Inf)
         .proper_angle(2.0 * std::f64::consts::PI - std::f64::consts::FRAC_PI_4)
         .axis(Vector3::new(1.0, 2.0, 1.0))
         .kind(SymmetryElementKind::ImproperInversionCentre)
