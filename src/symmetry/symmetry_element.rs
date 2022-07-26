@@ -14,6 +14,11 @@ use crate::symmetry::symmetry_element_order::ElementOrder;
 
 type F = fraction::Fraction;
 
+#[path = "symmetry_operation.rs"]
+mod symmetry_operation;
+pub use symmetry_operation::*;
+
+
 #[cfg(test)]
 #[path = "symmetry_element_tests.rs"]
 mod symmetry_element_tests;
@@ -105,7 +110,7 @@ pub struct SymmetryElement {
 
     /// A threshold for approximate equality comparisons.
     #[builder(setter(custom))]
-    threshold: f64,
+    pub threshold: f64,
 
     /// An additional superscript for distinguishing the symmetry element.
     #[builder(default = "\"\".to_owned()")]

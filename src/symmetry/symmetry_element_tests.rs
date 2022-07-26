@@ -293,7 +293,7 @@ fn test_symmetry_element_constructor() {
     assert_eq!(format!("{}", &sd3p2), "iC3^2(+0.577, +0.577, +0.577)");
     assert_eq!(format!("{:?}", &sd3p2), "iC3^2(+0.577, +0.577, +0.577)");
 
-    let sd3p2 = SymmetryElement::builder()
+    let sd3p3 = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
@@ -301,8 +301,8 @@ fn test_symmetry_element_constructor() {
         .kind(SymmetryElementKind::ImproperInversionCentre)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &sd3p2), "i");
-    assert_eq!(format!("{:?}", &sd3p2), "iC3^3(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{}", &sd3p3), "i");
+    assert_eq!(format!("{:?}", &sd3p3), "iC3^3(+0.577, +0.577, +0.577)");
 
     let si = SymmetryElement::builder()
         .threshold(1e-14)
