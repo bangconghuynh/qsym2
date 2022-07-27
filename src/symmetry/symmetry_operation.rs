@@ -26,9 +26,33 @@ pub struct SymmetryOperation {
     /// The integral power indicating the number of times
     /// [`Self::generating_element`] is applied to form the symmetry operation.
     pub power: i32,
+
+    /// The total proper rotation angle associated witrh this operation (after
+    /// taking into account the power of the operation).
+    ///
+    /// This is simply the proper rotation angle of [`Self::generating_element`]
+    /// multiplied by [`Self::power`].
+    ///
+    /// This angle lies in the open interval $`(-\pi, \pi]`$. For improper
+    /// operations, this angle depends on the convention used to describe the
+    /// [`Self::generating_element`].
+    #[builder(setter(skip), default = "self.calc_total_proper_angle()")]
+    total_proper_angle: f64,
 }
 
-impl SymmetryOperationBuilder {}
+impl SymmetryOperationBuilder {
+    fn calc_total_proper_angle(&self) -> f64 {
+        geometry::normalise_rotation_angle(
+            self.generating_element
+                .as_ref()
+                .unwrap()
+                .proper_angle
+                .unwrap()
+                * (self.power.unwrap() as f64),
+            self.generating_element.as_ref().unwrap().threshold,
+        )
+    }
+}
 
 impl SymmetryOperation {
     /// Returns a builder to construct a new symmetry operation.

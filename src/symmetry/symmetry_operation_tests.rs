@@ -24,6 +24,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c1.is_identity());
+    approx::assert_relative_eq!(
+        c1.total_proper_angle,
+        0.0,
+        max_relative = c1.generating_element.threshold,
+        epsilon = c1.generating_element.threshold
+    );
 
     let c1b = SymmetryOperation::builder()
         .generating_element(c1_element)
@@ -31,6 +37,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c1b.is_identity());
+    approx::assert_relative_eq!(
+        c1b.total_proper_angle,
+        0.0,
+        max_relative = c1b.generating_element.threshold,
+        epsilon = c1b.generating_element.threshold
+    );
 
     let c2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -47,6 +59,10 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c2.is_binary_rotation());
+    approx::assert_relative_eq!(
+        c2.total_proper_angle,
+        std::f64::consts::PI
+    );
 
     let c2p2 = SymmetryOperation::builder()
         .generating_element(c2_element.clone())
@@ -54,6 +70,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c2p2.is_identity());
+    approx::assert_relative_eq!(
+        c2p2.total_proper_angle,
+        0.0,
+        max_relative = c2p2.generating_element.threshold,
+        epsilon = c2p2.generating_element.threshold
+    );
 
     let c2p2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -70,6 +92,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c2p2b.is_identity());
+    approx::assert_relative_eq!(
+        c2p2b.total_proper_angle,
+        0.0,
+        max_relative = c2p2b.generating_element.threshold,
+        epsilon = c2p2b.generating_element.threshold
+    );
 
     let c3_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -86,6 +114,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(!c3.is_identity());
+    approx::assert_relative_eq!(
+        c3.total_proper_angle,
+        2.0 * std::f64::consts::FRAC_PI_3,
+        max_relative = c3.generating_element.threshold,
+        epsilon = c3.generating_element.threshold
+    );
 
     let c3p3 = SymmetryOperation::builder()
         .generating_element(c3_element)
@@ -93,6 +127,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c3p3.is_identity());
+    approx::assert_relative_eq!(
+        c3p3.total_proper_angle,
+        0.0,
+        max_relative = c3p3.generating_element.threshold,
+        epsilon = c3p3.generating_element.threshold
+    );
 
     let c3p2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -109,6 +149,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c3p6.is_identity());
+    approx::assert_relative_eq!(
+        c3p6.total_proper_angle,
+        0.0,
+        max_relative = c3p6.generating_element.threshold,
+        epsilon = c3p6.generating_element.threshold
+    );
 
     let c4_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -125,6 +171,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c4p2.is_binary_rotation());
+    approx::assert_relative_eq!(
+        c4p2.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = c4p2.generating_element.threshold,
+        epsilon = c4p2.generating_element.threshold
+    );
 
     let c4p4 = SymmetryOperation::builder()
         .generating_element(c4_element)
@@ -132,6 +184,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c4p4.is_identity());
+    approx::assert_relative_eq!(
+        c4p4.total_proper_angle,
+        0.0,
+        max_relative = c4p4.generating_element.threshold,
+        epsilon = c4p4.generating_element.threshold
+    );
 
     let ci_element = SymmetryElement::builder()
         .threshold(1e-7)
@@ -148,6 +206,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(cip3.is_binary_rotation());
+    approx::assert_relative_eq!(
+        cip3.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = cip3.generating_element.threshold,
+        epsilon = cip3.generating_element.threshold
+    );
 
     let cip6 = SymmetryOperation::builder()
         .generating_element(ci_element.clone())
@@ -155,6 +219,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(cip6.is_identity());
+    approx::assert_relative_eq!(
+        cip6.total_proper_angle,
+        0.0,
+        max_relative = cip6.generating_element.threshold,
+        epsilon = cip6.generating_element.threshold
+    );
 
     let cip0 = SymmetryOperation::builder()
         .generating_element(ci_element)
@@ -162,6 +232,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(cip0.is_identity());
+    approx::assert_relative_eq!(
+        cip0.total_proper_angle,
+        0.0,
+        max_relative = cip0.generating_element.threshold,
+        epsilon = cip0.generating_element.threshold
+    );
 
     // ==========================
     // Improper symmetry elements
@@ -181,6 +257,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s1.is_reflection());
+    approx::assert_relative_eq!(
+        s1.total_proper_angle,
+        0.0,
+        max_relative = s1.generating_element.threshold,
+        epsilon = s1.generating_element.threshold
+    );
 
     let s1p2 = SymmetryOperation::builder()
         .generating_element(s1_element)
@@ -188,6 +270,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s1p2.is_identity());
+    approx::assert_relative_eq!(
+        s1p2.total_proper_angle,
+        0.0,
+        max_relative = s1p2.generating_element.threshold,
+        epsilon = s1p2.generating_element.threshold
+    );
 
     let sd2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -204,6 +292,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd2.is_reflection());
+    approx::assert_relative_eq!(
+        sd2.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = sd2.generating_element.threshold,
+        epsilon = sd2.generating_element.threshold
+    );
 
     let sd2p2 = SymmetryOperation::builder()
         .generating_element(sd2_element)
@@ -211,6 +305,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd2p2.is_identity());
+    approx::assert_relative_eq!(
+        sd2p2.total_proper_angle,
+        0.0,
+        max_relative = sd2p2.generating_element.threshold,
+        epsilon = sd2p2.generating_element.threshold
+    );
 
     let sd2pp2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -227,6 +327,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd2pp2.is_inversion());
+    approx::assert_relative_eq!(
+        sd2pp2.total_proper_angle,
+        0.0,
+        max_relative = sd2pp2.generating_element.threshold,
+        epsilon = sd2pp2.generating_element.threshold
+    );
 
     let sd2pp2p6 = SymmetryOperation::builder()
         .generating_element(sd2pp2_element)
@@ -234,6 +340,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd2pp2p6.is_identity());
+    approx::assert_relative_eq!(
+        sd2pp2p6.total_proper_angle,
+        0.0,
+        max_relative = sd2pp2p6.generating_element.threshold,
+        epsilon = sd2pp2p6.generating_element.threshold
+    );
 
     let s2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -250,6 +362,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s2.is_inversion());
+    approx::assert_relative_eq!(
+        s2.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = s2.generating_element.threshold,
+        epsilon = s2.generating_element.threshold
+    );
 
     let s2p2 = SymmetryOperation::builder()
         .generating_element(s2_element)
@@ -257,6 +375,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s2p2.is_identity());
+    approx::assert_relative_eq!(
+        s2p2.total_proper_angle,
+        0.0,
+        max_relative = s2p2.generating_element.threshold,
+        epsilon = s2p2.generating_element.threshold
+    );
 
     let s2pp2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -273,6 +397,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s2pp2.is_reflection());
+    approx::assert_relative_eq!(
+        s2pp2.total_proper_angle,
+        0.0,
+        max_relative = s2pp2.generating_element.threshold,
+        epsilon = s2pp2.generating_element.threshold
+    );
 
     let s2pp2p4 = SymmetryOperation::builder()
         .generating_element(s2pp2_element)
@@ -280,6 +410,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s2pp2p4.is_identity());
+    approx::assert_relative_eq!(
+        s2pp2p4.total_proper_angle,
+        0.0,
+        max_relative = s2pp2p4.generating_element.threshold,
+        epsilon = s2pp2p4.generating_element.threshold
+    );
 
     let sd1_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -296,6 +432,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd1.is_inversion());
+    approx::assert_relative_eq!(
+        sd1.total_proper_angle,
+        0.0,
+        max_relative = sd1.generating_element.threshold,
+        epsilon = sd1.generating_element.threshold
+    );
 
     let sd1p2 = SymmetryOperation::builder()
         .generating_element(sd1_element)
@@ -303,6 +445,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd1p2.is_identity());
+    approx::assert_relative_eq!(
+        sd1p2.total_proper_angle,
+        0.0,
+        max_relative = sd1p2.generating_element.threshold,
+        epsilon = sd1p2.generating_element.threshold
+    );
 
     let s3_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -319,6 +467,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3p3.is_reflection());
+    approx::assert_relative_eq!(
+        s3p3.total_proper_angle,
+        0.0,
+        max_relative = s3p3.generating_element.threshold,
+        epsilon = s3p3.generating_element.threshold
+    );
 
     let s3p6 = SymmetryOperation::builder()
         .generating_element(s3_element)
@@ -326,6 +480,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3p6.is_identity());
+    approx::assert_relative_eq!(
+        s3p6.total_proper_angle,
+        0.0,
+        max_relative = s3p6.generating_element.threshold,
+        epsilon = s3p6.generating_element.threshold
+    );
 
     let s3pp2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -342,6 +502,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3pp2p3.is_reflection());
+    approx::assert_relative_eq!(
+        s3pp2p3.total_proper_angle,
+        0.0,
+        max_relative = s3pp2p3.generating_element.threshold,
+        epsilon = s3pp2p3.generating_element.threshold
+    );
 
     let s3pp2p6 = SymmetryOperation::builder()
         .generating_element(s3pp2_element)
@@ -349,6 +515,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3pp2p6.is_identity());
+    approx::assert_relative_eq!(
+        s3pp2p6.total_proper_angle,
+        0.0,
+        max_relative = s3pp2p6.generating_element.threshold,
+        epsilon = s3pp2p6.generating_element.threshold
+    );
 
     let s3pp3_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -365,6 +537,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3pp3.is_reflection());
+    approx::assert_relative_eq!(
+        s3pp3.total_proper_angle,
+        0.0,
+        max_relative = s3pp3.generating_element.threshold,
+        epsilon = s3pp3.generating_element.threshold
+    );
 
     let s3pp3p2 = SymmetryOperation::builder()
         .generating_element(s3pp3_element)
@@ -372,6 +550,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3pp3p2.is_identity());
+    approx::assert_relative_eq!(
+        s3pp3p2.total_proper_angle,
+        0.0,
+        max_relative = s3pp3p2.generating_element.threshold,
+        epsilon = s3pp3p2.generating_element.threshold
+    );
 
     let sd3_element = SymmetryElement::builder()
         .threshold(1e-14)

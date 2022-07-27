@@ -164,7 +164,7 @@ impl SymmetryElementBuilder {
         let proper_order = self.proper_order.as_ref().unwrap();
         match proper_order {
             ElementOrder::Int(io) => Some(geometry::normalise_rotation_angle(
-                (*io * self.proper_power.unwrap().unwrap()) as f64 * 2.0 * std::f64::consts::PI,
+                ((self.proper_power.unwrap().unwrap() as f64) / (*io as f64)) as f64 * 2.0 * std::f64::consts::PI,
                 self.threshold.unwrap(),
             )),
             ElementOrder::Inf => self.proper_angle.unwrap_or(None),
