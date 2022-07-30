@@ -1,7 +1,7 @@
 use nalgebra::Vector3;
 
 use crate::symmetry::symmetry_element::{
-    ElementOrder, SymmetryElement, SymmetryElementKind, SymmetryOperation,
+    ElementOrder, SymmetryElement, SymmetryElementKind, SymmetryOperation, SIG, INV
 };
 
 #[test]
@@ -59,10 +59,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c2.is_binary_rotation());
-    approx::assert_relative_eq!(
-        c2.total_proper_angle,
-        std::f64::consts::PI
-    );
+    approx::assert_relative_eq!(c2.total_proper_angle, std::f64::consts::PI);
 
     let c2p2 = SymmetryOperation::builder()
         .generating_element(c2_element.clone())
@@ -239,9 +236,9 @@ fn test_symmetry_operation_constructor() {
         epsilon = cip0.generating_element.threshold
     );
 
-    // ==========================
-    // Improper symmetry elements
-    // ==========================
+    // ============================
+    // Improper symmetry operations
+    // ============================
     let s1_element = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
@@ -572,6 +569,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd3p3.is_inversion());
+    approx::assert_relative_eq!(
+        sd3p3.total_proper_angle,
+        0.0,
+        max_relative = sd3p3.generating_element.threshold,
+        epsilon = sd3p3.generating_element.threshold
+    );
 
     let sd3p6 = SymmetryOperation::builder()
         .generating_element(sd3_element)
@@ -579,6 +582,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd3p6.is_identity());
+    approx::assert_relative_eq!(
+        sd3p6.total_proper_angle,
+        0.0,
+        max_relative = sd3p6.generating_element.threshold,
+        epsilon = sd3p6.generating_element.threshold
+    );
 
     let si_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -595,6 +604,12 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sip2.is_binary_rotation());
+    approx::assert_relative_eq!(
+        sip2.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = sip2.generating_element.threshold,
+        epsilon = sip2.generating_element.threshold
+    );
 
     let sip4 = SymmetryOperation::builder()
         .generating_element(si_element.clone())
@@ -602,15 +617,28 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sip4.is_identity());
+    approx::assert_relative_eq!(
+        sip4.total_proper_angle,
+        0.0,
+        max_relative = sip4.generating_element.threshold,
+        epsilon = sip4.generating_element.threshold
+    );
 
     let sib_element =
         si_element.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
+
     let sibp2 = SymmetryOperation::builder()
         .generating_element(sib_element.clone())
         .power(2)
         .build()
         .unwrap();
     assert!(sibp2.is_binary_rotation());
+    approx::assert_relative_eq!(
+        sibp2.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = sibp2.generating_element.threshold,
+        epsilon = sibp2.generating_element.threshold
+    );
 
     let sibp4 = SymmetryOperation::builder()
         .generating_element(sib_element)
@@ -618,78 +646,556 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sibp4.is_identity());
+    approx::assert_relative_eq!(
+        sibp4.total_proper_angle,
+        0.0,
+        max_relative = sibp4.generating_element.threshold,
+        epsilon = sibp4.generating_element.threshold
+    );
 }
 
-// #[test]
-// fn test_finite_symmetry_element_improper_conversion() {
-//     let s1 = SymmetryElement::builder()
-//         .threshold(1e-14)
-//         .proper_order(ElementOrder::Int(1))
-//         .proper_power(1)
-//         .axis(Vector3::new(0.0, 2.0, 0.0))
-//         .kind(SymmetryElementKind::ImproperMirrorPlane)
-//         .build()
-//         .unwrap();
-//     let sd2 = s1.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
-//     assert_eq!(format!("{}", &sd2), "σ(+0.000, +1.000, +0.000)");
+#[test]
+fn test_finite_symmetry_operation_improper_conversion() {
+    // ============================
+    // Improper symmetry operations
+    // ============================
+    let s1_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
 
-//     let sd1 = SymmetryElement::builder()
-//         .threshold(1e-14)
-//         .proper_order(ElementOrder::Int(1))
-//         .proper_power(1)
-//         .axis(Vector3::new(1.0, 1.0, 1.0))
-//         .kind(SymmetryElementKind::ImproperInversionCentre)
-//         .build()
-//         .unwrap();
-//     let s2 = sd1.convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false);
-//     assert_eq!(format!("{}", &s2), "i");
+    let s1 = SymmetryOperation::builder()
+        .generating_element(s1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s1.total_proper_angle,
+        0.0,
+        max_relative = s1.generating_element.threshold,
+        epsilon = s1.generating_element.threshold
+    );
 
-//     let s3 = SymmetryElement::builder()
-//         .threshold(1e-14)
-//         .proper_order(ElementOrder::Int(3))
-//         .proper_power(1)
-//         .axis(Vector3::new(2.0, 2.0, 1.0))
-//         .kind(SymmetryElementKind::ImproperMirrorPlane)
-//         .build()
-//         .unwrap();
-//     let sd6 = s3.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
-//     assert_eq!(format!("{}", &sd6), "Ṡ6(+0.667, +0.667, +0.333)");
+    let s1c = s1.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        s1c.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = s1c.generating_element.threshold,
+        epsilon = s1c.generating_element.threshold
+    );
 
-//     let s4 = SymmetryElement::builder()
-//         .threshold(1e-14)
-//         .proper_order(ElementOrder::Int(4))
-//         .proper_power(1)
-//         .axis(Vector3::new(1.0, 1.0, 1.0))
-//         .kind(SymmetryElementKind::ImproperMirrorPlane)
-//         .build()
-//         .unwrap();
-//     let sd4 = s4.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
-//     assert_eq!(sd4.proper_order, ElementOrder::Int(4));
-//     assert_eq!(format!("{}", &sd4), "Ṡ4(+0.577, +0.577, +0.577)");
+    let s1p2 = SymmetryOperation::builder()
+        .generating_element(s1_element)
+        .power(-2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s1p2.total_proper_angle,
+        0.0,
+        max_relative = s1p2.generating_element.threshold,
+        epsilon = s1p2.generating_element.threshold
+    );
 
-//     let sd5 = SymmetryElement::builder()
-//         .threshold(1e-14)
-//         .proper_order(ElementOrder::Int(5))
-//         .proper_power(1)
-//         .axis(Vector3::new(1.0, 2.0, 1.0))
-//         .kind(SymmetryElementKind::ImproperInversionCentre)
-//         .build()
-//         .unwrap();
-//     let s10 = sd5.convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false);
-//     assert_eq!(s10.proper_order, ElementOrder::Int(10));
-//     assert_eq!(format!("{}", &s10), "S10(+0.408, +0.816, +0.408)");
+    let s1p2c = s1p2.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(
+        s1p2c.total_proper_angle,
+        0.0,
+        max_relative = s1p2.generating_element.threshold,
+        epsilon = s1p2.generating_element.threshold
+    );
 
-//     let sd7 = SymmetryElement::builder()
-//         .threshold(1e-14)
-//         .proper_order(ElementOrder::Int(7))
-//         .proper_power(1)
-//         .axis(Vector3::new(1.0, 1.0, 1.0))
-//         .kind(SymmetryElementKind::ImproperInversionCentre)
-//         .build()
-//         .unwrap();
-//     let s14 = sd7.convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false);
-//     assert_eq!(s14.proper_order, ElementOrder::Int(14));
-// }
+    let sd2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sd2 = SymmetryOperation::builder()
+        .generating_element(sd2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        sd2.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = sd2.generating_element.threshold,
+        epsilon = sd2.generating_element.threshold
+    );
+
+    let sd2c = sd2.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(
+        sd2c.total_proper_angle,
+        0.0,
+        max_relative = sd2c.generating_element.threshold,
+        epsilon = sd2c.generating_element.threshold
+    );
+
+    let sd2p2 = SymmetryOperation::builder()
+        .generating_element(sd2_element)
+        .power(2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        sd2p2.total_proper_angle,
+        0.0,
+        max_relative = sd2p2.generating_element.threshold,
+        epsilon = sd2p2.generating_element.threshold
+    );
+
+    let sd2p2c = sd2p2.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(
+        sd2p2c.total_proper_angle,
+        0.0,
+        max_relative = sd2p2c.generating_element.threshold,
+        epsilon = sd2p2c.generating_element.threshold
+    );
+
+    let sd2pp2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(2)
+        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sd2pp2 = SymmetryOperation::builder()
+        .generating_element(sd2pp2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        sd2pp2.total_proper_angle,
+        0.0,
+        max_relative = sd2pp2.generating_element.threshold,
+        epsilon = sd2pp2.generating_element.threshold
+    );
+
+    let sd2pp2c = sd2pp2.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(
+        sd2pp2c.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = sd2pp2c.generating_element.threshold,
+        epsilon = sd2pp2c.generating_element.threshold
+    );
+
+    let sd2pp2p6 = SymmetryOperation::builder()
+        .generating_element(sd2pp2_element)
+        .power(6)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        sd2pp2p6.total_proper_angle,
+        0.0,
+        max_relative = sd2pp2p6.generating_element.threshold,
+        epsilon = sd2pp2p6.generating_element.threshold
+    );
+
+    let sd2pp2p6c = sd2pp2p6.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(
+        sd2pp2p6c.total_proper_angle,
+        0.0,
+        max_relative = sd2pp2p6c.generating_element.threshold,
+        epsilon = sd2pp2p6c.generating_element.threshold
+    );
+
+    let s2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s2 = SymmetryOperation::builder()
+        .generating_element(s2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s2.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = s2.generating_element.threshold,
+        epsilon = s2.generating_element.threshold
+    );
+
+    let s2c = s2.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        s2c.total_proper_angle,
+        0.0,
+        max_relative = s2c.generating_element.threshold,
+        epsilon = s2c.generating_element.threshold
+    );
+
+    let s2p2 = SymmetryOperation::builder()
+        .generating_element(s2_element)
+        .power(2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s2p2.total_proper_angle,
+        0.0,
+        max_relative = s2p2.generating_element.threshold,
+        epsilon = s2p2.generating_element.threshold
+    );
+
+    let s2p2c = s2p2.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        s2p2c.total_proper_angle,
+        0.0,
+        max_relative = s2p2c.generating_element.threshold,
+        epsilon = s2p2c.generating_element.threshold
+    );
+
+    let sd1_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sd1 = SymmetryOperation::builder()
+        .generating_element(sd1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        sd1.total_proper_angle,
+        0.0,
+        max_relative = sd1.generating_element.threshold,
+        epsilon = sd1.generating_element.threshold
+    );
+
+    let sd1c = sd1.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(
+        sd1c.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = sd1c.generating_element.threshold,
+        epsilon = sd1c.generating_element.threshold
+    );
+
+    let sd1p2 = SymmetryOperation::builder()
+        .generating_element(sd1_element)
+        .power(-2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        sd1p2.total_proper_angle,
+        0.0,
+        max_relative = sd1p2.generating_element.threshold,
+        epsilon = sd1p2.generating_element.threshold
+    );
+
+    let sd1p2c = sd1p2.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(
+        sd1p2c.total_proper_angle,
+        0.0,
+        max_relative = sd1p2c.generating_element.threshold,
+        epsilon = sd1p2.generating_element.threshold
+    );
+
+    let s3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s3 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s3.total_proper_angle,
+        2.0 * std::f64::consts::FRAC_PI_3,
+        max_relative = s3.generating_element.threshold,
+        epsilon = s3.generating_element.threshold
+    );
+
+    let s3c = s3.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        s3c.total_proper_angle,
+        -std::f64::consts::FRAC_PI_3,
+        max_relative = s3c.generating_element.threshold,
+        epsilon = s3c.generating_element.threshold
+    );
+
+    let s3p2 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert!(s3p2.is_proper());
+    approx::assert_relative_eq!(
+        s3p2.total_proper_angle,
+        -2.0 * std::f64::consts::FRAC_PI_3,
+        max_relative = s3p2.generating_element.threshold,
+        epsilon = s3p2.generating_element.threshold
+    );
+
+    let s3p2c = s3p2.convert_to_improper_kind(&INV);
+    assert!(s3p2c.is_proper());
+    approx::assert_relative_eq!(
+        s3p2c.total_proper_angle,
+        -2.0 * std::f64::consts::FRAC_PI_3,
+        max_relative = s3p2c.generating_element.threshold,
+        epsilon = s3p2c.generating_element.threshold
+    );
+
+    let s3p2 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert!(s3p2.is_proper());
+    approx::assert_relative_eq!(
+        s3p2.total_proper_angle,
+        -2.0 * std::f64::consts::FRAC_PI_3,
+        max_relative = s3p2.generating_element.threshold,
+        epsilon = s3p2.generating_element.threshold
+    );
+
+    let s3p2c = s3p2.convert_to_improper_kind(&INV);
+    assert!(s3p2c.is_proper());
+    approx::assert_relative_eq!(
+        s3p2c.total_proper_angle,
+        -2.0 * std::f64::consts::FRAC_PI_3,
+        max_relative = s3p2c.generating_element.threshold,
+        epsilon = s3p2c.generating_element.threshold
+    );
+
+    let s3p3 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert!(!s3p3.is_proper());
+    approx::assert_relative_eq!(
+        s3p3.total_proper_angle,
+        0.0,
+        max_relative = s3p3.generating_element.threshold,
+        epsilon = s3p3.generating_element.threshold
+    );
+
+    let s3p3c = s3p3.convert_to_improper_kind(&INV);
+    assert!(!s3p3c.is_proper());
+    approx::assert_relative_eq!(
+        s3p3c.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = s3p2c.generating_element.threshold,
+        epsilon = s3p2c.generating_element.threshold
+    );
+
+    let s3p6 = SymmetryOperation::builder()
+        .generating_element(s3_element)
+        .power(6)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s3p6.total_proper_angle,
+        0.0,
+        max_relative = s3p6.generating_element.threshold,
+        epsilon = s3p6.generating_element.threshold
+    );
+
+    let s3p6c = s3p6.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        s3p6c.total_proper_angle,
+        0.0,
+        max_relative = s3p6c.generating_element.threshold,
+        epsilon = s3p6c.generating_element.threshold
+    );
+
+    let s3pp2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(2)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s3pp2 = SymmetryOperation::builder()
+        .generating_element(s3pp2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s3pp2.total_proper_angle,
+        -2.0*std::f64::consts::FRAC_PI_3,
+        max_relative = s3pp2.generating_element.threshold,
+        epsilon = s3pp2.generating_element.threshold
+    );
+
+    let s3pp2c = s3pp2.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        s3pp2c.total_proper_angle,
+        std::f64::consts::FRAC_PI_3,
+        max_relative = s3pp2c.generating_element.threshold,
+        epsilon = s3pp2c.generating_element.threshold
+    );
+
+    let s3pp2p3 = SymmetryOperation::builder()
+        .generating_element(s3pp2_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s3pp2p3.total_proper_angle,
+        0.0,
+        max_relative = s3pp2p3.generating_element.threshold,
+        epsilon = s3pp2p3.generating_element.threshold
+    );
+
+    let s3pp2p3c = s3pp2p3.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        s3pp2p3c.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = s3pp2p3c.generating_element.threshold,
+        epsilon = s3pp2p3c.generating_element.threshold
+    );
+
+    let sd3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sd3p3 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        sd3p3.total_proper_angle,
+        0.0,
+        max_relative = sd3p3.generating_element.threshold,
+        epsilon = sd3p3.generating_element.threshold
+    );
+
+    let sd3p3c = sd3p3.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(
+        sd3p3c.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = sd3p3c.generating_element.threshold,
+        epsilon = sd3p3c.generating_element.threshold
+    );
+
+    let si_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Inf)
+        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let si = SymmetryOperation::builder()
+        .generating_element(si_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        si.total_proper_angle,
+        std::f64::consts::FRAC_PI_2,
+        max_relative = si.generating_element.threshold,
+        epsilon = si.generating_element.threshold
+    );
+
+    let sic = si.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        sic.total_proper_angle,
+        -std::f64::consts::FRAC_PI_2,
+        max_relative = sic.generating_element.threshold,
+        epsilon = sic.generating_element.threshold
+    );
+
+    let sip2 = SymmetryOperation::builder()
+        .generating_element(si_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        sip2.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = sip2.generating_element.threshold,
+        epsilon = sip2.generating_element.threshold
+    );
+
+    let sip2c = sip2.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        sip2c.total_proper_angle,
+        std::f64::consts::PI,
+        max_relative = sip2c.generating_element.threshold,
+        epsilon = sip2c.generating_element.threshold
+    );
+
+    let sip4 = SymmetryOperation::builder()
+        .generating_element(si_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        sip4.total_proper_angle,
+        0.0,
+        max_relative = sip4.generating_element.threshold,
+        epsilon = sip4.generating_element.threshold
+    );
+
+    let sip4c = sip4.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        sip4c.total_proper_angle,
+        0.0,
+        max_relative = sip4c.generating_element.threshold,
+        epsilon = sip4c.generating_element.threshold
+    );
+
+    // let sib_element =
+    //     si_element.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
+
+    // let sibp2 = SymmetryOperation::builder()
+    //     .generating_element(sib_element.clone())
+    //     .power(2)
+    //     .build()
+    //     .unwrap();
+    // assert!(sibp2.is_binary_rotation());
+    // approx::assert_relative_eq!(
+    //     sibp2.total_proper_angle,
+    //     std::f64::consts::PI,
+    //     max_relative = sibp2.generating_element.threshold,
+    //     epsilon = sibp2.generating_element.threshold
+    // );
+
+    // let sibp4 = SymmetryOperation::builder()
+    //     .generating_element(sib_element)
+    //     .power(4)
+    //     .build()
+    //     .unwrap();
+    // assert!(sibp4.is_identity());
+    // approx::assert_relative_eq!(
+    //     sibp4.total_proper_angle,
+    //     0.0,
+    //     max_relative = sibp4.generating_element.threshold,
+    //     epsilon = sibp4.generating_element.threshold
+    // );
+
+}
 
 // #[test]
 // fn test_finite_symmetry_element_comparison() {

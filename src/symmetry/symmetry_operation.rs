@@ -4,6 +4,7 @@ use crate::symmetry::symmetry_element_order::ElementOrder;
 use approx;
 use derive_builder::Builder;
 use fraction;
+use nalgebra::Point3;
 
 type F = fraction::Fraction;
 
@@ -221,6 +222,42 @@ impl SymmetryOperation {
                 }
                 SymmetryElementKind::Proper => false,
             }
+    }
+
+    ///// Finds the pole associated with this operation.
+    /////
+    ///// This is the point on the unit sphere that is left invariant by the operation.
+    /////
+    ///// For improper elements, the inversion-centre convention is used to define
+    ///// the pole. This allows a proper rotation and its improper partner to have the
+    ///// same pole, thus facilitating the consistent specification of poles for the
+    ///// identity / inversion and binary rotations / reflections.
+    /////
+    ///// See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover
+    ///// Publications, Inc., New York, 2005) (Chapter 9) for further information.
+    /////
+    ///// # Returns
+    /////
+    ///// The pole associated with this operation.
+    //pub fn calc_pole(&self) -> Point3<f64> {
+    //    let op = if self.is_proper() {
+    //        self
+    //    } else {
+    //    }
+    //}
+
+    /// Returns a copy of the current symmetry operation with the generating element
+    /// converted to the requested improper kind (power-preserving), provided that
+    /// it is an improper element.
+    fn convert_to_improper_kind(&self, improper_kind: &SymmetryElementKind) -> Self {
+        let c_element = self
+            .generating_element
+            .convert_to_improper_kind(improper_kind, true);
+        Self::builder()
+            .generating_element(c_element)
+            .power(self.power)
+            .build()
+            .unwrap()
     }
 }
 
