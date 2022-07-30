@@ -1183,6 +1183,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s1.generating_element.threshold,
         epsilon = s1.generating_element.threshold
     );
+    assert_eq!(s1.total_proper_fraction, Some(F::from(1u64)));
 
     let s1c = s1.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(
@@ -1191,26 +1192,29 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s1c.generating_element.threshold,
         epsilon = s1c.generating_element.threshold
     );
+    assert_eq!(s1c.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
-    let s1p2 = SymmetryOperation::builder()
+    let s1pm2 = SymmetryOperation::builder()
         .generating_element(s1_element)
         .power(-2)
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        s1p2.total_proper_angle,
+        s1pm2.total_proper_angle,
         0.0,
-        max_relative = s1p2.generating_element.threshold,
-        epsilon = s1p2.generating_element.threshold
+        max_relative = s1pm2.generating_element.threshold,
+        epsilon = s1pm2.generating_element.threshold
     );
+    assert_eq!(s1pm2.total_proper_fraction, Some(F::from(1u64)));
 
-    let s1p2c = s1p2.convert_to_improper_kind(&SIG);
+    let s1pm2c = s1pm2.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(
-        s1p2c.total_proper_angle,
+        s1pm2c.total_proper_angle,
         0.0,
-        max_relative = s1p2.generating_element.threshold,
-        epsilon = s1p2.generating_element.threshold
+        max_relative = s1pm2c.generating_element.threshold,
+        epsilon = s1pm2c.generating_element.threshold
     );
+    assert_eq!(s1pm2c.total_proper_fraction, Some(F::from(1u64)));
 
     let sd2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1232,6 +1236,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd2.generating_element.threshold,
         epsilon = sd2.generating_element.threshold
     );
+    assert_eq!(sd2.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let sd2c = sd2.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(
@@ -1240,6 +1245,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd2c.generating_element.threshold,
         epsilon = sd2c.generating_element.threshold
     );
+    assert_eq!(sd2c.total_proper_fraction, Some(F::from(1u64)));
 
     let sd2p2 = SymmetryOperation::builder()
         .generating_element(sd2_element)
@@ -1252,6 +1258,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd2p2.generating_element.threshold,
         epsilon = sd2p2.generating_element.threshold
     );
+    assert_eq!(sd2p2.total_proper_fraction, Some(F::from(1u64)));
 
     let sd2p2c = sd2p2.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(
@@ -1260,6 +1267,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd2p2c.generating_element.threshold,
         epsilon = sd2p2c.generating_element.threshold
     );
+    assert_eq!(sd2p2c.total_proper_fraction, Some(F::from(1u64)));
 
     let sd2pp2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1281,6 +1289,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd2pp2.generating_element.threshold,
         epsilon = sd2pp2.generating_element.threshold
     );
+    assert_eq!(sd2pp2.total_proper_fraction, Some(F::from(1u64)));
 
     let sd2pp2c = sd2pp2.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(
@@ -1289,6 +1298,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd2pp2c.generating_element.threshold,
         epsilon = sd2pp2c.generating_element.threshold
     );
+    assert_eq!(sd2pp2c.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let sd2pp2p6 = SymmetryOperation::builder()
         .generating_element(sd2pp2_element)
@@ -1301,6 +1311,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd2pp2p6.generating_element.threshold,
         epsilon = sd2pp2p6.generating_element.threshold
     );
+    assert_eq!(sd2pp2p6.total_proper_fraction, Some(F::from(1u64)));
 
     let sd2pp2p6c = sd2pp2p6.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(
@@ -1309,6 +1320,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd2pp2p6c.generating_element.threshold,
         epsilon = sd2pp2p6c.generating_element.threshold
     );
+    assert_eq!(sd2pp2p6c.total_proper_fraction, Some(F::from(1u64)));
 
     let s2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1330,6 +1342,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s2.generating_element.threshold,
         epsilon = s2.generating_element.threshold
     );
+    assert_eq!(s2.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let s2c = s2.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(
@@ -1338,6 +1351,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s2c.generating_element.threshold,
         epsilon = s2c.generating_element.threshold
     );
+    assert_eq!(s2c.total_proper_fraction, Some(F::from(1u64)));
 
     let s2p2 = SymmetryOperation::builder()
         .generating_element(s2_element)
@@ -1350,6 +1364,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s2p2.generating_element.threshold,
         epsilon = s2p2.generating_element.threshold
     );
+    assert_eq!(s2p2.total_proper_fraction, Some(F::from(1u64)));
 
     let s2p2c = s2p2.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(
@@ -1358,6 +1373,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s2p2c.generating_element.threshold,
         epsilon = s2p2c.generating_element.threshold
     );
+    assert_eq!(s2p2c.total_proper_fraction, Some(F::from(1u64)));
 
     let sd1_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1379,6 +1395,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd1.generating_element.threshold,
         epsilon = sd1.generating_element.threshold
     );
+    assert_eq!(sd1.total_proper_fraction, Some(F::from(1u64)));
 
     let sd1c = sd1.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(
@@ -1387,6 +1404,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd1c.generating_element.threshold,
         epsilon = sd1c.generating_element.threshold
     );
+    assert_eq!(sd1c.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let sd1p2 = SymmetryOperation::builder()
         .generating_element(sd1_element)
@@ -1399,6 +1417,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd1p2.generating_element.threshold,
         epsilon = sd1p2.generating_element.threshold
     );
+    assert_eq!(sd1p2.total_proper_fraction, Some(F::from(1u64)));
 
     let sd1p2c = sd1p2.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(
@@ -1407,6 +1426,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd1p2c.generating_element.threshold,
         epsilon = sd1p2.generating_element.threshold
     );
+    assert_eq!(sd1p2c.total_proper_fraction, Some(F::from(1u64)));
 
     let s3_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1428,6 +1448,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3.generating_element.threshold,
         epsilon = s3.generating_element.threshold
     );
+    assert_eq!(s3.total_proper_fraction, Some(F::new(1u64, 3u64)));
 
     let s3c = s3.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(
@@ -1436,6 +1457,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3c.generating_element.threshold,
         epsilon = s3c.generating_element.threshold
     );
+    assert_eq!(s3c.total_proper_fraction, Some(F::new(5u64, 6u64)));
 
     let s3p2 = SymmetryOperation::builder()
         .generating_element(s3_element.clone())
@@ -1449,6 +1471,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3p2.generating_element.threshold,
         epsilon = s3p2.generating_element.threshold
     );
+    assert_eq!(s3p2.total_proper_fraction, Some(F::new(2u64, 3u64)));
 
     let s3p2c = s3p2.convert_to_improper_kind(&INV);
     assert!(s3p2c.is_proper());
@@ -1458,28 +1481,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3p2c.generating_element.threshold,
         epsilon = s3p2c.generating_element.threshold
     );
-
-    let s3p2 = SymmetryOperation::builder()
-        .generating_element(s3_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert!(s3p2.is_proper());
-    approx::assert_relative_eq!(
-        s3p2.total_proper_angle,
-        -2.0 * std::f64::consts::FRAC_PI_3,
-        max_relative = s3p2.generating_element.threshold,
-        epsilon = s3p2.generating_element.threshold
-    );
-
-    let s3p2c = s3p2.convert_to_improper_kind(&INV);
-    assert!(s3p2c.is_proper());
-    approx::assert_relative_eq!(
-        s3p2c.total_proper_angle,
-        -2.0 * std::f64::consts::FRAC_PI_3,
-        max_relative = s3p2c.generating_element.threshold,
-        epsilon = s3p2c.generating_element.threshold
-    );
+    assert_eq!(s3p2c.total_proper_fraction, Some(F::new(2u64, 3u64)));
 
     let s3p3 = SymmetryOperation::builder()
         .generating_element(s3_element.clone())
@@ -1493,6 +1495,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3p3.generating_element.threshold,
         epsilon = s3p3.generating_element.threshold
     );
+    assert_eq!(s3p3.total_proper_fraction, Some(F::from(1u64)));
 
     let s3p3c = s3p3.convert_to_improper_kind(&INV);
     assert!(!s3p3c.is_proper());
@@ -1502,6 +1505,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3p2c.generating_element.threshold,
         epsilon = s3p2c.generating_element.threshold
     );
+    assert_eq!(s3p3c.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let s3p6 = SymmetryOperation::builder()
         .generating_element(s3_element)
@@ -1514,6 +1518,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3p6.generating_element.threshold,
         epsilon = s3p6.generating_element.threshold
     );
+    assert_eq!(s3p6.total_proper_fraction, Some(F::from(1u64)));
 
     let s3p6c = s3p6.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(
@@ -1522,6 +1527,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3p6c.generating_element.threshold,
         epsilon = s3p6c.generating_element.threshold
     );
+    assert_eq!(s3p6c.total_proper_fraction, Some(F::from(1u64)));
 
     let s3pp2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1543,6 +1549,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3pp2.generating_element.threshold,
         epsilon = s3pp2.generating_element.threshold
     );
+    assert_eq!(s3pp2.total_proper_fraction, Some(F::new(2u64, 3u64)));
 
     let s3pp2c = s3pp2.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(
@@ -1551,6 +1558,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3pp2c.generating_element.threshold,
         epsilon = s3pp2c.generating_element.threshold
     );
+    assert_eq!(s3pp2c.total_proper_fraction, Some(F::new(1u64, 6u64)));
 
     let s3pp2p3 = SymmetryOperation::builder()
         .generating_element(s3pp2_element.clone())
@@ -1563,6 +1571,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3pp2p3.generating_element.threshold,
         epsilon = s3pp2p3.generating_element.threshold
     );
+    assert_eq!(s3pp2p3.total_proper_fraction, Some(F::from(1u64)));
 
     let s3pp2p3c = s3pp2p3.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(
@@ -1571,6 +1580,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = s3pp2p3c.generating_element.threshold,
         epsilon = s3pp2p3c.generating_element.threshold
     );
+    assert_eq!(s3pp2p3c.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let sd3_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1592,6 +1602,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd3p3.generating_element.threshold,
         epsilon = sd3p3.generating_element.threshold
     );
+    assert_eq!(sd3p3.total_proper_fraction, Some(F::from(1u64)));
 
     let sd3p3c = sd3p3.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(
@@ -1600,6 +1611,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sd3p3c.generating_element.threshold,
         epsilon = sd3p3c.generating_element.threshold
     );
+    assert_eq!(sd3p3c.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let si_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1621,6 +1633,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = si.generating_element.threshold,
         epsilon = si.generating_element.threshold
     );
+    assert_eq!(si.total_proper_fraction, None);
 
     let sic = si.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(
@@ -1629,6 +1642,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sic.generating_element.threshold,
         epsilon = sic.generating_element.threshold
     );
+    assert_eq!(sic.total_proper_fraction, None);
 
     let sip2 = SymmetryOperation::builder()
         .generating_element(si_element.clone())
@@ -1641,6 +1655,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sip2.generating_element.threshold,
         epsilon = sip2.generating_element.threshold
     );
+    assert_eq!(sip2.total_proper_fraction, None);
 
     let sip2c = sip2.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(
@@ -1649,6 +1664,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sip2c.generating_element.threshold,
         epsilon = sip2c.generating_element.threshold
     );
+    assert_eq!(sip2c.total_proper_fraction, None);
 
     let sip4 = SymmetryOperation::builder()
         .generating_element(si_element.clone())
@@ -1661,6 +1677,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sip4.generating_element.threshold,
         epsilon = sip4.generating_element.threshold
     );
+    assert_eq!(sip4.total_proper_fraction, None);
 
     let sip4c = sip4.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(
@@ -1669,36 +1686,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         max_relative = sip4c.generating_element.threshold,
         epsilon = sip4c.generating_element.threshold
     );
-
-    // let sib_element =
-    //     si_element.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
-
-    // let sibp2 = SymmetryOperation::builder()
-    //     .generating_element(sib_element.clone())
-    //     .power(2)
-    //     .build()
-    //     .unwrap();
-    // assert!(sibp2.is_binary_rotation());
-    // approx::assert_relative_eq!(
-    //     sibp2.total_proper_angle,
-    //     std::f64::consts::PI,
-    //     max_relative = sibp2.generating_element.threshold,
-    //     epsilon = sibp2.generating_element.threshold
-    // );
-
-    // let sibp4 = SymmetryOperation::builder()
-    //     .generating_element(sib_element)
-    //     .power(4)
-    //     .build()
-    //     .unwrap();
-    // assert!(sibp4.is_identity());
-    // approx::assert_relative_eq!(
-    //     sibp4.total_proper_angle,
-    //     0.0,
-    //     max_relative = sibp4.generating_element.threshold,
-    //     epsilon = sibp4.generating_element.threshold
-    // );
-
+    assert_eq!(sip4c.total_proper_fraction, None);
 }
 
 // #[test]
