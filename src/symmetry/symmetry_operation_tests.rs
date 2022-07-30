@@ -1613,6 +1613,112 @@ fn test_symmetry_operation_finite_improper_conversion() {
     );
     assert_eq!(sd3p3c.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
+    let s7_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(7))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, 2.5, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s7 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s7.total_proper_angle,
+        2.0 / 7.0 * std::f64::consts::PI,
+        max_relative = s7.generating_element.threshold,
+        epsilon = s7.generating_element.threshold
+    );
+    assert_eq!(s7.total_proper_fraction, Some(F::new(1u64, 7u64)));
+
+    let s7c = s7.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        s7c.total_proper_angle,
+        -5.0 / 7.0 * std::f64::consts::PI,
+        max_relative = s7c.generating_element.threshold,
+        epsilon = s7c.generating_element.threshold
+    );
+    assert_eq!(s7c.total_proper_fraction, Some(F::new(9u64, 14u64)));
+
+    let s7p2 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s7p2.total_proper_angle,
+        4.0 / 7.0 * std::f64::consts::PI,
+        max_relative = s7p2.generating_element.threshold,
+        epsilon = s7p2.generating_element.threshold
+    );
+    assert_eq!(s7p2.total_proper_fraction, Some(F::new(2u64, 7u64)));
+
+    let s7p2c = s7p2.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        s7p2c.total_proper_angle,
+        4.0 / 7.0 * std::f64::consts::PI,
+        max_relative = s7p2c.generating_element.threshold,
+        epsilon = s7p2c.generating_element.threshold
+    );
+    assert_eq!(s7p2c.total_proper_fraction, Some(F::new(2u64, 7u64)));
+
+    let s7p5 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s7p5.total_proper_angle,
+        -4.0 / 7.0 * std::f64::consts::PI,
+        max_relative = s7p5.generating_element.threshold,
+        epsilon = s7p5.generating_element.threshold
+    );
+    assert_eq!(s7p5.total_proper_fraction, Some(F::new(5u64, 7u64)));
+
+    let s7p5c = s7p5.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        s7p5c.total_proper_angle,
+        3.0 / 7.0 * std::f64::consts::PI,
+        max_relative = s7p5c.generating_element.threshold,
+        epsilon = s7p5c.generating_element.threshold
+    );
+    assert_eq!(s7p5c.total_proper_fraction, Some(F::new(3u64, 14u64)));
+
+    let s7pp2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(7))
+        .proper_power(2)
+        .axis(Vector3::new(2.0, 2.5, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s7pp2 = SymmetryOperation::builder()
+        .generating_element(s7pp2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        s7pp2.total_proper_angle,
+        4.0 / 7.0 * std::f64::consts::PI,
+        max_relative = s7pp2.generating_element.threshold,
+        epsilon = s7pp2.generating_element.threshold
+    );
+    assert_eq!(s7pp2.total_proper_fraction, Some(F::new(2u64, 7u64)));
+
+    let s7pp2c = s7pp2.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(
+        s7pp2c.total_proper_angle,
+        -3.0 / 7.0 * std::f64::consts::PI,
+        max_relative = s7pp2c.generating_element.threshold,
+        epsilon = s7pp2c.generating_element.threshold
+    );
+    assert_eq!(s7pp2c.total_proper_fraction, Some(F::new(11u64, 14u64)));
+
     let si_element = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Inf)
