@@ -3,6 +3,8 @@ use nalgebra::Vector3;
 use crate::symmetry::symmetry_element::{
     ElementOrder, SymmetryElement, SymmetryElementKind, SymmetryOperation, SIG, INV
 };
+use fraction;
+type F = fraction::Fraction;
 
 #[test]
 fn test_symmetry_operation_constructor() {
@@ -655,7 +657,509 @@ fn test_symmetry_operation_constructor() {
 }
 
 #[test]
-fn test_finite_symmetry_operation_improper_conversion() {
+fn test_symmetry_operation_total_proper_fraction() {
+    // ==========================
+    // Proper symmetry operations
+    // ==========================
+    let c1_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c1 = SymmetryOperation::builder()
+        .generating_element(c1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(c1.total_proper_fraction, Some(F::from(1u64)));
+
+    let c1b = SymmetryOperation::builder()
+        .generating_element(c1_element)
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(c1b.total_proper_fraction, Some(F::from(1u64)));
+
+    let c2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c2 = SymmetryOperation::builder()
+        .generating_element(c2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(c2.total_proper_fraction, Some(F::new(1u64, 2u64)));
+
+    let c2p2 = SymmetryOperation::builder()
+        .generating_element(c2_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(c2p2.total_proper_fraction, Some(F::from(1u64)));
+
+    let c2p2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(2)
+        .axis(Vector3::new(1.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c2p2b = SymmetryOperation::builder()
+        .generating_element(c2p2_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(c2p2b.total_proper_fraction, Some(F::from(1u64)));
+
+    let c3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::new(3.0, 1e-14))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c3 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(c3.total_proper_fraction, Some(F::new(1u64, 3u64)));
+
+    let c3p2 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(c3p2.total_proper_fraction, Some(F::new(2u64, 3u64)));
+
+    let c3pm2 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(c3pm2.total_proper_fraction, Some(F::new(1u64, 3u64)));
+
+    let c3p3 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(c3p3.total_proper_fraction, Some(F::from(1u64)));
+
+    let c3p4 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(c3p4.total_proper_fraction, Some(F::new(1u64, 3u64)));
+
+    let c3pm4 = SymmetryOperation::builder()
+        .generating_element(c3_element)
+        .power(-4)
+        .build()
+        .unwrap();
+    assert_eq!(c3pm4.total_proper_fraction, Some(F::new(2u64, 3u64)));
+
+    let c3p2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::new(3.0, 1e-14))
+        .proper_power(2)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c3pm6 = SymmetryOperation::builder()
+        .generating_element(c3p2_element)
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(c3pm6.total_proper_fraction, Some(F::from(1u64)));
+
+    let c4_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::new(4.0, 1e-14))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c4 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(c4.total_proper_fraction, Some(F::new(1u64, 4u64)));
+
+    let c4p2 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(c4p2.total_proper_fraction, Some(F::new(1u64, 2u64)));
+
+    let c4pm2 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(c4pm2.total_proper_fraction, Some(F::new(1u64, 2u64)));
+
+    let c4pm3 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(c4pm3.total_proper_fraction, Some(F::new(1u64, 4u64)));
+
+    let c4p4 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(c4p4.total_proper_fraction, Some(F::from(1u64)));
+
+    let c7_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(7))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 2.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c7 = SymmetryOperation::builder()
+        .generating_element(c7_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(c7.total_proper_fraction, Some(F::new(1u64, 7u64)));
+
+    let c7p2 = SymmetryOperation::builder()
+        .generating_element(c7_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(c7p2.total_proper_fraction, Some(F::new(2u64, 7u64)));
+
+    let c7pm2 = SymmetryOperation::builder()
+        .generating_element(c7_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(c7pm2.total_proper_fraction, Some(F::new(5u64, 7u64)));
+
+    let c7pm3 = SymmetryOperation::builder()
+        .generating_element(c7_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(c7pm3.total_proper_fraction, Some(F::new(4u64, 7u64)));
+
+    let c7p4 = SymmetryOperation::builder()
+        .generating_element(c7_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(c7p4.total_proper_fraction, Some(F::new(4u64, 7u64)));
+
+    // ============================
+    // Improper symmetry operations
+    // ============================
+    let s1_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s1 = SymmetryOperation::builder()
+        .generating_element(s1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(s1.total_proper_fraction, Some(F::from(1u64)));
+
+    let s1pm2 = SymmetryOperation::builder()
+        .generating_element(s1_element)
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(s1pm2.total_proper_fraction, Some(F::from(1u64)));
+
+    let sd2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sd2 = SymmetryOperation::builder()
+        .generating_element(sd2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(sd2.total_proper_fraction, Some(F::new(1u64, 2u64)));
+
+    let sd2p2 = SymmetryOperation::builder()
+        .generating_element(sd2_element)
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(sd2p2.total_proper_fraction, Some(F::from(1u64)));
+
+    let sd2pp2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(2)
+        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sd2pp2 = SymmetryOperation::builder()
+        .generating_element(sd2pp2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(sd2pp2.total_proper_fraction, Some(F::from(1u64)));
+
+    let sd2pp2p6 = SymmetryOperation::builder()
+        .generating_element(sd2pp2_element)
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(sd2pp2p6.total_proper_fraction, Some(F::from(1u64)));
+
+    let s2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s2 = SymmetryOperation::builder()
+        .generating_element(s2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(s2.total_proper_fraction, Some(F::new(1u64, 2u64)));
+
+    let s2p2 = SymmetryOperation::builder()
+        .generating_element(s2_element)
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(s2p2.total_proper_fraction, Some(F::from(1u64)));
+
+    let s2pp2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(2)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s2pp2 = SymmetryOperation::builder()
+        .generating_element(s2pp2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(s2pp2.total_proper_fraction, Some(F::from(1u64)));
+
+    let s2pp2p4 = SymmetryOperation::builder()
+        .generating_element(s2pp2_element)
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(s2pp2p4.total_proper_fraction, Some(F::from(1u64)));
+
+    let sd1_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sd1 = SymmetryOperation::builder()
+        .generating_element(sd1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(sd1.total_proper_fraction, Some(F::from(1u64)));
+
+    let sd1pm2 = SymmetryOperation::builder()
+        .generating_element(sd1_element)
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(sd1pm2.total_proper_fraction, Some(F::from(1u64)));
+
+    let s3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s3 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(s3.total_proper_fraction, Some(F::new(1u64, 3u64)));
+
+    let s3p3 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(s3p3.total_proper_fraction, Some(F::from(1u64)));
+
+    let s3p5 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert!(!s3p5.is_proper());
+    assert_eq!(s3p5.total_proper_fraction, Some(F::new(2u64, 3u64)));
+
+    let s3pm5 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(-5)
+        .build()
+        .unwrap();
+    assert!(!s3pm5.is_proper());
+    assert_eq!(s3pm5.total_proper_fraction, Some(F::new(1u64, 3u64)));
+
+    let s3p6 = SymmetryOperation::builder()
+        .generating_element(s3_element)
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(s3p6.total_proper_fraction, Some(F::from(1u64)));
+
+    let s3pp2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(2)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s3pp2 = SymmetryOperation::builder()
+        .generating_element(s3pp2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(s3pp2.total_proper_fraction, Some(F::new(2u64, 3u64)));
+
+    let s3pp2p3 = SymmetryOperation::builder()
+        .generating_element(s3pp2_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(s3pp2p3.total_proper_fraction, Some(F::from(1u64)));
+
+    let s3pp3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(3)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s3pp3 = SymmetryOperation::builder()
+        .generating_element(s3pp3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(s3pp3.total_proper_fraction, Some(F::from(1u64)));
+
+    let s3pp3p2 = SymmetryOperation::builder()
+        .generating_element(s3pp3_element)
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(s3pp3p2.total_proper_fraction, Some(F::from(1u64)));
+
+    let sd3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sd3 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(sd3.total_proper_fraction, Some(F::new(1u64, 3u64)));
+
+    let sd3p3 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(sd3p3.total_proper_fraction, Some(F::from(1u64)));
+
+    let sd3p6 = SymmetryOperation::builder()
+        .generating_element(sd3_element)
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(sd3p6.total_proper_fraction, Some(F::from(1u64)));
+
+    let si_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Inf)
+        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let sip2 = SymmetryOperation::builder()
+        .generating_element(si_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(sip2.total_proper_fraction, None);
+}
+
+#[test]
+fn test_symmetry_operation_finite_improper_conversion() {
     // ============================
     // Improper symmetry operations
     // ============================

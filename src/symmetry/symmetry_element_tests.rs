@@ -339,7 +339,7 @@ fn test_symmetry_element_constructor() {
 }
 
 #[test]
-fn test_finite_symmetry_element_improper_conversion() {
+fn test_symmetry_element_finite_improper_conversion() {
     let s1 = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
@@ -410,7 +410,7 @@ fn test_finite_symmetry_element_improper_conversion() {
 }
 
 #[test]
-fn test_finite_symmetry_element_comparison() {
+fn test_symmetry_element_finite_comparison() {
     // ===========
     // Proper only
     // ===========
@@ -537,7 +537,7 @@ fn test_finite_symmetry_element_comparison() {
 }
 
 #[test]
-fn test_finite_symmetry_element_power_comparison() {
+fn test_symmetry_element_finite_power_comparison() {
     // ===========
     // Proper only
     // ===========
@@ -817,7 +817,7 @@ fn test_finite_symmetry_element_power_comparison() {
 }
 
 #[test]
-fn test_finite_symmetry_element_hashset() {
+fn test_symmetry_element_finite_hashset() {
     let mut element_set = HashSet::new();
     let c1 = SymmetryElement::builder()
         .threshold(1e-14)

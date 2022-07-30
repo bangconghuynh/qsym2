@@ -37,8 +37,30 @@ pub struct SymmetryOperation {
     /// This angle lies in the open interval $`(-\pi, \pi]`$. For improper
     /// operations, this angle depends on the convention used to describe the
     /// [`Self::generating_element`].
+    ///
+    /// Note that the definitions of [`Self::total_proper_fraction`] and
+    /// [`Self::total_proper_angle`] differ, so that
+    /// [`Self::total_proper_fraction`] can facilitate positive-only comparisons,
+    /// whereas [`Self::total_proper_angle`] gives the rotation angle in the
+    /// conventional range that puts the identity rotation at the centre
+    /// of the range.
     #[builder(setter(skip), default = "self.calc_total_proper_angle()")]
     total_proper_angle: f64,
+
+    /// The fraction $`pk/n \in (0, 1]`$ of the proper rotation, represented
+    /// exactly for hashing and comparison purposes.
+    ///
+    /// This is not defined for operations with infinite-order generating
+    /// elements.
+    ///
+    /// Note that the definitions of [`Self::total_proper_fraction`] and
+    /// [`Self::total_proper_angle`] differ, so that
+    /// [`Self::total_proper_fraction`] can facilitate positive-only comparisons,
+    /// whereas [`Self::total_proper_angle`] gives the rotation angle in the
+    /// conventional range that puts the identity rotation at the centre
+    /// of the range.
+    #[builder(setter(skip), default = "self.calc_total_proper_fraction()")]
+    total_proper_fraction: Option<F>,
 }
 
 impl SymmetryOperationBuilder {
@@ -52,6 +74,25 @@ impl SymmetryOperationBuilder {
                 * (self.power.unwrap() as f64),
             self.generating_element.as_ref().unwrap().threshold,
         )
+    }
+
+    fn calc_total_proper_fraction(&self) -> Option<F> {
+        match self.generating_element.as_ref().unwrap().proper_fraction {
+            Some(frac) => {
+                let pow = self.power.unwrap();
+                let unnormalised_frac = if pow >= 0 {
+                    (frac * F::new(pow.abs() as u64, 1u64)).fract()
+                } else {
+                    F::from(1u64) - (frac * F::new(pow.abs() as u64, 1u64)).fract()
+                };
+                if unnormalised_frac == F::from(0u64) {
+                    Some(F::from(1u64))
+                } else {
+                    Some(unnormalised_frac)
+                }
+            }
+            None => None,
+        }
     }
 }
 
@@ -82,11 +123,7 @@ impl SymmetryOperation {
     pub fn is_identity(&self) -> bool {
         self.is_proper()
             && match self.generating_element.proper_order {
-                ElementOrder::Int(io) => {
-                    let pos_pow = (self.power % (io as i32)) as u64;
-                    (self.generating_element.proper_fraction.unwrap() * F::from(pos_pow)).fract()
-                        == F::from(0u64)
-                }
+                ElementOrder::Int(_) => self.total_proper_fraction == Some(F::from(1u64)),
                 ElementOrder::Inf => {
                     approx::relative_eq!(
                         geometry::normalise_rotation_angle(
@@ -110,11 +147,8 @@ impl SymmetryOperation {
         !self.is_proper()
             && match self.generating_element.kind {
                 SymmetryElementKind::ImproperMirrorPlane => {
-                    if let ElementOrder::Int(io) = self.generating_element.proper_order {
-                        let pos_pow = (self.power % (io as i32)) as u64;
-                        (self.generating_element.proper_fraction.unwrap() * F::from(pos_pow))
-                            .fract()
-                            == F::new(1u64, 2u64)
+                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                        self.total_proper_fraction == Some(F::new(1u64, 2u64))
                     } else {
                         approx::relative_eq!(
                             geometry::normalise_rotation_angle(
@@ -129,10 +163,7 @@ impl SymmetryOperation {
                 }
                 SymmetryElementKind::ImproperInversionCentre => {
                     if let ElementOrder::Int(io) = self.generating_element.proper_order {
-                        let pos_pow = (self.power % (io as i32)) as u64;
-                        (self.generating_element.proper_fraction.unwrap() * F::from(pos_pow))
-                            .fract()
-                            == F::from(0u64)
+                        self.total_proper_fraction == Some(F::from(1u64))
                     } else {
                         approx::relative_eq!(
                             geometry::normalise_rotation_angle(
@@ -157,11 +188,7 @@ impl SymmetryOperation {
     pub fn is_binary_rotation(&self) -> bool {
         self.is_proper()
             && match self.generating_element.proper_order {
-                ElementOrder::Int(io) => {
-                    let pos_pow = (self.power % (io as i32)) as u64;
-                    (self.generating_element.proper_fraction.unwrap() * F::from(pos_pow)).fract()
-                        == F::new(1u64, 2u64)
-                }
+                ElementOrder::Int(_) => self.total_proper_fraction == Some(F::new(1u64, 2u64)),
                 ElementOrder::Inf => {
                     approx::relative_eq!(
                         geometry::normalise_rotation_angle(
@@ -185,11 +212,8 @@ impl SymmetryOperation {
         !self.is_proper()
             && match self.generating_element.kind {
                 SymmetryElementKind::ImproperMirrorPlane => {
-                    if let ElementOrder::Int(io) = self.generating_element.proper_order {
-                        let pos_pow = (self.power % (io as i32)) as u64;
-                        (self.generating_element.proper_fraction.unwrap() * F::from(pos_pow))
-                            .fract()
-                            == F::from(0u64)
+                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                        self.total_proper_fraction == Some(F::from(1u64))
                     } else {
                         approx::relative_eq!(
                             geometry::normalise_rotation_angle(
@@ -203,11 +227,8 @@ impl SymmetryOperation {
                     }
                 }
                 SymmetryElementKind::ImproperInversionCentre => {
-                    if let ElementOrder::Int(io) = self.generating_element.proper_order {
-                        let pos_pow = (self.power % (io as i32)) as u64;
-                        (self.generating_element.proper_fraction.unwrap() * F::from(pos_pow))
-                            .fract()
-                            == F::new(1u64, 2u64)
+                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                        self.total_proper_fraction == Some(F::new(1u64, 2u64))
                     } else {
                         approx::relative_eq!(
                             geometry::normalise_rotation_angle(

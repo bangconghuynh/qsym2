@@ -80,18 +80,32 @@ pub struct SymmetryElement {
     /// The rotational order $`n`$ of the proper symmetry element.
     pub proper_order: ElementOrder,
 
-    /// The power $`k`$ of the proper symmetry element. This is only meaningful if
-    /// [`Self::order`] is finite.
+    /// The power $`k \in \mathbb{Z}/n\mathbb{Z} = \{1, \ldots, n\}`$ of the proper
+    /// symmetry element. This is only defined if [`Self::order`] is finite.
     #[builder(setter(custom), default = "None")]
     pub proper_power: Option<u32>,
 
-    /// The fraction $`k/n`$ of the proper rotation, represented exactly for hashing
-    /// and comparison purposes.
+    /// The fraction $`k/n \in (0, 1]`$ of the proper rotation, represented exactly
+    /// for hashing and comparison purposes.
+    ///
+    /// This is not defined for infinite-order elements.
+    ///
+    /// Note that the definitions of [`Self::proper_fraction`] and
+    /// [`Self::proper_angle`] differ, so that [`Self::proper_fraction`] can facilitate
+    /// positive-only comparisons, whereas [`Self::proper_angle`] gives the rotation
+    /// angle in the conventional range that puts the identity rotation at the centre
+    /// of the range.
     #[builder(setter(skip), default = "self.calc_proper_fraction()")]
     proper_fraction: Option<F>,
 
     /// The normalised proper angle corresponding to the proper rotation
     /// $`\hat{C}_n^k`$.
+    ///
+    /// Note that the definitions of [`Self::proper_fraction`] and
+    /// [`Self::proper_angle`] differ, so that [`Self::proper_fraction`] can facilitate
+    /// positive-only comparisons, whereas [`Self::proper_angle`] gives the rotation
+    /// angle in the conventional range that puts the identity rotation at the centre
+    /// of the range.
     #[builder(setter(custom), default = "self.calc_proper_angle()")]
     proper_angle: Option<f64>,
 
