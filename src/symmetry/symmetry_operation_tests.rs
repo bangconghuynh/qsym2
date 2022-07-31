@@ -2227,6 +2227,9 @@ fn test_symmetry_operation_poles() {
         .unwrap();
     approx::assert_relative_eq!(sd2pp2.calc_pole(), Point3::origin());
 
+    let sd2pp2c = sd2pp2.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(sd2pp2.calc_pole(), sd2pp2c.calc_pole());
+
     let s2_element = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
@@ -2243,12 +2246,18 @@ fn test_symmetry_operation_poles() {
         .unwrap();
     approx::assert_relative_eq!(s2.calc_pole(), Point3::origin());
 
+    let s2c = s2.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s2.calc_pole(), s2c.calc_pole());
+
     let s2p2 = SymmetryOperation::builder()
         .generating_element(s2_element)
         .power(2)
         .build()
         .unwrap();
     approx::assert_relative_eq!(s2p2.calc_pole(), Point3::origin());
+
+    let s2p2c = s2p2.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s2p2.calc_pole(), s2p2c.calc_pole());
 
     let s2pp2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2266,6 +2275,9 @@ fn test_symmetry_operation_poles() {
         .unwrap();
     approx::assert_relative_eq!(s2pp2.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
+    let s2pp2c = s2pp2.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s2pp2.calc_pole(), s2pp2c.calc_pole());
+
     let s2pp2p4 = SymmetryOperation::builder()
         .generating_element(s2pp2_element)
         .power(4)
@@ -2273,166 +2285,344 @@ fn test_symmetry_operation_poles() {
         .unwrap();
     approx::assert_relative_eq!(s2pp2p4.calc_pole(), Point3::origin());
 
-    // let sd1_element = SymmetryElement::builder()
-    //     .threshold(1e-14)
-    //     .proper_order(ElementOrder::Int(1))
-    //     .proper_power(1)
-    //     .axis(Vector3::new(1.0, 1.0, 1.0))
-    //     .kind(SymmetryElementKind::ImproperInversionCentre)
-    //     .build()
-    //     .unwrap();
+    let s2pp2p4c = s2pp2p4.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(s2pp2p4.calc_pole(), s2pp2p4c.calc_pole());
 
-    // let sd1 = SymmetryOperation::builder()
-    //     .generating_element(sd1_element.clone())
-    //     .power(1)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(sd1.total_proper_fraction, Some(F::from(1u64)));
+    let sd1_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
 
-    // let sd1pm2 = SymmetryOperation::builder()
-    //     .generating_element(sd1_element)
-    //     .power(-2)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(sd1pm2.total_proper_fraction, Some(F::from(1u64)));
+    let sd1 = SymmetryOperation::builder()
+        .generating_element(sd1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(sd1.calc_pole(), Point3::origin());
 
-    // let s3_element = SymmetryElement::builder()
-    //     .threshold(1e-14)
-    //     .proper_order(ElementOrder::Int(3))
-    //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, 2.0, 1.0))
-    //     .kind(SymmetryElementKind::ImproperMirrorPlane)
-    //     .build()
-    //     .unwrap();
+    let sd1c = sd1.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(sd1.calc_pole(), sd1c.calc_pole());
 
-    // let s3 = SymmetryOperation::builder()
-    //     .generating_element(s3_element.clone())
-    //     .power(1)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(s3.total_proper_fraction, Some(F::new(1u64, 3u64)));
+    let sd1pm2 = SymmetryOperation::builder()
+        .generating_element(sd1_element)
+        .power(-2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(sd1pm2.calc_pole(), Point3::origin());
 
-    // let s3p3 = SymmetryOperation::builder()
-    //     .generating_element(s3_element.clone())
-    //     .power(-3)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(s3p3.total_proper_fraction, Some(F::from(1u64)));
+    let sd1pm2c = sd1.convert_to_improper_kind(&SIG);
+    approx::assert_relative_eq!(sd1pm2.calc_pole(), sd1pm2c.calc_pole());
 
-    // let s3p5 = SymmetryOperation::builder()
-    //     .generating_element(s3_element.clone())
-    //     .power(5)
-    //     .build()
-    //     .unwrap();
-    // assert!(!s3p5.is_proper());
-    // assert_eq!(s3p5.total_proper_fraction, Some(F::new(2u64, 3u64)));
+    let s3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
 
-    // let s3pm5 = SymmetryOperation::builder()
-    //     .generating_element(s3_element.clone())
-    //     .power(-5)
-    //     .build()
-    //     .unwrap();
-    // assert!(!s3pm5.is_proper());
-    // assert_eq!(s3pm5.total_proper_fraction, Some(F::new(1u64, 3u64)));
+    let s3 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3.calc_pole(), -Point3::new(2.0, 2.0, 1.0) / 3.0);
 
-    // let s3p6 = SymmetryOperation::builder()
-    //     .generating_element(s3_element)
-    //     .power(6)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(s3p6.total_proper_fraction, Some(F::from(1u64)));
+    let s3c = s3.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s3.calc_pole(), s3c.calc_pole());
 
-    // let s3pp2_element = SymmetryElement::builder()
-    //     .threshold(1e-14)
-    //     .proper_order(ElementOrder::Int(3))
-    //     .proper_power(2)
-    //     .axis(Vector3::new(2.0, 2.0, 1.0))
-    //     .kind(SymmetryElementKind::ImproperMirrorPlane)
-    //     .build()
-    //     .unwrap();
+    let s3pm1 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3pm1.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
-    // let s3pp2 = SymmetryOperation::builder()
-    //     .generating_element(s3pp2_element.clone())
-    //     .power(1)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(s3pp2.total_proper_fraction, Some(F::new(2u64, 3u64)));
+    let s3pm1c = s3pm1.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s3pm1.calc_pole(), s3pm1c.calc_pole());
 
-    // let s3pp2p3 = SymmetryOperation::builder()
-    //     .generating_element(s3pp2_element.clone())
-    //     .power(3)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(s3pp2p3.total_proper_fraction, Some(F::from(1u64)));
+    let s3p2 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3p2.calc_pole(), -Point3::new(2.0, 2.0, 1.0) / 3.0);
 
-    // let s3pp3_element = SymmetryElement::builder()
-    //     .threshold(1e-14)
-    //     .proper_order(ElementOrder::Int(3))
-    //     .proper_power(3)
-    //     .axis(Vector3::new(2.0, 2.0, 1.0))
-    //     .kind(SymmetryElementKind::ImproperMirrorPlane)
-    //     .build()
-    //     .unwrap();
+    let s3p2c = s3p2.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s3p2.calc_pole(), s3p2c.calc_pole());
 
-    // let s3pp3 = SymmetryOperation::builder()
-    //     .generating_element(s3pp3_element.clone())
-    //     .power(1)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(s3pp3.total_proper_fraction, Some(F::from(1u64)));
+    let s3pm2 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3pm2.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
-    // let s3pp3p2 = SymmetryOperation::builder()
-    //     .generating_element(s3pp3_element)
-    //     .power(2)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(s3pp3p2.total_proper_fraction, Some(F::from(1u64)));
+    let s3pm2c = s3pm2.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s3pm2.calc_pole(), s3pm2c.calc_pole());
 
-    // let sd3_element = SymmetryElement::builder()
-    //     .threshold(1e-14)
-    //     .proper_order(ElementOrder::Int(3))
-    //     .proper_power(1)
-    //     .axis(Vector3::new(1.0, 1.0, 1.0))
-    //     .kind(SymmetryElementKind::ImproperInversionCentre)
-    //     .build()
-    //     .unwrap();
+    let s3p3 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3p3.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
-    // let sd3 = SymmetryOperation::builder()
-    //     .generating_element(sd3_element.clone())
-    //     .power(1)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(sd3.total_proper_fraction, Some(F::new(1u64, 3u64)));
+    let s3p3c = s3p3.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s3p3.calc_pole(), s3p3c.calc_pole());
 
-    // let sd3p3 = SymmetryOperation::builder()
-    //     .generating_element(sd3_element.clone())
-    //     .power(3)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(sd3p3.total_proper_fraction, Some(F::from(1u64)));
+    let s3pm3 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3pm3.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
-    // let sd3p6 = SymmetryOperation::builder()
-    //     .generating_element(sd3_element)
-    //     .power(6)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(sd3p6.total_proper_fraction, Some(F::from(1u64)));
+    let s3pm3c = s3pm3.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s3pm3.calc_pole(), s3pm3c.calc_pole());
 
-    // let si_element = SymmetryElement::builder()
-    //     .threshold(1e-14)
-    //     .proper_order(ElementOrder::Inf)
-    //     .axis(Vector3::new(1.0, 0.0, 1.0))
-    //     .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
-    //     .kind(SymmetryElementKind::ImproperMirrorPlane)
-    //     .build()
-    //     .unwrap();
+    let s3p5 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3p5.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
-    // let sip2 = SymmetryOperation::builder()
-    //     .generating_element(si_element.clone())
-    //     .power(2)
-    //     .build()
-    //     .unwrap();
-    // assert_eq!(sip2.total_proper_fraction, None);
+    let s3p5c = s3p5.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s3p5.calc_pole(), s3p5c.calc_pole());
+
+    let s3pm5 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(-5)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3pm5.calc_pole(), -Point3::new(2.0, 2.0, 1.0) / 3.0);
+
+    let s3pm5c = s3pm5.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s3pm5.calc_pole(), s3pm5c.calc_pole());
+
+    let s3p6 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3p6.calc_pole(), Point3::origin());
+
+    let s3pm6 = SymmetryOperation::builder()
+        .generating_element(s3_element)
+        .power(-6)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3pm6.calc_pole(), Point3::origin());
+
+    let s3pp2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(2)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s3pp2 = SymmetryOperation::builder()
+        .generating_element(s3pp2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3pp2.calc_pole(), -s3.calc_pole());
+
+    let s3pp2p2 = SymmetryOperation::builder()
+        .generating_element(s3pp2_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3pp2p2.calc_pole(), -s3p2.calc_pole());
+
+    let s3pp2p3 = SymmetryOperation::builder()
+        .generating_element(s3pp2_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3pp2p3.calc_pole(), s3p3.calc_pole());
+
+    let s3pp3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(3)
+        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s3pp3 = SymmetryOperation::builder()
+        .generating_element(s3pp3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3pp3.calc_pole(), s3p3.calc_pole());
+
+    let s3pp3p2 = SymmetryOperation::builder()
+        .generating_element(s3pp3_element)
+        .power(2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s3pp3p2.calc_pole(), Point3::origin());
+
+    let sd3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sd3 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(sd3.calc_pole(), Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt());
+
+    let sd3p2 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        sd3p2.calc_pole(),
+        -Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
+    );
+
+    let sd3p3 = SymmetryOperation::builder()
+        .generating_element(sd3_element)
+        .power(3)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(sd3p3.calc_pole(), Point3::origin());
+
+    let s7_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(7))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, 2.0, -1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s7 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s7.calc_pole(), -Point3::new(2.0, 2.0, -1.0) / 3.0);
+
+    let s7c = s7.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s7.calc_pole(), s7c.calc_pole());
+
+    let s7pm1 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s7pm1.calc_pole(), Point3::new(2.0, 2.0, -1.0) / 3.0);
+
+    let s7pm1c = s7pm1.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s7pm1.calc_pole(), s7pm1c.calc_pole());
+
+    let s7p4 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s7p4.calc_pole(), -Point3::new(2.0, 2.0, -1.0) / 3.0);
+
+    let s7p4c = s7p4.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s7p4.calc_pole(), s7p4c.calc_pole());
+
+    let s7pm4 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(-4)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s7pm4.calc_pole(), Point3::new(2.0, 2.0, -1.0) / 3.0);
+
+    let s7pm4c = s7pm4.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s7pm4.calc_pole(), s7pm4c.calc_pole());
+
+    let s7p5 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s7p5.calc_pole(), Point3::new(2.0, 2.0, -1.0) / 3.0);
+
+    let s7p5c = s7p5.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s7p5.calc_pole(), s7p5c.calc_pole());
+
+    let s7pm5 = SymmetryOperation::builder()
+        .generating_element(s7_element)
+        .power(-5)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(s7pm5.calc_pole(), -Point3::new(2.0, 2.0, -1.0) / 3.0);
+
+    let s7pm5c = s7pm5.convert_to_improper_kind(&INV);
+    approx::assert_relative_eq!(s7pm5.calc_pole(), s7pm5c.calc_pole());
+
+    let si_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Inf)
+        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .proper_angle(2.0 * std::f64::consts::PI / 5.0)
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let si = SymmetryOperation::builder()
+        .generating_element(si_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(si.calc_pole(), -Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
+
+    let sip2 = SymmetryOperation::builder()
+        .generating_element(si_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(sip2.calc_pole(), Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
+
+    let sdi_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Inf)
+        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .proper_angle(2.0 * std::f64::consts::PI / 5.0)
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sdi = SymmetryOperation::builder()
+        .generating_element(sdi_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(sdi.calc_pole(), Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
+
+    let sdip2 = SymmetryOperation::builder()
+        .generating_element(sdi_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    approx::assert_relative_eq!(
+        sdip2.calc_pole(),
+        Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt()
+    );
 }
 
 // #[test]

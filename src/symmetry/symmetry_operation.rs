@@ -254,6 +254,10 @@ impl SymmetryOperation {
     /// same pole, thus facilitating the consistent specification of poles for the
     /// identity / inversion and binary rotations / reflections.
     ///
+    /// Note that binary rotations / reflections have unique poles on the positiv
+    /// hemisphere (*i.e.*, $`C_2(\hat{\mathbf{n}}) = C_2^{-1}(\hat{\mathbf{n}})`$
+    /// and $`\sigma(\hat{\mathbf{n}}) = \sigma^{-1}(\hat{\mathbf{n}})`$).
+    ///
     /// See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover
     /// Publications, Inc., New York, 2005) (Chapter 9) for further information.
     ///
