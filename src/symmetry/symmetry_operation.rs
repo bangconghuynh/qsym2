@@ -1,5 +1,5 @@
 use crate::aux::geometry;
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind};
+use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, INV};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use approx;
 use derive_builder::Builder;
@@ -162,7 +162,7 @@ impl SymmetryOperation {
                     }
                 }
                 SymmetryElementKind::ImproperInversionCentre => {
-                    if let ElementOrder::Int(io) = self.generating_element.proper_order {
+                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
                         self.total_proper_fraction == Some(F::from(1u64))
                     } else {
                         approx::relative_eq!(
@@ -245,27 +245,78 @@ impl SymmetryOperation {
             }
     }
 
-    ///// Finds the pole associated with this operation.
-    /////
-    ///// This is the point on the unit sphere that is left invariant by the operation.
-    /////
-    ///// For improper elements, the inversion-centre convention is used to define
-    ///// the pole. This allows a proper rotation and its improper partner to have the
-    ///// same pole, thus facilitating the consistent specification of poles for the
-    ///// identity / inversion and binary rotations / reflections.
-    /////
-    ///// See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover
-    ///// Publications, Inc., New York, 2005) (Chapter 9) for further information.
-    /////
-    ///// # Returns
-    /////
-    ///// The pole associated with this operation.
-    //pub fn calc_pole(&self) -> Point3<f64> {
-    //    let op = if self.is_proper() {
-    //        self
-    //    } else {
-    //    }
-    //}
+    /// Finds the pole associated with this operation.
+    ///
+    /// This is the point on the unit sphere that is left invariant by the operation.
+    ///
+    /// For improper elements, the inversion-centre convention is used to define
+    /// the pole. This allows a proper rotation and its improper partner to have the
+    /// same pole, thus facilitating the consistent specification of poles for the
+    /// identity / inversion and binary rotations / reflections.
+    ///
+    /// See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover
+    /// Publications, Inc., New York, 2005) (Chapter 9) for further information.
+    ///
+    /// # Returns
+    ///
+    /// The pole associated with this operation.
+    pub fn calc_pole(&self) -> Point3<f64> {
+        let op = if self.is_proper() {
+            self.clone()
+        } else {
+            self.convert_to_improper_kind(&INV)
+        };
+        match op.generating_element.proper_order {
+            ElementOrder::Int(_) => {
+                let frac_1_2 = F::new(1u64, 2u64);
+                if op.total_proper_fraction.unwrap() == frac_1_2 {
+                    // Binary rotations or reflections
+                    Point3::from(geometry::get_positive_pole(
+                        &op.generating_element.axis,
+                        op.generating_element.threshold,
+                    ))
+                } else if op.total_proper_fraction.unwrap() < frac_1_2 {
+                    // Positive rotation angles
+                    Point3::from(op.generating_element.axis)
+                } else if op.total_proper_fraction.unwrap() < F::from(1u64) {
+                    // Negative rotation angles
+                    Point3::from(-op.generating_element.axis)
+                } else {
+                    assert_eq!(op.total_proper_fraction.unwrap(), F::from(1u64));
+                    Point3::origin()
+                }
+            }
+            ElementOrder::Inf => {
+                if approx::relative_eq!(
+                    op.total_proper_angle,
+                    std::f64::consts::PI,
+                    max_relative = op.generating_element.threshold,
+                    epsilon = op.generating_element.threshold
+                ) {
+                    // Binary rotations or reflections
+                    Point3::from(geometry::get_positive_pole(
+                        &op.generating_element.axis,
+                        op.generating_element.threshold,
+                    ))
+                } else if approx::relative_ne!(
+                    op.total_proper_angle,
+                    0.0,
+                    max_relative = op.generating_element.threshold,
+                    epsilon = op.generating_element.threshold
+                ) {
+                    Point3::from(op.total_proper_angle.signum() * op.generating_element.axis)
+                } else {
+                    approx::assert_relative_eq!(
+                        op.total_proper_angle,
+                        0.0,
+                        max_relative = op.generating_element.threshold,
+                        epsilon = op.generating_element.threshold
+                    );
+                    Point3::origin()
+                }
+            }
+        }
+    }
 
     /// Returns a copy of the current symmetry operation with the generating element
     /// converted to the requested improper kind (power-preserving), provided that
