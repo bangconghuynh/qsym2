@@ -1,10 +1,14 @@
-use crate::aux::geometry;
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, INV};
-use crate::symmetry::symmetry_element_order::ElementOrder;
 use approx;
 use derive_builder::Builder;
 use fraction;
 use nalgebra::Point3;
+use std::fmt;
+use std::hash::{Hash, Hasher};
+
+use crate::aux::geometry;
+use crate::aux::misc::{self, HashableFloat};
+use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, INV};
+use crate::symmetry::symmetry_element_order::ElementOrder;
 
 type F = fraction::Fraction;
 
@@ -480,126 +484,162 @@ impl SymmetryOperation {
 //    }
 //}
 
-//impl fmt::Debug for SymmetryElement {
-//    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//        if self.is_identity() || self.is_inversion_centre() {
-//            write!(f, "{}", self.get_detailed_symbol())
-//        } else {
-//            write!(
-//                f,
-//                "{}({:+.3}, {:+.3}, {:+.3})",
-//                self.get_detailed_symbol(),
-//                self.axis[0] + 0.0,
-//                self.axis[1] + 0.0,
-//                self.axis[2] + 0.0
-//            )
-//        }
-//    }
-//}
+impl fmt::Debug for SymmetryOperation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.power == 1 {
+            write!(f, "{:?}", self.generating_element)
+        } else {
+            write!(f, "[{:?}]^{}", self.generating_element, self.power)
+        }
+    }
+}
 
-//impl PartialEq for SymmetryElement {
-//    fn eq(&self, other: &Self) -> bool {
-//        if self.is_proper() != other.is_proper() {
-//            return false;
-//        }
+impl PartialEq for SymmetryOperation {
+    fn eq(&self, other: &Self) -> bool {
+        if (self.generating_element.proper_order == ElementOrder::Inf)
+            != (other.generating_element.proper_order == ElementOrder::Inf)
+        {
+            // We disable comparisons between operations with infinite-order and
+            // finite-order generating elements, because they cannot be made to
+            // have the same hashes without losing the fidelity of exact-fraction
+            // representations for operations with finite-order generating elements.
+            return false;
+        }
+        if self.is_proper() != other.is_proper() {
+            return false;
+        }
 
-//        if self.is_identity() && other.is_identity() {
-//            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
-//            return true;
-//        }
+        if self.is_identity() && other.is_identity() {
+            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            return true;
+        }
 
-//        if self.is_inversion_centre() && other.is_inversion_centre() {
-//            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
-//            return true;
-//        }
+        if self.is_inversion() && other.is_inversion() {
+            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            return true;
+        }
 
-//        let thresh = (self.threshold * other.threshold).sqrt();
+        let thresh =
+            (self.generating_element.threshold * other.generating_element.threshold).sqrt();
 
-//        if self.kind != other.kind {
-//            let converted_other = other.convert_to_improper_kind(&self.kind);
-//            let result = (self.order == converted_other.order)
-//                && (approx::relative_eq!(
-//                    self.axis,
-//                    converted_other.axis,
-//                    epsilon = thresh,
-//                    max_relative = thresh
-//                ) || approx::relative_eq!(
-//                    self.axis,
-//                    -converted_other.axis,
-//                    epsilon = thresh,
-//                    max_relative = thresh
-//                ));
-//            if result {
-//                assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
-//            }
-//            return result;
-//        }
-//        let result = (self.order == other.order)
-//            && (approx::relative_eq!(
-//                self.axis,
-//                other.axis,
-//                epsilon = thresh,
-//                max_relative = thresh
-//            ) || approx::relative_eq!(
-//                self.axis,
-//                -other.axis,
-//                epsilon = thresh,
-//                max_relative = thresh
-//            ));
-//        if result {
-//            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
-//        }
-//        result
-//    }
-//}
+        let result = if (self.is_binary_rotation() && other.is_binary_rotation())
+            || (self.is_reflection() && other.is_reflection())
+        {
+            approx::relative_eq!(
+                self.calc_pole(),
+                other.calc_pole(),
+                epsilon = thresh,
+                max_relative = thresh
+            )
+        } else {
+            let c_self = if self.is_proper() {
+                self.clone()
+            } else {
+                self.convert_to_improper_kind(&INV)
+            };
+            let c_other = if other.is_proper() {
+                other.clone()
+            } else {
+                other.convert_to_improper_kind(&INV)
+            };
 
-//impl Eq for SymmetryElement {}
+            let angle_comparison = if let Some(s_frac) = c_self.total_proper_fraction {
+                if let Some(o_frac) = c_other.total_proper_fraction {
+                    let abs_s_frac = if s_frac < F::new(1u64, 2u64) {
+                        s_frac
+                    } else {
+                        F::from(1u64) - s_frac
+                    };
+                    let abs_o_frac = if o_frac < F::new(1u64, 2u64) {
+                        o_frac
+                    } else {
+                        F::from(1u64) - o_frac
+                    };
+                    abs_s_frac == abs_o_frac
+                } else {
+                    approx::relative_eq!(
+                        c_self.total_proper_angle.abs(),
+                        c_other.total_proper_angle.abs(),
+                        epsilon = thresh,
+                        max_relative = thresh
+                    )
+                }
+            } else {
+                approx::relative_eq!(
+                    c_self.total_proper_angle.abs(),
+                    c_other.total_proper_angle.abs(),
+                    epsilon = thresh,
+                    max_relative = thresh
+                )
+            };
 
-//impl Hash for SymmetryElement {
-//    fn hash<H: Hasher>(&self, state: &mut H) {
-//        self.is_proper().hash(state);
-//        if self.is_identity() || self.is_inversion_centre() {
-//            true.hash(state);
-//        } else {
-//            match self.kind {
-//                SymmetryElementKind::ImproperMirrorPlane => {
-//                    let c_self = self
-//                        .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre);
-//                    c_self.order.hash(state);
-//                    let pole = geometry::get_positive_pole(&c_self.axis, c_self.threshold);
-//                    pole[0]
-//                        .round_factor(self.threshold)
-//                        .integer_decode()
-//                        .hash(state);
-//                    pole[1]
-//                        .round_factor(self.threshold)
-//                        .integer_decode()
-//                        .hash(state);
-//                    pole[2]
-//                        .round_factor(self.threshold)
-//                        .integer_decode()
-//                        .hash(state);
-//                }
-//                _ => {
-//                    self.order.hash(state);
-//                    let pole = geometry::get_positive_pole(&self.axis, self.threshold);
-//                    pole[0]
-//                        .round_factor(self.threshold)
-//                        .integer_decode()
-//                        .hash(state);
-//                    pole[1]
-//                        .round_factor(self.threshold)
-//                        .integer_decode()
-//                        .hash(state);
-//                    pole[2]
-//                        .round_factor(self.threshold)
-//                        .integer_decode()
-//                        .hash(state);
-//                }
-//            };
-//        }
-//    }
-//}
+            angle_comparison
+                && approx::relative_eq!(
+                    self.calc_pole(),
+                    other.calc_pole(),
+                    epsilon = thresh,
+                    max_relative = thresh
+                )
+        };
+
+        if result {
+            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+        }
+        result
+    }
+}
+
+impl Eq for SymmetryOperation {}
+
+impl Hash for SymmetryOperation {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let c_self = match self.generating_element.kind {
+            SymmetryElementKind::Proper => self.clone(),
+            _ => self.convert_to_improper_kind(&INV),
+        };
+        c_self.is_proper().hash(state);
+        if c_self.is_identity() || c_self.is_inversion() {
+            true.hash(state);
+        } else {
+            let pole = c_self.calc_pole();
+            pole[0]
+                .round_factor(c_self.generating_element.threshold)
+                .integer_decode()
+                .hash(state);
+            pole[1]
+                .round_factor(c_self.generating_element.threshold)
+                .integer_decode()
+                .hash(state);
+            pole[2]
+                .round_factor(c_self.generating_element.threshold)
+                .integer_decode()
+                .hash(state);
+
+            if !c_self.is_binary_rotation() && !c_self.is_reflection() {
+                if let Some(frac) = c_self.total_proper_fraction {
+                    // frac lies in (0, 1/2) ∪ (1/2, 1).
+                    // 1/2 and 1 are excluded because this is not an identity,
+                    // inversion, binary rotation, or reflection.
+                    let abs_frac = if frac < F::new(1u64, 2u64) {
+                        frac
+                    } else {
+                        F::from(1u64) - frac
+                    };
+                    abs_frac.hash(state);
+                } else {
+                    // self.total_proper_angle lies in (-π, 0) ∪ (0, π).
+                    // 0 and π are excluded because this is not an identity,
+                    // inversion, binary rotation, or reflection.
+                    let abs_ang = c_self.total_proper_angle.abs();
+                    abs_ang
+                        .round_factor(c_self.generating_element.threshold)
+                        .integer_decode()
+                        .hash(state);
+                };
+            }
+        };
+    }
+}
 
 //pub const SIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane;
 //pub const INV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre;
