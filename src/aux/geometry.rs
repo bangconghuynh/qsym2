@@ -4,6 +4,11 @@ use crate::symmetry::symmetry_element::SymmetryElementKind;
 use itertools::{self, Itertools};
 use nalgebra::{ClosedMul, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vector3};
 use std::collections::HashSet;
+use fraction;
+use std::str::FromStr;
+use approx;
+
+type F32 = fraction::GenericFraction<u32>;
 
 #[cfg(test)]
 #[path = "geometry_tests.rs"]
@@ -55,6 +60,36 @@ pub fn get_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
         pole *= pole[1].signum();
     }
     pole
+}
+
+pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> F32 {
+    let normalised_angle = normalise_rotation_angle(angle, thresh);
+    let positive_normalised_angle = if normalised_angle >= 0.0 {
+        normalised_angle
+    } else {
+        2.0 * std::f64::consts::PI + normalised_angle
+    };
+    let rational_order = (2.0 * std::f64::consts::PI) / positive_normalised_angle;
+    let mut power: u32 = 1;
+    while approx::relative_ne!(
+        rational_order * (power as f64),
+        (rational_order * (power as f64)).round(),
+        max_relative = thresh,
+        epsilon = thresh
+    ) && power < max_trial_power {
+        power += 1;
+    }
+    let order = if approx::relative_eq!(
+        rational_order * (power as f64),
+        (rational_order * (power as f64)).round(),
+        max_relative = thresh,
+        epsilon = thresh
+    ) {
+        Ok((rational_order * (power as f64)).round() as u32)
+    } else {
+        Err(format!("No proper fractions can be found."))
+    };
+    F32::new(power, order.unwrap())
 }
 
 /// Computes the outer product between two three-dimensional vectors.

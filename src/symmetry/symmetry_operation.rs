@@ -1,7 +1,7 @@
 use approx;
 use derive_builder::Builder;
 use fraction;
-use nalgebra::Point3;
+use nalgebra::{Point3, Vector3};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -11,6 +11,7 @@ use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, IN
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
 type F = fraction::Fraction;
+type Quaternion = (f64, Vector3<f64>);
 
 #[cfg(test)]
 #[path = "symmetry_operation_tests.rs"]
@@ -108,6 +109,75 @@ impl SymmetryOperation {
     /// A builder to construct a new symmetry operation.
     pub fn builder() -> SymmetryOperationBuilder {
         SymmetryOperationBuilder::default()
+    }
+
+    /// Constructs a finite-order-element-generated symmetry operation from a
+    /// quaternion.
+    ///
+    /// The rotation angle encoded in the quaternion is taken to be non-negative
+    /// and assigned as the proper rotation angle associated with the element
+    /// generating the operation.
+    ///
+    /// If an improper operation is required, its generator will be constructed
+    /// in the inversion-centre convention.
+    ///
+    /// # Arguments
+    ///
+    /// * qtn - A quaternion encoding the proper rotation associated with the
+    /// generating element of the operation to be constructed.
+    /// * proper - A flag indicating if the operation is proper or improper.
+    /// * thresh - Threshold for comparisons.
+    ///
+    /// # Returns
+    ///
+    /// The constructed symmetry operation.
+    pub fn from_quaternion(
+        qtn: Quaternion,
+        proper: bool,
+        thresh: f64,
+        max_trial_power: u32,
+    ) -> Self {
+        let (scalar_part, vector_part) = qtn;
+        assert!(-thresh <= scalar_part && scalar_part <= 1.0 + thresh);
+        let (axis, order, power) =
+            if approx::relative_eq!(scalar_part, 1.0, epsilon = thresh, max_relative = thresh) {
+                // Zero-degree rotation, i.e. identity or inversion
+                (Vector3::new(0.0, 0.0, 1.0), 1u32, 1u32)
+            } else {
+                let positive_normalised_angle = 2.0 * scalar_part.acos(); // in [0, π]
+                let axis = vector_part / (0.5 * positive_normalised_angle).sin();
+                let proper_fraction = geometry::get_proper_fraction(
+                    positive_normalised_angle,
+                    thresh,
+                    max_trial_power
+                );
+                (
+                    axis,
+                    *proper_fraction.denom().unwrap(),
+                    *proper_fraction.numer().unwrap(),
+                )
+            };
+
+        let kind = if proper {
+            SymmetryElementKind::Proper
+        } else {
+            SymmetryElementKind::ImproperInversionCentre
+        };
+
+        let element = SymmetryElement::builder()
+            .threshold(thresh)
+            .proper_order(ElementOrder::Int(order))
+            .proper_power(power)
+            .axis(axis)
+            .kind(kind)
+            .build()
+            .unwrap();
+
+        SymmetryOperation::builder()
+            .generating_element(element)
+            .power(1)
+            .build()
+            .unwrap()
     }
 
     /// Checks if the symmetry operation is proper or not.
@@ -324,6 +394,24 @@ impl SymmetryOperation {
                 }
             }
         }
+    }
+
+    pub fn calc_quaternion(&self) -> Quaternion {
+        let c_self = match self.generating_element.kind {
+            SymmetryElementKind::Proper => self.clone(),
+            _ => self.convert_to_improper_kind(&INV),
+        };
+
+        // We only need the absolute value of the angle. Its sign information is
+        // encoded in the pole.
+        let abs_angle = c_self.total_proper_angle.abs();
+        let scalar_part = (0.5 * abs_angle).cos();
+        let vector_part = (0.5 * abs_angle).sin() * c_self.calc_pole().coords;
+        assert!(
+            -self.generating_element.threshold <= scalar_part
+                && scalar_part <= 1.0 + self.generating_element.threshold
+        );
+        (scalar_part, vector_part)
     }
 
     /// Returns a copy of the current symmetry operation with the generating element

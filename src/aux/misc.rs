@@ -6,12 +6,12 @@ use std::collections::hash_map::DefaultHasher;
 pub trait HashableFloat {
     /// Returns a float rounded after being multiplied by a factor.
     ///
-    /// Let $x$ be a float, $k$ a factor, and $[\cdot]$ denote the
-    /// rounding-to-integer operation. This function yields $[x \times k] / k$.
+    /// Let $`x`$ be a float, $k$ a factor, and $[\cdot]$ denote the
+    /// rounding-to-integer operation. This function yields $`[x \times k] / k`$.
     ///
     /// Arguments
     ///
-    /// * threshold - The inverse $k^{-1}$ of the factor $k$ used in the
+    /// * threshold - The inverse $`k^{-1}`$ of the factor $k$ used in the
     /// rounding of the float.
     ///
     /// Returns
