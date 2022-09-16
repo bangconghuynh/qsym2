@@ -4,6 +4,7 @@ use fraction;
 use nalgebra::{Point3, Vector3};
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::ops::Mul;
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
@@ -149,7 +150,7 @@ impl SymmetryOperation {
                 let proper_fraction = geometry::get_proper_fraction(
                     positive_normalised_angle,
                     thresh,
-                    max_trial_power
+                    max_trial_power,
                 );
                 (
                     axis,
@@ -729,5 +730,25 @@ impl Hash for SymmetryOperation {
     }
 }
 
-//pub const SIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane;
-//pub const INV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre;
+impl<'a, 'b> Mul<&'a SymmetryOperation> for &'b SymmetryOperation {
+    type Output = SymmetryOperation;
+
+    fn mul(self, rhs: &'a SymmetryOperation) -> SymmetryOperation {
+        let (q1_s, q1_v) = self.calc_quaternion();
+        let (q2_s, q2_v) = rhs.calc_quaternion();
+
+        let q3_s = q1_s * q2_s - q1_v.dot(&q2_v);
+        let q3_v = q1_s * q2_v + q2_s * q1_v + q1_v.cross(&q2_v);
+
+        let q3 = if q3_s >= 0.0 {
+            (q3_s, q3_v)
+        } else {
+            (-q3_s, -q3_v)
+        };
+
+        let proper = self.is_proper() == rhs.is_proper();
+        let thresh = (self.generating_element.threshold * rhs.generating_element.threshold).sqrt();
+        let max_trial_power = u32::MAX;
+        SymmetryOperation::from_quaternion(q3, proper, thresh, max_trial_power)
+    }
+}

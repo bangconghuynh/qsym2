@@ -5,7 +5,6 @@ use itertools::{self, Itertools};
 use nalgebra::{ClosedMul, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vector3};
 use std::collections::HashSet;
 use fraction;
-use std::str::FromStr;
 use approx;
 
 type F32 = fraction::GenericFraction<u32>;
@@ -70,6 +69,7 @@ pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> F32
         2.0 * std::f64::consts::PI + normalised_angle
     };
     let rational_order = (2.0 * std::f64::consts::PI) / positive_normalised_angle;
+    println!("Rat ord, max pow: {rational_order}, {max_trial_power}");
     let mut power: u32 = 1;
     while approx::relative_ne!(
         rational_order * (power as f64),
@@ -78,6 +78,7 @@ pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> F32
         epsilon = thresh
     ) && power < max_trial_power {
         power += 1;
+        println!("{}, {}", power, rational_order * (power as f64));
     }
     let order = if approx::relative_eq!(
         rational_order * (power as f64),

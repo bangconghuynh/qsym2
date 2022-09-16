@@ -1,3 +1,4 @@
+use crate::aux::geometry;
 use nalgebra::{Point3, Vector3};
 
 use crate::symmetry::symmetry_element::{
@@ -3940,4 +3941,466 @@ fn test_symmetry_operation_from_quaternion() {
     let sd11p6r =
         SymmetryOperation::from_quaternion(sd11p6q, sd11p6.is_proper(), sd11_element.threshold, 11);
     assert_eq!(sd11p6, sd11p6r);
+}
+
+#[test]
+fn test_symmetry_operation_collinear_composition() {
+    // ==========================
+    // Proper symmetry operations
+    // ==========================
+    let c5_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c5 = SymmetryOperation::builder()
+        .generating_element(c5_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c5pm1 = SymmetryOperation::builder()
+        .generating_element(c5_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert!((&c5 * &c5pm1).is_identity());
+
+    let c5p2 = SymmetryOperation::builder()
+        .generating_element(c5_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c5 * &c5, c5p2);
+    assert_eq!(&c5p2 * &c5pm1, c5);
+    assert_eq!(&c5pm1 * &c5p2, c5);
+
+    let c5p3 = SymmetryOperation::builder()
+        .generating_element(c5_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&c5pm1 * &c5pm1, c5p3);
+    assert!((&c5p3 * &c5p2).is_identity());
+    assert_eq!(&c5p3 * &c5p3, c5);
+
+    let c7_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(7))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c7 = SymmetryOperation::builder()
+        .generating_element(c7_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c35_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(35))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c35p12 = SymmetryOperation::builder()
+        .generating_element(c35_element.clone())
+        .power(12)
+        .build()
+        .unwrap();
+    assert_eq!(&c5 * &c7, c35p12);
+
+    let c7pm1 = SymmetryOperation::builder()
+        .generating_element(c7_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+
+    let c35p2 = SymmetryOperation::builder()
+        .generating_element(c35_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c5 * &c7pm1, c35p2);
+
+    let c10_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(10))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c10 = SymmetryOperation::builder()
+        .generating_element(c10_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c10p3 = SymmetryOperation::builder()
+        .generating_element(c10_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&c5 * &c10, c10p3);
+
+    // ============================
+    // Improper symmetry operations
+    // ============================
+    let s5_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s5 = SymmetryOperation::builder()
+        .generating_element(s5_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s5 * &s5, c5p2);
+
+    let s5pp2_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(2)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s5pp2 = SymmetryOperation::builder()
+        .generating_element(s5pp2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s5 * &c5, s5pp2);
+    assert_eq!(&s5pp2 * &s5pp2, c5pm1);
+
+    let s5p3 = SymmetryOperation::builder()
+        .generating_element(s5_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&s5 * &s5, c5p2);
+    assert_eq!(&s5pp2 * &c5, s5p3);
+
+    let s5p5 = SymmetryOperation::builder()
+        .generating_element(s5_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(&(&s5pp2 * &s5pp2) * &s5, s5p5);
+
+    let s8_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(8))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s8 = SymmetryOperation::builder()
+        .generating_element(s8_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c40_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(40))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c40p13 = SymmetryOperation::builder()
+        .generating_element(c40_element.clone())
+        .power(13)
+        .build()
+        .unwrap();
+    assert_eq!(&s5 * &s8, c40p13);
+
+    let s40_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(40))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s40p21 = SymmetryOperation::builder()
+        .generating_element(s40_element.clone())
+        .power(21)
+        .build()
+        .unwrap();
+    assert_eq!(&c40p13 * &s5, s40p21);
+
+    let s1_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s1 = SymmetryOperation::builder()
+        .generating_element(s1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s1 * &c5, s5);
+
+    let s2_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s2 = SymmetryOperation::builder()
+        .generating_element(s2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let sd5_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sd5 = SymmetryOperation::builder()
+        .generating_element(sd5_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s2 * &c5, sd5);
+}
+
+#[test]
+fn test_symmetry_operation_noncollinear_composition() {
+    // ==========================
+    // Proper symmetry operations
+    // ==========================
+    let c2x_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c2x = SymmetryOperation::builder()
+        .generating_element(c2x_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c2y_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c2y = SymmetryOperation::builder()
+        .generating_element(c2y_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c2z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c2z = SymmetryOperation::builder()
+        .generating_element(c2z_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c2x * &c2y, c2z);
+    assert_eq!(&c2x * &c2z, c2y);
+    assert_eq!(&c2y * &c2z, c2x);
+
+    let c3xyz_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c3xyz = SymmetryOperation::builder()
+        .generating_element(c3xyz_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c2xz_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c2xz = SymmetryOperation::builder()
+        .generating_element(c2xz_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c4z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c4zpm1 = SymmetryOperation::builder()
+        .generating_element(c4z_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&c2xz * &c3xyz, c4zpm1);
+
+    // ============================
+    // Improper symmetry operations
+    // ============================
+    let s1x_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s1x = SymmetryOperation::builder()
+        .generating_element(s1x_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let s1y_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s1y = SymmetryOperation::builder()
+        .generating_element(s1y_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let s1z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s1z = SymmetryOperation::builder()
+        .generating_element(s1z_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    assert_eq!(&s1x * &s1y, c2z);
+    assert_eq!(&s1x * &s1z, c2y);
+    assert_eq!(&s1y * &s1z, c2x);
+
+    let s1a_element = SymmetryElement::builder()
+        .threshold(1e-10)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s1a = SymmetryOperation::builder()
+        .generating_element(s1a_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let s1b_element = SymmetryElement::builder()
+        .threshold(1e-10)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(
+            (2.0 * std::f64::consts::PI * 3.0 / 17.0).cos(),
+            (2.0 * std::f64::consts::PI * 3.0 / 17.0).sin(),
+            0.0,
+        ))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s1b = SymmetryOperation::builder()
+        .generating_element(s1b_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let kaleidoscope_angle = s1a_element.axis.dot(&s1b_element.axis).acos();
+    let rotation_axis = s1a_element.axis.cross(&s1b_element.axis);
+    let fract = geometry::get_proper_fraction(2.0 * kaleidoscope_angle, 1e-10, 20);
+    let c_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(*fract.denom().unwrap()))
+        .proper_power(*fract.numer().unwrap())
+        .axis(rotation_axis)
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c = SymmetryOperation::builder()
+        .generating_element(c_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s1b * &s1a, c);
 }
