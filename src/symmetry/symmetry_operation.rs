@@ -67,9 +67,19 @@ pub struct SymmetryOperation {
     /// of the range.
     #[builder(setter(skip), default = "self.calc_total_proper_fraction()")]
     total_proper_fraction: Option<F>,
+
+    /// The power of the antiunitary time-reversal action accompanying this
+    /// unitary operation.
+    #[builder(setter(custom), default = "0")]
+    time_reversal_power: i32,
 }
 
 impl SymmetryOperationBuilder {
+    fn time_reversal_power(&mut self, timerevpow: i32) -> &mut Self {
+        self.time_reversal_power = Some(timerevpow % 2);
+        self
+    }
+
     fn calc_total_proper_angle(&self) -> f64 {
         geometry::normalise_rotation_angle(
             self.generating_element
@@ -137,6 +147,7 @@ impl SymmetryOperation {
         proper: bool,
         thresh: f64,
         max_trial_power: u32,
+        time_reversal_power: i32,
     ) -> Self {
         let (scalar_part, vector_part) = qtn;
         assert!(-thresh <= scalar_part && scalar_part <= 1.0 + thresh);
@@ -177,6 +188,7 @@ impl SymmetryOperation {
         SymmetryOperation::builder()
             .generating_element(element)
             .power(1)
+            .time_reversal_power(time_reversal_power)
             .build()
             .unwrap()
     }
@@ -190,6 +202,15 @@ impl SymmetryOperation {
         self.generating_element.is_proper() || (self.power % 2 == 0)
     }
 
+    /// Checks if the symmetry operation is antiunitary or not.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if the symmetry oppperation is antiunitary.
+    pub fn is_antiunitary(&self) -> bool {
+        self.time_reversal_power % 2 == 1
+    }
+
     /// Checks if the symmetry operation is the identity.
     ///
     /// # Returns
@@ -197,6 +218,7 @@ impl SymmetryOperation {
     /// A flag indicating if this symmetry operation is the identity.
     pub fn is_identity(&self) -> bool {
         self.is_proper()
+            && !self.is_antiunitary()
             && match self.generating_element.proper_order {
                 ElementOrder::Int(_) => self.total_proper_fraction == Some(F::from(1u64)),
                 ElementOrder::Inf => {
@@ -220,6 +242,7 @@ impl SymmetryOperation {
     /// A flag indicating if this symmetry operation is an inversion.
     pub fn is_inversion(&self) -> bool {
         !self.is_proper()
+            && !self.is_antiunitary()
             && match self.generating_element.kind {
                 SymmetryElementKind::ImproperMirrorPlane => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
@@ -262,6 +285,7 @@ impl SymmetryOperation {
     /// A flag indicating if this symmetry operation is a binary rotation.
     pub fn is_binary_rotation(&self) -> bool {
         self.is_proper()
+            && !self.is_antiunitary()
             && match self.generating_element.proper_order {
                 ElementOrder::Int(_) => self.total_proper_fraction == Some(F::new(1u64, 2u64)),
                 ElementOrder::Inf => {
@@ -282,9 +306,10 @@ impl SymmetryOperation {
     ///
     /// # Returns
     ///
-    /// A flag indicating if this symmetry element is a mirror plane.
+    /// A flag indicating if this symmetry operation is a reflection.
     pub fn is_reflection(&self) -> bool {
         !self.is_proper()
+            && !self.is_antiunitary()
             && match self.generating_element.kind {
                 SymmetryElementKind::ImproperMirrorPlane => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
@@ -317,6 +342,30 @@ impl SymmetryOperation {
                     }
                 }
                 SymmetryElementKind::Proper => false,
+            }
+    }
+
+    /// Checks if the symmetry operation is a pure time-reversal.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this symmetry operation is a pure time-reversal.
+    pub fn is_time_reversal(&self) -> bool {
+        self.is_proper()
+            && self.is_antiunitary()
+            && match self.generating_element.proper_order {
+                ElementOrder::Int(_) => self.total_proper_fraction == Some(F::from(1u64)),
+                ElementOrder::Inf => {
+                    approx::relative_eq!(
+                        geometry::normalise_rotation_angle(
+                            self.generating_element.proper_angle.unwrap() * (self.power as f64),
+                            self.generating_element.threshold
+                        ) % (2.0 * std::f64::consts::PI),
+                        0.0,
+                        max_relative = self.generating_element.threshold,
+                        epsilon = self.generating_element.threshold
+                    )
+                }
             }
     }
 
@@ -425,6 +474,7 @@ impl SymmetryOperation {
         Self::builder()
             .generating_element(c_element)
             .power(self.power)
+            .time_reversal_power(self.time_reversal_power)
             .build()
             .unwrap()
     }
@@ -575,10 +625,17 @@ impl SymmetryOperation {
 
 impl fmt::Debug for SymmetryOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.power == 1 {
-            write!(f, "{:?}", self.generating_element)
+        let timerev = if self.time_reversal_power == 0 {
+            "".to_string()
+        } else if self.time_reversal_power == 1 {
+            "θ·".to_string()
         } else {
-            write!(f, "[{:?}]^{}", self.generating_element, self.power)
+            format!("θ^{}·", self.time_reversal_power)
+        };
+        if self.power == 1 {
+            write!(f, "{}{:?}", timerev, self.generating_element)
+        } else {
+            write!(f, "{}[{:?}]^{}", timerev, self.generating_element, self.power)
         }
     }
 }
@@ -594,8 +651,18 @@ impl PartialEq for SymmetryOperation {
             // representations for operations with finite-order generating elements.
             return false;
         }
+
+        if self.is_antiunitary() != other.is_antiunitary() {
+            return false;
+        }
+
         if self.is_proper() != other.is_proper() {
             return false;
+        }
+
+        if self.is_time_reversal() && other.is_time_reversal() {
+            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            return true;
         }
 
         if self.is_identity() && other.is_identity() {
@@ -687,6 +754,7 @@ impl Hash for SymmetryOperation {
             _ => self.convert_to_improper_kind(&INV),
         };
         c_self.is_proper().hash(state);
+        c_self.is_antiunitary().hash(state);
         if c_self.is_identity() || c_self.is_inversion() {
             true.hash(state);
         } else {
@@ -749,6 +817,6 @@ impl<'a, 'b> Mul<&'a SymmetryOperation> for &'b SymmetryOperation {
         let proper = self.is_proper() == rhs.is_proper();
         let thresh = (self.generating_element.threshold * rhs.generating_element.threshold).sqrt();
         let max_trial_power = u32::MAX;
-        SymmetryOperation::from_quaternion(q3, proper, thresh, max_trial_power)
+        SymmetryOperation::from_quaternion(q3, proper, thresh, max_trial_power, self.time_reversal_power + rhs.time_reversal_power)
     }
 }

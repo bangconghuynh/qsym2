@@ -3717,7 +3717,7 @@ fn test_symmetry_operation_from_quaternion() {
 
     let c4p2q = c4p2.calc_quaternion();
     let c4p2r =
-        SymmetryOperation::from_quaternion(c4p2q, c4p2.is_proper(), c4_element.threshold, 10);
+        SymmetryOperation::from_quaternion(c4p2q, c4p2.is_proper(), c4_element.threshold, 10, 0);
     assert_eq!(c4p2, c4p2r);
 
     let c7_element = SymmetryElement::builder()
@@ -3736,7 +3736,7 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let c7q = c7.calc_quaternion();
-    let c7r = SymmetryOperation::from_quaternion(c7q, c7.is_proper(), c7_element.threshold, 10);
+    let c7r = SymmetryOperation::from_quaternion(c7q, c7.is_proper(), c7_element.threshold, 10, 0);
     assert_eq!(c7, c7r);
 
     let c7p2 = SymmetryOperation::builder()
@@ -3747,7 +3747,7 @@ fn test_symmetry_operation_from_quaternion() {
 
     let c7p2q = c7p2.calc_quaternion();
     let c7p2r =
-        SymmetryOperation::from_quaternion(c7p2q, c7p2.is_proper(), c7_element.threshold, 10);
+        SymmetryOperation::from_quaternion(c7p2q, c7p2.is_proper(), c7_element.threshold, 10, 0);
     assert_eq!(c7p2, c7p2r);
 
     let c7p3 = SymmetryOperation::builder()
@@ -3758,7 +3758,7 @@ fn test_symmetry_operation_from_quaternion() {
 
     let c7p3q = c7p3.calc_quaternion();
     let c7p3r =
-        SymmetryOperation::from_quaternion(c7p3q, c7p3.is_proper(), c7_element.threshold, 10);
+        SymmetryOperation::from_quaternion(c7p3q, c7p3.is_proper(), c7_element.threshold, 10, 0);
     assert_eq!(c7p3, c7p3r);
 
     let c7p7 = SymmetryOperation::builder()
@@ -3769,7 +3769,7 @@ fn test_symmetry_operation_from_quaternion() {
 
     let c7p7q = c7p7.calc_quaternion();
     let c7p7r =
-        SymmetryOperation::from_quaternion(c7p7q, c7p7.is_proper(), c7_element.threshold, 10);
+        SymmetryOperation::from_quaternion(c7p7q, c7p7.is_proper(), c7_element.threshold, 10, 0);
     assert_eq!(c7p7, c7p7r);
 
     // ============================
@@ -3791,7 +3791,7 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let s1q = s1.calc_quaternion();
-    let s1r = SymmetryOperation::from_quaternion(s1q, s1.is_proper(), s1_element.threshold, 10);
+    let s1r = SymmetryOperation::from_quaternion(s1q, s1.is_proper(), s1_element.threshold, 10, 0);
     assert_eq!(s1, s1r);
 
     let s1pm4 = SymmetryOperation::builder()
@@ -3802,7 +3802,7 @@ fn test_symmetry_operation_from_quaternion() {
 
     let s1pm4q = s1pm4.calc_quaternion();
     let s1pm4r =
-        SymmetryOperation::from_quaternion(s1pm4q, s1pm4.is_proper(), s1_element.threshold, 10);
+        SymmetryOperation::from_quaternion(s1pm4q, s1pm4.is_proper(), s1_element.threshold, 10, 0);
     assert_eq!(s1pm4, s1pm4r);
 
     let s2_element = SymmetryElement::builder()
@@ -3821,7 +3821,7 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let s2q = s2.calc_quaternion();
-    let s2r = SymmetryOperation::from_quaternion(s2q, s2.is_proper(), s2_element.threshold, 10);
+    let s2r = SymmetryOperation::from_quaternion(s2q, s2.is_proper(), s2_element.threshold, 10, 0);
     assert_eq!(s2, s2r);
 
     let s2p2 = SymmetryOperation::builder()
@@ -3832,7 +3832,7 @@ fn test_symmetry_operation_from_quaternion() {
 
     let s2p2q = s2p2.calc_quaternion();
     let s2p2r =
-        SymmetryOperation::from_quaternion(s2p2q, s2p2.is_proper(), s2_element.threshold, 10);
+        SymmetryOperation::from_quaternion(s2p2q, s2p2.is_proper(), s2_element.threshold, 10, 0);
     assert_eq!(s2p2, s2p2r);
 
     let s3_element = SymmetryElement::builder()
@@ -3851,7 +3851,7 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let s3q = s3.calc_quaternion();
-    let s3r = SymmetryOperation::from_quaternion(s3q, s3.is_proper(), s3_element.threshold, 10);
+    let s3r = SymmetryOperation::from_quaternion(s3q, s3.is_proper(), s3_element.threshold, 10, 0);
     assert_eq!(s3, s3r);
 
     let s3p2 = SymmetryOperation::builder()
@@ -3862,7 +3862,7 @@ fn test_symmetry_operation_from_quaternion() {
 
     let s3p2q = s3p2.calc_quaternion();
     let s3p2r =
-        SymmetryOperation::from_quaternion(s3p2q, s3p2.is_proper(), s3_element.threshold, 10);
+        SymmetryOperation::from_quaternion(s3p2q, s3p2.is_proper(), s3_element.threshold, 10, 0);
     assert_eq!(s3p2, s3p2r);
 
     let s3pm1 = SymmetryOperation::builder()
@@ -3873,7 +3873,7 @@ fn test_symmetry_operation_from_quaternion() {
 
     let s3pm1q = s3pm1.calc_quaternion();
     let s3pm1r =
-        SymmetryOperation::from_quaternion(s3pm1q, s3pm1.is_proper(), s3_element.threshold, 10);
+        SymmetryOperation::from_quaternion(s3pm1q, s3pm1.is_proper(), s3_element.threshold, 10, 0);
     assert_eq!(s3pm1, s3pm1r);
 
     let s3p3 = SymmetryOperation::builder()
@@ -3884,7 +3884,7 @@ fn test_symmetry_operation_from_quaternion() {
 
     let s3p3q = s3p3.calc_quaternion();
     let s3p3r =
-        SymmetryOperation::from_quaternion(s3p3q, s3p3.is_proper(), s3_element.threshold, 10);
+        SymmetryOperation::from_quaternion(s3p3q, s3p3.is_proper(), s3_element.threshold, 10, 0);
     assert_eq!(s3p3, s3p3r);
 
     let s17pp3_element = SymmetryElement::builder()
@@ -3908,6 +3908,7 @@ fn test_symmetry_operation_from_quaternion() {
         s17pp3.is_proper(),
         s17pp3_element.threshold,
         17,
+        0,
     );
     assert_eq!(s17pp3, s17pp3r);
 
@@ -3928,7 +3929,7 @@ fn test_symmetry_operation_from_quaternion() {
 
     let sd11q = sd11.calc_quaternion();
     let sd11r =
-        SymmetryOperation::from_quaternion(sd11q, sd11.is_proper(), sd11_element.threshold, 11);
+        SymmetryOperation::from_quaternion(sd11q, sd11.is_proper(), sd11_element.threshold, 11, 0);
     assert_eq!(sd11, sd11r);
 
     let sd11p6 = SymmetryOperation::builder()
@@ -3938,8 +3939,13 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let sd11p6q = sd11p6.calc_quaternion();
-    let sd11p6r =
-        SymmetryOperation::from_quaternion(sd11p6q, sd11p6.is_proper(), sd11_element.threshold, 11);
+    let sd11p6r = SymmetryOperation::from_quaternion(
+        sd11p6q,
+        sd11p6.is_proper(),
+        sd11_element.threshold,
+        11,
+        0,
+    );
     assert_eq!(sd11p6, sd11p6r);
 }
 
@@ -4403,4 +4409,96 @@ fn test_symmetry_operation_noncollinear_composition() {
         .build()
         .unwrap();
     assert_eq!(&s1b * &s1a, c);
+}
+
+#[test]
+fn test_symmetry_operation_time_reversal() {
+    let c2x_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let tc2x = SymmetryOperation::builder()
+        .generating_element(c2x_element.clone())
+        .power(1)
+        .time_reversal_power(1)
+        .build()
+        .unwrap();
+    assert!(tc2x.is_antiunitary());
+    assert!((&tc2x * &tc2x).is_identity());
+
+    let c2x = SymmetryOperation::builder()
+        .generating_element(c2x_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!c2x.is_antiunitary());
+
+    let t = &tc2x * &c2x;
+    assert!(t.is_antiunitary());
+    assert!(!t.is_identity());
+    assert!(t.is_time_reversal());
+    assert!((&t * &t).is_identity());
+
+    let c2y_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let tc2y = SymmetryOperation::builder()
+        .generating_element(c2y_element.clone())
+        .power(1)
+        .time_reversal_power(1)
+        .build()
+        .unwrap();
+
+    let c2y = SymmetryOperation::builder()
+        .generating_element(c2y_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    assert_eq!(&t * &c2y, tc2y);
+    assert_eq!(&c2y * &t, tc2y);
+    assert_eq!(&t * &tc2y, c2y);
+    assert_eq!(&tc2y * &t, c2y);
+    assert!(!(&tc2y * &tc2x).is_antiunitary());
+    assert!((&c2y * &tc2x).is_antiunitary());
+    assert!(!(&c2y * &tc2x).is_time_reversal());
+
+    let sd1_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let sd1 = SymmetryOperation::builder()
+        .generating_element(sd1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!sd1.is_antiunitary());
+
+    let tsd1 = SymmetryOperation::builder()
+        .generating_element(sd1_element)
+        .power(1)
+        .time_reversal_power(1)
+        .build()
+        .unwrap();
+    assert!(tsd1.is_antiunitary());
+    assert!(!tsd1.is_inversion());
+    assert!(!tsd1.is_identity());
+    assert!((&tsd1 * &sd1).is_time_reversal());
+    assert!((&tsd1 * &t).is_inversion());
 }
