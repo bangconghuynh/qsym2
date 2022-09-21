@@ -447,6 +447,21 @@ impl SymmetryOperation {
         }
     }
 
+    /// Finds the quaternion associated with this operation.
+    ///
+    /// The rotation angle encoded in the quaternion is taken to be non-negative
+    /// and assigned as the proper rotation angle associated with the element
+    /// generating the operation.
+    ///
+    /// If this is an operation generated from an improper element, the
+    /// inversion-centre convention will be used.
+    ///
+    /// See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover
+    /// Publications, Inc., New York, 2005) (Chapter 9) for further information.
+    ///
+    /// # Returns
+    ///
+    /// The quaternion associated with this operation.
     pub fn calc_quaternion(&self) -> Quaternion {
         let c_self = match self.generating_element.kind {
             SymmetryElementKind::Proper => self.clone(),
