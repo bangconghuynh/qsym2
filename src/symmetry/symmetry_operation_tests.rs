@@ -4506,8 +4506,11 @@ fn test_symmetry_operation_time_reversal() {
 
 #[test]
 fn test_symmetry_operation_exponentiation() {
+    // ==========================
+    // Proper symmetry operations
+    // ==========================
     let c5_element = SymmetryElement::builder()
-        .threshold(1e-7)
+        .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
@@ -4538,7 +4541,7 @@ fn test_symmetry_operation_exponentiation() {
     assert_ne!(c5.pow(3), c5.pow(-3));
 
     let c6_element = SymmetryElement::builder()
-        .threshold(1e-7)
+        .threshold(1e-12)
         .proper_order(ElementOrder::Int(6))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
@@ -4553,7 +4556,7 @@ fn test_symmetry_operation_exponentiation() {
         .unwrap();
 
     let c3_element = SymmetryElement::builder()
-        .threshold(1e-7)
+        .threshold(1e-12)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
@@ -4567,7 +4570,97 @@ fn test_symmetry_operation_exponentiation() {
         .build()
         .unwrap();
     assert_eq!(c6.pow(2), c3);
+
+    let c2_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c2 = SymmetryOperation::builder()
+        .generating_element(c2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c2pm1 = SymmetryOperation::builder()
+        .generating_element(c2_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+
     assert_eq!(
-        (&c6 * &c5).pow(2), &c6.pow(2) * &c5.pow(2)
+        (&(&c2 * &c3) * &c2pm1).pow(2), &(&c2 * &c3.pow(2)) * &c2.pow(-1)
     );
+
+    // ============================
+    // Improper symmetry operations
+    // ============================
+    let s7_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(7))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -2.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s7 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(s7.pow(2).is_proper());
+    assert!(s7.pow(7).is_reflection());
+    assert!(s7.pow(14).is_identity());
+
+    let s7p2 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(s7.pow(2), s7p2);
+
+    // ===============================
+    // Antiunitary symmetry operations
+    // ===============================
+    let s5_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -2.0, 2.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let ts5 = SymmetryOperation::builder()
+        .generating_element(s5_element.clone())
+        .power(1)
+        .time_reversal_power(1)
+        .build()
+        .unwrap();
+    assert!(ts5.pow(1).is_antiunitary());
+    assert!(!ts5.pow(2).is_antiunitary());
+    assert!(!ts5.pow(5).is_time_reversal());
+
+    let c5_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -2.0, 2.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let tc5 = SymmetryOperation::builder()
+        .generating_element(c5_element.clone())
+        .power(1)
+        .time_reversal_power(1)
+        .build()
+        .unwrap();
+    assert!(tc5.pow(1).is_antiunitary());
+    assert!(tc5.pow(5).is_time_reversal());
 }
