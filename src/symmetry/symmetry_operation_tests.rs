@@ -1,5 +1,6 @@
 use crate::aux::geometry;
 use nalgebra::{Point3, Vector3};
+use num_traits::Pow;
 
 use crate::symmetry::symmetry_element::{
     ElementOrder, SymmetryElement, SymmetryElementKind, SymmetryOperation, F, INV, SIG,
@@ -4501,4 +4502,72 @@ fn test_symmetry_operation_time_reversal() {
     assert!(!tsd1.is_identity());
     assert!((&tsd1 * &sd1).is_time_reversal());
     assert!((&tsd1 * &t).is_inversion());
+}
+
+#[test]
+fn test_symmetry_operation_exponentiation() {
+    let c5_element = SymmetryElement::builder()
+        .threshold(1e-7)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c5 = SymmetryOperation::builder()
+        .generating_element(c5_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c5pm1 = SymmetryOperation::builder()
+        .generating_element(c5_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(c5.pow(-1), c5pm1);
+
+    let c5p2 = SymmetryOperation::builder()
+        .generating_element(c5_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(c5pm1.pow(-2), c5p2);
+    assert_eq!(c5.pow(3), c5.pow(-2));
+    assert_ne!(c5.pow(3), c5.pow(-3));
+
+    let c6_element = SymmetryElement::builder()
+        .threshold(1e-7)
+        .proper_order(ElementOrder::Int(6))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c6 = SymmetryOperation::builder()
+        .generating_element(c6_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c3_element = SymmetryElement::builder()
+        .threshold(1e-7)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c3 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(c6.pow(2), c3);
+    assert_eq!(
+        (&c6 * &c5).pow(2), &c6.pow(2) * &c5.pow(2)
+    );
 }

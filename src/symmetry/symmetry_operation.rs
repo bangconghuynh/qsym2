@@ -5,6 +5,7 @@ use nalgebra::{Point3, Vector3};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Mul;
+use num_traits::Pow;
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
@@ -818,5 +819,19 @@ impl<'a, 'b> Mul<&'a SymmetryOperation> for &'b SymmetryOperation {
         let thresh = (self.generating_element.threshold * rhs.generating_element.threshold).sqrt();
         let max_trial_power = u32::MAX;
         SymmetryOperation::from_quaternion(q3, proper, thresh, max_trial_power, self.time_reversal_power + rhs.time_reversal_power)
+    }
+}
+
+
+impl Pow<i32> for &SymmetryOperation {
+    type Output = SymmetryOperation;
+
+    fn pow(self, rhs: i32) -> SymmetryOperation {
+        SymmetryOperation::builder()
+            .generating_element(self.generating_element.clone())
+            .power(self.power * rhs)
+            .time_reversal_power(self.time_reversal_power * rhs)
+            .build()
+            .unwrap()
     }
 }
