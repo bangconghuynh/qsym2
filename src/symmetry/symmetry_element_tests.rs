@@ -1,7 +1,7 @@
-use crate::aux::misc;
-use nalgebra::Vector3;
 use std::collections::HashSet;
+use nalgebra::Vector3;
 
+use crate::aux::misc;
 use crate::symmetry::symmetry_element::{ElementOrder, SymmetryElement, SymmetryElementKind};
 
 #[test]

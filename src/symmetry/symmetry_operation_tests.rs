@@ -1,7 +1,8 @@
-use crate::aux::geometry;
+use std::collections::HashSet;
 use nalgebra::{Point3, Vector3};
 use num_traits::Pow;
 
+use crate::aux::geometry;
 use crate::symmetry::symmetry_element::{
     ElementOrder, SymmetryElement, SymmetryElementKind, SymmetryOperation, F, INV, SIG,
 };
@@ -4663,4 +4664,81 @@ fn test_symmetry_operation_exponentiation() {
         .unwrap();
     assert!(tc5.pow(1).is_antiunitary());
     assert!(tc5.pow(5).is_time_reversal());
+}
+
+#[test]
+fn test_symmetry_operation_hashability() {
+    let mut symops: HashSet<SymmetryOperation> = HashSet::new();
+
+    let c8_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(8))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c8 = SymmetryOperation::builder()
+        .generating_element(c8_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    symops.insert(c8.pow(1));
+    symops.insert(c8.pow(2));
+    assert_eq!(symops.len(), 2);
+
+    let c4_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .axis(Vector3::new(-1.0, 1.0, -1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c4 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(symops.contains(&c4.pow(-1)));
+
+    symops.insert(c8.pow(-2));
+    assert!(symops.contains(&c4));
+
+    let s8_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(8))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s8 = SymmetryOperation::builder()
+        .generating_element(s8_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!symops.contains(&s8));
+    assert!(symops.contains(&s8.pow(2)));
+
+    let c12_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(12))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, -1.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let tc12 = SymmetryOperation::builder()
+        .generating_element(c12_element.clone())
+        .power(1)
+        .time_reversal_power(1)
+        .build()
+        .unwrap();
+    assert!(!symops.contains(&tc12));
+    assert!(!symops.contains(&tc12.pow(3)));
 }

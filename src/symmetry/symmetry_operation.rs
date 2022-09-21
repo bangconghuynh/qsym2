@@ -1,10 +1,10 @@
+use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::ops::Mul;
 use approx;
 use derive_builder::Builder;
 use fraction;
 use nalgebra::{Point3, Vector3};
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::ops::Mul;
 use num_traits::Pow;
 
 use crate::aux::geometry;
