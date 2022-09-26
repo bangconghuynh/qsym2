@@ -46,10 +46,7 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug> {
     conjugacy_classes: Option<Vec<HashSet<usize>>>,
 }
 
-impl<T: Hash + Eq + Clone + Sync + Debug> GroupBuilder<T>
-where
-    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-{
+impl<T: Hash + Eq + Clone + Sync + Debug> GroupBuilder<T> {
     fn elements(&mut self, elems: Vec<T>) -> &mut Self {
         self.elements = Some(
             elems
@@ -94,8 +91,12 @@ where
             *k = *self
                 .elements
                 .get(&op_k)
-                .expect(format!(
-                    "Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group.", op_i_ref, op_j_ref, &op_k
+                .expect(
+                    format!(
+                        "Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group.",
+                        op_i_ref,
+                        op_j_ref,
+                        &op_k
                     ).as_str()
                 );
         });
