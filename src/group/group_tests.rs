@@ -31,8 +31,7 @@ fn test_group_creation() {
         let op = elements.next().unwrap();
         assert_eq!(*op, c5.pow(i));
     }
-    let ctb_c5 = group_c5.cayley_table.unwrap();
-    assert_eq!(ctb_c5, ctb_c5.t());
+    assert!(group_c5.is_abelian());
 
     let c29_element = SymmetryElement::builder()
         .threshold(1e-12)
@@ -55,6 +54,5 @@ fn test_group_creation() {
         let op = elements.next().unwrap();
         assert_eq!(*op, c29.pow(i));
     }
-    let ctb_c29 = group_c29.cayley_table.unwrap();
-    assert_eq!(ctb_c29, ctb_c29.t());
+    assert!(group_c29.is_abelian());
 }
