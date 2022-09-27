@@ -38,6 +38,15 @@ fn test_point_group_detection_spherical_c60_ih() {
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("Ih".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(5)].len(), 6);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 10);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 15);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(10)].len(), 6);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(6)].len(), 10);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 15);
+    assert_eq!(sym.get_sigma_elements("").unwrap().len(), 15);
+
     assert_eq!(sym.proper_generators[&ElementOrder::Int(5)].len(), 6);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(2)].len(), 1);
 }
@@ -54,6 +63,12 @@ fn test_point_group_detection_spherical_ch4_td() {
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("Td".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 4);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(4)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 6);
+    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 6);
+
     assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 4);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
@@ -71,6 +86,12 @@ fn test_point_group_detection_spherical_adamantane_td() {
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("Td".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 4);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(4)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 6);
+    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 6);
+
     assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 4);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
@@ -88,6 +109,12 @@ fn test_point_group_detection_spherical_c165_diamond_nanoparticle_td() {
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("Td".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 4);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(4)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 6);
+    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 6);
+
     assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 4);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
     assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
@@ -105,6 +132,13 @@ fn test_point_group_detection_spherical_vh2o6_th() {
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("Th".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 4);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(6)].len(), 4);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 3);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 3);
+
     assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 4);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(2)].len(), 1);
 }
@@ -121,6 +155,16 @@ fn test_point_group_detection_spherical_vf6_oh() {
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     assert_eq!(sym.point_group, Some("Oh".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(4)].len(), 3);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(3)].len(), 4);
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(2)].len(), 9);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(6)].len(), 4);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(4)].len(), 3);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(1)].len(), 9);
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 3);
+    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 6);
+
     assert_eq!(sym.proper_generators[&ElementOrder::Int(3)].len(), 4);
     assert_eq!(sym.proper_generators[&ElementOrder::Int(4)].len(), 1);
     assert_eq!(sym.improper_generators[&ElementOrder::Int(2)].len(), 1);

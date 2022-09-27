@@ -3,10 +3,10 @@ use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, SIG};
-use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_2};
+use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
+use itertools::Itertools;
 use log;
 use nalgebra::{Point3, Vector3};
-use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
 use derive_builder::Builder;
@@ -175,14 +175,14 @@ impl PreSymmetry {
 pub struct Symmetry {
     /// The determined point group in Schönflies notation.
     #[builder(setter(skip, strip_option), default = "None")]
-    point_group: Option<String>,
+    pub point_group: Option<String>,
 
     /// The proper generators found.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding proper generators.
     #[builder(setter(skip), default = "HashMap::new()")]
-    proper_generators: HashMap<ElementOrder, HashSet<SymmetryElement>>,
+    pub proper_generators: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
     /// The improper generators found. These generators are always defined in
     /// the mirror-plane convention.
@@ -190,14 +190,14 @@ pub struct Symmetry {
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding improper generators.
     #[builder(setter(skip), default = "HashMap::new()")]
-    improper_generators: HashMap<ElementOrder, HashSet<SymmetryElement>>,
+    pub improper_generators: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
     /// The proper elements found.
     ///
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding proper elements.
-    #[builder(setter(skip), default = "Self::default_proper_elements()")]
-    proper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
+    #[builder(setter(skip), default = "HashMap::new()")]
+    pub proper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 
     /// The improper elements found. These elements are always defined in the
     /// mirror-plane convention.
@@ -205,25 +205,7 @@ pub struct Symmetry {
     /// Each key gives the order and the matching value gives the [`HashSet`] of
     /// the corresponding improper elements.
     #[builder(setter(skip), default = "HashMap::new()")]
-    improper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
-}
-
-impl SymmetryBuilder {
-    fn default_proper_elements() -> HashMap<ElementOrder, HashSet<SymmetryElement>> {
-        let mut proper_elements = HashMap::new();
-        let c1 = SymmetryElement::builder()
-            .threshold(1e-14)
-            .proper_order(ElementOrder::Int(1))
-            .proper_power(1)
-            .axis(Vector3::new(0.0, 0.0, 1.0))
-            .kind(SymmetryElementKind::Proper)
-            .build()
-            .unwrap();
-        let mut identity_element_set = HashSet::new();
-        identity_element_set.insert(c1);
-        proper_elements.insert(ElementOrder::Int(1), identity_element_set);
-        proper_elements
-    }
+    pub improper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
 }
 
 impl Symmetry {
@@ -244,14 +226,24 @@ impl Symmetry {
     /// and its rotational symmetry required for point-group detection.
     pub fn analyse(&mut self, presym: &PreSymmetry) {
         log::debug!("Rotational symmetry found: {}", presym.rotational_symmetry);
+        let c1 = SymmetryElement::builder()
+            .threshold(presym.dist_threshold)
+            .proper_order(ORDER_1.clone())
+            .proper_power(1)
+            .axis(Vector3::new(0.0, 0.0, 1.0))
+            .kind(SymmetryElementKind::Proper)
+            .build()
+            .unwrap();
+        self.proper_elements.insert(ORDER_1.clone(), HashSet::from([c1]));
         match &presym.rotational_symmetry {
             RotationalSymmetry::Spherical => self.analyse_spherical(presym),
             RotationalSymmetry::ProlateLinear => self.analyse_linear(presym),
             RotationalSymmetry::OblatePlanar
             | RotationalSymmetry::OblateNonPlanar
             | RotationalSymmetry::ProlateNonLinear => self.analyse_symmetric(presym),
-            RotationalSymmetry::AsymmetricPlanar
-            | RotationalSymmetry::AsymmetricNonPlanar => self.analyse_asymmetric(presym),
+            RotationalSymmetry::AsymmetricPlanar | RotationalSymmetry::AsymmetricNonPlanar => {
+                self.analyse_asymmetric(presym)
+            }
         }
     }
 
@@ -504,6 +496,18 @@ impl Symmetry {
             .max()
             .unwrap()
             .clone()
+    }
+
+    pub fn is_infinite(&self) -> bool {
+        self.get_max_proper_order() == ElementOrder::Inf
+            || self
+                .improper_generators
+                .keys()
+                .chain(self.improper_elements.keys())
+                .max()
+                .unwrap()
+                .clone()
+                == ElementOrder::Inf
     }
 }
 
@@ -787,7 +791,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
     }
 }
 
+mod symmetry_core_asymmetric;
 mod symmetry_core_linear;
 mod symmetry_core_spherical;
 mod symmetry_core_symmetric;
-mod symmetry_core_asymmetric;

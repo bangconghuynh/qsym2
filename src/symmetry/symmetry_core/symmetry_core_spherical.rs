@@ -533,7 +533,7 @@ impl Symmetry {
             let mut count_s6 = 0;
             for s6_axis in s6_axes.into_iter() {
                 count_s6 += self.add_improper(
-                    ORDER_1.clone(),
+                    order_6.clone(),
                     s6_axis,
                     false,
                     SIG.clone(),
@@ -714,7 +714,7 @@ impl Symmetry {
                     sigma_normal,
                     false,
                     SIG.clone(),
-                    Some("d".to_owned()),
+                    None,
                     presym.molecule.threshold,
                 ) as i32;
             }
