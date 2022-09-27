@@ -505,7 +505,7 @@ impl Symmetry {
                 .keys()
                 .chain(self.improper_elements.keys())
                 .max()
-                .unwrap()
+                .unwrap_or_else(|| &ElementOrder::Int(0))
                 .clone()
                 == ElementOrder::Inf
     }

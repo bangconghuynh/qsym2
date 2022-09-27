@@ -381,7 +381,7 @@ fn test_point_group_detection_symmetric_vh2o6_electric_field_c3() {
 }
 
 #[test]
-fn test_point_group_detection_65coronane_electric_field_c3() {
+fn test_point_group_detection_symmetric_65coronane_electric_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -1.0)));

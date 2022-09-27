@@ -4,9 +4,14 @@ use std::hash::Hash;
 use std::ops::Mul;
 
 use log;
-use indexmap::IndexMap;
+use itertools::Itertools;
 use derive_builder::Builder;
-use ndarray::{Array2, Zip, s};
+use indexmap::IndexMap;
+use ndarray::{s, Array2, Zip};
+
+use crate::symmetry::symmetry_core::Symmetry;
+use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation};
+use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 
 #[cfg(test)]
 #[path = "group_tests.rs"]
@@ -52,6 +57,13 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug> {
     /// each element index to its corresponding conjugacy class index.
     #[builder(setter(skip), default = "None")]
     element_to_conjugacy_classes: Option<Vec<usize>>,
+
+    /// The number of conjugacy classes of this group.
+    ///
+    /// This is also the number of distinct irreducible representations of the
+    /// group.
+    #[builder(setter(skip), default = "None")]
+    class_number: Option<usize>,
 }
 
 impl<T: Hash + Eq + Clone + Sync + Debug> GroupBuilder<T> {
@@ -80,6 +92,16 @@ where
         GroupBuilder::default()
     }
 
+    /// Constructs a group from its elements.
+    ///
+    /// # Arguments
+    ///
+    /// * name - A name to be given to the group.
+    /// * elements - A vector of *all* group elements.
+    ///
+    /// # Returns
+    ///
+    /// A group with its Cayley table constructed and conjugacy classes determined.
     fn new(name: &str, elements: Vec<T>) -> Self {
         let mut grp = Self::builder()
             .name(name.to_string())
@@ -91,6 +113,21 @@ where
         grp
     }
 
+    /// Checks if this group is Abelian.
+    ///
+    /// This method requires the Cayley table to have been constructed.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this group is Abelian.
+    fn is_abelian(&self) -> bool {
+        let ctb = self.cayley_table.as_ref().unwrap();
+        ctb == ctb.t()
+    }
+
+    /// Constructs the Cayley table for the group.
+    ///
+    /// This method sets the [`Self::cayley_table`] field.
     fn construct_cayley_table(&mut self) {
         log::debug!("Constructing Cayley table in parallel...");
         let mut ctb = Array2::<usize>::zeros((self.order, self.order));
@@ -114,25 +151,22 @@ where
         log::debug!("Constructing Cayley table in parallel... Done.");
     }
 
-    fn is_abelian(&self) -> bool {
-        let ctb = self.cayley_table.as_ref().unwrap();
-        ctb == ctb.t()
-    }
-
+    /// Find the conjugacy classes for the group.
+    ///
+    /// This method sets the [`Self::conjugacy_classes`],
+    /// [`Self::element_to_conjugacy_classes`], and [`Self::class_number`] fields.
     fn find_conjugacy_classes(&mut self) {
         // Find conjugacy classes
         log::debug!("Finding conjugacy classes...");
         if self.is_abelian() {
+            log::debug!("Abelian group found.");
             // Abelian group; each element is in its own conjugacy class.
-            self.conjugacy_classes = Some(
-                (0usize..self.order)
-                    .map(|i| HashSet::from([i]))
-                    .collect()
-            );
-            self.element_to_conjugacy_classes = Some(
-                (0usize..self.order).collect()
-            );
+            self.conjugacy_classes =
+                Some((0usize..self.order).map(|i| HashSet::from([i])).collect());
+            self.element_to_conjugacy_classes = Some((0usize..self.order).collect());
         } else {
+            // Non-Abelian group.
+            log::debug!("Non-Abelian group found.");
             let mut ccs: Vec<HashSet<usize>> = vec![HashSet::from([0usize])];
             let mut e2ccs = vec![0usize; self.order];
             let mut remaining_elements: HashSet<usize> = (1usize..self.order).collect();
@@ -155,9 +189,126 @@ where
                 }
                 ccs.push(cur_cc);
             }
+            self.conjugacy_classes = Some(ccs);
             assert!(e2ccs.iter().skip(1).all(|&x| x > 0));
             self.element_to_conjugacy_classes = Some(e2ccs);
         }
+        self.class_number = Some(self.conjugacy_classes.as_ref().unwrap().len());
         log::debug!("Finding conjugacy classes... Done.");
     }
+}
+
+/// Constructs a group from molecular symmetry *elements* (not operations).
+///
+/// # Arguments
+///
+/// * sym - A molecular symmetry struct.
+/// * name - An optional symbolic name to be given to the group. If no name
+/// is given, the point-group name from `sym` will be used instead.
+/// * infinite_order_to_finite - Interpret infinite-order generating
+/// elements as finite-order generating elements to create a finite subgroup
+/// of an otherwise infinite group.
+///
+/// # Returns
+///
+/// A finite abstract group struct.
+fn group_from_molecular_symmetry(
+    sym: Symmetry,
+    name: Option<&str>,
+    infinite_order_to_finite: Option<u64>,
+) -> Group<SymmetryOperation> {
+    let group_name = if let Some(nam) = name {
+        nam.to_string()
+    } else {
+        sym.point_group.as_ref().unwrap().clone()
+    };
+
+    let handles_infinite_group = if sym.is_infinite() {
+        assert_ne!(infinite_order_to_finite, None);
+        true
+    } else {
+        false
+    };
+
+    let id_element = sym
+        .proper_elements
+        .get(&ORDER_1)
+        .unwrap()
+        .iter()
+        .next()
+        .unwrap()
+        .clone();
+
+    let id_operation = SymmetryOperation::builder()
+        .generating_element(id_element)
+        .power(1)
+        .build()
+        .unwrap();
+
+    // Finite proper operations
+    let mut proper_orders = sym.proper_elements.keys().collect::<Vec<_>>();
+    proper_orders.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let proper_operations =
+        proper_orders
+            .iter()
+            .fold(vec![id_operation], |mut acc, proper_order| {
+                sym.proper_elements
+                    .get(&proper_order)
+                    .unwrap()
+                    .iter()
+                    .for_each(|proper_element| {
+                        if let ElementOrder::Int(io) = proper_order {
+                            acc.extend((1..*io).map(|power| {
+                                SymmetryOperation::builder()
+                                    .generating_element(proper_element.clone())
+                                    .power(power as i32)
+                                    .build()
+                                    .unwrap()
+                            }))
+                        }
+                    });
+                acc
+            });
+
+    // Finite improper operations
+    let mut improper_orders = sym.improper_elements.keys().collect::<Vec<_>>();
+    improper_orders.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let improper_operations =
+        improper_orders
+            .iter()
+            .fold(vec![], |mut acc, improper_order| {
+                sym.improper_elements
+                    .get(&improper_order)
+                    .unwrap()
+                    .iter()
+                    .for_each(|improper_element| {
+                        if let ElementOrder::Int(io) = improper_order {
+                            acc.extend((1..(2 * *io)).step_by(2).map(|power| {
+                                SymmetryOperation::builder()
+                                    .generating_element(improper_element.clone())
+                                    .power(power as i32)
+                                    .build()
+                                    .unwrap()
+                            }))
+                        }
+                    });
+                acc
+            });
+
+    let operations: HashSet<_> = proper_operations
+        .into_iter()
+        .chain(improper_operations)
+        .collect();
+
+    let mut sorted_operations: Vec<SymmetryOperation> = operations.into_iter().collect();
+    sorted_operations.sort_by_key(
+        |op| (
+            !op.is_proper(),
+            !(op.is_identity() || op.is_inversion()),
+            op.is_binary_rotation() || op.is_reflection(),
+            -(*op.total_proper_fraction.unwrap().denom().unwrap() as i64),
+            op.power
+        )
+    );
+    Group::<SymmetryOperation>::new(group_name.as_str(), sorted_operations)
 }

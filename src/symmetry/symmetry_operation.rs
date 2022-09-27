@@ -159,7 +159,6 @@ impl SymmetryOperation {
             } else {
                 let positive_normalised_angle = 2.0 * scalar_part.acos(); // in [0, π]
                 let axis = vector_part / (0.5 * positive_normalised_angle).sin();
-                println!("Angle: {}", positive_normalised_angle/std::f64::consts::PI);
                 let proper_fraction = geometry::get_proper_fraction(
                     positive_normalised_angle,
                     thresh,
