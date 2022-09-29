@@ -4,13 +4,12 @@ use std::hash::Hash;
 use std::ops::Mul;
 
 use log;
-use itertools::Itertools;
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use ndarray::{s, Array2, Zip};
 
 use crate::symmetry::symmetry_core::Symmetry;
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation};
+use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 
 #[cfg(test)]
