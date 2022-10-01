@@ -727,6 +727,7 @@ dependencies = [
  "num 0.4.0",
  "num-traits",
  "periodic_table",
+ "rayon",
 ]
 
 [[package]]

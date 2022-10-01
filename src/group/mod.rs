@@ -6,11 +6,14 @@ use std::ops::Mul;
 use log;
 use derive_builder::Builder;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use ndarray::{s, Array2, Zip};
+use rayon::iter::ParallelBridge;
+use rayon::prelude::ParallelIterator;
 
 use crate::symmetry::symmetry_core::Symmetry;
-use crate::symmetry::symmetry_element::SymmetryOperation;
-use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
+use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation};
+use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_I};
 
 #[cfg(test)]
 #[path = "group_tests.rs"]
@@ -214,7 +217,7 @@ where
 fn group_from_molecular_symmetry(
     sym: Symmetry,
     name: Option<&str>,
-    infinite_order_to_finite: Option<u64>,
+    infinite_order_to_finite: Option<u32>,
 ) -> Group<SymmetryOperation> {
     let group_name = if let Some(nam) = name {
         nam.to_string()
@@ -224,9 +227,9 @@ fn group_from_molecular_symmetry(
 
     let handles_infinite_group = if sym.is_infinite() {
         assert_ne!(infinite_order_to_finite, None);
-        true
+        infinite_order_to_finite
     } else {
-        false
+        None
     };
 
     let id_element = sym
@@ -269,45 +272,168 @@ fn group_from_molecular_symmetry(
                 acc
             });
 
+    // Finite proper operations from infinite-order generators
+    let proper_operations_from_infinite = if let Some(finite_order) = handles_infinite_group {
+        if let Some(infinite_proper_generators) = sym.proper_generators.get(&ORDER_I) {
+            infinite_proper_generators
+                .iter()
+                .fold(vec![], |mut acc, infinite_proper_generator| {
+                    let finite_proper_element = SymmetryElement::builder()
+                        .threshold(infinite_proper_generator.threshold)
+                        .proper_order(ElementOrder::Int(finite_order))
+                        .proper_power(1)
+                        .axis(infinite_proper_generator.axis)
+                        .kind(infinite_proper_generator.kind.clone())
+                        .additional_superscript(
+                            infinite_proper_generator.additional_superscript.clone(),
+                        )
+                        .additional_subscript(
+                            infinite_proper_generator.additional_subscript.clone(),
+                        )
+                        .build()
+                        .unwrap();
+                    acc.extend((1..finite_order).map(|power| {
+                        SymmetryOperation::builder()
+                            .generating_element(finite_proper_element.clone())
+                            .power(power as i32)
+                            .build()
+                            .unwrap()
+                    }));
+                    acc
+                })
+        } else {
+            vec![]
+        }
+    } else {
+        vec![]
+    };
+
     // Finite improper operations
     let mut improper_orders = sym.improper_elements.keys().collect::<Vec<_>>();
     improper_orders.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let improper_operations =
-        improper_orders
-            .iter()
-            .fold(vec![], |mut acc, improper_order| {
-                sym.improper_elements
-                    .get(&improper_order)
-                    .unwrap()
-                    .iter()
-                    .for_each(|improper_element| {
-                        if let ElementOrder::Int(io) = improper_order {
-                            acc.extend((1..(2 * *io)).step_by(2).map(|power| {
-                                SymmetryOperation::builder()
-                                    .generating_element(improper_element.clone())
-                                    .power(power as i32)
-                                    .build()
-                                    .unwrap()
-                            }))
-                        }
-                    });
-                acc
-            });
+    let improper_operations = improper_orders
+        .iter()
+        .fold(vec![], |mut acc, improper_order| {
+            sym.improper_elements
+                .get(&improper_order)
+                .unwrap()
+                .iter()
+                .for_each(|improper_element| {
+                    if let ElementOrder::Int(io) = improper_order {
+                        acc.extend((1..(2 * *io)).step_by(2).map(|power| {
+                            SymmetryOperation::builder()
+                                .generating_element(improper_element.clone())
+                                .power(power as i32)
+                                .build()
+                                .unwrap()
+                        }))
+                    }
+                });
+            acc
+        });
+    //
+    // Finite improper operations from infinite-order generators
+    let improper_operations_from_infinite = if let Some(finite_order) = handles_infinite_group {
+        if let Some(infinite_improper_generators) = sym.improper_generators.get(&ORDER_I) {
+            infinite_improper_generators
+                .iter()
+                .fold(vec![], |mut acc, infinite_improper_generator| {
+                    let finite_improper_element = SymmetryElement::builder()
+                        .threshold(infinite_improper_generator.threshold)
+                        .proper_order(ElementOrder::Int(finite_order))
+                        .proper_power(1)
+                        .axis(infinite_improper_generator.axis)
+                        .kind(infinite_improper_generator.kind.clone())
+                        .additional_superscript(
+                            infinite_improper_generator.additional_superscript.clone(),
+                        )
+                        .additional_subscript(
+                            infinite_improper_generator.additional_subscript.clone(),
+                        )
+                        .build()
+                        .unwrap();
+                    acc.extend((1..(2 * finite_order)).step_by(2).map(|power| {
+                        SymmetryOperation::builder()
+                            .generating_element(finite_improper_element.clone())
+                            .power(power as i32)
+                            .build()
+                            .unwrap()
+                    }));
+                    acc
+                })
+        } else {
+            vec![]
+        }
+    } else {
+        vec![]
+    };
 
-    let operations: HashSet<_> = proper_operations
-        .into_iter()
-        .chain(improper_operations)
-        .collect();
+    let operations: HashSet<_> = if let None = handles_infinite_group {
+        proper_operations
+            .into_iter()
+            .chain(proper_operations_from_infinite)
+            .chain(improper_operations)
+            .chain(improper_operations_from_infinite)
+            .collect()
+    } else {
+        // Fulfil group closure
+        log::debug!("Fulfilling closure for a finite subgroup of an infinite group...");
+        let mut existing_operations: HashSet<_> = proper_operations
+            .into_iter()
+            .chain(proper_operations_from_infinite)
+            .chain(improper_operations)
+            .chain(improper_operations_from_infinite)
+            .collect();
+        let mut extra_operations = HashSet::<SymmetryOperation>::new();
+        let mut npasses = 0;
+        let mut nstable = 0;
+
+        while nstable < 2 || npasses == 0 {
+            let n_extra_operations = extra_operations.len();
+            existing_operations.extend(extra_operations);
+
+            npasses += 1;
+            log::debug!(
+                "Generating all group elements: {} pass{}, {} element{} (of which {} {} new)",
+                npasses,
+                {if npasses > 1 {"es"} else {""}}.to_string(),
+                existing_operations.len(),
+                {if existing_operations.len() > 1 {"s"} else {""}}.to_string(),
+                n_extra_operations,
+                {if n_extra_operations > 1 {"are"} else {"is"}}.to_string(),
+            );
+
+            extra_operations = existing_operations
+                .iter()
+                .combinations_with_replacement(2)
+                .par_bridge()
+                .map(|op_pairs| {
+                    let op_i_ref = op_pairs[0];
+                    let op_j_ref = op_pairs[1];
+                    op_i_ref * op_j_ref
+                })
+                .collect();
+            if extra_operations.len() == 0 {
+                nstable += 1;
+            } else {
+                nstable = 0;
+            }
+        }
+
+        assert_eq!(extra_operations.len(), 0);
+        log::debug!("Group closure reached with {} elements.", existing_operations.len());
+        existing_operations
+    };
 
     let mut sorted_operations: Vec<SymmetryOperation> = operations.into_iter().collect();
-    sorted_operations.sort_by_key(
-        |op| (
+    sorted_operations.sort_by_key(|op| {
+        (
             !op.is_proper(),
             !(op.is_identity() || op.is_inversion()),
             op.is_binary_rotation() || op.is_reflection(),
             -(*op.total_proper_fraction.unwrap().denom().unwrap() as i64),
-            op.power
+            op.power,
         )
-    );
+    });
     Group::<SymmetryOperation>::new(group_name.as_str(), sorted_operations)
 }

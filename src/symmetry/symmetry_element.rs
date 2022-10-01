@@ -115,7 +115,7 @@ pub struct SymmetryElement {
 
     /// The kind of the symmetry element.
     #[builder(default = "SymmetryElementKind::Proper")]
-    kind: SymmetryElementKind,
+    pub kind: SymmetryElementKind,
 
     /// A flag indicating whether the symmetry element is a generator of the
     /// group to which it belongs.
