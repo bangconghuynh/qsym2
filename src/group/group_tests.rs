@@ -1,5 +1,6 @@
 use nalgebra::Vector3;
 use num_traits::Pow;
+use env_logger;
 
 use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
@@ -73,7 +74,7 @@ fn test_group_from_molecular_symmetry() {
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
-    let group = group_from_molecular_symmetry(sym, None, None);
+    let group = group_from_molecular_symmetry(sym, None);
     assert_eq!(group.name, "C3v".to_string());
     assert_eq!(group.order, 6);
     assert_eq!(group.class_number, Some(3));
@@ -94,7 +95,7 @@ fn test_abstract_group(
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
-    let group = group_from_molecular_symmetry(sym, None, None);
+    let group = group_from_molecular_symmetry(sym, None);
     assert_eq!(group.name, name.to_string());
     assert_eq!(group.order, order);
     assert_eq!(group.class_number, Some(class_number));
@@ -117,8 +118,8 @@ fn test_abstract_group_from_infinite_group(
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
-    let group = group_from_molecular_symmetry(sym, None, Some(finite_order));
-    assert_eq!(group.name, name.to_string());
+    let group = group_from_molecular_symmetry(sym, Some(finite_order));
+    assert_eq!(group.finite_subgroup_name, Some(name.to_string()));
     assert_eq!(group.order, order);
     assert_eq!(group.class_number, Some(class_number));
     assert_eq!(group.is_abelian(), abelian);
@@ -197,141 +198,142 @@ Linear
 
 #[test]
 fn test_abstract_group_linear_atom_magnetic_field_cinfh() {
+    env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
-    test_abstract_group_from_infinite_group(mol, 6, thresh, "Oh", 48, 10, false);
+    test_abstract_group_from_infinite_group(mol, 4, thresh, "Oh", 48, 10, false);
 }
 
-#[test]
-fn test_abstract_group_linear_atom_electric_field_cinfv() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
-    let mut mol = Molecule::from_xyz(&path, 1e-7);
-    mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
-    let presym = PreSymmetry::builder()
-        .moi_threshold(1e-14)
-        .molecule(&mol, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
-    assert_eq!(sym.point_group, Some("C∞v".to_owned()));
-    assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
-    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
-}
+// #[test]
+// fn test_abstract_group_linear_atom_electric_field_cinfv() {
+//     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+//     let mut mol = Molecule::from_xyz(&path, 1e-7);
+//     mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
+//     let presym = PreSymmetry::builder()
+//         .moi_threshold(1e-14)
+//         .molecule(&mol, true)
+//         .build()
+//         .unwrap();
+//     let mut sym = Symmetry::builder().build().unwrap();
+//     sym.analyse(&presym);
+//     assert_eq!(sym.point_group, Some("C∞v".to_owned()));
+//     assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
+//     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+//     assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+// }
 
-#[test]
-fn test_abstract_group_linear_c2h2_dinfh() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
-    let mol = Molecule::from_xyz(&path, 1e-6);
-    let presym = PreSymmetry::builder()
-        .moi_threshold(1e-6)
-        .molecule(&mol, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
-    assert_eq!(sym.point_group, Some("D∞h".to_owned()));
-    assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
-    assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
-    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
-}
+// #[test]
+// fn test_abstract_group_linear_c2h2_dinfh() {
+//     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+//     let mol = Molecule::from_xyz(&path, 1e-6);
+//     let presym = PreSymmetry::builder()
+//         .moi_threshold(1e-6)
+//         .molecule(&mol, true)
+//         .build()
+//         .unwrap();
+//     let mut sym = Symmetry::builder().build().unwrap();
+//     sym.analyse(&presym);
+//     assert_eq!(sym.point_group, Some("D∞h".to_owned()));
+//     assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
+//     assert_eq!(sym.proper_generators[&ElementOrder::Int(2)].len(), 1);
+//     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+//     assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+// }
 
-#[test]
-fn test_abstract_group_linear_c2h2_magnetic_field_dinfh() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
-    let mut mol = Molecule::from_xyz(&path, 1e-6);
+// #[test]
+// fn test_abstract_group_linear_c2h2_magnetic_field_dinfh() {
+//     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+//     let mut mol = Molecule::from_xyz(&path, 1e-6);
 
-    // Parallel field
-    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    let presym = PreSymmetry::builder()
-        .moi_threshold(1e-6)
-        .molecule(&mol, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
-    assert_eq!(sym.point_group, Some("C∞h".to_owned()));
-    assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
-    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
-}
+//     // Parallel field
+//     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+//     let presym = PreSymmetry::builder()
+//         .moi_threshold(1e-6)
+//         .molecule(&mol, true)
+//         .build()
+//         .unwrap();
+//     let mut sym = Symmetry::builder().build().unwrap();
+//     sym.analyse(&presym);
+//     assert_eq!(sym.point_group, Some("C∞h".to_owned()));
+//     assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
+//     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+//     assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+// }
 
-#[test]
-fn test_abstract_group_linear_c2h2_electric_field_cinfv() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
-    let mut mol = Molecule::from_xyz(&path, 1e-6);
+// #[test]
+// fn test_abstract_group_linear_c2h2_electric_field_cinfv() {
+//     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+//     let mut mol = Molecule::from_xyz(&path, 1e-6);
 
-    // Parallel field
-    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    let presym = PreSymmetry::builder()
-        .moi_threshold(1e-6)
-        .molecule(&mol, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
-    assert_eq!(sym.point_group, Some("C∞v".to_owned()));
-    assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
-}
+//     // Parallel field
+//     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+//     let presym = PreSymmetry::builder()
+//         .moi_threshold(1e-6)
+//         .molecule(&mol, true)
+//         .build()
+//         .unwrap();
+//     let mut sym = Symmetry::builder().build().unwrap();
+//     sym.analyse(&presym);
+//     assert_eq!(sym.point_group, Some("C∞v".to_owned()));
+//     assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
+// }
 
-#[test]
-fn test_abstract_group_linear_n3_cinfv() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
-    let mol = Molecule::from_xyz(&path, 1e-6);
-    let presym = PreSymmetry::builder()
-        .moi_threshold(1e-6)
-        .molecule(&mol, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
-    assert_eq!(sym.point_group, Some("C∞v".to_owned()));
-    assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
-    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
-}
+// #[test]
+// fn test_abstract_group_linear_n3_cinfv() {
+//     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+//     let mol = Molecule::from_xyz(&path, 1e-6);
+//     let presym = PreSymmetry::builder()
+//         .moi_threshold(1e-6)
+//         .molecule(&mol, true)
+//         .build()
+//         .unwrap();
+//     let mut sym = Symmetry::builder().build().unwrap();
+//     sym.analyse(&presym);
+//     assert_eq!(sym.point_group, Some("C∞v".to_owned()));
+//     assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
+//     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+//     assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+// }
 
-#[test]
-fn test_abstract_group_linear_n3_magnetic_field_cinf() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
-    let mut mol = Molecule::from_xyz(&path, 1e-6);
+// #[test]
+// fn test_abstract_group_linear_n3_magnetic_field_cinf() {
+//     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+//     let mut mol = Molecule::from_xyz(&path, 1e-6);
 
-    // Parallel field
-    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    let presym = PreSymmetry::builder()
-        .moi_threshold(1e-6)
-        .molecule(&mol, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
-    assert_eq!(sym.point_group, Some("C∞".to_owned()));
-    assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
-}
+//     // Parallel field
+//     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+//     let presym = PreSymmetry::builder()
+//         .moi_threshold(1e-6)
+//         .molecule(&mol, true)
+//         .build()
+//         .unwrap();
+//     let mut sym = Symmetry::builder().build().unwrap();
+//     sym.analyse(&presym);
+//     assert_eq!(sym.point_group, Some("C∞".to_owned()));
+//     assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
+// }
 
-#[test]
-fn test_abstract_group_linear_n3_electric_field_cinfv() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
-    let mut mol = Molecule::from_xyz(&path, 1e-6);
+// #[test]
+// fn test_abstract_group_linear_n3_electric_field_cinfv() {
+//     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+//     let mut mol = Molecule::from_xyz(&path, 1e-6);
 
-    // Parallel field
-    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    let presym = PreSymmetry::builder()
-        .moi_threshold(1e-6)
-        .molecule(&mol, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
-    assert_eq!(sym.point_group, Some("C∞v".to_owned()));
-    assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
-    assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
-}
+//     // Parallel field
+//     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+//     let presym = PreSymmetry::builder()
+//         .moi_threshold(1e-6)
+//         .molecule(&mol, true)
+//         .build()
+//         .unwrap();
+//     let mut sym = Symmetry::builder().build().unwrap();
+//     sym.analyse(&presym);
+//     assert_eq!(sym.point_group, Some("C∞v".to_owned()));
+//     assert_eq!(sym.proper_generators[&ElementOrder::Inf].len(), 1);
+//     assert_eq!(sym.improper_generators[&ElementOrder::Int(1)].len(), 1);
+//     assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+// }
 
 /********
 Symmetric

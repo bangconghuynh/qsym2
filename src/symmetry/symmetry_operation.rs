@@ -483,7 +483,7 @@ impl SymmetryOperation {
     /// Returns a copy of the current symmetry operation with the generating element
     /// converted to the requested improper kind (power-preserving), provided that
     /// it is an improper element.
-    fn convert_to_improper_kind(&self, improper_kind: &SymmetryElementKind) -> Self {
+    pub fn convert_to_improper_kind(&self, improper_kind: &SymmetryElementKind) -> Self {
         let c_element = self
             .generating_element
             .convert_to_improper_kind(improper_kind, true);

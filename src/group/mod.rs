@@ -3,16 +3,16 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Mul;
 
-use log;
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use log;
 use ndarray::{s, Array2, Zip};
 use rayon::iter::ParallelBridge;
 use rayon::prelude::ParallelIterator;
 
 use crate::symmetry::symmetry_core::Symmetry;
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation};
+use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, SIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_I};
 
 #[cfg(test)]
@@ -32,6 +32,10 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug> {
     /// The order of the group.
     #[builder(setter(skip), default = "self.elements.as_ref().unwrap().len()")]
     order: usize,
+
+    /// An optional name if this group is actually a finite subgroup of [`Self::name`].
+    #[builder(default = "None")]
+    finite_subgroup_name: Option<String>,
 
     /// The Cayley table for this group w.r.t. the elements in [`Self::elements`].
     ///
@@ -205,8 +209,6 @@ where
 /// # Arguments
 ///
 /// * sym - A molecular symmetry struct.
-/// * name - An optional symbolic name to be given to the group. If no name
-/// is given, the point-group name from `sym` will be used instead.
 /// * infinite_order_to_finite - Interpret infinite-order generating
 /// elements as finite-order generating elements to create a finite subgroup
 /// of an otherwise infinite group.
@@ -216,14 +218,9 @@ where
 /// A finite abstract group struct.
 fn group_from_molecular_symmetry(
     sym: Symmetry,
-    name: Option<&str>,
     infinite_order_to_finite: Option<u32>,
 ) -> Group<SymmetryOperation> {
-    let group_name = if let Some(nam) = name {
-        nam.to_string()
-    } else {
-        sym.point_group.as_ref().unwrap().clone()
-    };
+    let group_name = sym.point_group.as_ref().unwrap().clone();
 
     let handles_infinite_group = if sym.is_infinite() {
         assert_ne!(infinite_order_to_finite, None);
@@ -231,6 +228,16 @@ fn group_from_molecular_symmetry(
     } else {
         None
     };
+
+    if let Some(finite_order) = handles_infinite_group {
+        if group_name == "O(3)" {
+            assert!(
+                matches!(finite_order, 2 | 4),
+                "Finite order of {} is not yet supported for O(3).",
+                finite_order
+            );
+        }
+    }
 
     let id_element = sym
         .proper_elements
@@ -335,9 +342,9 @@ fn group_from_molecular_symmetry(
     // Finite improper operations from infinite-order generators
     let improper_operations_from_infinite = if let Some(finite_order) = handles_infinite_group {
         if let Some(infinite_improper_generators) = sym.improper_generators.get(&ORDER_I) {
-            infinite_improper_generators
-                .iter()
-                .fold(vec![], |mut acc, infinite_improper_generator| {
+            infinite_improper_generators.iter().fold(
+                vec![],
+                |mut acc, infinite_improper_generator| {
                     let finite_improper_element = SymmetryElement::builder()
                         .threshold(infinite_improper_generator.threshold)
                         .proper_order(ElementOrder::Int(finite_order))
@@ -360,7 +367,8 @@ fn group_from_molecular_symmetry(
                             .unwrap()
                     }));
                     acc
-                })
+                },
+            )
         } else {
             vec![]
         }
@@ -396,23 +404,53 @@ fn group_from_molecular_symmetry(
             log::debug!(
                 "Generating all group elements: {} pass{}, {} element{} (of which {} {} new)",
                 npasses,
-                {if npasses > 1 {"es"} else {""}}.to_string(),
+                {
+                    if npasses > 1 {
+                        "es"
+                    } else {
+                        ""
+                    }
+                }
+                .to_string(),
                 existing_operations.len(),
-                {if existing_operations.len() > 1 {"s"} else {""}}.to_string(),
+                {
+                    if existing_operations.len() > 1 {
+                        "s"
+                    } else {
+                        ""
+                    }
+                }
+                .to_string(),
                 n_extra_operations,
-                {if n_extra_operations > 1 {"are"} else {"is"}}.to_string(),
+                {
+                    if n_extra_operations > 1 {
+                        "are"
+                    } else {
+                        "is"
+                    }
+                }
+                .to_string(),
             );
 
             extra_operations = existing_operations
                 .iter()
                 .combinations_with_replacement(2)
                 .par_bridge()
-                .map(|op_pairs| {
+                .fold(|| HashSet::<SymmetryOperation>::new(), |mut acc, op_pairs| {
                     let op_i_ref = op_pairs[0];
                     let op_j_ref = op_pairs[1];
-                    op_i_ref * op_j_ref
-                })
-                .collect();
+                    let op_k = op_i_ref * op_j_ref;
+                    if !existing_operations.contains(&op_k) {
+                        acc.insert({
+                            if !op_k.is_proper() {
+                                op_k.convert_to_improper_kind(&SIG)
+                            } else {
+                                op_k
+                            }
+                        });
+                    }
+                    acc
+                });
             if extra_operations.len() == 0 {
                 nstable += 1;
             } else {
@@ -421,7 +459,10 @@ fn group_from_molecular_symmetry(
         }
 
         assert_eq!(extra_operations.len(), 0);
-        log::debug!("Group closure reached with {} elements.", existing_operations.len());
+        log::debug!(
+            "Group closure reached with {} elements.",
+            existing_operations.len()
+        );
         existing_operations
     };
 
@@ -435,5 +476,42 @@ fn group_from_molecular_symmetry(
             op.power,
         )
     });
-    Group::<SymmetryOperation>::new(group_name.as_str(), sorted_operations)
+
+    let mut group = Group::<SymmetryOperation>::new(group_name.as_str(), sorted_operations);
+    if let Some(_) = handles_infinite_group {
+        let finite_group = if group.name.contains("∞") {
+            // # C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d
+            if group.name.as_bytes()[0] == b'D' {
+                if matches!(group.name.as_bytes().iter().last().unwrap(), b'h' | b'd') {
+                    assert_eq!(group.order % 4, 0);
+                    group.name.replace("∞", format!("{}", group.order / 4).as_str())
+                } else {
+                    assert_eq!(group.order % 2, 0);
+                    group.name.replace("∞", format!("{}", group.order / 2).as_str())
+                }
+            } else {
+                assert!(matches!(group.name.as_bytes()[0], b'C' | b'S'));
+                if matches!(group.name.as_bytes().iter().last().unwrap(), b'h' | b'v') {
+                    assert_eq!(group.order % 2, 0);
+                    if group.order > 2 {
+                        group.name.replace("∞", format!("{}", group.order / 2).as_str())
+                    } else {
+                        assert_eq!(group.name.as_bytes()[0], b'C');
+                        "Cs".to_string()
+                    }
+                } else {
+                    group.name.replace("∞", format!("{}", group.order).as_str())
+                }
+            }
+        } else {
+            // O(3)
+            match group.order {
+                8 => "D2h".to_string(),
+                48 => "Oh".to_string(),
+                _ => panic!("Unsupported number of group elements.")
+            }
+        };
+        group.finite_subgroup_name = Some(finite_group);
+    }
+    group
 }
