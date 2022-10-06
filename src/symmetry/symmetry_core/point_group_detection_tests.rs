@@ -229,7 +229,7 @@ fn test_point_group_detection_linear_c2h2_dinfh() {
 }
 
 #[test]
-fn test_point_group_detection_linear_c2h2_magnetic_field_dinfh() {
+fn test_point_group_detection_linear_c2h2_magnetic_field_cinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
 
