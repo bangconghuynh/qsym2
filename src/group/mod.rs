@@ -57,6 +57,13 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug> {
     #[builder(setter(skip), default = "None")]
     conjugacy_classes: Option<Vec<HashSet<usize>>>,
 
+    /// A vector containing the indices of inverse conjugacy classes.
+    ///
+    /// Each index gives the inverse conjugacy class for the corresponding
+    /// conjugacy class.
+    #[builder(setter(skip), default = "None")]
+    inverse_conjugacy_classes: Option<Vec<usize>>,
+
     /// The conjugacy class index of the elements in [`Self::elements`].
     ///
     /// This is the so-called inverse of [`Self::conjugacy_classes`]. This maps
@@ -201,6 +208,35 @@ where
         }
         self.class_number = Some(self.conjugacy_classes.as_ref().unwrap().len());
         log::debug!("Finding conjugacy classes... Done.");
+
+        log::debug!("Finding inverse conjugacy classes...");
+        let mut iccs: Vec<_> = self
+            .conjugacy_classes
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|_| 0usize)
+            .collect();
+        let mut remaining_classes: HashSet<_> = (1..self.class_number.unwrap()).collect();
+        let ctb = self.cayley_table.as_ref().unwrap();
+        while remaining_classes.len() > 0 {
+            let class_index = *remaining_classes.iter().next().unwrap();
+            remaining_classes.remove(&class_index);
+            let g = *self.conjugacy_classes.as_ref().unwrap()[class_index]
+                .iter()
+                .next()
+                .unwrap();
+            let g_inv = ctb.slice(s![g, ..]).iter().position(|&x| x == 0).unwrap();
+            let inv_class_index = self.element_to_conjugacy_classes.as_ref().unwrap()[g_inv];
+            iccs[class_index] = inv_class_index;
+            if remaining_classes.contains(&inv_class_index) {
+                remaining_classes.remove(&inv_class_index);
+                iccs[inv_class_index] = class_index;
+            }
+        }
+        assert!(iccs.iter().skip(1).all(|&x| x > 0));
+        self.inverse_conjugacy_classes = Some(iccs);
+        log::debug!("Finding inverse conjugacy classes... Done.");
     }
 }
 
@@ -283,13 +319,13 @@ fn group_from_molecular_symmetry(
     let proper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
         sym.proper_generators
             .par_iter()
-            .fold(|| vec![], |mut acc, (order, proper_generators)| {
-                proper_generators
-                    .iter()
-                    .for_each(|proper_generator| {
+            .fold(
+                || vec![],
+                |mut acc, (order, proper_generators)| {
+                    proper_generators.iter().for_each(|proper_generator| {
                         let finite_order = match order {
                             ElementOrder::Int(io) => *io,
-                            ElementOrder::Inf => fin_ord
+                            ElementOrder::Inf => fin_ord,
                         };
                         let finite_proper_element = SymmetryElement::builder()
                             .threshold(proper_generator.threshold)
@@ -297,12 +333,8 @@ fn group_from_molecular_symmetry(
                             .proper_power(1)
                             .axis(proper_generator.axis)
                             .kind(proper_generator.kind.clone())
-                            .additional_superscript(
-                                proper_generator.additional_superscript.clone(),
-                            )
-                            .additional_subscript(
-                                proper_generator.additional_subscript.clone(),
-                            )
+                            .additional_superscript(proper_generator.additional_superscript.clone())
+                            .additional_subscript(proper_generator.additional_subscript.clone())
                             .build()
                             .unwrap();
                         acc.extend((1..finite_order).map(|power| {
@@ -313,9 +345,16 @@ fn group_from_molecular_symmetry(
                                 .unwrap()
                         }));
                     });
-                acc
-            })
-            .reduce(|| vec![], |mut acc, vec| { acc.extend(vec); acc })
+                    acc
+                },
+            )
+            .reduce(
+                || vec![],
+                |mut acc, vec| {
+                    acc.extend(vec);
+                    acc
+                },
+            )
     } else {
         vec![]
     };
@@ -348,13 +387,13 @@ fn group_from_molecular_symmetry(
     let improper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
         sym.improper_generators
             .par_iter()
-            .fold(|| vec![], |mut acc, (order, improper_generators)| {
-                improper_generators
-                    .iter()
-                    .for_each(|improper_generator| {
+            .fold(
+                || vec![],
+                |mut acc, (order, improper_generators)| {
+                    improper_generators.iter().for_each(|improper_generator| {
                         let finite_order = match order {
                             ElementOrder::Int(io) => *io,
-                            ElementOrder::Inf => fin_ord
+                            ElementOrder::Inf => fin_ord,
                         };
                         let finite_improper_element = SymmetryElement::builder()
                             .threshold(improper_generator.threshold)
@@ -365,9 +404,7 @@ fn group_from_molecular_symmetry(
                             .additional_superscript(
                                 improper_generator.additional_superscript.clone(),
                             )
-                            .additional_subscript(
-                                improper_generator.additional_subscript.clone(),
-                            )
+                            .additional_subscript(improper_generator.additional_subscript.clone())
                             .build()
                             .unwrap();
                         acc.extend((1..(2 * finite_order)).step_by(2).map(|power| {
@@ -378,9 +415,16 @@ fn group_from_molecular_symmetry(
                                 .unwrap()
                         }));
                     });
-                acc
-            })
-            .reduce(|| vec![], |mut acc, vec| { acc.extend(vec); acc })
+                    acc
+                },
+            )
+            .reduce(
+                || vec![],
+                |mut acc, vec| {
+                    acc.extend(vec);
+                    acc
+                },
+            )
     } else {
         vec![]
     };
@@ -493,17 +537,23 @@ fn group_from_molecular_symmetry(
             if group.name.as_bytes()[0] == b'D' {
                 if matches!(group.name.as_bytes().iter().last().unwrap(), b'h' | b'd') {
                     assert_eq!(group.order % 4, 0);
-                    group.name.replace("∞", format!("{}", group.order / 4).as_str())
+                    group
+                        .name
+                        .replace("∞", format!("{}", group.order / 4).as_str())
                 } else {
                     assert_eq!(group.order % 2, 0);
-                    group.name.replace("∞", format!("{}", group.order / 2).as_str())
+                    group
+                        .name
+                        .replace("∞", format!("{}", group.order / 2).as_str())
                 }
             } else {
                 assert!(matches!(group.name.as_bytes()[0], b'C' | b'S'));
                 if matches!(group.name.as_bytes().iter().last().unwrap(), b'h' | b'v') {
                     assert_eq!(group.order % 2, 0);
                     if group.order > 2 {
-                        group.name.replace("∞", format!("{}", group.order / 2).as_str())
+                        group
+                            .name
+                            .replace("∞", format!("{}", group.order / 2).as_str())
                     } else {
                         assert_eq!(group.name.as_bytes()[0], b'C');
                         "Cs".to_string()
@@ -517,7 +567,7 @@ fn group_from_molecular_symmetry(
             match group.order {
                 8 => "D2h".to_string(),
                 48 => "Oh".to_string(),
-                _ => panic!("Unsupported number of group elements.")
+                _ => panic!("Unsupported number of group elements."),
             }
         };
         group.finite_subgroup_name = Some(finite_group);

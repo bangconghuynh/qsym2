@@ -1,4 +1,5 @@
 use env_logger;
+use itertools::Itertools;
 use nalgebra::Vector3;
 use num_traits::Pow;
 use std::panic;
@@ -130,6 +131,7 @@ fn test_abstract_group(
     assert_eq!(group.class_number, Some(class_number));
     assert_eq!(group.is_abelian(), abelian);
 
+    // Test element to conjugacy class
     let conjugacy_classes = group.conjugacy_classes.unwrap();
     for (element_i, class_i) in group
         .element_to_conjugacy_classes
@@ -138,6 +140,24 @@ fn test_abstract_group(
         .enumerate()
     {
         assert!(conjugacy_classes[*class_i].contains(&group.elements[element_i]));
+    }
+
+    // Test inverse conjugacy classes
+    let ctb = group.cayley_table.as_ref().unwrap();
+    for (class_i, inv_class_i) in group
+        .inverse_conjugacy_classes
+        .as_ref()
+        .unwrap()
+        .iter()
+        .enumerate()
+    {
+        assert!(conjugacy_classes[class_i]
+            .iter()
+            .cartesian_product(conjugacy_classes[*inv_class_i].iter())
+            .filter(|(&g, &inv_g)| { ctb[[g, inv_g]] == 0 })
+            .collect::<Vec<_>>()
+            .len() == conjugacy_classes[class_i].len()
+        );
     }
 }
 
@@ -165,6 +185,7 @@ fn test_abstract_group_from_infinite_group(
     assert_eq!(group.class_number, Some(class_number));
     assert_eq!(group.is_abelian(), abelian);
 
+    // Test element to conjugacy class
     let conjugacy_classes = group.conjugacy_classes.unwrap();
     for (element_i, class_i) in group
         .element_to_conjugacy_classes
@@ -173,6 +194,24 @@ fn test_abstract_group_from_infinite_group(
         .enumerate()
     {
         assert!(conjugacy_classes[*class_i].contains(&group.elements[element_i]));
+    }
+
+    // Test inverse conjugacy classes
+    let ctb = group.cayley_table.as_ref().unwrap();
+    for (class_i, inv_class_i) in group
+        .inverse_conjugacy_classes
+        .as_ref()
+        .unwrap()
+        .iter()
+        .enumerate()
+    {
+        assert!(conjugacy_classes[class_i]
+            .iter()
+            .cartesian_product(conjugacy_classes[*inv_class_i].iter())
+            .filter(|(&g, &inv_g)| { ctb[[g, inv_g]] == 0 })
+            .collect::<Vec<_>>()
+            .len() == conjugacy_classes[class_i].len()
+        );
     }
 }
 
