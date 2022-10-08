@@ -9,7 +9,7 @@ use itertools::Itertools;
 use log;
 use ndarray::{s, Array2, Zip};
 use rayon::iter::ParallelBridge;
-use rayon::prelude::ParallelIterator;
+use rayon::prelude::*;
 
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, SIG};
@@ -282,8 +282,8 @@ fn group_from_molecular_symmetry(
     // Finite proper operations from generators
     let proper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
         sym.proper_generators
-            .iter()
-            .fold(vec![], |mut acc, (order, proper_generators)| {
+            .par_iter()
+            .fold(|| vec![], |mut acc, (order, proper_generators)| {
                 proper_generators
                     .iter()
                     .for_each(|proper_generator| {
@@ -315,6 +315,7 @@ fn group_from_molecular_symmetry(
                     });
                 acc
             })
+            .reduce(|| vec![], |mut acc, vec| { acc.extend(vec); acc })
     } else {
         vec![]
     };
@@ -346,8 +347,8 @@ fn group_from_molecular_symmetry(
     // Finite improper operations from generators
     let improper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
         sym.improper_generators
-            .iter()
-            .fold(vec![], |mut acc, (order, improper_generators)| {
+            .par_iter()
+            .fold(|| vec![], |mut acc, (order, improper_generators)| {
                 improper_generators
                     .iter()
                     .for_each(|improper_generator| {
@@ -379,6 +380,7 @@ fn group_from_molecular_symmetry(
                     });
                 acc
             })
+            .reduce(|| vec![], |mut acc, vec| { acc.extend(vec); acc })
     } else {
         vec![]
     };

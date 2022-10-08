@@ -1,7 +1,7 @@
-use std::panic;
+use env_logger;
 use nalgebra::Vector3;
 use num_traits::Pow;
-use env_logger;
+use std::panic;
 
 use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
@@ -13,7 +13,7 @@ use crate::symmetry::symmetry_element_order::ElementOrder;
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
-fn test_group_creation() {
+fn test_abstract_group_creation() {
     // =============
     // Cyclic groups
     // =============
@@ -65,7 +65,7 @@ fn test_group_creation() {
 }
 
 #[test]
-fn test_group_from_molecular_symmetry() {
+fn test_abstract_group_from_molecular_symmetry() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -79,6 +79,34 @@ fn test_group_from_molecular_symmetry() {
     assert_eq!(group.name, "C3v".to_string());
     assert_eq!(group.order, 6);
     assert_eq!(group.class_number, Some(3));
+}
+
+#[test]
+fn test_abstract_group_element_to_conjugacy_class() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    let group = group_from_molecular_symmetry(sym, None);
+    assert_eq!(group.name, "C5v".to_string());
+    assert_eq!(group.order, 10);
+    assert_eq!(group.class_number, Some(4));
+
+    let conjugacy_classes = group.conjugacy_classes.unwrap();
+    for (element_i, class_i) in group
+        .element_to_conjugacy_classes
+        .unwrap()
+        .iter()
+        .enumerate()
+    {
+        assert!(conjugacy_classes[*class_i].contains(&group.elements[element_i]));
+    }
 }
 
 fn test_abstract_group(
@@ -101,6 +129,16 @@ fn test_abstract_group(
     assert_eq!(group.order, order);
     assert_eq!(group.class_number, Some(class_number));
     assert_eq!(group.is_abelian(), abelian);
+
+    let conjugacy_classes = group.conjugacy_classes.unwrap();
+    for (element_i, class_i) in group
+        .element_to_conjugacy_classes
+        .unwrap()
+        .iter()
+        .enumerate()
+    {
+        assert!(conjugacy_classes[*class_i].contains(&group.elements[element_i]));
+    }
 }
 
 fn test_abstract_group_from_infinite_group(
@@ -126,6 +164,16 @@ fn test_abstract_group_from_infinite_group(
     assert_eq!(group.order, order);
     assert_eq!(group.class_number, Some(class_number));
     assert_eq!(group.is_abelian(), abelian);
+
+    let conjugacy_classes = group.conjugacy_classes.unwrap();
+    for (element_i, class_i) in group
+        .element_to_conjugacy_classes
+        .unwrap()
+        .iter()
+        .enumerate()
+    {
+        assert!(conjugacy_classes[*class_i].contains(&group.elements[element_i]));
+    }
 }
 
 /********
@@ -138,25 +186,17 @@ fn test_abstract_group_spherical_atom_o3() {
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
 
-    test_abstract_group_from_infinite_group(
-        &mol, 2, thresh, "O(3)", "D2h", 8, 8, true
-    );
+    test_abstract_group_from_infinite_group(&mol, 2, thresh, "O(3)", "D2h", 8, 8, true);
 
-    test_abstract_group_from_infinite_group(
-        &mol, 4, thresh, "O(3)", "Oh", 48, 10, false
-    );
+    test_abstract_group_from_infinite_group(&mol, 4, thresh, "O(3)", "Oh", 48, 10, false);
 
     let result = panic::catch_unwind(|| {
-        test_abstract_group_from_infinite_group(
-            &mol, 5, thresh, "?", "?", 48, 10, false
-        );
+        test_abstract_group_from_infinite_group(&mol, 5, thresh, "?", "?", 48, 10, false);
     });
     assert!(result.is_err());
 
     let result = panic::catch_unwind(|| {
-        test_abstract_group_from_infinite_group(
-            &mol, 3, thresh, "?", "?", 48, 10, false
-        );
+        test_abstract_group_from_infinite_group(&mol, 3, thresh, "?", "?", 48, 10, false);
     });
     assert!(result.is_err());
 }
@@ -223,11 +263,25 @@ fn test_abstract_group_linear_atom_magnetic_field_cinfh() {
     for n in 2usize..=20usize {
         if n % 2 == 0 {
             test_abstract_group_from_infinite_group(
-                &mol, n as u32, thresh, "C∞h", format!("C{}h", n).as_str(), 2*n, 2*n, true
+                &mol,
+                n as u32,
+                thresh,
+                "C∞h",
+                format!("C{}h", n).as_str(),
+                2 * n,
+                2 * n,
+                true,
             );
         } else {
             test_abstract_group_from_infinite_group(
-                &mol, n as u32, thresh, "C∞h", format!("C{}h", 2*n).as_str(), 4*n, 4*n, true
+                &mol,
+                n as u32,
+                thresh,
+                "C∞h",
+                format!("C{}h", 2 * n).as_str(),
+                4 * n,
+                4 * n,
+                true,
             );
         }
     }
@@ -251,7 +305,7 @@ fn test_abstract_group_linear_atom_electric_field_cinfv() {
             thresh,
             "C∞v",
             format!("C{}v", n).as_str(),
-            2*n,
+            2 * n,
             ({
                 if n % 2 == 0 {
                     n / 2 - 1
@@ -358,7 +412,7 @@ fn test_abstract_group_linear_c2h2_electric_field_cinfv() {
             thresh,
             "C∞v",
             format!("C{}v", n).as_str(),
-            2*n,
+            2 * n,
             ({
                 if n % 2 == 0 {
                     n / 2 - 1
@@ -389,7 +443,7 @@ fn test_abstract_group_linear_n3_cinfv() {
             thresh,
             "C∞v",
             format!("C{}v", n).as_str(),
-            2*n,
+            2 * n,
             ({
                 if n % 2 == 0 {
                     n / 2 - 1
@@ -445,7 +499,7 @@ fn test_abstract_group_linear_n3_electric_field_cinfv() {
             thresh,
             "C∞v",
             format!("C{}v", n).as_str(),
-            2*n,
+            2 * n,
             ({
                 if n % 2 == 0 {
                     n / 2 - 1
