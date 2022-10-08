@@ -18,7 +18,6 @@ type F = fraction::Fraction;
 mod symmetry_operation;
 pub use symmetry_operation::*;
 
-
 #[cfg(test)]
 #[path = "symmetry_element_tests.rs"]
 mod symmetry_element_tests;
@@ -178,7 +177,9 @@ impl SymmetryElementBuilder {
         let proper_order = self.proper_order.as_ref().unwrap();
         match proper_order {
             ElementOrder::Int(io) => Some(geometry::normalise_rotation_angle(
-                ((self.proper_power.unwrap().unwrap() as f64) / (*io as f64)) as f64 * 2.0 * std::f64::consts::PI,
+                ((self.proper_power.unwrap().unwrap() as f64) / (*io as f64)) as f64
+                    * 2.0
+                    * std::f64::consts::PI,
                 self.threshold.unwrap(),
             )),
             ElementOrder::Inf => self.proper_angle.unwrap_or(None),
@@ -498,6 +499,37 @@ impl SymmetryElement {
                 }
             }
         }
+    }
+
+    /// The closeness of the symmetry element's axis to one of the
+    /// three space-fixed Cartesian axes.
+    ///
+    /// # Returns
+    ///
+    /// A tuple of two values:
+    /// - A value $`\gamma \in [0, 1-1/\sqrt{3}]`$ indicating how
+    /// close the axis is to one of the three Cartesian axes. The closer
+    /// $`\gamma`$ is to $`0`$, the closer the alignment.
+    /// - An index for the closest axis: `0` for $`z`$, `1` for $`y`$, `2`
+    /// for $`x`$.
+    pub fn closeness_to_cartesian_axes(&self) -> (f64, usize) {
+        let normalised_axis = self.axis.normalize();
+        let rev_normalised_axis = Vector3::new(
+            normalised_axis[(2)],
+            normalised_axis[(1)],
+            normalised_axis[(0)],
+        );
+        let (amax_arg, amax_val) = rev_normalised_axis.abs().argmax();
+        let axis_closeness = 1.0 - amax_val;
+        let thresh = self.threshold;
+        assert!(
+            -thresh <= axis_closeness && axis_closeness <= (1.0 - 1.0 / 3.0f64.sqrt() + thresh)
+        );
+
+        // closest axis: 0 for z, 1 for y, 2 for x
+        // This is so that z axes are preferred.
+        let closest_axis = amax_arg;
+        (axis_closeness, closest_axis)
     }
 }
 

@@ -3,11 +3,12 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Mul;
 
+use log;
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use log;
 use ndarray::{s, Array2, Zip};
+use ordered_float::OrderedFloat;
 use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 
@@ -521,12 +522,15 @@ fn group_from_molecular_symmetry(
 
     let mut sorted_operations: Vec<SymmetryOperation> = operations.into_iter().collect();
     sorted_operations.sort_by_key(|op| {
+        let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
         (
             !op.is_proper(),
             !(op.is_identity() || op.is_inversion()),
             op.is_binary_rotation() || op.is_reflection(),
             -(*op.total_proper_fraction.unwrap().denom().unwrap() as i64),
             op.power,
+            OrderedFloat(axis_closeness),
+            closest_axis,
         )
     });
 
