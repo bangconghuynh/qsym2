@@ -379,7 +379,7 @@ impl SymmetryOperation {
     /// same pole, thus facilitating the consistent specification of poles for the
     /// identity / inversion and binary rotations / reflections.
     ///
-    /// Note that binary rotations / reflections have unique poles on the positiv
+    /// Note that binary rotations / reflections have unique poles on the positive
     /// hemisphere (*i.e.*, $`C_2(\hat{\mathbf{n}}) = C_2^{-1}(\hat{\mathbf{n}})`$
     /// and $`\sigma(\hat{\mathbf{n}}) = \sigma^{-1}(\hat{\mathbf{n}})`$).
     ///

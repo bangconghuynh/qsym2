@@ -50,18 +50,18 @@ pub enum SymmetryElementKind {
 /// representation of a symmetry element $`\hat{g}`$:
 ///
 /// ```math
-/// \hat{g} = \hat{gamma} \hat{C}_n^k,
+/// \hat{g} = \hat{\gamma} \hat{C}_n^k,
 /// ```
 ///
 /// where $`n \in \mathbb{N}_{+}`$, $`k \in \mathbb{Z}/n\mathbb{Z} = \{1, \ldots, n\}`$,
-/// and $`\hat{gamma}`$ is either the identity $`\hat{e}`$, the inversion operation
+/// and $`\hat{\gamma}`$ is either the identity $`\hat{e}`$, the inversion operation
 /// $`\hat{i}`$, or a reflection operation $`\hat{\sigma}`$. With this definition,
 /// the three pieces of information required to specify a geometrical symmetry
 /// element are given as follows:
 ///
 /// * the axis of rotation $`\hat{\mathbf{n}}`$ is given by the axis of $`\hat{C}_n^k`$,
 /// * the angle of rotation $`\phi = 2\pi k/n \in (0, \pi] \cup \lbrace2\pi\rbrace`$, and
-/// * whether the element is proper or improper is given by $`\hat{gamma}`$.
+/// * whether the element is proper or improper is given by $`\hat{\gamma}`$.
 ///
 /// This definition, however, also allows $`\hat{g}`$ to be interpreted as
 /// an element of $`O(3)`$, which means that $`\hat{g}`$ is also a symmetry
@@ -80,7 +80,7 @@ pub struct SymmetryElement {
     pub proper_order: ElementOrder,
 
     /// The power $`k \in \mathbb{Z}/n\mathbb{Z} = \{1, \ldots, n\}`$ of the proper
-    /// symmetry element. This is only defined if [`Self::order`] is finite.
+    /// symmetry element. This is only defined if [`Self::proper_order`] is finite.
     #[builder(setter(custom), default = "None")]
     pub proper_power: Option<u32>,
 
