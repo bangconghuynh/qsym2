@@ -114,7 +114,7 @@ fn test_abstract_group_element_to_conjugacy_class() {
 #[test]
 fn test_abstract_group_element_sort() {
     // H2O in yz-plane, with C2 axis along z - C2v
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/water_z.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
     let presym = PreSymmetry::builder()
@@ -174,27 +174,38 @@ fn test_abstract_group_element_sort() {
     );
 }
 
-
-// ============================================
-// Abstract group from molecular symmetry tests
-// ============================================
-
-fn test_abstract_group(
-    mol: &Molecule,
-    thresh: f64,
-    name: &str,
-    order: usize,
-    class_number: usize,
-    abelian: bool,
-) {
+#[test]
+fn test_abstract_group_class_matrices() {
+    // H2O in yz-plane, with C2 axis along z - C2v
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(&mol, true)
         .build()
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     let group = group_from_molecular_symmetry(sym, None);
+    let nmat_rst = group.class_matrix.unwrap();
+    let mut nmat_srt = nmat_rst.clone();
+    nmat_srt.swap_axes(0, 1);
+    assert_eq!(nmat_rst, nmat_srt);
+}
+
+
+// ============================================
+// Abstract group from molecular symmetry tests
+// ============================================
+
+fn test_abstract_group_validity(
+    group: Group<SymmetryOperation>,
+    name: &str,
+    order: usize,
+    class_number: usize,
+    abelian: bool,
+) {
     assert_eq!(group.name, name.to_string());
     assert_eq!(group.order, order);
     assert_eq!(group.class_number, Some(class_number));
@@ -228,6 +239,30 @@ fn test_abstract_group(
             .len() == conjugacy_classes[class_i].len()
         );
     }
+
+    // Test class matrix symmetry w.r.t. the first two indices
+    let nmat_rst = group.class_matrix.unwrap();
+    let mut nmat_srt = nmat_rst.clone();
+    nmat_srt.swap_axes(0, 1);
+    assert_eq!(nmat_rst, nmat_srt);
+}
+fn test_abstract_group(
+    mol: &Molecule,
+    thresh: f64,
+    name: &str,
+    order: usize,
+    class_number: usize,
+    abelian: bool,
+) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    let group = group_from_molecular_symmetry(sym, None);
+    test_abstract_group_validity(group, name, order, class_number, abelian);
 }
 
 fn test_abstract_group_from_infinite_group(
@@ -248,40 +283,7 @@ fn test_abstract_group_from_infinite_group(
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     let group = group_from_molecular_symmetry(sym, Some(finite_order));
-    assert_eq!(group.name, name.to_string());
-    assert_eq!(group.finite_subgroup_name, Some(finite_name.to_string()));
-    assert_eq!(group.order, order);
-    assert_eq!(group.class_number, Some(class_number));
-    assert_eq!(group.is_abelian(), abelian);
-
-    // Test element to conjugacy class
-    let conjugacy_classes = group.conjugacy_classes.unwrap();
-    for (element_i, class_i) in group
-        .element_to_conjugacy_classes
-        .unwrap()
-        .iter()
-        .enumerate()
-    {
-        assert!(conjugacy_classes[*class_i].contains(&group.elements[element_i]));
-    }
-
-    // Test inverse conjugacy classes
-    let ctb = group.cayley_table.as_ref().unwrap();
-    for (class_i, inv_class_i) in group
-        .inverse_conjugacy_classes
-        .as_ref()
-        .unwrap()
-        .iter()
-        .enumerate()
-    {
-        assert!(conjugacy_classes[class_i]
-            .iter()
-            .cartesian_product(conjugacy_classes[*inv_class_i].iter())
-            .filter(|(&g, &inv_g)| { ctb[[g, inv_g]] == 0 })
-            .collect::<Vec<_>>()
-            .len() == conjugacy_classes[class_i].len()
-        );
-    }
+    test_abstract_group_validity(group, name, order, class_number, abelian);
 }
 
 /********

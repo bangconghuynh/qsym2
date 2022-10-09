@@ -3,11 +3,11 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Mul;
 
-use log;
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use ndarray::{s, Array2, Zip};
+use log;
+use ndarray::{s, Array2, Array3, Axis, Zip};
 use ordered_float::OrderedFloat;
 use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
@@ -78,6 +78,19 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug> {
     /// group.
     #[builder(setter(skip), default = "None")]
     class_number: Option<usize>,
+
+    /// The class matrices $`\mathbf{N}`$ for the conjugacy classes in the group.
+    ///
+    /// Let $`K_i`$ be the $`i^{\textrm{th}}`conjugacy class of the group. The
+    /// elements of the class matrix $`\mathbf{N}`$ are given by
+    ///
+    /// ```math
+    ///     N_{rst} = \lvert \{ (x, y) \in K_r \times K_s : xy = z \in K_t \} \rvert,
+    /// ```
+    ///
+    /// independent of any $`z \in K_t`$.
+    #[builder(setter(skip), default = "None")]
+    class_matrix: Option<Array3<usize>>,
 }
 
 impl<T: Hash + Eq + Clone + Sync + Debug> GroupBuilder<T> {
@@ -124,6 +137,7 @@ where
             .unwrap();
         grp.construct_cayley_table();
         grp.find_conjugacy_classes();
+        grp.calc_class_matrix();
         grp
     }
 
@@ -238,6 +252,51 @@ where
         assert!(iccs.iter().skip(1).all(|&x| x > 0));
         self.inverse_conjugacy_classes = Some(iccs);
         log::debug!("Finding inverse conjugacy classes... Done.");
+    }
+
+    /// Calculates the class matrix $`\mathbf{N}`$ for the conjugacy classes in
+    /// the group.
+    ///
+    /// Let $`K_i`$ be the $`i^{\textrm{th}}`conjugacy class of the group. The
+    /// elements of the class matrix $`\mathbf{N}`$ are given by
+    ///
+    /// ```math
+    ///     N_{rst} = \lvert \{ (x, y) \in K_r \times K_s : xy = z \in K_t \} \rvert,
+    /// ```
+    ///
+    /// independent of any $`z \in K_t`$.
+    ///
+    /// This method sets the [`Self::class_matrix`] field.
+    ///
+    /// # Arguments
+    ///
+    /// * r - The index of the conjugacy class for which the class matrix is to be found.
+    fn calc_class_matrix(&mut self) {
+        let mut nmat = Array3::<usize>::zeros(
+            (self.class_number.unwrap(), self.class_number.unwrap(), self.class_number.unwrap())
+        );
+        for (r, class_r) in self.conjugacy_classes.as_ref().unwrap().iter().enumerate() {
+            let idx_r = class_r.iter().cloned().collect::<Vec<_>>();
+            for (s, class_s) in self.conjugacy_classes.as_ref().unwrap().iter().enumerate() {
+                let idx_s = class_s.iter().cloned().collect::<Vec<_>>();
+                let cayley_block_rs = self
+                    .cayley_table
+                    .as_ref()
+                    .unwrap()
+                    .select(Axis(0), &idx_r)
+                    .select(Axis(1), &idx_s)
+                    .iter()
+                    .cloned()
+                    .counts();
+
+                for (t, class_t) in self.conjugacy_classes.as_ref().unwrap().iter().enumerate() {
+                    nmat[[r, s, t]] = *cayley_block_rs
+                        .get(class_t.iter().next().unwrap())
+                        .unwrap_or(&0);
+                }
+            }
+        }
+        self.class_matrix = Some(nmat);
     }
 }
 
