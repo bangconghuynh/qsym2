@@ -1,4 +1,5 @@
 use env_logger;
+use approx;
 use itertools::Itertools;
 use nalgebra::Vector3;
 use num_traits::Pow;
@@ -109,6 +110,74 @@ fn test_abstract_group_element_to_conjugacy_class() {
         assert!(conjugacy_classes[*class_i].contains(&group.elements[element_i]));
     }
 }
+
+#[test]
+fn test_abstract_group_element_sort() {
+    // H2O in yz-plane, with C2 axis along z - C2v
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    let group = group_from_molecular_symmetry(sym, None);
+    approx::assert_relative_eq!(
+        group.elements.get_index(2).unwrap().0.generating_element.axis,
+        Vector3::new(0.0, 1.0, 0.0)
+    );
+    approx::assert_relative_eq!(
+        group.elements.get_index(3).unwrap().0.generating_element.axis,
+        Vector3::new(1.0, 0.0, 0.0)
+    );
+
+
+    // B2H6 - D2h
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    let group = group_from_molecular_symmetry(sym, None);
+    approx::assert_relative_eq!(
+        group.elements.get_index(1).unwrap().0.generating_element.axis,
+        Vector3::new(0.0, 0.0, 1.0)
+    );
+    approx::assert_relative_eq!(
+        group.elements.get_index(2).unwrap().0.generating_element.axis,
+        Vector3::new(0.0, 1.0, 0.0)
+    );
+    approx::assert_relative_eq!(
+        group.elements.get_index(3).unwrap().0.generating_element.axis,
+        Vector3::new(1.0, 0.0, 0.0)
+    );
+    assert!(group.elements.get_index(4).unwrap().0.is_inversion());
+    approx::assert_relative_eq!(
+        group.elements.get_index(5).unwrap().0.generating_element.axis,
+        Vector3::new(0.0, 0.0, 1.0)
+    );
+    approx::assert_relative_eq!(
+        group.elements.get_index(6).unwrap().0.generating_element.axis,
+        Vector3::new(0.0, 1.0, 0.0)
+    );
+    approx::assert_relative_eq!(
+        group.elements.get_index(7).unwrap().0.generating_element.axis,
+        Vector3::new(1.0, 0.0, 0.0)
+    );
+}
+
+
+// ============================================
+// Abstract group from molecular symmetry tests
+// ============================================
 
 fn test_abstract_group(
     mol: &Molecule,
