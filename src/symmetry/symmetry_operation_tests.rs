@@ -4,7 +4,7 @@ use num_traits::Pow;
 
 use crate::aux::geometry;
 use crate::symmetry::symmetry_element::{
-    ElementOrder, SymmetryElement, SymmetryElementKind, SymmetryOperation, F, INV, SIG,
+    ElementOrder, SymmetryElement, SymmetryElementKind, SymmetryOperation, F, INV, SIG
 };
 
 #[test]
@@ -4411,6 +4411,62 @@ fn test_symmetry_operation_noncollinear_composition() {
         .build()
         .unwrap();
     assert_eq!(&s1b * &s1a, c);
+
+    let s1c_element = SymmetryElement::builder()
+        .threshold(1e-10)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(
+            (std::f64::consts::PI * 3.0).sin(),
+            -(std::f64::consts::PI * 3.0).cos(),
+            0.0,
+        ))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+
+    let s1c = SymmetryOperation::builder()
+        .generating_element(s1c_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c1_element = SymmetryElement::builder()
+        .threshold(1e-10)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+
+    let c1 = SymmetryOperation::builder()
+        .generating_element(c1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let s1cc1 = &s1c * &c1;
+
+    let s2d_element = SymmetryElement::builder()
+        .threshold(1e-10)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(
+            (std::f64::consts::PI * 3.0).sin(),
+            -(std::f64::consts::PI * 3.0).cos(),
+            0.0,
+        ))
+        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .build()
+        .unwrap();
+
+    let s2d = SymmetryOperation::builder()
+        .generating_element(s2d_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(s1cc1, s2d);
 }
 
 #[test]

@@ -940,6 +940,45 @@ fn test_symmetry_element_finite_hashset() {
 }
 
 #[test]
+fn test_symmetry_element_cartesian_axis_closeness() {
+    let s3 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    let (s3_closeness, s3_closest_axis) = s3.closeness_to_cartesian_axes();
+    approx::assert_relative_eq!(s3_closeness, 1.0 - 1.0/3f64.sqrt());
+    assert_eq!(s3_closest_axis, 0);
+
+    let s4 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, 1.0, 1.0))
+        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .build()
+        .unwrap();
+    let (s4_closeness, s4_closest_axis) = s4.closeness_to_cartesian_axes();
+    approx::assert_relative_eq!(s4_closeness, 1.0 - 2.0/6f64.sqrt());
+    assert_eq!(s4_closest_axis, 2);
+
+    let s6 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(SymmetryElementKind::Proper)
+        .build()
+        .unwrap();
+    let (s6_closeness, s6_closest_axis) = s6.closeness_to_cartesian_axes();
+    approx::assert_relative_eq!(s6_closeness, 0.0);
+    assert_eq!(s6_closest_axis, 1);
+}
+
+#[test]
 fn test_infinite_symmetry_element_comparison() {
     // ========================
     // Proper symmetry elements

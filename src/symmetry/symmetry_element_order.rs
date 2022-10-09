@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher};
 use crate::aux::misc::HashableFloat;
 
 
-/// An enum to handle symmetry element orders which can be integers, floats, or infinity.
+/// An enum to handle symmetry element orders.
 #[derive(Clone, Debug)]
 pub enum ElementOrder {
     /// Positive integer order.
@@ -16,6 +16,17 @@ pub enum ElementOrder {
 }
 
 impl ElementOrder {
+    /// Creates an integer or infinite element order.
+    ///
+    /// # Arguments
+    ///
+    /// * order - A floating-point order value which must be either integral or
+    /// infinite.
+    /// * thresh - A threshold for determining the integrality of `order`.
+    ///
+    /// # Returns
+    ///
+    /// An element order.
     pub fn new(order: f64, thresh: f64) -> Self {
         assert!(
             order.is_sign_positive(),
@@ -37,6 +48,11 @@ impl ElementOrder {
         panic!("The input order is not an integer.");
     }
 
+    /// Converts the element order struct to the floating-point representation.
+    ///
+    /// # Returns
+    ///
+    /// The floating-point representation of the current element order.
     pub fn to_float(&self) -> f64 {
         match self {
             Self::Int(s_i) => *s_i as f64,
