@@ -17,7 +17,6 @@ use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, SIG}
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 
 #[cfg(test)]
-#[path = "group_tests.rs"]
 mod group_tests;
 
 /// A struct for managing abstract groups.

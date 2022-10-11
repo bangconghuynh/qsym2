@@ -14,12 +14,10 @@ use crate::symmetry::symmetry_element_order::ElementOrder;
 
 type F = fraction::Fraction;
 
-#[path = "symmetry_operation.rs"]
-mod symmetry_operation;
+pub mod symmetry_operation;
 pub use symmetry_operation::*;
 
 #[cfg(test)]
-#[path = "symmetry_element_tests.rs"]
 mod symmetry_element_tests;
 
 /// An enum to classify the types of symmetry element.
