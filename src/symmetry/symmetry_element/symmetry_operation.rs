@@ -1,11 +1,11 @@
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::ops::Mul;
 use approx;
 use derive_builder::Builder;
 use fraction;
 use nalgebra::{Point3, Vector3};
 use num_traits::Pow;
+use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::ops::Mul;
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
@@ -508,7 +508,11 @@ impl fmt::Debug for SymmetryOperation {
         if self.power == 1 {
             write!(f, "{}{:?}", timerev, self.generating_element)
         } else {
-            write!(f, "{}[{:?}]^{}", timerev, self.generating_element, self.power)
+            write!(
+                f,
+                "{}[{:?}]^{}",
+                timerev, self.generating_element, self.power
+            )
         }
     }
 }
@@ -690,10 +694,15 @@ impl<'a, 'b> Mul<&'a SymmetryOperation> for &'b SymmetryOperation {
         let proper = self.is_proper() == rhs.is_proper();
         let thresh = (self.generating_element.threshold * rhs.generating_element.threshold).sqrt();
         let max_trial_power = u32::MAX;
-        SymmetryOperation::from_quaternion(q3, proper, thresh, max_trial_power, self.time_reversal_power + rhs.time_reversal_power)
+        SymmetryOperation::from_quaternion(
+            q3,
+            proper,
+            thresh,
+            max_trial_power,
+            self.time_reversal_power + rhs.time_reversal_power,
+        )
     }
 }
-
 
 impl Pow<i32> for &SymmetryOperation {
     type Output = SymmetryOperation;

@@ -1,12 +1,13 @@
-use approx;
-use derive_builder::Builder;
-use fraction;
-use log;
-use nalgebra::Vector3;
-use num::integer::gcd;
 use std::cmp;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+
+use approx;
+use fraction;
+use log;
+use derive_builder::Builder;
+use nalgebra::Vector3;
+use num::integer::gcd;
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
