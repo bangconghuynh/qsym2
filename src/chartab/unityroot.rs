@@ -6,11 +6,15 @@ use num_traits::Pow;
 
 type F = fraction::Fraction;
 
+#[cfg(test)]
+#[path = "unityroot_tests.rs"]
+mod unityroot_tests;
+
 /// A struct to represent roots of unity symbolically.
 ///
 /// Partial orders between roots of unity are based on their angular positions
 /// on the unit circle in the Argand diagram, with unity being the smallest.
-#[derive(Builder, Clone, PartialEq, Eq, Hash)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash)]
 struct UnityRoot {
     /// The fraction $`k/n \in [0, 1)`$ of the unity root, represented exactly
     /// for hashing and comparison purposes.
