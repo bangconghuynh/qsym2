@@ -14,7 +14,7 @@ mod unityroot_tests;
 ///
 /// Partial orders between roots of unity are based on their angular positions
 /// on the unit circle in the Argand diagram, with unity being the smallest.
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Builder, Debug, Clone, PartialOrd, PartialEq, Eq, Hash)]
 struct UnityRoot {
     /// The fraction $`k/n \in [0, 1)`$ of the unity root, represented exactly
     /// for hashing and comparison purposes.
@@ -29,7 +29,7 @@ impl UnityRootBuilder {
         } else {
             let numer = frac.numer().unwrap();
             let denom = frac.denom().unwrap();
-            Some(F::new(numer % denom, *denom))
+            Some(F::new(numer.rem_euclid(*denom), *denom))
         };
         self
     }
@@ -117,7 +117,7 @@ impl Pow<i32> for &UnityRoot {
     fn pow(self, rhs: i32) -> Self::Output {
         Self::Output::new(
             u64::try_from(
-                (*self.index() as i32 * rhs) % (*self.order() as i32)
+                (*self.index() as i32 * rhs).rem_euclid(*self.order() as i32)
             ).expect("Unexpected negative remainder."),
             *self.order()
         )
