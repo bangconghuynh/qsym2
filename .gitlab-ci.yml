@@ -1,0 +1,26 @@
+default:
+  image: rust:latest
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/cargo
+
+cache:
+  key: $CI_COMMIT_REF_SLUG
+  paths:
+    - cargo/
+    - target/
+
+stages:
+  - Build
+  - Coverage
+
+rust-latest:
+  stage: Build
+  script:
+    - cargo build --verbose
+    - cargo test --verbose
+
+tarpaulin:
+  stage: Coverage
+  script:
+    - cargo tarpaulin --target-dir=target/tarpaulin
