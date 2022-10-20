@@ -115,41 +115,41 @@ fn test_unityroot_mul() {
 
 
 #[test]
-fn test_unitroot_fmt() {
+fn test_unityroot_fmt() {
     let e4 = UnityRoot::new(1u64, 4u64);
     assert_eq!(format!("{}", e4.pow(0)), "1".to_string());
     assert_eq!(format!("{}", e4.pow(1)), "i".to_string());
     assert_eq!(format!("{}", e4.pow(2)), "-1".to_string());
     assert_eq!(format!("{}", e4.pow(3)), "-i".to_string());
-    assert_eq!(format!("{:?}", e4.pow(0)), "E4^0".to_string());
+    assert_eq!(format!("{:?}", e4.pow(0)), "1".to_string());
     assert_eq!(format!("{:?}", e4.pow(1)), "E4".to_string());
-    assert_eq!(format!("{:?}", e4.pow(2)), "E4^2".to_string());
+    assert_eq!(format!("{:?}", e4.pow(2)), "E2".to_string());
     assert_eq!(format!("{:?}", e4.pow(3)), "E4^3".to_string());
 
     let e6 = UnityRoot::new(1u64, 6u64);
     assert_eq!(format!("{}", e6.pow(0)), "1".to_string());
     assert_eq!(format!("{}", e6.pow(1)), "E6".to_string());
-    assert_eq!(format!("{}", e6.pow(2)), "E6^2".to_string());
+    assert_eq!(format!("{}", e6.pow(2)), "E3".to_string());
     assert_eq!(format!("{}", e6.pow(3)), "-1".to_string());
-    assert_eq!(format!("{}", e6.pow(4)), "E6^4".to_string());
+    assert_eq!(format!("{}", e6.pow(4)), "E3^2".to_string());
     assert_eq!(format!("{}", e6.pow(5)), "E6^5".to_string());
     assert_eq!(format!("{}", e6.pow(6)), "1".to_string());
-    assert_eq!(format!("{:?}", e6.pow(0)), "E6^0".to_string());
+    assert_eq!(format!("{:?}", e6.pow(0)), "1".to_string());
     assert_eq!(format!("{:?}", e6.pow(1)), "E6".to_string());
-    assert_eq!(format!("{:?}", e6.pow(2)), "E6^2".to_string());
-    assert_eq!(format!("{:?}", e6.pow(3)), "E6^3".to_string());
-    assert_eq!(format!("{:?}", e6.pow(4)), "E6^4".to_string());
+    assert_eq!(format!("{:?}", e6.pow(2)), "E3".to_string());
+    assert_eq!(format!("{:?}", e6.pow(3)), "E2".to_string());
+    assert_eq!(format!("{:?}", e6.pow(4)), "E3^2".to_string());
     assert_eq!(format!("{:?}", e6.pow(5)), "E6^5".to_string());
-    assert_eq!(format!("{:?}", e6.pow(6)), "E6^6".to_string());
+    assert_eq!(format!("{:?}", e6.pow(6)), "1".to_string());
 
     let e8 = UnityRoot::new(1u64, 8u64);
     assert_eq!(format!("{}", e8.pow(-2)), "-i".to_string());
     assert_eq!(format!("{}", e8.pow(-4)), "-1".to_string());
     assert_eq!(format!("{}", e8.pow(-6)), "i".to_string());
     assert_eq!(format!("{}", e8.pow(-8)), "1".to_string());
-    assert_eq!(format!("{:?}", e8.pow(-2)), "E8^6".to_string());
-    assert_eq!(format!("{:?}", e8.pow(-4)), "E8^4".to_string());
-    assert_eq!(format!("{:?}", e8.pow(-6)), "E8^2".to_string());
-    assert_eq!(format!("{:?}", e8.pow(-8)), "E8^0".to_string());
-    assert_eq!(format!("{:?}", e8.pow(10)), "E8^2".to_string());
+    assert_eq!(format!("{:?}", e8.pow(-2)), "E4^3".to_string());
+    assert_eq!(format!("{:?}", e8.pow(-4)), "E2".to_string());
+    assert_eq!(format!("{:?}", e8.pow(-6)), "E4".to_string());
+    assert_eq!(format!("{:?}", e8.pow(-8)), "1".to_string());
+    assert_eq!(format!("{:?}", e8.pow(10)), "E4".to_string());
 }

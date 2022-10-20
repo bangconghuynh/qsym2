@@ -132,19 +132,19 @@ impl fmt::Display for UnityRoot {
             write!(f, "-1")
         } else if self.fraction == F::new(3u64, 4u64) {
             write!(f, "-i")
+        } else if *self.index() == 1u64 {
+            write!(f, "E{}", self.order())
         } else {
-            if *self.index() == 1u64 {
-                write!(f, "E{}", self.order())
-            } else {
-                write!(f, "E{}^{}", self.order(), self.index())
-            }
+            write!(f, "E{}^{}", self.order(), self.index())
         }
     }
 }
 
 impl fmt::Debug for UnityRoot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if *self.index() == 1u64 {
+        if self.fraction == F::new(0u64, 4u64) {
+            write!(f, "1")
+        } else if *self.index() == 1u64 {
             write!(f, "E{}", self.order())
         } else {
             write!(f, "E{}^{}", self.order(), self.index())
