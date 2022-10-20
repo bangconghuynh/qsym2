@@ -17,8 +17,8 @@ stages:
 rust-latest:
   stage: Build
   script:
-    - cargo build --verbose
-    - cargo test --verbose
+    - cargo build --verbose --color always
+    - cargo test --verbose --color always
 
 tarpaulin:
   stage: Coverage
