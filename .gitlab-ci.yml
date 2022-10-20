@@ -22,5 +22,6 @@ rust-latest:
 
 tarpaulin:
   stage: Coverage
+  coverage: '/^\d+.\d+% coverage/'
   script:
     - cargo tarpaulin --target-dir=target/tarpaulin
