@@ -1,0 +1,30 @@
+default:
+  image: rust:latest
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/cargo
+
+cache:
+  key: $CI_COMMIT_REF_SLUG
+  paths:
+    - cargo/
+    - target/
+
+stages:
+  - Build
+  - Unit Tests
+
+before_script:
+  - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin -Clink-dead-code"
+
+check:
+  stage: Build
+  script:
+    - cargo check --verbose --color always
+
+tarpaulin:
+  stage: Unit Tests
+  coverage: '/^\d+.\d+% coverage/'
+  script:
+    - cargo install cargo-tarpaulin
+    - cargo tarpaulin -t 1800 --skip-clean --color always

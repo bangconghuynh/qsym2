@@ -12,10 +12,8 @@ use std::collections::{HashMap, HashSet};
 use derive_builder::Builder;
 
 #[cfg(test)]
-#[path = "symmetry_core_tests.rs"]
 mod symmetry_core_tests;
 
-#[path = "point_group_detection_tests.rs"]
 #[cfg(test)]
 mod point_group_detection_tests;
 
