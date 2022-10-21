@@ -21,6 +21,9 @@ check:
   stage: Build
   script:
     - cargo check --verbose --color always
+  only:
+    - schedules
+    - merge_requests
 
 tarpaulin:
   stage: Unit Tests
@@ -28,3 +31,6 @@ tarpaulin:
   script:
     - cargo install cargo-tarpaulin
     - cargo tarpaulin -t 1800 --skip-clean --color always
+  only:
+    - schedules
+    - merge_requests

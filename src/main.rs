@@ -1,8 +1,8 @@
 use clap::{app_from_crate, arg};
 use std::process;
 
-use rustyinspect::aux::molecule::Molecule;
-use rustyinspect::rotsym;
+use qsym2::aux::molecule::Molecule;
+use qsym2::rotsym;
 
 fn main() {
     let matches = app_from_crate!()

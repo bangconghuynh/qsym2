@@ -657,6 +657,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "qsym2"
+version = "0.2.0"
+dependencies = [
+ "approx",
+ "clap",
+ "derive_builder",
+ "divisors",
+ "env_logger",
+ "fraction",
+ "indexmap",
+ "itertools",
+ "log",
+ "nalgebra",
+ "ndarray",
+ "num 0.4.0",
+ "num-traits",
+ "ordered-float",
+ "periodic_table",
+ "rayon",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -717,28 +739,6 @@ name = "regex-syntax"
 version = "0.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
-
-[[package]]
-name = "rustyinspect"
-version = "0.1.0"
-dependencies = [
- "approx",
- "clap",
- "derive_builder",
- "divisors",
- "env_logger",
- "fraction",
- "indexmap",
- "itertools",
- "log",
- "nalgebra",
- "ndarray",
- "num 0.4.0",
- "num-traits",
- "ordered-float",
- "periodic_table",
- "rayon",
-]
 
 [[package]]
 name = "ryu"
