@@ -1,9 +1,9 @@
 [package]
-name = "rustyinspect"
-version = "0.1.0"
+name = "qsym2"
+version = "0.2.0"
 edition = "2021"
 authors = ["Bang C. Huynh <bang.cong.huynh@gmail.com>"]
-description = "A program to perform symmetry transformation and analysis on wavefunctions."
+description = "Quantum Symbolic Symmetry - A program to perform symmetry transformation and analysis on wavefunctions."
 
 [dependencies]
 divisors = "0.2.1"
