@@ -24,4 +24,5 @@ tarpaulin:
   stage: Coverage
   coverage: '/^\d+.\d+% coverage/'
   script:
+    - cargo install cargo-tarpaulin
     - cargo tarpaulin --target-dir=target/tarpaulin
