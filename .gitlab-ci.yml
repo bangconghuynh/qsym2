@@ -12,17 +12,19 @@ cache:
 
 stages:
   - Build
-  - Coverage
+  - Unit Tests
 
-rust-latest:
+before_script:
+  - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin -Clink-dead-code"
+
+check:
   stage: Build
   script:
-    - cargo build --verbose --color always
-    - cargo test --verbose --color always
+    - cargo check --verbose --color always
 
 tarpaulin:
-  stage: Coverage
+  stage: Unit Tests
   coverage: '/^\d+.\d+% coverage/'
   script:
     - cargo install cargo-tarpaulin
-    - cargo tarpaulin --target-dir=target/tarpaulin
+    - cargo tarpaulin --skip-clean
