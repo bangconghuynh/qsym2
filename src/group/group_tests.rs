@@ -1,9 +1,10 @@
+use std::panic;
+
 use env_logger;
 use approx;
 use itertools::Itertools;
 use nalgebra::Vector3;
 use num_traits::Pow;
-use std::panic;
 
 use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
