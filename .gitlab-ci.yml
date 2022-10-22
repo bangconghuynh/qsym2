@@ -19,6 +19,8 @@ before_script:
 
 check:
   stage: Build
+  tags:
+    - archon
   script:
     - cargo check --verbose --color always
   only:
@@ -27,6 +29,8 @@ check:
 
 tarpaulin:
   stage: Unit Tests
+  tags:
+    - archon
   coverage: '/^\d+.\d+% coverage/'
   script:
     - cargo install cargo-tarpaulin
