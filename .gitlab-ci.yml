@@ -34,7 +34,7 @@ tarpaulin:
   coverage: '/^\d+.\d+% coverage/'
   script:
     - cargo install cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --skip-clean --color always
+    - sudo cargo tarpaulin -t 1800 --skip-clean --color always
   only:
     - schedules
     - merge_requests
