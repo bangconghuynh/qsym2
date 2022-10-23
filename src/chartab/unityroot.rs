@@ -17,7 +17,7 @@ mod unityroot_tests;
 /// Partial orders between roots of unity are based on their angular positions
 /// on the unit circle in the Argand diagram, with unity being the smallest.
 #[derive(Builder, Clone, PartialOrd, PartialEq, Eq, Hash)]
-struct UnityRoot {
+pub struct UnityRoot {
     /// The fraction $`k/n \in [0, 1)`$ of the unity root, represented exactly
     /// for hashing and comparison purposes.
     #[builder(setter(custom))]
@@ -52,7 +52,7 @@ impl UnityRoot {
     /// # Returns
     ///
     /// A unity root.
-    fn new(index: u64, order: u64) -> Self {
+    pub fn new(index: u64, order: u64) -> Self {
         Self::builder()
             .fraction(F::new(index, order))
             .build()
@@ -83,7 +83,7 @@ impl UnityRoot {
     /// # Returns
     ///
     /// The complex value corresponding to this root.
-    fn complex_value(&self) -> Complex<f64> {
+    pub fn complex_value(&self) -> Complex<f64> {
         let theta = self.fraction.to_f64().unwrap() * std::f64::consts::PI * 2.0;
         Complex::<f64>::from_polar(1.0, theta)
     }
