@@ -93,7 +93,7 @@ impl UnityRoot {
     /// # Returns
     ///
     /// The complex conjugate of this root.
-    fn complex_conjugate(&self) -> Self {
+    pub fn complex_conjugate(&self) -> Self {
         Self::new(
             self.order().checked_sub(*self.index()).unwrap(),
             *self.order(),

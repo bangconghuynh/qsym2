@@ -28,52 +28,26 @@ fn test_character_equality() {
         (e3p1.clone(), 1usize),
     ]);
     assert_ne!(c1, c5);
+
+    let e4 = UnityRoot::new(1u64, 4u64);
+    let e4p0 = e4.pow(0);
+    let e4p2 = e4.pow(2);
+    let c6 = Character::new(&vec![(e4p0.clone(), 1usize)]);
+    let c7 = Character::new(&vec![(e4p0.clone(), 2usize), (e4p2.clone(), 1usize)]);
+    assert_eq!(c6, c7);
+
+    let e4p1 = e4.pow(1);
+    let e4p3 = e4.pow(3);
+    let c8 = Character::new(&vec![(e4p3.clone(), 1usize)]);
+    let c9 = Character::new(&vec![(e4p3.clone(), 2usize), (e4p1.clone(), 1usize)]);
+    let c10 = Character::new(&vec![(e4p3.clone(), 2usize)]);
+    assert_eq!(c8, c9);
+    assert_ne!(c8, c10);
+
+    let c11 = Character::new(&vec![(e4p3.clone(), 0usize)]);
+    let c12 = Character::new(&vec![(e5p1.clone(), 0usize), (e6p2.clone(), 0usize)]);
+    assert_eq!(c11, c12);
 }
-
-// #[test]
-// fn test_unityroot_hashing() {
-//     let mut s1: HashSet<UnityRoot> = HashSet::new();
-//     let e3 = UnityRoot::new(1u64, 3u64);
-//     let e6p2 = UnityRoot::new(2u64, 6u64);
-//     s1.insert(e3);
-//     assert_eq!(s1.len(), 1);
-//     s1.insert(e6p2);
-//     assert_eq!(s1.len(), 1);
-
-//     let e2 = UnityRoot::new(1u64, 2u64);
-//     let e2p1 = e2.pow(1);
-//     let e8p4 = UnityRoot::new(4u64, 8u64);
-//     let e4p2 = UnityRoot::new(2u64, 4u64);
-//     s1.insert(e2p1);
-//     s1.insert(e8p4);
-//     s1.insert(e4p2);
-//     assert_eq!(s1.len(), 2);
-
-//     let e8 = UnityRoot::new(1u64, 8u64);
-//     let e8p1 = e8.pow(1);
-//     s1.insert(e8p1);
-//     assert_eq!(s1.len(), 3);
-
-//     let e8p4 = e8.pow(4);
-//     s1.insert(e8p4);
-//     let e8pm4 = e8.pow(-4);
-//     s1.insert(e8pm4);
-//     assert_eq!(s1.len(), 3);
-
-//     let e8p6 = e8.pow(6);
-//     s1.insert(e8p6);
-//     assert_eq!(s1.len(), 4);
-
-//     let e4 = UnityRoot::new(1u64, 4u64);
-//     s1.insert(e4.pow(3));
-//     assert_eq!(s1.len(), 4);
-
-//     let e8p0 = e8.pow(0);
-//     let e2p2 = e2.pow(2);
-//     s1.insert(e8p0);
-//     s1.insert(e2p2);
-//     assert_eq!(s1.len(), 5);
-// }
 
 #[test]
 fn test_character_partial_ord() {
@@ -82,71 +56,105 @@ fn test_character_partial_ord() {
     let e3p1 = e3.pow(1);
     let e3p2 = e3.pow(2);
 
-    let e7 = UnityRoot::new(1u64, 7u64);
-    let e7p1 = e7.pow(1);
-    let e7p6 = e7.pow(6);
-    let e7pm2 = e7.pow(-2);
-
+    // Characters on the unit circle
     let c1 = Character::new(&vec![(e3p0.clone(), 1usize)]);
     let c2 = Character::new(&vec![(e3p1.clone(), 1usize)]);
     let c3 = Character::new(&vec![(e3p2.clone(), 1usize)]);
     assert!(c1 < c2);
     assert!(c1 < c3);
     assert!(c2 < c3);
+
+    // Real characters
+    let e4 = UnityRoot::new(1u64, 4u64);
+    let e4p0 = e4.pow(0);
+    let e4p2 = e4.pow(2);
+    let c4 = Character::new(&vec![(e4p0.clone(), 1usize)]);
+    let c5 = Character::new(&vec![(e4p0.clone(), 2usize)]);
+    assert!(c4 < c5);
+
+    // -1 < -2 since |-1| < |-2|.
+    let c6 = Character::new(&vec![(e4p2.clone(), 1usize)]);
+    let c7 = Character::new(&vec![(e4p2.clone(), 2usize)]);
+    assert!(c6 < c7);
+
+    let e7 = UnityRoot::new(1u64, 7u64);
+    let e7p1 = e7.pow(1);
+    let c8 = Character::new(&vec![(e7p1.clone(), 1usize)]);
+    assert!(c8 < c7);
+
+    let e7pm1 = e7.pow(-1);
+    let c9 = Character::new(&vec![(e7pm1.clone(), 1usize)]);
+    assert!(c8 < c9);
+
+    let c10 = Character::new(&vec![(e7pm1.clone(), 0usize)]);
+    assert!(c10 < c9);
 }
 
-// #[test]
-// fn test_unityroot_mul() {
-//     let e3 = UnityRoot::new(1u64, 3u64);
-//     let e7 = UnityRoot::new(1u64, 7u64);
-//     let e21 = UnityRoot::new(1u64, 21u64);
-//     assert_eq!(&e3 * &e7, e21.pow(10));
+#[test]
+fn test_character_debug() {
+    let e3 = UnityRoot::new(1u64, 3u64);
+    let e3p0 = e3.pow(0);
+    let e3p1 = e3.pow(1);
+    let e3p2 = e3.pow(2);
 
-//     let e3pm1 = e3.pow(-1);
-//     assert_eq!(&e3pm1 * &e3pm1, e3pm1.pow(2));
-//     assert_eq!(&e3pm1 * &e3pm1, e3);
-//     assert_eq!(&e3pm1 * &e3, e3.pow(0));
+    let c1 = Character::new(&vec![(e3p0.clone(), 1usize)]);
+    assert_eq!(format!("{:?}", c1), "1".to_string());
 
-//     assert_eq!(&e3 * &e21.pow(15), e21);
-//     assert_eq!(&e3 * &e3.complex_conjugate(), e21.pow(0));
-// }
+    let c2 = Character::new(&vec![(e3p1.clone(), 1usize)]);
+    assert_eq!(format!("{:?}", c2), "E3".to_string());
 
-// #[test]
-// fn test_unityroot_fmt() {
-//     let e4 = UnityRoot::new(1u64, 4u64);
-//     assert_eq!(format!("{}", e4.pow(0)), "1".to_string());
-//     assert_eq!(format!("{}", e4.pow(1)), "i".to_string());
-//     assert_eq!(format!("{}", e4.pow(2)), "-1".to_string());
-//     assert_eq!(format!("{}", e4.pow(3)), "-i".to_string());
-//     assert_eq!(format!("{:?}", e4.pow(0)), "1".to_string());
-//     assert_eq!(format!("{:?}", e4.pow(1)), "E4".to_string());
-//     assert_eq!(format!("{:?}", e4.pow(2)), "E2".to_string());
-//     assert_eq!(format!("{:?}", e4.pow(3)), "E4^3".to_string());
+    let c3 = Character::new(&vec![(e3p2.clone(), 2usize)]);
+    assert_eq!(format!("{:?}", c3), "2*E3^2".to_string());
 
-//     let e6 = UnityRoot::new(1u64, 6u64);
-//     assert_eq!(format!("{}", e6.pow(0)), "1".to_string());
-//     assert_eq!(format!("{}", e6.pow(1)), "E6".to_string());
-//     assert_eq!(format!("{}", e6.pow(2)), "E3".to_string());
-//     assert_eq!(format!("{}", e6.pow(3)), "-1".to_string());
-//     assert_eq!(format!("{}", e6.pow(4)), "E3^2".to_string());
-//     assert_eq!(format!("{}", e6.pow(5)), "E6^5".to_string());
-//     assert_eq!(format!("{}", e6.pow(6)), "1".to_string());
-//     assert_eq!(format!("{:?}", e6.pow(0)), "1".to_string());
-//     assert_eq!(format!("{:?}", e6.pow(1)), "E6".to_string());
-//     assert_eq!(format!("{:?}", e6.pow(2)), "E3".to_string());
-//     assert_eq!(format!("{:?}", e6.pow(3)), "E2".to_string());
-//     assert_eq!(format!("{:?}", e6.pow(4)), "E3^2".to_string());
-//     assert_eq!(format!("{:?}", e6.pow(5)), "E6^5".to_string());
-//     assert_eq!(format!("{:?}", e6.pow(6)), "1".to_string());
+    let c4 = Character::new(&vec![(e3p2.clone(), 2usize), (e3p0.clone(), 1usize)]);
+    assert_eq!(format!("{:?}", c4), "1 + 2*E3^2".to_string());
 
-//     let e8 = UnityRoot::new(1u64, 8u64);
-//     assert_eq!(format!("{}", e8.pow(-2)), "-i".to_string());
-//     assert_eq!(format!("{}", e8.pow(-4)), "-1".to_string());
-//     assert_eq!(format!("{}", e8.pow(-6)), "i".to_string());
-//     assert_eq!(format!("{}", e8.pow(-8)), "1".to_string());
-//     assert_eq!(format!("{:?}", e8.pow(-2)), "E4^3".to_string());
-//     assert_eq!(format!("{:?}", e8.pow(-4)), "E2".to_string());
-//     assert_eq!(format!("{:?}", e8.pow(-6)), "E4".to_string());
-//     assert_eq!(format!("{:?}", e8.pow(-8)), "1".to_string());
-//     assert_eq!(format!("{:?}", e8.pow(10)), "E4".to_string());
-// }
+    let c5 = Character::new(&vec![(e3p2.clone(), 0usize), (e3p1.clone(), 3usize)]);
+    assert_eq!(format!("{:?}", c5), "3*E3".to_string());
+
+    let c6 = Character::new(&vec![(e3p2.clone(), 0usize), (e3p1.clone(), 0usize)]);
+    assert_eq!(format!("{:?}", c6), "0".to_string());
+}
+
+#[test]
+fn test_character_fmt() {
+    let e4 = UnityRoot::new(1u64, 4u64);
+    let e4p0 = e4.pow(0);
+    let e4p1 = e4.pow(1);
+    let e4p2 = e4.pow(2);
+    let e4p3 = e4.pow(3);
+
+    let c0 = Character::new(&vec![(e4p0.clone(), 0usize)]);
+    assert_eq!(format!("{}", c0), "0".to_string());
+    let c0b = Character::new(&vec![(e4p0.clone(), 1usize), (e4p2.clone(), 1usize)]);
+    assert_eq!(format!("{}", c0b), "0".to_string());
+    let c0c = Character::new(&vec![(e4p1.clone(), 1usize), (e4p3.clone(), 1usize)]);
+    assert_eq!(format!("{}", c0c), "0".to_string());
+    let c1 = Character::new(&vec![(e4p0.clone(), 1usize)]);
+    assert_eq!(format!("{}", c1), "+1".to_string());
+    let c2 = Character::new(&vec![(e4p1.clone(), 2usize)]);
+    assert_eq!(format!("{}", c2), "+2i".to_string());
+    let c2b = Character::new(&vec![(e4p1.clone(), 1usize)]);
+    assert_eq!(format!("{}", c2b), "+i".to_string());
+    let c3 = Character::new(&vec![(e4p2.clone(), 3usize)]);
+    assert_eq!(format!("{}", c3), "-3".to_string());
+    let c4 = Character::new(&vec![(e4p3.clone(), 4usize)]);
+    assert_eq!(format!("{}", c4), "-4i".to_string());
+    let c4b = Character::new(&vec![(e4p3.clone(), 1usize)]);
+    assert_eq!(format!("{}", c4b), "-i".to_string());
+
+    let e3 = UnityRoot::new(1u64, 3u64);
+    let e3p1 = e3.pow(1);
+    let e3p2 = e3.pow(2);
+    let c5 = Character::new(&vec![(e3p1.clone(), 1usize)]);
+    assert_eq!(format!("{}", c5), "-0.500 + 0.866i".to_string());
+    let c6 = Character::new(&vec![(e3p2.clone(), 1usize)]);
+    assert_eq!(format!("{}", c6), "-0.500 - 0.866i".to_string());
+    let c7 = Character::new(&vec![(e3p1.clone(), 1usize), (e3p2.clone(), 1usize)]);
+    assert_eq!(format!("{}", c7), "-1".to_string());
+
+    let e5 = UnityRoot::new(1u64, 5u64);
+    let e5p1 = e5.pow(1);
+    let c8 = Character::new(&vec![(e5p1.clone(), 1usize), (e5p1.complex_conjugate(), 1usize)]);
+    assert_eq!(format!("{}", c8), "+0.618".to_string());
+}
