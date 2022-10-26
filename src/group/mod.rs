@@ -3,10 +3,10 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Mul;
 
+use log;
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use log;
 use ndarray::{s, Array2, Array3, Axis, Zip};
 use ordered_float::OrderedFloat;
 use rayon::iter::ParallelBridge;
