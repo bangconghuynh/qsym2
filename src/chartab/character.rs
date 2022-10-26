@@ -79,6 +79,39 @@ impl Character {
                 acc + uroot.complex_value() * Complex::<f64>::new(mult as f64, 0.0)
             })
     }
+
+    /// Gets a numerical form for this character, nicely formatted up to a
+    /// required precision.
+    ///
+    /// # Arguments
+    ///
+    /// * precision - The number of decimal places.
+    ///
+    /// # Returns
+    ///
+    /// The formatted numerical form.
+    fn get_numerical(&self, precision: usize) -> String {
+        let Complex { re, im } = self.complex_value();
+        format!(
+            "{:+.precision$} {} {:.precision$}i",
+            re,
+            {
+                if im >= 0.0
+                    || approx::relative_eq!(
+                        im,
+                        0.0,
+                        epsilon = self.threshold,
+                        max_relative = self.threshold
+                    )
+                {
+                    "+"
+                } else {
+                    "-"
+                }
+            },
+            im.abs()
+        )
+    }
 }
 
 impl PartialEq for Character {
