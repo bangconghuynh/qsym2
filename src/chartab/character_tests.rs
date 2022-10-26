@@ -104,16 +104,25 @@ fn test_character_debug() {
     assert_eq!(format!("{:?}", c2), "E3".to_string());
 
     let c3 = Character::new(&vec![(e3p2.clone(), 2usize)]);
-    assert_eq!(format!("{:?}", c3), "2*E3^2".to_string());
+    assert_eq!(format!("{:?}", c3), "2*(E3)^2".to_string());
 
     let c4 = Character::new(&vec![(e3p2.clone(), 2usize), (e3p0.clone(), 1usize)]);
-    assert_eq!(format!("{:?}", c4), "1 + 2*E3^2".to_string());
+    assert_eq!(format!("{:?}", c4), "1 + 2*(E3)^2".to_string());
 
     let c5 = Character::new(&vec![(e3p2.clone(), 0usize), (e3p1.clone(), 3usize)]);
     assert_eq!(format!("{:?}", c5), "3*E3".to_string());
 
     let c6 = Character::new(&vec![(e3p2.clone(), 0usize), (e3p1.clone(), 0usize)]);
     assert_eq!(format!("{:?}", c6), "0".to_string());
+
+    let e7 = UnityRoot::new(1u64, 7u64);
+    let c7 = Character::new(
+        &(0..=6).into_iter().map(|x| (e7.pow(x), 1)).collect::<Vec<_>>()
+    );
+    assert_eq!(
+        format!("{:?}", c7),
+        "1 + E7 + (E7)^2 + (E7)^3 + (E7)^4 + (E7)^5 + (E7)^6".to_string()
+    );
 }
 
 #[test]
@@ -164,4 +173,11 @@ fn test_character_fmt() {
     ]);
     assert_eq!(format!("{}", c8), "+0.618".to_string());
     assert_eq!(c8.get_numerical(6), "+0.618034 + 0.000000i".to_string());
+
+    let e7 = UnityRoot::new(1u64, 7u64);
+    let c9 = Character::new(
+        &(0..=6).into_iter().map(|x| (e7.pow(x), 1)).collect::<Vec<_>>()
+    );
+    assert_eq!(format!("{}", c9), "0".to_string());
+    assert_eq!(c9.get_numerical(7), "+0.0000000 + 0.0000000i".to_string());
 }

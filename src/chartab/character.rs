@@ -94,7 +94,18 @@ impl Character {
         let Complex { re, im } = self.complex_value();
         format!(
             "{:+.precision$} {} {:.precision$}i",
-            re,
+            {
+                if approx::relative_eq!(
+                    re,
+                    0.0,
+                    epsilon = self.threshold,
+                    max_relative = self.threshold
+                ) && re < 0.0 {
+                    -re
+                } else {
+                    re
+                }
+            },
             {
                 if im >= 0.0
                     || approx::relative_eq!(

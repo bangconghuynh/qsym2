@@ -135,7 +135,7 @@ impl fmt::Display for UnityRoot {
         } else if *self.index() == 1u64 {
             write!(f, "E{}", self.order())
         } else {
-            write!(f, "E{}^{}", self.order(), self.index())
+            write!(f, "(E{})^{}", self.order(), self.index())
         }
     }
 }
@@ -147,7 +147,7 @@ impl fmt::Debug for UnityRoot {
         } else if *self.index() == 1u64 {
             write!(f, "E{}", self.order())
         } else {
-            write!(f, "E{}^{}", self.order(), self.index())
+            write!(f, "(E{})^{}", self.order(), self.index())
         }
     }
 }
