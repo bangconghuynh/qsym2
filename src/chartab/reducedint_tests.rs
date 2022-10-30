@@ -39,6 +39,23 @@ fn test_reducedint_arithmetic() {
     assert_eq!(i4_5 / i3_5, i3_5);
     assert_eq!(i2_5 / i3_5, i4_5);
     assert_eq!(i2_5 / i2_5, i1_5);
+
+    // Z/13Z is a field, and 13 is odd, so we can use MontgomeryInt.
+    let i0_13 = MontgomeryInt::<u64>::new(0, &13);
+    let i1_13 = i0_13.convert(1);
+    let i2_13 = i0_13.convert(2);
+    let i3_13 = i0_13.convert(3);
+    let i4_13 = i0_13.convert(4);
+    let i5_13 = i0_13.convert(5);
+    let i6_13 = i0_13.convert(6);
+    let i10_13 = i0_13.convert(10);
+    let i12_13 = i0_13.convert(12);
+    assert_eq!(i1_13 + i3_13, i4_13);
+    assert_eq!(i2_13 * i3_13, i6_13);
+    assert_eq!(i4_13 * i3_13, i12_13);
+    assert_eq!(i4_13 / i3_13, i10_13);
+    assert_eq!(i2_13 / i3_13, i5_13);
+    assert_eq!(i2_13 / i2_13, i1_13);
 }
 
 #[test]

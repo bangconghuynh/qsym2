@@ -1,5 +1,3 @@
 mod unityroot;
 mod character;
-
-#[cfg(test)]
-mod reducedint_tests;
+mod modular_linalg;
