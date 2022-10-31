@@ -1,7 +1,7 @@
 use num_modular::{ModularInteger, MontgomeryInt};
 use ndarray::Array2;
 
-use crate::chartab::modular_linalg::modular_determinant;
+use crate::chartab::modular_linalg::{modular_determinant, modular_rref};
 
 #[test]
 fn test_modular_linalg_deteterminant() {
@@ -94,4 +94,142 @@ fn test_modular_linalg_deteterminant() {
         ]
     ).unwrap();
     assert_eq!(modular_determinant(&arr_11), i3_13);
+}
+
+#[test]
+fn test_modular_linalg_rref() {
+    let i0_13 = MontgomeryInt::<u64>::new(0, &13);
+    let i1_13 = i0_13.convert(1);
+    let i2_13 = i0_13.convert(2);
+    let i3_13 = i0_13.convert(3);
+    let i4_13 = i0_13.convert(4);
+    let i5_13 = i0_13.convert(5);
+    let i6_13 = i0_13.convert(6);
+    let i7_13 = i0_13.convert(7);
+    let i8_13 = i0_13.convert(8);
+    let i9_13 = i0_13.convert(9);
+    let i10_13 = i0_13.convert(10);
+    let i11_13 = i0_13.convert(11);
+    let i12_13 = i0_13.convert(12);
+
+    let arr_1 = Array2::<MontgomeryInt<u64>>::from_shape_vec(
+        (3, 4), vec![
+            i0_13, i2_13, i6_13, i4_13,
+            i9_13, i4_13, i10_13, i1_13,
+            i4_13, i8_13, i0_13, i12_13
+        ]
+    ).unwrap();
+
+    let (arr_1_rref, arr_1_nulldim) = modular_rref(&arr_1);
+    assert_eq!(
+        arr_1_rref,
+        Array2::<MontgomeryInt<u64>>::from_shape_vec(
+            (3, 4), vec![
+                i1_13, i0_13, i7_13, i0_13,
+                i0_13, i1_13, i3_13, i0_13,
+                i0_13, i0_13, i0_13, i1_13
+            ]
+        ).unwrap()
+    );
+    assert_eq!(arr_1_nulldim, 2);
+
+    let arr_2 = Array2::<MontgomeryInt<u64>>::from_shape_vec(
+        (5, 6), vec![
+            i0_13, i0_13, i8_13, i1_13, i9_13, i8_13,
+            i0_13, i6_13, i12_13, i3_13, i5_13, i4_13,
+            i0_13, i7_13, i8_13, i2_13, i8_13, i9_13,
+            i8_13, i9_13, i2_13, i1_13, i6_13, i6_13,
+            i2_13, i2_13, i7_13, i10_13, i11_13, i12_13,
+        ]
+    ).unwrap();
+
+    let (arr_2_rref, arr_2_nulldim) = modular_rref(&arr_2);
+    assert_eq!(
+        arr_2_rref,
+        Array2::<MontgomeryInt<u64>>::from_shape_vec(
+            (5, 6), vec![
+                i1_13, i0_13, i0_13, i0_13, i0_13, i12_13,
+                i0_13, i1_13, i0_13, i0_13, i0_13, i6_13,
+                i0_13, i0_13, i1_13, i0_13, i0_13, i6_13,
+                i0_13, i0_13, i0_13, i1_13, i0_13, i2_13,
+                i0_13, i0_13, i0_13, i0_13, i1_13, i4_13,
+            ]
+        ).unwrap()
+    );
+    assert_eq!(arr_2_nulldim, 1);
+
+    let arr_3 = Array2::<MontgomeryInt<u64>>::from_shape_vec(
+        (5, 6), vec![
+            i0_13, i0_13, i2_13, i1_13, i9_13, i8_13,
+            i0_13, i6_13, i6_13, i3_13, i5_13, i4_13,
+            i0_13, i7_13, i4_13, i2_13, i8_13, i9_13,
+            i8_13, i9_13, i2_13, i1_13, i6_13, i6_13,
+            i2_13, i2_13, i8_13, i4_13, i11_13, i12_13,
+        ]
+    ).unwrap();
+
+    let (arr_3_rref, arr_3_nulldim) = modular_rref(&arr_3);
+    assert_eq!(
+        arr_3_rref,
+        Array2::<MontgomeryInt<u64>>::from_shape_vec(
+            (5, 6), vec![
+                i1_13, i0_13, i0_13, i0_13, i0_13, i0_13,
+                i0_13, i1_13, i0_13, i0_13, i0_13, i0_13,
+                i0_13, i0_13, i1_13, i7_13, i0_13, i0_13,
+                i0_13, i0_13, i0_13, i0_13, i1_13, i0_13,
+                i0_13, i0_13, i0_13, i0_13, i0_13, i1_13,
+            ]
+        ).unwrap()
+    );
+    assert_eq!(arr_3_nulldim, 2);
+
+    let arr_4 = Array2::<MontgomeryInt<u64>>::from_shape_vec(
+        (5, 6), vec![
+            i0_13, i0_13, i2_13, i1_13, i9_13, i8_13,
+            i0_13, i6_13, i6_13, i3_13, i5_13, i4_13,
+            i0_13, i7_13, i4_13, i2_13, i8_13, i9_13,
+            i0_13, i9_13, i2_13, i1_13, i6_13, i6_13,
+            i0_13, i2_13, i8_13, i4_13, i11_13, i12_13,
+        ]
+    ).unwrap();
+
+    let (arr_4_rref, arr_4_nulldim) = modular_rref(&arr_4);
+    assert_eq!(
+        arr_4_rref,
+        Array2::<MontgomeryInt<u64>>::from_shape_vec(
+            (5, 6), vec![
+                i0_13, i1_13, i0_13, i0_13, i0_13, i0_13,
+                i0_13, i0_13, i1_13, i7_13, i0_13, i0_13,
+                i0_13, i0_13, i0_13, i0_13, i1_13, i0_13,
+                i0_13, i0_13, i0_13, i0_13, i0_13, i1_13,
+                i0_13, i0_13, i0_13, i0_13, i0_13, i0_13,
+            ]
+        ).unwrap()
+    );
+    assert_eq!(arr_4_nulldim, 3);
+
+    let arr_5 = Array2::<MontgomeryInt<u64>>::from_shape_vec(
+        (5, 7), vec![
+            i2_13, i0_13, i0_13, i2_13, i1_13, i9_13, i8_13,
+            i4_13, i0_13, i6_13, i6_13, i3_13, i5_13, i4_13,
+            i12_13, i0_13, i7_13, i4_13, i2_13, i8_13, i9_13,
+            i1_13, i0_13, i9_13, i2_13, i1_13, i6_13, i6_13,
+            i9_13, i0_13, i2_13, i8_13, i4_13, i11_13, i12_13,
+        ]
+    ).unwrap();
+
+    let (arr_5_rref, arr_5_nulldim) = modular_rref(&arr_5);
+    assert_eq!(
+        arr_5_rref,
+        Array2::<MontgomeryInt<u64>>::from_shape_vec(
+            (5, 7), vec![
+                i1_13, i0_13, i0_13, i0_13, i0_13, i0_13, i0_13,
+                i0_13, i0_13, i1_13, i0_13, i0_13, i0_13, i0_13,
+                i0_13, i0_13, i0_13, i1_13, i7_13, i0_13, i0_13,
+                i0_13, i0_13, i0_13, i0_13, i0_13, i1_13, i0_13,
+                i0_13, i0_13, i0_13, i0_13, i0_13, i0_13, i1_13,
+            ]
+        ).unwrap()
+    );
+    assert_eq!(arr_5_nulldim, 4);
 }

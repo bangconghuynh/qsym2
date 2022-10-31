@@ -1,7 +1,8 @@
+use std::fmt::{Display, Debug};
+use std::ops::{Div, DivAssign, Mul, SubAssign};
 use itertools::Itertools;
 use ndarray::{s, Array1, Array2, Axis, DataOwned, RawData, ScalarOperand, ViewRepr, Zip};
 use num_modular::ModularInteger;
-use std::ops::{Div, DivAssign, Mul, SubAssign};
 
 // use crate::aux::ndarray_shuffle;
 
@@ -61,17 +62,8 @@ where
     sign * *mat.last().unwrap()
 }
 
-/// Determines a set of basis vectors for the kernel of a matrix via Gaussian
+/// Converts an array into its unique reduced row echelon form using Gaussian
 /// elimination over a finite integer field.
-///
-/// The kernel of an `$m \times n$` matrix `$\boldsymbol{M}$` is the space of
-/// the solutions to the equation
-///
-/// ```math
-///     \boldsymbol{M} \boldsymbbol{x} = \boldsymbol{0},
-/// ```
-///
-/// where `$\boldsymbol{x}$` is an `$n \times 1$` column vector.
 ///
 /// # Arguments
 ///
@@ -79,78 +71,109 @@ where
 ///
 /// # Returns
 ///
-/// A vector of basis vectors for the kernel of `mat`.
-fn modular_kernel<T>(mat: &Array2<T>) -> Vec<Array1<T>>
+/// * The reduced row echelon form of `mat`.
+/// * The dimensionality of the null space of `mat`.
+fn modular_rref<T>(mat: &Array2<T>) -> (Array2<T>, usize)
 where
     T: Clone
         + Copy
+        + Debug
         + ModularInteger<Base = u64>
         + Div<Output = T>
-        + ScalarOperand
-        + DivAssign
-        + SubAssign,
 {
+    // --------------------
+    // Gaussian elimination
+    // --------------------
     let mut mat = mat.clone();
     let nrows = mat.nrows();
     let ncols = mat.ncols();
-    let mut rank = nrows;
     let mut kernel_dim = ncols.abs_diff(nrows);
     let rep = mat.first().unwrap();
     let zero = rep.convert(0);
-    let mut pivot_cols: Vec<usize> = vec![];
+    let one = rep.convert(1);
 
-    // Make sure the top left element is not zero.
-    if mat[(0, 0)] == zero {
-        let rel_swapto_index = mat
-            .slice(s![1usize.., 0usize])
+    let mut pivot_row = 0usize;
+    let mut pivot_col = 0usize;
+
+    while pivot_row < nrows && pivot_col < ncols {
+        // Find the pivot in column pivot_col
+        let rel_i_nonzero_option = mat
+            .slice(s![pivot_row.., pivot_col])
             .iter()
-            .position(|x| *x != zero)
-            .expect("All elements in the first column are zero.");
-        let (mut mat_above, mut mat_below) = mat.view_mut().split_at(Axis(0), 1);
-        let row_from = mat_above.slice_mut(s![0, ..]);
-        let row_to = mat_below.slice_mut(s![rel_swapto_index, ..]);
-        Zip::from(row_from).and(row_to).for_each(std::mem::swap);
-    }
+            .position(|x| *x != zero);
+        if let Some(rel_i_nonzero) = rel_i_nonzero_option {
+            if rel_i_nonzero > 0 {
+                // Possible pivot in this column at row (pivot_row + rel_i_nonzero)
+                // Swap row pivot_row with row (pivot_row + rel_i_nonzero)
+                let (mut mat_above, mut mat_below) = mat.view_mut().split_at(Axis(0), pivot_row + 1);
+                let row_from = mat_above.slice_mut(s![pivot_row, ..]);
+                let row_to = mat_below.slice_mut(s![rel_i_nonzero - 1, ..]);
+                Zip::from(row_from).and(row_to).for_each(std::mem::swap);
+            }
 
-    // Make row echelon form
-    for row in 0..nrows {
-        let pivot_col_search = mat.slice(s![row, ..]).iter().position(|x| *x != zero);
-        if let Some(pivot_col) = pivot_col_search {
-            // Scale row by the pivot value
-            pivot_cols.push(pivot_col);
-            let pivot_val = mat[(row, pivot_col)];
-            let mut cur_row = mat.row_mut(row);
-            cur_row /= pivot_val;
+            // Scale all elements in pivot row to make the pivot element equal to one
+            let pivot_val = mat[(pivot_row, pivot_col)];
+            for j in (pivot_col)..ncols {
+                mat[(pivot_row, j)] = mat[(pivot_row, j)] / pivot_val;
+            }
 
-            // Make everything below the pivot value zero
-            // Note that mat[(row, pivot_col)] is now one.
-            for below_pivot_row in (row + 1)..nrows {
-                if mat[(below_pivot_row, pivot_col)] != zero {
-                    let mut cur_below_pivot_row = mat.row_mut(below_pivot_row);
-                    Zip::from(cur_below_pivot_row)
-                        .and(mat.row(row))
-                        .for_each(|a, &b| {
-                            *a -= b * mat[(below_pivot_row, pivot_col)];
-                        });
+            // Eliminate below the pivot
+            for i in (pivot_row + 1)..nrows {
+                assert_eq!(mat[(pivot_row, pivot_col)], one);
+                let f = mat[(i, pivot_col)];
+                // row_i -= f * pivot_row
+                // Fill with zeros the lower part of pivot column
+                // This is essentially a subtraction but has been optimised away.
+                mat[(i, pivot_col)] = zero;
+                // Subtract all remaining elements in current row
+                for j in (pivot_col + 1)..ncols {
+                    let a = mat[(pivot_row, j)];
+                    mat[(i, j)] = mat[(i, j)] - a * f;
                 }
             }
-        } else {
-            // All zero.
-            pivot_cols.push(ncols);
-            rank -= 1;
-            kernel_dim += 1;
-        }
-    }
 
-    // Make reduced row echelon form
-    for row in (nrows - 1)..=0 {
-        let pivot_col = pivot_cols[row];
-        if pivot_col < ncols {
-            for above_pivot_row in 0..row {
-                mat.row_mut(above_pivot_row) -= mat[(above_pivot_row, pivot_col)] * mat.row(row);
+            // Eliminate above the pivot
+            for i in (0..pivot_row).rev() {
+                assert_eq!(mat[(pivot_row, pivot_col)], one);
+                let f = mat[(i, pivot_col)];
+                // row_i -= f * pivot_row
+                // Fill with zeros the upper part of pivot column
+                mat[(i, pivot_col)] = zero;
+                // Subtract all remaining elements in current row
+                for j in (pivot_col + 1)..ncols {
+                    let a = mat[(pivot_row, j)];
+                    mat[(i, j)] = mat[(i, j)] - a * f;
+                }
             }
+
+            // Increase pivot row and column for the next while iteration
+            pivot_row += 1;
+            pivot_col += 1;
+        } else {
+            // No pivot in this column; pass to next column.
+            kernel_dim += 1;
+            pivot_col += 1;
         }
     }
-
-    // Reorder rows so that the pivots are in a "staircase" arrangement
+    (mat, kernel_dim)
 }
+
+///// Determines a set of basis vectors for the kernel of a matrix via Gaussian
+///// elimination over a finite integer field.
+/////
+///// The kernel of an `$m \times n$` matrix `$\boldsymbol{M}$` is the space of
+///// the solutions to the equation
+/////
+///// ```math
+/////     \boldsymbol{M} \boldsymbbol{x} = \boldsymbol{0},
+///// ```
+/////
+///// where `$\boldsymbol{x}$` is an `$n \times 1$` column vector.
+/////
+///// # Arguments
+/////
+///// * mat - A rectangular matrix.
+/////
+///// # Returns
+/////
+///// A vector of basis vectors for the kernel of `mat`.
