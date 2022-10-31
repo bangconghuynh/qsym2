@@ -158,22 +158,32 @@ where
     (mat, kernel_dim)
 }
 
-///// Determines a set of basis vectors for the kernel of a matrix via Gaussian
-///// elimination over a finite integer field.
-/////
-///// The kernel of an `$m \times n$` matrix `$\boldsymbol{M}$` is the space of
-///// the solutions to the equation
-/////
-///// ```math
-/////     \boldsymbol{M} \boldsymbbol{x} = \boldsymbol{0},
-///// ```
-/////
-///// where `$\boldsymbol{x}$` is an `$n \times 1$` column vector.
-/////
-///// # Arguments
-/////
-///// * mat - A rectangular matrix.
-/////
-///// # Returns
-/////
-///// A vector of basis vectors for the kernel of `mat`.
+/// Determines a set of basis vectors for the kernel of a matrix via Gaussian
+/// elimination over a finite integer field.
+///
+/// The kernel of an `$m \times n$` matrix `$\boldsymbol{M}$` is the space of
+/// the solutions to the equation
+///
+/// ```math
+///     \boldsymbol{M} \boldsymbbol{x} = \boldsymbol{0},
+/// ```
+///
+/// where `$\boldsymbol{x}$` is an `$n \times 1$` column vector.
+///
+/// # Arguments
+///
+/// * mat - A rectangular matrix.
+///
+/// # Returns
+///
+/// A vector of basis vectors for the kernel of `mat`.
+fn modular_kernel<T>(mat: &Array2<T>) -> Vec<Array1<T>>
+where
+    T: Clone
+        + Copy
+        + Debug
+        + ModularInteger<Base = u64>
+        + Div<Output = T>
+{
+    let (mat_rref, kernel_dim) = modular_rref(mat);
+}
