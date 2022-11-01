@@ -10,10 +10,6 @@ use num_modular::ModularInteger;
 // use crate::aux::ndarray_shuffle;
 
 #[cfg(test)]
-#[path = "reducedint_tests.rs"]
-mod reducedint_tests;
-
-#[cfg(test)]
 #[path = "modular_linalg_tests.rs"]
 mod modular_linalg_tests;
 
