@@ -1,7 +1,10 @@
-use std::fmt::{Display, Debug};
-use std::ops::{Div, DivAssign, Mul, SubAssign};
+use std::collections::HashSet;
+use std::fmt::Debug;
+use std::ops::Div;
+
 use itertools::Itertools;
-use ndarray::{s, Array1, Array2, Axis, DataOwned, RawData, ScalarOperand, ViewRepr, Zip};
+use log;
+use ndarray::{s, Array1, Array2, Axis, Zip};
 use num_modular::ModularInteger;
 
 // use crate::aux::ndarray_shuffle;
@@ -72,25 +75,18 @@ where
 /// # Returns
 ///
 /// * The reduced row echelon form of `mat`.
-/// * The dimensionality of the null space of `mat`.
+/// * The nullity of `mat`.
 fn modular_rref<T>(mat: &Array2<T>) -> (Array2<T>, usize)
 where
-    T: Clone
-        + Copy
-        + Debug
-        + ModularInteger<Base = u64>
-        + Div<Output = T>
+    T: Clone + Copy + Debug + ModularInteger<Base = u64> + Div<Output = T>,
 {
-    // --------------------
-    // Gaussian elimination
-    // --------------------
     let mut mat = mat.clone();
     let nrows = mat.nrows();
     let ncols = mat.ncols();
-    let mut kernel_dim = ncols.abs_diff(nrows);
     let rep = mat.first().unwrap();
     let zero = rep.convert(0);
     let one = rep.convert(1);
+    let mut rank = 0usize;
 
     let mut pivot_row = 0usize;
     let mut pivot_col = 0usize;
@@ -105,7 +101,8 @@ where
             if rel_i_nonzero > 0 {
                 // Possible pivot in this column at row (pivot_row + rel_i_nonzero)
                 // Swap row pivot_row with row (pivot_row + rel_i_nonzero)
-                let (mut mat_above, mut mat_below) = mat.view_mut().split_at(Axis(0), pivot_row + 1);
+                let (mut mat_above, mut mat_below) =
+                    mat.view_mut().split_at(Axis(0), pivot_row + 1);
                 let row_from = mat_above.slice_mut(s![pivot_row, ..]);
                 let row_to = mat_below.slice_mut(s![rel_i_nonzero - 1, ..]);
                 Zip::from(row_from).and(row_to).for_each(std::mem::swap);
@@ -149,13 +146,15 @@ where
             // Increase pivot row and column for the next while iteration
             pivot_row += 1;
             pivot_col += 1;
+
+            // Pivot column increases rank.
+            rank += 1;
         } else {
             // No pivot in this column; pass to next column.
-            kernel_dim += 1;
             pivot_col += 1;
         }
     }
-    (mat, kernel_dim)
+    (mat, ncols - rank)
 }
 
 /// Determines a set of basis vectors for the kernel of a matrix via Gaussian
@@ -179,11 +178,41 @@ where
 /// A vector of basis vectors for the kernel of `mat`.
 fn modular_kernel<T>(mat: &Array2<T>) -> Vec<Array1<T>>
 where
-    T: Clone
-        + Copy
-        + Debug
-        + ModularInteger<Base = u64>
-        + Div<Output = T>
+    T: Clone + Copy + Debug + ModularInteger<Base = u64> + Div<Output = T>,
 {
-    let (mat_rref, kernel_dim) = modular_rref(mat);
+    let (mat_rref, nullity) = modular_rref(mat);
+    let ncols = mat.ncols();
+    let rep = mat.first().unwrap();
+    let zero = rep.convert(0);
+    let one = rep.convert(1);
+    let pivot_cols: Vec<usize> = mat_rref
+        .axis_iter(Axis(0))
+        .filter_map(|row| row.iter().position(|&x| x != zero))
+        .collect();
+    let rank = ncols - nullity;
+    assert_eq!(rank, pivot_cols.len());
+    log::debug!("Rank: {}", rank);
+    log::debug!("Kernel dim: {}", nullity);
+
+    let pivot_cols_set: HashSet<usize> = HashSet::from_iter(pivot_cols.iter().cloned());
+    let non_pivot_cols = HashSet::from_iter(0..ncols);
+    let non_pivot_cols = non_pivot_cols.difference(&pivot_cols_set);
+    let kernel_basis_vecs = non_pivot_cols.map(|&non_pivot_col| {
+        let mut kernel_basis_vec = Array1::from_elem((ncols,), zero);
+        kernel_basis_vec[non_pivot_col] = one;
+
+        for (i, &pivot_col) in pivot_cols.iter().enumerate() {
+            kernel_basis_vec[pivot_col] = -mat_rref[(i, non_pivot_col)];
+        }
+        let first_nonzero_pos = kernel_basis_vec
+            .iter()
+            .position(|&x| x != zero)
+            .expect("Kernel basis vector cannot be zero.");
+        let first_nonzero = kernel_basis_vec[first_nonzero_pos];
+        kernel_basis_vec
+            .iter_mut()
+            .for_each(|x| *x = *x / first_nonzero);
+        kernel_basis_vec
+    }).collect();
+    kernel_basis_vecs
 }

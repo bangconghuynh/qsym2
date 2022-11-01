@@ -1,7 +1,7 @@
 use num_modular::{ModularInteger, MontgomeryInt};
-use ndarray::Array2;
+use ndarray::{Array1, Array2};
 
-use crate::chartab::modular_linalg::{modular_determinant, modular_rref};
+use crate::chartab::modular_linalg::{modular_determinant, modular_rref, modular_kernel};
 
 #[test]
 fn test_modular_linalg_deteterminant() {
@@ -97,7 +97,7 @@ fn test_modular_linalg_deteterminant() {
 }
 
 #[test]
-fn test_modular_linalg_rref() {
+fn test_modular_linalg_rref_kernel() {
     let i0_13 = MontgomeryInt::<u64>::new(0, &13);
     let i1_13 = i0_13.convert(1);
     let i2_13 = i0_13.convert(2);
@@ -131,7 +131,12 @@ fn test_modular_linalg_rref() {
             ]
         ).unwrap()
     );
-    assert_eq!(arr_1_nulldim, 2);
+    assert_eq!(arr_1_nulldim, 1);
+
+    let kernel_vecs = modular_kernel(&arr_1);
+    assert!(
+        kernel_vecs.iter().all(|vec| { arr_1.dot(vec) == Array1::from_elem((4,), i0_13) })
+    );
 
     let arr_2 = Array2::<MontgomeryInt<u64>>::from_shape_vec(
         (5, 6), vec![
@@ -181,7 +186,7 @@ fn test_modular_linalg_rref() {
             ]
         ).unwrap()
     );
-    assert_eq!(arr_3_nulldim, 2);
+    assert_eq!(arr_3_nulldim, 1);
 
     let arr_4 = Array2::<MontgomeryInt<u64>>::from_shape_vec(
         (5, 6), vec![
@@ -206,7 +211,7 @@ fn test_modular_linalg_rref() {
             ]
         ).unwrap()
     );
-    assert_eq!(arr_4_nulldim, 3);
+    assert_eq!(arr_4_nulldim, 2);
 
     let arr_5 = Array2::<MontgomeryInt<u64>>::from_shape_vec(
         (5, 7), vec![
@@ -231,5 +236,5 @@ fn test_modular_linalg_rref() {
             ]
         ).unwrap()
     );
-    assert_eq!(arr_5_nulldim, 4);
+    assert_eq!(arr_5_nulldim, 2);
 }
