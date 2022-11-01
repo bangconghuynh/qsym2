@@ -4,7 +4,7 @@ use std::ops::Div;
 
 use itertools::Itertools;
 use log;
-use ndarray::{s, Array1, Array2, Axis, Zip};
+use ndarray::{s, Array1, Array2, Axis, Zip, LinalgScalar};
 use num_modular::ModularInteger;
 
 // use crate::aux::ndarray_shuffle;
@@ -31,7 +31,7 @@ mod modular_linalg_tests;
 /// The determinant of `mat` in the same field.
 fn modular_determinant<T>(mat: &Array2<T>) -> T
 where
-    T: Clone + Copy + ModularInteger<Base = u64> + Div<Output = T>,
+    T: Clone + LinalgScalar + ModularInteger<Base = u64> + Div<Output = T>,
 {
     let mut mat = mat.clone();
     let rep = mat.first().unwrap();
