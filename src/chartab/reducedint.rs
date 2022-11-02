@@ -8,7 +8,7 @@ use num_traits::{Inv, One, Pow, Zero};
 mod reducedint_tests;
 
 /// A wrapper enum to represent an integer in a modulo ring, with added additive
-/// and multiplicative identities.
+/// and multiplicative identities to support linear algebra operations.
 #[derive(Clone, Copy, Debug)]
 pub enum LinAlgReducedInt<T, R: Reducer<T>> {
     /// Variant to represent an integer in a modulo ring with known
