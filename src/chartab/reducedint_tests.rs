@@ -1,12 +1,10 @@
 use std::panic;
 
-use num_traits::{Inv, Zero, One, Pow};
-use num_modular::{ModularInteger, Montgomery, MontgomeryInt, VanillaInt};
 use ndarray::Array2;
+use num_modular::{ModularInteger, Montgomery, MontgomeryInt, VanillaInt};
+use num_traits::{Inv, One, Pow, Zero};
 
-use crate::chartab::reducedint::{LinAlgReducedInt, IntoLinAlgReducedInt};
-
-type LinAlgMontgomeryInt<T> = LinAlgReducedInt<T, Montgomery<T, T>>;
+use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt, LinAlgReducedInt};
 
 #[test]
 fn test_linalgreducedint_identities() {
@@ -91,7 +89,6 @@ fn test_linalgreducedint_identities() {
     assert_eq!(one.inv(), one);
     assert!(panic::catch_unwind(|| { zero.inv() }).is_err());
     assert!(panic::catch_unwind(|| { i0_7.inv() }).is_err());
-
 }
 
 #[test]
@@ -112,10 +109,12 @@ fn test_linalgreducedint_arithmetic() {
     assert_eq!(i3_4, i1_4 / i3_4);
     assert!(panic::catch_unwind(|| {
         println!("{:?}", i1_4 / i2_4);
-    }).is_err());
+    })
+    .is_err());
     assert!(panic::catch_unwind(|| {
         i2_4.inv();
-    }).is_err());
+    })
+    .is_err());
 
     // Z/5Z is a field, and 5 is odd, so we can use MontgomeryInt.
     let i0_5 = MontgomeryInt::<u64>::new(0, &5).linalg();
@@ -156,34 +155,34 @@ fn test_linalgreducedint_array() {
     let i3_5 = i0_5.convert(3);
     let i4_5 = i0_5.convert(4);
 
-    let arr = Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec(
-        (2, 2), vec![i0_5, i1_5, i2_5, i3_5]
-    ).unwrap();
+    let arr =
+        Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec((2, 2), vec![i0_5, i1_5, i2_5, i3_5])
+            .unwrap();
 
     let arr_2 = arr.clone() * 4;
-    let arr_2_ref = Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec(
-        (2, 2), vec![i0_5, i4_5, i3_5, i2_5]
-    ).unwrap();
+    let arr_2_ref =
+        Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec((2, 2), vec![i0_5, i4_5, i3_5, i2_5])
+            .unwrap();
     assert_eq!(arr_2, arr_2_ref);
 
     let arr_3 = arr.clone() + arr_2;
-    let arr_3_ref = Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec(
-        (2, 2), vec![i0_5, i0_5, i0_5, i0_5]
-    ).unwrap();
+    let arr_3_ref =
+        Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec((2, 2), vec![i0_5, i0_5, i0_5, i0_5])
+            .unwrap();
     assert_eq!(arr_3, arr_3_ref);
 
     let arr_4 = -arr.clone();
     assert_eq!(arr_4, arr_2_ref);
 
     let arr_5 = arr.clone() * 12;
-    let arr_5_ref = Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec(
-        (2, 2), vec![i0_5, i2_5, i4_5, i1_5]
-    ).unwrap();
+    let arr_5_ref =
+        Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec((2, 2), vec![i0_5, i2_5, i4_5, i1_5])
+            .unwrap();
     assert_eq!(arr_5, arr_5_ref);
 
     let arr_6 = arr.clone() * i2_5.inv().residue();
-    let arr_6_ref = Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec(
-        (2, 2), vec![i0_5, i3_5, i1_5, i4_5]
-    ).unwrap();
+    let arr_6_ref =
+        Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec((2, 2), vec![i0_5, i3_5, i1_5, i4_5])
+            .unwrap();
     assert_eq!(arr_6, arr_6_ref);
 }

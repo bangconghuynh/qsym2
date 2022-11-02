@@ -1,6 +1,6 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-use num_modular::{ModularInteger, ReducedInt, Reducer};
+use num_modular::{ModularInteger, ReducedInt, Reducer, Montgomery};
 use num_traits::{Inv, One, Pow, Zero};
 
 #[cfg(test)]
@@ -14,6 +14,8 @@ pub enum LinAlgReducedInt<T, R: Reducer<T>> {
     Zero,
     One,
 }
+
+pub type LinAlgMontgomeryInt<T> = LinAlgReducedInt<T, Montgomery<T, T>>;
 
 // ---
 // Add
