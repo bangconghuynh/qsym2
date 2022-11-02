@@ -3,7 +3,7 @@ use num_modular::{ModularInteger, MontgomeryInt, Montgomery};
 use num_traits::{Inv, One, Pow, Zero};
 
 use crate::chartab::modular_linalg::{modular_determinant, modular_rref, modular_kernel};
-use crate::chartab::reducedint::{LinAlgReducedInt, ReducedIntToLinAlgReducedInt};
+use crate::chartab::reducedint::{LinAlgReducedInt, IntoLinAlgReducedInt};
 
 type LinAlgMontgomeryInt<T> = LinAlgReducedInt<T, Montgomery<T, T>>;
 

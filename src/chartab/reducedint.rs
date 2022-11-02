@@ -1,6 +1,5 @@
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
-use log;
 use num_modular::{ModularInteger, ReducedInt, Reducer};
 use num_traits::{Inv, One, Pow, Zero};
 
@@ -204,7 +203,7 @@ where
 impl<T, R> Sub<&'_ LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -216,7 +215,7 @@ where
 impl<T, R> Sub<LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -228,7 +227,7 @@ where
 impl<T, R> Sub<LinAlgReducedInt<T, R>> for &LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -240,7 +239,7 @@ where
 impl<T, R> Sub<T> for LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -277,7 +276,7 @@ impl<T: Zero + One + PartialEq + Clone, R: Reducer<T> + Clone> Div<&'_ LinAlgRed
 impl<T, R> Div<&'_ LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -289,7 +288,7 @@ where
 impl<T, R> Div<LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -301,7 +300,7 @@ where
 impl<T, R> Div<LinAlgReducedInt<T, R>> for &LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -313,7 +312,7 @@ where
 impl<T, R> Div<T> for LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -328,7 +327,7 @@ where
 impl<T, R> Inv for &LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -344,7 +343,7 @@ where
 impl<T, R> Inv for LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -359,7 +358,7 @@ where
 impl<T, R> Neg for &LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -375,7 +374,7 @@ where
 impl<T, R> Neg for LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Clone,
-    R: Reducer<T> + Clone
+    R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -384,90 +383,139 @@ where
     }
 }
 
-// // ---
-// // Pow
-// // ---
-// impl<T: Zero + One + PartialEq + Clone, R: Reducer<T> + Clone> Pow<T> for &LinAlgReducedInt<T, R> {
-//     type Output = LinAlgReducedInt<T, R>;
+// ---
+// Pow
+// ---
+impl<T, R> Pow<T> for &LinAlgReducedInt<T, R>
+where
+    T: Zero + One + PartialEq + Clone,
+    R: Reducer<T> + Clone,
+{
+    type Output = LinAlgReducedInt<T, R>;
 
-//     fn pow(self, rhs: T) -> Self::Output {
-//         if Zero::is_zero(self) || self.is_one() {
-//             self.clone()
-//         } else {
-//             LinAlgReducedInt(self.reduced_int.clone().pow(rhs))
-//         }
-//     }
-// }
+    fn pow(self, rhs: T) -> Self::Output {
+        match self {
+            LinAlgReducedInt::Zero => {
+                if rhs == T::zero() {
+                    LinAlgReducedInt::One
+                } else {
+                    LinAlgReducedInt::Zero
+                }
+            }
+            LinAlgReducedInt::One => LinAlgReducedInt::One,
+            LinAlgReducedInt::KnownChar(rint) => LinAlgReducedInt::KnownChar(rint.pow(rhs)),
+        }
+    }
+}
 
-// impl<T: Zero + One + PartialEq + Clone, R: Reducer<T> + Clone> Pow<T> for LinAlgReducedInt<T, R> {
-//     type Output = LinAlgReducedInt<T, R>;
+impl<T, R> Pow<T> for LinAlgReducedInt<T, R>
+where
+    T: Zero + One + PartialEq + Clone,
+    R: Reducer<T> + Clone,
+{
+    type Output = LinAlgReducedInt<T, R>;
 
-//     fn pow(self, rhs: T) -> Self::Output {
-//         (&self).pow(rhs)
-//     }
-// }
+    fn pow(self, rhs: T) -> Self::Output {
+        (&self).pow(rhs)
+    }
+}
 
-// // ---------
-// // PartialEq
-// // ---------
-// impl<T: PartialEq + Clone + Zero + One, R: Reducer<T> + Clone> PartialEq<LinAlgReducedInt<T, R>>
-//     for LinAlgReducedInt<T, R>
-// {
-//     fn eq(&self, other: &Self) -> bool {
-//         if self.modulus() == other.modulus() {
-//             self.reduced_int.eq(&other.reduced_int)
-//         } else {
-//             Zero::is_zero(self) && Zero::is_zero(other)
-//         }
-//     }
-// }
+// ---------
+// PartialEq
+// ---------
+impl<T, R> PartialEq<LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
+where
+    T: Zero + One + PartialEq + Clone,
+    R: Reducer<T> + Clone,
+{
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (LinAlgReducedInt::Zero, LinAlgReducedInt::Zero) => true,
+            (LinAlgReducedInt::One, LinAlgReducedInt::One) => true,
+            (LinAlgReducedInt::Zero, LinAlgReducedInt::One)
+            | (LinAlgReducedInt::One, LinAlgReducedInt::Zero) => false,
+            (LinAlgReducedInt::Zero, LinAlgReducedInt::KnownChar(rint))
+            | (LinAlgReducedInt::KnownChar(rint), LinAlgReducedInt::Zero) => rint.is_zero(),
+            (LinAlgReducedInt::One, LinAlgReducedInt::KnownChar(rint))
+            | (LinAlgReducedInt::KnownChar(rint), LinAlgReducedInt::One) => {
+                rint.residue() == T::one()
+            }
+            (LinAlgReducedInt::KnownChar(rint_l), LinAlgReducedInt::KnownChar(rint_r)) => {
+                rint_l == rint_r
+            }
+        }
+    }
+}
 
-// // --------------
-// // ReducedInteger
-// // --------------
-// impl<T: PartialEq + Clone + Zero + One, R: Reducer<T> + Clone> ModularInteger
-//     for LinAlgReducedInt<T, R>
-// {
-//     type Base = T;
+// --------------
+// ReducedInteger
+// --------------
+impl<T, R> ModularInteger for LinAlgReducedInt<T, R>
+where
+    T: Zero + One + PartialEq + Clone,
+    R: Reducer<T> + Clone,
+{
+    type Base = T;
 
-//     fn modulus(&self) -> T {
-//         self.reduced_int.modulus()
-//     }
+    fn modulus(&self) -> T {
+        match self {
+            Self::Zero | Self::One => {
+                panic!("The ring modulus is not known.")
+            }
+            Self::KnownChar(rint) => rint.modulus(),
+        }
+    }
 
-//     fn residue(&self) -> T {
-//         if self.zero {
-//             debug_assert!(!self.one);
-//             T::zero()
-//         } else if self.one {
-//             T::one()
-//         } else {
-//             let res = self.reduced_int.residue();
-//             debug_assert!(res != T::zero() && res != T::one());
-//             res
-//         }
-//     }
+    fn residue(&self) -> T {
+        match self {
+            Self::Zero => T::zero(),
+            Self::One => T::one(),
+            Self::KnownChar(rint) => rint.residue(),
+        }
+    }
 
-//     fn is_zero(&self) -> bool {
-//         Zero::is_zero(self)
-//     }
+    fn is_zero(&self) -> bool {
+        Zero::is_zero(self)
+    }
 
-//     fn convert(&self, n: T) -> Self {
-//         Self(self.reduced_int.convert(n))
-//     }
+    fn convert(&self, n: T) -> Self {
+        match self {
+            Self::Zero | Self::One => {
+                panic!("The ring modulus is not known.")
+            }
+            Self::KnownChar(rint) => Self::KnownChar(rint.convert(n)),
+        }
+    }
 
-//     fn double(self) -> Self {
-//         Self(self.reduced_int.double())
-//     }
+    fn double(self) -> Self {
+        match self {
+            Self::Zero => Self::Zero,
+            Self::One => {
+                panic!("The ring modulus is not known.")
+            }
+            Self::KnownChar(rint) => Self::KnownChar(rint.double()),
+        }
+    }
 
-//     fn square(self) -> Self {
-//         Self(self.reduced_int.square())
-//     }
-// }
+    fn square(self) -> Self {
+        match self {
+            Self::Zero => Self::Zero,
+            Self::One => {
+                panic!("The ring modulus is not known.")
+            }
+            Self::KnownChar(rint) => Self::KnownChar(rint.square()),
+        }
+    }
+}
 
 // ----
 // Zero
 // ----
-impl<T: PartialEq + Clone + Zero + One, R: Reducer<T> + Clone> Zero for LinAlgReducedInt<T, R> {
+impl<T, R> Zero for LinAlgReducedInt<T, R>
+where
+    T: Zero + One + PartialEq + Clone,
+    R: Reducer<T> + Clone,
+{
     fn zero() -> Self {
         Self::Zero
     }
@@ -481,22 +529,26 @@ impl<T: PartialEq + Clone + Zero + One, R: Reducer<T> + Clone> Zero for LinAlgRe
     }
 }
 
-// // ---
-// // One
-// // ---
-// impl<T: PartialEq + Clone + Zero + One, R: Reducer<T> + Clone> One for LinAlgReducedInt<T, R> {
-//     fn one() -> Self {
-//         Self::One
-//     }
+// ---
+// One
+// ---
+impl<T, R> One for LinAlgReducedInt<T, R>
+where
+    T: Zero + One + PartialEq + Clone,
+    R: Reducer<T> + Clone,
+{
+    fn one() -> Self {
+        Self::One
+    }
 
-//     fn is_one(&self) -> bool {
-//         match self {
-//             Self::KnownChar(res) => res.residue() == T::one(),
-//             Self::Zero => false,
-//             Self::One => true,
-//         }
-//     }
-// }
+    fn is_one(&self) -> bool {
+        match self {
+            Self::KnownChar(res) => res.residue() == T::one(),
+            Self::Zero => false,
+            Self::One => true,
+        }
+    }
+}
 
 // ----
 // Wrap
