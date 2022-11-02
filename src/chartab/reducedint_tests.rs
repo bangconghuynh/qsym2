@@ -1,15 +1,15 @@
 use std::panic;
 
-use ndarray::Array2;
-use num_modular::{ModularInteger, Montgomery, MontgomeryInt, VanillaInt};
+use ndarray::array;
+use num_modular::{ModularInteger, MontgomeryInt, VanillaInt};
 use num_traits::{Inv, One, Pow, Zero};
 
-use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt, LinAlgReducedInt};
+use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 
 #[test]
 fn test_linalgreducedint_identities() {
-    let zero = LinAlgReducedInt::<u64, Montgomery<u64, u64>>::zero();
-    let one = LinAlgReducedInt::<u64, Montgomery<u64, u64>>::one();
+    let zero = LinAlgMontgomeryInt::zero();
+    let one = LinAlgMontgomeryInt::one();
     let i0_7 = MontgomeryInt::<u64>::new(0, &7).linalg();
     let i1_7 = i0_7.convert(1);
     let i2_7 = i0_7.convert(2);
@@ -155,34 +155,24 @@ fn test_linalgreducedint_array() {
     let i3_5 = i0_5.convert(3);
     let i4_5 = i0_5.convert(4);
 
-    let arr =
-        Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec((2, 2), vec![i0_5, i1_5, i2_5, i3_5])
-            .unwrap();
+    let arr = array![[i0_5, i1_5], [i2_5, i3_5]];
 
     let arr_2 = arr.clone() * 4;
-    let arr_2_ref =
-        Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec((2, 2), vec![i0_5, i4_5, i3_5, i2_5])
-            .unwrap();
+    let arr_2_ref = array![[i0_5, i4_5], [i3_5, i2_5]];
     assert_eq!(arr_2, arr_2_ref);
 
     let arr_3 = arr.clone() + arr_2;
-    let arr_3_ref =
-        Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec((2, 2), vec![i0_5, i0_5, i0_5, i0_5])
-            .unwrap();
+    let arr_3_ref = array![[i0_5, i0_5], [i0_5, i0_5]];
     assert_eq!(arr_3, arr_3_ref);
 
     let arr_4 = -arr.clone();
     assert_eq!(arr_4, arr_2_ref);
 
     let arr_5 = arr.clone() * 12;
-    let arr_5_ref =
-        Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec((2, 2), vec![i0_5, i2_5, i4_5, i1_5])
-            .unwrap();
+    let arr_5_ref = array![[i0_5, i2_5], [i4_5, i1_5]];
     assert_eq!(arr_5, arr_5_ref);
 
     let arr_6 = arr.clone() * i2_5.inv().residue();
-    let arr_6_ref =
-        Array2::<LinAlgMontgomeryInt<u64>>::from_shape_vec((2, 2), vec![i0_5, i3_5, i1_5, i4_5])
-            .unwrap();
+    let arr_6_ref = array![[i0_5, i3_5], [i1_5, i4_5]];
     assert_eq!(arr_6, arr_6_ref);
 }

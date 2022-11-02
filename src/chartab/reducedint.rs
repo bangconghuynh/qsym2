@@ -7,11 +7,20 @@ use num_traits::{Inv, One, Pow, Zero};
 #[path = "reducedint_tests.rs"]
 mod reducedint_tests;
 
-/// A wrapper struct to represent an integer in a modulo ring.
+/// A wrapper enum to represent an integer in a modulo ring, with added additive
+/// and multiplicative identities.
 #[derive(Clone, Copy, Debug)]
 pub enum LinAlgReducedInt<T, R: Reducer<T>> {
+    /// Variant to represent an integer in a modulo ring with known
+    /// characteristic.
     KnownChar(ReducedInt<T, R>),
+
+    /// Variant to represent the additive identity, irrespective of ring
+    /// characteristics.
     Zero,
+
+    /// Variant to represent the multiplicative identity, irrespective of ring
+    /// characteristics.
     One,
 }
 
