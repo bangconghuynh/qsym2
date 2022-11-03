@@ -212,3 +212,27 @@ where
     }).collect();
     kernel_basis_vecs
 }
+
+/// Determines a set of basis vectors for the kernel of a matrix via Gaussian
+/// elimination over a finite integer field.
+///
+/// The kernel of an `$m \times n$` matrix `$\boldsymbol{M}$` is the space of
+/// the solutions to the equation
+///
+/// ```math
+///     \boldsymbol{M} \boldsymbbol{x} = \boldsymbol{0},
+/// ```
+///
+/// where `$\boldsymbol{x}$` is an `$n \times 1$` column vector.
+///
+/// # Arguments
+///
+/// * mat - A rectangular matrix.
+///
+/// # Returns
+///
+/// A vector of basis vectors for the kernel of `mat`.
+fn modular_eig<T>(mat: &Array2<T>) -> Has
+where
+    T: Clone + Copy + Debug + ModularInteger<Base = u64> + Div<Output = T>,
+{

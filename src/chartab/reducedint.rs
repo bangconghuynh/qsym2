@@ -1,7 +1,10 @@
+use std::hash::{Hash, Hasher};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use num_modular::{ModularInteger, ReducedInt, Reducer, Montgomery};
 use num_traits::{Inv, One, Pow, Zero};
+
+use crate::aux::misc;
 
 #[cfg(test)]
 #[path = "reducedint_tests.rs"]
@@ -31,7 +34,7 @@ pub type LinAlgMontgomeryInt<T> = LinAlgReducedInt<T, Montgomery<T, T>>;
 // ---
 impl<T, R> Add<&'_ LinAlgReducedInt<T, R>> for &LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -58,7 +61,7 @@ where
 
 impl<T, R> Add<&'_ LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -70,7 +73,7 @@ where
 
 impl<T, R> Add<LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -82,7 +85,7 @@ where
 
 impl<T, R> Add<LinAlgReducedInt<T, R>> for &LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -94,7 +97,7 @@ where
 
 impl<T, R> Add<T> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -109,7 +112,7 @@ where
 // ---
 impl<T, R> Mul<&'_ LinAlgReducedInt<T, R>> for &LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -129,7 +132,7 @@ where
 
 impl<T, R> Mul<&'_ LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -141,7 +144,7 @@ where
 
 impl<T, R> Mul<LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -153,7 +156,7 @@ where
 
 impl<T, R> Mul<LinAlgReducedInt<T, R>> for &LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -165,7 +168,7 @@ where
 
 impl<T, R> Mul<T> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -180,7 +183,7 @@ where
 // ---
 impl<T, R> Sub<&'_ LinAlgReducedInt<T, R>> for &LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -213,7 +216,7 @@ where
 
 impl<T, R> Sub<&'_ LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -225,7 +228,7 @@ where
 
 impl<T, R> Sub<LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -237,7 +240,7 @@ where
 
 impl<T, R> Sub<LinAlgReducedInt<T, R>> for &LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -249,7 +252,7 @@ where
 
 impl<T, R> Sub<T> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -262,7 +265,7 @@ where
 // ---
 // Div
 // ---
-impl<T: Zero + One + PartialEq + Clone, R: Reducer<T> + Clone> Div<&'_ LinAlgReducedInt<T, R>>
+impl<T: Zero + One + PartialEq + Clone + Hash, R: Reducer<T> + Clone> Div<&'_ LinAlgReducedInt<T, R>>
     for &LinAlgReducedInt<T, R>
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -286,7 +289,7 @@ impl<T: Zero + One + PartialEq + Clone, R: Reducer<T> + Clone> Div<&'_ LinAlgRed
 
 impl<T, R> Div<&'_ LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -298,7 +301,7 @@ where
 
 impl<T, R> Div<LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -310,7 +313,7 @@ where
 
 impl<T, R> Div<LinAlgReducedInt<T, R>> for &LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -322,7 +325,7 @@ where
 
 impl<T, R> Div<T> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -337,7 +340,7 @@ where
 // ---
 impl<T, R> Inv for &LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -353,7 +356,7 @@ where
 
 impl<T, R> Inv for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -368,7 +371,7 @@ where
 // ---
 impl<T, R> Neg for &LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -384,7 +387,7 @@ where
 
 impl<T, R> Neg for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -399,7 +402,7 @@ where
 // ---
 impl<T, R> Pow<T> for &LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -421,7 +424,7 @@ where
 
 impl<T, R> Pow<T> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Output = LinAlgReducedInt<T, R>;
@@ -436,11 +439,11 @@ where
 // ---------
 impl<T, R> PartialEq<LinAlgReducedInt<T, R>> for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
+        let result = match (self, other) {
             (LinAlgReducedInt::Zero, LinAlgReducedInt::Zero) => true,
             (LinAlgReducedInt::One, LinAlgReducedInt::One) => true,
             (LinAlgReducedInt::Zero, LinAlgReducedInt::One)
@@ -454,7 +457,11 @@ where
             (LinAlgReducedInt::KnownChar(rint_l), LinAlgReducedInt::KnownChar(rint_r)) => {
                 rint_l == rint_r
             }
+        };
+        if result {
+            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
         }
+        result
     }
 }
 
@@ -463,7 +470,7 @@ where
 // --------------
 impl<T, R> ModularInteger for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     type Base = T;
@@ -524,7 +531,7 @@ where
 // ----
 impl<T, R> Zero for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     fn zero() -> Self {
@@ -545,7 +552,7 @@ where
 // ---
 impl<T, R> One for LinAlgReducedInt<T, R>
 where
-    T: Zero + One + PartialEq + Clone,
+    T: Zero + One + PartialEq + Clone + Hash,
     R: Reducer<T> + Clone,
 {
     fn one() -> Self {
@@ -557,6 +564,32 @@ where
             Self::KnownChar(res) => res.residue() == T::one(),
             Self::Zero => false,
             Self::One => true,
+        }
+    }
+}
+
+// ----
+// Hash
+// ----
+impl<T, R> Hash for LinAlgReducedInt<T, R>
+where
+    T: Zero + One + PartialEq + Clone + Hash,
+    R: Reducer<T> + Clone,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            LinAlgReducedInt::Zero => T::zero().hash(state),
+            LinAlgReducedInt::One => T::one().hash(state),
+            LinAlgReducedInt::KnownChar(rint) => {
+                if Zero::is_zero(self) {
+                    T::zero().hash(state)
+                } else if self.is_one() {
+                    T::one().hash(state)
+                } else {
+                    rint.residue().hash(state);
+                    rint.modulus().hash(state);
+                }
+            }
         }
     }
 }
