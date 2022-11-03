@@ -116,8 +116,9 @@ fn test_modular_linalg_rref_kernel() {
     );
     assert_eq!(arr_1_nulldim, 1);
 
-    let kernel_vecs = modular_kernel(&arr_1);
-    assert!(kernel_vecs
+    let arr_1_kernel_vecs = modular_kernel(&arr_1);
+    assert_eq!(arr_1_kernel_vecs.len(), arr_1_nulldim);
+    assert!(arr_1_kernel_vecs
         .iter()
         .all(|vec| { arr_1.dot(vec) == Array1::from_elem((3,), i0_13) }));
 
@@ -142,6 +143,12 @@ fn test_modular_linalg_rref_kernel() {
     );
     assert_eq!(arr_2_nulldim, 1);
 
+    let arr_2_kernel_vecs = modular_kernel(&arr_2);
+    assert_eq!(arr_2_kernel_vecs.len(), arr_2_nulldim);
+    assert!(arr_2_kernel_vecs
+        .iter()
+        .all(|vec| { arr_2.dot(vec) == Array1::from_elem((5,), i0_13) }));
+
     let arr_3 = array![
         [i0_13, i0_13, i2_13, i1_13, i9_13, i8_13],
         [i0_13, i6_13, i6_13, i3_13, i5_13, i4_13],
@@ -162,6 +169,12 @@ fn test_modular_linalg_rref_kernel() {
         ]
     );
     assert_eq!(arr_3_nulldim, 1);
+
+    let arr_3_kernel_vecs = modular_kernel(&arr_3);
+    assert_eq!(arr_3_kernel_vecs.len(), arr_3_nulldim);
+    assert!(arr_3_kernel_vecs
+        .iter()
+        .all(|vec| { arr_3.dot(vec) == Array1::from_elem((5,), i0_13) }));
 
     let arr_4 = array![
         [i0_13, i0_13, i2_13, i1_13, i9_13, i8_13],
@@ -184,6 +197,12 @@ fn test_modular_linalg_rref_kernel() {
     );
     assert_eq!(arr_4_nulldim, 2);
 
+    let arr_4_kernel_vecs = modular_kernel(&arr_4);
+    assert_eq!(arr_4_kernel_vecs.len(), arr_4_nulldim);
+    assert!(arr_4_kernel_vecs
+        .iter()
+        .all(|vec| { arr_4.dot(vec) == Array1::from_elem((5,), i0_13) }));
+
     let arr_5 = array![
         [i2_13, i0_13, i0_13, i2_13, i1_13, i9_13, i8_13],
         [i4_13, i0_13, i6_13, i6_13, i3_13, i5_13, i4_13],
@@ -204,4 +223,33 @@ fn test_modular_linalg_rref_kernel() {
         ]
     );
     assert_eq!(arr_5_nulldim, 2);
+
+    let arr_5_kernel_vecs = modular_kernel(&arr_5);
+    assert_eq!(arr_5_kernel_vecs.len(), arr_5_nulldim);
+    assert!(arr_5_kernel_vecs
+        .iter()
+        .all(|vec| { arr_5.dot(vec) == Array1::from_elem((5,), i0_13) }));
+
+    let arr_6 = array![
+        [i2_13, i0_13, i0_13, i2_13, i1_13, i9_13, i8_13],
+        [i4_13, i0_13, i6_13, i6_13, i3_13, i5_13, i4_13],
+        [i9_13, i0_13, i2_13, i8_13, i4_13, i11_13, i12_13]
+    ];
+
+    let (arr_6_rref, arr_6_nulldim) = modular_rref(&arr_6);
+    assert_eq!(
+        arr_6_rref,
+        array![
+            [i1_13, i0_13, i0_13, i0_13, i0_13, i5_13, i5_13],
+            [i0_13, i0_13, i1_13, i0_13, i0_13, i11_13, i7_13],
+            [i0_13, i0_13, i0_13, i1_13, i7_13, i6_13, i12_13]
+        ]
+    );
+    assert_eq!(arr_6_nulldim, 4);
+
+    let arr_6_kernel_vecs = modular_kernel(&arr_6);
+    assert_eq!(arr_6_kernel_vecs.len(), arr_6_nulldim);
+    assert!(arr_6_kernel_vecs
+        .iter()
+        .all(|vec| { arr_6.dot(vec) == Array1::from_elem((3,), i0_13) }));
 }
