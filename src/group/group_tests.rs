@@ -1125,6 +1125,14 @@ fn test_abstract_group_symmetric_benzene_d6h() {
 }
 
 #[test]
+fn test_abstract_group_symmetric_h100_d6h() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
+    let thresh = 1e-4;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group(&mol, thresh, "D100h", 400, 106, false);
+}
+
+#[test]
 fn test_abstract_group_symmetric_arbitrary_eclipsed_sandwich_dnh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
