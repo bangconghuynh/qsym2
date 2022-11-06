@@ -1,6 +1,8 @@
 use std::hash::{Hash, Hasher};
 use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::fmt;
 
+use ndarray::ScalarOperand;
 use num_modular::{ModularInteger, ReducedInt, Reducer, Montgomery};
 use num_traits::{Inv, One, Pow, Zero};
 
@@ -465,6 +467,15 @@ where
     }
 }
 
+// --
+// Eq
+// --
+impl<T, R> Eq for LinAlgReducedInt<T, R>
+where
+    T: Zero + One + PartialEq + Eq + Clone + Hash,
+    R: Reducer<T> + Clone,
+{ }
+
 // --------------
 // ReducedInteger
 // --------------
@@ -590,6 +601,23 @@ where
                     rint.modulus().hash(state);
                 }
             }
+        }
+    }
+}
+
+// -------
+// Display
+// -------
+impl<T, R> fmt::Display for LinAlgReducedInt<T, R>
+where
+    T: Zero + One + PartialEq + Clone + Hash + fmt::Display,
+    R: Reducer<T> + Clone,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Zero => write!(f, "0"),
+            Self::One => write!(f, "1"),
+            _ => write!(f, "{} (mod {})", self.residue(), self.modulus())
         }
     }
 }

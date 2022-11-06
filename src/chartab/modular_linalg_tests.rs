@@ -1,7 +1,11 @@
+use std::collections::HashSet;
+
 use ndarray::{array, Array1};
 use num_modular::{ModularInteger, MontgomeryInt};
 
-use crate::chartab::modular_linalg::{modular_determinant, modular_kernel, modular_rref};
+use crate::chartab::modular_linalg::{
+    modular_determinant, modular_eig, modular_kernel, modular_rref,
+};
 use crate::chartab::reducedint::IntoLinAlgReducedInt;
 
 #[test]
@@ -252,4 +256,48 @@ fn test_modular_linalg_rref_kernel() {
     assert!(arr_6_kernel_vecs
         .iter()
         .all(|vec| { arr_6.dot(vec) == Array1::from_elem((3,), i0_13) }));
+}
+
+#[test]
+fn test_modular_linalg_eig() {
+    let m19 = MontgomeryInt::<u64>::new(0, &19).linalg();
+    let i_19s: Vec<_> = (0..19).map(|x| m19.convert(x)).collect();
+
+    let arr_1 = array![
+        [i_19s[12], i_19s[14], i_19s[0], i_19s[0]],
+        [i_19s[14], i_19s[12], i_19s[0], i_19s[0]],
+        [i_19s[0], i_19s[0], i_19s[3], i_19s[0]],
+        [i_19s[0], i_19s[0], i_19s[0], i_19s[3]]
+    ];
+    let eigs = modular_eig(&arr_1);
+    eigs.iter().for_each(|(val, vecs)| {
+        vecs.iter().for_each(|vec| {
+            assert_eq!(arr_1.dot(vec), vec.map(|x| { x * val }));
+        })
+    });
+
+    let m5 = MontgomeryInt::<u64>::new(0, &5).linalg();
+    let i_5s: Vec<_> = (0..5).map(|x| m5.convert(x)).collect();
+
+    let arr_2 = array![
+        [i_5s[2], i_5s[2]],
+        [i_5s[1], i_5s[1]]
+    ];
+    let eigs = modular_eig(&arr_2);
+    eigs.iter().for_each(|(val, vecs)| {
+        vecs.iter().for_each(|vec| {
+            assert_eq!(arr_2.dot(vec), vec.map(|x| { x * val }));
+        })
+    });
+
+    let arr_3 = array![
+        [i_19s[7], i_19s[2]],
+        [i_19s[15], i_19s[1]]
+    ];
+    let eigs = modular_eig(&arr_3);
+    eigs.iter().for_each(|(val, vecs)| {
+        vecs.iter().for_each(|vec| {
+            assert_eq!(arr_3.dot(vec), vec.map(|x| { x * val }));
+        })
+    });
 }

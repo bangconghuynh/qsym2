@@ -1,11 +1,14 @@
-use std::collections::HashSet;
-use std::fmt::Debug;
+use std::collections::{HashMap, HashSet};
+use std::fmt::{Debug, Display};
+use std::hash::Hash;
 use std::ops::Div;
+use std::panic;
 
 use itertools::Itertools;
 use log;
-use ndarray::{s, Array1, Array2, Axis, Zip, LinalgScalar};
+use ndarray::{s, Array1, Array2, Axis, LinalgScalar, Zip};
 use num_modular::ModularInteger;
+use rayon::prelude::*;
 
 // use crate::aux::ndarray_shuffle;
 
@@ -193,46 +196,106 @@ where
     let pivot_cols_set: HashSet<usize> = HashSet::from_iter(pivot_cols.iter().cloned());
     let non_pivot_cols = HashSet::from_iter(0..ncols);
     let non_pivot_cols = non_pivot_cols.difference(&pivot_cols_set);
-    let kernel_basis_vecs = non_pivot_cols.map(|&non_pivot_col| {
-        let mut kernel_basis_vec = Array1::from_elem((ncols,), zero);
-        kernel_basis_vec[non_pivot_col] = one;
+    let kernel_basis_vecs = non_pivot_cols
+        .map(|&non_pivot_col| {
+            let mut kernel_basis_vec = Array1::from_elem((ncols,), zero);
+            kernel_basis_vec[non_pivot_col] = one;
 
-        for (i, &pivot_col) in pivot_cols.iter().enumerate() {
-            kernel_basis_vec[pivot_col] = -mat_rref[(i, non_pivot_col)];
-        }
-        let first_nonzero_pos = kernel_basis_vec
-            .iter()
-            .position(|&x| x != zero)
-            .expect("Kernel basis vector cannot be zero.");
-        let first_nonzero = kernel_basis_vec[first_nonzero_pos];
-        kernel_basis_vec
-            .iter_mut()
-            .for_each(|x| *x = *x / first_nonzero);
-        kernel_basis_vec
-    }).collect();
+            for (i, &pivot_col) in pivot_cols.iter().enumerate() {
+                kernel_basis_vec[pivot_col] = -mat_rref[(i, non_pivot_col)];
+            }
+            let first_nonzero_pos = kernel_basis_vec
+                .iter()
+                .position(|&x| x != zero)
+                .expect("Kernel basis vector cannot be zero.");
+            let first_nonzero = kernel_basis_vec[first_nonzero_pos];
+            kernel_basis_vec
+                .iter_mut()
+                .for_each(|x| *x = *x / first_nonzero);
+            kernel_basis_vec
+        })
+        .collect();
     kernel_basis_vecs
 }
 
-///// Determines a set of basis vectors for the kernel of a matrix via Gaussian
-///// elimination over a finite integer field.
-/////
-///// The kernel of an `$m \times n$` matrix `$\boldsymbol{M}$` is the space of
-///// the solutions to the equation
-/////
-///// ```math
-/////     \boldsymbol{M} \boldsymbbol{x} = \boldsymbol{0},
-///// ```
-/////
-///// where `$\boldsymbol{x}$` is an `$n \times 1$` column vector.
-/////
-///// # Arguments
-/////
-///// * mat - A rectangular matrix.
-/////
-///// # Returns
-/////
-///// A vector of basis vectors for the kernel of `mat`.
-//fn modular_eig<T>(mat: &Array2<T>) -> Has
-//where
-//    T: Clone + Copy + Debug + ModularInteger<Base = u64> + Div<Output = T>,
-//{
+/// Determines the eigenvalues and eigenvector of a square matrix over a finite
+/// integer field.
+///
+/// # Arguments
+///
+/// * mat - A square matrix.
+///
+/// # Returns
+///
+/// A hashmap containing the eigenvalues and the associated eigenvectors.
+/// One eigenvalue can be associated with multiple eigenvectors in cases of
+/// degeneracy.
+fn modular_eig<T>(mat: &Array2<T>) -> HashMap<T, Vec<Array1<T>>>
+where
+    T: Clone
+        + LinalgScalar
+        + Display
+        + Debug
+        + ModularInteger<Base = u64>
+        + Eq
+        + Hash
+        + panic::UnwindSafe
+        + panic::RefUnwindSafe,
+{
+    assert!(mat.is_square(), "Only square matrices are supported.");
+    let dim = mat.nrows();
+    let modulus_set: HashSet<u64> = mat
+        .iter()
+        .filter_map(|x| panic::catch_unwind(|| x.modulus()).ok())
+        .collect();
+    assert_eq!(
+        modulus_set.len(),
+        1,
+        "Inconsistent moduli between matrix elements."
+    );
+    let modulus = *modulus_set.iter().next().unwrap();
+    let rep = mat
+        .iter()
+        .find(|x| panic::catch_unwind(|| x.modulus()).is_ok())
+        .expect("At least one modular integer with a known modulus should have been found.");
+    let zero = T::zero();
+    log::debug!("Diagonalising in GF({})...", modulus);
+
+    let results: HashMap<T, Vec<Array1<T>>> = (0..modulus)
+        .filter_map(|lam| {
+            let lamb = rep.convert(lam);
+            let char_mat = mat - Array2::from_diag_elem(dim, lamb);
+            let det = modular_determinant(&char_mat);
+            if det == zero {
+                let vecs = modular_kernel(&char_mat);
+                log::debug!(
+                    "{} is an eigenvalue with multiplicity {}.",
+                    lamb,
+                    vecs.len()
+                );
+                Some((lamb, vecs))
+            } else {
+                None
+            }
+        })
+        .collect();
+    let eigen_dim = results.values().fold(0usize, |acc, vecs| { acc + vecs.len() });
+    assert_eq!(
+        eigen_dim,
+        dim,
+        "Found {} / {} eigenvector{}. The matrix is not diagonalisable in GF({}).",
+        eigen_dim,
+        dim,
+        if dim > 1 { "s" } else { "" },
+        modulus
+    );
+    log::debug!(
+        "Found {} / {} eigenvector{}. Eigensolver done in GF({}).",
+        eigen_dim,
+        dim,
+        if dim > 1 { "s" } else { "" },
+        modulus
+    );
+
+    results
+}
