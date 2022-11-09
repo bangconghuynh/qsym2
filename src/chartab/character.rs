@@ -199,7 +199,7 @@ impl fmt::Debug for Character {
                 }
             })
             .collect();
-        if str_terms.len() > 0 {
+        if !str_terms.is_empty() {
             write!(f, "{}", str_terms.join(" + "))
         } else {
             write!(f, "0")

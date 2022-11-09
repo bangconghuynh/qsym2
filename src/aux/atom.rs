@@ -16,6 +16,12 @@ pub struct ElementMap<'a> {
     pub map: HashMap<&'a str, (u32, f64)>,
 }
 
+impl Default for ElementMap<'static> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ElementMap<'static> {
     /// Creates a new [`ElementMap`] for all elements in the periodic table.
     pub fn new() -> ElementMap<'static> {
@@ -87,7 +93,7 @@ impl Atom {
         if split.len() != 4 {
             return None;
         };
-        let atomic_symbol = split.get(0).unwrap();
+        let atomic_symbol = split.first().unwrap();
         let (atomic_number, atomic_mass) = emap
             .map
             .get(atomic_symbol)
@@ -208,7 +214,7 @@ impl fmt::Display for AtomKind {
 }
 
 impl Transform for Atom {
-    fn transform_mut(self: &mut Self, mat: &Matrix3<f64>) {
+    fn transform_mut(&mut self, mat: &Matrix3<f64>) {
         let det = mat.determinant();
         assert!(
             approx::relative_eq!(
@@ -223,7 +229,7 @@ impl Transform for Atom {
                 max_relative = self.threshold
             )
         );
-        self.coordinates = mat * &self.coordinates;
+        self.coordinates = mat * self.coordinates;
         if approx::relative_eq!(
             det,
             -1.0,
@@ -236,14 +242,14 @@ impl Transform for Atom {
         };
     }
 
-    fn rotate_mut(self: &mut Self, angle: f64, axis: &Vector3<f64>) {
+    fn rotate_mut(&mut self, angle: f64, axis: &Vector3<f64>) {
         let normalised_axis = UnitVector3::new_normalize(*axis);
         let rotation = Rotation3::from_axis_angle(&normalised_axis, angle);
         self.coordinates = rotation.transform_point(&self.coordinates);
     }
 
     fn improper_rotate_mut(
-        self: &mut Self,
+        &mut self,
         angle: f64,
         axis: &Vector3<f64>,
         kind: &SymmetryElementKind,
@@ -252,29 +258,29 @@ impl Transform for Atom {
         self.transform_mut(&mat);
     }
 
-    fn translate_mut(self: &mut Self, tvec: &Vector3<f64>) {
+    fn translate_mut(&mut self, tvec: &Vector3<f64>) {
         let translation = Translation3::from(*tvec);
         self.coordinates = translation.transform_point(&self.coordinates);
     }
 
-    fn recentre_mut(self: &mut Self) {
+    fn recentre_mut(&mut self) {
         self.coordinates = Point3::origin();
     }
 
-    fn transform(self: &Self, mat: &Matrix3<f64>) -> Self {
+    fn transform(&self, mat: &Matrix3<f64>) -> Self {
         let mut transformed_atom = self.clone();
         transformed_atom.transform_mut(mat);
         transformed_atom
     }
 
-    fn rotate(self: &Self, angle: f64, axis: &Vector3<f64>) -> Self {
+    fn rotate(&self, angle: f64, axis: &Vector3<f64>) -> Self {
         let mut rotated_atom = self.clone();
         rotated_atom.rotate_mut(angle, axis);
         rotated_atom
     }
 
     fn improper_rotate(
-        self: &Self,
+        &self,
         angle: f64,
         axis: &Vector3<f64>,
         kind: &SymmetryElementKind,
@@ -284,13 +290,13 @@ impl Transform for Atom {
         improper_rotated_atom
     }
 
-    fn translate(self: &Self, tvec: &Vector3<f64>) -> Self {
+    fn translate(&self, tvec: &Vector3<f64>) -> Self {
         let mut translated_atom = self.clone();
         translated_atom.translate_mut(tvec);
         translated_atom
     }
 
-    fn recentre(self: &Self) -> Self {
+    fn recentre(&self) -> Self {
         let mut recentred_atom = self.clone();
         recentred_atom.recentre_mut();
         recentred_atom

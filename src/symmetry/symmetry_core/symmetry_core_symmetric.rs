@@ -82,12 +82,8 @@ impl Symmetry {
             let principal_element = self.proper_elements[&max_ord].iter().next().unwrap();
             let c2_element = self.proper_elements[&ORDER_2]
                 .iter()
-                .find_map(|c2_ele| {
-                    if c2_ele.axis.dot(&principal_element.axis).abs() < presym.dist_threshold {
-                        Some(c2_ele)
-                    } else {
-                        None
-                    }
+                .find(|c2_ele| {
+                    c2_ele.axis.dot(&principal_element.axis).abs() < presym.dist_threshold
                 })
                 .unwrap();
             self.add_proper(
@@ -177,7 +173,7 @@ impl Symmetry {
                         .next()
                         .unwrap()
                         .clone();
-                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, &presym);
+                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym);
                 }
             }
             // end Dnh
@@ -352,6 +348,7 @@ impl Symmetry {
                 }
             }
 
+            #[allow(clippy::blocks_in_if_conditions)]
             if count_sigma == max_ord_u32 {
                 if max_ord_u32 > 1 {
                     // Cnv (n > 2)
@@ -362,7 +359,7 @@ impl Symmetry {
                         self.point_group.as_ref().unwrap()
                     );
                     let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
-                    self.add_proper(max_ord.clone(), principal_axis, true, presym.dist_threshold);
+                    self.add_proper(max_ord, principal_axis, true, presym.dist_threshold);
                     let sigma_v_normal = self
                         .get_sigma_elements("v")
                         .unwrap()
@@ -473,7 +470,7 @@ impl Symmetry {
                         .next()
                         .unwrap()
                         .clone();
-                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, &presym);
+                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym);
                 }
             } else if {
                 let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
@@ -551,8 +548,8 @@ fn _deduce_sigma_symbol(
     thresh: f64,
     force_d: bool,
 ) -> Option<String> {
-    let sigma_symbol = if approx::relative_eq!(
-        principal_element.axis.dot(&sigma_axis).abs(),
+    if approx::relative_eq!(
+        principal_element.axis.dot(sigma_axis).abs(),
         0.0,
         epsilon = thresh,
         max_relative = thresh
@@ -565,7 +562,7 @@ fn _deduce_sigma_symbol(
             Some("v".to_owned())
         }
     } else if approx::relative_eq!(
-        principal_element.axis.cross(&sigma_axis).norm(),
+        principal_element.axis.cross(sigma_axis).norm(),
         0.0,
         epsilon = thresh,
         max_relative = thresh
@@ -575,8 +572,7 @@ fn _deduce_sigma_symbol(
         Some("h".to_owned())
     } else {
         None
-    };
-    sigma_symbol
+    }
 }
 
 /// Adds improper elements constructed as a product between a $`\sigma_h`$ and a

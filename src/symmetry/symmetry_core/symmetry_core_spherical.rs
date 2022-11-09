@@ -16,7 +16,7 @@ impl Symmetry {
     ///
     /// * presym - A pre-symmetry-analysis struct containing information about
     /// the molecular system.
-    fn search_c2_spherical(self: &mut Self, presym: &PreSymmetry) -> i8 {
+    fn search_c2_spherical(&mut self, presym: &PreSymmetry) -> i8 {
         assert!(matches!(
             presym.rotational_symmetry,
             RotationalSymmetry::Spherical
@@ -41,36 +41,34 @@ impl Symmetry {
                 let atom_j_pos = atom2s[1].coordinates;
 
                 // Case B: C2 might cross through any two atoms
-                if presym.check_proper(&ORDER_2, &atom_i_pos.coords) {
-                    if self.add_proper(
+                if presym.check_proper(&ORDER_2, &atom_i_pos.coords)
+                    && self.add_proper(
                         ORDER_2.clone(),
                         atom_i_pos.coords,
                         false,
                         presym.molecule.threshold,
-                    ) {
-                        count_c2 += 1;
-                        count_c2_stable = 0;
-                    }
+                    )
+                {
+                    count_c2 += 1;
+                    count_c2_stable = 0;
                 }
 
                 // Case A: C2 might cross through the midpoint of two atoms
-                let midvec = 0.5 * (&atom_i_pos.coords + &atom_j_pos.coords);
+                let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
                 if midvec.norm() > presym.molecule.threshold
                     && presym.check_proper(&ORDER_2, &midvec)
+                    && self.add_proper(ORDER_2.clone(), midvec, false, presym.molecule.threshold)
                 {
-                    if self.add_proper(ORDER_2.clone(), midvec, false, presym.molecule.threshold) {
-                        count_c2 += 1;
-                        count_c2_stable = 0;
-                    }
+                    count_c2 += 1;
+                    count_c2_stable = 0;
                 }
 
                 // Check if count_c2 has reached stability.
                 if (count_c2_stable as f64) / (n_pairs as f64) > stable_c2_ratio
                     && n_pairs > start_guard
+                    && c2_termination_counts.contains(&count_c2)
                 {
-                    if c2_termination_counts.contains(&count_c2) {
-                        break;
-                    }
+                    break;
                 }
                 count_c2_stable += 1;
             }
@@ -305,7 +303,7 @@ impl Symmetry {
                 let atom_i = atom3s[0];
                 let atom_j = atom3s[1];
                 let atom_k = atom3s[2];
-                if !geometry::check_regular_polygon(&[&atom_i, &atom_j, &atom_k]) {
+                if !geometry::check_regular_polygon(&[atom_i, atom_j, atom_k]) {
                     continue;
                 }
                 let vec_ij = atom_j.coordinates - atom_i.coordinates;
@@ -346,12 +344,7 @@ impl Symmetry {
                 .map(|element| element.axis)
                 .collect();
             for c3_axis in c3_axes.iter() {
-                self.add_proper(
-                    order_3.clone(),
-                    c3_axis.clone(),
-                    true,
-                    presym.molecule.threshold,
-                );
+                self.add_proper(order_3.clone(), *c3_axis, true, presym.molecule.threshold);
             }
         }
 
@@ -373,7 +366,7 @@ impl Symmetry {
                     let atom_j = atom4s[1];
                     let atom_k = atom4s[2];
                     let atom_l = atom4s[3];
-                    if !geometry::check_regular_polygon(&[&atom_i, &atom_j, &atom_k, &atom_l]) {
+                    if !geometry::check_regular_polygon(&[atom_i, atom_j, atom_k, atom_l]) {
                         continue;
                     }
                     let vec_ij = atom_j.coordinates - atom_i.coordinates;
@@ -397,12 +390,7 @@ impl Symmetry {
             assert!(found_consistent_c4);
             self.add_proper(
                 order_4.clone(),
-                self.proper_elements[&order_4]
-                    .iter()
-                    .next()
-                    .unwrap()
-                    .axis
-                    .clone(),
+                self.proper_elements[&order_4].iter().next().unwrap().axis,
                 true,
                 presym.molecule.threshold,
             );
@@ -414,7 +402,7 @@ impl Symmetry {
             let mut found_consistent_c5 = false;
             let sea_groups = &presym.sea_groups;
             let order_5 = ElementOrder::Int(5);
-            for sea_group in sea_groups.into_iter() {
+            for sea_group in sea_groups.iter() {
                 if sea_group.len() < 5 {
                     continue;
                 }
@@ -427,9 +415,7 @@ impl Symmetry {
                     let atom_k = atom5s[2];
                     let atom_l = atom5s[3];
                     let atom_m = atom5s[4];
-                    if !geometry::check_regular_polygon(&[
-                        &atom_i, &atom_j, &atom_k, &atom_l, &atom_m,
-                    ]) {
+                    if !geometry::check_regular_polygon(&[atom_i, atom_j, atom_k, atom_l, atom_m]) {
                         continue;
                     }
                     let vec_ij = atom_j.coordinates - atom_i.coordinates;
@@ -468,7 +454,7 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym.check_improper(&order_4, &c2_ele.axis, &SIG) {
-                            Some(c2_ele.axis.clone())
+                            Some(c2_ele.axis)
                         } else {
                             None
                         }
@@ -496,7 +482,7 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG) {
-                            Some(c2_ele.axis.clone())
+                            Some(c2_ele.axis)
                         } else {
                             None
                         }
@@ -523,7 +509,7 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c3_ele| {
                         if presym.check_improper(&order_6, &c3_ele.axis, &SIG) {
-                            Some(c3_ele.axis.clone())
+                            Some(c3_ele.axis)
                         } else {
                             None
                         }
@@ -552,7 +538,7 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym.check_improper(&order_4, &c2_ele.axis, &SIG) {
-                            Some(c2_ele.axis.clone())
+                            Some(c2_ele.axis)
                         } else {
                             None
                         }
@@ -590,7 +576,7 @@ impl Symmetry {
                         if !presym.check_improper(&order_4, &c2_ele.axis, &SIG)
                             && presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG)
                         {
-                            Some(c2_ele.axis.clone())
+                            Some(c2_ele.axis)
                         } else {
                             None
                         }
@@ -617,7 +603,7 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c3_ele| {
                         if presym.check_improper(&order_6, &c3_ele.axis, &SIG) {
-                            Some(c3_ele.axis.clone())
+                            Some(c3_ele.axis)
                         } else {
                             None
                         }
@@ -647,7 +633,7 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c5_ele| {
                         if presym.check_improper(&order_10, &c5_ele.axis, &SIG) {
-                            Some(c5_ele.axis.clone())
+                            Some(c5_ele.axis)
                         } else {
                             None
                         }
@@ -674,7 +660,7 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c3_ele| {
                         if presym.check_improper(&order_6, &c3_ele.axis, &SIG) {
-                            Some(c3_ele.axis.clone())
+                            Some(c3_ele.axis)
                         } else {
                             None
                         }
@@ -700,7 +686,7 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG) {
-                            Some(c2_ele.axis.clone())
+                            Some(c2_ele.axis)
                         } else {
                             None
                         }

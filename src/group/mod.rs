@@ -3,10 +3,10 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Mul;
 
-use log;
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use log;
 use ndarray::{s, Array2, Array3, Axis, Zip};
 use ordered_float::OrderedFloat;
 use rayon::iter::ParallelBridge;
@@ -165,14 +165,10 @@ where
             *k = *self
                 .elements
                 .get(&op_k)
-                .expect(
-                    format!(
-                        "Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group.",
+                .unwrap_or_else(|| panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group.",
                         op_i_ref,
                         op_j_ref,
-                        &op_k
-                    ).as_str()
-                );
+                        &op_k));
         });
         self.cayley_table = Some(ctb);
         log::debug!("Constructing Cayley table in parallel... Done.");
@@ -199,7 +195,7 @@ where
             let mut remaining_elements: HashSet<usize> = (1usize..self.order).collect();
             let ctb = self.cayley_table.as_ref().unwrap();
 
-            while remaining_elements.len() > 0 {
+            while !remaining_elements.is_empty() {
                 // For a fixed g, find all h such that sg = hs for all s in the group.
                 let g = *remaining_elements.iter().next().unwrap();
                 let mut cur_cc = HashSet::from([g]);
@@ -233,7 +229,7 @@ where
             .collect();
         let mut remaining_classes: HashSet<_> = (1..self.class_number.unwrap()).collect();
         let ctb = self.cayley_table.as_ref().unwrap();
-        while remaining_classes.len() > 0 {
+        while !remaining_classes.is_empty() {
             let class_index = *remaining_classes.iter().next().unwrap();
             remaining_classes.remove(&class_index);
             let g = *self.conjugacy_classes.as_ref().unwrap()[class_index]
@@ -271,9 +267,11 @@ where
     ///
     /// * r - The index of the conjugacy class for which the class matrix is to be found.
     fn calc_class_matrix(&mut self) {
-        let mut nmat = Array3::<usize>::zeros(
-            (self.class_number.unwrap(), self.class_number.unwrap(), self.class_number.unwrap())
-        );
+        let mut nmat = Array3::<usize>::zeros((
+            self.class_number.unwrap(),
+            self.class_number.unwrap(),
+            self.class_number.unwrap(),
+        ));
         for (r, class_r) in self.conjugacy_classes.as_ref().unwrap().iter().enumerate() {
             let idx_r = class_r.iter().cloned().collect::<Vec<_>>();
             for (s, class_s) in self.conjugacy_classes.as_ref().unwrap().iter().enumerate() {
@@ -357,7 +355,7 @@ fn group_from_molecular_symmetry(
             .iter()
             .fold(vec![id_operation], |mut acc, proper_order| {
                 sym.proper_elements
-                    .get(&proper_order)
+                    .get(proper_order)
                     .unwrap()
                     .iter()
                     .for_each(|proper_element| {
@@ -378,42 +376,36 @@ fn group_from_molecular_symmetry(
     let proper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
         sym.proper_generators
             .par_iter()
-            .fold(
-                || vec![],
-                |mut acc, (order, proper_generators)| {
-                    proper_generators.iter().for_each(|proper_generator| {
-                        let finite_order = match order {
-                            ElementOrder::Int(io) => *io,
-                            ElementOrder::Inf => fin_ord,
-                        };
-                        let finite_proper_element = SymmetryElement::builder()
-                            .threshold(proper_generator.threshold)
-                            .proper_order(ElementOrder::Int(finite_order))
-                            .proper_power(1)
-                            .axis(proper_generator.axis)
-                            .kind(proper_generator.kind.clone())
-                            .additional_superscript(proper_generator.additional_superscript.clone())
-                            .additional_subscript(proper_generator.additional_subscript.clone())
+            .fold(std::vec::Vec::new, |mut acc, (order, proper_generators)| {
+                proper_generators.iter().for_each(|proper_generator| {
+                    let finite_order = match order {
+                        ElementOrder::Int(io) => *io,
+                        ElementOrder::Inf => fin_ord,
+                    };
+                    let finite_proper_element = SymmetryElement::builder()
+                        .threshold(proper_generator.threshold)
+                        .proper_order(ElementOrder::Int(finite_order))
+                        .proper_power(1)
+                        .axis(proper_generator.axis)
+                        .kind(proper_generator.kind.clone())
+                        .additional_superscript(proper_generator.additional_superscript.clone())
+                        .additional_subscript(proper_generator.additional_subscript.clone())
+                        .build()
+                        .unwrap();
+                    acc.extend((1..finite_order).map(|power| {
+                        SymmetryOperation::builder()
+                            .generating_element(finite_proper_element.clone())
+                            .power(power as i32)
                             .build()
-                            .unwrap();
-                        acc.extend((1..finite_order).map(|power| {
-                            SymmetryOperation::builder()
-                                .generating_element(finite_proper_element.clone())
-                                .power(power as i32)
-                                .build()
-                                .unwrap()
-                        }));
-                    });
-                    acc
-                },
-            )
-            .reduce(
-                || vec![],
-                |mut acc, vec| {
-                    acc.extend(vec);
-                    acc
-                },
-            )
+                            .unwrap()
+                    }));
+                });
+                acc
+            })
+            .reduce(std::vec::Vec::new, |mut acc, vec| {
+                acc.extend(vec);
+                acc
+            })
     } else {
         vec![]
     };
@@ -425,7 +417,7 @@ fn group_from_molecular_symmetry(
         .iter()
         .fold(vec![], |mut acc, improper_order| {
             sym.improper_elements
-                .get(&improper_order)
+                .get(improper_order)
                 .unwrap()
                 .iter()
                 .for_each(|improper_element| {
@@ -447,7 +439,7 @@ fn group_from_molecular_symmetry(
         sym.improper_generators
             .par_iter()
             .fold(
-                || vec![],
+                std::vec::Vec::new,
                 |mut acc, (order, improper_generators)| {
                     improper_generators.iter().for_each(|improper_generator| {
                         let finite_order = match order {
@@ -477,18 +469,15 @@ fn group_from_molecular_symmetry(
                     acc
                 },
             )
-            .reduce(
-                || vec![],
-                |mut acc, vec| {
-                    acc.extend(vec);
-                    acc
-                },
-            )
+            .reduce(std::vec::Vec::new, |mut acc, vec| {
+                acc.extend(vec);
+                acc
+            })
     } else {
         vec![]
     };
 
-    let operations: HashSet<_> = if let None = handles_infinite_group {
+    let operations: HashSet<_> = if handles_infinite_group.is_none() {
         proper_operations
             .into_iter()
             .chain(proper_operations_from_generators)
@@ -563,7 +552,7 @@ fn group_from_molecular_symmetry(
                     }
                 })
                 .collect();
-            if extra_operations.len() == 0 {
+            if extra_operations.is_empty() {
                 nstable += 1;
             } else {
                 nstable = 0;
@@ -593,20 +582,20 @@ fn group_from_molecular_symmetry(
     });
 
     let mut group = Group::<SymmetryOperation>::new(group_name.as_str(), sorted_operations);
-    if let Some(_) = handles_infinite_group {
-        let finite_group = if group.name.contains("∞") {
+    if handles_infinite_group.is_some() {
+        let finite_group = if group.name.contains('∞') {
             // # C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d
             if group.name.as_bytes()[0] == b'D' {
                 if matches!(group.name.as_bytes().iter().last().unwrap(), b'h' | b'd') {
                     assert_eq!(group.order % 4, 0);
                     group
                         .name
-                        .replace("∞", format!("{}", group.order / 4).as_str())
+                        .replace('∞', format!("{}", group.order / 4).as_str())
                 } else {
                     assert_eq!(group.order % 2, 0);
                     group
                         .name
-                        .replace("∞", format!("{}", group.order / 2).as_str())
+                        .replace('∞', format!("{}", group.order / 2).as_str())
                 }
             } else {
                 assert!(matches!(group.name.as_bytes()[0], b'C' | b'S'));
@@ -615,13 +604,13 @@ fn group_from_molecular_symmetry(
                     if group.order > 2 {
                         group
                             .name
-                            .replace("∞", format!("{}", group.order / 2).as_str())
+                            .replace('∞', format!("{}", group.order / 2).as_str())
                     } else {
                         assert_eq!(group.name.as_bytes()[0], b'C');
                         "Cs".to_string()
                     }
                 } else {
-                    group.name.replace("∞", format!("{}", group.order).as_str())
+                    group.name.replace('∞', format!("{}", group.order).as_str())
                 }
             }
         } else {

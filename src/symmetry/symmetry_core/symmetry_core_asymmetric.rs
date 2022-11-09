@@ -53,9 +53,10 @@ impl Symmetry {
             assert_eq!(max_ord, ORDER_2);
 
             // Principal axis, which is C2, is also a generator.
+            #[allow(clippy::needless_collect)]
             let c2_axes: Vec<_> = self.proper_elements[&ORDER_2]
                 .iter()
-                .map(|ele| ele.axis.clone())
+                .map(|ele| ele.axis)
                 .collect();
             let mut c2_axes_iter = c2_axes.into_iter();
             self.add_proper(
@@ -67,7 +68,7 @@ impl Symmetry {
 
             // One other C2 axis is also a generator.
             self.add_proper(
-                max_ord.clone(),
+                max_ord,
                 c2_axes_iter.next().unwrap(),
                 true,
                 presym.dist_threshold,
@@ -95,7 +96,7 @@ impl Symmetry {
                 // perpendicular to a C2 axis.
                 let c2_axes: Vec<_> = self.proper_elements[&ORDER_2]
                     .iter()
-                    .map(|ele| ele.axis.clone())
+                    .map(|ele| ele.axis)
                     .collect();
                 for c2_axis in c2_axes.into_iter() {
                     assert!(presym.check_improper(&ORDER_1, &c2_axis, &SIG));
@@ -115,8 +116,7 @@ impl Symmetry {
                         .iter()
                         .next()
                         .unwrap()
-                        .axis
-                        .clone(),
+                        .axis,
                     true,
                     SIG.clone(),
                     None,
@@ -188,7 +188,7 @@ impl Symmetry {
                     assert!(presym.check_improper(&ORDER_1, &_principal_axes[2], &SIG));
                     count_sigmav += self.add_improper(
                         ORDER_1.clone(),
-                        _principal_axes[2].clone(),
+                        _principal_axes[2],
                         false,
                         SIG.clone(),
                         Some("v".to_owned()),
@@ -239,8 +239,7 @@ impl Symmetry {
                             .iter()
                             .next()
                             .unwrap()
-                            .axis
-                            .clone(),
+                            .axis,
                         true,
                         SIG.clone(),
                         Some("v".to_owned()),

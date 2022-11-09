@@ -98,9 +98,9 @@ impl SymmetryOperationBuilder {
             Some(frac) => {
                 let pow = self.power.unwrap();
                 let unnormalised_frac = if pow >= 0 {
-                    (frac * F::new(pow.abs() as u64, 1u64)).fract()
+                    (frac * F::new(pow.unsigned_abs() as u64, 1u64)).fract()
                 } else {
-                    F::from(1u64) - (frac * F::new(pow.abs() as u64, 1u64)).fract()
+                    F::from(1u64) - (frac * F::new(pow.unsigned_abs() as u64, 1u64)).fract()
                 };
                 if unnormalised_frac == F::from(0u64) {
                     Some(F::from(1u64))

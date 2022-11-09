@@ -24,7 +24,7 @@ mod geometry_tests;
 ///
 /// The normalised rotation angle.
 pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> f64 {
-    let mut norm_rot_ang = rot_ang.clone();
+    let mut norm_rot_ang = rot_ang;
     while norm_rot_ang > std::f64::consts::PI + thresh {
         norm_rot_ang -= 2.0 * std::f64::consts::PI;
     }
@@ -86,7 +86,7 @@ pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> F32
     ) {
         Ok((rational_order * (power as f64)).round() as u32)
     } else {
-        Err(format!("No proper fractions can be found."))
+        Err("No proper fractions can be found.".to_string())
     };
     F32::new(power, order.unwrap())
 }
@@ -104,8 +104,7 @@ pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> F32
 fn outer<T: Scalar + ClosedMul + Copy>(vec1: &Vector3<T>, vec2: &Vector3<T>) -> Matrix3<T> {
     let outer_product_iter: Vec<T> = vec2
         .iter()
-        .map(|&item_x| vec1.iter().map(move |&item_y| item_x * item_y))
-        .flatten()
+        .flat_map(|&item_x| vec1.iter().map(move |&item_y| item_x * item_y))
         .collect();
     Matrix3::from_iterator(outer_product_iter)
 }
@@ -183,13 +182,13 @@ pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
 
     let tot_m: f64 = atoms.iter().fold(0.0, |acc, atom| acc + atom.atomic_mass);
     let com: Point3<f64> = atoms.iter().fold(Point3::origin(), |acc, atom| {
-        acc + (&atom.coordinates * atom.atomic_mass - Point3::origin())
+        acc + (atom.coordinates * atom.atomic_mass - Point3::origin())
     }) / tot_m;
 
     let radial_dists: HashSet<(u64, i16, i8)> = atoms
         .iter()
         .map(|atom| {
-            (&atom.coordinates - &com)
+            (atom.coordinates - com)
                 .norm()
                 .round_factor(atom.threshold)
                 .integer_decode()
@@ -205,7 +204,7 @@ pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
             .iter()
             .fold(0.0_f64, |acc, atom| acc.max(atom.threshold));
         let mut rad_vectors: Vec<Vector3<f64>> =
-            atoms.iter().map(|atom| atom.coordinates - &com).collect();
+            atoms.iter().map(|atom| atom.coordinates - com).collect();
         let (vec_i, vec_j) = itertools::iproduct!(rad_vectors.iter(), rad_vectors.iter())
             .max_by(|&(v_i1, v_j1), &(v_i2, v_j2)| {
                 v_i1.cross(v_j1)
@@ -217,7 +216,7 @@ pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
         let normal = UnitVector3::new_normalize(vec_i.cross(vec_j));
         if normal.norm() < thresh { return false }
 
-        let vec0 = atoms[0].coordinates - &com;
+        let vec0 = atoms[0].coordinates - com;
         rad_vectors.sort_by(|a, b| {
             get_anticlockwise_angle(&vec0, a, &normal, thresh)
                 .partial_cmp(&get_anticlockwise_angle(&vec0, b, &normal, thresh))
@@ -228,7 +227,7 @@ pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
         let mut angles: HashSet<(u64, i16, i8)> = vector_pairs
             .iter()
             .map(|(v1, v2)| {
-                get_anticlockwise_angle(*v1, *v2, &normal, thresh)
+                get_anticlockwise_angle(v1, v2, &normal, thresh)
                     .round_factor(thresh)
                     .integer_decode()
             })
@@ -263,8 +262,8 @@ fn get_anticlockwise_angle(
     assert!(thresh >= std::f64::EPSILON);
     assert!(vec1.norm() >= thresh);
     assert!(vec2.norm() >= thresh);
-    let dot = vec1.dot(&vec2);
-    let det = normal.into_inner().dot(&vec1.cross(&vec2));
+    let dot = vec1.dot(vec2);
+    let det = normal.into_inner().dot(&vec1.cross(vec2));
     let mut angle = det.atan2(dot);
     while angle < -thresh {
         angle += 2.0 * std::f64::consts::PI;
@@ -279,7 +278,7 @@ pub trait Transform {
     /// # Arguments
     ///
     /// * mat - A three-dimensional transformation matrix.
-    fn transform_mut(self: &mut Self, mat: &Matrix3<f64>);
+    fn transform_mut(&mut self, mat: &Matrix3<f64>);
 
     /// Rotates in-place the coordinates through `angle` about `axis`.
     ///
@@ -287,7 +286,7 @@ pub trait Transform {
     ///
     /// * angle - The angle of rotation.
     /// * axis - The axis of rotation.
-    fn rotate_mut(self: &mut Self, angle: f64, axis: &Vector3<f64>);
+    fn rotate_mut(&mut self, angle: f64, axis: &Vector3<f64>);
 
     /// Improper-rotates in-place the coordinates through `angle` about `axis`.
     ///
@@ -297,7 +296,7 @@ pub trait Transform {
     /// * axis - The axis of rotation.
     /// * kind - The convention in which the improper rotation is defined.
     fn improper_rotate_mut(
-        self: &mut Self,
+        &mut self,
         angle: f64,
         axis: &Vector3<f64>,
         kind: &SymmetryElementKind,
@@ -309,10 +308,10 @@ pub trait Transform {
     /// # Arguments
     ///
     /// * tvec - The translation vector.
-    fn translate_mut(self: &mut Self, tvec: &Vector3<f64>);
+    fn translate_mut(&mut self, tvec: &Vector3<f64>);
 
     /// Recentres in-place to put the centre of mass at the origin.
-    fn recentre_mut(self: &mut Self);
+    fn recentre_mut(&mut self);
 
     /// Clones and transforms the coordinates about the origin by a given
     /// transformation.
@@ -324,7 +323,7 @@ pub trait Transform {
     /// # Returns
     ///
     /// A transformed copy.
-    fn transform(self: &Self, mat: &Matrix3<f64>) -> Self;
+    fn transform(&self, mat: &Matrix3<f64>) -> Self;
 
     /// Clones and rotates the coordinates through `angle` about `axis`.
     ///
@@ -336,7 +335,7 @@ pub trait Transform {
     /// # Returns
     ///
     /// A rotated copy.
-    fn rotate(self: &Self, angle: f64, axis: &Vector3<f64>) -> Self;
+    fn rotate(&self, angle: f64, axis: &Vector3<f64>) -> Self;
 
     /// Clones and improper-rotates the coordinates through `angle` about `axis`.
     ///
@@ -350,7 +349,7 @@ pub trait Transform {
     ///
     /// An improper-rotated copy.
     fn improper_rotate(
-        self: &Self,
+        &self,
         angle: f64,
         axis: &Vector3<f64>,
         kind: &SymmetryElementKind,
@@ -366,12 +365,12 @@ pub trait Transform {
     /// # Returns
     ///
     /// A translated copy.
-    fn translate(self: &Self, tvec: &Vector3<f64>) -> Self;
+    fn translate(&self, tvec: &Vector3<f64>) -> Self;
 
     /// Clones and recentres to put the centre of mass at the origin.
     ///
     /// # Returns
     ///
     /// A recentred copy.
-    fn recentre(self: &Self) -> Self;
+    fn recentre(&self) -> Self;
 }

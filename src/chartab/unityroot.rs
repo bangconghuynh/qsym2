@@ -105,6 +105,7 @@ impl<'a, 'b> Mul<&'a UnityRoot> for &'b UnityRoot {
     type Output = UnityRoot;
 
     fn mul(self, rhs: &'a UnityRoot) -> Self::Output {
+        #[allow(clippy::suspicious_arithmetic_impl)]
         let fract_sum = self.fraction + rhs.fraction;
         Self::Output::builder().fraction(fract_sum).build().unwrap()
     }

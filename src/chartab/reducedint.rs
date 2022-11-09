@@ -395,7 +395,7 @@ where
     type Output = LinAlgReducedInt<T, R>;
 
     fn neg(self) -> Self::Output {
-        -&self.clone()
+        -&self
     }
 }
 

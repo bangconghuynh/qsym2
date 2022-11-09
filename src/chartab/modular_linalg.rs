@@ -193,7 +193,7 @@ where
     let pivot_cols_set: HashSet<usize> = HashSet::from_iter(pivot_cols.iter().cloned());
     let non_pivot_cols = HashSet::from_iter(0..ncols);
     let non_pivot_cols = non_pivot_cols.difference(&pivot_cols_set);
-    let kernel_basis_vecs = non_pivot_cols
+    non_pivot_cols
         .map(|&non_pivot_col| {
             let mut kernel_basis_vec = Array1::from_elem((ncols,), zero);
             kernel_basis_vec[non_pivot_col] = one;
@@ -211,8 +211,7 @@ where
                 .for_each(|x| *x = *x / first_nonzero);
             kernel_basis_vec
         })
-        .collect();
-    kernel_basis_vecs
+        .collect()
 }
 
 /// Determines the eigenvalues and eigenvector of a square matrix over a finite

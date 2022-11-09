@@ -34,7 +34,7 @@ impl Symmetry {
         ));
         assert!(self.add_proper(
             ORDER_I.clone(),
-            principal_axes[0].clone(),
+            principal_axes[0],
             true,
             presym.dist_threshold
         ));
@@ -72,7 +72,7 @@ impl Symmetry {
                 log::debug!("Located a C2 axis perpendicular to C∞.");
                 self.add_proper(
                     ORDER_2.clone(),
-                    principal_axes[1].clone(),
+                    principal_axes[1],
                     true,
                     presym.dist_threshold
                 );

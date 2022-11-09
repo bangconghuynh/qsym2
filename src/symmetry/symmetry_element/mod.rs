@@ -22,7 +22,7 @@ pub use symmetry_operation::*;
 mod symmetry_element_tests;
 
 /// An enum to classify the types of symmetry element.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SymmetryElementKind {
     /// Proper symmetry element which consists of just a proper rotation axis.
     Proper,
@@ -328,12 +328,10 @@ impl SymmetryElement {
                     ("σ".to_owned(), false)
                 } else if self.is_inversion_centre() {
                     ("i".to_owned(), false)
+                } else if self.proper_order == ElementOrder::Inf || self.proper_power == Some(1) {
+                    ("S".to_owned(), false)
                 } else {
-                    if self.proper_order == ElementOrder::Inf || self.proper_power == Some(1) {
-                        ("S".to_owned(), false)
-                    } else {
-                        ("σC".to_owned(), true)
-                    }
+                    ("σC".to_owned(), true)
                 }
             }
             SymmetryElementKind::ImproperInversionCentre => {
@@ -341,12 +339,10 @@ impl SymmetryElement {
                     ("σ".to_owned(), false)
                 } else if self.is_inversion_centre() {
                     ("i".to_owned(), false)
+                } else if self.proper_order == ElementOrder::Inf || self.proper_power == Some(1) {
+                    ("Ṡ".to_owned(), false)
                 } else {
-                    if self.proper_order == ElementOrder::Inf || self.proper_power == Some(1) {
-                        ("Ṡ".to_owned(), false)
-                    } else {
-                        ("iC".to_owned(), true)
-                    }
+                    ("iC".to_owned(), true)
                 }
             }
         };
@@ -632,24 +628,18 @@ impl PartialEq for SymmetryElement {
                             false
                         }
                     } else {
-                        if let Some(_) = converted_other.proper_angle {
-                            false
-                        } else {
-                            true
-                        }
+                        converted_other.proper_angle.is_none()
                     }
                 } else {
                     false
                 }
+            } else if let ElementOrder::Inf = converted_other.proper_order {
+                false
             } else {
-                if let ElementOrder::Inf = converted_other.proper_order {
-                    false
-                } else {
-                    (self.proper_fraction == converted_other.proper_fraction)
-                        || (self.proper_fraction.unwrap()
-                            + converted_other.proper_fraction.unwrap()
-                            == F::from(1u64))
-                }
+                (self.proper_fraction == converted_other.proper_fraction)
+                    || (self.proper_fraction.unwrap()
+                        + converted_other.proper_fraction.unwrap()
+                        == F::from(1u64))
             };
             if result {
                 assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
@@ -676,23 +666,17 @@ impl PartialEq for SymmetryElement {
                         false
                     }
                 } else {
-                    if let Some(_) = other.proper_angle {
-                        false
-                    } else {
-                        true
-                    }
+                    other.proper_angle.is_none()
                 }
             } else {
                 false
             }
+        } else if let ElementOrder::Inf = other.proper_order {
+            false
         } else {
-            if let ElementOrder::Inf = other.proper_order {
-                false
-            } else {
-                (self.proper_fraction == other.proper_fraction)
-                    || (self.proper_fraction.unwrap() + other.proper_fraction.unwrap()
-                        == F::from(1u64))
-            }
+            (self.proper_fraction == other.proper_fraction)
+                || (self.proper_fraction.unwrap() + other.proper_fraction.unwrap()
+                    == F::from(1u64))
         };
         if result {
             assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
