@@ -8,9 +8,6 @@ use itertools::Itertools;
 use log;
 use ndarray::{s, Array1, Array2, Axis, LinalgScalar, Zip};
 use num_modular::ModularInteger;
-use rayon::prelude::*;
-
-// use crate::aux::ndarray_shuffle;
 
 #[cfg(test)]
 #[path = "modular_linalg_tests.rs"]
