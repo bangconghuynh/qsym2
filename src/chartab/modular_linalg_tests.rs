@@ -4,7 +4,7 @@ use ndarray::{array, Array1};
 use num_modular::{ModularInteger, MontgomeryInt};
 
 use crate::chartab::modular_linalg::{
-    modular_determinant, modular_eig, modular_kernel, modular_rref,
+    modular_determinant, modular_eig, modular_kernel, modular_rref, split_space,
 };
 use crate::chartab::reducedint::IntoLinAlgReducedInt;
 
@@ -279,10 +279,7 @@ fn test_modular_linalg_eig() {
     let m5 = MontgomeryInt::<u64>::new(0, &5).linalg();
     let i_5s: Vec<_> = (0..5).map(|x| m5.convert(x)).collect();
 
-    let arr_2 = array![
-        [i_5s[2], i_5s[2]],
-        [i_5s[1], i_5s[1]]
-    ];
+    let arr_2 = array![[i_5s[2], i_5s[2]], [i_5s[1], i_5s[1]]];
     let eigs = modular_eig(&arr_2);
     eigs.iter().for_each(|(val, vecs)| {
         vecs.iter().for_each(|vec| {
@@ -290,14 +287,96 @@ fn test_modular_linalg_eig() {
         })
     });
 
-    let arr_3 = array![
-        [i_19s[7], i_19s[2]],
-        [i_19s[15], i_19s[1]]
-    ];
+    let arr_3 = array![[i_19s[7], i_19s[2]], [i_19s[15], i_19s[1]]];
     let eigs = modular_eig(&arr_3);
     eigs.iter().for_each(|(val, vecs)| {
         vecs.iter().for_each(|vec| {
             assert_eq!(arr_3.dot(vec), vec.map(|x| { x * val }));
         })
     });
+
+    // Ref: L. C. Grove, Groups and Characters, John Wiley & Sons, Inc., 1997,
+    // p. 157
+    let m41 = MontgomeryInt::<u64>::new(0, &41).linalg();
+    let i_41s: Vec<_> = (0..41).map(|x| m41.convert(x)).collect();
+    let arr_4 = array![
+        [i_41s[0], i_41s[1], i_41s[0], i_41s[0], i_41s[0]],
+        [i_41s[4], i_41s[3], i_41s[0], i_41s[0], i_41s[0]],
+        [i_41s[0], i_41s[0], i_41s[4], i_41s[0], i_41s[0]],
+        [i_41s[0], i_41s[0], i_41s[0], i_41s[4], i_41s[0]],
+        [i_41s[0], i_41s[0], i_41s[0], i_41s[0], i_41s[4]],
+    ];
+    let eigs = modular_eig(&arr_4);
+    eigs.iter().for_each(|(val, vecs)| {
+        vecs.iter().for_each(|vec| {
+            assert_eq!(arr_4.dot(vec), vec.map(|x| { x * val }));
+        })
+    });
+    assert_eq!(eigs.len(), 2);
+    assert_eq!(eigs.get(&i_41s[4]).unwrap().len(), 4);
+    assert_eq!(eigs.get(&i_41s[40]).unwrap().len(), 1);
+
+    // Ref: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.598.7381&rep=rep1&type=pdf,
+    // p. 11
+    let m5 = MontgomeryInt::<u64>::new(0, &5).linalg();
+    let i_5s: Vec<_> = (0..5).map(|x| m5.convert(x)).collect();
+    let arr_5 = array![
+        [i_5s[0], i_5s[1], i_5s[0], i_5s[0]],
+        [i_5s[1], i_5s[0], i_5s[0], i_5s[0]],
+        [i_5s[0], i_5s[0], i_5s[0], i_5s[1]],
+        [i_5s[0], i_5s[0], i_5s[1], i_5s[0]],
+    ];
+    let eigs = modular_eig(&arr_5);
+    eigs.iter().for_each(|(val, vecs)| {
+        vecs.iter().for_each(|vec| {
+            assert_eq!(arr_5.dot(vec), vec.map(|x| { x * val }));
+        })
+    });
+    assert_eq!(eigs.len(), 2);
+    assert_eq!(eigs.get(&i_5s[1]).unwrap().len(), 2);
+    assert_eq!(eigs.get(&i_5s[4]).unwrap().len(), 2);
+}
+
+#[test]
+fn test_modular_linalg_split_space() {
+    // Ref: L. C. Grove, Groups and Characters, John Wiley & Sons, Inc., 1997,
+    // p. 157
+    let class_sizes: Vec<usize> = vec![1, 4, 5, 5, 5];
+    let perm_for_conj = vec![0, 1, 2, 3, 4];
+    let m41 = MontgomeryInt::<u64>::new(0, &41).linalg();
+    let i_41s: Vec<_> = (0..41).map(|x| m41.convert(x)).collect();
+    let arr_1 = array![
+        [i_41s[0], i_41s[1], i_41s[0], i_41s[0], i_41s[0]],
+        [i_41s[4], i_41s[3], i_41s[0], i_41s[0], i_41s[0]],
+        [i_41s[0], i_41s[0], i_41s[4], i_41s[0], i_41s[0]],
+        [i_41s[0], i_41s[0], i_41s[0], i_41s[4], i_41s[0]],
+        [i_41s[0], i_41s[0], i_41s[0], i_41s[0], i_41s[4]],
+    ];
+    let arr_2 = array![
+        [i_41s[0], i_41s[0], i_41s[1], i_41s[0], i_41s[0]],
+        [i_41s[0], i_41s[0], i_41s[4], i_41s[0], i_41s[0]],
+        [i_41s[0], i_41s[0], i_41s[0], i_41s[5], i_41s[0]],
+        [i_41s[0], i_41s[0], i_41s[0], i_41s[0], i_41s[5]],
+        [i_41s[5], i_41s[5], i_41s[0], i_41s[0], i_41s[0]],
+    ];
+
+    let eigs = modular_eig(&arr_1);
+    let ev4_eigvecs = eigs.get(&i_41s[4]).unwrap();
+    let ev4_eigvecs_subspaces =
+        split_space(&arr_2, ev4_eigvecs, &class_sizes, Some(&perm_for_conj));
+    assert_eq!(ev4_eigvecs_subspaces.len(), 4);
+
+    let mat2_on_mat1_ev4_subspaces_ref = vec![
+        array![i_41s[1], i_41s[4], i_41s[5], i_41s[5], i_41s[5]],
+        array![i_41s[1], i_41s[4], i_41s[36], i_41s[5], i_41s[36]],
+        array![i_41s[1], i_41s[4], i_41s[4], i_41s[36], i_41s[37]],
+        array![i_41s[1], i_41s[4], i_41s[37], i_41s[36], i_41s[4]],
+    ];
+
+    assert!(ev4_eigvecs_subspaces.iter().all(|x| {
+        x.len() == 1
+            && mat2_on_mat1_ev4_subspaces_ref
+                .iter()
+                .any(|ref_x| x[0] == ref_x)
+    }));
 }

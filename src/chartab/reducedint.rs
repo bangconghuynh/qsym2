@@ -2,7 +2,6 @@ use std::hash::{Hash, Hasher};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::fmt;
 
-use ndarray::ScalarOperand;
 use num_modular::{ModularInteger, ReducedInt, Reducer, Montgomery};
 use num_traits::{Inv, One, Pow, Zero};
 
