@@ -4,9 +4,9 @@ use std::hash::Hash;
 use std::ops::Div;
 use std::panic;
 
-use itertools::Itertools;
 use log;
-use ndarray::{s, Array1, Array2, Axis, LinalgScalar, Zip};
+use itertools::Itertools;
+use ndarray::{s, Array1, Array2, ArrayView2, Axis, LinalgScalar, Zip};
 use num_modular::ModularInteger;
 
 #[cfg(test)]
@@ -226,7 +226,7 @@ where
 /// A hashmap containing the eigenvalues and the associated eigenvectors.
 /// One eigenvalue can be associated with multiple eigenvectors in cases of
 /// degeneracy.
-fn modular_eig<T>(mat: &Array2<T>) -> HashMap<T, Vec<Array1<T>>>
+pub fn modular_eig<T>(mat: &ArrayView2<T>) -> HashMap<T, Vec<Array1<T>>>
 where
     T: Clone
         + LinalgScalar
