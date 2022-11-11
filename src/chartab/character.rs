@@ -19,7 +19,7 @@ mod character_tests;
 /// phases in the interval `$[0, 2\pi)$` with `$0$` being the smallest.
 #[derive(Builder)]
 struct Character {
-    /// The unity roots and tinto_heir multiplicities constituting this character.
+    /// The unity roots and their multiplicities constituting this character.
     #[builder(setter(custom))]
     terms: IndexMap<UnityRoot, usize>,
 
