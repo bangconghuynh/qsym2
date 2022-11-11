@@ -15,6 +15,8 @@ use rayon::prelude::*;
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, SIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
+use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
+
 
 #[cfg(test)]
 mod group_tests;

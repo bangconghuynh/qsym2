@@ -1,10 +1,13 @@
-use std::collections::HashSet;
 use nalgebra::{Point3, Vector3};
 use num_traits::Pow;
+use std::collections::HashSet;
 
 use crate::aux::geometry;
+use crate::symmetry::symmetry_element::symmetry_operation::{
+    SpecialSymmetryTransformation, SymmetryOperation,
+};
 use crate::symmetry::symmetry_element::{
-    ElementOrder, SymmetryElement, SymmetryElementKind, SymmetryOperation, F, INV, SIG
+    ElementOrder, SymmetryElement, SymmetryElementKind, F, INV, SIG,
 };
 
 #[test]
@@ -4650,7 +4653,8 @@ fn test_symmetry_operation_exponentiation() {
         .unwrap();
 
     assert_eq!(
-        (&(&c2 * &c3) * &c2pm1).pow(2), &(&c2 * &c3.pow(2)) * &c2.pow(-1)
+        (&(&c2 * &c3) * &c2pm1).pow(2),
+        &(&c2 * &c3.pow(2)) * &c2.pow(-1)
     );
 
     // ============================

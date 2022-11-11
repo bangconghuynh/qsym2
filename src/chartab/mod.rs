@@ -1,5 +1,3 @@
-use indexmap::IndexMap;
-
 mod character;
 mod modular_linalg;
 mod reducedint;

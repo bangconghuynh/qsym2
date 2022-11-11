@@ -1,7 +1,7 @@
 use std::panic;
 
-use env_logger;
 use approx;
+// use env_logger;
 use itertools::Itertools;
 use nalgebra::Vector3;
 use num_traits::Pow;
@@ -10,6 +10,7 @@ use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
 use crate::group::{group_from_molecular_symmetry, Group};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
+use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, SymmetryOperation};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
@@ -127,14 +128,25 @@ fn test_abstract_group_element_sort() {
     sym.analyse(&presym);
     let group = group_from_molecular_symmetry(sym, None);
     approx::assert_relative_eq!(
-        group.elements.get_index(2).unwrap().0.generating_element.axis,
+        group
+            .elements
+            .get_index(2)
+            .unwrap()
+            .0
+            .generating_element
+            .axis,
         Vector3::new(0.0, 1.0, 0.0)
     );
     approx::assert_relative_eq!(
-        group.elements.get_index(3).unwrap().0.generating_element.axis,
+        group
+            .elements
+            .get_index(3)
+            .unwrap()
+            .0
+            .generating_element
+            .axis,
         Vector3::new(1.0, 0.0, 0.0)
     );
-
 
     // B2H6 - D2h
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
@@ -149,28 +161,64 @@ fn test_abstract_group_element_sort() {
     sym.analyse(&presym);
     let group = group_from_molecular_symmetry(sym, None);
     approx::assert_relative_eq!(
-        group.elements.get_index(1).unwrap().0.generating_element.axis,
+        group
+            .elements
+            .get_index(1)
+            .unwrap()
+            .0
+            .generating_element
+            .axis,
         Vector3::new(0.0, 0.0, 1.0)
     );
     approx::assert_relative_eq!(
-        group.elements.get_index(2).unwrap().0.generating_element.axis,
+        group
+            .elements
+            .get_index(2)
+            .unwrap()
+            .0
+            .generating_element
+            .axis,
         Vector3::new(0.0, 1.0, 0.0)
     );
     approx::assert_relative_eq!(
-        group.elements.get_index(3).unwrap().0.generating_element.axis,
+        group
+            .elements
+            .get_index(3)
+            .unwrap()
+            .0
+            .generating_element
+            .axis,
         Vector3::new(1.0, 0.0, 0.0)
     );
     assert!(group.elements.get_index(4).unwrap().0.is_inversion());
     approx::assert_relative_eq!(
-        group.elements.get_index(5).unwrap().0.generating_element.axis,
+        group
+            .elements
+            .get_index(5)
+            .unwrap()
+            .0
+            .generating_element
+            .axis,
         Vector3::new(0.0, 0.0, 1.0)
     );
     approx::assert_relative_eq!(
-        group.elements.get_index(6).unwrap().0.generating_element.axis,
+        group
+            .elements
+            .get_index(6)
+            .unwrap()
+            .0
+            .generating_element
+            .axis,
         Vector3::new(0.0, 1.0, 0.0)
     );
     approx::assert_relative_eq!(
-        group.elements.get_index(7).unwrap().0.generating_element.axis,
+        group
+            .elements
+            .get_index(7)
+            .unwrap()
+            .0
+            .generating_element
+            .axis,
         Vector3::new(1.0, 0.0, 0.0)
     );
 }
@@ -194,7 +242,6 @@ fn test_abstract_group_class_matrices() {
     nmat_srt.swap_axes(0, 1);
     assert_eq!(nmat_rst, nmat_srt);
 }
-
 
 // ============================================
 // Abstract group from molecular symmetry tests
@@ -232,12 +279,14 @@ fn test_abstract_group_validity(
         .iter()
         .enumerate()
     {
-        assert!(conjugacy_classes[class_i]
-            .iter()
-            .cartesian_product(conjugacy_classes[*inv_class_i].iter())
-            .filter(|(&g, &inv_g)| { ctb[[g, inv_g]] == 0 })
-            .collect::<Vec<_>>()
-            .len() == conjugacy_classes[class_i].len()
+        assert!(
+            conjugacy_classes[class_i]
+                .iter()
+                .cartesian_product(conjugacy_classes[*inv_class_i].iter())
+                .filter(|(&g, &inv_g)| { ctb[[g, inv_g]] == 0 })
+                .collect::<Vec<_>>()
+                .len()
+                == conjugacy_classes[class_i].len()
         );
     }
 
