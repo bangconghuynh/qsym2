@@ -1,10 +1,12 @@
 use std::fmt;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use derive_builder::Builder;
 use phf::phf_map;
 use regex::Regex;
+
+use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 
 // ======
 // Traits
@@ -101,6 +103,10 @@ impl GenericSymbol {
     }
 }
 
+// ------------------
+// MathematicalSymbol
+// ------------------
+
 impl MathematicalSymbol for GenericSymbol {
     fn main(&self) -> &str {
         &self.main
@@ -130,6 +136,10 @@ impl MathematicalSymbol for GenericSymbol {
         &self.postfactor
     }
 }
+
+// -------
+// FromStr
+// -------
 
 impl FromStr for GenericSymbol {
     type Err = GenericSymbolParsingError;
@@ -197,6 +207,46 @@ impl FromStr for GenericSymbol {
         } else {
             Err(GenericSymbolParsingError(symstr.to_string()))
         }
+    }
+}
+
+// -------
+// Display
+// -------
+impl fmt::Display for GenericSymbol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let presuper_str = if !self.presuper().is_empty() {
+            format!("^({})", self.presuper())
+        } else {
+            "".to_string()
+        };
+        let presub_str = if !self.presub().is_empty() {
+            format!("_({})", self.presub())
+        } else {
+            "".to_string()
+        };
+        let main_str = format!("|{}|", self.main());
+        let postsuper_str = if !self.postsuper().is_empty() {
+            format!("^({})", self.postsuper())
+        } else {
+            "".to_string()
+        };
+        let postsub_str = if !self.postsub().is_empty() {
+            format!("_({})", self.postsub())
+        } else {
+            "".to_string()
+        };
+        write!(
+            f,
+            "{}{}{}{}{}{}{}",
+            self.prefactor(),
+            presuper_str,
+            presub_str,
+            main_str,
+            postsuper_str,
+            postsub_str,
+            self.postfactor()
+        )
     }
 }
 
@@ -278,7 +328,10 @@ impl FromStr for MullikenIrrepSymbol {
     /// ```
     fn from_str(symstr: &str) -> Result<Self, Self::Err> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
-        Ok(Self::builder().generic_symbol(generic_symbol).build().unwrap())
+        Ok(Self::builder()
+            .generic_symbol(generic_symbol)
+            .build()
+            .unwrap())
     }
 }
 
@@ -302,12 +355,23 @@ static MULLIKEN_IRREP_DEGENERACIES: phf::Map<&'static str, u64> = phf_map! {
 
 impl LinearSpaceSymbol for MullikenIrrepSymbol {
     fn dimensionality(&self) -> u64 {
-        *MULLIKEN_IRREP_DEGENERACIES.get(self.main()).unwrap_or_else(||
-            panic!(
-                "Unknown dimensionality for Mulliken symbol {}.",
-                self.main()
-            )
-        )
+        *MULLIKEN_IRREP_DEGENERACIES
+            .get(self.main())
+            .unwrap_or_else(|| {
+                panic!(
+                    "Unknown dimensionality for Mulliken symbol {}.",
+                    self.main()
+                )
+            })
+    }
+}
+
+// -------
+// Display
+// -------
+impl fmt::Display for MullikenIrrepSymbol {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.generic_symbol)
     }
 }
 
@@ -316,19 +380,36 @@ impl LinearSpaceSymbol for MullikenIrrepSymbol {
 // -----------
 
 /// A struct to handle conjugacy class symbols.
-#[derive(Builder, PartialEq, Eq, Hash)]
-struct ClassSymbol {
+#[derive(Builder)]
+struct ClassSymbol<T: SpecialSymmetryTransformation + Clone> {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
+
+    /// A representative element in the class.
+    representative: T,
 }
 
-impl ClassSymbol {
-    fn builder() -> ClassSymbolBuilder {
+impl<T: SpecialSymmetryTransformation + Clone> PartialEq for ClassSymbol<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.generic_symbol == other.generic_symbol
+    }
+}
+
+impl<T: SpecialSymmetryTransformation + Clone> Eq for ClassSymbol<T> {}
+
+impl<T: SpecialSymmetryTransformation + Clone> Hash for ClassSymbol<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.generic_symbol.hash(state)
+    }
+}
+
+impl<T: SpecialSymmetryTransformation + Clone> ClassSymbol<T> {
+    fn builder() -> ClassSymbolBuilder<T> {
         ClassSymbolBuilder::default()
     }
 }
 
-impl MathematicalSymbol for ClassSymbol {
+impl<T: SpecialSymmetryTransformation + Clone> MathematicalSymbol for ClassSymbol<T> {
     /// The main part of the symbol, which denotes the representative symmetry operation.
     fn main(&self) -> &str {
         self.generic_symbol.main()
@@ -365,18 +446,18 @@ impl MathematicalSymbol for ClassSymbol {
     }
 }
 
-impl CollectionSymbol for ClassSymbol {
+impl<T: SpecialSymmetryTransformation + Clone> CollectionSymbol for ClassSymbol<T> {
     fn size(&self) -> u64 {
-        self.prefactor().parse::<u64>().unwrap_or_else(|_|
+        self.prefactor().parse::<u64>().unwrap_or_else(|_| {
             panic!(
                 "Unable to deduce the size of the class from the prefactor {}.",
                 self.prefactor()
             )
-        )
+        })
     }
 }
 
-impl FromStr for ClassSymbol {
+impl<T: SpecialSymmetryTransformation + Clone> FromStr for ClassSymbol<T> {
     type Err = GenericSymbolParsingError;
 
     /// Parses a string representing a Mulliken irrep symbol.
@@ -389,17 +470,83 @@ impl FromStr for ClassSymbol {
     /// ```
     fn from_str(symstr: &str) -> Result<Self, Self::Err> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
-        Ok(Self::builder().generic_symbol(generic_symbol).build().unwrap())
+        Ok(Self::builder()
+            .generic_symbol(generic_symbol)
+            .build()
+            .unwrap())
     }
 }
 
-//// -------
-//// Display
-//// -------
-//// impl fmt::Display for SymmetrySymbol {
-////     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-////         match self {
-////             Self::Irrep(0) => write!(f, "0"),
-////         }
-////     }
-//// }
+impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for ClassSymbol<T> {
+    /// Checks if this class is proper.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this class is proper.
+    fn is_proper(&self) -> bool {
+        self.representative.is_proper()
+    }
+
+    /// Checks if this class is antiunitary.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this class is antiunitary.
+    fn is_antiunitary(&self) -> bool {
+        self.representative.is_antiunitary()
+    }
+
+    /// Checks if this class is the identity class.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this class is the identity class.
+    fn is_identity(&self) -> bool {
+        self.representative.is_identity()
+    }
+
+    /// Checks if this class is the inversion class.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this class is the inversion class.
+    fn is_inversion(&self) -> bool {
+        self.representative.is_inversion()
+    }
+
+    /// Checks if this class is a binary rotation class.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this class is a binary rotation class.
+    fn is_binary_rotation(&self) -> bool {
+        self.representative.is_binary_rotation()
+    }
+
+    /// Checks if this class is a reflection class.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this class is a reflection class.
+    fn is_reflection(&self) -> bool {
+        self.representative.is_reflection()
+    }
+
+    /// Checks if this class is a pure time-reversal class.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this class is a pure time-reversal class.
+    fn is_time_reversal(&self) -> bool {
+        self.representative.is_time_reversal()
+    }
+}
+
+// -------
+// Display
+// -------
+impl<T: SpecialSymmetryTransformation + Clone> fmt::Display for ClassSymbol<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.generic_symbol)
+    }
+}
