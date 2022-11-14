@@ -8,12 +8,16 @@ use regex::Regex;
 
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 
+#[cfg(test)]
+#[path = "symmetry_symbols_tests.rs"]
+mod symmetry_symbols_tests;
+
 // ======
 // Traits
 // ======
 
 /// A trait for general mathematical symbols.
-trait MathematicalSymbol: Hash + FromStr {
+trait MathematicalSymbol: Hash {
     /// The main part of the symbol.
     fn main(&self) -> &str;
 
@@ -67,7 +71,7 @@ trait CollectionSymbol: MathematicalSymbol {
 /// \ ^{\textrm{postsuper}}_{\textrm{postsub}}
 /// \ \textrm{postfactor}.
 /// ```
-#[derive(Builder, Clone, PartialEq, Eq, Hash)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash)]
 struct GenericSymbol {
     /// The main part of the symbol.
     main: String,
@@ -168,28 +172,28 @@ impl FromStr for GenericSymbol {
 
             let presuper_re = Regex::new(r"\^\((.*?)\)").unwrap();
             let presuperstr = if let Some(cap) = presuper_re.captures(prestr) {
-                cap.get(0).unwrap().as_str()
+                cap.get(1).unwrap().as_str()
             } else {
                 ""
             };
 
             let presub_re = Regex::new(r"_\((.*?)\)").unwrap();
             let presubstr = if let Some(cap) = presub_re.captures(prestr) {
-                cap.get(0).unwrap().as_str()
+                cap.get(1).unwrap().as_str()
             } else {
                 ""
             };
 
             let postsuper_re = Regex::new(r"\^\((.*?)\)").unwrap();
             let postsuperstr = if let Some(cap) = postsuper_re.captures(poststr) {
-                cap.get(0).unwrap().as_str()
+                cap.get(1).unwrap().as_str()
             } else {
                 ""
             };
 
             let postsub_re = Regex::new(r"_\((.*?)\)").unwrap();
             let postsubstr = if let Some(cap) = postsub_re.captures(poststr) {
-                cap.get(0).unwrap().as_str()
+                cap.get(1).unwrap().as_str()
             } else {
                 ""
             };
@@ -264,7 +268,7 @@ impl fmt::Display for GenericSymbolParsingError {
 // -------------------
 
 /// A struct to handle Mulliken irreducible representation symbols.
-#[derive(Builder, PartialEq, Eq, Hash)]
+#[derive(Builder, Debug, PartialEq, Eq, Hash)]
 struct MullikenIrrepSymbol {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
@@ -273,6 +277,19 @@ struct MullikenIrrepSymbol {
 impl MullikenIrrepSymbol {
     fn builder() -> MullikenIrrepSymbolBuilder {
         MullikenIrrepSymbolBuilder::default()
+    }
+
+    /// Parses a string representing a Mulliken irrep symbol.
+    ///
+    /// Some permissible Mulliken irrep symbols:
+    ///
+    /// ```
+    /// "T"
+    /// "||T|_(2g)|"
+    /// "|^(3)|T|_(2g)|"
+    /// ```
+    fn new(symstr: &str) -> Result<Self, GenericSymbolParsingError> {
+        Self::from_str(symstr)
     }
 }
 
@@ -380,7 +397,7 @@ impl fmt::Display for MullikenIrrepSymbol {
 // -----------
 
 /// A struct to handle conjugacy class symbols.
-#[derive(Builder)]
+#[derive(Builder, Debug)]
 struct ClassSymbol<T: SpecialSymmetryTransformation + Clone> {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
@@ -457,21 +474,21 @@ impl<T: SpecialSymmetryTransformation + Clone> CollectionSymbol for ClassSymbol<
     }
 }
 
-impl<T: SpecialSymmetryTransformation + Clone> FromStr for ClassSymbol<T> {
-    type Err = GenericSymbolParsingError;
+impl<T: SpecialSymmetryTransformation + Clone> ClassSymbol<T> {
 
-    /// Parses a string representing a Mulliken irrep symbol.
+    /// Creates a class symbol from a string and a representative element.
     ///
-    /// Some permissible Mulliken irrep symbols:
+    /// Some permissible conjugacy class symbols:
     ///
     /// ```
     /// "12||C|^(2)_(5)|"
     /// "2||S|^(z)|(α)"
     /// ```
-    fn from_str(symstr: &str) -> Result<Self, Self::Err> {
+    fn new(symstr: &str, rep: T) -> Result<Self, GenericSymbolParsingError> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
         Ok(Self::builder()
             .generic_symbol(generic_symbol)
+            .representative(rep)
             .build()
             .unwrap())
     }

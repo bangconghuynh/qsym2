@@ -6,7 +6,7 @@ use std::panic;
 
 use itertools::Itertools;
 use log;
-use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, Axis, LinalgScalar, ShapeBuilder, Zip};
+use ndarray::{s, Array1, Array2, ArrayView1, Axis, LinalgScalar, ShapeBuilder, Zip};
 use num_modular::ModularInteger;
 use num_traits::Zero;
 
