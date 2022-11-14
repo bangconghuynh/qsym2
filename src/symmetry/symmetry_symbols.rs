@@ -152,7 +152,7 @@ impl FromStr for GenericSymbol {
     ///
     /// Some permissible generic symbols:
     ///
-    /// ```
+    /// ```text
     /// "T"
     /// "||T|_(2g)|"
     /// "|^(3)|T|_(2g)|"
@@ -293,7 +293,7 @@ impl MullikenIrrepSymbol {
     ///
     /// Some permissible Mulliken irrep symbols:
     ///
-    /// ```
+    /// ```text
     /// "T"
     /// "||T|_(2g)|"
     /// "|^(3)|T|_(2g)|"
@@ -348,7 +348,7 @@ impl FromStr for MullikenIrrepSymbol {
     ///
     /// Some permissible Mulliken irrep symbols:
     ///
-    /// ```
+    /// ```text
     /// "T"
     /// "||T|_(2g)|"
     /// "|^(3)|T|_(2g)|"
@@ -490,7 +490,7 @@ impl<T: Clone> ClassSymbol<T> {
     ///
     /// Some permissible conjugacy class symbols:
     ///
-    /// ```
+    /// ```text
     /// "12||C|^(2)_(5)|"
     /// "2||S|^(z)|(α)"
     /// ```
