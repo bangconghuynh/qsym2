@@ -1,11 +1,12 @@
-use approx;
-use derive_builder::Builder;
-use fraction;
-use nalgebra::{Point3, Vector3};
-use num_traits::Pow;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Mul;
+
+use approx;
+use fraction;
+use derive_builder::Builder;
+use nalgebra::{Point3, Vector3};
+use num_traits::Pow;
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
