@@ -8,9 +8,9 @@ use regex::Regex;
 
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 
-#[cfg(test)]
-#[path = "symmetry_symbols_tests.rs"]
-mod symmetry_symbols_tests;
+// #[cfg(test)]
+// #[path = "symmetry_symbols_tests.rs"]
+// mod symmetry_symbols_tests;
 
 // ======
 // Traits
@@ -72,7 +72,7 @@ trait CollectionSymbol: MathematicalSymbol {
 /// \ \textrm{postfactor}.
 /// ```
 #[derive(Builder, Debug, Clone, PartialEq, Eq, Hash)]
-struct GenericSymbol {
+pub struct GenericSymbol {
     /// The main part of the symbol.
     main: String,
 
@@ -219,6 +219,11 @@ impl FromStr for GenericSymbol {
 // -------
 impl fmt::Display for GenericSymbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let prefac_str = if self.prefactor() != "1" {
+            format!("{}", self.prefactor())
+        } else {
+            "".to_string()
+        };
         let presuper_str = if !self.presuper().is_empty() {
             format!("^({})", self.presuper())
         } else {
@@ -240,22 +245,27 @@ impl fmt::Display for GenericSymbol {
         } else {
             "".to_string()
         };
+        let postfac_str = if self.postfactor() != "1" {
+            format!("{}", self.postfactor())
+        } else {
+            "".to_string()
+        };
         write!(
             f,
             "{}{}{}{}{}{}{}",
-            self.prefactor(),
+            prefac_str,
             presuper_str,
             presub_str,
             main_str,
             postsuper_str,
             postsub_str,
-            self.postfactor()
+            postfac_str,
         )
     }
 }
 
 #[derive(Debug, Clone)]
-struct GenericSymbolParsingError(String);
+pub struct GenericSymbolParsingError(String);
 
 impl fmt::Display for GenericSymbolParsingError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -269,7 +279,7 @@ impl fmt::Display for GenericSymbolParsingError {
 
 /// A struct to handle Mulliken irreducible representation symbols.
 #[derive(Builder, Debug, PartialEq, Eq, Hash)]
-struct MullikenIrrepSymbol {
+pub struct MullikenIrrepSymbol {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
 }
@@ -288,7 +298,7 @@ impl MullikenIrrepSymbol {
     /// "||T|_(2g)|"
     /// "|^(3)|T|_(2g)|"
     /// ```
-    fn new(symstr: &str) -> Result<Self, GenericSymbolParsingError> {
+    pub fn new(symstr: &str) -> Result<Self, GenericSymbolParsingError> {
         Self::from_str(symstr)
     }
 }
@@ -398,7 +408,7 @@ impl fmt::Display for MullikenIrrepSymbol {
 
 /// A struct to handle conjugacy class symbols.
 #[derive(Builder, Debug)]
-struct ClassSymbol<T: SpecialSymmetryTransformation + Clone> {
+pub struct ClassSymbol<T: Clone> {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
 
@@ -406,27 +416,27 @@ struct ClassSymbol<T: SpecialSymmetryTransformation + Clone> {
     representative: T,
 }
 
-impl<T: SpecialSymmetryTransformation + Clone> PartialEq for ClassSymbol<T> {
+impl<T: Clone> PartialEq for ClassSymbol<T> {
     fn eq(&self, other: &Self) -> bool {
         self.generic_symbol == other.generic_symbol
     }
 }
 
-impl<T: SpecialSymmetryTransformation + Clone> Eq for ClassSymbol<T> {}
+impl<T: Clone> Eq for ClassSymbol<T> {}
 
-impl<T: SpecialSymmetryTransformation + Clone> Hash for ClassSymbol<T> {
+impl<T: Clone> Hash for ClassSymbol<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.generic_symbol.hash(state)
     }
 }
 
-impl<T: SpecialSymmetryTransformation + Clone> ClassSymbol<T> {
+impl<T: Clone> ClassSymbol<T> {
     fn builder() -> ClassSymbolBuilder<T> {
         ClassSymbolBuilder::default()
     }
 }
 
-impl<T: SpecialSymmetryTransformation + Clone> MathematicalSymbol for ClassSymbol<T> {
+impl<T: Clone> MathematicalSymbol for ClassSymbol<T> {
     /// The main part of the symbol, which denotes the representative symmetry operation.
     fn main(&self) -> &str {
         self.generic_symbol.main()
@@ -463,7 +473,7 @@ impl<T: SpecialSymmetryTransformation + Clone> MathematicalSymbol for ClassSymbo
     }
 }
 
-impl<T: SpecialSymmetryTransformation + Clone> CollectionSymbol for ClassSymbol<T> {
+impl<T: Clone> CollectionSymbol for ClassSymbol<T> {
     fn size(&self) -> u64 {
         self.prefactor().parse::<u64>().unwrap_or_else(|_| {
             panic!(
@@ -474,7 +484,7 @@ impl<T: SpecialSymmetryTransformation + Clone> CollectionSymbol for ClassSymbol<
     }
 }
 
-impl<T: SpecialSymmetryTransformation + Clone> ClassSymbol<T> {
+impl<T: Clone> ClassSymbol<T> {
 
     /// Creates a class symbol from a string and a representative element.
     ///
@@ -484,7 +494,7 @@ impl<T: SpecialSymmetryTransformation + Clone> ClassSymbol<T> {
     /// "12||C|^(2)_(5)|"
     /// "2||S|^(z)|(α)"
     /// ```
-    fn new(symstr: &str, rep: T) -> Result<Self, GenericSymbolParsingError> {
+    pub fn new(symstr: &str, rep: T) -> Result<Self, GenericSymbolParsingError> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
         Ok(Self::builder()
             .generic_symbol(generic_symbol)
@@ -562,7 +572,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
 // -------
 // Display
 // -------
-impl<T: SpecialSymmetryTransformation + Clone> fmt::Display for ClassSymbol<T> {
+impl<T: Clone> fmt::Display for ClassSymbol<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
     }

@@ -6,7 +6,7 @@ use crate::aux::misc::HashableFloat;
 
 
 /// An enum to handle symmetry element orders.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum ElementOrder {
     /// Positive integer order.
     Int(u32),

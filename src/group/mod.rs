@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Mul;
@@ -12,11 +12,15 @@ use ordered_float::OrderedFloat;
 use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 
+use fraction;
+
 use crate::symmetry::symmetry_core::Symmetry;
+use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, SIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
-use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
+use crate::symmetry::symmetry_symbols::ClassSymbol;
 
+type F = fraction::Fraction;
 
 #[cfg(test)]
 mod group_tests;
@@ -58,6 +62,13 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug> {
     /// or more element indices.
     #[builder(setter(skip), default = "None")]
     conjugacy_classes: Option<Vec<HashSet<usize>>>,
+
+    /// An index map of symbols for the conjugacy classes in this group.
+    ///
+    /// Each key in the index map is a class symbol, and the associated value is the index of
+    /// the corresponding conjugacy class in [`Self::conjugacy_classes`].
+    #[builder(setter(skip), default = "None")]
+    conjugacy_class_symbols: Option<IndexMap<ClassSymbol<T>, usize>>,
 
     /// A vector containing the indices of inverse conjugacy classes.
     ///
@@ -176,9 +187,9 @@ where
         log::debug!("Constructing Cayley table in parallel... Done.");
     }
 
-    /// Find the conjugacy classes for the group.
+    /// Find the conjugacy classes and their inverses for the group.
     ///
-    /// This method sets the [`Self::conjugacy_classes`],
+    /// This method sets the [`Self::conjugacy_classes`], [`Self::inverse_conjugacy_classes`],
     /// [`Self::element_to_conjugacy_classes`], and [`Self::class_number`] fields.
     fn find_conjugacy_classes(&mut self) {
         // Find conjugacy classes
@@ -201,7 +212,6 @@ where
                 // For a fixed g, find all h such that sg = hs for all s in the group.
                 let g = *remaining_elements.iter().next().unwrap();
                 let mut cur_cc = HashSet::from([g]);
-                e2ccs[g] = ccs.len();
                 for s in 0usize..self.order {
                     let sg = ctb[[s, g]];
                     let ctb_xs = ctb.slice(s![.., s]);
@@ -209,11 +219,14 @@ where
                     if remaining_elements.contains(&h) {
                         remaining_elements.remove(&h);
                         cur_cc.insert(h);
-                        e2ccs[h] = ccs.len();
                     }
                 }
                 ccs.push(cur_cc);
             }
+            ccs.sort_by_key(|cc| *cc.iter().min().unwrap());
+            ccs.iter().enumerate().for_each(|(i, cc)| {
+                cc.iter().for_each(|&j| e2ccs[j] = i);
+            });
             self.conjugacy_classes = Some(ccs);
             assert!(e2ccs.iter().skip(1).all(|&x| x > 0));
             self.element_to_conjugacy_classes = Some(e2ccs);
@@ -221,6 +234,7 @@ where
         self.class_number = Some(self.conjugacy_classes.as_ref().unwrap().len());
         log::debug!("Finding conjugacy classes... Done.");
 
+        // Find inverse conjugacy classes
         log::debug!("Finding inverse conjugacy classes...");
         let mut iccs: Vec<_> = self
             .conjugacy_classes
@@ -296,6 +310,95 @@ where
             }
         }
         self.class_matrix = Some(nmat);
+    }
+}
+
+impl Group<SymmetryOperation> {
+    fn assign_class_symbols(&mut self) {
+        // Assign class symbols
+        log::debug!("Assigning class symbols...");
+        let mut proper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+            HashMap::new();
+        let mut improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+            HashMap::new();
+        let class_symbols_iter = self
+            .conjugacy_classes
+            .as_ref()
+            .unwrap()
+            .iter()
+            .enumerate()
+            .map(|(i, class_element_indices)| {
+                let rep_ele_index = *class_element_indices
+                    .iter()
+                    .min_by_key(|&&j| {
+                        let op = self.elements.get_index(j).unwrap().0;
+                        (op.power, op.generating_element.proper_power)
+                    })
+                    .unwrap();
+                let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap();
+                if rep_ele.is_identity() {
+                    (ClassSymbol::new("1||E||", rep_ele.clone()).unwrap(), i)
+                } else if rep_ele.is_inversion() {
+                    (ClassSymbol::new("1||i||", rep_ele.clone()).unwrap(), i)
+                } else if rep_ele.is_time_reversal() {
+                    (ClassSymbol::new("1||θ||", rep_ele.clone()).unwrap(), i)
+                } else {
+                    let rep_proper_order = rep_ele.generating_element.proper_order;
+                    let rep_proper_power = rep_ele.generating_element.proper_power;
+                    let rep_power = rep_ele.power;
+                    let rep_sub = rep_ele.generating_element.additional_subscript.clone();
+                    let dash = if rep_ele.is_proper() {
+                        if let Some(v) = proper_class_orders.get_mut(&(
+                            rep_proper_order,
+                            rep_proper_power,
+                            rep_power,
+                            rep_sub.clone(),
+                        )) {
+                            *v += 1;
+                            "'".repeat(*v)
+                        } else {
+                            proper_class_orders.insert(
+                                (rep_proper_order, rep_proper_power, rep_power, rep_sub),
+                                0,
+                            );
+                            "".to_string()
+                        }
+                    } else {
+                        if let Some(v) = improper_class_orders.get_mut(&(
+                            rep_proper_order,
+                            rep_proper_power,
+                            rep_power,
+                            rep_sub.clone(),
+                        )) {
+                            *v += 1;
+                            "'".repeat(*v)
+                        } else {
+                            improper_class_orders.insert(
+                                (rep_proper_order, rep_proper_power, rep_power, rep_sub),
+                                0,
+                            );
+                            "".to_string()
+                        }
+                    };
+                    let size = class_element_indices.len();
+                    (
+                        ClassSymbol::new(
+                            format!(
+                                "{}||{}|^({})|",
+                                size,
+                                rep_ele.get_abbreviated_symbol(),
+                                dash
+                            )
+                            .as_str(),
+                            rep_ele.clone(),
+                        )
+                        .unwrap(),
+                        i,
+                    )
+                }
+            });
+        self.conjugacy_class_symbols = Some(IndexMap::from_iter(class_symbols_iter));
+        log::debug!("Assigning class symbols... Done.");
     }
 }
 
@@ -625,5 +728,6 @@ fn group_from_molecular_symmetry(
         };
         group.finite_subgroup_name = Some(finite_group);
     }
+    group.assign_class_symbols();
     group
 }

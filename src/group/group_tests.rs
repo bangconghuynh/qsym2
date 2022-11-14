@@ -296,6 +296,7 @@ fn test_abstract_group_validity(
     nmat_srt.swap_axes(0, 1);
     assert_eq!(nmat_rst, nmat_srt);
 }
+
 fn test_abstract_group(
     mol: &Molecule,
     thresh: f64,
@@ -334,6 +335,29 @@ fn test_abstract_group_from_infinite_group(
     sym.analyse(&presym);
     let group = group_from_molecular_symmetry(sym, Some(finite_order));
     test_abstract_group_validity(group, name, order, class_number, abelian);
+}
+
+fn test_abstract_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    let group = group_from_molecular_symmetry(sym, None);
+    // for (cls, _) in group.conjugacy_class_symbols.as_ref().unwrap().iter() {
+    //     println!("{} - {:#?}", cls, cls);
+    // }
+    // println!("{:#?}", group.conjugacy_class_symbols.unwrap());
+    assert!(group
+        .conjugacy_class_symbols
+        .unwrap()
+        .iter()
+        .zip(class_order_str.iter())
+        .all(|((class_symbol, _), &ref_class_symbol)| {
+            format!("{}", class_symbol).as_str() == ref_class_symbol
+        }))
 }
 
 /********
@@ -1150,6 +1174,29 @@ fn test_abstract_group_symmetric_xef4_d4h() {
 }
 
 #[test]
+fn test_abstract_group_symmetric_xef4_d4h_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "2|C4|",
+            "|C2|",
+            "2|C2|^(')",
+            "2|C2|^('')",
+            "|i|",
+            "2|S4|",
+            "|σh|",
+            "2|σv|",
+            "2|σv|^(')",
+        ],
+    );
+}
+
+#[test]
 fn test_abstract_group_symmetric_h8_d4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
@@ -1172,6 +1219,35 @@ fn test_abstract_group_symmetric_benzene_d6h() {
     let mol = Molecule::from_xyz(&path, thresh);
     test_abstract_group(&mol, thresh, "D6h", 24, 12, false);
 }
+
+#[test]
+fn test_abstract_group_symmetric_benzene_d6h_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    // The benzene molecule is in the yz-plane. Ordering of the symmetry elements based on their
+    // closeness to principal axes means that the class ordering will appear different from that
+    // found in standard character tables.
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "2|C6|",
+            "2|C3|",
+            "3|C2|",
+            "3|C2|^(')",
+            "|C2|^('')",
+            "|i|",
+            "2|S6|",
+            "2|S3|",
+            "3|σv|",
+            "3|σv|^(')",
+            "|σh|",
+        ],
+    );
+}
+
 
 #[test]
 fn test_abstract_group_symmetric_h100_d100h() {
@@ -1229,11 +1305,47 @@ fn test_abstract_group_symmetric_b2cl4_d2d() {
 }
 
 #[test]
+fn test_abstract_group_symmetric_b2cl4_d2d_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "|C2|",
+            "2|C2|^(')",
+            "2|S4|",
+            "2|σd|",
+        ],
+    );
+}
+
+#[test]
 fn test_abstract_group_symmetric_s4n4_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s4n4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
     test_abstract_group(&mol, thresh, "D2d", 8, 5, false);
+}
+
+#[test]
+fn test_abstract_group_symmetric_s4n4_d2d_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/s4n4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "|C2|",
+            "2|C2|^(')",
+            "2|S4|",
+            "2|σd|",
+        ],
+    );
 }
 
 #[test]
@@ -1245,11 +1357,47 @@ fn test_abstract_group_symmetric_pbet4_d2d() {
 }
 
 #[test]
+fn test_abstract_group_symmetric_pbet4_d2d_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pbet4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "|C2|",
+            "2|C2|^(')",
+            "2|S4|",
+            "2|σd|",
+        ],
+    );
+}
+
+#[test]
 fn test_abstract_group_symmetric_allene_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/allene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
     test_abstract_group(&mol, thresh, "D2d", 8, 5, false);
+}
+
+#[test]
+fn test_abstract_group_symmetric_allene_d2d_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/allene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "|C2|",
+            "2|C2|^(')",
+            "2|S4|",
+            "2|σd|",
+        ],
+    );
 }
 
 #[test]
@@ -1261,11 +1409,49 @@ fn test_abstract_group_symmetric_staggered_c2h6_d3d() {
 }
 
 #[test]
+fn test_abstract_group_symmetric_staggered_c2h6_d3d_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "2|C3|",
+            "3|C2|",
+            "|i|",
+            "2|S6|",
+            "3|σd|",
+        ],
+    );
+}
+
+#[test]
 fn test_abstract_group_symmetric_cyclohexane_chair_d3d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexane_chair.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
     test_abstract_group(&mol, thresh, "D3d", 12, 6, false);
+}
+
+#[test]
+fn test_abstract_group_symmetric_cyclohexane_chair_d3d_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexane_chair.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "2|C3|",
+            "3|C2|",
+            "|i|",
+            "2|S6|",
+            "3|σd|",
+        ],
+    );
 }
 
 #[test]
@@ -1277,10 +1463,49 @@ fn test_abstract_group_symmetric_s8_d4d() {
 }
 
 #[test]
+fn test_abstract_group_symmetric_s8_d4d_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "2|C4|",
+            "|C2|",
+            "4|C2|^(')",
+            "2|S8|",
+            "2|[S8]^3|",
+            "4|σd|",
+        ],
+    );
+}
+
+#[test]
 fn test_abstract_group_symmetric_antiprism_h8_d4d() {
     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
     let thresh = 1e-7;
     test_abstract_group(&mol, thresh, "D4d", 16, 7, false);
+}
+
+#[test]
+fn test_abstract_group_symmetric_antiprism_h8_d4d_class_order() {
+    let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
+    let thresh = 1e-7;
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "2|C4|",
+            "|C2|",
+            "4|C2|^(')",
+            "2|S8|",
+            "2|[S8]^3|",
+            "4|σd|",
+        ],
+    );
 }
 
 #[test]
@@ -1289,6 +1514,26 @@ fn test_abstract_group_symmetric_antiprism_pb10_d4d() {
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
     test_abstract_group(&mol, thresh, "D4d", 16, 7, false);
+}
+
+#[test]
+fn test_abstract_group_symmetric_antiprism_pb10_d4d_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "2|C4|",
+            "|C2|",
+            "4|C2|^(')",
+            "2|S8|",
+            "2|[S8]^3|",
+            "4|σd|",
+        ],
+    );
 }
 
 #[test]
@@ -1301,11 +1546,54 @@ fn test_abstract_group_symmetric_staggered_ferrocene_d5d() {
 }
 
 #[test]
+fn test_abstract_group_symmetric_staggered_ferrocene_d5d_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "2|C5|",
+            "2|[C5]^2|",
+            "5|C2|",
+            "|i|",
+            "2|S10|",
+            "2|[S10]^3|",
+            "5|σd|",
+        ],
+    );
+}
+
+#[test]
 fn test_abstract_group_symmetric_au26_d6d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
     test_abstract_group(&mol, thresh, "D6d", 24, 9, false);
+}
+
+#[test]
+fn test_abstract_group_symmetric_au26_d6d_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_abstract_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E|",
+            "2|C6|",
+            "2|C3|",
+            "|C2|",
+            "6|C2|^(')",
+            "2|S12|",
+            "2|[S12]^5|",
+            "2|S4|",
+            "6|σd|",
+        ],
+    );
 }
 
 #[test]

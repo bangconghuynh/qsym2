@@ -370,10 +370,35 @@ impl SymmetryOperation {
             .build()
             .unwrap()
     }
+
+    /// Generates the abbreviated symbol for this symmetry operation, which classifies certain improper
+    /// axes into inversion centres or mirror planes,
+    pub fn get_abbreviated_symbol(&self) -> String {
+        let timerev = if self.time_reversal_power == 0 {
+            "".to_string()
+        } else if self.time_reversal_power == 1 {
+            "θ·".to_string()
+        } else {
+            format!("θ^{}·", self.time_reversal_power)
+        };
+        if self.power == 1 {
+            format!(
+                "{}{}",
+                timerev,
+                self.generating_element.get_detailed_symbol()
+            )
+        } else {
+            format!(
+                "{}[{}]^{}",
+                timerev,
+                self.generating_element.get_detailed_symbol(),
+                self.power
+            )
+        }
+    }
 }
 
 impl SpecialSymmetryTransformation for SymmetryOperation {
-
     /// Checks if the symmetry operation is proper or not.
     ///
     /// # Returns
