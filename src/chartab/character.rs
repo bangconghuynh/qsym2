@@ -17,8 +17,8 @@ mod character_tests;
 ///
 /// Partial orders between characters are based on their complex moduli and
 /// phases in the interval `$[0, 2\pi)$` with `$0$` being the smallest.
-#[derive(Builder)]
-struct Character {
+#[derive(Builder, Clone)]
+pub struct Character {
     /// The unity roots and their multiplicities constituting this character.
     #[builder(setter(custom))]
     terms: IndexMap<UnityRoot, usize>,

@@ -278,7 +278,7 @@ impl fmt::Display for GenericSymbolParsingError {
 // -------------------
 
 /// A struct to handle Mulliken irreducible representation symbols.
-#[derive(Builder, Debug, PartialEq, Eq, Hash)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MullikenIrrepSymbol {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
@@ -407,7 +407,7 @@ impl fmt::Display for MullikenIrrepSymbol {
 // -----------
 
 /// A struct to handle conjugacy class symbols.
-#[derive(Builder, Debug)]
+#[derive(Builder, Debug, Clone)]
 pub struct ClassSymbol<T: Clone> {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,

@@ -103,6 +103,8 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug> {
     /// independent of any $`z \in K_t`$.
     #[builder(setter(skip), default = "None")]
     class_matrix: Option<Array3<usize>>,
+
+    // character_table
 }
 
 impl<T: Hash + Eq + Clone + Sync + Debug> GroupBuilder<T> {
@@ -278,10 +280,6 @@ where
     /// independent of any $`z \in K_t`$.
     ///
     /// This method sets the [`Self::class_matrix`] field.
-    ///
-    /// # Arguments
-    ///
-    /// * r - The index of the conjugacy class for which the class matrix is to be found.
     fn calc_class_matrix(&mut self) {
         let mut nmat = Array3::<usize>::zeros((
             self.class_number.unwrap(),
@@ -311,9 +309,15 @@ where
         }
         self.class_matrix = Some(nmat);
     }
+
+    fn construct_character_table(&self) {
+    }
 }
 
 impl Group<SymmetryOperation> {
+    /// Assigns class symbols to the conjugacy classes.
+    ///
+    /// This method sets the [`Self::conjugacy_class_symbols`] field.
     fn assign_class_symbols(&mut self) {
         // Assign class symbols
         log::debug!("Assigning class symbols...");
