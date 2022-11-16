@@ -23,5 +23,10 @@ struct CharacterTable {
 }
 
 impl CharacterTable {
-    
+    fn get_character(
+        &self,
+        irrep: &MullikenIrrepSymbol,
+        class: &ClassSymbol<SymmetryOperation>,
+    ) -> &Character {
+    }
 }
