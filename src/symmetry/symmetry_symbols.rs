@@ -17,7 +17,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransf
 // ======
 
 /// A trait for general mathematical symbols.
-trait MathematicalSymbol: Hash {
+pub trait MathematicalSymbol: Clone + Hash + Eq {
     /// The main part of the symbol.
     fn main(&self) -> &str;
 
