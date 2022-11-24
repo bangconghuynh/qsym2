@@ -19,6 +19,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransf
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, SIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 use crate::symmetry::symmetry_symbols::ClassSymbol;
+use crate::chartab::CharacterTable;
 
 type F = fraction::Fraction;
 
@@ -104,7 +105,9 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug> {
     #[builder(setter(skip), default = "None")]
     class_matrix: Option<Array3<usize>>,
 
-    // character_table
+    /// The character table for this group.
+    #[builder(setter(skip), default = "None")]
+    character_table: Option<CharacterTable>,
 }
 
 impl<T: Hash + Eq + Clone + Sync + Debug> GroupBuilder<T> {
@@ -310,8 +313,26 @@ where
         self.class_matrix = Some(nmat);
     }
 
-    fn construct_character_table(&self) {
-    }
+    ///// Constructs the character table for this group using the Burnside--Dixon--Schneider
+    ///// algorithm.
+    /////
+    ///// This method sets the [`Self::class_matrix`] field.
+    /////
+    ///// # References
+    /////
+    ///// * J. D. Dixon, Numer. Math., 1967, 10, 446–450.
+    ///// * L. C. Grove, Groups and Characters, John Wiley & Sons, Inc., 1997.
+    //fn construct_character_table(&mut self) {
+    //    // Variable definitions
+    //    // --------------------
+    //    // m: LCM of the orders of the elements in the group (i.e. the group
+    //    //    exponent)
+    //    // p: A prime greater than 2*sqrt(|G|) and m | (p - 1), which is
+    //    //    guaranteed to exist by Dirichlet's theorem
+    //    // z: An integer having multiplicative order m when viewed as an
+    //    //    element of Z*p, i.e. z^m ≡ 1 (mod p) but z^n !≡ 1 (mod p) for all
+    //    //    0 <= n < m.
+    //}
 }
 
 impl Group<SymmetryOperation> {

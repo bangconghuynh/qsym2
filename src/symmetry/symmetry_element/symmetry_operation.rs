@@ -372,8 +372,8 @@ impl SymmetryOperation {
             .unwrap()
     }
 
-    /// Generates the abbreviated symbol for this symmetry operation, which classifies certain improper
-    /// axes into inversion centres or mirror planes,
+    /// Generates the abbreviated symbol for this symmetry operation, which classifies
+    /// certain improper axes into inversion centres or mirror planes,
     pub fn get_abbreviated_symbol(&self) -> String {
         let timerev = if self.time_reversal_power == 0 {
             "".to_string()
@@ -395,6 +395,15 @@ impl SymmetryOperation {
                 self.generating_element.get_detailed_symbol(),
                 self.power
             )
+        }
+    }
+
+    pub fn order(&self) -> u64 {
+        let denom = *self.total_proper_fraction.unwrap().denom().unwrap();
+        if (self.is_proper() && !self.is_antiunitary()) || denom.rem_euclid(2) == 0 {
+            denom
+        } else {
+            2 * denom
         }
     }
 }

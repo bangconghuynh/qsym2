@@ -30,6 +30,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c1.is_identity());
+    assert_eq!(c1.order(), 1);
     approx::assert_relative_eq!(
         c1.total_proper_angle,
         0.0,
@@ -43,6 +44,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c1b.is_identity());
+    assert_eq!(c1b.order(), 1);
     approx::assert_relative_eq!(
         c1b.total_proper_angle,
         0.0,
@@ -65,6 +67,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c2.is_binary_rotation());
+    assert_eq!(c2.order(), 2);
     approx::assert_relative_eq!(c2.total_proper_angle, std::f64::consts::PI);
 
     let c2p2 = SymmetryOperation::builder()
@@ -73,6 +76,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c2p2.is_identity());
+    assert_eq!(c2p2.order(), 1);
     approx::assert_relative_eq!(
         c2p2.total_proper_angle,
         0.0,
@@ -95,6 +99,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c2p2b.is_identity());
+    assert_eq!(c2p2b.order(), 1);
     approx::assert_relative_eq!(
         c2p2b.total_proper_angle,
         0.0,
@@ -117,6 +122,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(!c3.is_identity());
+    assert_eq!(c3.order(), 3);
     approx::assert_relative_eq!(
         c3.total_proper_angle,
         2.0 * std::f64::consts::FRAC_PI_3,
@@ -130,6 +136,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c3p3.is_identity());
+    assert_eq!(c3p3.order(), 1);
     approx::assert_relative_eq!(
         c3p3.total_proper_angle,
         0.0,
@@ -152,6 +159,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c3pp2p3.is_identity());
+    assert_eq!(c3pp2p3.order(), 1);
     approx::assert_relative_eq!(
         c3pp2p3.total_proper_angle,
         0.0,
@@ -174,6 +182,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c4p2.is_binary_rotation());
+    assert_eq!(c4p2.order(), 2);
     approx::assert_relative_eq!(
         c4p2.total_proper_angle,
         std::f64::consts::PI,
@@ -187,6 +196,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(c4p4.is_identity());
+    assert_eq!(c4p4.order(), 1);
     approx::assert_relative_eq!(
         c4p4.total_proper_angle,
         0.0,
@@ -260,6 +270,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s1.is_reflection());
+    assert_eq!(s1.order(), 2);
     approx::assert_relative_eq!(
         s1.total_proper_angle,
         0.0,
@@ -273,6 +284,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s1p2.is_identity());
+    assert_eq!(s1p2.order(), 1);
     approx::assert_relative_eq!(
         s1p2.total_proper_angle,
         0.0,
@@ -295,6 +307,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd2.is_reflection());
+    assert_eq!(sd2.order(), 2);
     approx::assert_relative_eq!(
         sd2.total_proper_angle,
         std::f64::consts::PI,
@@ -308,6 +321,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd2p2.is_identity());
+    assert_eq!(sd2p2.order(), 1);
     approx::assert_relative_eq!(
         sd2p2.total_proper_angle,
         0.0,
@@ -330,6 +344,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd2pp2.is_inversion());
+    assert_eq!(sd2pp2.order(), 2);
     approx::assert_relative_eq!(
         sd2pp2.total_proper_angle,
         0.0,
@@ -343,6 +358,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd2pp2p6.is_identity());
+    assert_eq!(sd2pp2p6.order(), 1);
     approx::assert_relative_eq!(
         sd2pp2p6.total_proper_angle,
         0.0,
@@ -365,6 +381,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s2.is_inversion());
+    assert_eq!(s2.order(), 2);
     approx::assert_relative_eq!(
         s2.total_proper_angle,
         std::f64::consts::PI,
@@ -378,6 +395,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s2p2.is_identity());
+    assert_eq!(s2p2.order(), 1);
     approx::assert_relative_eq!(
         s2p2.total_proper_angle,
         0.0,
@@ -400,6 +418,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s2pp2.is_reflection());
+    assert_eq!(s2pp2.order(), 2);
     approx::assert_relative_eq!(
         s2pp2.total_proper_angle,
         0.0,
@@ -413,6 +432,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s2pp2p4.is_identity());
+    assert_eq!(s2pp2p4.order(), 1);
     approx::assert_relative_eq!(
         s2pp2p4.total_proper_angle,
         0.0,
@@ -435,6 +455,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd1.is_inversion());
+    assert_eq!(sd1.order(), 2);
     approx::assert_relative_eq!(
         sd1.total_proper_angle,
         0.0,
@@ -448,6 +469,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd1p2.is_identity());
+    assert_eq!(sd1p2.order(), 1);
     approx::assert_relative_eq!(
         sd1p2.total_proper_angle,
         0.0,
@@ -470,6 +492,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3p3.is_reflection());
+    assert_eq!(s3p3.order(), 2);
     approx::assert_relative_eq!(
         s3p3.total_proper_angle,
         0.0,
@@ -483,6 +506,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3p6.is_identity());
+    assert_eq!(s3p6.order(), 1);
     approx::assert_relative_eq!(
         s3p6.total_proper_angle,
         0.0,
@@ -505,6 +529,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3pp2p3.is_reflection());
+    assert_eq!(s3pp2p3.order(), 2);
     approx::assert_relative_eq!(
         s3pp2p3.total_proper_angle,
         0.0,
@@ -518,6 +543,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3pp2p6.is_identity());
+    assert_eq!(s3pp2p6.order(), 1);
     approx::assert_relative_eq!(
         s3pp2p6.total_proper_angle,
         0.0,
@@ -540,6 +566,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3pp3.is_reflection());
+    assert_eq!(s3pp3.order(), 2);
     approx::assert_relative_eq!(
         s3pp3.total_proper_angle,
         0.0,
@@ -553,6 +580,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(s3pp3p2.is_identity());
+    assert_eq!(s3pp3p2.order(), 1);
     approx::assert_relative_eq!(
         s3pp3p2.total_proper_angle,
         0.0,
@@ -575,6 +603,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd3p3.is_inversion());
+    assert_eq!(sd3p3.order(), 2);
     approx::assert_relative_eq!(
         sd3p3.total_proper_angle,
         0.0,
@@ -588,6 +617,7 @@ fn test_symmetry_operation_constructor() {
         .build()
         .unwrap();
     assert!(sd3p6.is_identity());
+    assert_eq!(sd3p6.order(), 1);
     approx::assert_relative_eq!(
         sd3p6.total_proper_angle,
         0.0,
@@ -679,6 +709,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(c1.order(), 1);
     assert_eq!(c1.total_proper_fraction, Some(F::from(1u64)));
 
     let c1b = SymmetryOperation::builder()
@@ -686,6 +717,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(-3)
         .build()
         .unwrap();
+    assert_eq!(c1b.order(), 1);
     assert_eq!(c1b.total_proper_fraction, Some(F::from(1u64)));
 
     let c2_element = SymmetryElement::builder()
@@ -702,6 +734,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(c2.order(), 2);
     assert_eq!(c2.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let c2p2 = SymmetryOperation::builder()
@@ -709,6 +742,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(2)
         .build()
         .unwrap();
+    assert_eq!(c2p2.order(), 1);
     assert_eq!(c2p2.total_proper_fraction, Some(F::from(1u64)));
 
     let c2p2_element = SymmetryElement::builder()
@@ -725,6 +759,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(c2p2b.order(), 1);
     assert_eq!(c2p2b.total_proper_fraction, Some(F::from(1u64)));
 
     let c3_element = SymmetryElement::builder()
@@ -741,6 +776,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(c3.order(), 3);
     assert_eq!(c3.total_proper_fraction, Some(F::new(1u64, 3u64)));
 
     let c3p2 = SymmetryOperation::builder()
@@ -748,6 +784,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(2)
         .build()
         .unwrap();
+    assert_eq!(c3p2.order(), 3);
     assert_eq!(c3p2.total_proper_fraction, Some(F::new(2u64, 3u64)));
 
     let c3pm2 = SymmetryOperation::builder()
@@ -755,6 +792,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(-2)
         .build()
         .unwrap();
+    assert_eq!(c3pm2.order(), 3);
     assert_eq!(c3pm2.total_proper_fraction, Some(F::new(1u64, 3u64)));
 
     let c3p3 = SymmetryOperation::builder()
@@ -762,6 +800,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(3)
         .build()
         .unwrap();
+    assert_eq!(c3p3.order(), 1);
     assert_eq!(c3p3.total_proper_fraction, Some(F::from(1u64)));
 
     let c3p4 = SymmetryOperation::builder()
@@ -769,6 +808,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(4)
         .build()
         .unwrap();
+    assert_eq!(c3p4.order(), 3);
     assert_eq!(c3p4.total_proper_fraction, Some(F::new(1u64, 3u64)));
 
     let c3pm4 = SymmetryOperation::builder()
@@ -776,6 +816,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(-4)
         .build()
         .unwrap();
+    assert_eq!(c3pm4.order(), 3);
     assert_eq!(c3pm4.total_proper_fraction, Some(F::new(2u64, 3u64)));
 
     let c3pp2_element = SymmetryElement::builder()
@@ -792,6 +833,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(-3)
         .build()
         .unwrap();
+    assert_eq!(c3pm6.order(), 1);
     assert_eq!(c3pm6.total_proper_fraction, Some(F::from(1u64)));
 
     let c4_element = SymmetryElement::builder()
@@ -808,6 +850,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(c4.order(), 4);
     assert_eq!(c4.total_proper_fraction, Some(F::new(1u64, 4u64)));
 
     let c4p2 = SymmetryOperation::builder()
@@ -815,6 +858,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(2)
         .build()
         .unwrap();
+    assert_eq!(c4p2.order(), 2);
     assert_eq!(c4p2.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let c4pm2 = SymmetryOperation::builder()
@@ -822,6 +866,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(-2)
         .build()
         .unwrap();
+    assert_eq!(c4pm2.order(), 2);
     assert_eq!(c4pm2.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let c4pm3 = SymmetryOperation::builder()
@@ -829,6 +874,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(-3)
         .build()
         .unwrap();
+    assert_eq!(c4pm3.order(), 4);
     assert_eq!(c4pm3.total_proper_fraction, Some(F::new(1u64, 4u64)));
 
     let c4p4 = SymmetryOperation::builder()
@@ -836,6 +882,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(4)
         .build()
         .unwrap();
+    assert_eq!(c4p4.order(), 1);
     assert_eq!(c4p4.total_proper_fraction, Some(F::from(1u64)));
 
     let c7_element = SymmetryElement::builder()
@@ -852,6 +899,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(c7.order(), 7);
     assert_eq!(c7.total_proper_fraction, Some(F::new(1u64, 7u64)));
 
     let c7p2 = SymmetryOperation::builder()
@@ -859,6 +907,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(2)
         .build()
         .unwrap();
+    assert_eq!(c7p2.order(), 7);
     assert_eq!(c7p2.total_proper_fraction, Some(F::new(2u64, 7u64)));
 
     let c7pm2 = SymmetryOperation::builder()
@@ -866,6 +915,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(-2)
         .build()
         .unwrap();
+    assert_eq!(c7pm2.order(), 7);
     assert_eq!(c7pm2.total_proper_fraction, Some(F::new(5u64, 7u64)));
 
     let c7pm3 = SymmetryOperation::builder()
@@ -873,6 +923,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(-3)
         .build()
         .unwrap();
+    assert_eq!(c7pm3.order(), 7);
     assert_eq!(c7pm3.total_proper_fraction, Some(F::new(4u64, 7u64)));
 
     let c7p4 = SymmetryOperation::builder()
@@ -880,6 +931,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(4)
         .build()
         .unwrap();
+    assert_eq!(c7p4.order(), 7);
     assert_eq!(c7p4.total_proper_fraction, Some(F::new(4u64, 7u64)));
 
     // ============================
@@ -899,6 +951,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(s1.order(), 2);
     assert_eq!(s1.total_proper_fraction, Some(F::from(1u64)));
 
     let s1pm2 = SymmetryOperation::builder()
@@ -906,6 +959,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(-2)
         .build()
         .unwrap();
+    assert_eq!(s1pm2.order(), 1);
     assert_eq!(s1pm2.total_proper_fraction, Some(F::from(1u64)));
 
     let sd2_element = SymmetryElement::builder()
@@ -922,6 +976,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(sd2.order(), 2);
     assert_eq!(sd2.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let sd2p2 = SymmetryOperation::builder()
@@ -929,6 +984,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(2)
         .build()
         .unwrap();
+    assert_eq!(sd2p2.order(), 1);
     assert_eq!(sd2p2.total_proper_fraction, Some(F::from(1u64)));
 
     let sd2pp2_element = SymmetryElement::builder()
@@ -945,6 +1001,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(sd2pp2.order(), 2);
     assert_eq!(sd2pp2.total_proper_fraction, Some(F::from(1u64)));
 
     let sd2pp2p6 = SymmetryOperation::builder()
@@ -952,6 +1009,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(6)
         .build()
         .unwrap();
+    assert_eq!(sd2pp2p6.order(), 1);
     assert_eq!(sd2pp2p6.total_proper_fraction, Some(F::from(1u64)));
 
     let s2_element = SymmetryElement::builder()
@@ -968,6 +1026,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(s2.order(), 2);
     assert_eq!(s2.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let s2p2 = SymmetryOperation::builder()
@@ -975,6 +1034,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(2)
         .build()
         .unwrap();
+    assert_eq!(s2p2.order(), 1);
     assert_eq!(s2p2.total_proper_fraction, Some(F::from(1u64)));
 
     let s2pp2_element = SymmetryElement::builder()
@@ -991,6 +1051,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(s2pp2.order(), 2);
     assert_eq!(s2pp2.total_proper_fraction, Some(F::from(1u64)));
 
     let s2pp2p4 = SymmetryOperation::builder()
@@ -998,6 +1059,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(4)
         .build()
         .unwrap();
+    assert_eq!(s2pp2p4.order(), 1);
     assert_eq!(s2pp2p4.total_proper_fraction, Some(F::from(1u64)));
 
     let sd1_element = SymmetryElement::builder()
@@ -1014,6 +1076,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(sd1.order(), 2);
     assert_eq!(sd1.total_proper_fraction, Some(F::from(1u64)));
 
     let sd1pm2 = SymmetryOperation::builder()
@@ -1021,6 +1084,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(-2)
         .build()
         .unwrap();
+    assert_eq!(sd1pm2.order(), 1);
     assert_eq!(sd1pm2.total_proper_fraction, Some(F::from(1u64)));
 
     let s3_element = SymmetryElement::builder()
@@ -1037,6 +1101,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(s3.order(), 6);
     assert_eq!(s3.total_proper_fraction, Some(F::new(1u64, 3u64)));
 
     let s3p3 = SymmetryOperation::builder()
@@ -1044,6 +1109,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(-3)
         .build()
         .unwrap();
+    assert_eq!(s3p3.order(), 2);
     assert_eq!(s3p3.total_proper_fraction, Some(F::from(1u64)));
 
     let s3p5 = SymmetryOperation::builder()
@@ -1052,6 +1118,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .build()
         .unwrap();
     assert!(!s3p5.is_proper());
+    assert_eq!(s3p5.order(), 6);
     assert_eq!(s3p5.total_proper_fraction, Some(F::new(2u64, 3u64)));
 
     let s3pm5 = SymmetryOperation::builder()
@@ -1060,6 +1127,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .build()
         .unwrap();
     assert!(!s3pm5.is_proper());
+    assert_eq!(s3pm5.order(), 6);
     assert_eq!(s3pm5.total_proper_fraction, Some(F::new(1u64, 3u64)));
 
     let s3p6 = SymmetryOperation::builder()
@@ -1067,6 +1135,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(6)
         .build()
         .unwrap();
+    assert_eq!(s3p6.order(), 1);
     assert_eq!(s3p6.total_proper_fraction, Some(F::from(1u64)));
 
     let s3pp2_element = SymmetryElement::builder()
@@ -1083,6 +1152,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(s3pp2.order(), 6);
     assert_eq!(s3pp2.total_proper_fraction, Some(F::new(2u64, 3u64)));
 
     let s3pp2p3 = SymmetryOperation::builder()
@@ -1090,6 +1160,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(3)
         .build()
         .unwrap();
+    assert_eq!(s3pp2p3.order(), 2);
     assert_eq!(s3pp2p3.total_proper_fraction, Some(F::from(1u64)));
 
     let s3pp3_element = SymmetryElement::builder()
@@ -1106,6 +1177,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(s3pp3.order(), 2);
     assert_eq!(s3pp3.total_proper_fraction, Some(F::from(1u64)));
 
     let s3pp3p2 = SymmetryOperation::builder()
@@ -1113,6 +1185,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(2)
         .build()
         .unwrap();
+    assert_eq!(s3pp3p2.order(), 1);
     assert_eq!(s3pp3p2.total_proper_fraction, Some(F::from(1u64)));
 
     let sd3_element = SymmetryElement::builder()
@@ -1129,6 +1202,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(sd3.order(), 6);
     assert_eq!(sd3.total_proper_fraction, Some(F::new(1u64, 3u64)));
 
     let sd3p3 = SymmetryOperation::builder()
@@ -1136,6 +1210,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(3)
         .build()
         .unwrap();
+    assert_eq!(sd3p3.order(), 2);
     assert_eq!(sd3p3.total_proper_fraction, Some(F::from(1u64)));
 
     let sd3p6 = SymmetryOperation::builder()
@@ -1143,6 +1218,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .power(6)
         .build()
         .unwrap();
+    assert_eq!(sd3p6.order(), 1);
     assert_eq!(sd3p6.total_proper_fraction, Some(F::from(1u64)));
 
     let si_element = SymmetryElement::builder()
@@ -4489,6 +4565,7 @@ fn test_symmetry_operation_time_reversal() {
         .time_reversal_power(1)
         .build()
         .unwrap();
+    assert_eq!(tc2x.order(), 2);
     assert!(tc2x.is_antiunitary());
     assert!((&tc2x * &tc2x).is_identity());
 
@@ -4500,6 +4577,7 @@ fn test_symmetry_operation_time_reversal() {
     assert!(!c2x.is_antiunitary());
 
     let t = &tc2x * &c2x;
+    assert_eq!(t.order(), 2);
     assert!(t.is_antiunitary());
     assert!(!t.is_identity());
     assert!(t.is_time_reversal());
@@ -4527,6 +4605,8 @@ fn test_symmetry_operation_time_reversal() {
         .build()
         .unwrap();
 
+    assert_eq!(tc2y.order(), 2);
+    assert_eq!(c2y.order(), 2);
     assert_eq!(&t * &c2y, tc2y);
     assert_eq!(&c2y * &t, tc2y);
     assert_eq!(&t * &tc2y, c2y);
@@ -4549,6 +4629,7 @@ fn test_symmetry_operation_time_reversal() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(sd1.order(), 2);
     assert!(!sd1.is_antiunitary());
 
     let tsd1 = SymmetryOperation::builder()
@@ -4557,6 +4638,7 @@ fn test_symmetry_operation_time_reversal() {
         .time_reversal_power(1)
         .build()
         .unwrap();
+    assert_eq!(tsd1.order(), 2);
     assert!(tsd1.is_antiunitary());
     assert!(!tsd1.is_inversion());
     assert!(!tsd1.is_identity());
@@ -4589,6 +4671,7 @@ fn test_symmetry_operation_exponentiation() {
         .power(-1)
         .build()
         .unwrap();
+    assert_eq!(c5pm1.order(), 5);
     assert_eq!(c5.pow(-1), c5pm1);
 
     let c5p2 = SymmetryOperation::builder()
@@ -4596,6 +4679,7 @@ fn test_symmetry_operation_exponentiation() {
         .power(2)
         .build()
         .unwrap();
+    assert_eq!(c5p2.order(), 5);
     assert_eq!(c5pm1.pow(-2), c5p2);
     assert_eq!(c5.pow(3), c5.pow(-2));
     assert_ne!(c5.pow(3), c5.pow(-3));
@@ -4614,6 +4698,7 @@ fn test_symmetry_operation_exponentiation() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(c6.order(), 6);
 
     let c3_element = SymmetryElement::builder()
         .threshold(1e-12)
@@ -4629,6 +4714,7 @@ fn test_symmetry_operation_exponentiation() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(c3.order(), 3);
     assert_eq!(c6.pow(2), c3);
 
     let c2_element = SymmetryElement::builder()
@@ -4674,6 +4760,7 @@ fn test_symmetry_operation_exponentiation() {
         .power(1)
         .build()
         .unwrap();
+    assert_eq!(s7.order(), 14);
     assert!(s7.pow(2).is_proper());
     assert!(s7.pow(7).is_reflection());
     assert!(s7.pow(14).is_identity());
@@ -4683,6 +4770,7 @@ fn test_symmetry_operation_exponentiation() {
         .power(2)
         .build()
         .unwrap();
+    assert_eq!(s7p2.order(), 7);
     assert_eq!(s7.pow(2), s7p2);
 
     // ===============================
@@ -4703,6 +4791,7 @@ fn test_symmetry_operation_exponentiation() {
         .time_reversal_power(1)
         .build()
         .unwrap();
+    assert_eq!(ts5.order(), 10);
     assert!(ts5.pow(1).is_antiunitary());
     assert!(!ts5.pow(2).is_antiunitary());
     assert!(!ts5.pow(5).is_time_reversal());
@@ -4722,6 +4811,7 @@ fn test_symmetry_operation_exponentiation() {
         .time_reversal_power(1)
         .build()
         .unwrap();
+    assert_eq!(tc5.order(), 10);
     assert!(tc5.pow(1).is_antiunitary());
     assert!(tc5.pow(5).is_time_reversal());
 }

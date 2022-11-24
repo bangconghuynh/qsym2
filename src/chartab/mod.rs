@@ -11,7 +11,7 @@ mod reducedint;
 mod unityroot;
 
 /// A struct to manage character tables.
-struct CharacterTable {
+pub struct CharacterTable {
     /// The name given to the character table.
     name: String,
 
