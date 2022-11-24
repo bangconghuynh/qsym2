@@ -220,7 +220,7 @@ impl FromStr for GenericSymbol {
 impl fmt::Display for GenericSymbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let prefac_str = if self.prefactor() != "1" {
-            format!("{}", self.prefactor())
+            self.prefactor().to_string()
         } else {
             "".to_string()
         };
@@ -246,7 +246,7 @@ impl fmt::Display for GenericSymbol {
             "".to_string()
         };
         let postfac_str = if self.postfactor() != "1" {
-            format!("{}", self.postfactor())
+            self.postfactor().to_string()
         } else {
             "".to_string()
         };

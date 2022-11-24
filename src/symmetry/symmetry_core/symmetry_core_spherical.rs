@@ -43,7 +43,7 @@ impl Symmetry {
                 // Case B: C2 might cross through any two atoms
                 if presym.check_proper(&ORDER_2, &atom_i_pos.coords)
                     && self.add_proper(
-                        ORDER_2.clone(),
+                        ORDER_2,
                         atom_i_pos.coords,
                         false,
                         presym.molecule.threshold,
@@ -57,7 +57,7 @@ impl Symmetry {
                 let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
                 if midvec.norm() > presym.molecule.threshold
                     && presym.check_proper(&ORDER_2, &midvec)
-                    && self.add_proper(ORDER_2.clone(), midvec, false, presym.molecule.threshold)
+                    && self.add_proper(ORDER_2, midvec, false, presym.molecule.threshold)
                 {
                     count_c2 += 1;
                     count_c2_stable = 0;
@@ -145,7 +145,7 @@ impl Symmetry {
                         self.point_group.as_ref().unwrap()
                     );
                     assert!(self.add_improper(
-                        ORDER_2.clone(),
+                        ORDER_2,
                         Vector3::new(0.0, 0.0, 1.0),
                         false,
                         SIG.clone(),
@@ -153,7 +153,7 @@ impl Symmetry {
                         presym.molecule.threshold
                     ));
                     assert!(self.add_improper(
-                        ORDER_2.clone(),
+                        ORDER_2,
                         Vector3::new(0.0, 0.0, 1.0),
                         true,
                         SIG.clone(),
@@ -186,7 +186,7 @@ impl Symmetry {
                         let sigmad_generator_normal = sigmad_normals[0].clone_owned();
                         for axis in sigmad_normals {
                             assert!(self.add_improper(
-                                ORDER_1.clone(),
+                                ORDER_1,
                                 axis,
                                 false,
                                 SIG.clone(),
@@ -195,7 +195,7 @@ impl Symmetry {
                             ));
                         }
                         assert!(self.add_improper(
-                            ORDER_1.clone(),
+                            ORDER_1,
                             sigmad_generator_normal,
                             true,
                             SIG.clone(),
@@ -224,7 +224,7 @@ impl Symmetry {
                         self.point_group.as_ref().unwrap()
                     );
                     assert!(self.add_improper(
-                        ORDER_2.clone(),
+                        ORDER_2,
                         Vector3::new(0.0, 0.0, 1.0),
                         false,
                         SIG.clone(),
@@ -232,7 +232,7 @@ impl Symmetry {
                         presym.molecule.threshold
                     ));
                     assert!(self.add_improper(
-                        ORDER_2.clone(),
+                        ORDER_2,
                         Vector3::new(0.0, 0.0, 1.0),
                         true,
                         SIG.clone(),
@@ -260,7 +260,7 @@ impl Symmetry {
                         self.point_group.as_ref().unwrap()
                     );
                     assert!(self.add_improper(
-                        ORDER_2.clone(),
+                        ORDER_2,
                         Vector3::new(0.0, 0.0, 1.0),
                         false,
                         SIG.clone(),
@@ -268,7 +268,7 @@ impl Symmetry {
                         presym.molecule.threshold
                     ));
                     assert!(self.add_improper(
-                        ORDER_2.clone(),
+                        ORDER_2,
                         Vector3::new(0.0, 0.0, 1.0),
                         true,
                         SIG.clone(),
@@ -312,7 +312,7 @@ impl Symmetry {
                 assert!(vec_normal.norm() > presym.molecule.threshold);
                 if presym.check_proper(&order_3, &vec_normal) {
                     count_c3 += self.add_proper(
-                        order_3.clone(),
+                        order_3,
                         vec_normal,
                         false,
                         presym.molecule.threshold,
@@ -344,7 +344,7 @@ impl Symmetry {
                 .map(|element| element.axis)
                 .collect();
             for c3_axis in c3_axes.iter() {
-                self.add_proper(order_3.clone(), *c3_axis, true, presym.molecule.threshold);
+                self.add_proper(order_3, *c3_axis, true, presym.molecule.threshold);
             }
         }
 
@@ -375,7 +375,7 @@ impl Symmetry {
                     assert!(vec_normal.norm() > presym.molecule.threshold);
                     if presym.check_proper(&order_4, &vec_normal) {
                         count_c4 += self.add_proper(
-                            order_4.clone(),
+                            order_4,
                             vec_normal,
                             false,
                             presym.molecule.threshold,
@@ -389,7 +389,7 @@ impl Symmetry {
             }
             assert!(found_consistent_c4);
             self.add_proper(
-                order_4.clone(),
+                order_4,
                 self.proper_elements[&order_4].iter().next().unwrap().axis,
                 true,
                 presym.molecule.threshold,
@@ -424,13 +424,13 @@ impl Symmetry {
                     assert!(vec_normal.norm() > presym.molecule.threshold);
                     if presym.check_proper(&order_5, &vec_normal) {
                         count_c5 += self.add_proper(
-                            order_5.clone(),
+                            order_5,
                             vec_normal,
                             false,
                             presym.molecule.threshold,
                         ) as i32;
                         self.add_proper(
-                            order_5.clone(),
+                            order_5,
                             vec_normal,
                             true,
                             presym.molecule.threshold,
@@ -464,7 +464,7 @@ impl Symmetry {
             let mut count_s4 = 0;
             for s4_axis in improper_s4_axes.into_iter() {
                 count_s4 += self.add_improper(
-                    order_4.clone(),
+                    order_4,
                     s4_axis,
                     false,
                     SIG.clone(),
@@ -492,7 +492,7 @@ impl Symmetry {
             let mut count_sigmah = 0;
             for sigmah_normal in sigmah_normals.into_iter() {
                 count_sigmah += self.add_improper(
-                    ORDER_1.clone(),
+                    ORDER_1,
                     sigmah_normal,
                     false,
                     SIG.clone(),
@@ -519,7 +519,7 @@ impl Symmetry {
             let mut count_s6 = 0;
             for s6_axis in s6_axes.into_iter() {
                 count_s6 += self.add_improper(
-                    order_6.clone(),
+                    order_6,
                     s6_axis,
                     false,
                     SIG.clone(),
@@ -549,7 +549,7 @@ impl Symmetry {
             let mut count_sigmah = 0;
             for s4_axis in s4_axes.into_iter() {
                 count_s4 += self.add_improper(
-                    order_4.clone(),
+                    order_4,
                     s4_axis,
                     false,
                     SIG.clone(),
@@ -557,7 +557,7 @@ impl Symmetry {
                     presym.molecule.threshold,
                 ) as i32;
                 count_sigmah += self.add_improper(
-                    ORDER_1.clone(),
+                    ORDER_1,
                     s4_axis,
                     false,
                     SIG.clone(),
@@ -586,7 +586,7 @@ impl Symmetry {
             let mut count_sigmad = 0;
             for sigmad_normal in sigmad_normals.into_iter() {
                 count_sigmad += self.add_improper(
-                    ORDER_1.clone(),
+                    ORDER_1,
                     sigmad_normal,
                     false,
                     SIG.clone(),
@@ -613,7 +613,7 @@ impl Symmetry {
             let mut count_s6 = 0;
             for s6_axis in s6_axes.into_iter() {
                 count_s6 += self.add_improper(
-                    order_6.clone(),
+                    order_6,
                     s6_axis,
                     false,
                     SIG.clone(),
@@ -643,7 +643,7 @@ impl Symmetry {
             let mut count_s10 = 0;
             for s10_axis in s10_axes.into_iter() {
                 count_s10 += self.add_improper(
-                    order_10.clone(),
+                    order_10,
                     s10_axis,
                     false,
                     SIG.clone(),
@@ -670,7 +670,7 @@ impl Symmetry {
             let mut count_s6 = 0;
             for s6_axis in s6_axes.into_iter() {
                 count_s6 += self.add_improper(
-                    order_6.clone(),
+                    order_6,
                     s6_axis,
                     false,
                     SIG.clone(),
@@ -696,7 +696,7 @@ impl Symmetry {
             let mut count_sigma = 0;
             for sigma_normal in sigma_normals.into_iter() {
                 count_sigma += self.add_improper(
-                    ORDER_1.clone(),
+                    ORDER_1,
                     sigma_normal,
                     false,
                     SIG.clone(),

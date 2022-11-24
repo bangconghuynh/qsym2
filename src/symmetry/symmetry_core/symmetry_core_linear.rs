@@ -33,7 +33,7 @@ impl Symmetry {
             max_relative = presym.dist_threshold
         ));
         assert!(self.add_proper(
-            ORDER_I.clone(),
+            ORDER_I,
             principal_axes[0],
             true,
             presym.dist_threshold
@@ -47,7 +47,7 @@ impl Symmetry {
             // i
             log::debug!("Located an inversion centre.");
             assert!(self.add_improper(
-                ORDER_2.clone(),
+                ORDER_2,
                 Vector3::new(0.0, 0.0, 1.0),
                 false,
                 SIG.clone(),
@@ -59,7 +59,7 @@ impl Symmetry {
             log::debug!("σh implied from C∞ and i.");
             assert!(presym.check_improper(&ORDER_1, &principal_axes[0], &SIG));
             assert!(self.add_improper(
-                ORDER_1.clone(),
+                ORDER_1,
                 principal_axes[0].clone_owned(),
                 true,
                 SIG.clone(),
@@ -71,7 +71,7 @@ impl Symmetry {
                 // C2
                 log::debug!("Located a C2 axis perpendicular to C∞.");
                 self.add_proper(
-                    ORDER_2.clone(),
+                    ORDER_2,
                     principal_axes[1],
                     true,
                     presym.dist_threshold
@@ -89,7 +89,7 @@ impl Symmetry {
                 // σv
                 log::debug!("Located a σv plane.");
                 self.add_improper(
-                    ORDER_1.clone(),
+                    ORDER_1,
                     principal_axes[1].clone_owned(),
                     true,
                     SIG.clone(),

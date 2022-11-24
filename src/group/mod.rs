@@ -367,8 +367,7 @@ impl Group<SymmetryOperation> {
                             );
                             "".to_string()
                         }
-                    } else {
-                        if let Some(v) = improper_class_orders.get_mut(&(
+                    } else if let Some(v) = improper_class_orders.get_mut(&(
                             rep_proper_order,
                             rep_proper_power,
                             rep_power,
@@ -376,13 +375,12 @@ impl Group<SymmetryOperation> {
                         )) {
                             *v += 1;
                             "'".repeat(*v)
-                        } else {
-                            improper_class_orders.insert(
-                                (rep_proper_order, rep_proper_power, rep_power, rep_sub),
-                                0,
-                            );
-                            "".to_string()
-                        }
+                    } else {
+                        improper_class_orders.insert(
+                            (rep_proper_order, rep_proper_power, rep_power, rep_sub),
+                            0,
+                        );
+                        "".to_string()
                     };
                     let size = class_element_indices.len();
                     (
