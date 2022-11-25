@@ -6,6 +6,7 @@ use approx;
 use fraction;
 use derive_builder::Builder;
 use nalgebra::{Point3, Vector3};
+use num::Integer;
 use num_traits::Pow;
 
 use crate::aux::geometry;
@@ -19,6 +20,14 @@ type Quaternion = (f64, Vector3<f64>);
 #[cfg(test)]
 #[path = "symmetry_operation_tests.rs"]
 mod symmetry_operation_tests;
+
+/// A trait for order finiteness.
+pub trait FiniteOrder {
+    type Int: Integer;
+
+    /// Calculates the finite order.
+    fn order(&self) -> Self::Int;
+}
 
 /// A trait for special symmetry transformations.
 pub trait SpecialSymmetryTransformation {
@@ -397,8 +406,13 @@ impl SymmetryOperation {
             )
         }
     }
+}
 
-    pub fn order(&self) -> u64 {
+impl FiniteOrder for SymmetryOperation {
+    type Int = u64;
+
+    /// Calculates the order of this symmetry operation.
+    fn order(&self) -> Self::Int {
         let denom = *self.total_proper_fraction.unwrap().denom().unwrap();
         if (self.is_proper() && !self.is_antiunitary()) || denom.rem_euclid(2) == 0 {
             denom

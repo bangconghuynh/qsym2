@@ -1,4 +1,4 @@
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use ndarray::{Array2, ArrayView1};
 
 use crate::chartab::character::Character;
@@ -7,8 +7,8 @@ use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
 
 mod character;
 mod modular_linalg;
-mod reducedint;
-mod unityroot;
+pub mod reducedint;
+pub mod unityroot;
 
 /// A struct to manage character tables.
 pub struct CharacterTable {

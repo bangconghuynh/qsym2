@@ -3,23 +3,30 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Mul;
 
+use fraction;
+use log;
+
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use log;
 use ndarray::{s, Array2, Array3, Axis, Zip};
+use num::integer::lcm;
+use num_modular::MontgomeryInt;
 use ordered_float::OrderedFloat;
+use primes::is_prime;
 use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 
-use fraction;
-
+use crate::chartab::unityroot::UnityRoot;
+use crate::chartab::CharacterTable;
+use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::symmetry::symmetry_core::Symmetry;
-use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
+use crate::symmetry::symmetry_element::symmetry_operation::{
+    FiniteOrder, SpecialSymmetryTransformation,
+};
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, SIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 use crate::symmetry::symmetry_symbols::ClassSymbol;
-use crate::chartab::CharacterTable;
 
 type F = fraction::Fraction;
 
@@ -28,7 +35,7 @@ mod group_tests;
 
 /// A struct for managing abstract groups.
 #[derive(Builder)]
-struct Group<T: Hash + Eq + Clone + Sync + Debug> {
+struct Group<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> {
     /// A name for the group.
     name: String,
 
@@ -110,7 +117,7 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug> {
     character_table: Option<CharacterTable>,
 }
 
-impl<T: Hash + Eq + Clone + Sync + Debug> GroupBuilder<T> {
+impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
     fn elements(&mut self, elems: Vec<T>) -> &mut Self {
         self.elements = Some(
             elems
@@ -123,8 +130,9 @@ impl<T: Hash + Eq + Clone + Sync + Debug> GroupBuilder<T> {
     }
 }
 
-impl<T: Hash + Eq + Clone + Sync + Debug> Group<T>
+impl<T> Group<T>
 where
+    T: Hash + Eq + Clone + Sync + Debug + FiniteOrder<Int = u64>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Returns a builder to construct a new group.
@@ -313,26 +321,50 @@ where
         self.class_matrix = Some(nmat);
     }
 
-    ///// Constructs the character table for this group using the Burnside--Dixon--Schneider
-    ///// algorithm.
-    /////
-    ///// This method sets the [`Self::class_matrix`] field.
-    /////
-    ///// # References
-    /////
-    ///// * J. D. Dixon, Numer. Math., 1967, 10, 446–450.
-    ///// * L. C. Grove, Groups and Characters, John Wiley & Sons, Inc., 1997.
-    //fn construct_character_table(&mut self) {
-    //    // Variable definitions
-    //    // --------------------
-    //    // m: LCM of the orders of the elements in the group (i.e. the group
-    //    //    exponent)
-    //    // p: A prime greater than 2*sqrt(|G|) and m | (p - 1), which is
-    //    //    guaranteed to exist by Dirichlet's theorem
-    //    // z: An integer having multiplicative order m when viewed as an
-    //    //    element of Z*p, i.e. z^m ≡ 1 (mod p) but z^n !≡ 1 (mod p) for all
-    //    //    0 <= n < m.
-    //}
+    /// Constructs the character table for this group using the Burnside--Dixon--Schneider
+    /// algorithm.
+    ///
+    /// This method sets the [`Self::class_matrix`] field.
+    ///
+    /// # References
+    ///
+    /// * J. D. Dixon, Numer. Math., 1967, 10, 446–450.
+    /// * L. C. Grove, Groups and Characters, John Wiley & Sons, Inc., 1997.
+    fn construct_character_table(&mut self) {
+        // Variable definitions
+        // --------------------
+        // m: LCM of the orders of the elements in the group (i.e. the group
+        //    exponent)
+        // p: A prime greater than 2*sqrt(|G|) and m | (p - 1), which is
+        //    guaranteed to exist by Dirichlet's theorem. p is guaranteed to be
+        //    odd.
+        // z: An integer having multiplicative order m when viewed as an
+        //    element of Z*p, i.e. z^m ≡ 1 (mod p) but z^n !≡ 1 (mod p) for all
+        //    0 <= n < m.
+        let m = self
+            .elements
+            .keys()
+            .map(|x| x.order())
+            .reduce(|acc, x| lcm(acc, x))
+            .unwrap();
+        let zeta = UnityRoot::new(1, m);
+        log::debug!("Found group exponent m = {}.", m);
+        log::debug!("Chosen primitive unity root ζ = {}.", zeta);
+
+        let mut r = (2.0 * (self.order as f64).sqrt() / (m as f64)).round() as u64;
+        if r == 0 { r = 1; };
+        let mut p = r * m + 1;
+        while !is_prime(p) {
+            log::debug!("Trying {}: not prime.", p);
+            r += 1;
+            p = r * m + 1;
+        }
+        log::debug!("Found r = {}.", r);
+        log::debug!("Found prime number p = r * m + 1 = {}.", p);
+        log::debug!("All arithmetic will now be carried out in GF({}).", p);
+
+        let z = MontgomeryInt::<u64>::new(1, &p).linalg();
+    }
 }
 
 impl Group<SymmetryOperation> {
@@ -389,18 +421,16 @@ impl Group<SymmetryOperation> {
                             "".to_string()
                         }
                     } else if let Some(v) = improper_class_orders.get_mut(&(
-                            rep_proper_order,
-                            rep_proper_power,
-                            rep_power,
-                            rep_sub.clone(),
-                        )) {
-                            *v += 1;
-                            "'".repeat(*v)
+                        rep_proper_order,
+                        rep_proper_power,
+                        rep_power,
+                        rep_sub.clone(),
+                    )) {
+                        *v += 1;
+                        "'".repeat(*v)
                     } else {
-                        improper_class_orders.insert(
-                            (rep_proper_order, rep_proper_power, rep_power, rep_sub),
-                            0,
-                        );
+                        improper_class_orders
+                            .insert((rep_proper_order, rep_proper_power, rep_power, rep_sub), 0);
                         "".to_string()
                     };
                     let size = class_element_indices.len();

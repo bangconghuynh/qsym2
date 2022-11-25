@@ -1,8 +1,10 @@
-use std::hash::{Hash, Hasher};
-use std::ops::{Add, Div, Mul, Neg, Sub};
 use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::iter::Step;
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
-use num_modular::{ModularInteger, ReducedInt, Reducer, Montgomery};
+use num::{integer::gcd, Integer};
+use num_modular::{ModularInteger, Montgomery, ReducedInt, Reducer};
 use num_traits::{Inv, One, Pow, Zero};
 
 use crate::aux::misc;
@@ -266,8 +268,8 @@ where
 // ---
 // Div
 // ---
-impl<T: Zero + One + PartialEq + Clone + Hash, R: Reducer<T> + Clone> Div<&'_ LinAlgReducedInt<T, R>>
-    for &LinAlgReducedInt<T, R>
+impl<T: Zero + One + PartialEq + Clone + Hash, R: Reducer<T> + Clone>
+    Div<&'_ LinAlgReducedInt<T, R>> for &LinAlgReducedInt<T, R>
 {
     type Output = LinAlgReducedInt<T, R>;
 
@@ -473,7 +475,8 @@ impl<T, R> Eq for LinAlgReducedInt<T, R>
 where
     T: Zero + One + PartialEq + Eq + Clone + Hash,
     R: Reducer<T> + Clone,
-{ }
+{
+}
 
 // --------------
 // ReducedInteger
@@ -616,7 +619,42 @@ where
         match self {
             Self::Zero => write!(f, "0"),
             Self::One => write!(f, "1"),
-            _ => write!(f, "{} (mod {})", self.residue(), self.modulus())
+            _ => write!(f, "{} (mod {})", self.residue(), self.modulus()),
+        }
+    }
+}
+
+// ------------------
+// Associated methods
+// ------------------
+impl<T, R> LinAlgReducedInt<T, R>
+where
+    T: Zero + One + PartialEq + Clone + Hash + fmt::Display + Integer,
+    R: Reducer<T> + Clone,
+{
+    fn find_multiplicative_order(&self) -> Option<T> {
+        match self {
+            Self::Zero => None,
+            Self::One => Some(T::one()),
+            _ => {
+                // Check that residue and modulus are coprime.
+                assert!(
+                    gcd(self.residue(), self.modulus()) == T::one(),
+                    "{} is not coprime to {}.",
+                    self.residue(),
+                    self.modulus()
+                );
+                let unity = Self::one();
+                let mut k = T::one();
+                while self.pow(k) != unity && k < self.modulus() - T::one() {
+                    k = k + T::one();
+                }
+                if self.pow(k) == unity {
+                    Some(k)
+                } else {
+                    None
+                }
+            }
         }
     }
 }
