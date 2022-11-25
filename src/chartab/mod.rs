@@ -5,8 +5,8 @@ use crate::chartab::character::Character;
 use crate::symmetry::symmetry_element::symmetry_operation::SymmetryOperation;
 use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
 
-mod character;
-mod modular_linalg;
+pub mod character;
+pub mod modular_linalg;
 pub mod reducedint;
 pub mod unityroot;
 

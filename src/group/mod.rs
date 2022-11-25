@@ -9,17 +9,20 @@ use log;
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use ndarray::{s, Array2, Array3, Axis, Zip};
+use ndarray::{array, s, Array1, Array2, Array3, Axis, Zip};
 use num::integer::lcm;
-use num_modular::MontgomeryInt;
+use num_modular::{ModularInteger, MontgomeryInt};
 use ordered_float::OrderedFloat;
 use primes::is_prime;
 use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 
+use crate::chartab::modular_linalg::{
+    modular_determinant, modular_eig, modular_kernel, modular_rref, split_space,
+};
+use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::CharacterTable;
-use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
@@ -352,7 +355,9 @@ where
         log::debug!("Chosen primitive unity root ζ = {}.", zeta);
 
         let mut r = (2.0 * (self.order as f64).sqrt() / (m as f64)).round() as u64;
-        if r == 0 { r = 1; };
+        if r == 0 {
+            r = 1;
+        };
         let mut p = r * m + 1;
         while !is_prime(p) {
             log::debug!("Trying {}: not prime.", p);
@@ -363,8 +368,79 @@ where
         log::debug!("Found prime number p = r * m + 1 = {}.", p);
         log::debug!("All arithmetic will now be carried out in GF({}).", p);
 
-        let z = MontgomeryInt::<u64>::new(1, &p).linalg();
-        let z_mult_ord = z.multiplicative_order().unwrap();
+        let modp = MontgomeryInt::<u64>::new(1, &p).linalg();
+        // p is prime, so there is guaranteed a z < p such that z^m ≡ 1 (mod p).
+        let mut i = 1u64;
+        while modp.convert(i).multiplicative_order().unwrap() != m && i < p {
+            i += 1;
+        }
+        let z = modp.convert(i);
+        assert_eq!(z.multiplicative_order().unwrap(), m);
+        log::debug!("Found integer z = {} with multiplicative order {}.", z, m);
+
+        let class_matrices = self.class_matrix.as_ref().unwrap();
+        let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u64>>> = vec![];
+
+        if self.class_number.unwrap() == 1 {
+            eigvecs_1d.push(array![modp.convert(1)]);
+        } else {
+            let mut degenerate_subspaces: Vec<&Vec<Array1<LinAlgMontgomeryInt<u64>>>> = vec![];
+            let nmat = self
+                .class_matrix
+                .as_ref()
+                .unwrap()
+                .map(|&i| modp.convert(u64::try_from(i).unwrap()));
+            log::debug!("Considering class matrix N1...");
+            let nmat_1 = nmat.slice(s![0, .., ..]).to_owned();
+            let eigs_1 = modular_eig(&nmat_1);
+            eigs_1.iter().for_each(|(_, eigvecs)| {
+                if eigvecs.len() == 1 {
+                    eigvecs_1d.push(eigvecs[0]);
+                } else {
+                    degenerate_subspaces.push(eigvecs);
+                }
+            });
+
+            let mut r = 1;
+            let class_sizes: Vec<_> = self
+                .conjugacy_classes
+                .unwrap()
+                .iter()
+                .map(|cc| cc.len())
+                .collect();
+            while degenerate_subspaces.len() > 0 {
+                assert!(
+                    r < (self.class_number.unwrap() - 1),
+                    "Class matrices exhausted before degenerate subspaces are fully resolved."
+                );
+
+                r += 1;
+                log::debug!(
+                    "Number of 1-D eigenvectors found: {} / {}.",
+                    eigvecs_1d.len(),
+                    self.class_number.unwrap()
+                );
+                log::debug!(
+                    "Number of degenerate subspaces found: {}.",
+                    degenerate_subspaces.len(),
+                );
+
+                log::debug!("Considering class matrix N{}...", r);
+                let nmat_r = nmat.slice(s![r, .., ..]).to_owned();
+
+                while degenerate_subspaces.len() > 0 {
+                    let subspace = degenerate_subspaces.pop().unwrap();
+                    // TODO: In Python, this is a try-except block.
+                    // Needs to figure out what the exception-equivalent is.
+                    let subsubspaces = split_space(
+                        &nmat_r,
+                        subspace,
+                        &class_sizes,
+                        self.inverse_conjugacy_classes.as_ref(),
+                    );
+                }
+            }
+        }
     }
 }
 

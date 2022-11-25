@@ -26,7 +26,7 @@ mod modular_linalg_tests;
 /// # Returns
 ///
 /// The determinant of `mat` in the same field.
-fn modular_determinant<T>(mat: &Array2<T>) -> T
+pub fn modular_determinant<T>(mat: &Array2<T>) -> T
 where
     T: Clone + LinalgScalar + ModularInteger<Base = u64> + Div<Output = T>,
 {
@@ -73,7 +73,7 @@ where
 ///
 /// * The reduced row echelon form of `mat`.
 /// * The nullity of `mat`.
-fn modular_rref<T>(mat: &Array2<T>) -> (Array2<T>, usize)
+pub fn modular_rref<T>(mat: &Array2<T>) -> (Array2<T>, usize)
 where
     T: Clone + Copy + Debug + ModularInteger<Base = u64> + Div<Output = T>,
 {
@@ -419,7 +419,7 @@ where
 /// # Returns
 /// A vector of vectors of vectors, where each inner vector contains the basis
 /// vectors for an `$n$`-dimensional subspace, `$n \ge 1$`.
-fn split_space<T>(
+pub fn split_space<T>(
     mat: &Array2<T>,
     vecs: &[Array1<T>],
     class_sizes: &[usize],
