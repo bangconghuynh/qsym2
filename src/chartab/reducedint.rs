@@ -1,6 +1,5 @@
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::iter::Step;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use num::{integer::gcd, Integer};
@@ -632,24 +631,22 @@ where
     T: Zero + One + PartialEq + Clone + Hash + fmt::Display + Integer,
     R: Reducer<T> + Clone,
 {
-    fn find_multiplicative_order(&self) -> Option<T> {
+    pub fn multiplicative_order(&self) -> Option<T> {
         match self {
             Self::Zero => None,
             Self::One => Some(T::one()),
             _ => {
                 // Check that residue and modulus are coprime.
-                assert!(
-                    gcd(self.residue(), self.modulus()) == T::one(),
-                    "{} is not coprime to {}.",
-                    self.residue(),
-                    self.modulus()
-                );
+                if gcd(self.residue(), self.modulus()) != T::one() {
+                    log::debug!("{} is not coprime to {}.", self.residue(), self.modulus());
+                    return None
+                }
                 let unity = Self::one();
                 let mut k = T::one();
-                while self.pow(k) != unity && k < self.modulus() - T::one() {
+                while self.pow(k.clone()) != unity && k < self.modulus() - T::one() {
                     k = k + T::one();
                 }
-                if self.pow(k) == unity {
+                if self.pow(k.clone()) == unity {
                     Some(k)
                 } else {
                     None

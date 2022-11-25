@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use crate::aux::geometry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    SpecialSymmetryTransformation, SymmetryOperation,
+    SpecialSymmetryTransformation, SymmetryOperation, FiniteOrder
 };
 use crate::symmetry::symmetry_element::{
     ElementOrder, SymmetryElement, SymmetryElementKind, F, INV, SIG,

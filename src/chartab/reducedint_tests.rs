@@ -8,8 +8,8 @@ use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 
 #[test]
 fn test_linalgreducedint_identities() {
-    let zero = LinAlgMontgomeryInt::zero();
-    let one = LinAlgMontgomeryInt::one();
+    let zero = LinAlgMontgomeryInt::<u64>::zero();
+    let one = LinAlgMontgomeryInt::<u64>::one();
     let i0_7 = MontgomeryInt::<u64>::new(0, &7).linalg();
     let i1_7 = i0_7.convert(1);
     let i2_7 = i0_7.convert(2);
@@ -89,6 +89,39 @@ fn test_linalgreducedint_identities() {
     assert_eq!(one.inv(), one);
     assert!(panic::catch_unwind(|| { zero.inv() }).is_err());
     assert!(panic::catch_unwind(|| { i0_7.inv() }).is_err());
+}
+
+#[test]
+fn test_linalgreducedint_multiplicative_order() {
+    let zero = LinAlgMontgomeryInt::<u64>::zero();
+    let one = LinAlgMontgomeryInt::<u64>::one();
+    let i0_7 = MontgomeryInt::<u64>::new(0, &7).linalg();
+    let i1_7 = i0_7.convert(1);
+    let i2_7 = i0_7.convert(2);
+    let i3_7 = i0_7.convert(3);
+    let i4_7 = i0_7.convert(4);
+    let i5_7 = i0_7.convert(5);
+    let i6_7 = i0_7.convert(6);
+
+    assert!(i0_7.multiplicative_order().is_none());
+    assert!(zero.multiplicative_order().is_none());
+
+    assert_eq!(i1_7.multiplicative_order(), Some(1));
+    assert_eq!(one.multiplicative_order(), Some(1));
+
+    assert_eq!(i2_7.multiplicative_order(), Some(3));
+    assert_eq!(i3_7.multiplicative_order(), Some(6));
+    assert_eq!(i4_7.multiplicative_order(), Some(3));
+    assert_eq!(i5_7.multiplicative_order(), Some(6));
+    assert_eq!(i6_7.multiplicative_order(), Some(2));
+
+    let i0_9 = MontgomeryInt::<u64>::new(0, &9).linalg();
+    let i1_9 = i0_9.convert(1);
+    let i2_9 = i0_9.convert(2);
+    let i3_9 = i0_9.convert(3);
+    assert_eq!(i1_9.multiplicative_order(), Some(1));
+    assert_eq!(i2_9.multiplicative_order(), Some(6));
+    assert!(i3_9.multiplicative_order().is_none());
 }
 
 #[test]

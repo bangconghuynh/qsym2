@@ -364,6 +364,7 @@ where
         log::debug!("All arithmetic will now be carried out in GF({}).", p);
 
         let z = MontgomeryInt::<u64>::new(1, &p).linalg();
+        let z_mult_ord = z.multiplicative_order().unwrap();
     }
 }
 
