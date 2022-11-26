@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::Mul;
 
+use approx;
 use fraction;
 use log;
 
@@ -12,17 +13,17 @@ use itertools::Itertools;
 use ndarray::{array, s, Array1, Array2, Array3, Axis, Zip};
 use num::integer::lcm;
 use num_modular::{ModularInteger, MontgomeryInt};
+use num_traits::{Inv, Pow};
 use ordered_float::OrderedFloat;
 use primes::is_prime;
 use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 
-use crate::chartab::modular_linalg::{
-    modular_determinant, modular_eig, modular_kernel, modular_rref, split_space,
-};
+use crate::chartab::modular_linalg::{modular_eig, split_space, weighted_hermitian_inprod};
 use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::CharacterTable;
+use crate::chartab::character::Character;
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
@@ -73,6 +74,13 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> {
     /// or more element indices.
     #[builder(setter(skip), default = "None")]
     conjugacy_classes: Option<Vec<HashSet<usize>>>,
+
+    /// The conjugacy class representatives of the group.
+    ///
+    /// Each element in the vector is an index for a representative element of the corresponding
+    /// conjugacy class.
+    #[builder(setter(skip), default = "None")]
+    conjugacy_class_transversal: Option<Vec<usize>>,
 
     /// An index map of symbols for the conjugacy classes in this group.
     ///
@@ -135,7 +143,7 @@ impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
 
 impl<T> Group<T>
 where
-    T: Hash + Eq + Clone + Sync + Debug + FiniteOrder<Int = u64>,
+    T: Hash + Eq + Clone + Sync + Send + Debug + Pow<i32, Output = T> + FiniteOrder<Int = u64>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Returns a builder to construct a new group.
@@ -206,7 +214,8 @@ where
     /// Find the conjugacy classes and their inverses for the group.
     ///
     /// This method sets the [`Self::conjugacy_classes`], [`Self::inverse_conjugacy_classes`],
-    /// [`Self::element_to_conjugacy_classes`], and [`Self::class_number`] fields.
+    /// [`Self::conjugacy_class_transversal`], [`Self::element_to_conjugacy_classes`], and
+    /// [`Self::class_number`] fields.
     fn find_conjugacy_classes(&mut self) {
         // Find conjugacy classes
         log::debug!("Finding conjugacy classes...");
@@ -249,6 +258,16 @@ where
         }
         self.class_number = Some(self.conjugacy_classes.as_ref().unwrap().len());
         log::debug!("Finding conjugacy classes... Done.");
+
+        // Set conjugacy class transversal
+        self.conjugacy_class_transversal = Some(
+            self.conjugacy_classes
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|cc| cc.iter().next().unwrap().clone())
+                .collect(),
+        );
 
         // Find inverse conjugacy classes
         log::debug!("Finding inverse conjugacy classes...");
@@ -344,6 +363,8 @@ where
         // z: An integer having multiplicative order m when viewed as an
         //    element of Z*p, i.e. z^m ≡ 1 (mod p) but z^n !≡ 1 (mod p) for all
         //    0 <= n < m.
+
+        // Identify a suitable finite field
         let m = self
             .elements
             .keys()
@@ -378,13 +399,21 @@ where
         assert_eq!(z.multiplicative_order().unwrap(), m);
         log::debug!("Found integer z = {} with multiplicative order {}.", z, m);
 
-        let class_matrices = self.class_matrix.as_ref().unwrap();
+        // Diagonalise class matrices
+        let class_sizes: Vec<_> = self
+            .conjugacy_classes
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|cc| cc.len())
+            .collect();
+        let inverse_conjugacy_classes = self.inverse_conjugacy_classes.as_ref();
         let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u64>>> = vec![];
 
         if self.class_number.unwrap() == 1 {
             eigvecs_1d.push(array![modp.convert(1)]);
         } else {
-            let mut degenerate_subspaces: Vec<&Vec<Array1<LinAlgMontgomeryInt<u64>>>> = vec![];
+            let mut degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u64>>>> = vec![];
             let nmat = self
                 .class_matrix
                 .as_ref()
@@ -393,21 +422,27 @@ where
             log::debug!("Considering class matrix N1...");
             let nmat_1 = nmat.slice(s![0, .., ..]).to_owned();
             let eigs_1 = modular_eig(&nmat_1);
-            eigs_1.iter().for_each(|(_, eigvecs)| {
+            eigvecs_1d.extend(eigs_1.iter().filter_map(|(_, eigvecs)| {
                 if eigvecs.len() == 1 {
-                    eigvecs_1d.push(eigvecs[0]);
+                    Some(eigvecs[0].clone())
                 } else {
-                    degenerate_subspaces.push(eigvecs);
+                    None
                 }
-            });
+            }));
+            degenerate_subspaces.extend(
+                eigs_1
+                    .iter()
+                    .filter_map(|(_, eigvecs)| {
+                        if eigvecs.len() > 1 {
+                            Some(eigvecs)
+                        } else {
+                            None
+                        }
+                    })
+                    .cloned(),
+            );
 
             let mut r = 1;
-            let class_sizes: Vec<_> = self
-                .conjugacy_classes
-                .unwrap()
-                .iter()
-                .map(|cc| cc.len())
-                .collect();
             while degenerate_subspaces.len() > 0 {
                 assert!(
                     r < (self.class_number.unwrap() - 1),
@@ -428,19 +463,90 @@ where
                 log::debug!("Considering class matrix N{}...", r);
                 let nmat_r = nmat.slice(s![r, .., ..]).to_owned();
 
+                let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u64>>>> =
+                    vec![];
                 while degenerate_subspaces.len() > 0 {
                     let subspace = degenerate_subspaces.pop().unwrap();
                     // TODO: In Python, this is a try-except block.
                     // Needs to figure out what the exception-equivalent is.
-                    let subsubspaces = split_space(
-                        &nmat_r,
-                        subspace,
-                        &class_sizes,
-                        self.inverse_conjugacy_classes.as_ref(),
+                    let subsubspaces =
+                        split_space(&nmat_r, &subspace, &class_sizes, inverse_conjugacy_classes);
+                    eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
+                        if subsubspace.len() == 1 {
+                            Some(subsubspace[0].clone())
+                        } else {
+                            None
+                        }
+                    }));
+                    remaining_degenerate_subspaces.extend(
+                        subsubspaces
+                            .iter()
+                            .filter(|subsubspace| subsubspace.len() > 1)
+                            .cloned(),
                     );
                 }
+                degenerate_subspaces = remaining_degenerate_subspaces;
             }
         }
+
+        assert_eq!(eigvecs_1d.len(), self.class_number.unwrap());
+        log::debug!(
+            "Successfully found {} / {} one-dimensional eigenvectors for the class matrices.",
+            eigvecs_1d.len(),
+            self.class_number.unwrap()
+        );
+        for (i, vec) in eigvecs_1d.iter().enumerate() {
+            log::debug!("Eigenvector {}: {}", i, vec);
+        }
+
+        // Lift characters back to the complex field
+        log::debug!(
+            "Lifting characters from GF({}) back to the complex field...",
+            p
+        );
+        let class_transversal = self.conjugacy_class_transversal.as_ref().unwrap();
+
+        let chars: Vec<_> = eigvecs_1d.par_iter().fold(|| vec![], |mut acc, vec_i| {
+            let mut dim2_mod_p =
+                weighted_hermitian_inprod((&vec_i, &vec_i), &class_sizes, inverse_conjugacy_classes)
+                    .inv()
+                    .residue();
+            while !approx::relative_eq!(
+                (dim2_mod_p as f64).sqrt().round(),
+                (dim2_mod_p as f64).sqrt()
+            ) {
+                dim2_mod_p += p;
+            }
+            let dim_i = (dim2_mod_p as f64).sqrt().round() as u64;
+            let tchar_i = Zip::from(vec_i)
+                .and(class_sizes.as_slice())
+                .par_map_collect(|&v, &k| v * dim_i / modp.convert(u64::try_from(k).unwrap()));
+            let char_i: Vec<_> = class_transversal.par_iter().map(|x_idx| {
+                let x = self.elements.get_index(*x_idx).unwrap().0;
+                let k = x.order();
+                let xi = zeta.clone().pow(i32::try_from(m.checked_div_euclid(k).unwrap()).unwrap());
+                let char_ij_terms: Vec<_> = (0..k).into_par_iter().map(|s| {
+                    let mu_s = (0..k).fold(modp.convert(0), |acc, l| {
+                        let x_l = x.clone().pow(l as i32);
+                        let x_l_idx = *self.elements.get(&x_l).unwrap();
+                        let x_l_class_idx =
+                            self.element_to_conjugacy_classes.as_ref().unwrap()[x_l_idx];
+                        let tchar_i_x_l = tchar_i[x_l_class_idx];
+                        acc + tchar_i_x_l * z.pow(s * l * m.checked_div_euclid(k).unwrap()).inv()
+                    }) / k;
+                    (xi.pow(i32::try_from(s).unwrap()), mu_s.residue() as usize)
+                }).collect();
+                Character::new(&char_ij_terms)
+            }).collect();
+            acc.extend(char_i);
+            acc
+        }).collect();
+
+        let char_arr = Array2::from_shape_vec(
+            (self.class_number.unwrap(), self.class_number.unwrap()),
+            chars
+        ).unwrap();
+        println!("{}", char_arr);
     }
 }
 

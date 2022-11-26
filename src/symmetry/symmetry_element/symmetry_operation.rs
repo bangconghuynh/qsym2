@@ -811,12 +811,20 @@ impl<'a, 'b> Mul<&'a SymmetryOperation> for &'b SymmetryOperation {
 impl Pow<i32> for &SymmetryOperation {
     type Output = SymmetryOperation;
 
-    fn pow(self, rhs: i32) -> SymmetryOperation {
+    fn pow(self, rhs: i32) -> Self::Output {
         SymmetryOperation::builder()
             .generating_element(self.generating_element.clone())
             .power(self.power * rhs)
             .time_reversal_power(self.time_reversal_power * rhs)
             .build()
             .unwrap()
+    }
+}
+
+impl Pow<i32> for SymmetryOperation {
+    type Output = SymmetryOperation;
+
+    fn pow(self, rhs: i32) -> Self::Output {
+        (&self).pow(rhs)
     }
 }

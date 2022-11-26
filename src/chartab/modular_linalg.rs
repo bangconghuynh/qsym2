@@ -322,7 +322,7 @@ where
 ///
 /// # Returns
 /// The weighted Hermitian inner product.
-fn weighted_hermitian_inprod<T>(
+pub fn weighted_hermitian_inprod<T>(
     vec_pair: (&Array1<T>, &Array1<T>),
     class_sizes: &[usize],
     perm_for_conj: Option<&Vec<usize>>,
