@@ -626,25 +626,29 @@ where
             col_indices.extend(0..special_col);
             col_indices.extend((special_col + 1)..self.class_number.unwrap());
             let sort_arr = char_arr.select(Axis(1), &col_indices);
-            (0..char_arr.nrows()).sorted_by(|&i, &j| {
-                let keys_i = (
-                    -(char_arr[[i, special_col]].complex_value().re
-                    / char_arr[[i, special_col]].complex_value().norm()),
-                    sort_arr.row(i).iter().cloned().collect_vec()
-                );
-                let keys_j = (
-                    -(char_arr[[j, special_col]].complex_value().re
-                    / char_arr[[j, special_col]].complex_value().norm()),
-                    sort_arr.row(j).iter().cloned().collect_vec()
-                );
-                PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
-            }).collect()
+            (0..char_arr.nrows())
+                .sorted_by(|&i, &j| {
+                    let keys_i = (
+                        -(char_arr[[i, special_col]].complex_value().re
+                            / char_arr[[i, special_col]].complex_value().norm()),
+                        sort_arr.row(i).iter().cloned().collect_vec(),
+                    );
+                    let keys_j = (
+                        -(char_arr[[j, special_col]].complex_value().re
+                            / char_arr[[j, special_col]].complex_value().norm()),
+                        sort_arr.row(j).iter().cloned().collect_vec(),
+                    );
+                    PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
+                })
+                .collect()
         } else {
-            (0..char_arr.nrows()).sorted_by(|&i, &j| {
-                let keys_i = char_arr.row(i).iter().cloned().collect_vec();
-                let keys_j = char_arr.row(j).iter().cloned().collect_vec();
-                PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
-            }).collect()
+            (0..char_arr.nrows())
+                .sorted_by(|&i, &j| {
+                    let keys_i = char_arr.row(i).iter().cloned().collect_vec();
+                    let keys_j = char_arr.row(j).iter().cloned().collect_vec();
+                    PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
+                })
+                .collect()
         };
         let char_arr = char_arr.select(Axis(0), &sort_row_indices);
         println!("{}", char_arr);

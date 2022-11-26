@@ -573,7 +573,6 @@ Cn
 
 #[test]
 fn test_character_table_construction_symmetric_ch4_magnetic_field_c3() {
-    env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1405,13 +1404,13 @@ fn test_character_table_construction_symmetric_sf5cl_c4v() {
 //     );
 // }
 
-// #[test]
-// fn test_character_table_construction_symmetric_xef4_d4h() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
-//     let thresh = 1e-7;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction(&mol, thresh, "D4h", 16, 10, false);
-// }
+#[test]
+fn test_character_table_construction_symmetric_xef4_d4h() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_character_table(&mol, thresh);
+}
 
 // #[test]
 // fn test_character_table_construction_symmetric_xef4_d4h_class_order() {
@@ -1532,13 +1531,14 @@ fn test_character_table_construction_symmetric_sf5cl_c4v() {
 //     );
 // }
 
-// #[test]
-// fn test_character_table_construction_symmetric_h100_d100h() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
-//     let thresh = 1e-6;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction(&mol, thresh, "D100h", 400, 106, false);
-// }
+#[test]
+fn test_character_table_construction_symmetric_h100_d100h() {
+    env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_character_table(&mol, thresh);
+}
 
 // #[test]
 // fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_dnh() {
