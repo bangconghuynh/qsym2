@@ -36,11 +36,11 @@ fn test_abstract_group_creation() {
         .build()
         .unwrap();
 
-    let group_c5 = Group::<SymmetryOperation>::new("C5", (0..5).map(|k| c5.pow(k)).collect());
+    let group_c5 = Group::<SymmetryOperation>::new("C5", (0..5).map(|k| (&c5).pow(k)).collect());
     let mut elements = group_c5.elements.keys();
     for i in 0..5 {
         let op = elements.next().unwrap();
-        assert_eq!(*op, c5.pow(i));
+        assert_eq!(*op, (&c5).pow(i));
     }
     assert!(group_c5.is_abelian());
 
@@ -59,11 +59,11 @@ fn test_abstract_group_creation() {
         .build()
         .unwrap();
 
-    let group_c29 = Group::<SymmetryOperation>::new("C29", (0..29).map(|k| c29.pow(k)).collect());
+    let group_c29 = Group::<SymmetryOperation>::new("C29", (0..29).map(|k| (&c29).pow(k)).collect());
     let mut elements = group_c29.elements.keys();
     for i in 0..29 {
         let op = elements.next().unwrap();
-        assert_eq!(*op, c29.pow(i));
+        assert_eq!(*op, (&c29).pow(i));
     }
     assert!(group_c29.is_abelian());
 }

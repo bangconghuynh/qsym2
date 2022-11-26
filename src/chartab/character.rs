@@ -72,7 +72,7 @@ impl Character {
     /// # Returns
     ///
     /// The complex value corresponding to this character.
-    fn complex_value(&self) -> Complex<f64> {
+    pub fn complex_value(&self) -> Complex<f64> {
         self.terms
             .iter()
             .fold(Complex::<f64>::new(0.0, 0.0), |acc, (uroot, &mult)| {

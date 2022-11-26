@@ -363,7 +363,7 @@ fn test_modular_linalg_split_space() {
     let eigs = modular_eig(&arr_1);
     let ev4_eigvecs = eigs.get(&i_41s[4]).unwrap();
     let ev4_eigvecs_subspaces =
-        split_space(&arr_2, ev4_eigvecs, &class_sizes, Some(&perm_for_conj));
+        split_space(&arr_2, ev4_eigvecs, &class_sizes, Some(&perm_for_conj)).unwrap();
     assert_eq!(ev4_eigvecs_subspaces.len(), 4);
 
     let mat2_on_mat1_ev4_subspaces_ref = vec![

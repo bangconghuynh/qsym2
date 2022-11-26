@@ -19,11 +19,11 @@ use primes::is_prime;
 use rayon::iter::ParallelBridge;
 use rayon::prelude::*;
 
+use crate::chartab::character::Character;
 use crate::chartab::modular_linalg::{modular_eig, split_space, weighted_hermitian_inprod};
 use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::CharacterTable;
-use crate::chartab::character::Character;
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
@@ -36,6 +36,9 @@ type F = fraction::Fraction;
 
 #[cfg(test)]
 mod group_tests;
+
+#[cfg(test)]
+mod chartab_construction_tests;
 
 /// A struct for managing abstract groups.
 #[derive(Builder)]
@@ -173,6 +176,7 @@ where
             .unwrap();
         grp.construct_cayley_table();
         grp.find_conjugacy_classes();
+        grp.assign_class_symbols();
         grp.calc_class_matrix();
         grp
     }
@@ -269,6 +273,9 @@ where
                 .collect(),
         );
 
+        // Set default class symbols
+        // self.conjugacy_class_symbols = Some(IndexMap::from_iter(class_symbols_iter));
+
         // Find inverse conjugacy classes
         log::debug!("Finding inverse conjugacy classes...");
         let mut iccs: Vec<_> = self
@@ -298,6 +305,28 @@ where
         assert!(iccs.iter().skip(1).all(|&x| x > 0));
         self.inverse_conjugacy_classes = Some(iccs);
         log::debug!("Finding inverse conjugacy classes... Done.");
+    }
+
+    /// Assigns generic class symbols to the conjugacy classes.
+    ///
+    /// This method sets the [`Self::conjugacy_class_symbols`] field.
+    fn assign_class_symbols(&mut self) {
+        log::debug!("Assigning generic class symbols...");
+        let class_symbols_iter = self
+            .conjugacy_class_transversal
+            .as_ref()
+            .unwrap()
+            .iter()
+            .enumerate()
+            .map(|(i, &rep_ele_index)| {
+                let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap();
+                (
+                    ClassSymbol::new(format!("||K{}||", i).as_str(), rep_ele.clone()).unwrap(),
+                    i,
+                )
+            });
+        self.conjugacy_class_symbols = Some(IndexMap::from_iter(class_symbols_iter));
+        log::debug!("Assigning generic class symbols... Done.");
     }
 
     /// Calculates the class matrix $`\mathbf{N}`$ for the conjugacy classes in
@@ -420,7 +449,7 @@ where
                 .unwrap()
                 .map(|&i| modp.convert(u64::try_from(i).unwrap()));
             log::debug!("Considering class matrix N1...");
-            let nmat_1 = nmat.slice(s![0, .., ..]).to_owned();
+            let nmat_1 = nmat.slice(s![1, .., ..]).to_owned();
             let eigs_1 = modular_eig(&nmat_1);
             eigvecs_1d.extend(eigs_1.iter().filter_map(|(_, eigvecs)| {
                 if eigvecs.len() == 1 {
@@ -467,23 +496,31 @@ where
                     vec![];
                 while degenerate_subspaces.len() > 0 {
                     let subspace = degenerate_subspaces.pop().unwrap();
-                    // TODO: In Python, this is a try-except block.
-                    // Needs to figure out what the exception-equivalent is.
-                    let subsubspaces =
-                        split_space(&nmat_r, &subspace, &class_sizes, inverse_conjugacy_classes);
-                    eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
-                        if subsubspace.len() == 1 {
-                            Some(subsubspace[0].clone())
-                        } else {
-                            None
-                        }
-                    }));
-                    remaining_degenerate_subspaces.extend(
-                        subsubspaces
-                            .iter()
-                            .filter(|subsubspace| subsubspace.len() > 1)
-                            .cloned(),
-                    );
+                    if let Ok(subsubspaces) =
+                        split_space(&nmat_r, &subspace, &class_sizes, inverse_conjugacy_classes)
+                    {
+                        eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
+                            if subsubspace.len() == 1 {
+                                Some(subsubspace[0].clone())
+                            } else {
+                                None
+                            }
+                        }));
+                        remaining_degenerate_subspaces.extend(
+                            subsubspaces
+                                .iter()
+                                .filter(|subsubspace| subsubspace.len() > 1)
+                                .cloned(),
+                        );
+                    } else {
+                        log::debug!(
+                            "Class matrix N{} failed to split degenerate subspace {}.",
+                            r,
+                            degenerate_subspaces.len()
+                        );
+                        log::debug!("Stashing this subspace for the next class matrices...");
+                        remaining_degenerate_subspaces.push(subspace);
+                    }
                 }
                 degenerate_subspaces = remaining_degenerate_subspaces;
             }
@@ -506,47 +543,112 @@ where
         );
         let class_transversal = self.conjugacy_class_transversal.as_ref().unwrap();
 
-        let chars: Vec<_> = eigvecs_1d.par_iter().fold(|| vec![], |mut acc, vec_i| {
-            let mut dim2_mod_p =
-                weighted_hermitian_inprod((&vec_i, &vec_i), &class_sizes, inverse_conjugacy_classes)
-                    .inv()
-                    .residue();
-            while !approx::relative_eq!(
-                (dim2_mod_p as f64).sqrt().round(),
-                (dim2_mod_p as f64).sqrt()
-            ) {
-                dim2_mod_p += p;
-            }
-            let dim_i = (dim2_mod_p as f64).sqrt().round() as u64;
-            let tchar_i = Zip::from(vec_i)
-                .and(class_sizes.as_slice())
-                .par_map_collect(|&v, &k| v * dim_i / modp.convert(u64::try_from(k).unwrap()));
-            let char_i: Vec<_> = class_transversal.par_iter().map(|x_idx| {
-                let x = self.elements.get_index(*x_idx).unwrap().0;
-                let k = x.order();
-                let xi = zeta.clone().pow(i32::try_from(m.checked_div_euclid(k).unwrap()).unwrap());
-                let char_ij_terms: Vec<_> = (0..k).into_par_iter().map(|s| {
-                    let mu_s = (0..k).fold(modp.convert(0), |acc, l| {
-                        let x_l = x.clone().pow(l as i32);
-                        let x_l_idx = *self.elements.get(&x_l).unwrap();
-                        let x_l_class_idx =
-                            self.element_to_conjugacy_classes.as_ref().unwrap()[x_l_idx];
-                        let tchar_i_x_l = tchar_i[x_l_class_idx];
-                        acc + tchar_i_x_l * z.pow(s * l * m.checked_div_euclid(k).unwrap()).inv()
-                    }) / k;
-                    (xi.pow(i32::try_from(s).unwrap()), mu_s.residue() as usize)
-                }).collect();
-                Character::new(&char_ij_terms)
-            }).collect();
-            acc.extend(char_i);
-            acc
-        }).collect();
+        let chars: Vec<_> = eigvecs_1d
+            .par_iter()
+            .flat_map(|vec_i| {
+                let mut dim2_mod_p = weighted_hermitian_inprod(
+                    (&vec_i, &vec_i),
+                    &class_sizes,
+                    inverse_conjugacy_classes,
+                )
+                .inv()
+                .residue();
+                while !approx::relative_eq!(
+                    (dim2_mod_p as f64).sqrt().round(),
+                    (dim2_mod_p as f64).sqrt()
+                ) {
+                    dim2_mod_p += p;
+                }
+                let dim_i = (dim2_mod_p as f64).sqrt().round() as u64;
+                let tchar_i = Zip::from(vec_i)
+                    .and(class_sizes.as_slice())
+                    .par_map_collect(|&v, &k| v * dim_i / modp.convert(u64::try_from(k).unwrap()));
+                let char_i: Vec<_> = class_transversal
+                    .par_iter()
+                    .map(|x_idx| {
+                        let x = self.elements.get_index(*x_idx).unwrap().0;
+                        let k = x.order();
+                        let xi = zeta
+                            .clone()
+                            .pow(i32::try_from(m.checked_div_euclid(k).unwrap()).unwrap());
+                        let char_ij_terms: Vec<_> = (0..k)
+                            .into_par_iter()
+                            .map(|s| {
+                                let mu_s = (0..k).fold(modp.convert(0), |acc, l| {
+                                    let x_l = x.clone().pow(l as i32);
+                                    let x_l_idx = *self.elements.get(&x_l).unwrap();
+                                    let x_l_class_idx =
+                                        self.element_to_conjugacy_classes.as_ref().unwrap()
+                                            [x_l_idx];
+                                    let tchar_i_x_l = tchar_i[x_l_class_idx];
+                                    acc + tchar_i_x_l
+                                        * z.pow(s * l * m.checked_div_euclid(k).unwrap()).inv()
+                                }) / k;
+                                (xi.pow(i32::try_from(s).unwrap()), mu_s.residue() as usize)
+                            })
+                            .collect();
+                        Character::new(&char_ij_terms)
+                    })
+                    .collect();
+                char_i
+            })
+            .collect();
 
         let char_arr = Array2::from_shape_vec(
             (self.class_number.unwrap(), self.class_number.unwrap()),
-            chars
-        ).unwrap();
+            chars,
+        )
+        .unwrap();
+        log::debug!(
+            "Lifting characters from GF({}) back to the complex field... Done.",
+            p
+        );
+
+        // Reorder the rows so that the characters are in increasing order as we
+        // go down the table, with the first column being used as the primary sort
+        // order, then the second column, and so on, with the exceptions of some
+        // special columns.
+        log::debug!("Sorting irreducible representations...");
+        let class_i = ClassSymbol::new("1||i||", self.elements.first().unwrap().0.clone()).unwrap();
+        let class_s =
+            ClassSymbol::new("1||σh||", self.elements.first().unwrap().0.clone()).unwrap();
+        let ccsyms = self.conjugacy_class_symbols.as_ref().unwrap();
+        let special_idx = if ccsyms.contains_key(&class_i) {
+            ccsyms.get(&class_i)
+        } else if ccsyms.contains_key(&class_s) {
+            ccsyms.get(&class_s)
+        } else {
+            None
+        };
+
+        let sort_row_indices: Vec<_> = if let Some(&special_col) = special_idx {
+            let mut col_indices = vec![];
+            col_indices.extend(0..special_col);
+            col_indices.extend((special_col + 1)..self.class_number.unwrap());
+            let sort_arr = char_arr.select(Axis(1), &col_indices);
+            (0..char_arr.nrows()).sorted_by(|&i, &j| {
+                let keys_i = (
+                    -(char_arr[[i, special_col]].complex_value().re
+                    / char_arr[[i, special_col]].complex_value().norm()),
+                    sort_arr.row(i).iter().cloned().collect_vec()
+                );
+                let keys_j = (
+                    -(char_arr[[j, special_col]].complex_value().re
+                    / char_arr[[j, special_col]].complex_value().norm()),
+                    sort_arr.row(j).iter().cloned().collect_vec()
+                );
+                PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
+            }).collect()
+        } else {
+            (0..char_arr.nrows()).sorted_by(|&i, &j| {
+                let keys_i = char_arr.row(i).iter().cloned().collect_vec();
+                let keys_j = char_arr.row(j).iter().cloned().collect_vec();
+                PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
+            }).collect()
+        };
+        let char_arr = char_arr.select(Axis(0), &sort_row_indices);
         println!("{}", char_arr);
+        log::debug!("Sorting irreducible representations... Done.");
     }
 }
 
@@ -554,9 +656,9 @@ impl Group<SymmetryOperation> {
     /// Assigns class symbols to the conjugacy classes.
     ///
     /// This method sets the [`Self::conjugacy_class_symbols`] field.
-    fn assign_class_symbols(&mut self) {
+    fn assign_class_symbols_from_symmetry(&mut self) {
         // Assign class symbols
-        log::debug!("Assigning class symbols...");
+        log::debug!("Assigning class symbols from symmetry operations...");
         let mut proper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
             HashMap::new();
         let mut improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
@@ -634,7 +736,7 @@ impl Group<SymmetryOperation> {
                 }
             });
         self.conjugacy_class_symbols = Some(IndexMap::from_iter(class_symbols_iter));
-        log::debug!("Assigning class symbols... Done.");
+        log::debug!("Assigning class symbols from symmetry operations... Done.");
     }
 }
 
@@ -964,6 +1066,7 @@ fn group_from_molecular_symmetry(
         };
         group.finite_subgroup_name = Some(finite_group);
     }
-    group.assign_class_symbols();
+    group.assign_class_symbols_from_symmetry();
+    group.construct_character_table();
     group
 }

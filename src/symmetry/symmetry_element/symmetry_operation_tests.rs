@@ -4672,7 +4672,7 @@ fn test_symmetry_operation_exponentiation() {
         .build()
         .unwrap();
     assert_eq!(c5pm1.order(), 5);
-    assert_eq!(c5.pow(-1), c5pm1);
+    assert_eq!((&c5).pow(-1), c5pm1);
 
     let c5p2 = SymmetryOperation::builder()
         .generating_element(c5_element.clone())
@@ -4681,8 +4681,8 @@ fn test_symmetry_operation_exponentiation() {
         .unwrap();
     assert_eq!(c5p2.order(), 5);
     assert_eq!(c5pm1.pow(-2), c5p2);
-    assert_eq!(c5.pow(3), c5.pow(-2));
-    assert_ne!(c5.pow(3), c5.pow(-3));
+    assert_eq!((&c5).pow(3), (&c5).pow(-2));
+    assert_ne!((&c5).pow(3), (&c5).pow(-3));
 
     let c6_element = SymmetryElement::builder()
         .threshold(1e-12)
@@ -4761,9 +4761,9 @@ fn test_symmetry_operation_exponentiation() {
         .build()
         .unwrap();
     assert_eq!(s7.order(), 14);
-    assert!(s7.pow(2).is_proper());
-    assert!(s7.pow(7).is_reflection());
-    assert!(s7.pow(14).is_identity());
+    assert!((&s7).pow(2).is_proper());
+    assert!((&s7).pow(7).is_reflection());
+    assert!((&s7).pow(14).is_identity());
 
     let s7p2 = SymmetryOperation::builder()
         .generating_element(s7_element.clone())
@@ -4771,7 +4771,7 @@ fn test_symmetry_operation_exponentiation() {
         .build()
         .unwrap();
     assert_eq!(s7p2.order(), 7);
-    assert_eq!(s7.pow(2), s7p2);
+    assert_eq!((&s7).pow(2), s7p2);
 
     // ===============================
     // Antiunitary symmetry operations
@@ -4792,9 +4792,9 @@ fn test_symmetry_operation_exponentiation() {
         .build()
         .unwrap();
     assert_eq!(ts5.order(), 10);
-    assert!(ts5.pow(1).is_antiunitary());
-    assert!(!ts5.pow(2).is_antiunitary());
-    assert!(!ts5.pow(5).is_time_reversal());
+    assert!((&ts5).pow(1).is_antiunitary());
+    assert!(!(&ts5).pow(2).is_antiunitary());
+    assert!(!(&ts5).pow(5).is_time_reversal());
 
     let c5_element = SymmetryElement::builder()
         .threshold(1e-12)
@@ -4812,8 +4812,8 @@ fn test_symmetry_operation_exponentiation() {
         .build()
         .unwrap();
     assert_eq!(tc5.order(), 10);
-    assert!(tc5.pow(1).is_antiunitary());
-    assert!(tc5.pow(5).is_time_reversal());
+    assert!((&tc5).pow(1).is_antiunitary());
+    assert!((&tc5).pow(5).is_time_reversal());
 }
 
 #[test]
@@ -4834,8 +4834,8 @@ fn test_symmetry_operation_hashability() {
         .power(1)
         .build()
         .unwrap();
-    symops.insert(c8.pow(1));
-    symops.insert(c8.pow(2));
+    symops.insert((&c8).pow(1));
+    symops.insert((&c8).pow(2));
     assert_eq!(symops.len(), 2);
 
     let c4_element = SymmetryElement::builder()
@@ -4852,9 +4852,9 @@ fn test_symmetry_operation_hashability() {
         .power(1)
         .build()
         .unwrap();
-    assert!(symops.contains(&c4.pow(-1)));
+    assert!(symops.contains(&(&c4).pow(-1)));
 
-    symops.insert(c8.pow(-2));
+    symops.insert((&c8).pow(-2));
     assert!(symops.contains(&c4));
 
     let s8_element = SymmetryElement::builder()

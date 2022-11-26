@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::fmt::{Debug, Display};
+use std::fmt::{self, Debug, Display};
 use std::hash::Hash;
 use std::ops::Div;
 use std::panic;
@@ -394,17 +394,43 @@ where
         + panic::UnwindSafe
         + panic::RefUnwindSafe,
 {
-    vecs.iter().fold(vec![], |mut ortho_vecs, vec_j| {
-        ortho_vecs.push(
-            ortho_vecs
-                .iter()
-                .fold(vec_j.to_owned(), |ortho_vec_j, vec_i| {
-                    let rij = weighted_hermitian_inprod((vec_j, vec_i), class_sizes, perm_for_conj);
-                    ortho_vec_j - vec_i.map(|&x| x * rij)
-                }),
-        );
-        ortho_vecs
-    })
+    let mut ortho_vecs: Vec<Array1<T>> = vec![];
+    for (j, vec_j) in vecs.iter().enumerate() {
+        ortho_vecs.push(vec_j.to_owned());
+        for i in 0..j {
+            let rij =
+                weighted_hermitian_inprod((vec_j, &ortho_vecs[i]), class_sizes, perm_for_conj);
+            ortho_vecs[j] = &ortho_vecs[j] - vecs[i].map(|&x| x * rij);
+        }
+    }
+    ortho_vecs
+    // vecs.iter().fold(vec![], |mut ortho_vecs, vec_j| {
+    //     ortho_vecs.push(
+    //         ortho_vecs
+    //             .iter()
+    //             .fold(vec_j.to_owned(), |ortho_vec_j, vec_i| {
+    //                 let rij = weighted_hermitian_inprod((vec_j, vec_i), class_sizes, perm_for_conj);
+    //                 ortho_vec_j - vec_i.map(|&x| x * rij)
+    //             }),
+    //     );
+    //     ortho_vecs
+    // })
+}
+
+#[derive(Debug, Clone)]
+pub struct SplitSpaceError<'a, T> {
+    mat: &'a Array2<T>,
+    vecs: &'a [Array1<T>],
+}
+
+impl<'a, T: Display + Debug> fmt::Display for SplitSpaceError<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Unable to split the degenerate subspace spanned by {:#?} with {}.",
+            self.vecs, self.mat
+        )
+    }
 }
 
 /// Splits a space into smaller subspaces under the action of a matrix.
@@ -419,12 +445,12 @@ where
 /// # Returns
 /// A vector of vectors of vectors, where each inner vector contains the basis
 /// vectors for an `$n$`-dimensional subspace, `$n \ge 1$`.
-pub fn split_space<T>(
-    mat: &Array2<T>,
-    vecs: &[Array1<T>],
+pub fn split_space<'a, T>(
+    mat: &'a Array2<T>,
+    vecs: &'a [Array1<T>],
     class_sizes: &[usize],
     perm_for_conj: Option<&Vec<usize>>,
-) -> Vec<Vec<Array1<T>>>
+) -> Result<Vec<Vec<Array1<T>>>, SplitSpaceError<'a, T>>
 where
     T: Display
         + LinalgScalar
@@ -479,6 +505,12 @@ where
                 .collect(),
         )
         .unwrap();
+        if ortho_vecs_mag.iter().any(|x| Zero::is_zero(x)) {
+            return Err(SplitSpaceError {
+                mat: &mat,
+                vecs: &vecs,
+            });
+        }
 
         let group_order = class_sizes.iter().sum::<usize>();
         let ortho_vecs_conj_mat = Array2::from_shape_vec(
@@ -544,5 +576,5 @@ where
             acc
         })
     };
-    split_subspaces
+    Ok(split_subspaces)
 }
