@@ -123,6 +123,128 @@ impl Character {
             im.abs()
         )
     }
+
+    /// Gets the concise form for this character.
+    ///
+    /// The concise form shows an integer or an integer followed by `$i$` if the character is
+    /// purely integer or integer imaginary. Otherwise, the concise form is either the analytic
+    /// form of the character showing all contributing unity roots and their multiplicities, or a
+    /// complex number formatted to 3 d.p.
+    ///
+    /// # Arguments
+    ///
+    /// * num_non_int - A flag indicating of non-integers should be shown in numerical form
+    /// instead of analytic.
+    ///
+    /// # Returns
+    ///
+    /// The concise form of the character.
+    fn get_concise(&self, num_non_int: bool) -> String {
+        let complex_value = self.complex_value();
+        if approx::relative_eq!(
+            complex_value.im,
+            0.0,
+            epsilon = self.threshold,
+            max_relative = self.threshold
+        ) {
+            // Zero imaginary
+            // Zero or non-zero real
+            let rounded_re = complex_value.re.round_factor(self.threshold);
+            if approx::relative_eq!(
+                rounded_re,
+                rounded_re.round(),
+                epsilon = self.threshold,
+                max_relative = self.threshold
+            ) {
+                // Integer real
+                if approx::relative_eq!(
+                    rounded_re,
+                    0.0,
+                    epsilon = self.threshold,
+                    max_relative = self.threshold
+                ) {
+                    "0".to_string()
+                } else {
+                    format!("{:+.0}", complex_value.re)
+                }
+            } else {
+                // Non-integer real
+                if num_non_int {
+                    format!("{:+.3}", complex_value.re)
+                } else {
+                    format!("{:?}", self)
+                }
+            }
+        } else if approx::relative_eq!(
+            complex_value.re,
+            0.0,
+            epsilon = self.threshold,
+            max_relative = self.threshold
+        ) {
+            // Non-zero imaginary
+            // Zero real
+            let rounded_im = complex_value.im.round_factor(self.threshold);
+            if approx::relative_eq!(
+                rounded_im,
+                rounded_im.round(),
+                epsilon = self.threshold,
+                max_relative = self.threshold
+            ) {
+                // Integer imaginary
+                if approx::relative_eq!(
+                    rounded_im.abs(),
+                    1.0,
+                    epsilon = self.threshold,
+                    max_relative = self.threshold
+                ) {
+                    // i or -i
+                    let imag = if rounded_im > 0.0 { "+i" } else { "-i" };
+                    format!("{}", imag)
+                } else {
+                    // ki
+                    format!("{:+.0}i", complex_value.im)
+                }
+            } else {
+                // Non-integer imaginary
+                if num_non_int {
+                    format!("{:+.3}i", complex_value.im)
+                } else {
+                    format!("{:?}", self)
+                }
+            }
+        } else {
+            // Non-zero imaginary
+            // Non-zero real
+            let rounded_re = complex_value.re.round_factor(self.threshold);
+            let rounded_im = complex_value.im.round_factor(self.threshold);
+            if (approx::relative_ne!(
+                rounded_re,
+                rounded_re.round(),
+                epsilon = self.threshold,
+                max_relative = self.threshold
+            ) || approx::relative_ne!(
+                rounded_im,
+                rounded_im.round(),
+                epsilon = self.threshold,
+                max_relative = self.threshold
+            )) && !num_non_int {
+                format!("{:?}", self)
+            } else {
+                format!(
+                    "{:+.3} {} {:.3}i",
+                    complex_value.re,
+                    {
+                        if complex_value.im > 0.0 {
+                            "+"
+                        } else {
+                            "-"
+                        }
+                    },
+                    complex_value.im.abs()
+                )
+            }
+        }
+    }
 }
 
 impl PartialEq for Character {
@@ -211,86 +333,6 @@ impl fmt::Display for Character {
     /// Prints the short form for this character that shows either an integer
     /// or an imaginary integer or a compact complex number at 3 d.p.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let complex_value = self.complex_value();
-        if approx::relative_eq!(
-            complex_value.im,
-            0.0,
-            epsilon = self.threshold,
-            max_relative = self.threshold
-        ) {
-            // Zero imaginary
-            // Zero or non-zero real
-            let rounded_re = complex_value.re.round_factor(self.threshold);
-            if approx::relative_eq!(
-                rounded_re,
-                rounded_re.round(),
-                epsilon = self.threshold,
-                max_relative = self.threshold
-            ) {
-                // Integer real
-                if approx::relative_eq!(
-                    rounded_re,
-                    0.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
-                ) {
-                    write!(f, "0")
-                } else {
-                    write!(f, "{:+.0}", complex_value.re)
-                }
-            } else {
-                // Non-integer real
-                write!(f, "{:+.3}", complex_value.re)
-            }
-        } else if approx::relative_eq!(
-            complex_value.re,
-            0.0,
-            epsilon = self.threshold,
-            max_relative = self.threshold
-        ) {
-            // Non-zero imaginary
-            // Zero real
-            let rounded_im = complex_value.im.round_factor(self.threshold);
-            if approx::relative_eq!(
-                rounded_im,
-                rounded_im.round(),
-                epsilon = self.threshold,
-                max_relative = self.threshold
-            ) {
-                // Integer imaginary
-                if approx::relative_eq!(
-                    rounded_im.abs(),
-                    1.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
-                ) {
-                    // i or -i
-                    let imag = if rounded_im > 0.0 { "+i" } else { "-i" };
-                    write!(f, "{}", imag)
-                } else {
-                    // ki
-                    write!(f, "{:+.0}i", complex_value.im)
-                }
-            } else {
-                // Non-integer imaginary
-                write!(f, "{:+.3}i", complex_value.im)
-            }
-        } else {
-            // Non-zero imaginary
-            // Non-zero real
-            write!(
-                f,
-                "{:+.3} {} {:.3}i",
-                complex_value.re,
-                {
-                    if complex_value.im > 0.0 {
-                        "+"
-                    } else {
-                        "-"
-                    }
-                },
-                complex_value.im.abs()
-            )
-        }
+        write!(f, "{}", self.get_concise(false))
     }
 }

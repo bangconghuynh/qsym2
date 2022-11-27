@@ -156,13 +156,16 @@ fn test_character_fmt() {
     let e3p1 = e3.pow(1);
     let e3p2 = e3.pow(2);
     let c5 = Character::new(&[(e3p1.clone(), 1usize)]);
-    assert_eq!(format!("{}", c5), "-0.500 + 0.866i".to_string());
+    assert_eq!(format!("{}", c5), "E3".to_string());
+    assert_eq!(format!("{}", c5.get_concise(true)), "-0.500 + 0.866i".to_string());
     assert_eq!(c5.get_numerical(5), "-0.50000 + 0.86603i".to_string());
     let c6 = Character::new(&[(e3p2.clone(), 1usize)]);
-    assert_eq!(format!("{}", c6), "-0.500 - 0.866i".to_string());
+    assert_eq!(format!("{}", c6), "(E3)^2".to_string());
+    assert_eq!(format!("{}", c6.get_concise(true)), "-0.500 - 0.866i".to_string());
     assert_eq!(c6.get_numerical(5), "-0.50000 - 0.86603i".to_string());
     let c7 = Character::new(&[(e3p1.clone(), 1usize), (e3p2.clone(), 1usize)]);
     assert_eq!(format!("{}", c7), "-1".to_string());
+    assert_eq!(format!("{}", c7.get_concise(true)), "-1".to_string());
     assert_eq!(c7.get_numerical(4), "-1.0000 + 0.0000i".to_string());
 
     let e5 = UnityRoot::new(1u64, 5u64);
@@ -171,7 +174,8 @@ fn test_character_fmt() {
         (e5p1.clone(), 1usize),
         (e5p1.complex_conjugate(), 1usize),
     ]);
-    assert_eq!(format!("{}", c8), "+0.618".to_string());
+    assert_eq!(format!("{}", c8), "E5 + (E5)^4".to_string());
+    assert_eq!(format!("{}", c8.get_concise(true)), "+0.618".to_string());
     assert_eq!(c8.get_numerical(6), "+0.618034 + 0.000000i".to_string());
 
     let e7 = UnityRoot::new(1u64, 7u64);
@@ -179,5 +183,6 @@ fn test_character_fmt() {
         &(0..=6).into_iter().map(|x| (e7.pow(x), 1)).collect::<Vec<_>>()
     );
     assert_eq!(format!("{}", c9), "0".to_string());
+    assert_eq!(format!("{}", c9.get_concise(true)), "0".to_string());
     assert_eq!(c9.get_numerical(7), "+0.0000000 + 0.0000000i".to_string());
 }

@@ -505,7 +505,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is proper.
     fn is_proper(&self) -> bool {
-        self.representative.unwrap().is_proper()
+        self.representative.as_ref().unwrap().is_proper()
     }
 
     /// Checks if this class is antiunitary.
@@ -514,7 +514,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is antiunitary.
     fn is_antiunitary(&self) -> bool {
-        self.representative.unwrap().is_antiunitary()
+        self.representative.as_ref().unwrap().is_antiunitary()
     }
 
     /// Checks if this class is the identity class.
@@ -523,7 +523,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is the identity class.
     fn is_identity(&self) -> bool {
-        self.representative.unwrap().is_identity()
+        self.representative.as_ref().unwrap().is_identity()
     }
 
     /// Checks if this class is the inversion class.
@@ -532,7 +532,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is the inversion class.
     fn is_inversion(&self) -> bool {
-        self.representative.unwrap().is_inversion()
+        self.representative.as_ref().unwrap().is_inversion()
     }
 
     /// Checks if this class is a binary rotation class.
@@ -541,7 +541,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is a binary rotation class.
     fn is_binary_rotation(&self) -> bool {
-        self.representative.unwrap().is_binary_rotation()
+        self.representative.as_ref().unwrap().is_binary_rotation()
     }
 
     /// Checks if this class is a reflection class.
@@ -550,7 +550,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is a reflection class.
     fn is_reflection(&self) -> bool {
-        self.representative.unwrap().is_reflection()
+        self.representative.as_ref().unwrap().is_reflection()
     }
 
     /// Checks if this class is a pure time-reversal class.
@@ -559,7 +559,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is a pure time-reversal class.
     fn is_time_reversal(&self) -> bool {
-        self.representative.unwrap().is_time_reversal()
+        self.representative.as_ref().unwrap().is_time_reversal()
     }
 }
 
