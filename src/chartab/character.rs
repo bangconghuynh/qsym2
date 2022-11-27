@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 use approx;
 use derive_builder::Builder;
@@ -100,7 +101,8 @@ impl Character {
                     0.0,
                     epsilon = self.threshold,
                     max_relative = self.threshold
-                ) && re < 0.0 {
+                ) && re < 0.0
+                {
                     -re
                 } else {
                     re
@@ -227,7 +229,8 @@ impl Character {
                 rounded_im.round(),
                 epsilon = self.threshold,
                 max_relative = self.threshold
-            )) && !num_non_int {
+            )) && !num_non_int
+            {
                 format!("{:?}", self)
             } else {
                 format!(
@@ -334,5 +337,18 @@ impl fmt::Display for Character {
     /// or an imaginary integer or a compact complex number at 3 d.p.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.get_concise(false))
+    }
+}
+
+impl Hash for Character {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let terms_vec = self
+            .terms
+            .clone()
+            .sorted_by(|ur1, m1, ur2, m2| {
+                PartialOrd::partial_cmp(&(ur1.clone(), m1), &(ur2.clone(), m2)).unwrap()
+            })
+            .collect::<Vec<_>>();
+        terms_vec.hash(state);
     }
 }

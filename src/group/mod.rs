@@ -11,7 +11,7 @@ use derive_builder::Builder;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use ndarray::{array, s, Array1, Array2, Array3, Axis, Zip};
-use num::integer::lcm;
+use num::{integer::lcm, Complex};
 use num_modular::{ModularInteger, MontgomeryInt};
 use num_traits::{Inv, Pow};
 use ordered_float::OrderedFloat;
@@ -30,7 +30,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
 };
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, SIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
-use crate::symmetry::symmetry_symbols::ClassSymbol;
+use crate::symmetry::symmetry_symbols::{deduce_mulliken_irrep_symbols, sort_irreps, ClassSymbol};
 
 type F = fraction::Fraction;
 
@@ -128,7 +128,7 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> {
 
     /// The character table for this group.
     #[builder(setter(skip), default = "None")]
-    character_table: Option<CharacterTable>,
+    character_table: Option<CharacterTable<T>>,
 }
 
 impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
@@ -321,7 +321,8 @@ where
             .map(|(i, &rep_ele_index)| {
                 let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap();
                 (
-                    ClassSymbol::new(format!("||K{}||", i).as_str(), Some(rep_ele.clone())).unwrap(),
+                    ClassSymbol::new(format!("||K{}||", i).as_str(), Some(rep_ele.clone()))
+                        .unwrap(),
                     i,
                 )
             });
@@ -371,7 +372,21 @@ where
         }
         self.class_matrix = Some(nmat);
     }
+}
 
+impl<T> Group<T>
+where
+    T: Hash
+        + Eq
+        + Clone
+        + Sync
+        + Send
+        + Debug
+        + Pow<i32, Output = T>
+        + SpecialSymmetryTransformation
+        + FiniteOrder<Int = u64>,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+{
     /// Constructs the character table for this group using the Burnside--Dixon--Schneider
     /// algorithm.
     ///
@@ -604,55 +619,83 @@ where
             p
         );
 
-        // Reorder the rows so that the characters are in increasing order as we
-        // go down the table, with the first column being used as the primary sort
-        // order, then the second column, and so on, with the exceptions of some
-        // special columns.
-        log::debug!("Sorting irreducible representations...");
-        let class_i = ClassSymbol::new("1||i||", None).unwrap();
-        let class_s =
-            ClassSymbol::new("1||σh||", None).unwrap();
-        let ccsyms = self.conjugacy_class_symbols.as_ref().unwrap();
-        let special_idx = if ccsyms.contains_key(&class_i) {
-            ccsyms.get(&class_i)
-        } else if ccsyms.contains_key(&class_s) {
-            ccsyms.get(&class_s)
+        let class_symbols = self.conjugacy_class_symbols.as_ref().unwrap();
+        let char_arr = sort_irreps(&char_arr.view(), class_symbols);
+        println!("{}", char_arr);
+
+        let i_cc = ClassSymbol::new("1||i||", None).unwrap();
+        let mut force_proper_principal = class_symbols.contains_key(&i_cc);
+        if force_proper_principal {
+            log::debug!(
+                "Inversion centre exists. Principal-axis classes will be forced to be proper."
+            );
+        };
+
+        let force_principal = if self.name == "O" || self.name == "Oh" || self.name == "Td" {
+            force_proper_principal = false;
+            let c3_cc: ClassSymbol<T> = ClassSymbol::new("8||C3||", None).unwrap();
+            log::debug!(
+                "Group is {}. Principal-axis classes will be forced to be {}. This is to obtain non-standard Mulliken symbols that are in line with conventions in the literature.",
+                self.name,
+                c3_cc
+            );
+            Some(c3_cc)
         } else {
             None
         };
 
-        let sort_row_indices: Vec<_> = if let Some(&special_col) = special_idx {
-            let mut col_indices = vec![];
-            col_indices.extend(0..special_col);
-            col_indices.extend((special_col + 1)..self.class_number.unwrap());
-            let sort_arr = char_arr.select(Axis(1), &col_indices);
-            (0..char_arr.nrows())
-                .sorted_by(|&i, &j| {
-                    let keys_i = (
-                        -(char_arr[[i, special_col]].complex_value().re
-                            / char_arr[[i, special_col]].complex_value().norm()),
-                        sort_arr.row(i).iter().cloned().collect_vec(),
+        let ordered_irreps = deduce_mulliken_irrep_symbols(
+            &char_arr.view(),
+            class_symbols,
+            force_proper_principal,
+            force_principal,
+        );
+        for (cc, _) in class_symbols.iter() {
+            println!("{}", cc);
+        }
+        // for irrep in ordered_irreps {
+        //     println!("{}", irrep);
+        // }
+
+        let frobenius_schur_indicators: Vec<_> =
+            ordered_irreps
+                .iter()
+                .enumerate()
+                .map(|(irrep_i, irrep_symbol)| {
+                    let indicator: Complex<f64> =
+                        self.elements
+                            .keys()
+                            .fold(Complex::new(0.0f64, 0.0f64), |acc, ele| {
+                                let ele_2_idx = self.elements.get(&ele.clone().pow(2)).unwrap();
+                                let class_2_j =
+                                    self.element_to_conjugacy_classes.as_ref().unwrap()[*ele_2_idx];
+                                acc + char_arr[[irrep_i, class_2_j]].complex_value()
+                            })
+                            / (self.order as f64);
+                    approx::assert_relative_eq!(
+                        indicator.im,
+                        0.0,
+                        epsilon = 1e-14,
+                        max_relative = 1e-14
                     );
-                    let keys_j = (
-                        -(char_arr[[j, special_col]].complex_value().re
-                            / char_arr[[j, special_col]].complex_value().norm()),
-                        sort_arr.row(j).iter().cloned().collect_vec(),
+                    approx::assert_relative_eq!(
+                        indicator.re,
+                        indicator.re.round(),
+                        epsilon = 1e-14,
+                        max_relative = 1e-14
                     );
-                    PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
-                })
-                .collect()
-        } else {
-            (0..char_arr.nrows())
-                .sorted_by(|&i, &j| {
-                    let keys_i = char_arr.row(i).iter().cloned().collect_vec();
-                    let keys_j = char_arr.row(j).iter().cloned().collect_vec();
-                    PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
-                })
-                .collect()
-        };
-        let char_arr = char_arr.select(Axis(0), &sort_row_indices);
-        println!("{}", char_arr);
-        log::debug!("Sorting irreducible representations... Done.");
+                    indicator.re.round() as i8
+                }).collect();
+
+        self.character_table = Some(
+            CharacterTable::new(
+                self.name.as_str(),
+                &ordered_irreps,
+                &class_symbols.keys().cloned().collect::<Vec<_>>(),
+                char_arr,
+                &frobenius_schur_indicators
+            )
+        )
     }
 }
 
@@ -683,11 +726,20 @@ impl Group<SymmetryOperation> {
                     .unwrap();
                 let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap();
                 if rep_ele.is_identity() {
-                    (ClassSymbol::new("1||E||", Some(rep_ele.clone())).unwrap(), i)
+                    (
+                        ClassSymbol::new("1||E||", Some(rep_ele.clone())).unwrap(),
+                        i,
+                    )
                 } else if rep_ele.is_inversion() {
-                    (ClassSymbol::new("1||i||", Some(rep_ele.clone())).unwrap(), i)
+                    (
+                        ClassSymbol::new("1||i||", Some(rep_ele.clone())).unwrap(),
+                        i,
+                    )
                 } else if rep_ele.is_time_reversal() {
-                    (ClassSymbol::new("1||θ||", Some(rep_ele.clone())).unwrap(), i)
+                    (
+                        ClassSymbol::new("1||θ||", Some(rep_ele.clone())).unwrap(),
+                        i,
+                    )
                 } else {
                     let rep_proper_order = rep_ele.generating_element.proper_order;
                     let rep_proper_power = rep_ele.generating_element.proper_power;

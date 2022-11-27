@@ -1,17 +1,23 @@
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use log;
 
+use counter::Counter;
 use derive_builder::Builder;
 use indexmap::IndexMap;
-use ndarray::ArrayView2;
+use itertools::Itertools;
+use ndarray::{Array2, ArrayView2, Axis};
 use phf::phf_map;
 use regex::Regex;
 
 use crate::chartab::character::Character;
-use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
+use crate::chartab::unityroot::UnityRoot;
+use crate::symmetry::symmetry_element::symmetry_operation::{
+    FiniteOrder, SpecialSymmetryTransformation,
+};
 
 // ======
 // Traits
@@ -375,6 +381,18 @@ static MULLIKEN_IRREP_DEGENERACIES: phf::Map<&'static str, u64> = phf_map! {
     "M" => 10u64,
 };
 
+static INV_MULLIKEN_IRREP_DEGENERACIES: phf::Map<u64, &'static str> = phf_map! {
+     2u64 => "E",
+     3u64 => "T",
+     4u64 => "G",
+     5u64 => "H",
+     6u64 => "I",
+     7u64 => "J",
+     8u64 => "K",
+     9u64 => "L",
+     10u64 => "M",
+};
+
 impl LinearSpaceSymbol for MullikenIrrepSymbol {
     fn dimensionality(&self) -> u64 {
         *MULLIKEN_IRREP_DEGENERACIES
@@ -563,6 +581,14 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     }
 }
 
+impl<T: FiniteOrder + Clone> FiniteOrder for ClassSymbol<T> {
+    type Int = T::Int;
+
+    fn order(&self) -> Self::Int {
+        self.representative.as_ref().unwrap().order()
+    }
+}
+
 // -------
 // Display
 // -------
@@ -576,12 +602,76 @@ impl<T: Clone> fmt::Display for ClassSymbol<T> {
 // Functions
 // =========
 
+/// Reorder the rows so that the characters are in increasing order as we
+/// go down the table, with the first column being used as the primary sort
+/// order, then the second column, and so on, with the exceptions of some
+/// special columns.
+///
+/// # Arguments
+///
+/// * char_arr - A view of a two-dimensional square array containing the characters where
+/// each column is for one conjugacy class and each row one irrep.
+/// * class_symbols - An index map containing the conjugacy class symbols for the columns of
+/// `char_arr`. The keys are the symbols and the values are the column indices.
+///
+/// # Returns
+///
+/// A new array with the rows correctly sorted.
+pub fn sort_irreps<T: Clone>(
+    char_arr: &ArrayView2<Character>,
+    class_symbols: &IndexMap<ClassSymbol<T>, usize>,
+) -> Array2<Character> {
+    log::debug!("Sorting irreducible representations...");
+    let class_i = ClassSymbol::new("1||i||", None).unwrap();
+    let class_s = ClassSymbol::new("1||σh||", None).unwrap();
+    let special_idx = if class_symbols.contains_key(&class_i) {
+        class_symbols.get(&class_i)
+    } else if class_symbols.contains_key(&class_s) {
+        class_symbols.get(&class_s)
+    } else {
+        None
+    };
+
+    let sort_row_indices: Vec<_> = if let Some(&special_col) = special_idx {
+        let mut col_indices = vec![];
+        col_indices.extend(0..special_col);
+        col_indices.extend((special_col + 1)..class_symbols.len());
+        let sort_arr = char_arr.select(Axis(1), &col_indices);
+        (0..char_arr.nrows())
+            .sorted_by(|&i, &j| {
+                let keys_i = (
+                    -(char_arr[[i, special_col]].complex_value().re
+                        / char_arr[[i, special_col]].complex_value().norm()),
+                    sort_arr.row(i).iter().cloned().collect_vec(),
+                );
+                let keys_j = (
+                    -(char_arr[[j, special_col]].complex_value().re
+                        / char_arr[[j, special_col]].complex_value().norm()),
+                    sort_arr.row(j).iter().cloned().collect_vec(),
+                );
+                PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
+            })
+            .collect()
+    } else {
+        (0..char_arr.nrows())
+            .sorted_by(|&i, &j| {
+                let keys_i = char_arr.row(i).iter().cloned().collect_vec();
+                let keys_j = char_arr.row(j).iter().cloned().collect_vec();
+                PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
+            })
+            .collect()
+    };
+    let char_arr = char_arr.select(Axis(0), &sort_row_indices);
+    log::debug!("Sorting irreducible representations... Done.");
+    char_arr
+}
+
 /// Deduces irreducible representation symboles based on Mulliken's convention.
 ///
 /// # Arguments
 ///
-/// * char_arr - A two-dimensional square array containing the characters where each column is for
-/// one conjugacy class and each row one irrep.
+/// * char_arr - A view of a two-dimensional square array containing the characters where
+/// each column is for one conjugacy class and each row one irrep.
 /// * class_symbols - An index map containing the conjugacy class symbols for the columns of
 /// `char_arr`. The keys are the symbols and the values are the column indices.
 /// * force_proper_principal - Flag indicating if the principal-axis classes must be proper.
@@ -591,19 +681,26 @@ impl<T: Clone> fmt::Display for ClassSymbol<T> {
 /// # Returns
 ///
 /// A vector of Mulliken symbols corresponding to the rows of `char_arr`.
-fn deduce_mulliken_irrep_symbols<T: SpecialSymmetryTransformation + Clone>(
+pub fn deduce_mulliken_irrep_symbols<T>(
     char_arr: &ArrayView2<Character>,
-    class_symbols: IndexMap<ClassSymbol<T>, usize>,
+    class_symbols: &IndexMap<ClassSymbol<T>, usize>,
     force_proper_principal: bool,
     force_principal: Option<ClassSymbol<T>>,
-) -> Vec<MullikenIrrepSymbol> {
-    log::debug!("Generating irreducible representation symbols...");
+) -> Vec<MullikenIrrepSymbol>
+where
+    T: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
+{
+    log::debug!("Generating Mulliken irreducible representation symbols...");
+
+    let e_cc = ClassSymbol::new("1||E||", None).unwrap();
+    let i_cc = ClassSymbol::new("1||i||", None).unwrap();
+    let s_cc = ClassSymbol::new("1||σh||", None).unwrap();
 
     // Inversion parity?
-    let i_parity = class_symbols.contains_key(&ClassSymbol::new("1||i||", None).unwrap());
+    let i_parity = class_symbols.contains_key(&i_cc);
 
     // Reflection parity?
-    let s_parity = class_symbols.contains_key(&ClassSymbol::new("1||σh||", None).unwrap());
+    let s_parity = class_symbols.contains_key(&s_cc);
 
     // i_parity takes priority.
     if i_parity {
@@ -614,8 +711,207 @@ fn deduce_mulliken_irrep_symbols<T: SpecialSymmetryTransformation + Clone>(
         );
     }
 
+    log::debug!("Determining principal classes...");
+    let principal_rotations = if let Some(principal_cc) = force_principal {
+        assert!(
+            !force_proper_principal,
+            "`force_proper_principal` and `force_principal` cannot be both provided."
+        );
+        assert!(
+            class_symbols.contains_key(&principal_cc),
+            "Forcing principal-axis class to be {}, but {} is not a valid class in the group.",
+            principal_cc,
+            principal_cc
+        );
+
+        log::warn!(
+            "Principal-axis class forced to be {}. Auto-detection of principal-axis classes will be skipped.",
+            principal_cc
+        );
+        vec![principal_cc]
+    } else {
+        let mut sorted_class_symbols = class_symbols
+            .clone()
+            .sorted_by(|cc1, _, cc2, _| {
+                PartialOrd::partial_cmp(
+                    &(cc1.order(), !cc1.is_proper()),
+                    &(cc2.order(), !cc2.is_proper()),
+                )
+                .unwrap()
+            })
+            .rev();
+        let (principal_rep, _) = if force_proper_principal {
+            // Larger order always prioritised, regardless of proper or improper,
+            // unless force_proper_principal is set, in which case
+            sorted_class_symbols.find(|(cc, _)| cc.is_proper()).unwrap()
+        } else {
+            // No force_proper_principal, so proper prioritised, which has been ensured by the sort
+            // in the construction of `sorted_class_symbols`.
+            sorted_class_symbols.nth(0).unwrap()
+        };
+
+        // Now find all principal classes with the same order and parity as `principal_rep`.
+        class_symbols
+            .keys()
+            .filter(|cc| {
+                cc.is_proper() == principal_rep.is_proper() && cc.order() == principal_rep.order()
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+
+    assert!(principal_rotations.len() >= 1);
+    if principal_rotations.len() == 1 {
+        log::debug!("Principal-axis class found: {}", principal_rotations[0]);
+    } else {
+        log::debug!("Principal-axis classes found:");
+        for prinrot in principal_rotations.iter() {
+            log::debug!("  {}", prinrot);
+        }
+    }
+    log::debug!("Determining principal classes... Done.");
+
+    let e2p1 = UnityRoot::new(1u64, 2u64);
+    let e2p2 = UnityRoot::new(2u64, 2u64);
+    let char_p1 = Character::new(&vec![(e2p2, 1usize)]);
+    let char_m1 = Character::new(&vec![(e2p1, 1usize)]);
+
     // First pass: assign irrep symbols based on Mulliken's convention as much as possible.
     log::debug!("First pass: assign symbols from rules");
 
-    todo!()
+    let raw_irrep_symbols = char_arr.rows().into_iter().map(|irrep| {
+        // Determine the main symmetry
+        let dim = irrep[*class_symbols.get(&e_cc).unwrap()].complex_value();
+        assert!(
+            approx::relative_eq!(dim.im, 0.0)
+                && approx::relative_eq!(dim.re.round(), dim.re)
+                && dim.re.round() > 0.0
+        );
+        let dim = dim.re.round() as u64;
+        assert!(dim > 0);
+        let main = if dim >= 2 {
+            if let Some(sym) = INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim) {
+                sym
+            } else {
+                log::warn!("{} cannot be assigned a standard dimensionality symbol. A generic 'Γ' will be used instead.", dim);
+                "Γ"
+            }
+        } else {
+            let char_rots: HashSet<_> = principal_rotations
+                .iter()
+                .map(|cc| irrep[*class_symbols.get(cc).unwrap()].clone())
+                .collect();
+            if char_rots.len() == 1 && *char_rots.iter().next().unwrap() == char_p1 {
+                "A"
+            } else if char_rots
+                .iter()
+                .all(|char_rot| char_rot.clone() == char_p1 || char_rot.clone() == char_m1)
+            {
+                "B"
+            } else {
+                // There are principal rotations but with non-(±1) characters. These must be
+                // complex.
+                "Γ"
+            }
+        };
+
+        let (inv, mir) = if i_parity {
+            // Determine inversion symmetry
+            // Inversion symmetry trumps reflection symmetry.
+            let char_inv = irrep[*class_symbols.get(&i_cc).unwrap()].clone();
+            let char_inv_c = char_inv.complex_value();
+            assert!(
+                approx::relative_eq!(
+                    char_inv_c.im,
+                    0.0,
+                    epsilon = char_inv.threshold,
+                    max_relative = char_inv.threshold
+                ) && approx::relative_eq!(
+                    char_inv_c.re.round(),
+                    char_inv_c.re,
+                    epsilon = char_inv.threshold,
+                    max_relative = char_inv.threshold
+                ),
+            );
+            let char_inv_c = char_inv_c.re.round() as i32;
+            if char_inv_c > 0 {
+                ("g", "")
+            } else if char_inv_c < 0 {
+                ("u", "")
+            } else {
+                panic!("Inversion character must not be zero.")
+            }
+        } else if s_parity {
+            // Determine reflection symmetry
+            let char_ref = irrep[*class_symbols.get(&s_cc).unwrap()].clone();
+            let char_ref_c = char_ref.complex_value();
+            assert!(
+                approx::relative_eq!(
+                    char_ref_c.im,
+                    0.0,
+                    epsilon = char_ref.threshold,
+                    max_relative = char_ref.threshold
+                ) && approx::relative_eq!(
+                    char_ref_c.re.round(),
+                    char_ref_c.re,
+                    epsilon = char_ref.threshold,
+                    max_relative = char_ref.threshold
+                ),
+            );
+            let char_ref_c = char_ref_c.re.round() as i32;
+            if char_ref_c > 0 {
+                ("", "'")
+            } else if char_ref_c < 0 {
+                ("", "''")
+            } else {
+                panic!("Reflection character must not be zero.")
+            }
+        } else {
+            ("", "")
+        };
+
+        MullikenIrrepSymbol::new(format!("||{}|^({})_({})|", main, mir, inv).as_str()).unwrap()
+    });
+
+    log::debug!("Second pass: disambiguate identical cases not distinguishable by rules");
+    let raw_symbol_count = raw_irrep_symbols.clone().collect::<Counter<_>>();
+    let mut raw_symbols_to_full_symbols: HashMap<_, _> = raw_symbol_count
+        .iter()
+        .map(|(raw_irrep, &duplicate_count)| {
+            if duplicate_count == 1 {
+                let mut irreps: VecDeque<MullikenIrrepSymbol> = VecDeque::new();
+                irreps.push_back(raw_irrep.clone());
+                (raw_irrep.clone(), irreps)
+            } else {
+                let irreps: VecDeque<MullikenIrrepSymbol> = (0..duplicate_count)
+                    .map(|i| {
+                        MullikenIrrepSymbol::new(
+                            format!(
+                                "||{}|^({})_({}{})|",
+                                raw_irrep.main(),
+                                raw_irrep.postsuper(),
+                                i + 1,
+                                raw_irrep.postsub(),
+                            )
+                            .as_str(),
+                        )
+                        .unwrap()
+                    })
+                    .collect();
+                (raw_irrep.clone(), irreps)
+            }
+        })
+        .collect();
+
+    let irrep_symbols: Vec<_> = raw_irrep_symbols
+        .map(|raw_irrep| {
+            raw_symbols_to_full_symbols
+                .get_mut(&raw_irrep)
+                .unwrap()
+                .pop_front()
+                .unwrap()
+        })
+        .collect();
+    log::debug!("Generating Mulliken irreducible representation symbols... Done.");
+    irrep_symbols
 }

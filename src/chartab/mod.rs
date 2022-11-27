@@ -1,8 +1,10 @@
+use std::iter::zip;
+
 use indexmap::IndexMap;
 use ndarray::{Array2, ArrayView1};
 
 use crate::chartab::character::Character;
-use crate::symmetry::symmetry_element::symmetry_operation::SymmetryOperation;
+// use crate::symmetry::symmetry_element::symmetry_operation::SymmetryOperation;
 use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
 
 pub mod character;
@@ -11,7 +13,7 @@ pub mod reducedint;
 pub mod unityroot;
 
 /// A struct to manage character tables.
-pub struct CharacterTable {
+pub struct CharacterTable<T: Clone> {
     /// The name given to the character table.
     name: String,
 
@@ -20,14 +22,16 @@ pub struct CharacterTable {
     irreps: IndexMap<MullikenIrrepSymbol, usize>,
 
     /// The conjugacy classes of the group and their column indices in the character table.
-    classes: IndexMap<ClassSymbol<SymmetryOperation>, usize>,
+    classes: IndexMap<ClassSymbol<T>, usize>,
 
-    /// The characters of the irreducible representations in this group, laid out in row-major
-    /// ordering.
+    /// The characters of the irreducible representations in this group.
     characters: Array2<Character>,
+
+    /// The Frobenius--Schur indicators for the irreducible representations in this group.
+    frobenius_schurs: IndexMap<MullikenIrrepSymbol, i8>,
 }
 
-impl CharacterTable {
+impl<T: Clone> CharacterTable<T> {
     /// Constructs a new character table.
     ///
     /// # Arguments
@@ -40,13 +44,15 @@ impl CharacterTable {
     /// # Returns
     ///
     /// The required character.
-    fn new(
+    pub fn new(
         name: &str,
         irreps: &[MullikenIrrepSymbol],
-        classes: &[ClassSymbol<SymmetryOperation>],
+        classes: &[ClassSymbol<T>],
         char_arr: Array2<Character>,
+        frobenius_schurs: &[i8],
     ) -> Self {
         assert_eq!(irreps.len(), char_arr.dim().0);
+        assert_eq!(frobenius_schurs.len(), char_arr.dim().0);
         assert_eq!(classes.len(), char_arr.dim().1);
         assert_eq!(char_arr.dim().0, char_arr.dim().1);
 
@@ -64,11 +70,16 @@ impl CharacterTable {
             .map(|(i, class)| (class, i))
             .collect::<IndexMap<_, _>>();
 
+        let frobenius_schurs_indexmap = zip(irreps, frobenius_schurs)
+            .map(|(irrep, &fsi)| (irrep.clone(), fsi))
+            .collect::<IndexMap<_, _>>();
+
         Self {
             name: name.to_string(),
             irreps: irreps_indexmap,
             classes: classes_indexmap,
             characters: char_arr,
+            frobenius_schurs: frobenius_schurs_indexmap,
         }
     }
 
@@ -86,7 +97,7 @@ impl CharacterTable {
     fn get_character(
         &self,
         irrep: &MullikenIrrepSymbol,
-        class: &ClassSymbol<SymmetryOperation>,
+        class: &ClassSymbol<T>,
     ) -> &Character {
         let row = self.irreps.get(irrep).unwrap();
         let col = self.classes.get(class).unwrap();
@@ -118,7 +129,7 @@ impl CharacterTable {
     /// # Returns
     ///
     /// The required characters.
-    fn get_class(&self, class: &ClassSymbol<SymmetryOperation>) -> ArrayView1<Character> {
+    fn get_class(&self, class: &ClassSymbol<T>) -> ArrayView1<Character> {
         let col = self.classes.get(class).unwrap();
         self.characters.column(*col)
     }
