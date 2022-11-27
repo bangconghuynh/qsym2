@@ -2,15 +2,16 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
+use log;
+
 use derive_builder::Builder;
+use indexmap::IndexMap;
+use ndarray::ArrayView2;
 use phf::phf_map;
 use regex::Regex;
 
+use crate::chartab::character::Character;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
-
-// #[cfg(test)]
-// #[path = "symmetry_symbols_tests.rs"]
-// mod symmetry_symbols_tests;
 
 // ======
 // Traits
@@ -253,13 +254,7 @@ impl fmt::Display for GenericSymbol {
         write!(
             f,
             "{}{}{}{}{}{}{}",
-            prefac_str,
-            presuper_str,
-            presub_str,
-            main_str,
-            postsuper_str,
-            postsub_str,
-            postfac_str,
+            prefac_str, presuper_str, presub_str, main_str, postsuper_str, postsub_str, postfac_str,
         )
     }
 }
@@ -413,7 +408,7 @@ pub struct ClassSymbol<T: Clone> {
     generic_symbol: GenericSymbol,
 
     /// A representative element in the class.
-    representative: T,
+    representative: Option<T>,
 }
 
 impl<T: Clone> PartialEq for ClassSymbol<T> {
@@ -485,7 +480,6 @@ impl<T: Clone> CollectionSymbol for ClassSymbol<T> {
 }
 
 impl<T: Clone> ClassSymbol<T> {
-
     /// Creates a class symbol from a string and a representative element.
     ///
     /// Some permissible conjugacy class symbols:
@@ -494,7 +488,7 @@ impl<T: Clone> ClassSymbol<T> {
     /// "12||C|^(2)_(5)|"
     /// "2||S|^(z)|(α)"
     /// ```
-    pub fn new(symstr: &str, rep: T) -> Result<Self, GenericSymbolParsingError> {
+    pub fn new(symstr: &str, rep: Option<T>) -> Result<Self, GenericSymbolParsingError> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
         Ok(Self::builder()
             .generic_symbol(generic_symbol)
@@ -511,7 +505,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is proper.
     fn is_proper(&self) -> bool {
-        self.representative.is_proper()
+        self.representative.unwrap().is_proper()
     }
 
     /// Checks if this class is antiunitary.
@@ -520,7 +514,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is antiunitary.
     fn is_antiunitary(&self) -> bool {
-        self.representative.is_antiunitary()
+        self.representative.unwrap().is_antiunitary()
     }
 
     /// Checks if this class is the identity class.
@@ -529,7 +523,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is the identity class.
     fn is_identity(&self) -> bool {
-        self.representative.is_identity()
+        self.representative.unwrap().is_identity()
     }
 
     /// Checks if this class is the inversion class.
@@ -538,7 +532,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is the inversion class.
     fn is_inversion(&self) -> bool {
-        self.representative.is_inversion()
+        self.representative.unwrap().is_inversion()
     }
 
     /// Checks if this class is a binary rotation class.
@@ -547,7 +541,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is a binary rotation class.
     fn is_binary_rotation(&self) -> bool {
-        self.representative.is_binary_rotation()
+        self.representative.unwrap().is_binary_rotation()
     }
 
     /// Checks if this class is a reflection class.
@@ -556,7 +550,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is a reflection class.
     fn is_reflection(&self) -> bool {
-        self.representative.is_reflection()
+        self.representative.unwrap().is_reflection()
     }
 
     /// Checks if this class is a pure time-reversal class.
@@ -565,7 +559,7 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is a pure time-reversal class.
     fn is_time_reversal(&self) -> bool {
-        self.representative.is_time_reversal()
+        self.representative.unwrap().is_time_reversal()
     }
 }
 
@@ -576,4 +570,52 @@ impl<T: Clone> fmt::Display for ClassSymbol<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
     }
+}
+
+// =========
+// Functions
+// =========
+
+/// Deduces irreducible representation symboles based on Mulliken's convention.
+///
+/// # Arguments
+///
+/// * char_arr - A two-dimensional square array containing the characters where each column is for
+/// one conjugacy class and each row one irrep.
+/// * class_symbols - An index map containing the conjugacy class symbols for the columns of
+/// `char_arr`. The keys are the symbols and the values are the column indices.
+/// * force_proper_principal - Flag indicating if the principal-axis classes must be proper.
+/// * force_principal - The class symbol to be used as the principal-axis class
+/// (`force_proper_principal` must be `False` if this is used).
+///
+/// # Returns
+///
+/// A vector of Mulliken symbols corresponding to the rows of `char_arr`.
+fn deduce_mulliken_irrep_symbols<T: SpecialSymmetryTransformation + Clone>(
+    char_arr: &ArrayView2<Character>,
+    class_symbols: IndexMap<ClassSymbol<T>, usize>,
+    force_proper_principal: bool,
+    force_principal: Option<ClassSymbol<T>>,
+) -> Vec<MullikenIrrepSymbol> {
+    log::debug!("Generating irreducible representation symbols...");
+
+    // Inversion parity?
+    let i_parity = class_symbols.contains_key(&ClassSymbol::new("1||i||", None).unwrap());
+
+    // Reflection parity?
+    let s_parity = class_symbols.contains_key(&ClassSymbol::new("1||σh||", None).unwrap());
+
+    // i_parity takes priority.
+    if i_parity {
+        log::debug!("Inversion centre found. This will be used for g/u ordering.");
+    } else if s_parity {
+        log::debug!(
+            "Horizontal mirror plane found (but no inversion centre). This will be used for '/'' ordering."
+        );
+    }
+
+    // First pass: assign irrep symbols based on Mulliken's convention as much as possible.
+    log::debug!("First pass: assign symbols from rules");
+
+    todo!()
 }

@@ -346,11 +346,6 @@ fn test_abstract_group_class_order(mol: &Molecule, thresh: f64, class_order_str:
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     let group = group_from_molecular_symmetry(sym, None);
-    for (cls, _) in group.conjugacy_class_symbols.as_ref().unwrap().iter() {
-        // println!("{} - {:#?}", cls, cls);
-        println!("{}", cls);
-    }
-    // println!("{:#?}", group.conjugacy_class_symbols.unwrap());
     assert!(group
         .conjugacy_class_symbols
         .unwrap()

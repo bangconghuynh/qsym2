@@ -321,7 +321,7 @@ where
             .map(|(i, &rep_ele_index)| {
                 let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap();
                 (
-                    ClassSymbol::new(format!("||K{}||", i).as_str(), rep_ele.clone()).unwrap(),
+                    ClassSymbol::new(format!("||K{}||", i).as_str(), Some(rep_ele.clone())).unwrap(),
                     i,
                 )
             });
@@ -609,9 +609,9 @@ where
         // order, then the second column, and so on, with the exceptions of some
         // special columns.
         log::debug!("Sorting irreducible representations...");
-        let class_i = ClassSymbol::new("1||i||", self.elements.first().unwrap().0.clone()).unwrap();
+        let class_i = ClassSymbol::new("1||i||", None).unwrap();
         let class_s =
-            ClassSymbol::new("1||σh||", self.elements.first().unwrap().0.clone()).unwrap();
+            ClassSymbol::new("1||σh||", None).unwrap();
         let ccsyms = self.conjugacy_class_symbols.as_ref().unwrap();
         let special_idx = if ccsyms.contains_key(&class_i) {
             ccsyms.get(&class_i)
@@ -683,11 +683,11 @@ impl Group<SymmetryOperation> {
                     .unwrap();
                 let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap();
                 if rep_ele.is_identity() {
-                    (ClassSymbol::new("1||E||", rep_ele.clone()).unwrap(), i)
+                    (ClassSymbol::new("1||E||", Some(rep_ele.clone())).unwrap(), i)
                 } else if rep_ele.is_inversion() {
-                    (ClassSymbol::new("1||i||", rep_ele.clone()).unwrap(), i)
+                    (ClassSymbol::new("1||i||", Some(rep_ele.clone())).unwrap(), i)
                 } else if rep_ele.is_time_reversal() {
-                    (ClassSymbol::new("1||θ||", rep_ele.clone()).unwrap(), i)
+                    (ClassSymbol::new("1||θ||", Some(rep_ele.clone())).unwrap(), i)
                 } else {
                     let rep_proper_order = rep_ele.generating_element.proper_order;
                     let rep_proper_power = rep_ele.generating_element.proper_power;
@@ -732,7 +732,7 @@ impl Group<SymmetryOperation> {
                                 dash
                             )
                             .as_str(),
-                            rep_ele.clone(),
+                            Some(rep_ele.clone()),
                         )
                         .unwrap(),
                         i,
