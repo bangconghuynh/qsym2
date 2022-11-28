@@ -83,15 +83,15 @@ fn test_character_table(
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     let group = group_from_molecular_symmetry(sym, None);
-    for irrep in group.character_table.as_ref().unwrap().irreps.keys() {
-        println!("{}", irrep);
-    }
-    for class in group.character_table.as_ref().unwrap().classes.keys() {
-        println!("{}", class);
-    }
-    println!("{}", group.character_table.as_ref().unwrap().characters);
+    // for irrep in group.character_table.as_ref().unwrap().irreps.keys() {
+    //     println!("{}", irrep);
+    // }
+    // for class in group.character_table.as_ref().unwrap().classes.keys() {
+    //     println!("{}", class);
+    // }
+    // println!("{}", group.character_table.as_ref().unwrap().characters);
     // println!("{}", group.character_table.as_ref().unwrap().print_nice_table(true, Some(3)));
-    // println!("{}", group.character_table.as_ref().unwrap());
+    println!("{}", group.character_table.as_ref().unwrap());
 }
 
 // fn test_character_table_construction_from_infinite_group(

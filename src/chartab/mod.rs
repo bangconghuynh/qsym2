@@ -223,11 +223,10 @@ impl<R: Clone> CharacterTable<R> {
         };
 
         // Table heading
-        let mut stg = format!("{:^first_width$} ┆ FS ║", name);
+        let mut stg = format!(" {:^first_width$} ┆ FS ║", name);
         ccs_str.iter().enumerate().for_each(|(i, cc)| {
             stg.push_str(&format!("{:>width$} │", cc, width = digit_widths[i]));
         });
-        stg.pop();
         stg.pop();
         let tab_width = stg.chars().count();
         stg = format!(
@@ -238,28 +237,33 @@ impl<R: Clone> CharacterTable<R> {
         );
 
         // Table body
-        iter::zip(self.irreps.keys(), irreps_str)
-            .enumerate()
-            .for_each(|(i, (irrep, irrep_str))| {
-                let fs = FROBENIUS_SCHUR_SYMBOLS
-                    .get(self.frobenius_schurs.get(irrep).unwrap())
-                    .unwrap();
-                stg.push_str(&format!("{:<first_width$} ┆ {:>2} ║", irrep_str, fs));
+        let rows =
+            iter::zip(self.irreps.keys(), irreps_str)
+                .enumerate()
+                .map(|(i, (irrep, irrep_str))| {
+                    let fs = FROBENIUS_SCHUR_SYMBOLS
+                        .get(self.frobenius_schurs.get(irrep).unwrap())
+                        .unwrap();
+                    let mut line = format!(" {:<first_width$} ┆ {:>2} ║", irrep_str, fs);
 
-                ccs_str.iter().enumerate().for_each(|(j, _)| {
-                    stg.push_str(&format!(
-                        "{:>width$} │",
-                        chars_str[[i, j]],
-                        width = digit_widths[j]
-                    ));
+                    let line_chars: String = itertools::Itertools::intersperse(
+                        ccs_str.iter().enumerate().map(|(j, _)| {
+                            format!("{:>width$}", chars_str[[i, j]], width = digit_widths[j])
+                        }),
+                        " │".to_string(),
+                    )
+                    .collect();
+
+                    line.push_str(&line_chars);
+                    line
                 });
 
-                stg.pop();
-                stg.pop();
-                stg.push_str("\n");
-            });
+        stg.push_str(
+            &itertools::Itertools::intersperse(rows, "\n".to_string()).collect::<String>(),
+        );
 
         // Table bottom
+        stg.push_str("\n");
         stg.push_str(&iter::repeat("━").take(tab_width).collect::<String>());
         stg.push_str("\n");
         stg
