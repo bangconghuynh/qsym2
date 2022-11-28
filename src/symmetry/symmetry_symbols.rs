@@ -45,6 +45,9 @@ pub trait MathematicalSymbol: Clone + Hash + Eq {
 
     /// The postfactor part of the symbol.
     fn postfactor(&self) -> &str;
+
+    /// The multiplicity of the symbol.
+    fn multiplicity(&self) -> Option<usize>;
 }
 
 /// A trait for symbols describing linear spaces.
@@ -145,6 +148,10 @@ impl MathematicalSymbol for GenericSymbol {
 
     fn postfactor(&self) -> &str {
         &self.postfactor
+    }
+
+    fn multiplicity(&self) -> Option<usize> {
+        str::parse::<usize>(&self.prefactor).ok()
     }
 }
 
@@ -340,6 +347,15 @@ impl MathematicalSymbol for MullikenIrrepSymbol {
     fn postfactor(&self) -> &str {
         ""
     }
+
+    /// The dimensionality of the irreducible representation.
+    fn multiplicity(&self) -> Option<usize> {
+        if let Some(&mult) = MULLIKEN_IRREP_DEGENERACIES.get(self.main()) {
+            Some(mult as usize)
+        } else {
+            None
+        }
+    }
 }
 
 impl FromStr for MullikenIrrepSymbol {
@@ -367,6 +383,7 @@ static MULLIKEN_IRREP_DEGENERACIES: phf::Map<&'static str, u64> = phf_map! {
     "A" => 1u64,
     "B" => 1u64,
     "Σ" => 1u64,
+    "Γ" => 1u64,
     "E" => 2u64,
     "Π" => 2u64,
     "Δ" => 2u64,
@@ -483,6 +500,11 @@ impl<T: Clone> MathematicalSymbol for ClassSymbol<T> {
     /// The postfactor part of the symbol, which is empty.
     fn postfactor(&self) -> &str {
         ""
+    }
+
+    /// The size of the conjugacy class.
+    fn multiplicity(&self) -> Option<usize> {
+        self.generic_symbol.multiplicity()
     }
 }
 
@@ -793,8 +815,8 @@ where
             if let Some(sym) = INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim) {
                 sym
             } else {
-                log::warn!("{} cannot be assigned a standard dimensionality symbol. A generic 'Γ' will be used instead.", dim);
-                "Γ"
+                log::warn!("{} cannot be assigned a standard dimensionality symbol. A generic 'Λ' will be used instead.", dim);
+                "Λ"
             }
         } else {
             let char_rots: HashSet<_> = principal_rotations

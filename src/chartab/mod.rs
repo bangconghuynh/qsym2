@@ -1,11 +1,12 @@
+use std::cmp::max;
 use std::iter::zip;
 
+use derive_builder::Builder;
 use indexmap::IndexMap;
 use ndarray::{Array2, ArrayView1};
 
 use crate::chartab::character::Character;
-// use crate::symmetry::symmetry_element::symmetry_operation::SymmetryOperation;
-use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
+use crate::symmetry::symmetry_symbols::{ClassSymbol, MathematicalSymbol, MullikenIrrepSymbol};
 
 pub mod character;
 pub mod modular_linalg;
@@ -13,6 +14,7 @@ pub mod reducedint;
 pub mod unityroot;
 
 /// A struct to manage character tables.
+#[derive(Builder, Debug, Clone)]
 pub struct CharacterTable<T: Clone> {
     /// The name given to the character table.
     name: String,
@@ -29,9 +31,28 @@ pub struct CharacterTable<T: Clone> {
 
     /// The Frobenius--Schur indicators for the irreducible representations in this group.
     frobenius_schurs: IndexMap<MullikenIrrepSymbol, i8>,
+
+    /// The order of the group.
+    #[builder(setter(skip), default = "self.order()")]
+    order: usize,
+}
+
+impl<T: Clone> CharacterTableBuilder<T> {
+    fn order(&self) -> usize {
+        self.classes
+            .as_ref()
+            .unwrap()
+            .keys()
+            .map(|cc| cc.multiplicity().unwrap())
+            .sum()
+    }
 }
 
 impl<T: Clone> CharacterTable<T> {
+    fn builder() -> CharacterTableBuilder<T> {
+        CharacterTableBuilder::default()
+    }
+
     /// Constructs a new character table.
     ///
     /// # Arguments
@@ -74,13 +95,14 @@ impl<T: Clone> CharacterTable<T> {
             .map(|(irrep, &fsi)| (irrep.clone(), fsi))
             .collect::<IndexMap<_, _>>();
 
-        Self {
-            name: name.to_string(),
-            irreps: irreps_indexmap,
-            classes: classes_indexmap,
-            characters: char_arr,
-            frobenius_schurs: frobenius_schurs_indexmap,
-        }
+        Self::builder()
+            .name(name.to_string())
+            .irreps(irreps_indexmap)
+            .classes(classes_indexmap)
+            .characters(char_arr)
+            .frobenius_schurs(frobenius_schurs_indexmap)
+            .build()
+            .unwrap()
     }
 
     /// Retrieves the character of a particular irreducible representation in a particular
@@ -94,11 +116,7 @@ impl<T: Clone> CharacterTable<T> {
     /// # Returns
     ///
     /// The required character.
-    fn get_character(
-        &self,
-        irrep: &MullikenIrrepSymbol,
-        class: &ClassSymbol<T>,
-    ) -> &Character {
+    fn get_character(&self, irrep: &MullikenIrrepSymbol, class: &ClassSymbol<T>) -> &Character {
         let row = self.irreps.get(irrep).unwrap();
         let col = self.classes.get(class).unwrap();
         &self.characters[(*row, *col)]
@@ -132,5 +150,24 @@ impl<T: Clone> CharacterTable<T> {
     fn get_class(&self, class: &ClassSymbol<T>) -> ArrayView1<Character> {
         let col = self.classes.get(class).unwrap();
         self.characters.column(*col)
+    }
+
+    /// Prints the character as a nicely formatted string.
+    ///
+    /// # Arguments
+    ///
+    /// * numerical - An option containing a non-negative integer specifying the number of decimal
+    /// places for the numerical forms of the characters. If `None`, the characters will be shown
+    /// as exact algebraic forms.
+    ///
+    /// # Returns
+    ///
+    /// A formatted string containing the character table in a printable form.
+    fn print_nice_table(&self, numerical: Option<u8>) -> String {
+        // let first_width = max(
+        //     self.irreps.keys().map(|irrep| irrep.to_string().len()).max(),
+        //     format!("{} ({})", self.name, self)
+        // )
+        todo!()
     }
 }
