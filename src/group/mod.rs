@@ -128,7 +128,7 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> {
 
     /// The character table for this group.
     #[builder(setter(skip), default = "None")]
-    character_table: Option<CharacterTable<T>>,
+    pub character_table: Option<CharacterTable<T>>,
 }
 
 impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
@@ -621,14 +621,21 @@ where
 
         let class_symbols = self.conjugacy_class_symbols.as_ref().unwrap();
         let char_arr = sort_irreps(&char_arr.view(), class_symbols);
-        println!("{}", char_arr);
 
         let i_cc = ClassSymbol::new("1||i||", None).unwrap();
-        let mut force_proper_principal = class_symbols.contains_key(&i_cc);
-        if force_proper_principal {
+        let s_cc = ClassSymbol::new("1||σh||", None).unwrap();
+        let mut force_proper_principal = if class_symbols.contains_key(&i_cc) {
             log::debug!(
                 "Inversion centre exists. Principal-axis classes will be forced to be proper."
             );
+            true
+        } else if class_symbols.contains_key(&s_cc) {
+            log::debug!(
+                "Horizontal mirror plane exists. Principal-axis classes will be forced to be proper."
+            );
+            true
+        } else {
+            false
         };
 
         let force_principal = if self.name == "O" || self.name == "Oh" || self.name == "Td" {
@@ -650,52 +657,44 @@ where
             force_proper_principal,
             force_principal,
         );
-        for (cc, _) in class_symbols.iter() {
-            println!("{}", cc);
-        }
-        // for irrep in ordered_irreps {
-        //     println!("{}", irrep);
-        // }
 
-        let frobenius_schur_indicators: Vec<_> =
-            ordered_irreps
-                .iter()
-                .enumerate()
-                .map(|(irrep_i, irrep_symbol)| {
-                    let indicator: Complex<f64> =
-                        self.elements
-                            .keys()
-                            .fold(Complex::new(0.0f64, 0.0f64), |acc, ele| {
-                                let ele_2_idx = self.elements.get(&ele.clone().pow(2)).unwrap();
-                                let class_2_j =
-                                    self.element_to_conjugacy_classes.as_ref().unwrap()[*ele_2_idx];
-                                acc + char_arr[[irrep_i, class_2_j]].complex_value()
-                            })
-                            / (self.order as f64);
-                    approx::assert_relative_eq!(
-                        indicator.im,
-                        0.0,
-                        epsilon = 1e-14,
-                        max_relative = 1e-14
-                    );
-                    approx::assert_relative_eq!(
-                        indicator.re,
-                        indicator.re.round(),
-                        epsilon = 1e-14,
-                        max_relative = 1e-14
-                    );
-                    indicator.re.round() as i8
-                }).collect();
+        let frobenius_schur_indicators: Vec<_> = ordered_irreps
+            .iter()
+            .enumerate()
+            .map(|(irrep_i, _)| {
+                let indicator: Complex<f64> =
+                    self.elements
+                        .keys()
+                        .fold(Complex::new(0.0f64, 0.0f64), |acc, ele| {
+                            let ele_2_idx = self.elements.get(&ele.clone().pow(2)).unwrap();
+                            let class_2_j =
+                                self.element_to_conjugacy_classes.as_ref().unwrap()[*ele_2_idx];
+                            acc + char_arr[[irrep_i, class_2_j]].complex_value()
+                        })
+                        / (self.order as f64);
+                approx::assert_relative_eq!(
+                    indicator.im,
+                    0.0,
+                    epsilon = 1e-14,
+                    max_relative = 1e-14
+                );
+                approx::assert_relative_eq!(
+                    indicator.re,
+                    indicator.re.round(),
+                    epsilon = 1e-14,
+                    max_relative = 1e-14
+                );
+                indicator.re.round() as i8
+            })
+            .collect();
 
-        self.character_table = Some(
-            CharacterTable::new(
-                self.name.as_str(),
-                &ordered_irreps,
-                &class_symbols.keys().cloned().collect::<Vec<_>>(),
-                char_arr,
-                &frobenius_schur_indicators
-            )
-        )
+        self.character_table = Some(CharacterTable::new(
+            self.name.as_str(),
+            &ordered_irreps,
+            &class_symbols.keys().cloned().collect::<Vec<_>>(),
+            char_arr,
+            &frobenius_schur_indicators,
+        ))
     }
 }
 

@@ -91,11 +91,10 @@ impl Character {
     /// # Returns
     ///
     /// The formatted numerical form.
-    fn get_numerical(&self, precision: usize) -> String {
+    pub fn get_numerical(&self, real_only: bool, precision: usize) -> String {
         let Complex { re, im } = self.complex_value();
-        format!(
-            "{:+.precision$} {} {:.precision$}i",
-            {
+        if real_only {
+            format!("{:+.precision$}", {
                 if approx::relative_eq!(
                     re,
                     0.0,
@@ -107,23 +106,40 @@ impl Character {
                 } else {
                     re
                 }
-            },
-            {
-                if im >= 0.0
-                    || approx::relative_eq!(
-                        im,
+            })
+        } else {
+            format!(
+                "{:+.precision$} {} {:.precision$}i",
+                {
+                    if approx::relative_eq!(
+                        re,
                         0.0,
                         epsilon = self.threshold,
                         max_relative = self.threshold
-                    )
+                    ) && re < 0.0
+                    {
+                        -re
+                    } else {
+                        re
+                    }
+                },
                 {
-                    "+"
-                } else {
-                    "-"
-                }
-            },
-            im.abs()
-        )
+                    if im >= 0.0
+                        || approx::relative_eq!(
+                            im,
+                            0.0,
+                            epsilon = self.threshold,
+                            max_relative = self.threshold
+                        )
+                    {
+                        "+"
+                    } else {
+                        "-"
+                    }
+                },
+                im.abs()
+            )
+        }
     }
 
     /// Gets the concise form for this character.
@@ -274,31 +290,21 @@ impl PartialEq for Character {
 impl Eq for Character {}
 
 impl PartialOrd for Character {
+    /// Two characters are compared based on their polar forms: their partial ordering is
+    /// determined by the ordering of their `$(\theta, r)$` ordered pairs, where `$\theta$` is the
+    /// argument normalised to `$[0, 2\pi)$` and `$r$` the modulus.
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let (self_norm, self_arg) = self.complex_value().to_polar();
-        let (other_norm, other_arg) = other.complex_value().to_polar();
-        let thresh = (self.threshold * other.threshold).sqrt();
+        let mut self_terms = self.terms.clone();
+        self_terms.retain(|_, mult| *mult > 0);
+        self_terms.sort_by(|uroot1, _, uroot2, _| uroot1.partial_cmp(uroot2).unwrap());
 
-        if approx::relative_eq!(
-            self_norm,
-            other_norm,
-            epsilon = thresh,
-            max_relative = thresh
-        ) {
-            let positive_self_arg = if self_arg >= -thresh {
-                self_arg
-            } else {
-                2.0 * std::f64::consts::PI - self_arg
-            };
-            let positive_other_arg = if other_arg >= -thresh {
-                other_arg
-            } else {
-                2.0 * std::f64::consts::PI - other_arg
-            };
-            positive_self_arg.partial_cmp(&positive_other_arg)
-        } else {
-            self_norm.partial_cmp(&other_norm)
-        }
+        let mut other_terms = other.terms.clone();
+        other_terms.retain(|_, mult| *mult > 0);
+        other_terms.sort_by(|uroot1, _, uroot2, _| uroot1.partial_cmp(uroot2).unwrap());
+
+        let self_terms_vec = self_terms.into_iter().collect::<Vec<_>>();
+        let other_terms_vec = other_terms.into_iter().collect::<Vec<_>>();
+        self_terms_vec.partial_cmp(&other_terms_vec)
     }
 }
 

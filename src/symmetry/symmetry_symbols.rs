@@ -19,6 +19,47 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
 };
 
+// =========
+// Constants
+// =========
+
+static MULLIKEN_IRREP_DEGENERACIES: phf::Map<&'static str, u64> = phf_map! {
+    "A" => 1u64,
+    "B" => 1u64,
+    "Σ" => 1u64,
+    "Γ" => 1u64,
+    "E" => 2u64,
+    "Π" => 2u64,
+    "Δ" => 2u64,
+    "Φ" => 2u64,
+    "T" => 3u64,
+    "G" => 4u64,
+    "H" => 5u64,
+    "I" => 6u64,
+    "J" => 7u64,
+    "K" => 8u64,
+    "L" => 9u64,
+    "M" => 10u64,
+};
+
+static INV_MULLIKEN_IRREP_DEGENERACIES: phf::Map<u64, &'static str> = phf_map! {
+     2u64 => "E",
+     3u64 => "T",
+     4u64 => "G",
+     5u64 => "H",
+     6u64 => "I",
+     7u64 => "J",
+     8u64 => "K",
+     9u64 => "L",
+     10u64 => "M",
+};
+
+pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
+    1i8 => "r",
+    0i8 => "c",
+    -1i8 => "q",
+};
+
 // ======
 // Traits
 // ======
@@ -379,37 +420,6 @@ impl FromStr for MullikenIrrepSymbol {
     }
 }
 
-static MULLIKEN_IRREP_DEGENERACIES: phf::Map<&'static str, u64> = phf_map! {
-    "A" => 1u64,
-    "B" => 1u64,
-    "Σ" => 1u64,
-    "Γ" => 1u64,
-    "E" => 2u64,
-    "Π" => 2u64,
-    "Δ" => 2u64,
-    "Φ" => 2u64,
-    "T" => 3u64,
-    "G" => 4u64,
-    "H" => 5u64,
-    "I" => 6u64,
-    "J" => 7u64,
-    "K" => 8u64,
-    "L" => 9u64,
-    "M" => 10u64,
-};
-
-static INV_MULLIKEN_IRREP_DEGENERACIES: phf::Map<u64, &'static str> = phf_map! {
-     2u64 => "E",
-     3u64 => "T",
-     4u64 => "G",
-     5u64 => "H",
-     6u64 => "I",
-     7u64 => "J",
-     8u64 => "K",
-     9u64 => "L",
-     10u64 => "M",
-};
-
 impl LinearSpaceSymbol for MullikenIrrepSymbol {
     fn dimensionality(&self) -> u64 {
         *MULLIKEN_IRREP_DEGENERACIES
@@ -438,35 +448,35 @@ impl fmt::Display for MullikenIrrepSymbol {
 
 /// A struct to handle conjugacy class symbols.
 #[derive(Builder, Debug, Clone)]
-pub struct ClassSymbol<T: Clone> {
+pub struct ClassSymbol<R: Clone> {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
 
     /// A representative element in the class.
-    representative: Option<T>,
+    representative: Option<R>,
 }
 
-impl<T: Clone> PartialEq for ClassSymbol<T> {
+impl<R: Clone> PartialEq for ClassSymbol<R> {
     fn eq(&self, other: &Self) -> bool {
         self.generic_symbol == other.generic_symbol
     }
 }
 
-impl<T: Clone> Eq for ClassSymbol<T> {}
+impl<R: Clone> Eq for ClassSymbol<R> {}
 
-impl<T: Clone> Hash for ClassSymbol<T> {
+impl<R: Clone> Hash for ClassSymbol<R> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.generic_symbol.hash(state)
     }
 }
 
-impl<T: Clone> ClassSymbol<T> {
-    fn builder() -> ClassSymbolBuilder<T> {
+impl<R: Clone> ClassSymbol<R> {
+    fn builder() -> ClassSymbolBuilder<R> {
         ClassSymbolBuilder::default()
     }
 }
 
-impl<T: Clone> MathematicalSymbol for ClassSymbol<T> {
+impl<R: Clone> MathematicalSymbol for ClassSymbol<R> {
     /// The main part of the symbol, which denotes the representative symmetry operation.
     fn main(&self) -> &str {
         self.generic_symbol.main()
@@ -508,7 +518,7 @@ impl<T: Clone> MathematicalSymbol for ClassSymbol<T> {
     }
 }
 
-impl<T: Clone> CollectionSymbol for ClassSymbol<T> {
+impl<R: Clone> CollectionSymbol for ClassSymbol<R> {
     fn size(&self) -> u64 {
         self.prefactor().parse::<u64>().unwrap_or_else(|_| {
             panic!(
@@ -519,7 +529,7 @@ impl<T: Clone> CollectionSymbol for ClassSymbol<T> {
     }
 }
 
-impl<T: Clone> ClassSymbol<T> {
+impl<R: Clone> ClassSymbol<R> {
     /// Creates a class symbol from a string and a representative element.
     ///
     /// Some permissible conjugacy class symbols:
@@ -528,7 +538,7 @@ impl<T: Clone> ClassSymbol<T> {
     /// "12||C|^(2)_(5)|"
     /// "2||S|^(z)|(α)"
     /// ```
-    pub fn new(symstr: &str, rep: Option<T>) -> Result<Self, GenericSymbolParsingError> {
+    pub fn new(symstr: &str, rep: Option<R>) -> Result<Self, GenericSymbolParsingError> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
         Ok(Self::builder()
             .generic_symbol(generic_symbol)
@@ -538,7 +548,7 @@ impl<T: Clone> ClassSymbol<T> {
     }
 }
 
-impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for ClassSymbol<T> {
+impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for ClassSymbol<R> {
     /// Checks if this class is proper.
     ///
     /// # Returns
@@ -603,8 +613,8 @@ impl<T: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     }
 }
 
-impl<T: FiniteOrder + Clone> FiniteOrder for ClassSymbol<T> {
-    type Int = T::Int;
+impl<R: FiniteOrder + Clone> FiniteOrder for ClassSymbol<R> {
+    type Int = R::Int;
 
     fn order(&self) -> Self::Int {
         self.representative.as_ref().unwrap().order()
@@ -614,7 +624,7 @@ impl<T: FiniteOrder + Clone> FiniteOrder for ClassSymbol<T> {
 // -------
 // Display
 // -------
-impl<T: Clone> fmt::Display for ClassSymbol<T> {
+impl<R: Clone> fmt::Display for ClassSymbol<R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
     }
@@ -639,9 +649,9 @@ impl<T: Clone> fmt::Display for ClassSymbol<T> {
 /// # Returns
 ///
 /// A new array with the rows correctly sorted.
-pub fn sort_irreps<T: Clone>(
+pub fn sort_irreps<R: Clone>(
     char_arr: &ArrayView2<Character>,
-    class_symbols: &IndexMap<ClassSymbol<T>, usize>,
+    class_symbols: &IndexMap<ClassSymbol<R>, usize>,
 ) -> Array2<Character> {
     log::debug!("Sorting irreducible representations...");
     let class_i = ClassSymbol::new("1||i||", None).unwrap();
@@ -655,23 +665,16 @@ pub fn sort_irreps<T: Clone>(
     };
 
     let sort_row_indices: Vec<_> = if let Some(&special_col) = special_idx {
-        let mut col_indices = vec![];
+        log::debug!("Special class with highest sort priority: {}", class_symbols.get_index(special_col).unwrap().0);
+        let mut col_indices = vec![special_col];
         col_indices.extend(0..special_col);
         col_indices.extend((special_col + 1)..class_symbols.len());
         let sort_arr = char_arr.select(Axis(1), &col_indices);
         (0..char_arr.nrows())
             .sorted_by(|&i, &j| {
-                let keys_i = (
-                    -(char_arr[[i, special_col]].complex_value().re
-                        / char_arr[[i, special_col]].complex_value().norm()),
-                    sort_arr.row(i).iter().cloned().collect_vec(),
-                );
-                let keys_j = (
-                    -(char_arr[[j, special_col]].complex_value().re
-                        / char_arr[[j, special_col]].complex_value().norm()),
-                    sort_arr.row(j).iter().cloned().collect_vec(),
-                );
-                PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
+                let keys_i = sort_arr.row(i).iter().cloned().collect_vec();
+                let keys_j = sort_arr.row(j).iter().cloned().collect_vec();
+                keys_i.partial_cmp(&keys_j).unwrap()
             })
             .collect()
     } else {
@@ -679,7 +682,7 @@ pub fn sort_irreps<T: Clone>(
             .sorted_by(|&i, &j| {
                 let keys_i = char_arr.row(i).iter().cloned().collect_vec();
                 let keys_j = char_arr.row(j).iter().cloned().collect_vec();
-                PartialOrd::partial_cmp(&keys_i, &keys_j).unwrap()
+                keys_i.partial_cmp(&keys_j).unwrap()
             })
             .collect()
     };
@@ -703,14 +706,14 @@ pub fn sort_irreps<T: Clone>(
 /// # Returns
 ///
 /// A vector of Mulliken symbols corresponding to the rows of `char_arr`.
-pub fn deduce_mulliken_irrep_symbols<T>(
+pub fn deduce_mulliken_irrep_symbols<R>(
     char_arr: &ArrayView2<Character>,
-    class_symbols: &IndexMap<ClassSymbol<T>, usize>,
+    class_symbols: &IndexMap<ClassSymbol<R>, usize>,
     force_proper_principal: bool,
-    force_principal: Option<ClassSymbol<T>>,
+    force_principal: Option<ClassSymbol<R>>,
 ) -> Vec<MullikenIrrepSymbol>
 where
-    T: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
+    R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
 {
     log::debug!("Generating Mulliken irreducible representation symbols...");
 

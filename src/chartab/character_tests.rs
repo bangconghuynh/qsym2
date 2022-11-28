@@ -91,6 +91,22 @@ fn test_character_partial_ord() {
 }
 
 #[test]
+fn test_character_partial_ord_advanced() {
+    let e8 = UnityRoot::new(1u64, 8u64);
+    let e8pi: Vec<_> = (0..8).map(|i| e8.pow(i)).collect();
+
+    let c1 = Character::new(&[(e8pi[1].clone(), 1usize), (e8pi[7].clone(), 1usize)]);
+    let c2 = Character::new(&[(e8pi[3].clone(), 1usize), (e8pi[5].clone(), 1usize)]);
+    assert!(c1 < c2);
+
+    println!("Trivial");
+    let c3 = Character::new(&[(e8pi[0].clone(), 1usize)]);
+    let c4 = Character::new(&[(e8pi[4].clone(), 1usize)]);
+    println!("End trivial");
+    assert!(c3 < c4);
+}
+
+#[test]
 fn test_character_debug() {
     let e3 = UnityRoot::new(1u64, 3u64);
     let e3p0 = e3.pow(0);
@@ -158,15 +174,15 @@ fn test_character_fmt() {
     let c5 = Character::new(&[(e3p1.clone(), 1usize)]);
     assert_eq!(format!("{}", c5), "E3".to_string());
     assert_eq!(format!("{}", c5.get_concise(true)), "-0.500 + 0.866i".to_string());
-    assert_eq!(c5.get_numerical(5), "-0.50000 + 0.86603i".to_string());
+    assert_eq!(c5.get_numerical(false, 5), "-0.50000 + 0.86603i".to_string());
     let c6 = Character::new(&[(e3p2.clone(), 1usize)]);
     assert_eq!(format!("{}", c6), "(E3)^2".to_string());
     assert_eq!(format!("{}", c6.get_concise(true)), "-0.500 - 0.866i".to_string());
-    assert_eq!(c6.get_numerical(5), "-0.50000 - 0.86603i".to_string());
+    assert_eq!(c6.get_numerical(false, 5), "-0.50000 - 0.86603i".to_string());
     let c7 = Character::new(&[(e3p1.clone(), 1usize), (e3p2.clone(), 1usize)]);
     assert_eq!(format!("{}", c7), "-1".to_string());
     assert_eq!(format!("{}", c7.get_concise(true)), "-1".to_string());
-    assert_eq!(c7.get_numerical(4), "-1.0000 + 0.0000i".to_string());
+    assert_eq!(c7.get_numerical(false, 4), "-1.0000 + 0.0000i".to_string());
 
     let e5 = UnityRoot::new(1u64, 5u64);
     let e5p1 = e5.pow(1);
@@ -176,7 +192,7 @@ fn test_character_fmt() {
     ]);
     assert_eq!(format!("{}", c8), "E5 + (E5)^4".to_string());
     assert_eq!(format!("{}", c8.get_concise(true)), "+0.618".to_string());
-    assert_eq!(c8.get_numerical(6), "+0.618034 + 0.000000i".to_string());
+    assert_eq!(c8.get_numerical(false, 6), "+0.618034 + 0.000000i".to_string());
 
     let e7 = UnityRoot::new(1u64, 7u64);
     let c9 = Character::new(
@@ -184,5 +200,5 @@ fn test_character_fmt() {
     );
     assert_eq!(format!("{}", c9), "0".to_string());
     assert_eq!(format!("{}", c9.get_concise(true)), "0".to_string());
-    assert_eq!(c9.get_numerical(7), "+0.0000000 + 0.0000000i".to_string());
+    assert_eq!(c9.get_numerical(false, 7), "+0.0000000 + 0.0000000i".to_string());
 }

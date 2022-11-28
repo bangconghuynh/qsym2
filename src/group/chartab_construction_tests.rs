@@ -83,6 +83,15 @@ fn test_character_table(
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     let group = group_from_molecular_symmetry(sym, None);
+    for irrep in group.character_table.as_ref().unwrap().irreps.keys() {
+        println!("{}", irrep);
+    }
+    for class in group.character_table.as_ref().unwrap().classes.keys() {
+        println!("{}", class);
+    }
+    println!("{}", group.character_table.as_ref().unwrap().characters);
+    // println!("{}", group.character_table.as_ref().unwrap().print_nice_table(true, Some(3)));
+    // println!("{}", group.character_table.as_ref().unwrap());
 }
 
 // fn test_character_table_construction_from_infinite_group(
@@ -155,13 +164,13 @@ fn test_character_table(
 //     assert!(result.is_err());
 // }
 
-// #[test]
-// fn test_character_table_construction_spherical_c60_ih() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
-//     let thresh = 1e-5;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction(&mol, thresh, "Ih", 120, 10, false);
-// }
+#[test]
+fn test_character_table_construction_spherical_c60_ih() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-5;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_character_table(&mol, thresh);
+}
 
 // #[test]
 // fn test_character_table_construction_spherical_c60_ih_class_order() {
@@ -1386,13 +1395,14 @@ fn test_character_table_construction_symmetric_sf5cl_c4v() {
 // Dnh
 // */
 
-// #[test]
-// fn test_character_table_construction_symmetric_bf3_d3h() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
-//     let thresh = 1e-7;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction(&mol, thresh, "D3h", 12, 6, false);
-// }
+#[test]
+fn test_character_table_construction_symmetric_bf3_d3h() {
+    env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_character_table(&mol, thresh);
+}
 
 // #[test]
 // fn test_character_table_construction_symmetric_bf3_d3h_class_order() {
@@ -1497,44 +1507,32 @@ fn test_character_table_construction_symmetric_xef4_d4h() {
 //     );
 // }
 
-// #[test]
-// fn test_character_table_construction_symmetric_benzene_d6h() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
-//     let thresh = 1e-7;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction(&mol, thresh, "D6h", 24, 12, false);
-// }
+#[test]
+fn test_character_table_construction_symmetric_benzene_d6h() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_character_table(&mol, thresh);
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_benzene_d6h_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
-//     let thresh = 1e-7;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     // The benzene molecule is in the yz-plane. Ordering of the symmetry elements based on their
-//     // closeness to principal axes means that the class ordering will appear different from that
-//     // found in standard character tables.
-//     test_character_table_construction_class_order(
-//         &mol,
-//         thresh,
-//         &[
-//             "|E|",
-//             "2|C6|",
-//             "2|C3|",
-//             "3|C2|",
-//             "3|C2|^(')",
-//             "|C2|^('')",
-//             "|i|",
-//             "2|S6|",
-//             "2|S3|",
-//             "3|σv|",
-//             "3|σv|^(')",
-//             "|σh|",
-//         ],
-//     );
-// }
+#[test]
+fn test_character_table_construction_symmetric_8_eclipsed_sandwich_d8h() {
+    let thresh = 1e-7;
+    let mol = template_molecules::gen_arbitrary_eclipsed_sandwich(8);
+    test_character_table(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_symmetric_9_eclipsed_sandwich_d9h() {
+    env_logger::init();
+    let thresh = 1e-7;
+    let mol = template_molecules::gen_arbitrary_eclipsed_sandwich(9);
+    test_character_table(&mol, thresh);
+}
 
 #[test]
 fn test_character_table_construction_symmetric_h100_d100h() {
+    env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
