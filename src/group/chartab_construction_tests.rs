@@ -1,80 +1,22 @@
-use std::panic;
-
 use approx;
 use env_logger;
 use itertools::Itertools;
 use nalgebra::Vector3;
-use num_traits::Pow;
+use num::Complex;
 
 use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
-use crate::group::{group_from_molecular_symmetry, Group};
+use crate::group::group_from_molecular_symmetry;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
-use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, SymmetryOperation};
-use crate::symmetry::symmetry_element_order::ElementOrder;
+use crate::symmetry::symmetry_symbols::MathematicalSymbol;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
-
 
 // ================================================================
 // Character table for abstract group from molecular symmetry tests
 // ================================================================
 
-// fn test_character_table_construction_validity(
-//     group: Group<SymmetryOperation>,
-//     name: &str,
-//     order: usize,
-//     class_number: usize,
-//     abelian: bool,
-// ) {
-//     assert_eq!(group.name, name.to_string());
-//     assert_eq!(group.order, order);
-//     assert_eq!(group.class_number, Some(class_number));
-//     assert_eq!(group.is_abelian(), abelian);
-
-//     // Test element to conjugacy class
-//     let conjugacy_classes = group.conjugacy_classes.unwrap();
-//     for (element_i, class_i) in group
-//         .element_to_conjugacy_classes
-//         .unwrap()
-//         .iter()
-//         .enumerate()
-//     {
-//         assert!(conjugacy_classes[*class_i].contains(&group.elements[element_i]));
-//     }
-
-//     // Test inverse conjugacy classes
-//     let ctb = group.cayley_table.as_ref().unwrap();
-//     for (class_i, inv_class_i) in group
-//         .inverse_conjugacy_classes
-//         .as_ref()
-//         .unwrap()
-//         .iter()
-//         .enumerate()
-//     {
-//         assert!(
-//             conjugacy_classes[class_i]
-//                 .iter()
-//                 .cartesian_product(conjugacy_classes[*inv_class_i].iter())
-//                 .filter(|(&g, &inv_g)| { ctb[[g, inv_g]] == 0 })
-//                 .collect::<Vec<_>>()
-//                 .len()
-//                 == conjugacy_classes[class_i].len()
-//         );
-//     }
-
-//     // Test class matrix symmetry w.r.t. the first two indices
-//     let nmat_rst = group.class_matrix.unwrap();
-//     let mut nmat_srt = nmat_rst.clone();
-//     nmat_srt.swap_axes(0, 1);
-//     assert_eq!(nmat_rst, nmat_srt);
-// }
-
-fn test_character_table(
-    mol: &Molecule,
-    thresh: f64,
-) {
+fn test_character_table(mol: &Molecule, thresh: f64) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
         .molecule(mol, true)
@@ -83,15 +25,84 @@ fn test_character_table(
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
     let group = group_from_molecular_symmetry(sym, None);
-    // for irrep in group.character_table.as_ref().unwrap().irreps.keys() {
-    //     println!("{}", irrep);
-    // }
-    // for class in group.character_table.as_ref().unwrap().classes.keys() {
-    //     println!("{}", class);
-    // }
-    // println!("{}", group.character_table.as_ref().unwrap().characters);
-    // println!("{}", group.character_table.as_ref().unwrap().print_nice_table(true, Some(3)));
-    println!("{}", group.character_table.as_ref().unwrap());
+    let chartab = group.character_table.as_ref().unwrap();
+    println!("{}", chartab);
+
+    let order: usize = chartab
+        .classes
+        .keys()
+        .map(|cc| cc.multiplicity().unwrap())
+        .sum();
+
+    // Sum of squared dimensions
+    assert_eq!(
+        order,
+        chartab
+            .irreps
+            .keys()
+            .map(|irrep| irrep.multiplicity().unwrap().pow(2))
+            .sum()
+    );
+
+    // First orthogonality theorem (row-orthogonality)
+    assert!(chartab
+        .irreps
+        .keys()
+        .combinations_with_replacement(2)
+        .all(|irreps_pair| {
+            let irrep_i = irreps_pair[0];
+            let irrep_j = irreps_pair[1];
+            let i = *chartab.irreps.get(irrep_i).unwrap();
+            let j = *chartab.irreps.get(irrep_j).unwrap();
+            let inprod: Complex<f64> =
+                chartab
+                    .classes
+                    .iter()
+                    .fold(Complex::new(0.0f64, 0.0f64), |acc, (cc, &k)| {
+                        acc + (cc.multiplicity().unwrap() as f64)
+                            * chartab.characters[[i, k]].complex_value().conj()
+                            * chartab.characters[[j, k]].complex_value()
+                    })
+                    / (order as f64);
+
+            if i == j {
+                approx::relative_eq!(inprod.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
+                    && approx::relative_eq!(inprod.im, 0.0, epsilon = 1e-14, max_relative = 1e-14)
+            } else {
+                approx::relative_eq!(inprod.re, 0.0, epsilon = 1e-14, max_relative = 1e-14)
+                    && approx::relative_eq!(inprod.im, 0.0, epsilon = 1e-14, max_relative = 1e-14)
+            }
+        }));
+
+    // Second orthogonality theorem (column-orthogonality)
+    assert!(chartab
+        .classes
+        .keys()
+        .combinations_with_replacement(2)
+        .all(|ccs_pair| {
+            let cc_i = ccs_pair[0];
+            let cc_j = ccs_pair[1];
+            let i = *chartab.classes.get(cc_i).unwrap();
+            let j = *chartab.classes.get(cc_j).unwrap();
+            let inprod: Complex<f64> =
+                chartab
+                    .irreps
+                    .iter()
+                    .fold(Complex::new(0.0f64, 0.0f64), |acc, (irrep, &k)| {
+                        acc + (cc_i.multiplicity().unwrap() as f64)
+                            * chartab.characters[[k, i]].complex_value().conj()
+                            * chartab.characters[[k, j]].complex_value()
+                    })
+                    / (order as f64);
+
+            if i == j {
+                approx::relative_eq!(inprod.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
+                    && approx::relative_eq!(inprod.im, 0.0, epsilon = 1e-14, max_relative = 1e-14)
+            } else {
+                approx::relative_eq!(inprod.re, 0.0, epsilon = 1e-14, max_relative = 1e-14)
+                    && approx::relative_eq!(inprod.im, 0.0, epsilon = 1e-14, max_relative = 1e-14)
+            }
+        }));
 }
 
 // fn test_character_table_construction_from_infinite_group(
@@ -142,7 +153,6 @@ fn test_character_table(
 // /********
 // Spherical
 // ********/
-
 // #[test]
 // fn test_character_table_construction_spherical_atom_o3() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
@@ -307,7 +317,6 @@ fn test_character_table_construction_spherical_vf6_oh() {
 // /*****
 // Linear
 // *****/
-
 // #[test]
 // fn test_character_table_construction_linear_atom_magnetic_field_cinfh() {
 //     // env_logger::init();
@@ -752,7 +761,6 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_c3() {
 // /*
 // Cnv
 // */
-
 // #[test]
 // fn test_character_table_construction_symmetric_nh3_c3v() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
@@ -1119,7 +1127,6 @@ fn test_character_table_construction_symmetric_sf5cl_c4v() {
 // /*
 // Cnh
 // */
-
 // #[test]
 // fn test_character_table_construction_symmetric_bf3_magnetic_field_c3h() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
@@ -1287,7 +1294,6 @@ fn test_character_table_construction_symmetric_sf5cl_c4v() {
 // /*
 // Dn
 // */
-
 // #[test]
 // fn test_character_table_construction_symmetric_triphenyl_radical_d3() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/triphenylradical.xyz");
@@ -1394,7 +1400,6 @@ fn test_character_table_construction_symmetric_sf5cl_c4v() {
 // /*
 // Dnh
 // */
-
 #[test]
 fn test_character_table_construction_symmetric_bf3_d3h() {
     env_logger::init();
@@ -1577,7 +1582,6 @@ fn test_character_table_construction_symmetric_h100_d100h() {
 // /*
 // Dnd
 // */
-
 // #[test]
 // fn test_character_table_construction_symmetric_b2cl4_d2d() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
@@ -1859,7 +1863,6 @@ fn test_character_table_construction_symmetric_h100_d100h() {
 // /*
 // S2n
 // */
-
 // #[test]
 // fn test_character_table_construction_symmetric_b2cl4_magnetic_field_s4() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
@@ -2221,11 +2224,9 @@ fn test_character_table_construction_symmetric_h100_d100h() {
 // /*********
 // Asymmetric
 // *********/
-
 // /*
 // C2
 // */
-
 // #[test]
 // fn test_character_table_construction_asymmetric_spiroketal_c2() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/spiroketal.xyz");
@@ -2331,7 +2332,6 @@ fn test_character_table_construction_symmetric_h100_d100h() {
 // /***
 // C2v
 // ***/
-
 // #[test]
 // fn test_character_table_construction_asymmetric_water_c2v() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
@@ -2400,7 +2400,6 @@ fn test_character_table_construction_symmetric_h100_d100h() {
 // /***
 // C2h
 // ***/
-
 // #[test]
 // fn test_character_table_construction_asymmetric_h2o2_c2h() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
@@ -2481,7 +2480,6 @@ fn test_character_table_construction_symmetric_h100_d100h() {
 // /*
 // Cs
 // */
-
 // #[test]
 // fn test_character_table_construction_asymmetric_propene_cs() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
@@ -2738,7 +2736,6 @@ fn test_character_table_construction_symmetric_h100_d100h() {
 // /*
 // D2
 // */
-
 // #[test]
 // fn test_character_table_construction_asymmetric_i4_biphenyl_d2() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
@@ -2774,7 +2771,6 @@ fn test_character_table_construction_symmetric_h100_d100h() {
 // /***
 // D2h
 // ***/
-
 // #[test]
 // fn test_character_table_construction_asymmetric_b2h6_d2h() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
@@ -2881,7 +2877,6 @@ fn test_character_table_construction_symmetric_h100_d100h() {
 // /***
 // Ci
 // ***/
-
 // #[test]
 // fn test_character_table_construction_asymmetric_meso_tartaricacid_ci() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
@@ -2945,7 +2940,6 @@ fn test_character_table_construction_symmetric_h100_d100h() {
 // /***
 // C1
 // ***/
-
 // #[test]
 // fn test_character_table_construction_asymmetric_butan1ol_c1() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
