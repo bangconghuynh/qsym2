@@ -5,7 +5,8 @@ use std::hash::{Hash, Hasher};
 use approx;
 use derive_builder::Builder;
 use indexmap::IndexMap;
-use num::Complex;
+use num::{Complex, Zero};
+use rayon::prelude::*;
 
 use crate::aux::misc::HashableFloat;
 use crate::chartab::unityroot::UnityRoot;
@@ -76,9 +77,14 @@ impl Character {
     pub fn complex_value(&self) -> Complex<f64> {
         self.terms
             .iter()
-            .fold(Complex::<f64>::new(0.0, 0.0), |acc, (uroot, &mult)| {
-                acc + uroot.complex_value() * Complex::<f64>::new(mult as f64, 0.0)
+            .filter_map(|(uroot, &mult)| {
+                if mult > 0 {
+                    Some(uroot.complex_value() * (mult as f64))
+                } else {
+                    None
+                }
             })
+            .sum()
     }
 
     /// Gets a numerical form for this character, nicely formatted up to a

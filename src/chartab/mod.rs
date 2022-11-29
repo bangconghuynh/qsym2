@@ -17,7 +17,7 @@ pub mod reducedint;
 pub mod unityroot;
 
 /// A struct to manage character tables.
-#[derive(Builder, Debug, Clone)]
+#[derive(Builder, Clone)]
 pub struct CharacterTable<R: Clone> {
     /// The name given to the character table.
     name: String,
@@ -155,7 +155,7 @@ impl<R: Clone> CharacterTable<R> {
         self.characters.column(*col)
     }
 
-    /// Prints the character as a nicely formatted string.
+    /// Prints a nicely formatted character table.
     ///
     /// # Arguments
     ///
@@ -168,7 +168,12 @@ impl<R: Clone> CharacterTable<R> {
     /// # Returns
     ///
     /// A formatted string containing the character table in a printable form.
-    pub fn print_nice_table(&self, compact: bool, numerical: Option<usize>) -> String {
+    pub fn write_nice_table(
+        &self,
+        f: &mut fmt::Formatter,
+        compact: bool,
+        numerical: Option<usize>,
+    ) -> fmt::Result {
         let group_order: usize = self
             .classes
             .keys()
@@ -223,18 +228,19 @@ impl<R: Clone> CharacterTable<R> {
         };
 
         // Table heading
-        let mut stg = format!(" {:^first_width$} ┆ FS ║", name);
+        let mut heading = format!(" {:^first_width$} ┆ FS ║", name);
         ccs_str.iter().enumerate().for_each(|(i, cc)| {
-            stg.push_str(&format!("{:>width$} │", cc, width = digit_widths[i]));
+            heading.push_str(&format!("{:>width$} │", cc, width = digit_widths[i]));
         });
-        stg.pop();
-        let tab_width = stg.chars().count();
-        stg = format!(
+        heading.pop();
+        let tab_width = heading.chars().count();
+        heading = format!(
             "{}\n{}\n{}\n",
             iter::repeat("━").take(tab_width).collect::<String>(),
-            stg,
+            heading,
             iter::repeat("┈").take(tab_width).collect::<String>(),
         );
+        write!(f, "{}", heading)?;
 
         // Table body
         let rows =
@@ -258,15 +264,18 @@ impl<R: Clone> CharacterTable<R> {
                     line
                 });
 
-        stg.push_str(
+        write!(
+            f,
+            "{}",
             &itertools::Itertools::intersperse(rows, "\n".to_string()).collect::<String>(),
-        );
+        )?;
 
         // Table bottom
-        stg.push_str("\n");
-        stg.push_str(&iter::repeat("━").take(tab_width).collect::<String>());
-        stg.push_str("\n");
-        stg
+        write!(
+            f,
+            "\n{}\n",
+            &iter::repeat("━").take(tab_width).collect::<String>()
+        )
     }
 }
 
@@ -275,6 +284,15 @@ impl<R: Clone> CharacterTable<R> {
 // -------
 impl<R: Clone> fmt::Display for CharacterTable<R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.print_nice_table(true, None))
+        self.write_nice_table(f, true, Some(3))
+    }
+}
+
+// -----
+// Debug
+// -----
+impl<R: Clone> fmt::Debug for CharacterTable<R> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.write_nice_table(f, true, None)
     }
 }
