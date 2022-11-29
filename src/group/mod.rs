@@ -312,6 +312,13 @@ where
     /// This method sets the [`Self::conjugacy_class_symbols`] field.
     fn assign_class_symbols(&mut self) {
         log::debug!("Assigning generic class symbols...");
+        let class_sizes: Vec<_> = self
+            .conjugacy_classes
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|cc| cc.len())
+            .collect();
         let class_symbols_iter = self
             .conjugacy_class_transversal
             .as_ref()
@@ -321,7 +328,7 @@ where
             .map(|(i, &rep_ele_index)| {
                 let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap();
                 (
-                    ClassSymbol::new(format!("||K{}||", i).as_str(), Some(rep_ele.clone()))
+                    ClassSymbol::new(format!("{}||K{}||", class_sizes[i], i).as_str(), Some(rep_ele.clone()))
                         .unwrap(),
                     i,
                 )

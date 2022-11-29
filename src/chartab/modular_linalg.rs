@@ -404,17 +404,6 @@ where
         }
     }
     ortho_vecs
-    // vecs.iter().fold(vec![], |mut ortho_vecs, vec_j| {
-    //     ortho_vecs.push(
-    //         ortho_vecs
-    //             .iter()
-    //             .fold(vec_j.to_owned(), |ortho_vec_j, vec_i| {
-    //                 let rij = weighted_hermitian_inprod((vec_j, vec_i), class_sizes, perm_for_conj);
-    //                 ortho_vec_j - vec_i.map(|&x| x * rij)
-    //             }),
-    //     );
-    //     ortho_vecs
-    // })
 }
 
 #[derive(Debug, Clone)]
@@ -518,7 +507,12 @@ where
             ortho_vecs
                 .iter()
                 .flat_map(|col_i| {
-                    Zip::from(col_i.view())
+                    let col_i_conj = if let Some(indices) = perm_for_conj {
+                        col_i.select(Axis(0), indices)
+                    } else {
+                        col_i.clone()
+                    };
+                    Zip::from(col_i_conj.view())
                         .and(ArrayView1::from(class_sizes))
                         .map_collect(|&eij, &kj| {
                             eij / rep.convert(u64::try_from(kj * group_order).unwrap())
@@ -542,9 +536,10 @@ where
             );
         } else {
             log::debug!(
-                "{}-dimensional space is incompletely split into {} subspaces.",
+                "{}-dimensional space is incompletely split into {} subspace{}.",
                 dim,
-                n_subspaces
+                n_subspaces,
+                if n_subspaces != 1 { "s" } else { "" }
             );
         }
 

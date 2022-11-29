@@ -119,9 +119,9 @@ impl<R: Clone> CharacterTable<R> {
     /// # Returns
     ///
     /// The required character.
-    fn get_character(&self, irrep: &MullikenIrrepSymbol, class: &ClassSymbol<R>) -> &Character {
-        let row = self.irreps.get(irrep).unwrap();
-        let col = self.classes.get(class).unwrap();
+    pub fn get_character(&self, irrep: &MullikenIrrepSymbol, class: &ClassSymbol<R>) -> &Character {
+        let row = self.irreps.get(irrep).expect(format!("Irrep {} not found.", irrep).as_str());
+        let col = self.classes.get(class).expect(format!("Class {} not found.", class).as_str());
         &self.characters[(*row, *col)]
     }
 

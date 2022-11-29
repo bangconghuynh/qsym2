@@ -100,7 +100,7 @@ trait LinearSpaceSymbol: MathematicalSymbol {
 /// A trait for symbols describing collections of objects.
 trait CollectionSymbol: MathematicalSymbol {
     /// The size of the collection.
-    fn size(&self) -> u64;
+    fn size(&self) -> usize;
 }
 
 // =======
@@ -264,7 +264,7 @@ impl FromStr for GenericSymbol {
                 .build()
                 .unwrap())
         } else {
-            Err(GenericSymbolParsingError(symstr.to_string()))
+            Err(GenericSymbolParsingError(format!("{} is not parsable.", symstr)))
         }
     }
 }
@@ -318,7 +318,7 @@ pub struct GenericSymbolParsingError(String);
 
 impl fmt::Display for GenericSymbolParsingError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Unable to parse generic symbol {}.", self.0)
+        write!(f, "Generic symbol parsing error: {}.", self.0)
     }
 }
 
@@ -512,15 +512,15 @@ impl<R: Clone> MathematicalSymbol for ClassSymbol<R> {
         ""
     }
 
-    /// The size of the conjugacy class.
+    /// This is a synonym for the size of the conjugacy class.
     fn multiplicity(&self) -> Option<usize> {
         self.generic_symbol.multiplicity()
     }
 }
 
 impl<R: Clone> CollectionSymbol for ClassSymbol<R> {
-    fn size(&self) -> u64 {
-        self.prefactor().parse::<u64>().unwrap_or_else(|_| {
+    fn size(&self) -> usize {
+        self.multiplicity().unwrap_or_else(|| {
             panic!(
                 "Unable to deduce the size of the class from the prefactor {}.",
                 self.prefactor()
@@ -535,16 +535,24 @@ impl<R: Clone> ClassSymbol<R> {
     /// Some permissible conjugacy class symbols:
     ///
     /// ```text
-    /// "12||C|^(2)_(5)|"
+    /// "1||C3||"
+    /// "1||C3|^(2)|"
+    /// "12||C2|^(5)|"
     /// "2||S|^(z)|(α)"
     /// ```
+    ///
+    /// Note that the prefactor is required.
     pub fn new(symstr: &str, rep: Option<R>) -> Result<Self, GenericSymbolParsingError> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
-        Ok(Self::builder()
-            .generic_symbol(generic_symbol)
-            .representative(rep)
-            .build()
-            .unwrap())
+        if generic_symbol.multiplicity().is_none() {
+            Err(GenericSymbolParsingError(format!("{} contains no class size prefactor.", symstr)))
+        } else {
+            Ok(Self::builder()
+                .generic_symbol(generic_symbol)
+                .representative(rep)
+                .build()
+                .unwrap())
+        }
     }
 }
 

@@ -5,8 +5,7 @@ use std::hash::{Hash, Hasher};
 use approx;
 use derive_builder::Builder;
 use indexmap::IndexMap;
-use num::{Complex, Zero};
-use rayon::prelude::*;
+use num::Complex;
 
 use crate::aux::misc::HashableFloat;
 use crate::chartab::unityroot::UnityRoot;
