@@ -24,9 +24,9 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 fn test_character_table_validity(
     mol: &Molecule,
     thresh: f64,
-    expected_irreps: Vec<MullikenIrrepSymbol>,
+    expected_irreps: &[MullikenIrrepSymbol],
     expected_chars_option: Option<
-        HashMap<(MullikenIrrepSymbol, ClassSymbol<SymmetryOperation>), Character>,
+        HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,
     >,
 ) {
     let presym = PreSymmetry::builder()
@@ -39,7 +39,7 @@ fn test_character_table_validity(
     let group = group_from_molecular_symmetry(sym, None);
     let chartab = group.character_table.as_ref().unwrap();
     println!("{:?}", chartab);
-    println!("{}", chartab);
+    // println!("{}", chartab);
 
     let order: usize = chartab
         .classes
@@ -198,21 +198,16 @@ fn test_character_table_construction_spherical_c60_ih() {
         MullikenIrrepSymbol::new("||G|_(u)|").unwrap(),
         MullikenIrrepSymbol::new("||H|_(u)|").unwrap(),
     ];
+    let c5 = ClassSymbol::<SymmetryOperation>::new("12||C5||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("12||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c5),
             Character::new(&[
                 (UnityRoot::new(0, 10), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(1g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("12||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c5),
             Character::new(&[
                 (UnityRoot::new(0, 10), 1),
                 (UnityRoot::new(2, 10), 1),
@@ -220,10 +215,7 @@ fn test_character_table_construction_spherical_c60_ih() {
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(2g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("12||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c5),
             Character::new(&[
                 (UnityRoot::new(0, 10), 1),
                 (UnityRoot::new(4, 10), 1),
@@ -231,38 +223,26 @@ fn test_character_table_construction_spherical_c60_ih() {
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||G|_(g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("12||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[3], &c5),
             Character::new(&[
                 (UnityRoot::new(5, 10), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||H|_(g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("12||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[4], &c5),
             Character::new(&[
                 (UnityRoot::new(0, 10), 1),
                 (UnityRoot::new(5, 10), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("12||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[5], &c5),
             Character::new(&[
                 (UnityRoot::new(0, 10), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(1u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("12||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[6], &c5),
             Character::new(&[
                 (UnityRoot::new(0, 10), 1),
                 (UnityRoot::new(2, 10), 1),
@@ -270,10 +250,7 @@ fn test_character_table_construction_spherical_c60_ih() {
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(2u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("12||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[7], &c5),
             Character::new(&[
                 (UnityRoot::new(0, 10), 1),
                 (UnityRoot::new(4, 10), 1),
@@ -281,26 +258,20 @@ fn test_character_table_construction_spherical_c60_ih() {
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||G|_(u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("12||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[8], &c5),
             Character::new(&[
                 (UnityRoot::new(5, 10), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||H|_(u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("12||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[9], &c5),
             Character::new(&[
                 (UnityRoot::new(0, 10), 1),
                 (UnityRoot::new(5, 10), 1),
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -315,40 +286,29 @@ fn test_character_table_construction_spherical_ch4_td() {
         MullikenIrrepSymbol::new("||T|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||T|_(2)|").unwrap(),
     ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||E||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c3),
             Character::new(&[
                 (UnityRoot::new(1, 3), 1),
                 (UnityRoot::new(2, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[3], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -356,10 +316,7 @@ fn test_character_table_construction_spherical_ch4_td() {
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[4], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -367,7 +324,7 @@ fn test_character_table_construction_spherical_ch4_td() {
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -382,40 +339,29 @@ fn test_character_table_construction_spherical_adamantane_td() {
         MullikenIrrepSymbol::new("||T|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||T|_(2)|").unwrap(),
     ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||E||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c3),
             Character::new(&[
                 (UnityRoot::new(1, 3), 1),
                 (UnityRoot::new(2, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[3], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -423,10 +369,7 @@ fn test_character_table_construction_spherical_adamantane_td() {
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[4], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -434,7 +377,7 @@ fn test_character_table_construction_spherical_adamantane_td() {
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -449,40 +392,29 @@ fn test_character_table_construction_spherical_c165_diamond_nanoparticle_td() {
         MullikenIrrepSymbol::new("||T|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||T|_(2)|").unwrap(),
     ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||E||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c3),
             Character::new(&[
                 (UnityRoot::new(1, 3), 1),
                 (UnityRoot::new(2, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[3], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -490,10 +422,7 @@ fn test_character_table_construction_spherical_c165_diamond_nanoparticle_td() {
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[4], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -501,7 +430,7 @@ fn test_character_table_construction_spherical_c165_diamond_nanoparticle_td() {
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -519,39 +448,28 @@ fn test_character_table_construction_spherical_vh2o6_th() {
         MullikenIrrepSymbol::new("||Γ|_(2u)|").unwrap(),
         MullikenIrrepSymbol::new("||T|_(u)|").unwrap(),
     ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("4||C3||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("4||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(1g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("4||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c3),
             Character::new(&[
                 (UnityRoot::new(1, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(2g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("4||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c3),
             Character::new(&[
                 (UnityRoot::new(2, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("4||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[3], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -559,37 +477,25 @@ fn test_character_table_construction_spherical_vh2o6_th() {
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("4||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[4], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(1u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("4||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[5], &c3),
             Character::new(&[
                 (UnityRoot::new(1, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(2u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("4||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[6], &c3),
             Character::new(&[
                 (UnityRoot::new(2, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("4||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[7], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -597,7 +503,7 @@ fn test_character_table_construction_spherical_vh2o6_th() {
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -618,40 +524,29 @@ fn test_character_table_construction_spherical_vf6_oh() {
         MullikenIrrepSymbol::new("||T|_(1u)|").unwrap(),
         MullikenIrrepSymbol::new("||T|_(2u)|").unwrap(),
     ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||E|_(g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c3),
             Character::new(&[
                 (UnityRoot::new(1, 3), 1),
                 (UnityRoot::new(2, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(1g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[3], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -659,10 +554,7 @@ fn test_character_table_construction_spherical_vf6_oh() {
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(2g)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[4], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -670,38 +562,26 @@ fn test_character_table_construction_spherical_vf6_oh() {
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[5], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[6], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||E|_(u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[7], &c3),
             Character::new(&[
                 (UnityRoot::new(1, 3), 1),
                 (UnityRoot::new(2, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(1u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[8], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -709,10 +589,7 @@ fn test_character_table_construction_spherical_vf6_oh() {
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||T|_(2u)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("8||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[9], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
                 (UnityRoot::new(1, 3), 1),
@@ -720,7 +597,7 @@ fn test_character_table_construction_spherical_vf6_oh() {
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 // /*****
@@ -1010,36 +887,28 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_c3() {
         MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
     ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c3),
             Character::new(&[
                 (UnityRoot::new(1, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c3),
             Character::new(&[
                 (UnityRoot::new(2, 3), 1),
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1053,36 +922,28 @@ fn test_character_table_construction_symmetric_adamantane_magnetic_field_c3() {
         MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
     ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c3),
             Character::new(&[
                 (UnityRoot::new(1, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c3),
             Character::new(&[
                 (UnityRoot::new(2, 3), 1),
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1096,36 +957,28 @@ fn test_character_table_construction_symmetric_vh2o6_electric_field_c3() {
         MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
     ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c3),
             Character::new(&[
                 (UnityRoot::new(1, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c3),
             Character::new(&[
                 (UnityRoot::new(2, 3), 1),
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1139,36 +992,28 @@ fn test_character_table_construction_symmetric_65coronane_electric_field_c3() {
         MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
     ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c3),
             Character::new(&[
                 (UnityRoot::new(0, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c3),
             Character::new(&[
                 (UnityRoot::new(1, 3), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C3||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c3),
             Character::new(&[
                 (UnityRoot::new(2, 3), 1),
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1183,45 +1028,34 @@ fn test_character_table_construction_symmetric_h8_twisted_magnetic_field_c4() {
         MullikenIrrepSymbol::new("||B||").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
     ];
+    let c4 = ClassSymbol::<SymmetryOperation>::new("1||C4||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C4||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c4),
             Character::new(&[
                 (UnityRoot::new(0, 4), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C4||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c4),
             Character::new(&[
                 (UnityRoot::new(1, 4), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||B||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C4||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c4),
             Character::new(&[
                 (UnityRoot::new(2, 4), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C4||", None).unwrap(),
-            ),
+            (&expected_irreps[3], &c4),
             Character::new(&[
                 (UnityRoot::new(3, 4), 1),
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1235,45 +1069,34 @@ fn test_character_table_construction_symmetric_h8_twisted_electric_field_c4() {
         MullikenIrrepSymbol::new("||B||").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
     ];
+    let c4 = ClassSymbol::<SymmetryOperation>::new("1||C4||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C4||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c4),
             Character::new(&[
                 (UnityRoot::new(0, 4), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C4||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c4),
             Character::new(&[
                 (UnityRoot::new(1, 4), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||B||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C4||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c4),
             Character::new(&[
                 (UnityRoot::new(2, 4), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C4||", None).unwrap(),
-            ),
+            (&expected_irreps[3], &c4),
             Character::new(&[
                 (UnityRoot::new(3, 4), 1),
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1290,54 +1113,40 @@ fn test_character_table_construction_symmetric_cpnico_magnetic_field_c5() {
         MullikenIrrepSymbol::new("||Γ|_(3)|").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(4)|").unwrap(),
     ];
+    let c5 = ClassSymbol::<SymmetryOperation>::new("1||C5||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c5),
             Character::new(&[
                 (UnityRoot::new(0, 5), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c5),
             Character::new(&[
                 (UnityRoot::new(1, 5), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c5),
             Character::new(&[
                 (UnityRoot::new(2, 5), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(3)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[3], &c5),
             Character::new(&[
                 (UnityRoot::new(3, 5), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(4)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C5||", None).unwrap(),
-            ),
+            (&expected_irreps[4], &c5),
             Character::new(&[
                 (UnityRoot::new(4, 5), 1),
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1354,274 +1163,467 @@ fn test_character_table_construction_symmetric_b7_magnetic_field_c6() {
         MullikenIrrepSymbol::new("||Γ|_(3)|").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(4)|").unwrap(),
     ];
+    let c6 = ClassSymbol::<SymmetryOperation>::new("1||C6||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (
-                MullikenIrrepSymbol::new("||A||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C6||", None).unwrap(),
-            ),
+            (&expected_irreps[0], &c6),
             Character::new(&[
                 (UnityRoot::new(0, 6), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C6||", None).unwrap(),
-            ),
+            (&expected_irreps[1], &c6),
             Character::new(&[
                 (UnityRoot::new(1, 6), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C6||", None).unwrap(),
-            ),
+            (&expected_irreps[2], &c6),
             Character::new(&[
                 (UnityRoot::new(2, 6), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||B||").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C6||", None).unwrap(),
-            ),
+            (&expected_irreps[3], &c6),
             Character::new(&[
                 (UnityRoot::new(3, 6), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(3)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C6||", None).unwrap(),
-            ),
+            (&expected_irreps[4], &c6),
             Character::new(&[
                 (UnityRoot::new(4, 6), 1),
             ]),
         ),
         (
-            (
-                MullikenIrrepSymbol::new("||Γ|_(4)|").unwrap(),
-                ClassSymbol::<SymmetryOperation>::new("1||C6||", None).unwrap(),
-            ),
+            (&expected_irreps[5], &c6),
             Character::new(&[
                 (UnityRoot::new(5, 6), 1),
             ]),
         ),
     ]);
-    test_character_table_validity(&mol, thresh, expected_irreps, Some(expected_chars));
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
-// #[test]
-// fn test_character_table_construction_symmetric_b7_magnetic_field_c6_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
-//     let thresh = 1e-6;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
-//     test_character_table_construction_class_order(
-//         &mol,
-//         thresh,
-//         &["|E|", "|C6|", "|[C6]^5|", "|C3|", "|[C3]^2|", "|C2|"],
-//     );
-// }
+#[test]
+fn test_character_table_construction_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
+    let thresh = 1e-7;
+    for n in 3..=32 {
+        let mut mol = template_molecules::gen_arbitrary_half_sandwich(n);
+        mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
+        let expected_irreps = if n % 2 == 0 {
+            let mut irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
+            irreps.extend((1..(n / 2)).map(|i| {
+                MullikenIrrepSymbol::new(&format!("||Γ|_({})|", i)).unwrap()
+            }));
+            irreps.push(MullikenIrrepSymbol::new("||B||").unwrap());
+            irreps.extend(((n/2)..(n-1)).map(|i| {
+                MullikenIrrepSymbol::new(&format!("||Γ|_({})|", i)).unwrap()
+            }));
+            irreps
+        } else {
+            let mut irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
+            irreps.extend((1..n).map(|i| {
+                MullikenIrrepSymbol::new(&format!("||Γ|_({})|", i)).unwrap()
+            }));
+            irreps
+        };
+        let cn = ClassSymbol::<SymmetryOperation>::new(&format!("1||C{}||", n), None).unwrap();
+        let expected_chars: HashMap<_, _> = expected_irreps.iter().enumerate().map(|(i, irrep)| {
+            (
+                (irrep, &cn),
+                Character::new(&[
+                    (UnityRoot::new(i as u64, n as u64), 1),
+                ]),
+            )
+        }).collect();
+        test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+    }
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
-//     let thresh = 1e-7;
-//     for n in 3..=32 {
-//         let mut mol = template_molecules::gen_arbitrary_half_sandwich(n);
-//         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
-//         test_character_table_construction(
-//             &mol,
-//             thresh,
-//             format!("C{}", n).as_str(),
-//             n as usize,
-//             n as usize,
-//             true,
-//         );
-//     }
-// }
+/*
+Cnv
+*/
+#[test]
+fn test_character_table_construction_symmetric_nh3_c3v() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+    ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("2||C3||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c3),
+            Character::new(&[
+                (UnityRoot::new(0, 3), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[1], &c3),
+            Character::new(&[
+                (UnityRoot::new(0, 3), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[2], &c3),
+            Character::new(&[
+                (UnityRoot::new(1, 3), 1),
+                (UnityRoot::new(2, 3), 1),
+            ]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// /*
-// Cnv
-// */
-// #[test]
-// fn test_character_table_construction_symmetric_nh3_c3v() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
-//     let thresh = 1e-6;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction(&mol, thresh, "C3v", 6, 3, false);
-// }
+#[test]
+fn test_character_table_construction_symmetric_bf3_electric_field_c3v() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+    ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("2||C3||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c3),
+            Character::new(&[
+                (UnityRoot::new(0, 3), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[1], &c3),
+            Character::new(&[
+                (UnityRoot::new(0, 3), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[2], &c3),
+            Character::new(&[
+                (UnityRoot::new(1, 3), 1),
+                (UnityRoot::new(2, 3), 1),
+            ]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_nh3_c3v_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
-//     let thresh = 1e-6;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
-// }
+#[test]
+fn test_character_table_construction_symmetric_adamantane_electric_field_c3v() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.1)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+    ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("2||C3||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c3),
+            Character::new(&[
+                (UnityRoot::new(0, 3), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[1], &c3),
+            Character::new(&[
+                (UnityRoot::new(0, 3), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[2], &c3),
+            Character::new(&[
+                (UnityRoot::new(1, 3), 1),
+                (UnityRoot::new(2, 3), 1),
+            ]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_bf3_electric_field_c3v() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
-//     let thresh = 1e-7;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-//     test_character_table_construction(&mol, thresh, "C3v", 6, 3, false);
-// }
+#[test]
+fn test_character_table_construction_symmetric_ch4_electric_field_c3v() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+    ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("2||C3||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c3),
+            Character::new(&[
+                (UnityRoot::new(0, 3), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[1], &c3),
+            Character::new(&[
+                (UnityRoot::new(0, 3), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[2], &c3),
+            Character::new(&[
+                (UnityRoot::new(1, 3), 1),
+                (UnityRoot::new(2, 3), 1),
+            ]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_bf3_electric_field_c3v_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
-//     let thresh = 1e-7;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-//     test_character_table_construction_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
-// }
+#[test]
+fn test_character_table_construction_symmetric_vf6_electric_field_c3v() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 1.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+    ];
+    let c3 = ClassSymbol::<SymmetryOperation>::new("2||C3||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c3),
+            Character::new(&[
+                (UnityRoot::new(0, 3), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[1], &c3),
+            Character::new(&[
+                (UnityRoot::new(0, 3), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[2], &c3),
+            Character::new(&[
+                (UnityRoot::new(1, 3), 1),
+                (UnityRoot::new(2, 3), 1),
+            ]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_adamantane_electric_field_c3v() {
-//     // env_logger::init();
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
-//     let thresh = 1e-7;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.1)));
-//     test_character_table_construction(&mol, thresh, "C3v", 6, 3, false);
-// }
+#[test]
+fn test_character_table_construction_symmetric_sf5cl_c4v() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+    ];
+    let c4 = ClassSymbol::<SymmetryOperation>::new("2||C4||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c4),
+            Character::new(&[
+                (UnityRoot::new(0, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[1], &c4),
+            Character::new(&[
+                (UnityRoot::new(0, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[2], &c4),
+            Character::new(&[
+                (UnityRoot::new(2, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[3], &c4),
+            Character::new(&[
+                (UnityRoot::new(2, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[4], &c4),
+            Character::new(&[
+                (UnityRoot::new(1, 4), 1),
+                (UnityRoot::new(3, 4), 1),
+            ]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_adamantane_electric_field_c3v_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
-//     let thresh = 1e-7;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.1)));
-//     test_character_table_construction_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
-// }
+#[test]
+fn test_character_table_construction_symmetric_h8_electric_field_c4v() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(0.2 * Vector3::new(0.0, 0.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+    ];
+    let c4 = ClassSymbol::<SymmetryOperation>::new("2||C4||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c4),
+            Character::new(&[
+                (UnityRoot::new(0, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[1], &c4),
+            Character::new(&[
+                (UnityRoot::new(0, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[2], &c4),
+            Character::new(&[
+                (UnityRoot::new(2, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[3], &c4),
+            Character::new(&[
+                (UnityRoot::new(2, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[4], &c4),
+            Character::new(&[
+                (UnityRoot::new(1, 4), 1),
+                (UnityRoot::new(3, 4), 1),
+            ]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_ch4_electric_field_c3v() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
-//     let thresh = 1e-6;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-//     test_character_table_construction(&mol, thresh, "C3v", 6, 3, false);
-// }
+#[test]
+fn test_character_table_construction_symmetric_vf6_electric_field_c4v() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 0.0, 0.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+    ];
+    let c4 = ClassSymbol::<SymmetryOperation>::new("2||C4||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c4),
+            Character::new(&[
+                (UnityRoot::new(0, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[1], &c4),
+            Character::new(&[
+                (UnityRoot::new(0, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[2], &c4),
+            Character::new(&[
+                (UnityRoot::new(2, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[3], &c4),
+            Character::new(&[
+                (UnityRoot::new(2, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[4], &c4),
+            Character::new(&[
+                (UnityRoot::new(1, 4), 1),
+                (UnityRoot::new(3, 4), 1),
+            ]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_ch4_electric_field_c3v_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
-//     let thresh = 1e-6;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-//     test_character_table_construction_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_vf6_electric_field_c3v() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
-//     let thresh = 1e-12;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 1.0, 1.0)));
-//     test_character_table_construction(&mol, thresh, "C3v", 6, 3, false);
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_vf6_electric_field_c3v_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
-//     let thresh = 1e-12;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 1.0, 1.0)));
-//     test_character_table_construction_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_sf5cl_c4v() {
-//     // env_logger::init();
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
-//     let thresh = 1e-7;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_validity(&mol, thresh);
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_sf5cl_c4v_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
-//     let thresh = 1e-7;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction_class_order(
-//         &mol,
-//         thresh,
-//         &["|E|", "2|C4|", "|C2|", "2|σv|", "2|σv|^(')"],
-//     );
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_h8_electric_field_c4v() {
-//     // env_logger::init();
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
-//     let thresh = 1e-7;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(0.2 * Vector3::new(0.0, 0.0, 1.0)));
-//     test_character_table_construction(&mol, thresh, "C4v", 8, 5, false);
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_h8_electric_field_c4v_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
-//     let thresh = 1e-7;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(0.2 * Vector3::new(0.0, 0.0, 1.0)));
-//     test_character_table_construction_class_order(
-//         &mol,
-//         thresh,
-//         &["|E|", "2|C4|", "|C2|", "2|σv|", "2|σv|^(')"],
-//     );
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_vf6_electric_field_c4v() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
-//     let thresh = 1e-12;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 0.0, 0.0)));
-//     test_character_table_construction(&mol, thresh, "C4v", 8, 5, false);
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_vf6_electric_field_c4v_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
-//     let thresh = 1e-12;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 0.0, 0.0)));
-//     test_character_table_construction_class_order(
-//         &mol,
-//         thresh,
-//         &["|E|", "2|C4|", "|C2|", "2|σv|", "2|σv|^(')"],
-//     );
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_antiprism_pb10_electric_field_c4v() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
-//     let thresh = 1e-7;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-//     test_character_table_construction(&mol, thresh, "C4v", 8, 5, false);
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_antiprism_pb10_electric_field_c4v_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
-//     let thresh = 1e-7;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-//     test_character_table_construction_class_order(
-//         &mol,
-//         thresh,
-//         &["|E|", "2|C4|", "|C2|", "2|σv|", "2|σv|^(')"],
-//     );
-// }
+#[test]
+fn test_character_table_construction_symmetric_antiprism_pb10_electric_field_c4v() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+    ];
+    let c4 = ClassSymbol::<SymmetryOperation>::new("2||C4||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c4),
+            Character::new(&[
+                (UnityRoot::new(0, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[1], &c4),
+            Character::new(&[
+                (UnityRoot::new(0, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[2], &c4),
+            Character::new(&[
+                (UnityRoot::new(2, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[3], &c4),
+            Character::new(&[
+                (UnityRoot::new(2, 4), 1),
+            ]),
+        ),
+        (
+            (&expected_irreps[4], &c4),
+            Character::new(&[
+                (UnityRoot::new(1, 4), 1),
+                (UnityRoot::new(3, 4), 1),
+            ]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
 // #[test]
 // fn test_character_table_construction_symmetric_cpnico_c5v() {
