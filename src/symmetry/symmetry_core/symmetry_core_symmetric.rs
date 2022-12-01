@@ -73,7 +73,7 @@ impl Symmetry {
 
             // Principal axis is also a generator.
             self.add_proper(
-                max_ord.clone(),
+                max_ord,
                 self.proper_elements[&max_ord].iter().next().unwrap().axis,
                 true,
                 presym.dist_threshold,
@@ -82,16 +82,12 @@ impl Symmetry {
             let principal_element = self.proper_elements[&max_ord].iter().next().unwrap();
             let c2_element = self.proper_elements[&ORDER_2]
                 .iter()
-                .find_map(|c2_ele| {
-                    if c2_ele.axis.dot(&principal_element.axis).abs() < presym.dist_threshold {
-                        Some(c2_ele)
-                    } else {
-                        None
-                    }
+                .find(|c2_ele| {
+                    c2_ele.axis.dot(&principal_element.axis).abs() < presym.dist_threshold
                 })
                 .unwrap();
             self.add_proper(
-                ORDER_2.clone(),
+                ORDER_2,
                 c2_element.axis,
                 true,
                 presym.dist_threshold,
@@ -108,7 +104,7 @@ impl Symmetry {
                     self.point_group.as_ref().unwrap()
                 );
                 self.add_improper(
-                    ORDER_1.clone(),
+                    ORDER_1,
                     principal_element.axis,
                     false,
                     SIG.clone(),
@@ -117,7 +113,7 @@ impl Symmetry {
                 );
                 let principal_element = self.proper_elements[&max_ord].iter().next().unwrap();
                 self.add_improper(
-                    ORDER_1.clone(),
+                    ORDER_1,
                     principal_element.axis,
                     true,
                     SIG.clone(),
@@ -140,7 +136,7 @@ impl Symmetry {
                     let z_vec = Vector3::new(0.0, 0.0, 1.0);
                     assert!(presym.check_improper(&ORDER_2, &z_vec, &SIG));
                     self.add_improper(
-                        ORDER_2.clone(),
+                        ORDER_2,
                         z_vec,
                         false,
                         SIG.clone(),
@@ -160,7 +156,7 @@ impl Symmetry {
                         // iCn
                         assert!(presym.check_improper(&c_element.proper_order, &c_element.axis, &INV));
                         self.add_improper(
-                            c_element.proper_order.clone(),
+                            c_element.proper_order,
                             c_element.axis,
                             false,
                             INV.clone(),
@@ -177,7 +173,7 @@ impl Symmetry {
                         .next()
                         .unwrap()
                         .clone();
-                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, &presym);
+                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym);
                 }
             }
             // end Dnh
@@ -203,7 +199,7 @@ impl Symmetry {
                 let mut count_sigmad = 0u32;
                 for sigmad_axis in sigmad_axes.into_iter() {
                     count_sigmad += self.add_improper(
-                        ORDER_1.clone(),
+                        ORDER_1,
                         sigmad_axis,
                         false,
                         SIG.clone(),
@@ -226,7 +222,7 @@ impl Symmetry {
                         .unwrap()
                         .axis;
                     self.add_improper(
-                        ORDER_1.clone(),
+                        ORDER_1,
                         sigmad_axis,
                         true,
                         SIG.clone(),
@@ -268,7 +264,7 @@ impl Symmetry {
                         let vec_z = Vector3::new(0.0, 0.0, 1.0);
                         assert!(presym.check_improper(&ORDER_2, &vec_z, &SIG));
                         self.add_improper(
-                            ORDER_2.clone(),
+                            ORDER_2,
                             vec_z,
                             false,
                             SIG.clone(),
@@ -294,7 +290,7 @@ impl Symmetry {
                             );
                             assert!(presym.check_improper(&c_element.proper_order, &c_element.axis, &INV));
                             self.add_improper(
-                                c_element.proper_order.clone(),
+                                c_element.proper_order,
                                 c_element.axis,
                                 false,
                                 INV.clone(),
@@ -341,7 +337,7 @@ impl Symmetry {
                             false,
                         );
                         count_sigma += self.add_improper(
-                            ORDER_1.clone(),
+                            ORDER_1,
                             normal,
                             false,
                             SIG.clone(),
@@ -352,6 +348,7 @@ impl Symmetry {
                 }
             }
 
+            #[allow(clippy::blocks_in_if_conditions)]
             if count_sigma == max_ord_u32 {
                 if max_ord_u32 > 1 {
                     // Cnv (n > 2)
@@ -362,7 +359,7 @@ impl Symmetry {
                         self.point_group.as_ref().unwrap()
                     );
                     let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
-                    self.add_proper(max_ord.clone(), principal_axis, true, presym.dist_threshold);
+                    self.add_proper(max_ord, principal_axis, true, presym.dist_threshold);
                     let sigma_v_normal = self
                         .get_sigma_elements("v")
                         .unwrap()
@@ -371,7 +368,7 @@ impl Symmetry {
                         .unwrap()
                         .axis;
                     self.add_improper(
-                        ORDER_1.clone(),
+                        ORDER_1,
                         sigma_v_normal,
                         true,
                         SIG.clone(),
@@ -390,7 +387,7 @@ impl Symmetry {
                     assert_eq!(old_sigmas.len(), 1);
                     let old_sigma = old_sigmas.into_iter().next().unwrap();
                     self.add_improper(
-                        ORDER_1.clone(),
+                        ORDER_1,
                         old_sigma.axis,
                         false,
                         SIG.clone(),
@@ -398,7 +395,7 @@ impl Symmetry {
                         presym.dist_threshold,
                     );
                     self.add_improper(
-                        ORDER_1.clone(),
+                        ORDER_1,
                         old_sigma.axis,
                         true,
                         SIG.clone(),
@@ -415,9 +412,9 @@ impl Symmetry {
                 log::debug!("Found no σv planes but one σh plane.");
                 self.point_group = Some(format!("C{max_ord}h"));
                 let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
-                self.add_proper(max_ord.clone(), principal_axis, true, presym.dist_threshold);
+                self.add_proper(max_ord, principal_axis, true, presym.dist_threshold);
                 self.add_improper(
-                    ORDER_1.clone(),
+                    ORDER_1,
                     principal_axis,
                     true,
                     SIG.clone(),
@@ -437,7 +434,7 @@ impl Symmetry {
                     let vec_z = Vector3::new(0.0, 0.0, 1.0);
                     assert!(presym.check_improper(&ORDER_2, &vec_z, &SIG));
                     self.add_improper(
-                        ORDER_2.clone(),
+                        ORDER_2,
                         vec_z,
                         false,
                         SIG.clone(),
@@ -456,7 +453,7 @@ impl Symmetry {
                         // iCn
                         assert!(presym.check_improper(&c_element.proper_order, &c_element.axis, &INV));
                         self.add_improper(
-                            c_element.proper_order.clone(),
+                            c_element.proper_order,
                             c_element.axis,
                             false,
                             INV.clone(),
@@ -473,7 +470,7 @@ impl Symmetry {
                         .next()
                         .unwrap()
                         .clone();
-                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, &presym);
+                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym);
                 }
             } else if {
                 let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
@@ -489,7 +486,7 @@ impl Symmetry {
                 );
                 let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
                 self.add_improper(
-                    double_max_ord.clone(),
+                    double_max_ord,
                     principal_axis,
                     false,
                     SIG.clone(),
@@ -511,7 +508,7 @@ impl Symmetry {
                     let vec_z = Vector3::new(0.0, 0.0, 1.0);
                     assert!(presym.check_improper(&ORDER_2, &vec_z, &SIG));
                     self.add_improper(
-                        ORDER_2.clone(),
+                        ORDER_2,
                         vec_z,
                         false,
                         SIG.clone(),
@@ -551,8 +548,8 @@ fn _deduce_sigma_symbol(
     thresh: f64,
     force_d: bool,
 ) -> Option<String> {
-    let sigma_symbol = if approx::relative_eq!(
-        principal_element.axis.dot(&sigma_axis).abs(),
+    if approx::relative_eq!(
+        principal_element.axis.dot(sigma_axis).abs(),
         0.0,
         epsilon = thresh,
         max_relative = thresh
@@ -565,7 +562,7 @@ fn _deduce_sigma_symbol(
             Some("v".to_owned())
         }
     } else if approx::relative_eq!(
-        principal_element.axis.cross(&sigma_axis).norm(),
+        principal_element.axis.cross(sigma_axis).norm(),
         0.0,
         epsilon = thresh,
         max_relative = thresh
@@ -575,8 +572,7 @@ fn _deduce_sigma_symbol(
         Some("h".to_owned())
     } else {
         None
-    };
-    sigma_symbol
+    }
 }
 
 /// Adds improper elements constructed as a product between a $`\sigma_h`$ and a
@@ -636,7 +632,7 @@ fn _add_sigmahcn(
             let s_axis = c_element.axis.cross(&sigma_h.axis).normalize();
             assert!(presym.check_improper(&ORDER_1, &s_axis, &SIG));
             sym.add_improper(
-                ORDER_1.clone(),
+                ORDER_1,
                 s_axis,
                 false,
                 SIG.clone(),

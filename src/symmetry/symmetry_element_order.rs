@@ -6,7 +6,7 @@ use crate::aux::misc::HashableFloat;
 
 
 /// An enum to handle symmetry element orders.
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum ElementOrder {
     /// Positive integer order.
     Int(u32),
@@ -66,13 +66,13 @@ impl PartialEq for ElementOrder {
         match &self {
             Self::Int(s_i) => match &other {
                 Self::Int(o_i) => {
-                    return s_i == o_i;
+                    s_i == o_i
                 }
-                Self::Inf => return false,
+                Self::Inf => false,
             },
             Self::Inf => match &other {
-                Self::Int(_) => return false,
-                Self::Inf => return true,
+                Self::Int(_) => false,
+                Self::Inf => true,
             },
         }
     }
@@ -82,7 +82,7 @@ impl Eq for ElementOrder {}
 
 impl PartialOrd for ElementOrder {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.to_float().partial_cmp(&other.to_float())?)
+        self.to_float().partial_cmp(&other.to_float())
     }
 }
 

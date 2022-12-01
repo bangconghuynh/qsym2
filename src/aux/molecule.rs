@@ -61,7 +61,7 @@ impl Molecule {
             } else if i == 1 {
                 continue;
             } else {
-                atoms.push(Atom::from_xyz(&line, &emap, thresh).unwrap());
+                atoms.push(Atom::from_xyz(line, &emap, thresh).unwrap());
             }
         }
         assert_eq!(
@@ -100,7 +100,7 @@ impl Molecule {
             .filter(|atom| matches!(atom.kind, AtomKind::Magnetic(_)))
             .cloned()
             .collect();
-        assert!(magnetic_atoms_vec.len() == 2 || magnetic_atoms_vec.len() == 0);
+        assert!(magnetic_atoms_vec.len() == 2 || magnetic_atoms_vec.is_empty());
         let magnetic_atoms = if magnetic_atoms_vec.len() == 2 {
             Some([magnetic_atoms_vec[0].clone(), magnetic_atoms_vec[1].clone()])
         } else {
@@ -112,7 +112,7 @@ impl Molecule {
             .filter(|atom| matches!(atom.kind, AtomKind::Electric(_)))
             .cloned()
             .collect();
-        assert!(electric_atoms_vec.len() == 2 || electric_atoms_vec.len() == 0);
+        assert!(electric_atoms_vec.len() == 2 || electric_atoms_vec.is_empty());
         let electric_atoms = if electric_atoms_vec.len() == 2 {
             Some([electric_atoms_vec[0].clone(), electric_atoms_vec[1].clone()])
         } else {
@@ -165,13 +165,13 @@ impl Molecule {
     pub fn calc_com(&self, verbose: u64) -> Point3<f64> {
         let atoms = &self.atoms;
         let mut com: Point3<f64> = Point3::origin();
-        if atoms.len() == 0 {
+        if atoms.is_empty() {
             return com;
         }
         let mut tot_m: f64 = 0.0;
         for atom in atoms.iter() {
             let m: f64 = atom.atomic_mass;
-            com += &atom.coordinates * m - Point3::origin();
+            com += atom.coordinates * m - Point3::origin();
             tot_m += m;
         }
         com *= 1.0 / tot_m;
@@ -197,7 +197,7 @@ impl Molecule {
         let atoms = self.get_all_atoms();
         let mut inertia_tensor = Matrix3::zeros();
         for atom in atoms.iter() {
-            let rel_coordinates: Vector3<f64> = &atom.coordinates - origin;
+            let rel_coordinates: Vector3<f64> = atom.coordinates - origin;
             for i in 0..3 {
                 for j in 0..=i {
                     if i != j {
@@ -420,7 +420,7 @@ impl Molecule {
 }
 
 impl Transform for Molecule {
-    fn transform_mut(self: &mut Self, mat: &Matrix3<f64>) {
+    fn transform_mut(&mut self, mat: &Matrix3<f64>) {
         for atom in self.atoms.iter_mut() {
             atom.transform_mut(mat);
         }
@@ -436,7 +436,7 @@ impl Transform for Molecule {
         }
     }
 
-    fn rotate_mut(self: &mut Self, angle: f64, axis: &Vector3<f64>) {
+    fn rotate_mut(&mut self, angle: f64, axis: &Vector3<f64>) {
         for atom in self.atoms.iter_mut() {
             atom.rotate_mut(angle, axis);
         }
@@ -453,7 +453,7 @@ impl Transform for Molecule {
     }
 
     fn improper_rotate_mut(
-        self: &mut Self,
+        &mut self,
         angle: f64,
         axis: &Vector3<f64>,
         kind: &SymmetryElementKind,
@@ -473,7 +473,7 @@ impl Transform for Molecule {
         }
     }
 
-    fn translate_mut(self: &mut Self, tvec: &Vector3<f64>) {
+    fn translate_mut(&mut self, tvec: &Vector3<f64>) {
         for atom in self.atoms.iter_mut() {
             atom.translate_mut(tvec);
         }
@@ -489,26 +489,26 @@ impl Transform for Molecule {
         }
     }
 
-    fn recentre_mut(self: &mut Self) {
+    fn recentre_mut(&mut self) {
         let com = self.calc_com(0);
         let tvec = -Vector3::new(com[0], com[1], com[2]);
         self.translate_mut(&tvec);
     }
 
-    fn transform(self: &Self, mat: &Matrix3<f64>) -> Self {
+    fn transform(&self, mat: &Matrix3<f64>) -> Self {
         let mut transformed_mol = self.clone();
         transformed_mol.transform_mut(mat);
         transformed_mol
     }
 
-    fn rotate(self: &Self, angle: f64, axis: &Vector3<f64>) -> Self {
+    fn rotate(&self, angle: f64, axis: &Vector3<f64>) -> Self {
         let mut rotated_mol = self.clone();
         rotated_mol.rotate_mut(angle, axis);
         rotated_mol
     }
 
     fn improper_rotate(
-        self: &Self,
+        &self,
         angle: f64,
         axis: &Vector3<f64>,
         kind: &SymmetryElementKind,
@@ -518,13 +518,13 @@ impl Transform for Molecule {
         improper_rotated_mol
     }
 
-    fn translate(self: &Self, tvec: &Vector3<f64>) -> Self {
+    fn translate(&self, tvec: &Vector3<f64>) -> Self {
         let mut translated_mol = self.clone();
         translated_mol.translate_mut(tvec);
         translated_mol
     }
 
-    fn recentre(self: &Self) -> Self {
+    fn recentre(&self) -> Self {
         let mut recentred_mol = self.clone();
         recentred_mol.recentre_mut();
         recentred_mol
@@ -557,7 +557,7 @@ impl PartialEq for Molecule {
                 }
             }
         }
-        if other_atoms_ref.len() != 0 {
+        if !other_atoms_ref.is_empty() {
             return false;
         }
 
@@ -578,16 +578,14 @@ impl PartialEq for Molecule {
                         }
                     }
                 }
-                if other_mag_atoms_ref.len() != 0 {
+                if !other_mag_atoms_ref.is_empty() {
                     return false;
                 }
             } else {
                 return false;
             }
-        } else {
-            if let Some(_) = other.magnetic_atoms {
-                return false;
-            }
+        } else if other.magnetic_atoms.is_some() {
+            return false;
         };
 
         if let Some(self_ele_atoms) = &self.electric_atoms {
@@ -607,16 +605,14 @@ impl PartialEq for Molecule {
                         }
                     }
                 }
-                if other_ele_atoms_ref.len() != 0 {
+                if !other_ele_atoms_ref.is_empty() {
                     return false;
                 }
             } else {
                 return false;
             }
-        } else {
-            if let Some(_) = other.electric_atoms {
-                return false;
-            }
+        } else if other.electric_atoms.is_some() {
+            return false;
         };
         true
     }

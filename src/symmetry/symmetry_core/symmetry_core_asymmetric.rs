@@ -53,13 +53,14 @@ impl Symmetry {
             assert_eq!(max_ord, ORDER_2);
 
             // Principal axis, which is C2, is also a generator.
+            #[allow(clippy::needless_collect)]
             let c2_axes: Vec<_> = self.proper_elements[&ORDER_2]
                 .iter()
-                .map(|ele| ele.axis.clone())
+                .map(|ele| ele.axis)
                 .collect();
             let mut c2_axes_iter = c2_axes.into_iter();
             self.add_proper(
-                max_ord.clone(),
+                max_ord,
                 c2_axes_iter.next().unwrap(),
                 true,
                 presym.dist_threshold,
@@ -67,7 +68,7 @@ impl Symmetry {
 
             // One other C2 axis is also a generator.
             self.add_proper(
-                max_ord.clone(),
+                max_ord,
                 c2_axes_iter.next().unwrap(),
                 true,
                 presym.dist_threshold,
@@ -83,7 +84,7 @@ impl Symmetry {
                     self.point_group.as_ref().unwrap()
                 );
                 self.add_improper(
-                    ORDER_2.clone(),
+                    ORDER_2,
                     z_vec,
                     false,
                     SIG.clone(),
@@ -95,12 +96,12 @@ impl Symmetry {
                 // perpendicular to a C2 axis.
                 let c2_axes: Vec<_> = self.proper_elements[&ORDER_2]
                     .iter()
-                    .map(|ele| ele.axis.clone())
+                    .map(|ele| ele.axis)
                     .collect();
                 for c2_axis in c2_axes.into_iter() {
                     assert!(presym.check_improper(&ORDER_1, &c2_axis, &SIG));
                     self.add_improper(
-                        ORDER_1.clone(),
+                        ORDER_1,
                         c2_axis,
                         false,
                         SIG.clone(),
@@ -109,14 +110,13 @@ impl Symmetry {
                     );
                 }
                 self.add_improper(
-                    ORDER_1.clone(),
+                    ORDER_1,
                     self.get_sigma_elements("")
                         .unwrap()
                         .iter()
                         .next()
                         .unwrap()
-                        .axis
-                        .clone(),
+                        .axis,
                     true,
                     SIG.clone(),
                     None,
@@ -137,14 +137,14 @@ impl Symmetry {
 
             // Principal axis, which is C2, is also a generator.
             let c2_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
-            self.add_proper(max_ord.clone(), c2_axis, true, presym.dist_threshold);
+            self.add_proper(max_ord, c2_axis, true, presym.dist_threshold);
 
             let z_vec = Vector3::new(0.0, 0.0, 1.0);
             if presym.check_improper(&ORDER_2, &z_vec, &SIG) {
                 // Inversion centre, C2h
                 log::debug!("Located an inversion centre.");
                 self.add_improper(
-                    ORDER_2.clone(),
+                    ORDER_2,
                     z_vec,
                     false,
                     SIG.clone(),
@@ -161,7 +161,7 @@ impl Symmetry {
                 let c2_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
                 assert!(presym.check_improper(&ORDER_1, &c2_axis, &SIG));
                 self.add_improper(
-                    ORDER_1.clone(),
+                    ORDER_1,
                     c2_axis,
                     false,
                     SIG.clone(),
@@ -169,7 +169,7 @@ impl Symmetry {
                     presym.dist_threshold,
                 );
                 self.add_improper(
-                    ORDER_1.clone(),
+                    ORDER_1,
                     c2_axis,
                     true,
                     SIG.clone(),
@@ -187,8 +187,8 @@ impl Symmetry {
                 {
                     assert!(presym.check_improper(&ORDER_1, &_principal_axes[2], &SIG));
                     count_sigmav += self.add_improper(
-                        ORDER_1.clone(),
-                        _principal_axes[2].clone(),
+                        ORDER_1,
+                        _principal_axes[2],
                         false,
                         SIG.clone(),
                         Some("v".to_owned()),
@@ -212,7 +212,7 @@ impl Symmetry {
                             .normalize();
                         if presym.check_improper(&ORDER_1, &normal, &SIG) {
                             count_sigmav += self.add_improper(
-                                ORDER_1.clone(),
+                                ORDER_1,
                                 normal,
                                 false,
                                 SIG.clone(),
@@ -233,14 +233,13 @@ impl Symmetry {
 
                     // In C2v, σv is also a generator.
                     self.add_improper(
-                        ORDER_1.clone(),
+                        ORDER_1,
                         self.get_sigma_elements("v")
                             .unwrap()
                             .iter()
                             .next()
                             .unwrap()
-                            .axis
-                            .clone(),
+                            .axis,
                         true,
                         SIG.clone(),
                         Some("v".to_owned()),
@@ -267,7 +266,7 @@ impl Symmetry {
                     self.point_group.as_ref().unwrap()
                 );
                 self.add_improper(
-                    ORDER_2.clone(),
+                    ORDER_2,
                     z_vec,
                     false,
                     SIG.clone(),
@@ -275,7 +274,7 @@ impl Symmetry {
                     presym.dist_threshold,
                 );
                 self.add_improper(
-                    ORDER_2.clone(),
+                    ORDER_2,
                     z_vec,
                     true,
                     SIG.clone(),
@@ -299,7 +298,7 @@ impl Symmetry {
                             .normalize();
                         if presym.check_improper(&ORDER_1, &normal, &SIG) {
                             count_sigma += self.add_improper(
-                                ORDER_1.clone(),
+                                ORDER_1,
                                 normal,
                                 false,
                                 SIG.clone(),
@@ -324,7 +323,7 @@ impl Symmetry {
                     );
                     assert!(
                         self.add_improper(
-                            ORDER_1.clone(),
+                            ORDER_1,
                             _principal_axes[2],
                             false,
                             SIG.clone(),
@@ -355,7 +354,7 @@ impl Symmetry {
                     //     let normal = normal.normalize();
                     //     if presym.check_improper(&ORDER_1, &normal, &SIG) {
                     //         count_sigma += self.add_improper(
-                    //             ORDER_1.clone(),
+                    //             ORDER_1,
                     //             normal,
                     //             false,
                     //             SIG.clone(),
@@ -376,7 +375,7 @@ impl Symmetry {
                     assert_eq!(old_sigmas.len(), 1);
                     let old_sigma = old_sigmas.into_iter().next().unwrap();
                     self.add_improper(
-                        ORDER_1.clone(),
+                        ORDER_1,
                         old_sigma.axis,
                         false,
                         SIG.clone(),
@@ -384,7 +383,7 @@ impl Symmetry {
                         presym.dist_threshold,
                     );
                     self.add_improper(
-                        ORDER_1.clone(),
+                        ORDER_1,
                         old_sigma.axis,
                         true,
                         SIG.clone(),
@@ -399,7 +398,7 @@ impl Symmetry {
                     );
                 } else {
                     self.add_proper(
-                        ORDER_1.clone(),
+                        ORDER_1,
                         self.proper_elements[&ORDER_1].iter().next().unwrap().axis,
                         true,
                         presym.dist_threshold,

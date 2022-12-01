@@ -226,13 +226,14 @@ impl Symmetry {
         log::debug!("Rotational symmetry found: {}", presym.rotational_symmetry);
         let c1 = SymmetryElement::builder()
             .threshold(presym.dist_threshold)
-            .proper_order(ORDER_1.clone())
+            .proper_order(ORDER_1)
             .proper_power(1)
             .axis(Vector3::new(0.0, 0.0, 1.0))
             .kind(SymmetryElementKind::Proper)
             .build()
             .unwrap();
-        self.proper_elements.insert(ORDER_1.clone(), HashSet::from([c1]));
+        self.proper_elements
+            .insert(ORDER_1, HashSet::from([c1]));
         match &presym.rotational_symmetry {
             RotationalSymmetry::Spherical => self.analyse_spherical(presym),
             RotationalSymmetry::ProlateLinear => self.analyse_linear(presym),
@@ -267,7 +268,7 @@ impl Symmetry {
         let positive_axis = geometry::get_positive_pole(&axis, threshold).normalize();
         let element = SymmetryElement::builder()
             .threshold(threshold)
-            .proper_order(order.clone())
+            .proper_order(order)
             .proper_power(1)
             .axis(positive_axis)
             .kind(SymmetryElementKind::Proper)
@@ -277,27 +278,37 @@ impl Symmetry {
         let detailed_symbol = element.get_detailed_symbol();
         let standard_symbol = element.get_standard_symbol();
         let result = if generator {
-            if self.proper_generators.contains_key(&order) {
+            if let std::collections::hash_map::Entry::Vacant(e) =
+                self.proper_generators.entry(order)
+            {
+                e.insert(HashSet::from([element]));
+                true
+            } else {
                 self.proper_generators
                     .get_mut(&order)
                     .unwrap()
                     .insert(element)
-            } else {
-                self.proper_generators
-                    .insert(order, HashSet::from([element]));
-                true
             }
+        } else if let std::collections::hash_map::Entry::Vacant(e) =
+            self.proper_elements.entry(order)
+        {
+            e.insert(HashSet::from([element]));
+            true
         } else {
-            if self.proper_elements.contains_key(&order) {
-                self.proper_elements
-                    .get_mut(&order)
-                    .unwrap()
-                    .insert(element)
-            } else {
-                self.proper_elements.insert(order, HashSet::from([element]));
-                true
-            }
+            self.proper_elements
+                .get_mut(&order)
+                .unwrap()
+                .insert(element)
         };
+        // } else if self.proper_elements.contains_key(&order) {
+        //     self.proper_elements
+        //         .get_mut(&order)
+        //         .unwrap()
+        //         .insert(element)
+        // } else {
+        //     self.proper_elements.insert(order, HashSet::from([element]));
+        //     true
+        // };
         let dest_str = if generator {
             "generator".to_owned()
         } else {
@@ -351,7 +362,7 @@ impl Symmetry {
             assert!(sigma_str == "d" || sigma_str == "v" || sigma_str == "h");
             let mut sym_ele = SymmetryElement::builder()
                 .threshold(threshold)
-                .proper_order(order.clone())
+                .proper_order(order)
                 .proper_power(1)
                 .axis(positive_axis)
                 .kind(kind)
@@ -366,7 +377,7 @@ impl Symmetry {
         } else {
             SymmetryElement::builder()
                 .threshold(threshold)
-                .proper_order(order.clone())
+                .proper_order(order)
                 .proper_power(1)
                 .axis(positive_axis)
                 .kind(kind)
@@ -375,33 +386,33 @@ impl Symmetry {
                 .unwrap()
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false)
         };
-        let sig_order = element.proper_order.clone();
+        let sig_order = element.proper_order;
         let detailed_symbol = element.get_detailed_symbol();
         let standard_symbol = element.get_standard_symbol();
         let is_mirror_plane = element.is_mirror_plane();
         let is_inversion_centre = element.is_inversion_centre();
         let result = if generator {
-            if self.improper_generators.contains_key(&sig_order) {
+            if let std::collections::hash_map::Entry::Vacant(e) =
+                self.improper_generators.entry(sig_order)
+            {
+                e.insert(HashSet::from([element]));
+                true
+            } else {
                 self.improper_generators
                     .get_mut(&sig_order)
                     .unwrap()
                     .insert(element)
-            } else {
-                self.improper_generators
-                    .insert(sig_order, HashSet::from([element]));
-                true
             }
+        } else if let std::collections::hash_map::Entry::Vacant(e) =
+            self.improper_elements.entry(sig_order)
+        {
+            e.insert(HashSet::from([element]));
+            true
         } else {
-            if self.improper_elements.contains_key(&sig_order) {
-                self.improper_elements
-                    .get_mut(&sig_order)
-                    .unwrap()
-                    .insert(element)
-            } else {
-                self.improper_elements
-                    .insert(sig_order, HashSet::from([element]));
-                true
-            }
+            self.improper_elements
+                .get_mut(&sig_order)
+                .unwrap()
+                .insert(element)
         };
         let dest_str = if generator {
             "generator".to_owned()
@@ -451,9 +462,9 @@ impl Symmetry {
     /// A set of the required mirror-plane element type, if exists.
     pub fn get_sigma_elements(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let order_1 = &ElementOrder::Int(1);
-        if self.improper_elements.contains_key(&order_1) {
+        if self.improper_elements.contains_key(order_1) {
             Some(
-                self.improper_elements[&order_1]
+                self.improper_elements[order_1]
                     .iter()
                     .filter(|ele| ele.additional_subscript == sigma)
                     .collect(),
@@ -470,9 +481,9 @@ impl Symmetry {
     /// A set of the required mirror-plane generator type, if exists.
     pub fn get_sigma_generators(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let order_1 = &ElementOrder::Int(1);
-        if self.improper_generators.contains_key(&order_1) {
+        if self.improper_generators.contains_key(order_1) {
             Some(
-                self.improper_generators[&order_1]
+                self.improper_generators[order_1]
                     .iter()
                     .filter(|ele| ele.additional_subscript == sigma)
                     .collect(),
@@ -488,23 +499,21 @@ impl Symmetry {
     ///
     /// The highest proper rotation order.
     pub fn get_max_proper_order(&self) -> ElementOrder {
-        self.proper_generators
+        *self.proper_generators
             .keys()
             .chain(self.proper_elements.keys())
             .max()
             .unwrap()
-            .clone()
     }
 
     pub fn is_infinite(&self) -> bool {
         self.get_max_proper_order() == ElementOrder::Inf
-            || self
+            || *self
                 .improper_generators
                 .keys()
                 .chain(self.improper_elements.keys())
                 .max()
-                .unwrap_or_else(|| &ElementOrder::Int(0))
-                .clone()
+                .unwrap_or(&ElementOrder::Int(0))
                 == ElementOrder::Inf
     }
 }
@@ -579,7 +588,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                 2 => {
                                     count_c2 += sym.add_proper(
                                         ElementOrder::Int(*k_fac as u32),
-                                        sea_axes[2].clone(),
+                                        sea_axes[2],
                                         false,
                                         presym.dist_threshold,
                                     ) as usize;
@@ -587,10 +596,10 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                 _ => {
                                     sym.add_proper(
                                         ElementOrder::Int(*k_fac as u32),
-                                        sea_axes[2].clone(),
+                                        sea_axes[2],
                                         false,
                                         presym.dist_threshold,
-                                    ) as usize;
+                                    );
                                 }
                             }
                         }
@@ -626,9 +635,9 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                             log::debug!("---------------------------------------------");
                             for (order, proper_elements) in sea_sym.proper_elements.iter() {
                                 for proper_element in proper_elements {
-                                    if presym.check_proper(&order, &proper_element.axis) {
+                                    if presym.check_proper(order, &proper_element.axis) {
                                         sym.add_proper(
-                                            order.clone(),
+                                            *order,
                                             proper_element.axis,
                                             false,
                                             presym.dist_threshold,
@@ -638,9 +647,9 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                             }
                             for (order, improper_elements) in sea_sym.improper_elements.iter() {
                                 for improper_element in improper_elements {
-                                    if presym.check_improper(&order, &improper_element.axis, &SIG) {
+                                    if presym.check_improper(order, &improper_element.axis, &SIG) {
                                         sym.add_improper(
-                                            order.clone(),
+                                            *order,
                                             improper_element.axis,
                                             false,
                                             SIG.clone(),
@@ -716,7 +725,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                         for sea_axis in sea_axes.iter() {
                             if presym.check_proper(&ORDER_2, sea_axis) {
                                 count_c2 += sym.add_proper(
-                                    ORDER_2.clone(),
+                                    ORDER_2,
                                     *sea_axis,
                                     false,
                                     presym.dist_threshold,
@@ -739,7 +748,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                 // Case B: C2 might cross through any two atoms
                 if presym.check_proper(&ORDER_2, &atom_i_pos.coords) {
                     count_c2 += sym.add_proper(
-                        ORDER_2.clone(),
+                        ORDER_2,
                         atom_i_pos.coords,
                         false,
                         presym.dist_threshold,
@@ -747,16 +756,16 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                 }
 
                 // Case A: C2 might cross through the midpoint of two atoms
-                let midvec = 0.5 * (&atom_i_pos.coords + &atom_j_pos.coords);
+                let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
                 if midvec.norm() > presym.dist_threshold && presym.check_proper(&ORDER_2, &midvec) {
                     count_c2 +=
-                        sym.add_proper(ORDER_2.clone(), midvec, false, presym.dist_threshold)
+                        sym.add_proper(ORDER_2, midvec, false, presym.dist_threshold)
                             as usize;
                 } else if let Some(electric_atoms) = &presym.molecule.electric_atoms {
                     let e_vector = electric_atoms[0].coordinates - electric_atoms[1].coordinates;
                     if presym.check_proper(&ORDER_2, &e_vector) {
                         count_c2 +=
-                            sym.add_proper(ORDER_2.clone(), e_vector, false, presym.dist_threshold)
+                            sym.add_proper(ORDER_2, e_vector, false, presym.dist_threshold)
                                 as usize;
                     }
                 }
@@ -765,7 +774,6 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
     } // end for sea_group in presym.sea_groups.iter()
 
     if asymmetric && count_c2 == 3 {
-        return;
     } else {
         // Search for any remaining C2 axes.
         // Case C: Molecules with two or more sets of non-parallel linear diatomic SEA groups
@@ -782,7 +790,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
             });
             if let Some(normal) = normal_option {
                 if presym.check_proper(&ORDER_2, &normal) {
-                    sym.add_proper(ORDER_2.clone(), normal, false, presym.dist_threshold);
+                    sym.add_proper(ORDER_2, normal, false, presym.dist_threshold);
                 }
             }
         }
