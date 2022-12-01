@@ -99,7 +99,7 @@ impl<R: Clone> CharacterTable<R> {
             .collect();
 
         let principal_classes_indexset: IndexSet<ClassSymbol<R>> = principal_classes
-            .into_iter()
+            .iter()
             .cloned()
             .collect();
 
@@ -130,8 +130,8 @@ impl<R: Clone> CharacterTable<R> {
     ///
     /// The required character.
     pub fn get_character(&self, irrep: &MullikenIrrepSymbol, class: &ClassSymbol<R>) -> &Character {
-        let row = self.irreps.get(irrep).expect(format!("Irrep {} not found.", irrep).as_str());
-        let col = self.classes.get(class).expect(format!("Class {} not found.", class).as_str());
+        let row = self.irreps.get(irrep).unwrap_or_else(|| panic!("Irrep {} not found.", irrep));
+        let col = self.classes.get(class).unwrap_or_else(|| panic!("Class {} not found.", class));
         &self.characters[(*row, *col)]
     }
 
@@ -255,9 +255,9 @@ impl<R: Clone> CharacterTable<R> {
         let tab_width = heading.chars().count();
         heading = format!(
             "{}\n{}\n{}\n",
-            iter::repeat("━").take(tab_width).collect::<String>(),
+            "━".repeat(tab_width),
             heading,
-            iter::repeat("┈").take(tab_width).collect::<String>(),
+            "┈".repeat(tab_width),
         );
         write!(f, "{}", heading)?;
 
@@ -293,7 +293,7 @@ impl<R: Clone> CharacterTable<R> {
         write!(
             f,
             "\n{}\n",
-            &iter::repeat("━").take(tab_width).collect::<String>()
+            &"━".repeat(tab_width)
         )
     }
 }

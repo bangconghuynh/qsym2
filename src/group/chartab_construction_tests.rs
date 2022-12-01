@@ -29,6 +29,7 @@ fn test_character_table_validity(
         HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,
     >,
 ) {
+    println!("{}", chartab);
 
     let order: usize = chartab
         .classes

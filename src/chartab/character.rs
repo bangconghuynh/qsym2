@@ -222,7 +222,7 @@ impl Character {
                 ) {
                     // i or -i
                     let imag = if rounded_im > 0.0 { "+i" } else { "-i" };
-                    format!("{}", imag)
+                    imag.to_string()
                 } else {
                     // ki
                     format!("{:+.0}i", complex_value.im)

@@ -496,8 +496,8 @@ where
         .unwrap();
         if ortho_vecs_mag.iter().any(|x| Zero::is_zero(x)) {
             return Err(SplitSpaceError {
-                mat: &mat,
-                vecs: &vecs,
+                mat,
+                vecs,
             });
         }
 

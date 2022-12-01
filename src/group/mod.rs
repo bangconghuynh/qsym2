@@ -4,7 +4,6 @@ use std::hash::Hash;
 use std::ops::Mul;
 
 use approx;
-use fraction;
 use log;
 
 use derive_builder::Builder;
@@ -33,8 +32,6 @@ use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, ClassSymbol,
 };
-
-type F = fraction::Fraction;
 
 #[cfg(test)]
 mod group_tests;
@@ -146,8 +143,8 @@ impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
     }
 
     fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
-        if let Some(_) = name_opt {
-            if self.name.as_ref().unwrap().clone() == "O(3)".to_string()
+        if name_opt.is_some() {
+            if self.name.as_ref().unwrap().clone() == *"O(3)"
                 || self.name.as_ref().unwrap().contains('∞')
             {
                 self.finite_subgroup_name = Some(name_opt);
@@ -286,7 +283,7 @@ where
                 .as_ref()
                 .unwrap()
                 .iter()
-                .map(|cc| cc.iter().next().unwrap().clone())
+                .map(|cc| *cc.iter().next().unwrap())
                 .collect(),
         );
 
@@ -440,7 +437,7 @@ where
             .elements
             .keys()
             .map(|x| x.order())
-            .reduce(|acc, x| lcm(acc, x))
+            .reduce(lcm)
             .unwrap();
         let zeta = UnityRoot::new(1, m);
         log::debug!("Found group exponent m = {}.", m);
@@ -514,7 +511,7 @@ where
             );
 
             let mut r = 1;
-            while degenerate_subspaces.len() > 0 {
+            while !degenerate_subspaces.is_empty() {
                 assert!(
                     r < (self.class_number.unwrap() - 1),
                     "Class matrices exhausted before degenerate subspaces are fully resolved."
@@ -536,7 +533,7 @@ where
 
                 let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u64>>>> =
                     vec![];
-                while degenerate_subspaces.len() > 0 {
+                while !degenerate_subspaces.is_empty() {
                     let subspace = degenerate_subspaces.pop().unwrap();
                     if let Ok(subsubspaces) =
                         split_space(&nmat_r, &subspace, &class_sizes, inverse_conjugacy_classes)
@@ -589,7 +586,7 @@ where
             .par_iter()
             .flat_map(|vec_i| {
                 let mut dim2_mod_p = weighted_hermitian_inprod(
-                    (&vec_i, &vec_i),
+                    (vec_i, vec_i),
                     &class_sizes,
                     inverse_conjugacy_classes,
                 )

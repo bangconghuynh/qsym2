@@ -1,5 +1,6 @@
-use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
+use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
@@ -769,7 +770,7 @@ where
         } else {
             // No force_proper_principal, so proper prioritised, which has been ensured by the sort
             // in the construction of `sorted_class_symbols`.
-            sorted_class_symbols.nth(0).unwrap()
+            sorted_class_symbols.next().unwrap()
         };
 
         // Now find all principal classes with the same order and parity as `principal_rep`.
@@ -782,7 +783,7 @@ where
             .collect::<Vec<_>>()
     };
 
-    assert!(principal_classes.len() >= 1);
+    assert!(!principal_classes.is_empty());
     if principal_classes.len() == 1 {
         log::debug!("Principal-axis class found: {}", principal_classes[0]);
     } else {
@@ -841,8 +842,8 @@ where
 
     let e2p1 = UnityRoot::new(1u64, 2u64);
     let e2p2 = UnityRoot::new(2u64, 2u64);
-    let char_p1 = Character::new(&vec![(e2p2, 1usize)]);
-    let char_m1 = Character::new(&vec![(e2p1, 1usize)]);
+    let char_p1 = Character::new(&[(e2p2, 1usize)]);
+    let char_m1 = Character::new(&[(e2p1, 1usize)]);
 
     // First pass: assign irrep symbols based on Mulliken's convention as much as possible.
     log::debug!("First pass: assign symbols from rules");
@@ -902,12 +903,10 @@ where
                 ),
             );
             let char_inv_c = char_inv_c.re.round() as i32;
-            if char_inv_c > 0 {
-                ("g", "")
-            } else if char_inv_c < 0 {
-                ("u", "")
-            } else {
-                panic!("Inversion character must not be zero.")
+            match char_inv_c.cmp(&0) {
+                Ordering::Greater => ("g", ""),
+                Ordering::Less => ("u", ""),
+                Ordering::Equal => panic!("Inversion character must not be zero."),
             }
         } else if s_parity {
             // Determine reflection symmetry
@@ -927,12 +926,10 @@ where
                 ),
             );
             let char_ref_c = char_ref_c.re.round() as i32;
-            if char_ref_c > 0 {
-                ("", "'")
-            } else if char_ref_c < 0 {
-                ("", "''")
-            } else {
-                panic!("Reflection character must not be zero.")
+            match char_ref_c.cmp(&0) {
+                Ordering::Greater => ("", "'"),
+                Ordering::Less => ("", "''"),
+                Ordering::Equal => panic!("Reflection character must not be zero."),
             }
         } else {
             ("", "")
