@@ -29,8 +29,6 @@ fn test_character_table_validity(
         HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,
     >,
 ) {
-    println!("{:?}", chartab);
-    // println!("{}", chartab);
 
     let order: usize = chartab
         .classes
@@ -117,11 +115,6 @@ fn test_character_table_validity(
     // Expected characters
     if let Some(expected_chars) = expected_chars_option {
         for ((irrep, cc), ref_char) in expected_chars.iter() {
-            println!(
-                "Comparing {:?} with {:?}...",
-                chartab.get_character(irrep, cc),
-                ref_char
-            );
             assert!(
                 chartab.get_character(irrep, cc) == ref_char,
                 "Character[({}, {})] = {} does not match {}.",
