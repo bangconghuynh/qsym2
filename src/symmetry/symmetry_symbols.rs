@@ -7,7 +7,7 @@ use log;
 
 use counter::Counter;
 use derive_builder::Builder;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use ndarray::{Array2, ArrayView2, Axis};
 use phf::phf_map;
@@ -264,7 +264,10 @@ impl FromStr for GenericSymbol {
                 .build()
                 .unwrap())
         } else {
-            Err(GenericSymbolParsingError(format!("{} is not parsable.", symstr)))
+            Err(GenericSymbolParsingError(format!(
+                "{} is not parsable.",
+                symstr
+            )))
         }
     }
 }
@@ -545,7 +548,10 @@ impl<R: Clone> ClassSymbol<R> {
     pub fn new(symstr: &str, rep: Option<R>) -> Result<Self, GenericSymbolParsingError> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
         if generic_symbol.multiplicity().is_none() {
-            Err(GenericSymbolParsingError(format!("{} contains no class size prefactor.", symstr)))
+            Err(GenericSymbolParsingError(format!(
+                "{} contains no class size prefactor.",
+                symstr
+            )))
         } else {
             Ok(Self::builder()
                 .generic_symbol(generic_symbol)
@@ -660,92 +666,61 @@ impl<R: Clone> fmt::Display for ClassSymbol<R> {
 pub fn sort_irreps<R: Clone>(
     char_arr: &ArrayView2<Character>,
     class_symbols: &IndexMap<ClassSymbol<R>, usize>,
+    principal_classes: &[ClassSymbol<R>],
 ) -> Array2<Character> {
     log::debug!("Sorting irreducible representations...");
+    let class_e = ClassSymbol::new("1||E||", None).unwrap();
     let class_i = ClassSymbol::new("1||i||", None).unwrap();
     let class_s = ClassSymbol::new("1||σh||", None).unwrap();
-    let special_idx = if class_symbols.contains_key(&class_i) {
-        class_symbols.get(&class_i)
+    let mut leading_classes: IndexSet<ClassSymbol<R>> = IndexSet::new();
+
+    if class_symbols.contains_key(&class_i) {
+        leading_classes.insert(class_i);
     } else if class_symbols.contains_key(&class_s) {
-        class_symbols.get(&class_s)
-    } else {
-        None
+        leading_classes.insert(class_s);
     };
 
-    let sort_row_indices: Vec<_> = if let Some(&special_col) = special_idx {
-        log::debug!("Special class with highest sort priority: {}", class_symbols.get_index(special_col).unwrap().0);
-        let mut col_indices = vec![special_col];
-        col_indices.extend(0..special_col);
-        col_indices.extend((special_col + 1)..class_symbols.len());
-        let sort_arr = char_arr.select(Axis(1), &col_indices);
-        (0..char_arr.nrows())
-            .sorted_by(|&i, &j| {
-                let keys_i = sort_arr.row(i).iter().cloned().collect_vec();
-                let keys_j = sort_arr.row(j).iter().cloned().collect_vec();
-                keys_i.partial_cmp(&keys_j).unwrap()
-            })
-            .collect()
-    } else {
-        (0..char_arr.nrows())
-            .sorted_by(|&i, &j| {
-                let keys_i = char_arr.row(i).iter().cloned().collect_vec();
-                let keys_j = char_arr.row(j).iter().cloned().collect_vec();
-                keys_i.partial_cmp(&keys_j).unwrap()
-            })
-            .collect()
-    };
+    leading_classes.insert(class_e);
+    leading_classes.extend(principal_classes.iter().cloned());
+
+    log::debug!("Irreducible representation sort order:");
+    for leading_cc in leading_classes.iter() {
+        log::debug!("  {}", leading_cc);
+    }
+
+    let leading_idxs: IndexSet<usize> = leading_classes
+        .iter()
+        .map(|cc| *class_symbols.get(cc).unwrap())
+        .collect();
+
+    let n_rows = char_arr.nrows();
+    let mut col_idxs: Vec<usize> = Vec::with_capacity(n_rows);
+    col_idxs.extend(leading_idxs.iter());
+    col_idxs.extend((1..n_rows).filter(|i| !leading_idxs.contains(i)));
+    let sort_arr = char_arr.select(Axis(1), &col_idxs);
+
+    let sort_row_indices: Vec<_> = (0..n_rows)
+        .sorted_by(|&i, &j| {
+            let keys_i = sort_arr.row(i).iter().cloned().collect_vec();
+            let keys_j = sort_arr.row(j).iter().cloned().collect_vec();
+            keys_i.partial_cmp(&keys_j).unwrap()
+        })
+        .collect();
     let char_arr = char_arr.select(Axis(0), &sort_row_indices);
     log::debug!("Sorting irreducible representations... Done.");
     char_arr
 }
 
-/// Deduces irreducible representation symboles based on Mulliken's convention.
-///
-/// # Arguments
-///
-/// * char_arr - A view of a two-dimensional square array containing the characters where
-/// each column is for one conjugacy class and each row one irrep.
-/// * class_symbols - An index map containing the conjugacy class symbols for the columns of
-/// `char_arr`. The keys are the symbols and the values are the column indices.
-/// * force_proper_principal - Flag indicating if the principal-axis classes must be proper.
-/// * force_principal - The class symbol to be used as the principal-axis class
-/// (`force_proper_principal` must be `False` if this is used).
-///
-/// # Returns
-///
-/// A vector of Mulliken symbols corresponding to the rows of `char_arr`.
-pub fn deduce_mulliken_irrep_symbols<R>(
-    char_arr: &ArrayView2<Character>,
+pub fn deduce_principal_classes<R>(
     class_symbols: &IndexMap<ClassSymbol<R>, usize>,
     force_proper_principal: bool,
     force_principal: Option<ClassSymbol<R>>,
-) -> Vec<MullikenIrrepSymbol>
+) -> Vec<ClassSymbol<R>>
 where
     R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
 {
-    log::debug!("Generating Mulliken irreducible representation symbols...");
-
-    let e_cc = ClassSymbol::new("1||E||", None).unwrap();
-    let i_cc = ClassSymbol::new("1||i||", None).unwrap();
-    let s_cc = ClassSymbol::new("1||σh||", None).unwrap();
-
-    // Inversion parity?
-    let i_parity = class_symbols.contains_key(&i_cc);
-
-    // Reflection parity?
-    let s_parity = class_symbols.contains_key(&s_cc);
-
-    // i_parity takes priority.
-    if i_parity {
-        log::debug!("Inversion centre found. This will be used for g/u ordering.");
-    } else if s_parity {
-        log::debug!(
-            "Horizontal mirror plane found (but no inversion centre). This will be used for '/'' ordering."
-        );
-    }
-
     log::debug!("Determining principal classes...");
-    let principal_rotations = if let Some(principal_cc) = force_principal {
+    let principal_classes = if let Some(principal_cc) = force_principal {
         assert!(
             !force_proper_principal,
             "`force_proper_principal` and `force_principal` cannot be both provided."
@@ -793,16 +768,62 @@ where
             .collect::<Vec<_>>()
     };
 
-    assert!(principal_rotations.len() >= 1);
-    if principal_rotations.len() == 1 {
-        log::debug!("Principal-axis class found: {}", principal_rotations[0]);
+    assert!(principal_classes.len() >= 1);
+    if principal_classes.len() == 1 {
+        log::debug!("Principal-axis class found: {}", principal_classes[0]);
     } else {
         log::debug!("Principal-axis classes found:");
-        for prinrot in principal_rotations.iter() {
-            log::debug!("  {}", prinrot);
+        for princc in principal_classes.iter() {
+            log::debug!("  {}", princc);
         }
     }
     log::debug!("Determining principal classes... Done.");
+    principal_classes
+}
+
+/// Deduces irreducible representation symboles based on Mulliken's convention.
+///
+/// # Arguments
+///
+/// * char_arr - A view of a two-dimensional square array containing the characters where
+/// each column is for one conjugacy class and each row one irrep.
+/// * class_symbols - An index map containing the conjugacy class symbols for the columns of
+/// `char_arr`. The keys are the symbols and the values are the column indices.
+/// * force_proper_principal - Flag indicating if the principal-axis classes must be proper.
+/// * force_principal - The class symbol to be used as the principal-axis class
+/// (`force_proper_principal` must be `False` if this is used).
+///
+/// # Returns
+///
+/// A vector of Mulliken symbols corresponding to the rows of `char_arr`.
+pub fn deduce_mulliken_irrep_symbols<R>(
+    char_arr: &ArrayView2<Character>,
+    class_symbols: &IndexMap<ClassSymbol<R>, usize>,
+    principal_classes: &[ClassSymbol<R>],
+) -> Vec<MullikenIrrepSymbol>
+where
+    R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
+{
+    log::debug!("Generating Mulliken irreducible representation symbols...");
+
+    let e_cc: ClassSymbol<R> = ClassSymbol::new("1||E||", None).unwrap();
+    let i_cc: ClassSymbol<R> = ClassSymbol::new("1||i||", None).unwrap();
+    let s_cc: ClassSymbol<R> = ClassSymbol::new("1||σh||", None).unwrap();
+
+    // Inversion parity?
+    let i_parity = class_symbols.contains_key(&i_cc);
+
+    // Reflection parity?
+    let s_parity = class_symbols.contains_key(&s_cc);
+
+    // i_parity takes priority.
+    if i_parity {
+        log::debug!("Inversion centre found. This will be used for g/u ordering.");
+    } else if s_parity {
+        log::debug!(
+            "Horizontal mirror plane found (but no inversion centre). This will be used for '/'' ordering."
+        );
+    }
 
     let e2p1 = UnityRoot::new(1u64, 2u64);
     let e2p2 = UnityRoot::new(2u64, 2u64);
@@ -830,7 +851,7 @@ where
                 "Λ"
             }
         } else {
-            let char_rots: HashSet<_> = principal_rotations
+            let char_rots: HashSet<_> = principal_classes
                 .iter()
                 .map(|cc| irrep[*class_symbols.get(cc).unwrap()].clone())
                 .collect();

@@ -468,7 +468,7 @@ fn test_character_table_construction_spherical_vh2o6_th() {
 
 #[test]
 fn test_character_table_construction_spherical_vf6_oh() {
-    env_logger::init();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -911,6 +911,7 @@ fn test_character_table_construction_symmetric_vh2o6_electric_field_c3() {
 
 #[test]
 fn test_character_table_construction_symmetric_65coronane_electric_field_c3() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2300,7 +2301,7 @@ Dnh
 */
 #[test]
 fn test_character_table_construction_symmetric_bf3_d3h() {
-    env_logger::init();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -2748,8 +2749,8 @@ fn test_character_table_construction_symmetric_b2cl4_d2d() {
     let mol = Molecule::from_xyz(&path, thresh);
     let expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E||").unwrap(),
     ];
@@ -2761,11 +2762,11 @@ fn test_character_table_construction_symmetric_b2cl4_d2d() {
         ),
         (
             (&expected_irreps[1], &s4),
-            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
         ),
         (
             (&expected_irreps[2], &s4),
-            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
         ),
         (
             (&expected_irreps[3], &s4),
@@ -2786,8 +2787,8 @@ fn test_character_table_construction_symmetric_s4n4_d2d() {
     let mol = Molecule::from_xyz(&path, thresh);
     let expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E||").unwrap(),
     ];
@@ -2799,11 +2800,11 @@ fn test_character_table_construction_symmetric_s4n4_d2d() {
         ),
         (
             (&expected_irreps[1], &s4),
-            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
         ),
         (
             (&expected_irreps[2], &s4),
-            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
         ),
         (
             (&expected_irreps[3], &s4),
@@ -2824,8 +2825,8 @@ fn test_character_table_construction_symmetric_pbet4_d2d() {
     let mol = Molecule::from_xyz(&path, thresh);
     let expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E||").unwrap(),
     ];
@@ -2837,11 +2838,11 @@ fn test_character_table_construction_symmetric_pbet4_d2d() {
         ),
         (
             (&expected_irreps[1], &s4),
-            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
         ),
         (
             (&expected_irreps[2], &s4),
-            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
         ),
         (
             (&expected_irreps[3], &s4),
@@ -2857,13 +2858,14 @@ fn test_character_table_construction_symmetric_pbet4_d2d() {
 
 #[test]
 fn test_character_table_construction_symmetric_allene_d2d() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/allene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
     let expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E||").unwrap(),
     ];
@@ -2875,11 +2877,11 @@ fn test_character_table_construction_symmetric_allene_d2d() {
         ),
         (
             (&expected_irreps[1], &s4),
-            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
         ),
         (
             (&expected_irreps[2], &s4),
-            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
         ),
         (
             (&expected_irreps[3], &s4),
@@ -2895,6 +2897,7 @@ fn test_character_table_construction_symmetric_allene_d2d() {
 
 #[test]
 fn test_character_table_construction_symmetric_staggered_c2h6_d3d() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -2986,8 +2989,8 @@ fn test_character_table_construction_symmetric_s8_d4d() {
     let mol = Molecule::from_xyz(&path, thresh);
     let expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||E|_(2)|").unwrap(),
@@ -3001,11 +3004,11 @@ fn test_character_table_construction_symmetric_s8_d4d() {
         ),
         (
             (&expected_irreps[1], &s8),
-            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
         ),
         (
             (&expected_irreps[2], &s8),
-            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
         ),
         (
             (&expected_irreps[3], &s8),
@@ -3027,155 +3030,256 @@ fn test_character_table_construction_symmetric_s8_d4d() {
     test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
-// #[test]
-// fn test_character_table_construction_symmetric_s8_d4d_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
-//     let thresh = 1e-7;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction_class_order(
-//         &mol,
-//         thresh,
-//         &[
-//             "|E|",
-//             "2|C4|",
-//             "|C2|",
-//             "4|C2|^(')",
-//             "2|S8|",
-//             "2|[S8]^3|",
-//             "4|σd|",
-//         ],
-//     );
-// }
+#[test]
+fn test_character_table_construction_symmetric_antiprism_h8_d4d() {
+    let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
+    let thresh = 1e-7;
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(3)|").unwrap(),
+    ];
+    let s8 = ClassSymbol::<SymmetryOperation>::new("2||S8||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &s8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &s8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &s8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &s8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &s8),
+            Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &s8),
+            Character::new(&[(UnityRoot::new(2, 8), 1), (UnityRoot::new(6, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &s8),
+            Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_antiprism_h8_d4d() {
-//     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
-//     let thresh = 1e-7;
-//     test_character_table_construction(&mol, thresh, "D4d", 16, 7, false);
-// }
+#[test]
+fn test_character_table_construction_symmetric_antiprism_pb10_d4d() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(3)|").unwrap(),
+    ];
+    let s8 = ClassSymbol::<SymmetryOperation>::new("2||S8||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &s8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &s8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &s8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &s8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &s8),
+            Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &s8),
+            Character::new(&[(UnityRoot::new(2, 8), 1), (UnityRoot::new(6, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &s8),
+            Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_antiprism_h8_d4d_class_order() {
-//     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
-//     let thresh = 1e-7;
-//     test_character_table_construction_class_order(
-//         &mol,
-//         thresh,
-//         &[
-//             "|E|",
-//             "2|C4|",
-//             "|C2|",
-//             "4|C2|^(')",
-//             "2|S8|",
-//             "2|[S8]^3|",
-//             "4|σd|",
-//         ],
-//     );
-// }
+#[test]
+fn test_character_table_construction_symmetric_staggered_ferrocene_d5d() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2u)|").unwrap(),
+    ];
+    let c5 = ClassSymbol::<SymmetryOperation>::new("2||C5||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &c5),
+            Character::new(&[(UnityRoot::new(1, 5), 1), (UnityRoot::new(4, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &c5),
+            Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &c5),
+            Character::new(&[(UnityRoot::new(1, 5), 1), (UnityRoot::new(4, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &c5),
+            Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_antiprism_pb10_d4d() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
-//     let thresh = 1e-7;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction(&mol, thresh, "D4d", 16, 7, false);
-// }
+#[test]
+fn test_character_table_construction_symmetric_au26_d6d() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(4)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(5)|").unwrap(),
+    ];
+    let s12 = ClassSymbol::<SymmetryOperation>::new("2||S12||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &s12),
+            Character::new(&[(UnityRoot::new(0, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &s12),
+            Character::new(&[(UnityRoot::new(0, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &s12),
+            Character::new(&[(UnityRoot::new(6, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &s12),
+            Character::new(&[(UnityRoot::new(6, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &s12),
+            Character::new(&[(UnityRoot::new(1, 12), 1), (UnityRoot::new(11, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &s12),
+            Character::new(&[(UnityRoot::new(2, 12), 1), (UnityRoot::new(10, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &s12),
+            Character::new(&[(UnityRoot::new(3, 12), 1), (UnityRoot::new(9, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &s12),
+            Character::new(&[(UnityRoot::new(4, 12), 1), (UnityRoot::new(8, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &s12),
+            Character::new(&[(UnityRoot::new(5, 12), 1), (UnityRoot::new(7, 12), 1)]),
+        ),
+    ]);
+    test_character_table_validity(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
 
-// #[test]
-// fn test_character_table_construction_symmetric_antiprism_pb10_d4d_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
-//     let thresh = 1e-7;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction_class_order(
-//         &mol,
-//         thresh,
-//         &[
-//             "|E|",
-//             "2|C4|",
-//             "|C2|",
-//             "4|C2|^(')",
-//             "2|S8|",
-//             "2|[S8]^3|",
-//             "4|σd|",
-//         ],
-//     );
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_staggered_ferrocene_d5d() {
-//     // env_logger::init();
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
-//     let thresh = 1e-6;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction(&mol, thresh, "D5d", 20, 8, false);
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_staggered_ferrocene_d5d_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
-//     let thresh = 1e-6;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction_class_order(
-//         &mol,
-//         thresh,
-//         &[
-//             "|E|",
-//             "2|C5|",
-//             "2|[C5]^2|",
-//             "5|C2|",
-//             "|i|",
-//             "2|S10|",
-//             "2|[S10]^3|",
-//             "5|σd|",
-//         ],
-//     );
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_au26_d6d() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
-//     let thresh = 1e-6;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction(&mol, thresh, "D6d", 24, 9, false);
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_au26_d6d_class_order() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
-//     let thresh = 1e-6;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction_class_order(
-//         &mol,
-//         thresh,
-//         &[
-//             "|E|",
-//             "2|C6|",
-//             "2|C3|",
-//             "|C2|",
-//             "6|C2|^(')",
-//             "2|S12|",
-//             "2|[S12]^5|",
-//             "2|S4|",
-//             "6|σd|",
-//         ],
-//     );
-// }
-
-// #[test]
-// fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_dnd() {
-//     let thresh = 1e-7;
-//     for n in 3..=20 {
-//         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
-//         test_character_table_construction(
-//             &mol,
-//             thresh,
-//             format!("D{}d", n).as_str(),
-//             4 * n as usize,
-//             (4 + n - 1) as usize,
-//             false,
-//         );
-//     }
-// }
+#[test]
+fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_dnd() {
+    let thresh = 1e-7;
+    for n in 3..=20 {
+        let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
+        let expected_irreps = if n % 2 != 0 {
+            // Odd n, g/u possible
+            let mut irreps_gu = vec![];
+            for parity in ["g", "u"] {
+                let mut irreps = vec![
+                    MullikenIrrepSymbol::new(&format!("||A|_(1{parity})|")).unwrap(),
+                    MullikenIrrepSymbol::new(&format!("||A|_(2{parity})|")).unwrap(),
+                ];
+                if n > 4 {
+                    irreps.extend((1..=n.div_euclid(2)).map(|k| {
+                        MullikenIrrepSymbol::new(&format!("||E|_({k}{parity})|")).unwrap()
+                    }));
+                } else {
+                    irreps.push(MullikenIrrepSymbol::new(&format!("||E|_({parity})|")).unwrap());
+                }
+                irreps_gu.extend(irreps)
+            }
+            irreps_gu
+        } else {
+            // Even n, no g/u
+            let mut irreps = vec![
+                MullikenIrrepSymbol::new(&format!("||A|_(1)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||A|_(2)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||B|_(1)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||B|_(2)|")).unwrap(),
+            ];
+            if n > 2 {
+                irreps.extend((1..n).map(|k| {
+                    MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()
+                }));
+            } else {
+                irreps.push(MullikenIrrepSymbol::new(&format!("||E||")).unwrap());
+            };
+            irreps
+        };
+        test_character_table_validity(&mol, thresh, &expected_irreps, None);
+    }
+}
 
 // /*
 // S2n

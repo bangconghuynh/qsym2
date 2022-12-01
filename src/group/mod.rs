@@ -30,7 +30,9 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
 };
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, SIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
-use crate::symmetry::symmetry_symbols::{deduce_mulliken_irrep_symbols, sort_irreps, ClassSymbol};
+use crate::symmetry::symmetry_symbols::{
+    deduce_principal_classes, deduce_mulliken_irrep_symbols, sort_irreps, ClassSymbol
+};
 
 type F = fraction::Fraction;
 
@@ -627,7 +629,6 @@ where
         );
 
         let class_symbols = self.conjugacy_class_symbols.as_ref().unwrap();
-        let char_arr = sort_irreps(&char_arr.view(), class_symbols);
 
         let i_cc = ClassSymbol::new("1||i||", None).unwrap();
         let s_cc = ClassSymbol::new("1||σh||", None).unwrap();
@@ -658,11 +659,18 @@ where
             None
         };
 
+        let principal_classes = deduce_principal_classes(
+            class_symbols,
+            force_proper_principal,
+            force_principal
+        );
+
+        let char_arr = sort_irreps(&char_arr.view(), class_symbols, &principal_classes);
+
         let ordered_irreps = deduce_mulliken_irrep_symbols(
             &char_arr.view(),
             class_symbols,
-            force_proper_principal,
-            force_principal,
+            &principal_classes
         );
 
         let frobenius_schur_indicators: Vec<_> = ordered_irreps
