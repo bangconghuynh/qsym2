@@ -31,7 +31,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, SIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 use crate::symmetry::symmetry_symbols::{
-    deduce_principal_classes, deduce_mulliken_irrep_symbols, sort_irreps, ClassSymbol
+    deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, ClassSymbol,
 };
 
 type F = fraction::Fraction;
@@ -57,7 +57,7 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> {
     order: usize,
 
     /// An optional name if this group is actually a finite subgroup of [`Self::name`].
-    #[builder(default = "None")]
+    #[builder(default = "None", setter(custom))]
     finite_subgroup_name: Option<String>,
 
     /// The Cayley table for this group w.r.t. the elements in [`Self::elements`].
@@ -142,6 +142,21 @@ impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
                 .map(|(i, element)| (element, i))
                 .collect(),
         );
+        self
+    }
+
+    fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
+        if let Some(_) = name_opt {
+            if self.name.as_ref().unwrap().clone() == "O(3)".to_string()
+                || self.name.as_ref().unwrap().contains('∞')
+            {
+                self.finite_subgroup_name = Some(name_opt);
+            } else {
+                panic!(
+                    "Setting a finite subgroup name for a non-infinite group is not supported yet."
+                )
+            }
+        }
         self
     }
 }
@@ -330,8 +345,11 @@ where
             .map(|(i, &rep_ele_index)| {
                 let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap();
                 (
-                    ClassSymbol::new(format!("{}||K{}||", class_sizes[i], i).as_str(), Some(rep_ele.clone()))
-                        .unwrap(),
+                    ClassSymbol::new(
+                        format!("{}||K{}||", class_sizes[i], i).as_str(),
+                        Some(rep_ele.clone()),
+                    )
+                    .unwrap(),
                     i,
                 )
             });
@@ -646,7 +664,14 @@ where
             false
         };
 
-        let force_principal = if self.name == "O" || self.name == "Oh" || self.name == "Td" {
+        let force_principal = if matches!(self.name.as_str(), "O" | "Oh" | "Td")
+            || matches!(
+                self.finite_subgroup_name
+                    .as_ref()
+                    .unwrap_or(&"".to_string())
+                    .as_str(),
+                "O" | "Oh" | "Td"
+            ) {
             force_proper_principal = false;
             let c3_cc: ClassSymbol<T> = ClassSymbol::new("8||C3||", None).unwrap();
             log::debug!(
@@ -659,19 +684,13 @@ where
             None
         };
 
-        let principal_classes = deduce_principal_classes(
-            class_symbols,
-            force_proper_principal,
-            force_principal
-        );
+        let principal_classes =
+            deduce_principal_classes(class_symbols, force_proper_principal, force_principal);
 
         let char_arr = sort_irreps(&char_arr.view(), class_symbols, &principal_classes);
 
-        let ordered_irreps = deduce_mulliken_irrep_symbols(
-            &char_arr.view(),
-            class_symbols,
-            &principal_classes
-        );
+        let ordered_irreps =
+            deduce_mulliken_irrep_symbols(&char_arr.view(), class_symbols, &principal_classes);
 
         let frobenius_schur_indicators: Vec<_> = ordered_irreps
             .iter()
@@ -703,8 +722,13 @@ where
             })
             .collect();
 
+        let chartab_name = if let Some(finite_name) = self.finite_subgroup_name.as_ref() {
+            format!("{} > {}", self.name, finite_name)
+        } else {
+            self.name.clone()
+        };
         self.character_table = Some(CharacterTable::new(
-            self.name.as_str(),
+            chartab_name.as_str(),
             &ordered_irreps,
             &class_symbols.keys().cloned().collect::<Vec<_>>(),
             &principal_classes,

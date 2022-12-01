@@ -749,12 +749,15 @@ where
         );
         vec![principal_cc]
     } else {
+        // sorted_class_symbols contains class symbols sorted in the order:
+        // - decreasing operation order
+        // - proper operations, then improper operations in each operation order
         let mut sorted_class_symbols = class_symbols
             .clone()
             .sorted_by(|cc1, _, cc2, _| {
                 PartialOrd::partial_cmp(
-                    &(cc1.order(), !cc1.is_proper()),
-                    &(cc2.order(), !cc2.is_proper()),
+                    &(cc1.order(), cc1.is_proper()),
+                    &(cc2.order(), cc2.is_proper()),
                 )
                 .unwrap()
             })
