@@ -1757,13 +1757,13 @@ fn test_abstract_group_symmetric_benzene_d6h_class_order() {
     );
 }
 
-#[test]
-fn test_abstract_group_symmetric_h100_d100h() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
-    let thresh = 1e-6;
-    let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D100h", 400, 106, false);
-}
+// #[test]
+// fn test_abstract_group_symmetric_h100_d100h() {
+//     let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
+//     let thresh = 1e-6;
+//     let mol = Molecule::from_xyz(&path, thresh);
+//     test_abstract_group(&mol, thresh, "D100h", 400, 106, false);
+// }
 
 #[test]
 fn test_abstract_group_symmetric_arbitrary_eclipsed_sandwich_dnh() {
