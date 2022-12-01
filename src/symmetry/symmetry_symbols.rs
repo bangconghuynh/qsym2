@@ -711,6 +711,17 @@ pub fn sort_irreps<R: Clone>(
     char_arr
 }
 
+/// Determines the principal classes given a list of class symbols and any forcing conditions.
+///
+/// # Arguments
+///
+/// * class_symbols - An indexmap of class symbols and their corresponding indices.
+/// * force_proper_principal - A flag indicating if the principal classes are forced to be proper.
+/// * force_principal - An option containing specific classes that are forced to be principal.
+///
+/// # Returns
+///
+/// A vector of symbols of principal classes.
 pub fn deduce_principal_classes<R>(
     class_symbols: &IndexMap<ClassSymbol<R>, usize>,
     force_proper_principal: bool,

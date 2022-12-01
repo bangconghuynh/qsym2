@@ -3,7 +3,7 @@ use std::fmt;
 use std::iter;
 
 use derive_builder::Builder;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use ndarray::{Array2, ArrayView1};
 
 use crate::chartab::character::Character;
@@ -28,6 +28,9 @@ pub struct CharacterTable<R: Clone> {
 
     /// The conjugacy classes of the group and their column indices in the character table.
     pub classes: IndexMap<ClassSymbol<R>, usize>,
+
+    /// The principal conjugacy classes of the group.
+    principal_classes: IndexSet<ClassSymbol<R>>,
 
     /// The characters of the irreducible representations in this group.
     pub characters: Array2<Character>,
@@ -72,6 +75,7 @@ impl<R: Clone> CharacterTable<R> {
         name: &str,
         irreps: &[MullikenIrrepSymbol],
         classes: &[ClassSymbol<R>],
+        principal_classes: &[ClassSymbol<R>],
         char_arr: Array2<Character>,
         frobenius_schurs: &[i8],
     ) -> Self {
@@ -80,19 +84,24 @@ impl<R: Clone> CharacterTable<R> {
         assert_eq!(classes.len(), char_arr.dim().1);
         assert_eq!(char_arr.dim().0, char_arr.dim().1);
 
-        let irreps_indexmap = irreps
+        let irreps_indexmap: IndexMap<MullikenIrrepSymbol, usize> = irreps
             .iter()
             .cloned()
             .enumerate()
             .map(|(i, irrep)| (irrep, i))
-            .collect::<IndexMap<_, _>>();
+            .collect();
 
-        let classes_indexmap = classes
+        let classes_indexmap: IndexMap<ClassSymbol<R>, usize> = classes
             .iter()
             .cloned()
             .enumerate()
             .map(|(i, class)| (class, i))
-            .collect::<IndexMap<_, _>>();
+            .collect();
+
+        let principal_classes_indexset: IndexSet<ClassSymbol<R>> = principal_classes
+            .into_iter()
+            .cloned()
+            .collect();
 
         let frobenius_schurs_indexmap = iter::zip(irreps, frobenius_schurs)
             .map(|(irrep, &fsi)| (irrep.clone(), fsi))
@@ -102,6 +111,7 @@ impl<R: Clone> CharacterTable<R> {
             .name(name.to_string())
             .irreps(irreps_indexmap)
             .classes(classes_indexmap)
+            .principal_classes(principal_classes_indexset)
             .characters(char_arr)
             .frobenius_schurs(frobenius_schurs_indexmap)
             .build()
@@ -197,7 +207,16 @@ impl<R: Clone> CharacterTable<R> {
             }
         });
         let irreps_str: Vec<_> = self.irreps.keys().map(|irrep| irrep.to_string()).collect();
-        let ccs_str: Vec<_> = self.classes.keys().map(|cc| cc.to_string()).collect();
+        let ccs_str: Vec<_> = self.classes
+            .keys()
+            .map(|cc|
+                if self.principal_classes.contains(cc) {
+                    format!("◈{}", cc)
+                } else {
+                    cc.to_string()
+                }
+            )
+            .collect();
 
         let first_width = max(
             irreps_str

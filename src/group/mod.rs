@@ -707,6 +707,7 @@ where
             self.name.as_str(),
             &ordered_irreps,
             &class_symbols.keys().cloned().collect::<Vec<_>>(),
+            &principal_classes,
             char_arr,
             &frobenius_schur_indicators,
         ))
