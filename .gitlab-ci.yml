@@ -22,7 +22,7 @@ check:
   tags:
     - archon
   script:
-    - cargo check --verbose --color always
+    - cargo check --release --verbose --color always
   only:
     - schedules
     - merge_requests
@@ -34,7 +34,7 @@ tarpaulin:
   coverage: '/^\d+.\d+% coverage/'
   script:
     - cargo install cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --skip-clean --color always
+    - cargo tarpaulin -t 1800 --release --skip-clean --color always
   only:
     - schedules
     - merge_requests
