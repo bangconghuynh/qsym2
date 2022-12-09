@@ -762,7 +762,8 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                         sym.add_proper(ORDER_2, midvec, false, presym.dist_threshold)
                             as usize;
                 } else if let Some(electric_atoms) = &presym.molecule.electric_atoms {
-                    let e_vector = electric_atoms[0].coordinates - electric_atoms[1].coordinates;
+                    let com = presym.molecule.calc_com(0);
+                    let e_vector = electric_atoms[0].coordinates - com;
                     if presym.check_proper(&ORDER_2, &e_vector) {
                         count_c2 +=
                             sym.add_proper(ORDER_2, e_vector, false, presym.dist_threshold)
