@@ -21,8 +21,8 @@ pub struct Molecule {
     /// The atoms constituting this molecule.
     pub atoms: Vec<Atom>,
 
-    /// Optional special atoms to represent the electric field applied to this molecule.
-    pub electric_atoms: Option<[Atom; 2]>,
+    /// Optional special atom to represent the electric field applied to this molecule.
+    pub electric_atoms: Option<[Atom; 1]>,
 
     /// Optional special atoms to represent the magnetic field applied to this molecule.
     pub magnetic_atoms: Option<[Atom; 2]>,
@@ -112,9 +112,9 @@ impl Molecule {
             .filter(|atom| matches!(atom.kind, AtomKind::Electric(_)))
             .cloned()
             .collect();
-        assert!(electric_atoms_vec.len() == 2 || electric_atoms_vec.is_empty());
-        let electric_atoms = if electric_atoms_vec.len() == 2 {
-            Some([electric_atoms_vec[0].clone(), electric_atoms_vec[1].clone()])
+        assert!(electric_atoms_vec.len() == 1 || electric_atoms_vec.is_empty());
+        let electric_atoms = if electric_atoms_vec.len() == 1 {
+            Some([electric_atoms_vec[0].clone()])
         } else {
             None
         };
@@ -344,7 +344,6 @@ impl Molecule {
         }
         if let Some(electric_atoms) = &self.electric_atoms {
             sea_groups.push(vec![electric_atoms[0].clone()]);
-            sea_groups.push(vec![electric_atoms[1].clone()]);
         }
         if verbose > 0 {
             log::info!("Number of SEA groups: {}", sea_groups.len());
@@ -385,7 +384,7 @@ impl Molecule {
         }
     }
 
-    /// Adds two fictitious magnetic atoms to represent the electric field.
+    /// Adds one fictitious electric atom to represent the electric field.
     ///
     /// # Arguments
     ///
@@ -405,9 +404,7 @@ impl Molecule {
                 };
                 let e_vec_norm = e_vec.normalize() * ave_mag * 0.5;
                 self.electric_atoms = Some([
-                    Atom::new_special(AtomKind::Electric(true), com + 1.1 * e_vec_norm, self.threshold)
-                        .unwrap(),
-                    Atom::new_special(AtomKind::Electric(false), com - e_vec_norm, self.threshold)
+                    Atom::new_special(AtomKind::Electric(true), com + e_vec_norm, self.threshold)
                         .unwrap(),
                 ])
             } else {
