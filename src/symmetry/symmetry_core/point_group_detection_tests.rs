@@ -348,6 +348,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_c3() {
 
 #[test]
 fn test_point_group_detection_symmetric_adamantane_magnetic_field_c3() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.1)));
@@ -2927,7 +2928,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_cs() {
 /// This is another special case: Cs point group in a symmetric top.
 #[test]
 fn test_point_group_detection_symmetric_ch4_electric_field_cs() {
-    // env_logger::init();
+    env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.0)));
@@ -3232,6 +3233,42 @@ fn test_point_group_detection_asymmetric_c2h2_magnetic_field_ci() {
     assert_eq!(sym.improper_generators[&ElementOrder::Int(2)].len(), 1);
 }
 
+/// This is a special case: Ci from S2 via symmetric top.
+#[test]
+fn test_point_group_detection_symmetric_vf6_magnetic_field_ci() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-12);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-12)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("Ci".to_owned()));
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
+/// This is a special case: Ci from S2 via symmetric top.
+#[test]
+fn test_point_group_detection_symmetric_c60_magnetic_field_ci() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("Ci".to_owned()));
+    assert_eq!(sym.improper_elements[&ElementOrder::Int(2)].len(), 1);
+    assert_eq!(sym.improper_generators[&ElementOrder::Int(2)].len(), 1);
+}
+
 
 /***
 C1
@@ -3278,6 +3315,60 @@ fn test_point_group_detection_asymmetric_bf3_magnetic_field_c1() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C1".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(1)].len(), 1);
+}
+
+/// This is a special case: C1 via symmetric top.
+#[test]
+fn test_point_group_detection_symmetric_ch4_magnetic_field_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, -3.0, 2.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C1".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(1)].len(), 1);
+}
+
+/// This is a special case: C1 via symmetric top.
+#[test]
+fn test_point_group_detection_symmetric_vf6_electric_field_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-12);
+    mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-12)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::builder().build().unwrap();
+    sym.analyse(&presym);
+    assert_eq!(sym.point_group, Some("C1".to_owned()));
+    assert_eq!(sym.proper_elements[&ElementOrder::Int(1)].len(), 1);
+    assert_eq!(sym.proper_generators[&ElementOrder::Int(1)].len(), 1);
+}
+
+/// This is a special case: C1 via symmetric top.
+#[test]
+fn test_point_group_detection_symmetric_c60_electric_field_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
         .molecule(&mol, true)
         .build()
         .unwrap();

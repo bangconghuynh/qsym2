@@ -10,7 +10,7 @@ use nalgebra::Vector3;
 impl Symmetry {
     /// Performs point-group detection analysis for an asymmetric-top molecule.
     ///
-    /// The possible symmetric top point groups are:
+    /// The possible asymmetric top point groups are:
     ///
     /// * $`\mathcal{C}_{1}`$ and $`\mathcal{C}_{2}`$,
     /// * $`\mathcal{C}_{2v}`$,
