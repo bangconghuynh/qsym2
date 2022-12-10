@@ -12,7 +12,6 @@ fn main() {
                 .required(false)
                 .default_value("1e-6"),
         )
-        .arg(arg!(-v --verbose ... "Use verbose output. Maybe specified twice for 'very verbose'."))
         .get_matches();
 
     let filename = matches.value_of("XYZ_FILE").unwrap_or_else(|| {
@@ -24,13 +23,12 @@ fn main() {
         .unwrap()
         .parse::<f64>()
         .unwrap();
-    let verbose = matches.occurrences_of("verbose");
 
     let mol = Molecule::from_xyz(filename, 1e-4);
-    let com = mol.calc_com(verbose);
-    let inertia = mol.calc_inertia_tensor(&com, verbose);
-    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, thresh, verbose);
+    let com = mol.calc_com();
+    let inertia = mol.calc_inertia_tensor(&com);
+    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, thresh);
     println!("Rotational symmetry: {}", rotsym_result);
-    let sea_groups = mol.calc_sea_groups(1);
+    let sea_groups = mol.calc_sea_groups();
     println!("SEAs: {:?}", sea_groups);
 }
