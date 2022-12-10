@@ -388,7 +388,7 @@ impl Molecule {
     ///
     /// # Arguments
     ///
-    /// * electric_field - The electric field vector. If zero or `None`, any magnetic
+    /// * electric_field - The electric field vector. If zero or `None`, any electric
     /// field present will be removed.
     pub fn set_electric_field(&mut self, electric_field: Option<Vector3<f64>>) {
         if let Some(e_vec) = electric_field {
