@@ -176,27 +176,21 @@ fn test_shconversion_complexc() {
     );
 
     assert!(
-        (complexc((3, 1), (1, 0, 2), true)
-            - Complex::<f64>::new(-(3.0f64 / 5.0f64).sqrt(), 0.0))
-        .norm()
+        (complexc((3, 1), (1, 0, 2), true) - Complex::<f64>::new(-(3.0f64 / 5.0f64).sqrt(), 0.0))
+            .norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, 1), (0, 1, 2), true)
-            - Complex::<f64>::new(0.0, -(3.0f64 / 5.0f64).sqrt()))
-        .norm()
+        (complexc((3, 1), (0, 1, 2), true) - Complex::<f64>::new(0.0, -(3.0f64 / 5.0f64).sqrt()))
+            .norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, 1), (3, 0, 0), true)
-            - Complex::<f64>::new(3.0f64.sqrt() / 4.0, 0.0))
-        .norm()
+        (complexc((3, 1), (3, 0, 0), true) - Complex::<f64>::new(3.0f64.sqrt() / 4.0, 0.0)).norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, 1), (0, 3, 0), true)
-            - Complex::<f64>::new(0.0, 3.0f64.sqrt() / 4.0))
-        .norm()
+        (complexc((3, 1), (0, 3, 0), true) - Complex::<f64>::new(0.0, 3.0f64.sqrt() / 4.0)).norm()
             < 1e-14
     );
     assert!(
@@ -213,27 +207,22 @@ fn test_shconversion_complexc() {
     );
 
     assert!(
-        (complexc((3, -1), (1, 0, 2), true)
-            - Complex::<f64>::new((3.0f64 / 5.0f64).sqrt(), 0.0))
-        .norm()
+        (complexc((3, -1), (1, 0, 2), true) - Complex::<f64>::new((3.0f64 / 5.0f64).sqrt(), 0.0))
+            .norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, -1), (0, 1, 2), true)
-            - Complex::<f64>::new(0.0, -(3.0f64 / 5.0f64).sqrt()))
-        .norm()
+        (complexc((3, -1), (0, 1, 2), true) - Complex::<f64>::new(0.0, -(3.0f64 / 5.0f64).sqrt()))
+            .norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, -1), (3, 0, 0), true)
-            - Complex::<f64>::new(-3.0f64.sqrt() / 4.0, 0.0))
-        .norm()
+        (complexc((3, -1), (3, 0, 0), true) - Complex::<f64>::new(-3.0f64.sqrt() / 4.0, 0.0))
+            .norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, -1), (0, 3, 0), true)
-            - Complex::<f64>::new(0.0, 3.0f64.sqrt() / 4.0))
-        .norm()
+        (complexc((3, -1), (0, 3, 0), true) - Complex::<f64>::new(0.0, 3.0f64.sqrt() / 4.0)).norm()
             < 1e-14
     );
     assert!(
@@ -250,91 +239,65 @@ fn test_shconversion_complexc() {
     );
 
     assert!(
-        (complexc((3, 2), (2, 0, 1), true)
-            - Complex::<f64>::new((3.0f64 / 8.0f64).sqrt(), 0.0))
-        .norm()
+        (complexc((3, 2), (2, 0, 1), true) - Complex::<f64>::new((3.0f64 / 8.0f64).sqrt(), 0.0))
+            .norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, 2), (0, 2, 1), true)
-            - Complex::<f64>::new(-(3.0f64 / 8.0f64).sqrt(), 0.0))
-        .norm()
+        (complexc((3, 2), (0, 2, 1), true) - Complex::<f64>::new(-(3.0f64 / 8.0f64).sqrt(), 0.0))
+            .norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, 2), (1, 1, 1), true)
-            - Complex::<f64>::new(0.0, 1.0 / (2.0f64).sqrt()))
-        .norm()
+        (complexc((3, 2), (1, 1, 1), true) - Complex::<f64>::new(0.0, 1.0 / (2.0f64).sqrt()))
+            .norm()
             < 1e-14
     );
 
     assert!(
-        (complexc((3, -2), (2, 0, 1), true)
-            - Complex::<f64>::new((3.0f64 / 8.0f64).sqrt(), 0.0))
-        .norm()
+        (complexc((3, -2), (2, 0, 1), true) - Complex::<f64>::new((3.0f64 / 8.0f64).sqrt(), 0.0))
+            .norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, -2), (0, 2, 1), true)
-            - Complex::<f64>::new(-(3.0f64 / 8.0f64).sqrt(), 0.0))
-        .norm()
+        (complexc((3, -2), (0, 2, 1), true) - Complex::<f64>::new(-(3.0f64 / 8.0f64).sqrt(), 0.0))
+            .norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, -2), (1, 1, 1), true)
-            - Complex::<f64>::new(0.0, -1.0 / (2.0f64).sqrt()))
-        .norm()
+        (complexc((3, -2), (1, 1, 1), true) - Complex::<f64>::new(0.0, -1.0 / (2.0f64).sqrt()))
+            .norm()
             < 1e-14
     );
 
     assert!(
-        (complexc((3, 3), (3, 0, 0), true)
-            - Complex::<f64>::new(-5.0f64.sqrt() / 4.0, 0.0))
-        .norm()
+        (complexc((3, 3), (3, 0, 0), true) - Complex::<f64>::new(-5.0f64.sqrt() / 4.0, 0.0)).norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, 3), (0, 3, 0), true)
-            - Complex::<f64>::new(0.0, 5.0f64.sqrt() / 4.0))
-        .norm()
+        (complexc((3, 3), (0, 3, 0), true) - Complex::<f64>::new(0.0, 5.0f64.sqrt() / 4.0)).norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, 3), (1, 2, 0), true)
-            - Complex::<f64>::new(3.0 / 4.0, 0.0))
-        .norm()
-            < 1e-14
+        (complexc((3, 3), (1, 2, 0), true) - Complex::<f64>::new(3.0 / 4.0, 0.0)).norm() < 1e-14
     );
     assert!(
-        (complexc((3, 3), (2, 1, 0), true)
-            - Complex::<f64>::new(0.0, -3.0 / 4.0))
-        .norm()
-            < 1e-14
+        (complexc((3, 3), (2, 1, 0), true) - Complex::<f64>::new(0.0, -3.0 / 4.0)).norm() < 1e-14
     );
 
     assert!(
-        (complexc((3, -3), (3, 0, 0), true)
-            - Complex::<f64>::new(5.0f64.sqrt() / 4.0, 0.0))
-        .norm()
+        (complexc((3, -3), (3, 0, 0), true) - Complex::<f64>::new(5.0f64.sqrt() / 4.0, 0.0)).norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, -3), (0, 3, 0), true)
-            - Complex::<f64>::new(0.0, 5.0f64.sqrt() / 4.0))
-        .norm()
+        (complexc((3, -3), (0, 3, 0), true) - Complex::<f64>::new(0.0, 5.0f64.sqrt() / 4.0)).norm()
             < 1e-14
     );
     assert!(
-        (complexc((3, -3), (1, 2, 0), true)
-            - Complex::<f64>::new(-3.0 / 4.0, 0.0))
-        .norm()
-            < 1e-14
+        (complexc((3, -3), (1, 2, 0), true) - Complex::<f64>::new(-3.0 / 4.0, 0.0)).norm() < 1e-14
     );
     assert!(
-        (complexc((3, -3), (2, 1, 0), true)
-            - Complex::<f64>::new(0.0, -3.0 / 4.0))
-        .norm()
-            < 1e-14
+        (complexc((3, -3), (2, 1, 0), true) - Complex::<f64>::new(0.0, -3.0 / 4.0)).norm() < 1e-14
     );
 
     // Generic values
