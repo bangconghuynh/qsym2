@@ -3168,6 +3168,26 @@ fn test_abstract_group_asymmetric_c2h2_magnetic_field_ci() {
     test_abstract_group(&mol, thresh, "Ci", 2, 2, true);
 }
 
+/// This is a special case: Ci from S2 via symmetric top.
+#[test]
+fn test_abstract_group_symmetric_vf6_magnetic_field_ci() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
+    test_abstract_group(&mol, thresh, "Ci", 2, 2, true);
+}
+
+/// This is a special case: Ci from S2 via symmetric top.
+#[test]
+fn test_abstract_group_symmetric_c60_magnetic_field_ci() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
+    test_abstract_group(&mol, thresh, "Ci", 2, 2, true);
+}
+
 /***
 C1
 ***/
@@ -3202,5 +3222,36 @@ fn test_abstract_group_asymmetric_bf3_magnetic_field_c1() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
+    test_abstract_group(&mol, thresh, "C1", 1, 1, true);
+}
+
+/// This is a special case: C1 via symmetric top.
+#[test]
+fn test_abstract_group_symmetric_ch4_magnetic_field_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, -3.0, 2.0)));
+    test_abstract_group(&mol, thresh, "C1", 1, 1, true);
+}
+
+
+/// This is a special case: C1 via symmetric top.
+#[test]
+fn test_abstract_group_symmetric_vf6_electric_field_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
+    test_abstract_group(&mol, thresh, "C1", 1, 1, true);
+}
+
+/// This is a special case: C1 via symmetric top.
+#[test]
+fn test_abstract_group_symmetric_c60_electric_field_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
     test_abstract_group(&mol, thresh, "C1", 1, 1, true);
 }
