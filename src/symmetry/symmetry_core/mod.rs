@@ -85,19 +85,19 @@ impl PreSymmetryBuilder {
     }
 
     fn calc_rotational_symmetry(&self) -> RotationalSymmetry {
-        let com = self.molecule.as_ref().unwrap().calc_com(0);
-        let inertia = self.molecule.as_ref().unwrap().calc_inertia_tensor(&com, 0);
+        let com = self.molecule.as_ref().unwrap().calc_com();
+        let inertia = self.molecule.as_ref().unwrap().calc_inertia_tensor(&com);
         approx::assert_relative_eq!(
             com,
             Point3::origin(),
             epsilon = self.molecule.as_ref().unwrap().threshold,
             max_relative = self.molecule.as_ref().unwrap().threshold
         );
-        rotsym::calc_rotational_symmetry(&inertia, self.moi_threshold.unwrap(), 0)
+        rotsym::calc_rotational_symmetry(&inertia, self.moi_threshold.unwrap())
     }
 
     fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
-        self.molecule.as_ref().unwrap().calc_sea_groups(0)
+        self.molecule.as_ref().unwrap().calc_sea_groups()
     }
 
     fn get_dist_threshold(&self) -> f64 {
@@ -621,7 +621,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                             max_relative = presym.moi_threshold,
                         ) {
                             // Spherical top SEA
-                            log::debug!("A spherical top SEA set detected.");
+                            log::debug!("A spherical top SEA set detected: {:?}", sea_group);
                             let sea_presym = PreSymmetry::builder()
                                 .moi_threshold(presym.moi_threshold)
                                 .molecule(&sea_mol, true)
@@ -762,7 +762,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                         sym.add_proper(ORDER_2, midvec, false, presym.dist_threshold)
                             as usize;
                 } else if let Some(electric_atoms) = &presym.molecule.electric_atoms {
-                    let com = presym.molecule.calc_com(0);
+                    let com = presym.molecule.calc_com();
                     let e_vector = electric_atoms[0].coordinates - com;
                     if presym.check_proper(&ORDER_2, &e_vector) {
                         count_c2 +=

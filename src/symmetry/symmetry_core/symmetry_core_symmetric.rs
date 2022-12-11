@@ -479,7 +479,12 @@ impl Symmetry {
             } {
                 // S2n
                 let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
-                self.point_group = Some(format!("S{double_max_ord}"));
+                self.point_group = if double_max_ord == ElementOrder::Int(2) {
+                    // S2 is Ci.
+                    Some(format!("Ci"))
+                } else {
+                    Some(format!("S{double_max_ord}"))
+                };
                 log::debug!(
                     "Point group determined: {}",
                     self.point_group.as_ref().unwrap()

@@ -155,14 +155,10 @@ impl Molecule {
     ///
     /// This does not take into account fictitious special atoms.
     ///
-    /// # Arguments
-    ///
-    /// * `verbose` - The print level.
-    ///
     /// # Returns
     ///
     /// The centre of mass.
-    pub fn calc_com(&self, verbose: u64) -> Point3<f64> {
+    pub fn calc_com(&self) -> Point3<f64> {
         let atoms = &self.atoms;
         let mut com: Point3<f64> = Point3::origin();
         if atoms.is_empty() {
@@ -175,9 +171,7 @@ impl Molecule {
             tot_m += m;
         }
         com *= 1.0 / tot_m;
-        if verbose > 0 {
-            log::info!("Centre of mass: {}", com);
-        }
+        log::debug!("Centre of mass: {}", com);
         com
     }
 
@@ -188,12 +182,11 @@ impl Molecule {
     /// # Arguments
     ///
     /// * `origin` - An origin about which the inertia tensor is evaluated.
-    /// * `verbose` - The print level.
     ///
     /// # Returns
     ///
     /// The inertia tensor as a $`3 \times 3`$ matrix.
-    pub fn calc_inertia_tensor(&self, origin: &Point3<f64>, verbose: u64) -> Matrix3<f64> {
+    pub fn calc_inertia_tensor(&self, origin: &Point3<f64>) -> Matrix3<f64> {
         let atoms = self.get_all_atoms();
         let mut inertia_tensor = Matrix3::zeros();
         for atom in atoms.iter() {
@@ -213,10 +206,8 @@ impl Molecule {
                 }
             }
         }
-        if verbose > 1 {
-            log::info!("Origin for inertia tensor: {}", origin);
-            log::info!("Inertia tensor:\n{}", inertia_tensor);
-        }
+        log::debug!("Origin for inertia tensor: {}", origin);
+        log::debug!("Inertia tensor:\n{}", inertia_tensor);
         inertia_tensor
     }
 
@@ -230,7 +221,7 @@ impl Molecule {
     /// * The corresponding principal axes.
     pub fn calc_moi(&self) -> ([f64; 3], [Vector3<f64>; 3]) {
         let inertia_eig = self
-            .calc_inertia_tensor(&self.calc_com(0), 0)
+            .calc_inertia_tensor(&self.calc_com())
             .symmetric_eigen();
         let eigenvalues: Vec<f64> = inertia_eig.eigenvalues.iter().cloned().collect();
         let eigenvectors: Vec<_> = inertia_eig.eigenvectors.column_iter().collect();
@@ -281,15 +272,11 @@ impl Molecule {
     ///
     /// This *does* take into account fictitious special atoms.
     ///
-    /// # Arguments
-    ///
-    /// * `verbose` - The print level.
-    ///
     /// # Returns
     ///
     /// * Copies of the atoms in the molecule, grouped into symmetry-equivalent
     /// groups.
-    pub fn calc_sea_groups(&self, verbose: u64) -> Vec<Vec<Atom>> {
+    pub fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
         let atoms = &self.atoms;
         let all_atoms = &self.get_all_atoms();
         let ord_coords: Vec<_> = atoms.iter().map(|atm| atm.coordinates).collect();
@@ -345,9 +332,7 @@ impl Molecule {
         if let Some(electric_atoms) = &self.electric_atoms {
             sea_groups.push(vec![electric_atoms[0].clone()]);
         }
-        if verbose > 0 {
-            log::info!("Number of SEA groups: {}", sea_groups.len());
-        }
+        log::debug!("Number of SEA groups: {}", sea_groups.len());
         sea_groups
     }
 
@@ -360,7 +345,7 @@ impl Molecule {
     pub fn set_magnetic_field(&mut self, magnetic_field: Option<Vector3<f64>>) {
         if let Some(b_vec) = magnetic_field {
             if approx::relative_ne!(b_vec.norm(), 0.0) {
-                let com = self.calc_com(0);
+                let com = self.calc_com();
                 let ave_mag = {
                     let average_distance = self
                         .atoms
@@ -393,7 +378,7 @@ impl Molecule {
     pub fn set_electric_field(&mut self, electric_field: Option<Vector3<f64>>) {
         if let Some(e_vec) = electric_field {
             if approx::relative_ne!(e_vec.norm(), 0.0) {
-                let com = self.calc_com(0);
+                let com = self.calc_com();
                 let ave_mag = {
                     let average_distance = self
                         .atoms
@@ -487,7 +472,7 @@ impl Transform for Molecule {
     }
 
     fn recentre_mut(&mut self) {
-        let com = self.calc_com(0);
+        let com = self.calc_com();
         let tvec = -Vector3::new(com[0], com[1], com[2]);
         self.translate_mut(&tvec);
     }
