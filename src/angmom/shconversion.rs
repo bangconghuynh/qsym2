@@ -251,7 +251,10 @@ fn norm_cart_gaussian(lcartqns: (u32, u32, u32), alpha: f64) -> f64 {
 /// The complex factor $`c(l, m_l, l_{\mathrm{cart}}, l_x, l_y, l_z)`$.
 fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> Complex<f64> {
     let (l, m) = lpureqns;
-    assert!(m.abs() as u32 <= l, "m must be between -l and l (inclusive).");
+    assert!(
+        m.abs() as u32 <= l,
+        "m must be between -l and l (inclusive)."
+    );
     let (lx, ly, lz) = lcartqns;
     let lcart = lx + ly + lz;
     let dl = lcart as i32 - l as i32;
@@ -309,4 +312,120 @@ fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> C
             acc_si + ifactor * sp
         });
     (ntilde / n) * prefactor * si
+}
+
+/// Calculates the overlap between two normalised Cartesian Gaussians of the same order and radial
+/// width, as given in Equation 19 of Schlegel, H. B. & Frisch, M. J. Transformation between
+/// Cartesian and pure spherical harmonic Gaussians. *International Journal of Quantum Chemistry*
+/// **54**, 83–87 (1995), [DOI](https://doi.org/10.1002/qua.560540202).
+///
+/// # Arguments
+///
+/// * lcartqns1 - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
+/// components of the first Cartesian Gaussian.
+/// * lcartqns2 - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
+/// components of the first Cartesian Gaussian.
+///
+/// # Returns
+///
+/// The overlap between the two specified normalised Cartesian Gaussians.
+fn cartov(lcartqns1: (u32, u32, u32), lcartqns2: (u32, u32, u32)) -> f64 {
+    let (lx1, ly1, lz1) = lcartqns1;
+    let (lx2, ly2, lz2) = lcartqns2;
+    let lcart1 = lx1 + ly1 + lz1;
+    let lcart2 = lx2 + ly2 + lz2;
+    assert_eq!(
+        lcart1, lcart2,
+        "Only Cartesian Gaussians of the same order are supported."
+    );
+
+    if (lx1 + lx2).rem_euclid(2) == 0
+        && (ly1 + ly2).rem_euclid(2) == 0
+        && (lz1 + lz2).rem_euclid(2) == 0
+    {
+        let num1 = (BigUint::from(lx1 + lx2).checked_factorial().unwrap()
+            * BigUint::from(ly1 + ly2).checked_factorial().unwrap()
+            * BigUint::from(lz1 + lz2).checked_factorial().unwrap())
+        .to_f64()
+        .unwrap();
+
+        let den1 = (BigUint::from((lx1 + lx2).div_euclid(2))
+            .checked_factorial()
+            .unwrap()
+            * BigUint::from((ly1 + ly2).div_euclid(2))
+                .checked_factorial()
+                .unwrap()
+            * BigUint::from((lz1 + lz2).div_euclid(2))
+                .checked_factorial()
+                .unwrap())
+        .to_f64()
+        .unwrap();
+
+        let num2 = (BigUint::from(lx1).checked_factorial().unwrap()
+            * BigUint::from(ly1).checked_factorial().unwrap()
+            * BigUint::from(lz1).checked_factorial().unwrap()
+            * BigUint::from(lx2).checked_factorial().unwrap()
+            * BigUint::from(ly2).checked_factorial().unwrap()
+            * BigUint::from(lz2).checked_factorial().unwrap())
+        .to_f64()
+        .unwrap();
+
+        let den2 = (BigUint::from(2 * lx1).checked_factorial().unwrap()
+            * BigUint::from(2 * ly1).checked_factorial().unwrap()
+            * BigUint::from(2 * lz1).checked_factorial().unwrap()
+            * BigUint::from(2 * lx2).checked_factorial().unwrap()
+            * BigUint::from(2 * ly2).checked_factorial().unwrap()
+            * BigUint::from(2 * lz2).checked_factorial().unwrap())
+        .to_f64()
+        .unwrap();
+
+        (num1 / den1) * (num2 / den2).sqrt()
+    } else {
+        0.0
+    }
+}
+
+/// Computes the inverse complex coefficients $`c^{-1}(l_x, l_y, l_z, l, m_l, l_{\mathrm{cart}})`$
+/// based on Equation 18 of Schlegel, H. B. & Frisch, M. J. Transformation between
+/// Cartesian and pure spherical harmonic Gaussians. *International Journal of Quantum Chemistry*
+/// **54**, 83–87 (1995), [DOI](https://doi.org/10.1002/qua.560540202), but more generalised for
+/// $`l \leq l_{\mathrm{cart}} = l_x + l_y + l_z`$.
+///
+/// Let $`\tilde{g}(\alpha, l, m_l, l_{\mathrm{cart}}, \mathbf{r})`$ be a complex solid
+/// harmonic Gaussian as defined in Equation 1 of the above reference with
+/// $`n = l_{\mathrm{cart}}`$, and let $`g(\alpha, l_x, l_y, l_z, \mathbf{r})`$ be a Cartesian
+/// Gaussian as defined in Equation 2 of the above reference. The inverse complex coefficients
+/// $`c^{-1}(l_x, l_y, l_z, l, m_l, l_{\mathrm{cart}})`$ effect the inverse transformation
+///
+/// ```math
+/// g(\alpha, l_x, l_y, l_z, \mathbf{r})
+/// = \sum_{l \le l_{\mathrm{cart}} = l_x+l_y+l_z} \sum_{m_l = -l}^{l}
+///     c^{-1}(l_x, l_y, l_z, l, m_l, l_{\mathrm{cart}})
+///     \tilde{g}(\alpha, l, m_l, l_{\mathrm{cart}}, \mathbf{r}).
+/// ```
+///
+/// # Arguments
+///
+/// * lcartqns - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
+/// components of the Cartesian Gaussian.
+/// * lpureqns - A tuple of $`(l, m_l)`$ specifying the quantum numbers for the spherical harmonic
+/// component of the solid harmonic Gaussian.
+/// * csphase - If `true`, the Condon--Shortley phase will be used as defined in
+/// [`complexc`]. If `false`, this phase will be set to unity.
+///
+/// # Returns
+///
+/// $`c^{-1}(l_x, l_y, l_z, l, m_l, l_{\mathrm{cart}})`$.
+fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: bool) -> Complex<f64> {
+    let (lx, ly, lz) = lcartqns;
+    let lcart = lx + ly + lz;
+    let mut cinv = Complex::<f64>::zero();
+    for lx2 in 0..=lcart {
+        for ly2 in 0..=(lcart - lx2) {
+            let lz2 = lcart - lx2 - ly2;
+            cinv += cartov(lcartqns, (lx2, ly2, lz2))
+                * complexc(lpureqns, (lx2, ly2, lz2), csphase).conj();
+        }
+    }
+    cinv
 }

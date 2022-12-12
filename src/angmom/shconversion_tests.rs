@@ -2,7 +2,7 @@ use itertools::Itertools;
 use num::Complex;
 use num_traits::{One, Zero};
 
-use crate::angmom::shconversion::{complexc, norm_cart_gaussian, norm_sph_gaussian};
+use crate::angmom::shconversion::{complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian};
 
 #[test]
 fn test_shconversion_complexc() {
@@ -316,4 +316,119 @@ fn test_shconversion_complexc() {
             }
         }
     }
+}
+
+#[test]
+fn test_shconversion_complexcinv() {
+    // =========
+    // lcart = 0
+    // =========
+    assert!((complexcinv((0, 0, 0), (0, 0), true) - Complex::<f64>::one()).norm() < 1e-14);
+
+    // =========
+    // lcart = 1
+    // =========
+    assert!((complexcinv((0, 0, 1), (1, 0), true) - Complex::<f64>::one()).norm() < 1e-14);
+    assert!((complexcinv((1, 0, 0), (0, 0), true) - Complex::<f64>::zero()).norm() < 1e-14);
+    assert!(
+        (complexcinv((1, 0, 0), (1, 1), true) - Complex::<f64>::new(-1.0 / 2.0f64.sqrt(), 0.0))
+            .norm()
+            < 1e-14
+    );
+    assert!(
+        (complexcinv((1, 0, 0), (1, -1), true) - Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0))
+            .norm()
+            < 1e-14
+    );
+    assert!(
+        (complexcinv((0, 1, 0), (1, 1), true) - Complex::<f64>::new(0.0, 1.0 / 2.0f64.sqrt()))
+            .norm()
+            < 1e-14
+    );
+    assert!(
+        (complexcinv((0, 1, 0), (1, -1), true) - Complex::<f64>::new(0.0, 1.0 / 2.0f64.sqrt()))
+            .norm()
+            < 1e-14
+    );
+
+    // =========
+    // lcart = 2
+    // =========
+    assert!((complexcinv((1, 1, 0), (1, -1), true) - Complex::<f64>::zero()).norm() < 1e-14);
+
+    let ntilde_2 = norm_sph_gaussian(2, 1.0);
+    let n_200 = norm_cart_gaussian((2, 0, 0), 1.0);
+    assert!(
+        (complexcinv((0, 0, 2), (2, 0), true) - Complex::<f64>::new(2.0 / 3.0, 0.0)).norm() < 1e-14
+    );
+    assert!(
+        (complexcinv((0, 0, 2), (0, 0), true)
+            - Complex::<f64>::new(
+                1.0 / 3.0 * n_200 / ntilde_2 * (4.0 * std::f64::consts::PI).sqrt(),
+                0.0
+            ))
+        .norm()
+            < 1e-14
+    );
+
+    assert!(
+        (complexcinv((0, 0, 2), (2, 0), true) - Complex::<f64>::new(2.0 / 3.0, 0.0)).norm() < 1e-14
+    );
+    assert!(
+        (complexcinv((0, 0, 2), (0, 0), true)
+            - Complex::<f64>::new(
+                1.0 / 3.0 * n_200 / ntilde_2 * (4.0 * std::f64::consts::PI).sqrt(),
+                0.0
+            ))
+        .norm()
+            < 1e-14
+    );
+
+    assert!(
+        (complexcinv((2, 0, 0), (2, 0), true) - Complex::<f64>::new(-1.0 / 3.0, 0.0)).norm()
+            < 1e-14
+    );
+    assert!(
+        (complexcinv((2, 0, 0), (0, 0), true)
+            - Complex::<f64>::new(
+                1.0 / 3.0 * n_200 / ntilde_2 * (4.0 * std::f64::consts::PI).sqrt(),
+                0.0
+            ))
+        .norm()
+            < 1e-14
+    );
+    assert!(
+        (complexcinv((2, 0, 0), (2, 2), true) - Complex::<f64>::new(1.0 / 6.0f64.sqrt(), 0.0))
+            .norm()
+            < 1e-14
+    );
+    assert!(
+        (complexcinv((2, 0, 0), (2, -2), true) - Complex::<f64>::new(1.0 / 6.0f64.sqrt(), 0.0))
+            .norm()
+            < 1e-14
+    );
+
+    assert!(
+        (complexcinv((0, 2, 0), (0, 0), true)
+            - Complex::<f64>::new(
+                1.0 / 3.0 * n_200 / ntilde_2 * (4.0 * std::f64::consts::PI).sqrt(),
+                0.0
+            ))
+        .norm()
+            < 1e-14
+    );
+    assert!(
+        (complexcinv((0, 2, 0), (2, 0), true) - Complex::<f64>::new(-1.0 / 3.0, 0.0)).norm()
+            < 1e-14
+    );
+    assert!(
+        (complexcinv((0, 2, 0), (2, 2), true) - Complex::<f64>::new(-1.0 / 6.0f64.sqrt(), 0.0))
+            .norm()
+            < 1e-14
+    );
+    assert!(
+        (complexcinv((0, 2, 0), (2, -2), true) - Complex::<f64>::new(-1.0 / 6.0f64.sqrt(), 0.0))
+            .norm()
+            < 1e-14
+    );
 }
