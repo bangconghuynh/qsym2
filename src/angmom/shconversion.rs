@@ -1,4 +1,5 @@
 use factorial::Factorial;
+use ndarray::{Array2, Axis};
 use num::{BigUint, Complex};
 use num_traits::{cast::ToPrimitive, Zero};
 
@@ -428,4 +429,137 @@ fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: bool) -
         }
     }
     cinv
+}
+
+/// Obtains the transformation matrix $`\boldsymbol{\Upsilon}^{(l)}`$ allowing complex spherical
+/// harmonics to be expressed as linear combinations of real spherical harmonics.
+///
+/// Let $`Y_{lm}`$ be a real spherical harmonic of degree $`l`$. Then, a complex spherical
+/// harmonic of degree $`l`$ and order $`m`$ is given by
+///
+/// ```math
+/// Y_l^m =
+///     \begin{cases}
+///         \frac{\lambda_{\mathrm{cs}}}{\sqrt{2}}
+///         \left(Y_{l\lvert m \rvert}
+///               - \mathbb{i} Y_{l,-\lvert m \rvert}\right)
+///         & \mathrm{if}\ m < 0 \\
+///         Y_{l0} & \mathrm{if}\ m = 0 \\
+///         \frac{\lambda_{\mathrm{cs}}}{\sqrt{2}}
+///         \left(Y_{l\lvert m \rvert}
+///               + \mathbb{i} Y_{l,-\lvert m \rvert}\right)
+///         & \mathrm{if}\ m > 0 \\
+///     \end{cases}
+/// ```
+///
+/// where $`\lambda_{\mathrm{cs}}`$ is the Condon--Shortley phase as defined in [`complexc`].
+/// The linear combination coefficients can then be gathered into a square matrix
+/// $`\boldsymbol{\Upsilon}^{(l)}`$ of dimensions $`(2l+1)\times(2l+1)`$ such that
+///
+/// ```math
+///     Y_l^m = \sum_{m'} Y_{lm'} \Upsilon^{(l)}_{m'm}.
+/// ```
+///
+/// # Arguments
+///
+/// * l - The spherical harmonic degree.
+/// * csphase - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
+/// $`\lambda_{\mathrm{cs}} = 1`$.
+/// * increasingm - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)}`$ are
+/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// $`m_l = l, \ldots, -l`$.
+///
+/// # Returns
+///
+/// The $`\boldsymbol{\Upsilon}^{(l)}`$ matrix.
+fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
+    let mut upmat = Array2::<Complex<f64>>::zeros((2 * l as usize + 1, 2 * l as usize + 1));
+    let lsize = l as usize;
+    for mcomplex in -(l as i32)..=(l as i32) {
+        let absmreal = mcomplex.abs() as usize;
+        if mcomplex < 0 {
+            // Python-equivalent:
+            // upmat[-absmreal + l, mcomplex + l] = -1.0j / np.sqrt(2)
+            // upmat[+absmreal + l, mcomplex + l] = 1.0 / np.sqrt(2)
+            // mcomplex = -absmreal
+            upmat[(lsize - absmreal, lsize - absmreal)] =
+                Complex::<f64>::new(0.0, -1.0 / 2.0f64.sqrt());
+            upmat[(lsize + absmreal, lsize - absmreal)] =
+                Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0);
+        } else if mcomplex == 0 {
+            upmat[(lsize, lsize)] = Complex::<f64>::from(1.0);
+        } else {
+            let lcs = if csphase {
+                (-1i32).pow(mcomplex as u32) as f64
+            } else {
+                1.0
+            };
+            // Python-equivalent:
+            // upmat[-absmreal + l, mcomplex + l] = lcs * 1.0j / np.sqrt(2)
+            // upmat[+absmreal + l, mcomplex + l] = lcs * 1.0 / np.sqrt(2)
+            // mcomplex = absmreal
+            upmat[(lsize - absmreal, lsize + absmreal)] =
+                lcs * Complex::<f64>::new(0.0, 1.0 / 2.0f64.sqrt());
+            upmat[(lsize + absmreal, lsize + absmreal)] =
+                lcs * Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0);
+        }
+        if !increasingm {
+            upmat.invert_axis(Axis(0));
+            upmat.invert_axis(Axis(1));
+        }
+    }
+    upmat
+}
+
+/// Obtains the matrix $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ allowing real spherical harmonics
+/// to be expressed as linear combinations of complex spherical harmonics.
+///
+/// Let $`Y_l^m`$ be a complex spherical harmonic of degree $`l`$ and order $`m`$.
+/// Then, a real degree-$`l`$ spherical harmonic $`Y_{lm}`$ can be defined as
+///
+/// ```math
+/// Y_{lm} =
+///     \begin{cases}
+///         \frac{\mathbb{i}}{\sqrt{2}}
+///         \left(Y_l^{-\lvert m \rvert}
+///               - \lambda'_{\mathrm{cs}} Y_l^{\lvert m \rvert}\right)
+///         & \mathrm{if}\ m < 0 \\
+///         Y_l^0 & \mathrm{if}\ m = 0 \\
+///         \frac{1}{\sqrt{2}}
+///         \left(Y_l^{-\lvert m \rvert}
+///               + \lambda'_{\mathrm{cs}} Y_l^{\lvert m \rvert}\right)
+///         & \mathrm{if}\ m > 0 \\
+///     \end{cases}
+/// ```
+///
+/// where $`\lambda'_{\mathrm{cs}} = (-1)^{\lvert m \rvert}`$ if the Condon--Shortley phase as
+/// defined in [`complexc`] is employed for the complex spherical harmonics, and
+/// $`\lambda'_{\mathrm{cs}} = 1`$ otherwise. The linear combination coefficients turn out to be
+/// given by the elements of matrix $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ of dimensions
+/// $`(2l+1)\times(2l+1)`$ such that
+///
+/// ```math
+///     Y_{lm} = \sum_{m'} Y_l^{m'} [\Upsilon^{(l)\dagger}]_{m'm}.
+/// ```
+///
+/// It is obvious from the orthonormality of $`Y_{lm}`$ and $`Y_l^m`$ that
+/// $`\boldsymbol{\Upsilon}^{(l)\dagger} = [\boldsymbol{\Upsilon}^{(l)}]^{-1}`$ where
+/// $`\boldsymbol{\Upsilon}^{(l)}`$ is defined in [`sh_c2r_mat`].
+///
+/// # Arguments
+///
+/// * l - The spherical harmonic degree.
+/// * csphase - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
+/// $`\lambda_{\mathrm{cs}} = 1`$.
+/// * increasingm - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ are
+/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// $`m_l = l, \ldots, -l`$.
+///
+/// # Returns
+///
+/// The $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ matrix.
+fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
+    let mut mat = sh_c2r_mat(l, csphase, increasingm).t().to_owned();
+    mat.map_mut(|x| x.conj());
+    mat
 }
