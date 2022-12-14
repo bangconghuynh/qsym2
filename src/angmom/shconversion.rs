@@ -1,11 +1,120 @@
+use std::collections::HashSet;
+use std::convert::TryInto;
+
+use counter::Counter;
+use derive_builder::Builder;
 use factorial::Factorial;
 use ndarray::{Array2, Axis};
 use num::{BigUint, Complex};
 use num_traits::{cast::ToPrimitive, Zero};
 
+use crate::aux::misc::ProductRepeat;
+
 #[cfg(test)]
 #[path = "shconversion_tests.rs"]
 mod shconversion_tests;
+
+/// A struct to contain information about the ordering of Cartesian Gaussians of a certain rank.
+#[derive(Clone, Debug, Builder)]
+struct CartOrder {
+    /// A sequence of $`(l_x, l_y, l_z)`$ tuples giving the ordering of the Cartesian Gaussians.
+    #[builder(setter(custom))]
+    cart_tuples: Vec<(u32, u32, u32)>,
+
+    /// The rank of the Cartesian Gaussians.
+    lcart: u32,
+}
+
+impl CartOrderBuilder {
+    fn cart_tuples(&mut self, cart_tuples: &[(u32, u32, u32)]) -> &mut Self {
+        let lcart = self.lcart.unwrap();
+        assert!(cart_tuples.iter().all(|(lx, ly, lz)| lx + ly + lz == lcart));
+        assert_eq!(
+            cart_tuples.len(),
+            ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize
+        );
+        self.cart_tuples = Some(cart_tuples.iter().cloned().collect::<Vec<_>>());
+        self
+    }
+}
+
+impl CartOrder {
+    /// Returns a builder to construct a new `CartOrder` struct.
+    ///
+    /// # Returns
+    ///
+    /// A builder to construct a new `CartOrder` struct.
+    fn builder() -> CartOrderBuilder {
+        CartOrderBuilder::default()
+    }
+
+    /// Constructs a new `CartOrder` struct for a specified rank with lexicographic order.
+    ///
+    /// # Arguments
+    ///
+    /// * lcart - The required Cartesian Gaussian rank.
+    ///
+    /// # Returns
+    ///
+    /// A `CartOrder` struct for a specified rank with lexicographic order.
+    pub fn lex(lcart: u32) -> Self {
+        let mut cart_tuples =
+            Vec::with_capacity(((lcart + 1) * (lcart + 2)).div_euclid(2) as usize);
+        for lx in (0..=lcart).rev() {
+            for ly in (0..=(lcart - lx)).rev() {
+                cart_tuples.push((lx, ly, lcart - lx - ly));
+            }
+        }
+        Self::builder()
+            .lcart(lcart)
+            .cart_tuples(&cart_tuples)
+            .build()
+            .unwrap()
+    }
+
+    pub fn qchem(lcart: u32) -> Self {
+        let cart_tuples: Vec<(u32, u32, u32)> = (0..3)
+            .product_repeat(lcart as usize)
+            .filter_map(|tup| {
+                let mut tup_sorted = tup.clone();
+                tup_sorted.sort();
+                tup_sorted.reverse();
+                if tup == tup_sorted {
+                    let lcartqns = tup.iter().collect::<Counter<_>>();
+                    Some((
+                        <usize as TryInto<u32>>::try_into(*(lcartqns.get(&0).unwrap_or(&0)))
+                            .unwrap(),
+                        <usize as TryInto<u32>>::try_into(*(lcartqns.get(&1).unwrap_or(&0)))
+                            .unwrap(),
+                        <usize as TryInto<u32>>::try_into(*(lcartqns.get(&2).unwrap_or(&0)))
+                            .unwrap(),
+                    ))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        Self::builder()
+            .lcart(lcart)
+            .cart_tuples(&cart_tuples)
+            .build()
+            .unwrap()
+    }
+
+    /// Verifies if this `CartOrder` struct is valid.
+    ///
+    /// # Returns
+    ///
+    /// A boolean indicating if this `CartOrder` struct is valid.
+    pub fn verify(&self) -> bool {
+        let cart_tuples_set = self.cart_tuples.iter().collect::<HashSet<_>>();
+        let lcart = self.lcart;
+        cart_tuples_set.len() == ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize
+            && cart_tuples_set
+                .iter()
+                .all(|(lx, ly, lz)| lx + ly + lz == lcart)
+    }
+}
 
 /// Calculates the number of combinations of `n` things taken `r` at a time (signed arguments).
 ///
@@ -560,6 +669,6 @@ fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
 /// The $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ matrix.
 fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
     let mut mat = sh_c2r_mat(l, csphase, increasingm).t().to_owned();
-    mat.map_mut(|x| x.conj());
+    mat.par_mapv_inplace(|x| x.conj());
     mat
 }

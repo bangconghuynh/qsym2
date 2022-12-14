@@ -1,6 +1,7 @@
-use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
+use itertools::{Itertools, MultiProduct};
 
 pub trait HashableFloat {
     /// Returns a float rounded after being multiplied by a factor.
@@ -32,7 +33,6 @@ pub trait HashableFloat {
     fn integer_decode(self) -> (u64, i16, i8);
 }
 
-
 impl HashableFloat for f64 {
     fn round_factor(self, factor: f64) -> Self {
         (self / factor).round() * factor + 0.0
@@ -53,7 +53,6 @@ impl HashableFloat for f64 {
     }
 }
 
-
 /// Returns the hash value of a hashable struct.
 ///
 /// Arguments
@@ -68,3 +67,23 @@ pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
     t.hash(&mut s);
     s.finish()
 }
+
+pub trait ProductRepeat: Iterator + Clone
+where
+    Self::Item: Clone,
+{
+    /// Rust implementation of Python's itertools.product() with repetition.
+    ///
+    /// From https://stackoverflow.com/a/68231315.
+    ///
+    /// # Arguments
+    ///
+    /// * repeat - Number of repetitions of the given iterator.
+    fn product_repeat(self, repeat: usize) -> MultiProduct<Self> {
+        std::iter::repeat(self)
+            .take(repeat)
+            .multi_cartesian_product()
+    }
+}
+
+impl<T: Iterator + Clone> ProductRepeat for T where T::Item: Clone {}

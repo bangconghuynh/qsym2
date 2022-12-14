@@ -5,7 +5,7 @@ use num::Complex;
 use num_traits::{One, Zero};
 
 use crate::angmom::shconversion::{
-    complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat,
+    complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat, sh_r2c_mat
 };
 
 type C128 = Complex<f64>;
@@ -434,4 +434,65 @@ fn test_shconversion_sh_c2r() {
         ],
     ];
     assert_eq!(c2r2, c2r2_ref);
+}
+
+#[test]
+fn test_shconversion_sh_r2c() {
+    let sq2 = 2.0f64.sqrt();
+
+    let r2c0 = sh_r2c_mat(0, true, true);
+    assert_eq!(r2c0.shape(), &[1, 1]);
+    assert_eq!(r2c0[(0, 0)], C128::from(1.0));
+
+    let r2c1 = sh_r2c_mat(1, true, true);
+    assert_eq!(r2c1.shape(), &[3, 3]);
+    let r2c1_ref = array![
+        [
+            C128::new(0.0, 1.0 / sq2),
+            C128::zero(),
+            C128::new(1.0 / sq2, 0.0)
+        ],
+        [C128::zero(), C128::one(), C128::zero()],
+        [
+            C128::new(0.0, 1.0 / sq2),
+            C128::zero(),
+            C128::new(-1.0 / sq2, 0.0)
+        ],
+    ];
+    assert_eq!(r2c1, r2c1_ref);
+
+    let r2c2 = sh_r2c_mat(2, true, true);
+    assert_eq!(r2c2.shape(), &[5, 5]);
+    let r2c2_ref = array![
+        [
+            C128::new(0.0, 1.0 / sq2),
+            C128::zero(),
+            C128::zero(),
+            C128::zero(),
+            C128::new(1.0 / sq2, 0.0)
+        ],
+        [
+            C128::zero(),
+            C128::new(0.0, 1.0 / sq2),
+            C128::zero(),
+            C128::new(1.0 / sq2, 0.0),
+            C128::zero()
+        ],
+        [C128::zero(), C128::zero(), C128::one(), C128::zero(), C128::zero()],
+        [
+            C128::zero(),
+            C128::new(0.0, 1.0 / sq2),
+            C128::zero(),
+            C128::new(-1.0 / sq2, 0.0),
+            C128::zero()
+        ],
+        [
+            C128::new(0.0, -1.0 / sq2),
+            C128::zero(),
+            C128::zero(),
+            C128::zero(),
+            C128::new(1.0 / sq2, 0.0)
+        ],
+    ];
+    assert_eq!(r2c2, r2c2_ref);
 }
