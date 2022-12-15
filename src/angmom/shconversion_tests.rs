@@ -5,10 +5,19 @@ use num::Complex;
 use num_traits::{One, Zero};
 
 use crate::angmom::shconversion::{
-    complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat, sh_r2c_mat
+    complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat, sh_r2c_mat, CartOrder,
 };
 
 type C128 = Complex<f64>;
+
+#[test]
+fn test_shconversion_cartorder() {
+    let co_0_lex = CartOrder::lex(0);
+    assert_eq!(co_0_lex.cart_tuples, vec![(0, 0, 0)]);
+
+    let co_0_qchem = CartOrder::qchem(0);
+    assert_eq!(co_0_qchem.cart_tuples, vec![(0, 0, 0)]);
+}
 
 #[test]
 fn test_shconversion_complexc() {
@@ -417,7 +426,13 @@ fn test_shconversion_sh_c2r() {
             C128::new(0.0, -1.0 / sq2),
             C128::zero()
         ],
-        [C128::zero(), C128::zero(), C128::one(), C128::zero(), C128::zero()],
+        [
+            C128::zero(),
+            C128::zero(),
+            C128::one(),
+            C128::zero(),
+            C128::zero()
+        ],
         [
             C128::zero(),
             C128::new(1.0 / sq2, 0.0),
@@ -478,7 +493,13 @@ fn test_shconversion_sh_r2c() {
             C128::new(1.0 / sq2, 0.0),
             C128::zero()
         ],
-        [C128::zero(), C128::zero(), C128::one(), C128::zero(), C128::zero()],
+        [
+            C128::zero(),
+            C128::zero(),
+            C128::one(),
+            C128::zero(),
+            C128::zero()
+        ],
         [
             C128::zero(),
             C128::new(0.0, 1.0 / sq2),

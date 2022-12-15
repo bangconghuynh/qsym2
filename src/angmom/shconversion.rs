@@ -1,9 +1,11 @@
+use std::fmt;
 use std::collections::HashSet;
 use std::convert::TryInto;
 
 use counter::Counter;
 use derive_builder::Builder;
 use factorial::Factorial;
+use itertools::Itertools;
 use ndarray::{Array2, Axis};
 use num::{BigUint, Complex};
 use num_traits::{cast::ToPrimitive, Zero};
@@ -15,7 +17,7 @@ use crate::aux::misc::ProductRepeat;
 mod shconversion_tests;
 
 /// A struct to contain information about the ordering of Cartesian Gaussians of a certain rank.
-#[derive(Clone, Debug, Builder)]
+#[derive(Clone, Builder, PartialEq, Eq, Hash)]
 struct CartOrder {
     /// A sequence of $`(l_x, l_y, l_z)`$ tuples giving the ordering of the Cartesian Gaussians.
     #[builder(setter(custom))]
@@ -79,6 +81,7 @@ impl CartOrder {
                 let mut tup_sorted = tup.clone();
                 tup_sorted.sort();
                 tup_sorted.reverse();
+                println!("{:?}, {:?}", tup, tup_sorted);
                 if tup == tup_sorted {
                     let lcartqns = tup.iter().collect::<Counter<_>>();
                     Some((
@@ -114,6 +117,61 @@ impl CartOrder {
                 .iter()
                 .all(|(lx, ly, lz)| lx + ly + lz == lcart)
     }
+}
+
+impl fmt::Display for CartOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Cartesian rank: {}\n", self.lcart)?;
+        write!(f, "Order:\n")?;
+        for cart_tuple in self.cart_tuples.iter() {
+            write!(f, "  {}\n", cart_tuple_to_str(cart_tuple, true))?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for CartOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Cartesian rank: {}\n", self.lcart)?;
+        write!(f, "Order:\n")?;
+        for cart_tuple in self.cart_tuples.iter() {
+            write!(f, "  {:?}\n", cart_tuple)?;
+        }
+        Ok(())
+    }
+}
+
+/// Translates a Cartesian exponent tuple to a human-understandable string.
+///
+/// # Arguments
+///
+/// * cart_tuple - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
+/// components of the Cartesian Gaussian.
+/// * flat - A flag indicating if the string representation is flat (*e.g.* `xxyz`) or compact
+/// (*e.g.* `x^2yz`).
+///
+/// Returns
+///
+/// The string representation of the Cartesian exponent tuple.
+fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
+    let cart_array = [cart_tuple.0, cart_tuple.1, cart_tuple.2];
+    let carts = ["x", "y", "z"];
+    Itertools::intersperse(
+        cart_array.iter().enumerate().map(|(i, &l)| {
+            if flat {
+                carts[i].repeat(l as usize)
+            } else {
+                if l > 1 {
+                    format!("{}^{}", carts[i], l)
+                } else if l == 1 {
+                    carts[i].to_string()
+                } else {
+                    "".to_string()
+                }
+            }
+        }),
+        "".to_string()
+    ).collect::<String>()
 }
 
 /// Calculates the number of combinations of `n` things taken `r` at a time (signed arguments).
