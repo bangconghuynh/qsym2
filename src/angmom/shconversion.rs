@@ -75,28 +75,31 @@ impl CartOrder {
     }
 
     pub fn qchem(lcart: u32) -> Self {
-        let cart_tuples: Vec<(u32, u32, u32)> = (0..3)
-            .product_repeat(lcart as usize)
-            .filter_map(|tup| {
-                let mut tup_sorted = tup.clone();
-                tup_sorted.sort();
-                tup_sorted.reverse();
-                println!("{:?}, {:?}", tup, tup_sorted);
-                if tup == tup_sorted {
-                    let lcartqns = tup.iter().collect::<Counter<_>>();
-                    Some((
-                        <usize as TryInto<u32>>::try_into(*(lcartqns.get(&0).unwrap_or(&0)))
-                            .unwrap(),
-                        <usize as TryInto<u32>>::try_into(*(lcartqns.get(&1).unwrap_or(&0)))
-                            .unwrap(),
-                        <usize as TryInto<u32>>::try_into(*(lcartqns.get(&2).unwrap_or(&0)))
-                            .unwrap(),
-                    ))
-                } else {
-                    None
-                }
-            })
-            .collect();
+        let cart_tuples: Vec<(u32, u32, u32)> = if lcart > 0 {
+            (0..3)
+                .product_repeat(lcart as usize)
+                .filter_map(|tup| {
+                    let mut tup_sorted = tup.clone();
+                    tup_sorted.sort();
+                    tup_sorted.reverse();
+                    if tup == tup_sorted {
+                        let lcartqns = tup.iter().collect::<Counter<_>>();
+                        Some((
+                            <usize as TryInto<u32>>::try_into(*(lcartqns.get(&0).unwrap_or(&0)))
+                                .unwrap(),
+                            <usize as TryInto<u32>>::try_into(*(lcartqns.get(&1).unwrap_or(&0)))
+                                .unwrap(),
+                            <usize as TryInto<u32>>::try_into(*(lcartqns.get(&2).unwrap_or(&0)))
+                                .unwrap(),
+                        ))
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        } else {
+            vec![(0, 0, 0)]
+        };
         Self::builder()
             .lcart(lcart)
             .cart_tuples(&cart_tuples)
