@@ -1,6 +1,6 @@
-use std::fmt;
 use std::collections::HashSet;
 use std::convert::TryInto;
+use std::fmt;
 
 use counter::Counter;
 use derive_builder::Builder;
@@ -74,6 +74,15 @@ impl CartOrder {
             .unwrap()
     }
 
+    /// Constructs a new `CartOrder` struct for a specified rank with Q-Chem order.
+    ///
+    /// # Arguments
+    ///
+    /// * lcart - The required Cartesian Gaussian rank.
+    ///
+    /// # Returns
+    ///
+    /// A `CartOrder` struct for a specified rank with Q-Chem order.
     pub fn qchem(lcart: u32) -> Self {
         let cart_tuples: Vec<(u32, u32, u32)> = if lcart > 0 {
             (0..3)
@@ -126,7 +135,7 @@ impl fmt::Display for CartOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Cartesian rank: {}\n", self.lcart)?;
         write!(f, "Order:\n")?;
-        for cart_tuple in self.cart_tuples.iter() {
+        for cart_tuple in (&self).into_iter() {
             write!(f, "  {}\n", cart_tuple_to_str(cart_tuple, true))?;
         }
         Ok(())
@@ -137,10 +146,32 @@ impl fmt::Debug for CartOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Cartesian rank: {}\n", self.lcart)?;
         write!(f, "Order:\n")?;
-        for cart_tuple in self.cart_tuples.iter() {
+        for cart_tuple in self {
             write!(f, "  {:?}\n", cart_tuple)?;
         }
         Ok(())
+    }
+}
+
+impl IntoIterator for CartOrder {
+    type Item = (u32, u32, u32);
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.cart_tuples.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a CartOrder {
+    type Item = &'a (u32, u32, u32);
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.cart_tuples
+            .iter()
+            .map(|x| x)
+            .collect::<Vec<_>>()
+            .into_iter()
     }
 }
 
@@ -173,8 +204,9 @@ fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
                 }
             }
         }),
-        "".to_string()
-    ).collect::<String>()
+        "".to_string(),
+    )
+    .collect::<String>()
 }
 
 /// Calculates the number of combinations of `n` things taken `r` at a time (signed arguments).
@@ -732,4 +764,81 @@ fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
     let mut mat = sh_c2r_mat(l, csphase, increasingm).t().to_owned();
     mat.par_mapv_inplace(|x| x.conj());
     mat
+}
+
+/// Obtains the matrix $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ containing linear combination
+/// coefficients of Cartesian Gaussians in the expansion of a complex solid harmonic Gaussian,
+/// *i.e.*, briefly,
+///
+/// ```math
+/// \tilde{\mathbf{g}}^{\mathsf{T}}(l)
+///     = \mathbf{g}^{\mathsf{T}}(l_{\mathrm{cart}})
+///     \ \mathbf{U}^{(l_{\mathrm{cart}}, l)}.
+/// ```
+///
+/// Let $`\tilde{g}(\alpha, \lambda, l_{\mathrm{cart}}, \mathbf{r})`$ be a complex solid harmonic
+/// Gaussian as defined in Equation 1 of Schlegel, H. B. & Frisch, M. J. Transformation between
+/// Cartesian and pure spherical harmonic Gaussians. *International Journal of Quantum Chemistry*
+/// **54**, 83–87 (1995), [DOI](https://doi.org/10.1002/qua.560540202) with
+/// $`n = l_{\mathrm{cart}}`$, and let $`g(\alpha, \lambda_{\mathrm{cart}}, \mathbf{r})`$ be a
+/// Cartesian Gaussian as defined in Equation 2 of the above reference.
+/// Here, $`\lambda`$ is a single index labelling a complex solid harmonic Gaussian of spherical
+/// harmonic degree $`l`$ and order $`m_l`$, and $`\lambda_{\mathrm{cart}}`$ a single index
+/// labelling a Cartesian Gaussian of degrees $`(l_x, l_y, l_z)`$ such that
+/// $`l_x + l_y + l_z = l_{\mathrm{cart}}`$. We can then write
+///
+/// ```math
+/// \tilde{g}(\alpha, \lambda, l_{\mathrm{cart}}, \mathbf{r})
+/// = \sum_{\lambda_{\mathrm{cart}}}
+///     g(\alpha, \lambda_{\mathrm{cart}}, \mathbf{r})
+///     U^{(l_{\mathrm{cart}}, l)}_{\lambda_{\mathrm{cart}}\lambda}
+/// ```
+///
+/// where $`U^{(l_{\mathrm{cart}}, l)}_{\lambda_{\mathrm{cart}}\lambda}`$
+/// is given by the complex coefficients
+///
+/// ```math
+/// U^{(l_{\mathrm{cart}}, l)}_{\lambda_{\mathrm{cart}}\lambda} =
+///     c(l, m_l, l_{\mathrm{cart}}, l_x, l_y, l_z)
+/// ```
+///
+/// defined in [`complexc`].
+///
+/// $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ has dimensions
+/// $`\frac{1}{2}(l_{\mathrm{cart}}+1)(l_{\mathrm{cart}}+2) \times (2l+1)`$ and contains only
+/// zero elements if $`l`$ and $`l_{\mathrm{cart}}`$ have different parities.
+/// It can be verified that
+/// $`\mathbf{V}^{(l,l_{\mathrm{cart}})}
+/// \ \mathbf{U}^{(l_{\mathrm{cart}}, l)} = \boldsymbol{I}_{2l+1}`$, where
+/// $`\mathbf{V}^{(l,l_{\mathrm{cart}})}`$ is given in [`sh_cart2cl_mat`].
+///
+/// # Arguments
+///
+/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+///  also for the radial part of the solid harmonic Gaussian.
+/// * l - The degree of the complex spherical harmonic factor in the solid
+///  harmonic Gaussian.
+/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// Gaussians.
+/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
+/// coefficients. See [`complexc`] for more details.
+/// * increasingm - If `true`, the columns of $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ are arranged
+/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// $`m_l = l, \ldots, -l`$.
+///
+/// # Returns
+///
+/// The $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ matrix.
+fn sh_cl2cart_mat(
+    lcart: u32,
+    l: u32,
+    cartorder: CartOrder,
+    csphase: bool,
+    increasingm: bool,
+) -> Array2<Complex<f64>> {
+    let mut umat = Array2::<Complex<f64>>::zeros((
+        ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize,
+        2 * l as usize + 1,
+    ));
+    todo!()
 }

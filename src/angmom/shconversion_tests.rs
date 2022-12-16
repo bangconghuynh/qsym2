@@ -124,6 +124,7 @@ fn test_shconversion_cartorder() {
         (0, 1, 3),
         (0, 0, 4),
     ]);
+    println!("{}", co_4_qchem);
 }
 
 #[test]
