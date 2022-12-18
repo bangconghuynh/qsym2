@@ -1,6 +1,7 @@
+use std::fmt;
 use std::collections::HashSet;
 use std::convert::TryInto;
-use std::fmt;
+use std::slice::Iter;
 
 use counter::Counter;
 use derive_builder::Builder;
@@ -129,13 +130,17 @@ impl CartOrder {
                 .iter()
                 .all(|(lx, ly, lz)| lx + ly + lz == lcart)
     }
+
+    pub fn iter(&self) -> Iter<(u32, u32, u32)> {
+        self.cart_tuples.iter()
+    }
 }
 
 impl fmt::Display for CartOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Cartesian rank: {}\n", self.lcart)?;
         write!(f, "Order:\n")?;
-        for cart_tuple in (&self).into_iter() {
+        for cart_tuple in self.iter() {
             write!(f, "  {}\n", cart_tuple_to_str(cart_tuple, true))?;
         }
         Ok(())
@@ -146,32 +151,10 @@ impl fmt::Debug for CartOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Cartesian rank: {}\n", self.lcart)?;
         write!(f, "Order:\n")?;
-        for cart_tuple in self {
+        for cart_tuple in self.iter() {
             write!(f, "  {:?}\n", cart_tuple)?;
         }
         Ok(())
-    }
-}
-
-impl IntoIterator for CartOrder {
-    type Item = (u32, u32, u32);
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.cart_tuples.into_iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a CartOrder {
-    type Item = &'a (u32, u32, u32);
-    type IntoIter = std::vec::IntoIter<Self::Item>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.cart_tuples
-            .iter()
-            .map(|x| x)
-            .collect::<Vec<_>>()
-            .into_iter()
     }
 }
 
