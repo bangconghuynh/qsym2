@@ -819,9 +819,103 @@ fn sh_cl2cart_mat(
     csphase: bool,
     increasingm: bool,
 ) -> Array2<Complex<f64>> {
+    assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
     let mut umat = Array2::<Complex<f64>>::zeros((
         ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize,
         2 * l as usize + 1,
     ));
-    todo!()
+    for (i, m) in (-(l as i32)..=(l as i32)).enumerate() {
+        for (icart, &lcartqns) in cartorder.iter().enumerate() {
+            umat[(icart, i)] = complexc((l, m), lcartqns, csphase);
+        }
+    }
+    if !increasingm {
+        umat.invert_axis(Axis(1));
+    };
+    umat
+}
+
+/// Obtains the matrix $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$ containing linear combination
+/// coefficients of complex solid harmonic Gaussians of a specific degree in the expansion of
+/// Cartesian Gaussians, *i.e.*, briefly,
+///
+/// ```math
+/// \mathbf{g}^{\mathsf{T}}(l_{\mathrm{cart}})
+///     = \tilde{\mathbf{g}}^{\mathsf{T}}(l)
+///     \ \mathbf{V}^{(l, l_{\mathrm{cart}})}.
+/// ```
+///
+/// Let $`\tilde{g}(\alpha, \lambda, l_{\mathrm{cart}}, \mathbf{r})`$ be a complex solid harmonic
+/// Gaussian as defined in Equation 1 of Schlegel, H. B. & Frisch, M. J. Transformation between
+/// Cartesian and pure spherical harmonic Gaussians. *International Journal of Quantum Chemistry*
+/// **54**, 83–87 (1995), [DOI](https://doi.org/10.1002/qua.560540202) with
+/// $`n = l_{\mathrm{cart}}`$, and let $`g(\alpha, \lambda_{\mathrm{cart}}, \mathbf{r})`$ be a
+/// Cartesian Gaussian as defined in Equation 2 of the above reference.  Here, $`\lambda`$ is a
+/// single index labelling a complex solid harmonic Gaussian of spherical harmonic degree $`l`$
+/// and order $`m_l`$, and $`\lambda_{\mathrm{cart}}`$ a single index labelling a Cartesian
+/// Gaussian of degrees $`(l_x, l_y, l_z)`$ such that $`l_x + l_y + l_z = l_{\mathrm{cart}}`$.
+/// We can then write
+///
+/// ```math
+/// g(\alpha, \lambda_{\mathrm{cart}}, \mathbf{r})
+/// = \sum_{\substack{\lambda\\ l \leq l_{\mathrm{cart}}}}
+///     \tilde{g}(\alpha, \lambda, l_{\mathrm{cart}}, \mathbf{r})
+///     V^{(l_{\mathrm{cart}})}_{\lambda\lambda_{\mathrm{cart}}}
+/// ```
+///
+/// where $`V^{(l_{\mathrm{cart}})}_{\lambda\lambda_{\mathrm{cart}}}`$ is given by the inverse
+/// complex coefficients
+///
+/// ```math
+/// V^{(l_{\mathrm{cart}})}_{\lambda\lambda_{\mathrm{cart}}} =
+///     c^{-1}(l_x, l_y, l_z, l, m_l, l_{\mathrm{cart}})
+/// ```
+///
+/// defined in [`complexcinv`].
+///
+/// We can order the rows $`\lambda`$ of $`\mathbf{V}^{(l_{\mathrm{cart}})}` that have the same
+/// $`l`$ into rectangular blocks of dimensions
+/// $`(2l+1) \times \frac{1}{2}(l_{\mathrm{cart}}+1)(l_{\mathrm{cart}}+2)`$
+/// which give contributions from complex solid harmonic Gaussians of a particular degree $`l`$.
+/// We denote these blocks $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$.
+/// They contain only zero elements if $`l`$ and $`l_{\mathrm{cart}}`$ have different parities.
+///
+/// # Arguments
+///
+/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+///  also for the radial part of the solid harmonic Gaussian.
+/// * l - The degree of the complex spherical harmonic factor in the solid
+///  harmonic Gaussian.
+/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// Gaussians.
+/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
+/// * increasingm - If `true`, the rows of $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$ are arranged
+/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// $`m_l = l, \ldots, -l`$.
+///
+/// # Returns
+///
+/// The $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$ block.
+fn sh_cart2cl_mat(
+    l: u32,
+    lcart: u32,
+    cartorder: CartOrder,
+    csphase: bool,
+    increasingm: bool,
+) -> Array2<Complex<f64>> {
+    assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
+    let mut vmat = Array2::<Complex<f64>>::zeros((
+        2 * l as usize + 1,
+        ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize,
+    ));
+    for (icart, &lcartqns) in cartorder.iter().enumerate() {
+        for (i, m) in (-(l as i32)..=(l as i32)).enumerate() {
+            vmat[(i, icart)] = complexcinv(lcartqns, (l, m), csphase);
+        }
+    }
+    if !increasingm {
+        vmat.invert_axis(Axis(0));
+    };
+    vmat
 }

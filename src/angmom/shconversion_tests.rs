@@ -1,11 +1,12 @@
 use approx;
 use itertools::Itertools;
-use ndarray::array;
+use ndarray::{array, Array2};
 use num::Complex;
 use num_traits::{One, Zero};
 
 use crate::angmom::shconversion::{
-    complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat, sh_r2c_mat, CartOrder,
+    complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat, sh_cl2cart_mat,
+    sh_cart2cl_mat, sh_r2c_mat, CartOrder,
 };
 
 type C128 = Complex<f64>;
@@ -28,102 +29,123 @@ fn test_shconversion_cartorder() {
     assert_eq!(co_1_lex.cart_tuples, vec![(1, 0, 0), (0, 1, 0), (0, 0, 1)]);
 
     let co_1_qchem = CartOrder::qchem(1);
-    assert_eq!(co_1_qchem.cart_tuples, vec![(1, 0, 0), (0, 1, 0), (0, 0, 1)]);
+    assert_eq!(
+        co_1_qchem.cart_tuples,
+        vec![(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    );
 
     // =========
     // lcart = 2
     // =========
     let co_2_lex = CartOrder::lex(2);
-    assert_eq!(co_2_lex.cart_tuples, vec![
-        (2, 0, 0),
-        (1, 1, 0),
-        (1, 0, 1),
-        (0, 2, 0),
-        (0, 1, 1),
-        (0, 0, 2),
-    ]);
+    assert_eq!(
+        co_2_lex.cart_tuples,
+        vec![
+            (2, 0, 0),
+            (1, 1, 0),
+            (1, 0, 1),
+            (0, 2, 0),
+            (0, 1, 1),
+            (0, 0, 2),
+        ]
+    );
 
     let co_2_qchem = CartOrder::qchem(2);
-    assert_eq!(co_2_qchem.cart_tuples, vec![
-        (2, 0, 0),
-        (1, 1, 0),
-        (0, 2, 0),
-        (1, 0, 1),
-        (0, 1, 1),
-        (0, 0, 2),
-    ]);
+    assert_eq!(
+        co_2_qchem.cart_tuples,
+        vec![
+            (2, 0, 0),
+            (1, 1, 0),
+            (0, 2, 0),
+            (1, 0, 1),
+            (0, 1, 1),
+            (0, 0, 2),
+        ]
+    );
 
     // =========
     // lcart = 3
     // =========
     let co_3_lex = CartOrder::lex(3);
-    assert_eq!(co_3_lex.cart_tuples, vec![
-        (3, 0, 0),
-        (2, 1, 0),
-        (2, 0, 1),
-        (1, 2, 0),
-        (1, 1, 1),
-        (1, 0, 2),
-        (0, 3, 0),
-        (0, 2, 1),
-        (0, 1, 2),
-        (0, 0, 3),
-    ]);
+    assert_eq!(
+        co_3_lex.cart_tuples,
+        vec![
+            (3, 0, 0),
+            (2, 1, 0),
+            (2, 0, 1),
+            (1, 2, 0),
+            (1, 1, 1),
+            (1, 0, 2),
+            (0, 3, 0),
+            (0, 2, 1),
+            (0, 1, 2),
+            (0, 0, 3),
+        ]
+    );
 
     let co_3_qchem = CartOrder::qchem(3);
-    assert_eq!(co_3_qchem.cart_tuples, vec![
-        (3, 0, 0),
-        (2, 1, 0),
-        (1, 2, 0),
-        (0, 3, 0),
-        (2, 0, 1),
-        (1, 1, 1),
-        (0, 2, 1),
-        (1, 0, 2),
-        (0, 1, 2),
-        (0, 0, 3),
-    ]);
+    assert_eq!(
+        co_3_qchem.cart_tuples,
+        vec![
+            (3, 0, 0),
+            (2, 1, 0),
+            (1, 2, 0),
+            (0, 3, 0),
+            (2, 0, 1),
+            (1, 1, 1),
+            (0, 2, 1),
+            (1, 0, 2),
+            (0, 1, 2),
+            (0, 0, 3),
+        ]
+    );
 
     // =========
     // lcart = 4
     // =========
     let co_4_lex = CartOrder::lex(4);
-    assert_eq!(co_4_lex.cart_tuples, vec![
-        (4, 0, 0),
-        (3, 1, 0),
-        (3, 0, 1),
-        (2, 2, 0),
-        (2, 1, 1),
-        (2, 0, 2),
-        (1, 3, 0),
-        (1, 2, 1),
-        (1, 1, 2),
-        (1, 0, 3),
-        (0, 4, 0),
-        (0, 3, 1),
-        (0, 2, 2),
-        (0, 1, 3),
-        (0, 0, 4),
-    ]);
+    assert_eq!(
+        co_4_lex.cart_tuples,
+        vec![
+            (4, 0, 0),
+            (3, 1, 0),
+            (3, 0, 1),
+            (2, 2, 0),
+            (2, 1, 1),
+            (2, 0, 2),
+            (1, 3, 0),
+            (1, 2, 1),
+            (1, 1, 2),
+            (1, 0, 3),
+            (0, 4, 0),
+            (0, 3, 1),
+            (0, 2, 2),
+            (0, 1, 3),
+            (0, 0, 4),
+        ]
+    );
 
     let co_4_qchem = CartOrder::qchem(4);
-    assert_eq!(co_4_qchem.cart_tuples, vec![
-        (4, 0, 0),
-        (3, 1, 0),
-        (2, 2, 0),
-        (1, 3, 0),
-        (0, 4, 0),
-        (3, 0, 1),
-        (2, 1, 1),
-        (1, 2, 1),
-        (0, 3, 1),
-        (2, 0, 2),
-        (1, 1, 2),
-        (0, 2, 2),
-        (1, 0, 3),
-        (0, 1, 3),
-        (0, 0, 4),
-    ]);
+    assert_eq!(
+        co_4_qchem.cart_tuples,
+        vec![
+            (4, 0, 0),
+            (3, 1, 0),
+            (2, 2, 0),
+            (1, 3, 0),
+            (0, 4, 0),
+            (3, 0, 1),
+            (2, 1, 1),
+            (1, 2, 1),
+            (0, 3, 1),
+            (2, 0, 2),
+            (1, 1, 2),
+            (0, 2, 2),
+            (1, 0, 3),
+            (0, 1, 3),
+            (0, 0, 4),
+        ]
+    );
 }
 
 #[test]
@@ -623,4 +645,166 @@ fn test_shconversion_sh_r2c() {
         ],
     ];
     assert_eq!(r2c2, r2c2_ref);
+}
+
+#[test]
+fn test_shconversion_sh_cl2cart() {
+    let sq2 = 2.0f64.sqrt();
+
+    let umat00 = sh_cl2cart_mat(0, 0, CartOrder::lex(0), true, true);
+    assert_eq!(umat00.shape(), &[1, 1]);
+    assert_eq!(umat00[(0, 0)], C128::from(1.0));
+
+    let umat11 = sh_cl2cart_mat(1, 1, CartOrder::lex(1), true, true);
+    assert_eq!(umat11.shape(), &[3, 3]);
+    let umat11_ref = array![
+        [
+            C128::new(1.0 / sq2, 0.0),
+            C128::zero(),
+            C128::new(-1.0 / sq2, 0.0)
+        ],
+        [
+            C128::new(0.0, -1.0 / sq2),
+            C128::zero(),
+            C128::new(0.0, -1.0 / sq2)
+        ],
+        [C128::zero(), C128::one(), C128::zero()],
+    ];
+    approx::assert_relative_eq!(
+        (&umat11 - &umat11_ref).map(|x| x.norm_sqr()).sum().sqrt(),
+        0.0, epsilon = 1e-14, max_relative = 1e-14
+    );
+
+    let vmat11 = sh_cart2cl_mat(1, 1, CartOrder::lex(1), true, true);
+    approx::assert_relative_eq!(
+        (vmat11.dot(&umat11) - Array2::<C128>::eye(3)).map(|x| x.norm_sqr()).sum().sqrt(),
+        0.0, epsilon = 1e-14, max_relative = 1e-14
+    );
+
+    let umat21 = sh_cl2cart_mat(2, 1, CartOrder::lex(2), true, true);
+    approx::assert_relative_eq!(
+        umat21.map(|x| x.norm_sqr()).sum().sqrt(),
+        0.0, epsilon = 1e-14, max_relative = 1e-14
+    );
+
+    let umat22 = sh_cl2cart_mat(2, 2, CartOrder::lex(2), true, true);
+    let vmat22 = sh_cart2cl_mat(2, 2, CartOrder::lex(2), true, true);
+    approx::assert_relative_eq!(
+        (vmat22.dot(&umat22) - Array2::<C128>::eye(5)).map(|x| x.norm_sqr()).sum().sqrt(),
+        0.0, epsilon = 1e-14, max_relative = 1e-14
+    );
+
+    let umat20 = sh_cl2cart_mat(2, 0, CartOrder::lex(2), true, true);
+    let vmat02 = sh_cart2cl_mat(0, 2, CartOrder::lex(2), true, true);
+    approx::assert_relative_eq!(
+        (vmat02.dot(&umat20) - Array2::<C128>::eye(1)).map(|x| x.norm_sqr()).sum().sqrt(),
+        0.0, epsilon = 1e-14, max_relative = 1e-14
+    );
+}
+
+#[test]
+fn test_shconversion_sh_cart2cl() {
+    let sq2 = 2.0f64.sqrt();
+    let sq6 = 6.0f64.sqrt();
+
+    let vmat00 = sh_cart2cl_mat(0, 0, CartOrder::lex(0), true, true);
+    assert_eq!(vmat00.shape(), &[1, 1]);
+    assert_eq!(vmat00[(0, 0)], C128::from(1.0));
+
+    let vmat11 = sh_cart2cl_mat(1, 1, CartOrder::lex(1), true, true);
+    assert_eq!(vmat11.shape(), &[3, 3]);
+    let vmat11_ref = array![
+        [
+            C128::new(1.0 / sq2, 0.0),
+            C128::new(0.0, 1.0 / sq2),
+            C128::zero(),
+        ],
+        [C128::zero(), C128::zero(), C128::one()],
+        [
+            C128::new(-1.0 / sq2, 0.0),
+            C128::new(0.0, 1.0 / sq2),
+            C128::zero(),
+        ],
+    ];
+    approx::assert_relative_eq!(
+        (&vmat11 - &vmat11_ref).map(|x| x.norm_sqr()).sum().sqrt(),
+        0.0, epsilon = 1e-14, max_relative = 1e-14
+    );
+
+    let vmat01 = sh_cart2cl_mat(0, 1, CartOrder::lex(1), true, true);
+    assert_eq!(vmat01.shape(), &[1, 3]);
+    approx::assert_relative_eq!(
+        vmat01.map(|x| x.norm_sqr()).sum().sqrt(),
+        0.0, epsilon = 1e-14, max_relative = 1e-14
+    );
+
+    let vmat22 = sh_cart2cl_mat(2, 2, CartOrder::lex(2), true, true);
+    assert_eq!(vmat22.shape(), &[5, 6]);
+    let vmat22_ref = array![
+        [
+            C128::new(1.0 / sq6, 0.0),
+            C128::new(0.0, 1.0 / sq2),
+            C128::zero(),
+            C128::new(-1.0 / sq6, 0.0),
+            C128::zero(),
+            C128::zero(),
+        ],
+        [
+            C128::zero(),
+            C128::zero(),
+            C128::new(1.0 / sq2, 0.0),
+            C128::zero(),
+            C128::new(0.0, 1.0 / sq2),
+            C128::zero(),
+        ],
+        [
+            C128::new(-1.0 / 3.0, 0.0),
+            C128::zero(),
+            C128::zero(),
+            C128::new(-1.0 / 3.0, 0.0),
+            C128::zero(),
+            C128::new(2.0 / 3.0, 0.0),
+        ],
+        [
+            C128::zero(),
+            C128::zero(),
+            C128::new(-1.0 / sq2, 0.0),
+            C128::zero(),
+            C128::new(0.0, 1.0 / sq2),
+            C128::zero(),
+        ],
+        [
+            C128::new(1.0 / sq6, 0.0),
+            C128::new(0.0, -1.0 / sq2),
+            C128::zero(),
+            C128::new(-1.0 / sq6, 0.0),
+            C128::zero(),
+            C128::zero(),
+        ],
+    ];
+    approx::assert_relative_eq!(
+        (&vmat22 - &vmat22_ref).map(|x| x.norm_sqr()).sum().sqrt(),
+        0.0, epsilon = 1e-14, max_relative = 1e-14
+    );
+
+    let vmat02 = sh_cart2cl_mat(0, 2, CartOrder::lex(2), true, true);
+    assert_eq!(vmat02.shape(), &[1, 6]);
+
+    let ntilde = norm_sph_gaussian(2, 1.0);
+    let n = norm_cart_gaussian((2, 0, 0), 1.0);
+    let temp = C128::new(1.0 / 3.0 * n / ntilde * (4.0 * std::f64::consts::PI).sqrt(), 0.0);
+    let vmat02_ref = array![
+        [
+            temp,
+            C128::zero(),
+            C128::zero(),
+            temp,
+            C128::zero(),
+            temp,
+        ]
+    ];
+    approx::assert_relative_eq!(
+        (&vmat02 - &vmat02_ref).map(|x| x.norm_sqr()).sum().sqrt(),
+        0.0, epsilon = 1e-14, max_relative = 1e-14
+    );
 }
