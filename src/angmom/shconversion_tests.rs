@@ -838,13 +838,9 @@ fn test_shconversion_sh_rl2cart() {
 
     let wmat11 = sh_rl2cart_mat(1, 1, CartOrder::lex(1), true, true);
     assert_eq!(wmat11.shape(), &[3, 3]);
-    let wmat11_ref = array![
-        [0.0, 0.0, 1.0],
-        [1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-    ];
+    let wmat11_ref = array![[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0],];
     approx::assert_relative_eq!(
-        (&wmat11 - &wmat11_ref).map(|x| x*x).sum().sqrt(),
+        (&wmat11 - &wmat11_ref).map(|x| x * x).sum().sqrt(),
         0.0,
         epsilon = 1e-14,
         max_relative = 1e-14
@@ -853,7 +849,7 @@ fn test_shconversion_sh_rl2cart() {
     let xmat11 = sh_cart2rl_mat(1, 1, CartOrder::lex(1), true, true);
     approx::assert_relative_eq!(
         (xmat11.dot(&wmat11) - Array2::<f64>::eye(3))
-            .map(|x| x*x)
+            .map(|x| x * x)
             .sum()
             .sqrt(),
         0.0,
@@ -864,15 +860,15 @@ fn test_shconversion_sh_rl2cart() {
     let wmat22 = sh_rl2cart_mat(2, 2, CartOrder::lex(2), true, true);
     assert_eq!(wmat22.shape(), &[6, 5]);
     let wmat22_ref = array![
-        [0.0, 0.0, -0.5, 0.0,  3.0f64.sqrt() / 2.0],
-        [1.0, 0.0,  0.0, 0.0,                  0.0],
-        [0.0, 0.0,  0.0, 1.0,                  0.0],
+        [0.0, 0.0, -0.5, 0.0, 3.0f64.sqrt() / 2.0],
+        [1.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0, 0.0],
         [0.0, 0.0, -0.5, 0.0, -3.0f64.sqrt() / 2.0],
-        [0.0, 1.0,  0.0, 0.0,                  0.0],
-        [0.0, 0.0,  1.0, 0.0,                  0.0],
+        [0.0, 1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0, 0.0],
     ];
     approx::assert_relative_eq!(
-        (&wmat22 - &wmat22_ref).map(|x| x*x).sum().sqrt(),
+        (&wmat22 - &wmat22_ref).map(|x| x * x).sum().sqrt(),
         0.0,
         epsilon = 1e-14,
         max_relative = 1e-14
@@ -882,14 +878,14 @@ fn test_shconversion_sh_rl2cart() {
     assert_eq!(wmat20.shape(), &[6, 1]);
     let wmat20_ref = array![
         [1.0 / 5.0f64.sqrt()],
-        [                0.0],
-        [                0.0],
+        [0.0],
+        [0.0],
         [1.0 / 5.0f64.sqrt()],
-        [                0.0],
+        [0.0],
         [1.0 / 5.0f64.sqrt()],
     ];
     approx::assert_relative_eq!(
-        (&wmat20 - &wmat20_ref).map(|x| x*x).sum().sqrt(),
+        (&wmat20 - &wmat20_ref).map(|x| x * x).sum().sqrt(),
         0.0,
         epsilon = 1e-14,
         max_relative = 1e-14
@@ -907,13 +903,9 @@ fn test_shconversion_sh_cart2rl() {
 
     let xmat11 = sh_cart2rl_mat(1, 1, CartOrder::lex(1), true, true);
     assert_eq!(xmat11.shape(), &[3, 3]);
-    let xmat11_ref = array![
-        [0.0, 1.0, 0.0],
-        [0.0, 0.0, 1.0],
-        [1.0, 0.0, 0.0],
-    ];
+    let xmat11_ref = array![[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0],];
     approx::assert_relative_eq!(
-        (&xmat11 - &xmat11_ref).map(|x| x*x).sum().sqrt(),
+        (&xmat11 - &xmat11_ref).map(|x| x * x).sum().sqrt(),
         0.0,
         epsilon = 1e-14,
         max_relative = 1e-14
@@ -922,14 +914,14 @@ fn test_shconversion_sh_cart2rl() {
     let xmat22 = sh_cart2rl_mat(2, 2, CartOrder::lex(2), true, true);
     assert_eq!(xmat22.shape(), &[5, 6]);
     let xmat22_ref = array![
-        [       0.0, 1.0, 0.0,        0.0, 0.0,       0.0],
-        [       0.0, 0.0, 0.0,        0.0, 1.0,       0.0],
+        [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
         [-1.0 / 3.0, 0.0, 0.0, -1.0 / 3.0, 0.0, 2.0 / 3.0],
-        [       0.0, 0.0, 1.0,        0.0, 0.0,       0.0],
-        [ 1.0 / sq3, 0.0, 0.0, -1.0 / sq3, 0.0,       0.0],
+        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+        [1.0 / sq3, 0.0, 0.0, -1.0 / sq3, 0.0, 0.0],
     ];
     approx::assert_relative_eq!(
-        (&xmat22 - &xmat22_ref).map(|x| x*x).sum().sqrt(),
+        (&xmat22 - &xmat22_ref).map(|x| x * x).sum().sqrt(),
         0.0,
         epsilon = 1e-14,
         max_relative = 1e-14
@@ -937,11 +929,9 @@ fn test_shconversion_sh_cart2rl() {
 
     let xmat02 = sh_cart2rl_mat(0, 2, CartOrder::lex(2), true, true);
     assert_eq!(xmat02.shape(), &[1, 6]);
-    let xmat02_ref = array![
-        [sq5 / 3.0, 0.0, 0.0, sq5 / 3.0, 0.0, sq5 / 3.0],
-    ];
+    let xmat02_ref = array![[sq5 / 3.0, 0.0, 0.0, sq5 / 3.0, 0.0, sq5 / 3.0],];
     approx::assert_relative_eq!(
-        (&xmat02 - &xmat02_ref).map(|x| x*x).sum().sqrt(),
+        (&xmat02 - &xmat02_ref).map(|x| x * x).sum().sqrt(),
         0.0,
         epsilon = 1e-14,
         max_relative = 1e-14
