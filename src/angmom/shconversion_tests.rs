@@ -5,8 +5,8 @@ use num::Complex;
 use num_traits::{One, Zero};
 
 use crate::angmom::shconversion::{
-    complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat, sh_cl2cart_mat,
-    sh_cart2cl_mat, sh_r2c_mat, CartOrder,
+    complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat, sh_cart2cl_mat,
+    sh_cart2rl_mat, sh_cl2cart_mat, sh_r2c_mat, sh_rl2cart_mat, CartOrder,
 };
 
 type C128 = Complex<f64>;
@@ -672,33 +672,52 @@ fn test_shconversion_sh_cl2cart() {
     ];
     approx::assert_relative_eq!(
         (&umat11 - &umat11_ref).map(|x| x.norm_sqr()).sum().sqrt(),
-        0.0, epsilon = 1e-14, max_relative = 1e-14
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
     );
 
     let vmat11 = sh_cart2cl_mat(1, 1, CartOrder::lex(1), true, true);
     approx::assert_relative_eq!(
-        (vmat11.dot(&umat11) - Array2::<C128>::eye(3)).map(|x| x.norm_sqr()).sum().sqrt(),
-        0.0, epsilon = 1e-14, max_relative = 1e-14
+        (vmat11.dot(&umat11) - Array2::<C128>::eye(3))
+            .map(|x| x.norm_sqr())
+            .sum()
+            .sqrt(),
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
     );
 
     let umat21 = sh_cl2cart_mat(2, 1, CartOrder::lex(2), true, true);
     approx::assert_relative_eq!(
         umat21.map(|x| x.norm_sqr()).sum().sqrt(),
-        0.0, epsilon = 1e-14, max_relative = 1e-14
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
     );
 
     let umat22 = sh_cl2cart_mat(2, 2, CartOrder::lex(2), true, true);
     let vmat22 = sh_cart2cl_mat(2, 2, CartOrder::lex(2), true, true);
     approx::assert_relative_eq!(
-        (vmat22.dot(&umat22) - Array2::<C128>::eye(5)).map(|x| x.norm_sqr()).sum().sqrt(),
-        0.0, epsilon = 1e-14, max_relative = 1e-14
+        (vmat22.dot(&umat22) - Array2::<C128>::eye(5))
+            .map(|x| x.norm_sqr())
+            .sum()
+            .sqrt(),
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
     );
 
     let umat20 = sh_cl2cart_mat(2, 0, CartOrder::lex(2), true, true);
     let vmat02 = sh_cart2cl_mat(0, 2, CartOrder::lex(2), true, true);
     approx::assert_relative_eq!(
-        (vmat02.dot(&umat20) - Array2::<C128>::eye(1)).map(|x| x.norm_sqr()).sum().sqrt(),
-        0.0, epsilon = 1e-14, max_relative = 1e-14
+        (vmat02.dot(&umat20) - Array2::<C128>::eye(1))
+            .map(|x| x.norm_sqr())
+            .sum()
+            .sqrt(),
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
     );
 }
 
@@ -728,14 +747,18 @@ fn test_shconversion_sh_cart2cl() {
     ];
     approx::assert_relative_eq!(
         (&vmat11 - &vmat11_ref).map(|x| x.norm_sqr()).sum().sqrt(),
-        0.0, epsilon = 1e-14, max_relative = 1e-14
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
     );
 
     let vmat01 = sh_cart2cl_mat(0, 1, CartOrder::lex(1), true, true);
     assert_eq!(vmat01.shape(), &[1, 3]);
     approx::assert_relative_eq!(
         vmat01.map(|x| x.norm_sqr()).sum().sqrt(),
-        0.0, epsilon = 1e-14, max_relative = 1e-14
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
     );
 
     let vmat22 = sh_cart2cl_mat(2, 2, CartOrder::lex(2), true, true);
@@ -784,7 +807,9 @@ fn test_shconversion_sh_cart2cl() {
     ];
     approx::assert_relative_eq!(
         (&vmat22 - &vmat22_ref).map(|x| x.norm_sqr()).sum().sqrt(),
-        0.0, epsilon = 1e-14, max_relative = 1e-14
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
     );
 
     let vmat02 = sh_cart2cl_mat(0, 2, CartOrder::lex(2), true, true);
@@ -792,19 +817,133 @@ fn test_shconversion_sh_cart2cl() {
 
     let ntilde = norm_sph_gaussian(2, 1.0);
     let n = norm_cart_gaussian((2, 0, 0), 1.0);
-    let temp = C128::new(1.0 / 3.0 * n / ntilde * (4.0 * std::f64::consts::PI).sqrt(), 0.0);
-    let vmat02_ref = array![
-        [
-            temp,
-            C128::zero(),
-            C128::zero(),
-            temp,
-            C128::zero(),
-            temp,
-        ]
-    ];
+    let temp = C128::new(
+        1.0 / 3.0 * n / ntilde * (4.0 * std::f64::consts::PI).sqrt(),
+        0.0,
+    );
+    let vmat02_ref = array![[temp, C128::zero(), C128::zero(), temp, C128::zero(), temp,]];
     approx::assert_relative_eq!(
         (&vmat02 - &vmat02_ref).map(|x| x.norm_sqr()).sum().sqrt(),
-        0.0, epsilon = 1e-14, max_relative = 1e-14
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
+    );
+}
+
+#[test]
+fn test_shconversion_sh_rl2cart() {
+    let wmat00 = sh_rl2cart_mat(0, 0, CartOrder::lex(0), true, true);
+    assert_eq!(wmat00.shape(), &[1, 1]);
+    assert_eq!(wmat00[(0, 0)], 1.0);
+
+    let wmat11 = sh_rl2cart_mat(1, 1, CartOrder::lex(1), true, true);
+    assert_eq!(wmat11.shape(), &[3, 3]);
+    let wmat11_ref = array![
+        [0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+    ];
+    approx::assert_relative_eq!(
+        (&wmat11 - &wmat11_ref).map(|x| x*x).sum().sqrt(),
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
+    );
+
+    let xmat11 = sh_cart2rl_mat(1, 1, CartOrder::lex(1), true, true);
+    approx::assert_relative_eq!(
+        (xmat11.dot(&wmat11) - Array2::<f64>::eye(3))
+            .map(|x| x*x)
+            .sum()
+            .sqrt(),
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
+    );
+
+    let wmat22 = sh_rl2cart_mat(2, 2, CartOrder::lex(2), true, true);
+    assert_eq!(wmat22.shape(), &[6, 5]);
+    let wmat22_ref = array![
+        [0.0, 0.0, -0.5, 0.0,  3.0f64.sqrt() / 2.0],
+        [1.0, 0.0,  0.0, 0.0,                  0.0],
+        [0.0, 0.0,  0.0, 1.0,                  0.0],
+        [0.0, 0.0, -0.5, 0.0, -3.0f64.sqrt() / 2.0],
+        [0.0, 1.0,  0.0, 0.0,                  0.0],
+        [0.0, 0.0,  1.0, 0.0,                  0.0],
+    ];
+    approx::assert_relative_eq!(
+        (&wmat22 - &wmat22_ref).map(|x| x*x).sum().sqrt(),
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
+    );
+
+    let wmat20 = sh_rl2cart_mat(2, 0, CartOrder::lex(2), true, true);
+    assert_eq!(wmat20.shape(), &[6, 1]);
+    let wmat20_ref = array![
+        [1.0 / 5.0f64.sqrt()],
+        [                0.0],
+        [                0.0],
+        [1.0 / 5.0f64.sqrt()],
+        [                0.0],
+        [1.0 / 5.0f64.sqrt()],
+    ];
+    approx::assert_relative_eq!(
+        (&wmat20 - &wmat20_ref).map(|x| x*x).sum().sqrt(),
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
+    );
+}
+
+#[test]
+fn test_shconversion_sh_cart2rl() {
+    let sq3 = 3.0f64.sqrt();
+    let sq5 = 5.0f64.sqrt();
+
+    let xmat00 = sh_cart2rl_mat(0, 0, CartOrder::lex(0), true, true);
+    assert_eq!(xmat00.shape(), &[1, 1]);
+    assert_eq!(xmat00[(0, 0)], 1.0);
+
+    let xmat11 = sh_cart2rl_mat(1, 1, CartOrder::lex(1), true, true);
+    assert_eq!(xmat11.shape(), &[3, 3]);
+    let xmat11_ref = array![
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0],
+    ];
+    approx::assert_relative_eq!(
+        (&xmat11 - &xmat11_ref).map(|x| x*x).sum().sqrt(),
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
+    );
+
+    let xmat22 = sh_cart2rl_mat(2, 2, CartOrder::lex(2), true, true);
+    assert_eq!(xmat22.shape(), &[5, 6]);
+    let xmat22_ref = array![
+        [       0.0, 1.0, 0.0,        0.0, 0.0,       0.0],
+        [       0.0, 0.0, 0.0,        0.0, 1.0,       0.0],
+        [-1.0 / 3.0, 0.0, 0.0, -1.0 / 3.0, 0.0, 2.0 / 3.0],
+        [       0.0, 0.0, 1.0,        0.0, 0.0,       0.0],
+        [ 1.0 / sq3, 0.0, 0.0, -1.0 / sq3, 0.0,       0.0],
+    ];
+    approx::assert_relative_eq!(
+        (&xmat22 - &xmat22_ref).map(|x| x*x).sum().sqrt(),
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
+    );
+
+    let xmat02 = sh_cart2rl_mat(0, 2, CartOrder::lex(2), true, true);
+    assert_eq!(xmat02.shape(), &[1, 6]);
+    let xmat02_ref = array![
+        [sq5 / 3.0, 0.0, 0.0, sq5 / 3.0, 0.0, sq5 / 3.0],
+    ];
+    approx::assert_relative_eq!(
+        (&xmat02 - &xmat02_ref).map(|x| x*x).sum().sqrt(),
+        0.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
     );
 }

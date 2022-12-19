@@ -74,7 +74,7 @@ where
 {
     /// Rust implementation of Python's itertools.product() with repetition.
     ///
-    /// From https://stackoverflow.com/a/68231315.
+    /// From <https://stackoverflow.com/a/68231315>.
     ///
     /// # Arguments
     ///

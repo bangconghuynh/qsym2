@@ -1,6 +1,6 @@
-use std::fmt;
 use std::collections::HashSet;
 use std::convert::TryInto;
+use std::fmt;
 use std::slice::Iter;
 
 use counter::Counter;
@@ -171,25 +171,29 @@ impl fmt::Debug for CartOrder {
 ///
 /// The string representation of the Cartesian exponent tuple.
 fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
-    let cart_array = [cart_tuple.0, cart_tuple.1, cart_tuple.2];
-    let carts = ["x", "y", "z"];
-    Itertools::intersperse(
-        cart_array.iter().enumerate().map(|(i, &l)| {
-            if flat {
-                carts[i].repeat(l as usize)
-            } else {
-                if l > 1 {
-                    format!("{}^{}", carts[i], l)
-                } else if l == 1 {
-                    carts[i].to_string()
+    if cart_tuple.0 + cart_tuple.1 + cart_tuple.2 == 0u32 {
+        "1".to_string()
+    } else {
+        let cart_array = [cart_tuple.0, cart_tuple.1, cart_tuple.2];
+        let carts = ["x", "y", "z"];
+        Itertools::intersperse(
+            cart_array.iter().enumerate().map(|(i, &l)| {
+                if flat {
+                    carts[i].repeat(l as usize)
                 } else {
-                    "".to_string()
+                    if l > 1 {
+                        format!("{}^{}", carts[i], l)
+                    } else if l == 1 {
+                        carts[i].to_string()
+                    } else {
+                        "".to_string()
+                    }
                 }
-            }
-        }),
-        "".to_string(),
-    )
-    .collect::<String>()
+            }),
+            "".to_string(),
+        )
+        .collect::<String>()
+    }
 }
 
 /// Calculates the number of combinations of `n` things taken `r` at a time (signed arguments).
@@ -198,8 +202,8 @@ fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
 ///
 /// # Arguments
 ///
-/// n - Number of things.
-/// r - Number of elements taken.
+/// * n - Number of things.
+/// * r - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -220,8 +224,8 @@ fn comb(n: i32, r: i32) -> BigUint {
 ///
 /// # Arguments
 ///
-/// n - Number of things.
-/// r - Number of elements taken.
+/// * n - Number of things.
+/// * r - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -240,8 +244,8 @@ fn combu(nu: u32, ru: u32) -> BigUint {
 ///
 /// # Arguments
 ///
-/// n - Number of things.
-/// r - Number of elements taken.
+/// * n - Number of things.
+/// * r - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -262,8 +266,8 @@ fn perm(n: i32, r: i32) -> BigUint {
 ///
 /// # Arguments
 ///
-/// n - Number of things.
-/// r - Number of elements taken.
+/// * n - Number of things.
+/// * r - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -873,7 +877,7 @@ fn sh_cl2cart_mat(
 ///
 /// defined in [`complexcinv`].
 ///
-/// We can order the rows $`\lambda`$ of $`\mathbf{V}^{(l_{\mathrm{cart}})}` that have the same
+/// We can order the rows $`\lambda`$ of $`\mathbf{V}^{(l_{\mathrm{cart}})}`$ that have the same
 /// $`l`$ into rectangular blocks of dimensions
 /// $`(2l+1) \times \frac{1}{2}(l_{\mathrm{cart}}+1)(l_{\mathrm{cart}}+2)`$
 /// which give contributions from complex solid harmonic Gaussians of a particular degree $`l`$.
@@ -882,10 +886,10 @@ fn sh_cl2cart_mat(
 ///
 /// # Arguments
 ///
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
-///  also for the radial part of the solid harmonic Gaussian.
 /// * l - The degree of the complex spherical harmonic factor in the solid
 ///  harmonic Gaussian.
+/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+///  also for the radial part of the solid harmonic Gaussian.
 /// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
 /// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
@@ -918,4 +922,168 @@ fn sh_cart2cl_mat(
         vmat.invert_axis(Axis(0));
     };
     vmat
+}
+
+/// Obtain the matrix $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ containing linear combination
+/// coefficients of Cartesian Gaussians in the expansion of a real solid harmonic Gaussian, *i.e.*,
+/// briefly,
+///
+/// ```math
+/// \bar{\mathbf{g}}^{\mathsf{T}}(l)
+///     = \mathbf{g}^{\mathsf{T}}(l_{\mathrm{cart}})
+///     \ \mathbf{W}^{(l_{\mathrm{cart}}, l)}.
+/// ```
+///
+/// Let $`\bar{g}(\alpha, \lambda, l_{\mathrm{cart}}, \mathbf{r})`$ be
+/// a real solid harmonic Gaussian defined in a similar manner to Equation 1 of Schlegel, H. B.
+/// & Frisch, M. J. Transformation between Cartesian and pure spherical harmonic Gaussians.
+/// *International Journal of Quantum Chemistry* **54**, 83–87 (1995),
+/// [DOI](https://doi.org/10.1002/qua.560540202) with $`n = l_{\mathrm{cart}}`$ but with real
+/// rather than complex spherical harmonic factors, and let
+/// $`g(\alpha, \lambda_{\mathrm{cart}}, \mathbf{r})`$ be a Cartesian Gaussian as defined in
+/// Equation 2 of the above reference. Here, $`\lambda`$ is a single index labelling a complex
+/// solid harmonic Gaussian of spherical harmonic degree $`l`$ and order $`m_l`$, and
+/// $`\lambda_{\mathrm{cart}}`$ a single index labelling a Cartesian Gaussian of degrees
+/// $`(l_x, l_y, l_z)`$ such that $`l_x + l_y + l_z = l_{\mathrm{cart}}`$. We can then write
+///
+/// ```math
+/// \bar{g}(\alpha, \lambda, l_{\mathrm{cart}}, \mathbf{r})
+/// = \sum_{\lambda_{\mathrm{cart}}}
+///     g(\alpha, \lambda_{\mathrm{cart}}, \mathbf{r})
+///     W^{(l_{\mathrm{cart}}, l)}_{\lambda_{\mathrm{cart}}\lambda}.
+/// ```
+///
+/// $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ is given by
+///
+/// ```math
+/// \mathbf{W}^{(l_{\mathrm{cart}}, l)}
+/// = \mathbf{U}^{(l_{\mathrm{cart}}, l)}
+///   \boldsymbol{\Upsilon}^{(l)\dagger},
+/// ```
+///
+/// where $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ is defined in [`sh_r2c_mat`] and
+/// $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ in [`sh_cl2cart_mat`].
+/// $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ must be real.
+/// $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ has dimensions
+/// $`\frac{1}{2}(l_{\mathrm{cart}}+1)(l_{\mathrm{cart}}+2) \times (2l+1)`$ and contains only zero
+/// elements if $`l`$ and $`l_{\mathrm{cart}}`$ have different parities. It can be verified that
+/// $`\mathbf{X}^{(l,l_{\mathrm{cart}})}
+/// \ \mathbf{W}^{(l_{\mathrm{cart}}, l)} = \boldsymbol{I}_{2l+1}`$, where
+/// $`\mathbf{X}^{(l,l_{\mathrm{cart}})}`$ is given in
+/// [`sh_cart2rl_mat`].
+///
+/// # Arguments
+///
+/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+///  also for the radial part of the solid harmonic Gaussian.
+/// * l - The degree of the complex spherical harmonic factor in the solid
+///  harmonic Gaussian.
+/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// Gaussians.
+/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
+/// coefficients. See [`complexc`] for more details.
+/// * increasingm - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are arranged
+/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// $`m_l = l, \ldots, -l`$.
+///
+/// # Returns
+///
+/// The $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ matrix.
+fn sh_rl2cart_mat(
+    lcart: u32,
+    l: u32,
+    cartorder: CartOrder,
+    csphase: bool,
+    increasingm: bool,
+) -> Array2<f64> {
+    assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
+    let upmatdagger = sh_r2c_mat(l, csphase, increasingm);
+    let umat = sh_cl2cart_mat(lcart, l, cartorder, csphase, increasingm);
+    let wmat = umat.dot(&upmatdagger);
+    assert!(
+        wmat.iter()
+            .all(|x| approx::relative_eq!(x.im, 0.0, max_relative = 1e-7, epsilon = 1e-7)),
+        "wmat is not entirely real."
+    );
+    wmat.map(|x| x.re)
+}
+
+/// Obtains the real matrix $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ containing linear combination
+/// coefficients of real solid harmonic Gaussians of a specific degree in the expansion of
+/// Cartesian Gaussians, *i.e.*, briefly,
+///
+/// ```math
+/// \mathbf{g}^{\mathsf{T}}(l_{\mathrm{cart}})
+///     = \bar{\mathbf{g}}^{\mathsf{T}}(l)
+///     \ \mathbf{X}^{(l, l_{\mathrm{cart}})}.
+/// ```
+///
+/// Let $`\bar{g}(\alpha, \lambda, l_{\mathrm{cart}}, \mathbf{r})`$ be a real solid harmonic
+/// Gaussian defined in a similar manner to Equation 1 of Schlegel, H. B. & Frisch, M. J.
+/// Transformation between Cartesian and pure spherical harmonic Gaussians. *International
+/// Journal of Quantum Chemistry* **54**, 83–87 (1995),
+/// [DOI](https://doi.org/10.1002/qua.560540202)
+/// with $`n = l_{\mathrm{cart}}`$, but with real rather than complex spherical harmonic factors,
+/// and let $`g(\alpha, \lambda_{\mathrm{cart}}, \mathbf{r})`$ be a Cartesian Gaussian as defined
+/// in Equation 2 of the above reference.  Here, $`\lambda`$ is a single index labelling a real
+/// solid harmonic Gaussian of spherical harmonic degree $`l`$ and real order $`m_l`$, and
+/// $`\lambda_{\mathrm{cart}}`$ a single index labelling a Cartesian Gaussian of degrees
+/// $`(l_x, l_y, l_z)`$ such that $`l_x + l_y + l_z = l_{\mathrm{cart}}`$.
+/// We can then write
+///
+/// ```math
+/// g(\alpha, \lambda_{\mathrm{cart}}, \mathbf{r})
+/// = \sum_{\substack{\lambda\\ l \leq l_{\mathrm{cart}}}}
+///     \bar{g}(\alpha, \lambda, l_{\mathrm{cart}}, \mathbf{r})
+///     X^{(l_{\mathrm{cart}})}_{\lambda\lambda_{\mathrm{cart}}}.
+/// ```
+///
+/// We can order the rows $`\lambda`$ of $`\mathbf{X}^{(l_{\mathrm{cart}})}`$ that have the same
+/// $`l`$ into rectangular blocks of dimensions
+/// $`(2l+1) \times \frac{1}{2}(l_{\mathrm{cart}}+1)(l_{\mathrm{cart}}+2)`$.
+/// We denote these blocks $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ which are given by
+///
+/// ```math
+/// \mathbf{X}^{(l, l_{\mathrm{cart}})}
+/// = \boldsymbol{\Upsilon}^{(l)} \mathbf{V}^{(l, l_{\mathrm{cart}})},
+/// ```
+///
+/// where $`\boldsymbol{\Upsilon}^{(l)}`$ is defined in
+/// [`sh_c2r_mat`] and $`\boldsymbol{V}^{(l, l_{\mathrm{cart}})}`$ in [`sh_cart2cl_mat`].
+/// $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ must be real.
+///
+/// # Arguments
+///
+/// * l - The degree of the complex spherical harmonic factor in the solid
+///  harmonic Gaussian.
+/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+///  also for the radial part of the solid harmonic Gaussian.
+/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// Gaussians.
+/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
+/// * increasingm - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
+/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// $`m_l = l, \ldots, -l`$.
+///
+/// # Returns
+///
+/// The $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ block.
+fn sh_cart2rl_mat(
+    l: u32,
+    lcart: u32,
+    cartorder: CartOrder,
+    csphase: bool,
+    increasingm: bool,
+) -> Array2<f64> {
+    assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
+    let upmat = sh_c2r_mat(l, csphase, increasingm);
+    let vmat = sh_cart2cl_mat(l, lcart, cartorder, csphase, increasingm);
+    let xmat = upmat.dot(&vmat);
+    assert!(
+        xmat.iter()
+            .all(|x| approx::relative_eq!(x.im, 0.0, max_relative = 1e-7, epsilon = 1e-7)),
+        "xmat is not entirely real."
+    );
+    xmat.map(|x| x.re)
 }
