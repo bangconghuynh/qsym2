@@ -1087,3 +1087,81 @@ fn sh_cart2rl_mat(
     );
     xmat.map(|x| x.re)
 }
+
+/// Returns a list of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ for
+/// $`l_{\mathrm{cart}} \ge l \ge 0`$ and $`l \equiv l_{\mathrm{cart}} \mod 2`$.
+///
+/// $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`] is defined in [`sh_rl2cart_mat`].
+///
+/// # Arguments
+///
+/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+///  also for the radial part of the solid harmonic Gaussian.
+/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// Gaussians.
+/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// $`c`$ coefficients. See [`complexc`] for more details.
+/// * increasingm - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are arranged
+/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// $`m_l = l, \ldots, -l`$.
+///
+/// # Returns
+///
+/// A vector of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ matrices with
+/// $`l_{\mathrm{cart}} \ge l \ge 0`$ and $`l \equiv l_{\mathrm{cart}} \mod 2`$ in decreasing
+/// $`l`$ order.
+fn sh_r2cart(
+    lcart: u32,
+    cartorder: CartOrder,
+    csphase: bool,
+    increasingm: bool,
+) -> Vec<Array2<f64>> {
+    assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
+    let lrange = if lcart.rem_euclid(2) == 0 {
+        (0..lcart + 1).step_by(2).rev()
+    } else {
+        (1..lcart + 1).step_by(2).rev()
+    };
+    lrange
+        .map(|l| sh_rl2cart_mat(lcart, l, cartorder.clone(), csphase, increasingm))
+        .collect()
+}
+
+/// Returns a list of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ for
+/// $`l_{\mathrm{cart}} \ge l \ge 0`$ and $`l \equiv l_{\mathrm{cart}} \mod 2`$.
+///
+/// $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ is defined in [`sh_cart2r_mat`].
+///
+/// # Arguments
+///
+/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+///  also for the radial part of the solid harmonic Gaussian.
+/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// Gaussians.
+/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
+/// * increasingm - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
+/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// $`m_l = l, \ldots, -l`$.
+///
+/// # Returns
+///
+/// A vector of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ matrices with
+/// $`l_{\mathrm{cart}} \ge l \ge 0`$ and $`l \equiv l_{\mathrm{cart}} \mod 2`$ in decreasing
+/// $`l`$ order.
+fn sh_cart2r(
+    lcart: u32,
+    cartorder: CartOrder,
+    csphase: bool,
+    increasingm: bool,
+) -> Vec<Array2<f64>> {
+    assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
+    let lrange = if lcart.rem_euclid(2) == 0 {
+        (0..lcart + 1).step_by(2).rev()
+    } else {
+        (1..lcart + 1).step_by(2).rev()
+    };
+    lrange
+        .map(|l| sh_cart2rl_mat(l, lcart, cartorder.clone(), csphase, increasingm))
+        .collect()
+}

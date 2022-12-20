@@ -6,7 +6,7 @@ use num_traits::{One, Zero};
 
 use crate::angmom::shconversion::{
     complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat, sh_cart2cl_mat,
-    sh_cart2rl_mat, sh_cl2cart_mat, sh_r2c_mat, sh_rl2cart_mat, CartOrder,
+    sh_cart2r, sh_cart2rl_mat, sh_cl2cart_mat, sh_r2c_mat, sh_r2cart, sh_rl2cart_mat, CartOrder,
 };
 
 type C128 = Complex<f64>;
@@ -936,4 +936,160 @@ fn test_shconversion_sh_cart2rl() {
         epsilon = 1e-14,
         max_relative = 1e-14
     );
+}
+
+#[test]
+fn test_shconversion_sh_r2cart() {
+    let wmats1l = sh_r2cart(1, CartOrder::lex(1), true, true);
+    assert_eq!(wmats1l.len(), 1);
+    for (i, wmat1l) in wmats1l.iter().enumerate() {
+        let l = 1u32.checked_sub(2 * (i as u32)).unwrap();
+        approx::assert_relative_eq!(
+            (wmat1l - &sh_rl2cart_mat(1, l, CartOrder::lex(1), true, true))
+                .map(|x| x * x)
+                .sum()
+                .sqrt(),
+            0.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+    }
+
+    let wmats2l = sh_r2cart(2, CartOrder::lex(2), true, true);
+    assert_eq!(wmats2l.len(), 2);
+    for (i, wmat2l) in wmats2l.iter().enumerate() {
+        let l = 2u32.checked_sub(2 * (i as u32)).unwrap();
+        approx::assert_relative_eq!(
+            (wmat2l - &sh_rl2cart_mat(2, l, CartOrder::lex(2), true, true))
+                .map(|x| x * x)
+                .sum()
+                .sqrt(),
+            0.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+    }
+
+    let wmats3l = sh_r2cart(3, CartOrder::lex(3), true, true);
+    assert_eq!(wmats3l.len(), 2);
+    for (i, wmat3l) in wmats3l.iter().enumerate() {
+        let l = 3u32.checked_sub(2 * (i as u32)).unwrap();
+        approx::assert_relative_eq!(
+            (wmat3l - &sh_rl2cart_mat(3, l, CartOrder::lex(3), true, true))
+                .map(|x| x * x)
+                .sum()
+                .sqrt(),
+            0.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+    }
+
+    let wmats4l = sh_r2cart(4, CartOrder::lex(4), true, true);
+    assert_eq!(wmats4l.len(), 3);
+    for (i, wmat4l) in wmats4l.iter().enumerate() {
+        let l = 4u32.checked_sub(2 * (i as u32)).unwrap();
+        approx::assert_relative_eq!(
+            (wmat4l - &sh_rl2cart_mat(4, l, CartOrder::lex(4), true, true))
+                .map(|x| x * x)
+                .sum()
+                .sqrt(),
+            0.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+    }
+
+    let wmats5l = sh_r2cart(5, CartOrder::lex(5), true, true);
+    assert_eq!(wmats5l.len(), 3);
+    for (i, wmat5l) in wmats5l.iter().enumerate() {
+        let l = 5u32.checked_sub(2 * (i as u32)).unwrap();
+        approx::assert_relative_eq!(
+            (wmat5l - &sh_rl2cart_mat(5, l, CartOrder::lex(5), true, true))
+                .map(|x| x * x)
+                .sum()
+                .sqrt(),
+            0.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+    }
+}
+
+#[test]
+fn test_shconversion_sh_cart2r() {
+    let xmatsl1 = sh_cart2r(1, CartOrder::lex(1), true, true);
+    assert_eq!(xmatsl1.len(), 1);
+    for (i, xmatl1) in xmatsl1.iter().enumerate() {
+        let l = 1u32.checked_sub(2 * (i as u32)).unwrap();
+        approx::assert_relative_eq!(
+            (xmatl1 - &sh_cart2rl_mat(l, 1, CartOrder::lex(1), true, true))
+                .map(|x| x * x)
+                .sum()
+                .sqrt(),
+            0.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+    }
+
+    let xmatsl2 = sh_cart2r(2, CartOrder::lex(2), true, true);
+    assert_eq!(xmatsl2.len(), 2);
+    for (i, xmatl2) in xmatsl2.iter().enumerate() {
+        let l = 2u32.checked_sub(2 * (i as u32)).unwrap();
+        approx::assert_relative_eq!(
+            (xmatl2 - &sh_cart2rl_mat(l, 2, CartOrder::lex(2), true, true))
+                .map(|x| x * x)
+                .sum()
+                .sqrt(),
+            0.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+    }
+
+    let xmatsl3 = sh_cart2r(3, CartOrder::lex(3), true, true);
+    assert_eq!(xmatsl3.len(), 2);
+    for (i, xmatl3) in xmatsl3.iter().enumerate() {
+        let l = 3u32.checked_sub(2 * (i as u32)).unwrap();
+        approx::assert_relative_eq!(
+            (xmatl3 - &sh_cart2rl_mat(l, 3, CartOrder::lex(3), true, true))
+                .map(|x| x * x)
+                .sum()
+                .sqrt(),
+            0.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+    }
+
+    let xmatsl4 = sh_cart2r(4, CartOrder::lex(4), true, true);
+    assert_eq!(xmatsl4.len(), 3);
+    for (i, xmatl4) in xmatsl4.iter().enumerate() {
+        let l = 4u32.checked_sub(2 * (i as u32)).unwrap();
+        approx::assert_relative_eq!(
+            (xmatl4 - &sh_cart2rl_mat(l, 4, CartOrder::lex(4), true, true))
+                .map(|x| x * x)
+                .sum()
+                .sqrt(),
+            0.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+    }
+
+    let xmatsl5 = sh_cart2r(5, CartOrder::lex(5), true, true);
+    assert_eq!(xmatsl5.len(), 3);
+    for (i, xmatl5) in xmatsl5.iter().enumerate() {
+        let l = 5u32.checked_sub(2 * (i as u32)).unwrap();
+        approx::assert_relative_eq!(
+            (xmatl5 - &sh_cart2rl_mat(l, 5, CartOrder::lex(5), true, true))
+                .map(|x| x * x)
+                .sum()
+                .sqrt(),
+            0.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+    }
 }
