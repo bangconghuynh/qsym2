@@ -1091,7 +1091,7 @@ fn sh_cart2rl_mat(
 /// Returns a list of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ for
 /// $`l_{\mathrm{cart}} \ge l \ge 0`$ and $`l \equiv l_{\mathrm{cart}} \mod 2`$.
 ///
-/// $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`] is defined in [`sh_rl2cart_mat`].
+/// $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ is defined in [`sh_rl2cart_mat`].
 ///
 /// # Arguments
 ///
@@ -1130,7 +1130,7 @@ fn sh_r2cart(
 /// Returns a list of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ for
 /// $`l_{\mathrm{cart}} \ge l \ge 0`$ and $`l \equiv l_{\mathrm{cart}} \mod 2`$.
 ///
-/// $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ is defined in [`sh_cart2r_mat`].
+/// $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ is defined in [`sh_cart2rl_mat`].
 ///
 /// # Arguments
 ///
