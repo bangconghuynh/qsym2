@@ -656,7 +656,7 @@ fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: bool) -
 /// $`\lambda_{\mathrm{cs}} = 1`$.
 /// * increasingm - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)}`$ are
 /// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$.
+/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
 ///
@@ -742,7 +742,7 @@ fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
 /// $`\lambda_{\mathrm{cs}} = 1`$.
 /// * increasingm - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ are
 /// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$.
+/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
 ///
@@ -811,7 +811,7 @@ fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
 /// coefficients. See [`complexc`] for more details.
 /// * increasingm - If `true`, the columns of $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$.
+/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
 ///
@@ -896,7 +896,7 @@ fn sh_cl2cart_mat(
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
 /// * increasingm - If `true`, the rows of $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$.
+/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
 ///
@@ -984,7 +984,7 @@ fn sh_cart2cl_mat(
 /// coefficients. See [`complexc`] for more details.
 /// * increasingm - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$.
+/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
 ///
@@ -1064,7 +1064,7 @@ fn sh_rl2cart_mat(
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
 /// * increasingm - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$.
+/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
 ///
@@ -1103,7 +1103,7 @@ fn sh_cart2rl_mat(
 /// $`c`$ coefficients. See [`complexc`] for more details.
 /// * increasingm - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$.
+/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
 ///
@@ -1142,7 +1142,7 @@ fn sh_r2cart(
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
 /// * increasingm - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$.
+/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
 ///
