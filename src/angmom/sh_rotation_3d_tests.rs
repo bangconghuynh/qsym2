@@ -2,10 +2,10 @@ use approx;
 use nalgebra::Vector3;
 use ndarray::array;
 
-use crate::angmom::shrotation_3d::{rlmat, rmat};
+use crate::angmom::sh_rotation_3d::{rlmat, rmat};
 
 #[test]
-fn test_shrotation_3d_rmat() {
+fn test_sh_rotation_3d_rmat() {
     let sq3 = 3.0f64.sqrt();
 
     let rmat_pi_6_z = rmat(std::f64::consts::FRAC_PI_6, Vector3::new(0.0, 0.0, 1.0));
@@ -45,7 +45,7 @@ fn test_shrotation_3d_rmat() {
 }
 
 #[test]
-fn test_shrotation_3d_rlmat() {
+fn test_sh_rotation_3d_rlmat() {
     let r = rmat(std::f64::consts::FRAC_PI_2, Vector3::new(0.0, 0.0, 1.0));
     let r2 = rlmat(2, &r, &r);
     let r2_ref = array![

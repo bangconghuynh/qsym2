@@ -14,8 +14,8 @@ use num_traits::{cast::ToPrimitive, Zero};
 use crate::aux::misc::ProductRepeat;
 
 #[cfg(test)]
-#[path = "shconversion_tests.rs"]
-mod shconversion_tests;
+#[path = "sh_conversion_tests.rs"]
+mod sh_conversion_tests;
 
 /// A struct to contain information about the ordering of Cartesian Gaussians of a certain rank.
 #[derive(Clone, Builder, PartialEq, Eq, Hash)]

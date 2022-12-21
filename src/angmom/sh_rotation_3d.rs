@@ -3,8 +3,8 @@ use nalgebra::{Rotation3, Unit, Vector3};
 use ndarray::{Array2, Axis, ShapeBuilder};
 
 #[cfg(test)]
-#[path = "shrotation_3d_tests.rs"]
-mod shrotation_3d_tests;
+#[path = "sh_rotation_3d_tests.rs"]
+mod sh_rotation_3d_tests;
 
 /// Returns the generalised Kronecker delta $`\delta_{ij}`$ for any $`i`$ and $`j`$ that have a
 /// partial equivalence relation.

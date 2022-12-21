@@ -4,7 +4,7 @@ use ndarray::{array, Array2};
 use num::Complex;
 use num_traits::{One, Zero};
 
-use crate::angmom::shconversion::{
+use crate::angmom::sh_conversion::{
     complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat, sh_cart2cl_mat,
     sh_cart2r, sh_cart2rl_mat, sh_cl2cart_mat, sh_r2c_mat, sh_r2cart, sh_rl2cart_mat, CartOrder,
 };
@@ -12,7 +12,7 @@ use crate::angmom::shconversion::{
 type C128 = Complex<f64>;
 
 #[test]
-fn test_shconversion_cartorder() {
+fn test_sh_conversion_cartorder() {
     // =========
     // lcart = 0
     // =========
@@ -149,7 +149,7 @@ fn test_shconversion_cartorder() {
 }
 
 #[test]
-fn test_shconversion_complexc() {
+fn test_sh_conversion_complexc() {
     // =====
     // l = 0
     // =====
@@ -402,7 +402,7 @@ fn test_shconversion_complexc() {
 }
 
 #[test]
-fn test_shconversion_complexcinv() {
+fn test_sh_conversion_complexcinv() {
     // =========
     // lcart = 0
     // =========
@@ -497,7 +497,7 @@ fn test_shconversion_complexcinv() {
 }
 
 #[test]
-fn test_shconversion_sh_c2r() {
+fn test_sh_conversion_c2r() {
     let sq2 = 2.0f64.sqrt();
 
     let c2r0 = sh_c2r_mat(0, true, true);
@@ -581,7 +581,7 @@ fn test_shconversion_sh_c2r() {
 }
 
 #[test]
-fn test_shconversion_sh_r2c() {
+fn test_sh_conversion_r2c() {
     let sq2 = 2.0f64.sqrt();
 
     let r2c0 = sh_r2c_mat(0, true, true);
@@ -648,7 +648,7 @@ fn test_shconversion_sh_r2c() {
 }
 
 #[test]
-fn test_shconversion_sh_cl2cart() {
+fn test_sh_conversion_cl2cart() {
     let sq2 = 2.0f64.sqrt();
 
     let umat00 = sh_cl2cart_mat(0, 0, CartOrder::lex(0), true, true);
@@ -722,7 +722,7 @@ fn test_shconversion_sh_cl2cart() {
 }
 
 #[test]
-fn test_shconversion_sh_cart2cl() {
+fn test_sh_conversion_cart2cl() {
     let sq2 = 2.0f64.sqrt();
     let sq6 = 6.0f64.sqrt();
 
@@ -831,7 +831,7 @@ fn test_shconversion_sh_cart2cl() {
 }
 
 #[test]
-fn test_shconversion_sh_rl2cart() {
+fn test_sh_conversion_rl2cart() {
     let wmat00 = sh_rl2cart_mat(0, 0, CartOrder::lex(0), true, true);
     assert_eq!(wmat00.shape(), &[1, 1]);
     assert_eq!(wmat00[(0, 0)], 1.0);
@@ -893,7 +893,7 @@ fn test_shconversion_sh_rl2cart() {
 }
 
 #[test]
-fn test_shconversion_sh_cart2rl() {
+fn test_sh_conversion_cart2rl() {
     let sq3 = 3.0f64.sqrt();
     let sq5 = 5.0f64.sqrt();
 
@@ -939,7 +939,7 @@ fn test_shconversion_sh_cart2rl() {
 }
 
 #[test]
-fn test_shconversion_sh_r2cart() {
+fn test_sh_conversion_r2cart() {
     let wmats1l = sh_r2cart(1, CartOrder::lex(1), true, true);
     assert_eq!(wmats1l.len(), 1);
     for (i, wmat1l) in wmats1l.iter().enumerate() {
@@ -1017,7 +1017,7 @@ fn test_shconversion_sh_r2cart() {
 }
 
 #[test]
-fn test_shconversion_sh_cart2r() {
+fn test_sh_conversion_cart2r() {
     let xmatsl1 = sh_cart2r(1, CartOrder::lex(1), true, true);
     assert_eq!(xmatsl1.len(), 1);
     for (i, xmatl1) in xmatsl1.iter().enumerate() {
