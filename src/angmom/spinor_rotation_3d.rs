@@ -71,8 +71,8 @@ fn dmat_euler_element(mdashi: usize, mi: usize, euler_angles: (f64, f64, f64)) -
 /// The matrix $`\mathbf{D}^{(1/2)}(\alpha, \beta, \gamma)`$.
 fn dmat_euler(euler_angles: (f64, f64, f64), increasingm: bool) -> Array2<Complex<f64>> {
     let mut dmat = Array2::<Complex<f64>>::zeros((2, 2));
-    for mdashi in (0..2) {
-        for mi in (0..2) {
+    for mdashi in 0..2 {
+        for mi in 0..2 {
             dmat[(mdashi, mi)] = dmat_euler_element(mdashi, mi, euler_angles);
         }
     }
@@ -86,8 +86,8 @@ fn dmat_euler(euler_angles: (f64, f64, f64), increasingm: bool) -> Array2<Comple
 /// Returns the Wigner rotation matrix for $`j = 1/2`$ whose elements are defined by
 ///
 /// ```math
-/// \hat{R}(\alpha, \beta, \gamma) \ket{\tfrac{1}{2}m}
-/// = \sum_{m'} \ket{\tfrac{1}{2}m'} D^{(1/2)}_{m'm}(\alpha, \beta, \gamma).
+/// \hat{R}(\phi\hat{\mathbf{n}}) \ket{\tfrac{1}{2}m}
+/// = \sum_{m'} \ket{\tfrac{1}{2}m'} D^{(1/2)}_{m'm}(\phi\hat{\mathbf{n}}).
 /// ```
 ///
 /// The parametrisation of $`\mathbf{D}^{(1/2)}`$ by $`\phi`$ and $`\hat{\mathbf{n}}`$ is given
@@ -106,7 +106,7 @@ fn dmat_euler(euler_angles: (f64, f64, f64), increasingm: bool) -> Array2<Comple
 ///
 /// # Returns
 ///
-/// The matrix $`\mathbf{D}^{(1/2)}(\phi, \hat{\mathbf{n}})`$.
+/// The matrix $`\mathbf{D}^{(1/2)}(\phi\hat{\mathbf{n}})`$.
 fn dmat_angleaxis(angle: f64, axis: Vector3<f64>, increasingm: bool) -> Array2<Complex<f64>> {
     let normalised_axis = axis.normalize();
     let nx = normalised_axis.x;
@@ -228,4 +228,81 @@ fn dmat_euler_gen_element(
     });
 
     prefactor * d
+}
+
+/// Returns the Wigner rotation matrix in the Euler-angle parametrisation for any integral or
+/// half-integral $`j`$ whose elements are defined by
+///
+/// ```math
+/// \hat{R}(\alpha, \beta, \gamma) \ket{jm}
+/// = \sum_{m'} \ket{jm'} D^{(j)}_{m'm}(\alpha, \beta, \gamma).
+/// ```
+///
+/// and given in [`dmat_euler_gen_element`].
+///
+/// # Arguments
+///
+/// * twoj - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
+/// $`j`$ is half-integral.
+/// * euler_angles - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
+/// the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
+/// * increasingm - If `true`, the rows and columns of $`\mathbf{D}^{(j)}`$ are
+/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
+///
+/// # Returns
+///
+/// The matrix $`\mathbf{D}^{(j)}(\alpha, \beta, \gamma)`$.
+fn dmat_euler_gen(
+    twoj: u32,
+    euler_angles: (f64, f64, f64),
+    increasingm: bool,
+) -> Array2<Complex<f64>> {
+    let dim = twoj as usize + 1;
+    let mut dmat = Array2::<Complex<f64>>::zeros((dim, dim));
+    for mdashi in 0..dim {
+        for mi in 0..dim {
+            dmat[(mdashi, mi)] = dmat_euler_gen_element(twoj, mdashi, mi, euler_angles);
+        }
+    }
+    if !increasingm {
+        dmat.invert_axis(Axis(0));
+        dmat.invert_axis(Axis(1));
+    }
+    dmat
+}
+
+/// Returns the Wigner rotation matrix in the angle-axis parametrisation for any integral or
+/// half-integral $`j`$  whose elements are defined by
+///
+/// ```math
+/// \hat{R}(phi\hat{\mathbf{n}}) \ket{jm}
+/// = \sum_{m'} \ket{jm'} D^{(j)}_{m'm}(phi\hat{\mathbf{n}}).
+/// ```
+///
+/// # Arguments
+///
+/// * twoj - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
+/// $`j`$ is half-integral.
+/// * angle - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
+/// anticlockwise rotation when looking down `axis`.
+/// * axis - A space-fixed vector defining the axis of rotation. The supplied vector will be
+/// normalised.
+/// * increasingm - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
+/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
+///
+/// # Returns
+///
+/// The matrix $`\mathbf{D}^{(j)}(\phi\hat{\mathbf{n}})`$.
+fn dmat_angleaxis_gen(
+    twoj: u32,
+    angle: f64,
+    axis: Vector3<f64>,
+    increasingm: bool,
+) -> Array2<Complex<f64>> {
+}
+
+   
+fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
 }
