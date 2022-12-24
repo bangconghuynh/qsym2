@@ -1,7 +1,10 @@
-use approx;
-use nalgebra::{Rotation3, Unit, Vector3};
-use ndarray::{Array2, Axis, ShapeBuilder};
-use num::complex::Complex;
+use std::cmp;
+
+use factorial::Factorial;
+use nalgebra::Vector3;
+use ndarray::{array, Array2, Axis};
+use num::{BigUint, Complex, Zero};
+use num_traits::ToPrimitive;
 
 // #[cfg(test)]
 // #[path = "sh_rotation_3d_tests.rs"]
@@ -111,7 +114,7 @@ fn dmat_angleaxis(angle: f64, axis: Vector3<f64>, increasingm: bool) -> Array2<C
     let nz = normalised_axis.z;
 
     let i = Complex::<f64>::i();
-    let dmat = array![
+    let mut dmat = array![
         [
             (angle / 2.0).cos() + i * nz * (angle / 2.0).sin(),
             (ny - i * nx) * (angle / 2.0).sin()
@@ -127,7 +130,6 @@ fn dmat_angleaxis(angle: f64, axis: Vector3<f64>, increasingm: bool) -> Array2<C
     }
     dmat
 }
-
 
 /// Returns an element in the Wigner rotation matrix for an integral or half-integral
 /// $`j`$, defined by
@@ -158,5 +160,72 @@ fn dmat_euler_gen_element(
     mdashi: usize,
     mi: usize,
     euler_angles: (f64, f64, f64),
-) -> f64 {
+) -> Complex<f64> {
+    assert!(
+        mdashi <= twoj as usize,
+        "mdashi must be between 0 and {} (inclusive).",
+        twoj
+    );
+    assert!(
+        mi <= twoj as usize,
+        "mi must be between 0 and {} (inclusive).",
+        twoj
+    );
+    let (alpha, beta, gamma) = euler_angles;
+    let j = twoj as f64 / 2.0;
+    let mdash = mdashi as f64 - j;
+    let m = mi as f64 - j;
+
+    let i = Complex::<f64>::i();
+    let prefactor = (-i * (alpha * mdash + gamma * m)).exp();
+
+    // tmax = min(int(j + mdash), int(j - m))
+    // j + mdash = mdashi
+    // j - m = twoj - mi
+    let tmax = cmp::min(mdashi, twoj as usize - mi);
+
+    // tmin = max(0, int(mdash - m))
+    // mdash - m = mdashi - mi
+    let tmin = if mdashi > mi { mdashi - mi } else { 0 };
+
+    let d = (tmin..=tmax).fold(Complex::<f64>::zero(), |acc, t| {
+        // j - m = twoj - mi
+        // j - mdash = twoj - mdashi
+        let num = (BigUint::from(mdashi).checked_factorial().unwrap()
+            * BigUint::from(twoj as usize - mdashi)
+                .checked_factorial()
+                .unwrap()
+            * BigUint::from(mi).checked_factorial().unwrap()
+            * BigUint::from(twoj as usize - mi)
+                .checked_factorial()
+                .unwrap())
+        .to_f64()
+        .unwrap();
+
+        // t <= j + mdash ==> j + mdash - t = mdashi - t >= 0
+        // t <= j - m ==> j - m - t = twoj - mi - t >= 0
+        // t >= 0
+        // t >= mdash - m ==> t - (mdash - m) = t + mi - mdashi >= 0
+        let den = (BigUint::from(mdashi - t).checked_factorial().unwrap()
+            * BigUint::from(twoj as usize - mi - t)
+                .checked_factorial()
+                .unwrap()
+            * BigUint::from(t).checked_factorial().unwrap()
+            * BigUint::from(t + mi - mdashi).checked_factorial().unwrap())
+        .to_f64()
+        .unwrap();
+
+        let trigfactor = (beta / 2.0)
+            .cos()
+            .powi(<usize as TryInto<i32>>::try_into(twoj as usize + mdashi - mi - 2 * t).unwrap())
+            * (beta / 2.0)
+                .sin()
+                .powi(<usize as TryInto<i32>>::try_into(2 * t - mdashi + mi).unwrap());
+
+        acc + (-1.0f64).powi(<usize as TryInto<i32>>::try_into(t).unwrap())
+            * (num / den)
+            * trigfactor
+    });
+
+    prefactor * d
 }
