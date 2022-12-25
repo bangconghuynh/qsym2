@@ -303,6 +303,45 @@ fn dmat_angleaxis_gen(
 ) -> Array2<Complex<f64>> {
 }
 
-   
+/// Converts an angle and axis of rotation to Euler angles using Equations (**3**-5.4) to
+/// (**3**-5.10) in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
+/// Publications, Inc., 2005), but with an extended range,
+///
+/// ```math
+/// 0 \le \alpha \le 2\pi, \quad
+/// 0 \le \beta \le \pi, \quad
+/// 0 \le \gamma \le 4\pi,
+/// ```
+///
+/// such that all angle-axis parametrisations of $`\phi\hat{\mathbf{n}}`$ for
+/// $`0 \le \phi \le 4\pi` are mapped to unique triplets of $`(\alpha, \beta, \gamma)`$,
+/// as explained in Fan, P.-D., Chen, J.-Q., Mcaven, L. & Butler, P. Unique Euler angles and
+/// self-consistent multiplication tables for double point groups. *International Journal of
+/// Quantum Chemistry* **75**, 1–9 (1999),
+///[DOI](https://doi.org/10.1002/(SICI)1097-461X(1999)75:1<1::AID-QUA1>3.0.CO;2-V).
+///
+/// When $`\beta = 0`$, only the sum $`\alpha+\gamma`$ is determined. Likewise, when
+/// $`\beta = \pi`$, only the difference $`\alpha-\gamma`$ is determined. We thus set
+/// $`\alpha = 0`$ in these cases and solve for $`\gamma` without changing the nature of the
+/// results.
+///
+/// # Arguments
+///
+/// * angle - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
+/// anticlockwise rotation when looking down `axis`.
+/// * axis - A space-fixed vector defining the axis of rotation $`\hat{\mathbf{n}}`$. The supplied
+/// vector will be normalised.
+///
+/// # Returns
+///
+/// The tuple containing the Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following the
+/// Whitaker convention.
 fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
+    let normalised_axis = axis.normalize();
+    let nx = normalised_axis.x;
+    let ny = normalised_axis.y;
+    let nz = normalised_axis.z;
+
+    let cosbeta = 1.0 - 2.0 * (nx.powi(2) + ny.powi(2)) * (angle / 2.0).sin().powi(2);
+    todo!()
 }
