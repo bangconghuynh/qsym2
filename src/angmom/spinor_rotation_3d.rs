@@ -201,7 +201,8 @@ fn dmat_euler_gen_element(
                 .checked_factorial()
                 .unwrap())
         .to_f64()
-        .unwrap();
+        .unwrap()
+        .sqrt();
 
         // t <= j + mdash ==> j + mdash - t = mdashi - t >= 0
         // t <= j - m ==> j - m - t = twoj - mi - t >= 0
@@ -221,11 +222,13 @@ fn dmat_euler_gen_element(
             .powi(<usize as TryInto<i32>>::try_into(twoj as usize + mdashi - mi - 2 * t).unwrap())
             * (beta / 2.0)
                 .sin()
-                .powi(<usize as TryInto<i32>>::try_into(2 * t - mdashi + mi).unwrap());
+                .powi(<usize as TryInto<i32>>::try_into(2 * t + mi - mdashi).unwrap());
 
-        acc + (-1.0f64).powi(<usize as TryInto<i32>>::try_into(t).unwrap())
-            * (num / den)
-            * trigfactor
+        if t % 2 == 0 {
+            acc + (num / den) * trigfactor
+        } else {
+            acc - (num / den) * trigfactor
+        }
     });
 
     prefactor * d
@@ -345,6 +348,8 @@ fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
     let ny = normalised_axis.y;
     let nz = normalised_axis.z;
 
+    let angle = angle.rem_euclid(4.0 * std::f64::consts::PI);
+
     let cosbeta = 1.0 - 2.0 * (nx.powi(2) + ny.powi(2)) * (angle / 2.0).sin().powi(2);
     let cosbeta = if cosbeta.abs() > 1.0 {
         // Numerical errors can cause cosbeta to be outside [-1, 1].
@@ -379,7 +384,7 @@ fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
                 .rem_euclid(4.0 * std::f64::consts::PI);
 
             (alpha, gamma)
-        } else if approx::relative_ne!(cosbeta, 1.0, epsilon = 1e-14, max_relative = 1e-14) {
+        } else if approx::relative_eq!(cosbeta, 1.0, epsilon = 1e-14, max_relative = 1e-14) {
             // cosbeta == 1, beta == 0
             // cos(0.5(alpha+gamma)) = cos(0.5phi)
             // We set alpha == 0 by convention.
