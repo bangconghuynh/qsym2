@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use approx;
 use nalgebra::{Rotation3, Unit, Vector3};
 use ndarray::{Array2, Axis, ShapeBuilder};
@@ -13,11 +15,7 @@ mod sh_rotation_3d_tests;
 ///
 /// `0` if $`i \ne j`$, `1` if $`i = j`$.
 fn kdelta<T: PartialEq>(i: T, j: T) -> u8 {
-    if i == j {
-        1
-    } else {
-        0
-    }
+    u8::from(i == j)
 }
 
 /// Returns the function $`_iP^l_{\mu m'}`$ as defined in Table 2 of Ivanic, J. & Ruedenberg, K.
@@ -45,7 +43,7 @@ fn func_p(i: i8, l: u32, mu: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<
     assert!(l >= 2, "l must be at least 2.");
     let li64 = l as i64;
     assert!(
-        mu.abs() <= li64 - 1,
+        mu.abs() < li64,
         "Index mu = {} lies outside [{}, {}].",
         mu,
         -(li64) + 1,
@@ -156,14 +154,18 @@ fn func_v(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
         2 * l as usize - 1
     );
 
-    if m > 0 {
-        func_p(1, l, m - 1, mdash, rmat, rlm1) * ((1 + kdelta(m, 1)) as f64).sqrt()
-            - func_p(-1, l, -m + 1, mdash, rmat, rlm1) * ((1 - kdelta(m, 1)) as f64)
-    } else if m < 0 {
-        func_p(1, l, m + 1, mdash, rmat, rlm1) * ((1 - kdelta(m, -1)) as f64)
-            + func_p(-1, l, -m - 1, mdash, rmat, rlm1) * ((1 + kdelta(m, -1)) as f64).sqrt()
-    } else {
-        func_p(1, l, 1, mdash, rmat, rlm1) + func_p(-1, l, -1, mdash, rmat, rlm1)
+    match m.cmp(&0) {
+        Ordering::Greater => {
+            func_p(1, l, m - 1, mdash, rmat, rlm1) * ((1 + kdelta(m, 1)) as f64).sqrt()
+                - func_p(-1, l, -m + 1, mdash, rmat, rlm1) * ((1 - kdelta(m, 1)) as f64)
+        }
+        Ordering::Less => {
+            func_p(1, l, m + 1, mdash, rmat, rlm1) * ((1 - kdelta(m, -1)) as f64)
+                + func_p(-1, l, -m - 1, mdash, rmat, rlm1) * ((1 + kdelta(m, -1)) as f64).sqrt()
+        }
+        Ordering::Equal => {
+            func_p(1, l, 1, mdash, rmat, rlm1) + func_p(-1, l, -1, mdash, rmat, rlm1)
+        }
     }
 }
 

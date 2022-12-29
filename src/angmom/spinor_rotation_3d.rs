@@ -48,8 +48,29 @@ fn dmat_euler_element(mdashi: usize, mi: usize, euler_angles: (f64, f64, f64)) -
         panic!("Invalid mi and/or mdashi.");
     };
 
+    let alpha_basic = alpha.rem_euclid(2.0 * std::f64::consts::PI);
+    let gamma_basic = gamma.rem_euclid(2.0 * std::f64::consts::PI);
     let i = Complex::<f64>::i();
-    (-1.0 * i * (alpha * (mdashi as f64 - 0.5) + gamma * (mi as f64 - 0.5))).exp() * d
+    let mut prefactor =
+        (-i * (alpha_basic * (mdashi as f64 - 0.5) + gamma_basic * (mi as f64 - 0.5))).exp();
+
+    // Half-integer j = 1/2; double-group behaviours possible.
+    let alpha_double = approx::relative_eq!(
+        alpha.div_euclid(2.0 * std::f64::consts::PI).rem_euclid(2.0),
+        1.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
+    );
+    let gamma_double = approx::relative_eq!(
+        gamma.div_euclid(2.0 * std::f64::consts::PI).rem_euclid(2.0),
+        1.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
+    );
+    if alpha_double != gamma_double {
+        prefactor *= -1.0;
+    }
+    prefactor * d
 }
 
 /// Returns the Wigner rotation matrix for $`j = 1/2`$ whose elements are defined by
@@ -115,14 +136,15 @@ pub fn dmat_angleaxis(angle: f64, axis: Vector3<f64>, increasingm: bool) -> Arra
     let nz = normalised_axis.z;
 
     let i = Complex::<f64>::i();
+    let double_angle = angle.rem_euclid(4.0 * std::f64::consts::PI);
     let mut dmat = array![
         [
-            (angle / 2.0).cos() + i * nz * (angle / 2.0).sin(),
-            (ny - i * nx) * (angle / 2.0).sin()
+            (double_angle / 2.0).cos() + i * nz * (double_angle / 2.0).sin(),
+            (ny - i * nx) * (double_angle / 2.0).sin()
         ],
         [
-            -(ny + i * nx) * (angle / 2.0).sin(),
-            (angle / 2.0).cos() - i * nz * (angle / 2.0).sin(),
+            -(ny + i * nx) * (double_angle / 2.0).sin(),
+            (double_angle / 2.0).cos() - i * nz * (double_angle / 2.0).sin(),
         ]
     ];
     if !increasingm {
@@ -178,7 +200,28 @@ fn dmat_euler_gen_element(
     let m = mi as f64 - j;
 
     let i = Complex::<f64>::i();
-    let prefactor = (-i * (alpha * mdash + gamma * m)).exp();
+    let alpha_basic = alpha.rem_euclid(2.0 * std::f64::consts::PI);
+    let gamma_basic = gamma.rem_euclid(2.0 * std::f64::consts::PI);
+    let mut prefactor = (-i * (alpha_basic * mdash + gamma_basic * m)).exp();
+
+    if twoj % 2 != 0 {
+        // Half-integer j; double-group behaviours possible.
+        let alpha_double = approx::relative_eq!(
+            alpha.div_euclid(2.0 * std::f64::consts::PI).rem_euclid(2.0),
+            1.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+        let gamma_double = approx::relative_eq!(
+            gamma.div_euclid(2.0 * std::f64::consts::PI).rem_euclid(2.0),
+            1.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14
+        );
+        if alpha_double != gamma_double {
+            prefactor *= -1.0;
+        }
+    }
 
     // tmax = min(int(j + mdash), int(j - m))
     // j + mdash = mdashi
@@ -309,8 +352,8 @@ pub fn dmat_angleaxis_gen(
     dmat_euler_gen(twoj, euler_angles, increasingm)
 }
 
-/// Converts an angle and axis of rotation to Euler angles using Equations (**3**-5.4) to
-/// (**3**-5.10) in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
+/// Converts an angle and axis of rotation to Euler angles using the equations in Section
+/// (**3**-5.4) in Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
 /// Publications, Inc., 2005), but with an extended range,
 ///
 /// ```math
@@ -348,9 +391,16 @@ fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
     let ny = normalised_axis.y;
     let nz = normalised_axis.z;
 
-    let angle = angle.rem_euclid(4.0 * std::f64::consts::PI);
+    let double_angle = angle.rem_euclid(4.0 * std::f64::consts::PI);
+    let basic_angle = angle.rem_euclid(2.0 * std::f64::consts::PI);
+    let double = approx::relative_eq!(
+        angle.div_euclid(2.0 * std::f64::consts::PI).rem_euclid(2.0),
+        1.0,
+        epsilon = 1e-14,
+        max_relative = 1e-14
+    );
 
-    let cosbeta = 1.0 - 2.0 * (nx.powi(2) + ny.powi(2)) * (angle / 2.0).sin().powi(2);
+    let cosbeta = 1.0 - 2.0 * (nx.powi(2) + ny.powi(2)) * (basic_angle / 2.0).sin().powi(2);
     let cosbeta = if cosbeta.abs() > 1.0 {
         // Numerical errors can cause cosbeta to be outside [-1, 1].
         approx::assert_relative_eq!(cosbeta.abs(), 1.0, epsilon = 1e-14, max_relative = 1e-14);
@@ -370,18 +420,24 @@ fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
             // Inc., 2005).
             // These equations yield the same alpha and gamma for phi and phi+2pi.
             // We therefore account for double-group behaviours separately.
-            let num_alpha = -nx * angle.sin() + 2.0 * ny * nz * (angle / 2.0).sin().powi(2);
-            let den_alpha = ny * angle.sin() + 2.0 * nx * nz * (angle / 2.0).sin().powi(2);
+            let num_alpha =
+                -nx * basic_angle.sin() + 2.0 * ny * nz * (basic_angle / 2.0).sin().powi(2);
+            let den_alpha =
+                ny * basic_angle.sin() + 2.0 * nx * nz * (basic_angle / 2.0).sin().powi(2);
             let alpha = num_alpha
                 .atan2(den_alpha)
                 .rem_euclid(2.0 * std::f64::consts::PI);
 
-            let num_gamma = nx * angle.sin() + 2.0 * ny * nz * (angle / 2.0).sin().powi(2);
-            let den_gamma = ny * angle.sin() - 2.0 * nx * nz * (angle / 2.0).sin().powi(2);
+            let num_gamma =
+                nx * basic_angle.sin() + 2.0 * ny * nz * (basic_angle / 2.0).sin().powi(2);
+            let den_gamma =
+                ny * basic_angle.sin() - 2.0 * nx * nz * (basic_angle / 2.0).sin().powi(2);
             let gamma_raw = num_gamma.atan2(den_gamma);
-            let double_mask = angle.div_euclid(2.0 * std::f64::consts::PI).rem_euclid(2.0);
-            let gamma = (gamma_raw + double_mask * 2.0 * std::f64::consts::PI)
-                .rem_euclid(4.0 * std::f64::consts::PI);
+            let gamma = if !double {
+                gamma_raw.rem_euclid(4.0 * std::f64::consts::PI)
+            } else {
+                (gamma_raw + 2.0 * std::f64::consts::PI).rem_euclid(4.0 * std::f64::consts::PI)
+            };
 
             (alpha, gamma)
         } else if approx::relative_eq!(cosbeta, 1.0, epsilon = 1e-14, max_relative = 1e-14) {
@@ -389,7 +445,7 @@ fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
             // cos(0.5(alpha+gamma)) = cos(0.5phi)
             // We set alpha == 0 by convention.
             // We then set gamma = phi mod (4*pi).
-            (0.0, angle.rem_euclid(4.0 * std::f64::consts::PI))
+            (0.0, double_angle)
         } else {
             // cosbeta == -1, beta == pi
             // sin(0.5phi) must be non-zero, otherwise cosbeta == 1, a
@@ -401,9 +457,11 @@ fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
             // We obtain the same gamma for phi and phi+2pi.
             // We therefore account for double-group behaviours separately.
             let gamma_raw = 2.0 * nx.atan2(ny);
-            let double_mask = angle.div_euclid(2.0 * std::f64::consts::PI).rem_euclid(2.0);
-            let gamma = (gamma_raw + double_mask * 2.0 * std::f64::consts::PI)
-                .rem_euclid(4.0 * std::f64::consts::PI);
+            let gamma = if !double {
+                gamma_raw.rem_euclid(4.0 * std::f64::consts::PI)
+            } else {
+                (gamma_raw + 2.0 * std::f64::consts::PI).rem_euclid(4.0 * std::f64::consts::PI)
+            };
 
             (0.0, gamma)
         };
