@@ -3,9 +3,9 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use approx;
+use derive_builder::Builder;
 use fraction;
 use log;
-use derive_builder::Builder;
 use nalgebra::Vector3;
 use num::integer::gcd;
 
@@ -176,7 +176,7 @@ impl SymmetryElementBuilder {
         let proper_order = self.proper_order.as_ref().unwrap();
         match proper_order {
             ElementOrder::Int(io) => Some(geometry::normalise_rotation_angle(
-                ((self.proper_power.unwrap().unwrap() as f64) / (*io as f64)) as f64
+                ((self.proper_power.unwrap().unwrap() as f64) / (*io as f64))
                     * 2.0
                     * std::f64::consts::PI,
                 self.threshold.unwrap(),
@@ -637,8 +637,7 @@ impl PartialEq for SymmetryElement {
                 false
             } else {
                 (self.proper_fraction == converted_other.proper_fraction)
-                    || (self.proper_fraction.unwrap()
-                        + converted_other.proper_fraction.unwrap()
+                    || (self.proper_fraction.unwrap() + converted_other.proper_fraction.unwrap()
                         == F::from(1u64))
             };
             if result {
@@ -675,8 +674,7 @@ impl PartialEq for SymmetryElement {
             false
         } else {
             (self.proper_fraction == other.proper_fraction)
-                || (self.proper_fraction.unwrap() + other.proper_fraction.unwrap()
-                    == F::from(1u64))
+                || (self.proper_fraction.unwrap() + other.proper_fraction.unwrap() == F::from(1u64))
         };
         if result {
             assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));

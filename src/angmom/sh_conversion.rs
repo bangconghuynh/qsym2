@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::convert::TryInto;
 use std::fmt;
@@ -36,7 +37,7 @@ impl CartOrderBuilder {
             cart_tuples.len(),
             ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize
         );
-        self.cart_tuples = Some(cart_tuples.iter().cloned().collect::<Vec<_>>());
+        self.cart_tuples = Some(cart_tuples.to_vec());
         self
     }
 }
@@ -138,10 +139,10 @@ impl CartOrder {
 
 impl fmt::Display for CartOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Cartesian rank: {}\n", self.lcart)?;
-        write!(f, "Order:\n")?;
+        writeln!(f, "Cartesian rank: {}", self.lcart)?;
+        writeln!(f, "Order:")?;
         for cart_tuple in self.iter() {
-            write!(f, "  {}\n", cart_tuple_to_str(cart_tuple, true))?;
+            writeln!(f, "  {}", cart_tuple_to_str(cart_tuple, true))?;
         }
         Ok(())
     }
@@ -149,10 +150,10 @@ impl fmt::Display for CartOrder {
 
 impl fmt::Debug for CartOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Cartesian rank: {}\n", self.lcart)?;
-        write!(f, "Order:\n")?;
+        writeln!(f, "Cartesian rank: {}", self.lcart)?;
+        writeln!(f, "Order:")?;
         for cart_tuple in self.iter() {
-            write!(f, "  {:?}\n", cart_tuple)?;
+            writeln!(f, "  {:?}", cart_tuple)?;
         }
         Ok(())
     }
@@ -181,12 +182,10 @@ fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
                 if flat {
                     carts[i].repeat(l as usize)
                 } else {
-                    if l > 1 {
-                        format!("{}^{}", carts[i], l)
-                    } else if l == 1 {
-                        carts[i].to_string()
-                    } else {
-                        "".to_string()
+                    match l.cmp(&1) {
+                        Ordering::Greater => format!("{}^{}", carts[i], l),
+                        Ordering::Equal => carts[i].to_string(),
+                        Ordering::Less => "".to_string(),
                     }
                 }
             }),
@@ -442,7 +441,7 @@ fn norm_cart_gaussian(lcartqns: (u32, u32, u32), alpha: f64) -> f64 {
 fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> Complex<f64> {
     let (l, m) = lpureqns;
     assert!(
-        m.abs() as u32 <= l,
+        m.unsigned_abs() <= l,
         "m must be between -l and l (inclusive)."
     );
     let (lx, ly, lz) = lcartqns;
@@ -452,8 +451,9 @@ fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> C
         return Complex::<f64>::zero();
     }
 
-    let num = ((2 * l + 1) * (l - m.abs() as u32).checked_factorial().unwrap()) as f64;
-    let den = 4.0 * std::f64::consts::PI * (l + m.abs() as u32).checked_factorial().unwrap() as f64;
+    let num = ((2 * l + 1) * (l - m.unsigned_abs()).checked_factorial().unwrap()) as f64;
+    let den =
+        4.0 * std::f64::consts::PI * (l + m.unsigned_abs()).checked_factorial().unwrap() as f64;
     let mut prefactor =
         1.0 / ((2u32.pow(l) * l.checked_factorial().unwrap()) as f64) * (num / den).sqrt();
     if csphase && m > 0 {
@@ -463,23 +463,23 @@ fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> C
     let n = norm_cart_gaussian(lcartqns, 1.0);
 
     let si =
-        (0..=((l - m.abs() as u32).div_euclid(2))).fold(Complex::<f64>::zero(), |acc_si, i| {
+        (0..=((l - m.unsigned_abs()).div_euclid(2))).fold(Complex::<f64>::zero(), |acc_si, i| {
             let ifactor = combu(l, i).to_f64().unwrap()
                 * ((-1i32).pow(i) * (2 * l - 2 * i).checked_factorial().unwrap() as i32) as f64
-                / (l - m.abs() as u32 - 2 * i).checked_factorial().unwrap() as f64;
-            let sp = (0..=(m.abs() as u32)).fold(Complex::<f64>::zero(), |acc_sp, p| {
+                / (l - m.unsigned_abs() - 2 * i).checked_factorial().unwrap() as f64;
+            let sp = (0..=(m.unsigned_abs())).fold(Complex::<f64>::zero(), |acc_sp, p| {
                 let pfactor = if m > 0 {
-                    combu(m.abs() as u32, p).to_f64().unwrap()
-                        * Complex::<f64>::i().powu(m.abs() as u32 - p)
+                    combu(m.unsigned_abs(), p).to_f64().unwrap()
+                        * Complex::<f64>::i().powu(m.unsigned_abs() - p)
                 } else {
-                    combu(m.abs() as u32, p).to_f64().unwrap()
-                        * (-1.0 * Complex::<f64>::i()).powu(m.abs() as u32 - p)
+                    combu(m.unsigned_abs(), p).to_f64().unwrap()
+                        * (-1.0 * Complex::<f64>::i()).powu(m.unsigned_abs() - p)
                 };
                 let sq = (0..=(dl.div_euclid(2))).fold(Complex::<f64>::zero(), |acc_sq, q| {
-                    let jq_num = (lx + ly) as i32 - 2 * q as i32 - m.abs();
+                    let jq_num = (lx + ly) as i32 - 2 * q - m.abs();
                     if jq_num.rem_euclid(2) == 0 {
                         let jq = jq_num.div_euclid(2);
-                        let qfactor = (comb(dl.div_euclid(2), q as i32) * comb(i as i32, jq))
+                        let qfactor = (comb(dl.div_euclid(2), q) * comb(i as i32, jq))
                             .to_f64()
                             .unwrap();
                         let sk = (0..=jq).fold(Complex::<f64>::zero(), |acc_sk, k| {
@@ -665,32 +665,36 @@ fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
     let mut upmat = Array2::<Complex<f64>>::zeros((2 * l as usize + 1, 2 * l as usize + 1));
     let lsize = l as usize;
     for mcomplex in -(l as i32)..=(l as i32) {
-        let absmreal = mcomplex.abs() as usize;
-        if mcomplex < 0 {
-            // Python-equivalent:
-            // upmat[-absmreal + l, mcomplex + l] = -1.0j / np.sqrt(2)
-            // upmat[+absmreal + l, mcomplex + l] = 1.0 / np.sqrt(2)
-            // mcomplex = -absmreal
-            upmat[(lsize - absmreal, lsize - absmreal)] =
-                Complex::<f64>::new(0.0, -1.0 / 2.0f64.sqrt());
-            upmat[(lsize + absmreal, lsize - absmreal)] =
-                Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0);
-        } else if mcomplex == 0 {
-            upmat[(lsize, lsize)] = Complex::<f64>::from(1.0);
-        } else {
-            let lcs = if csphase {
-                (-1i32).pow(mcomplex as u32) as f64
-            } else {
-                1.0
-            };
-            // Python-equivalent:
-            // upmat[-absmreal + l, mcomplex + l] = lcs * 1.0j / np.sqrt(2)
-            // upmat[+absmreal + l, mcomplex + l] = lcs * 1.0 / np.sqrt(2)
-            // mcomplex = absmreal
-            upmat[(lsize - absmreal, lsize + absmreal)] =
-                lcs * Complex::<f64>::new(0.0, 1.0 / 2.0f64.sqrt());
-            upmat[(lsize + absmreal, lsize + absmreal)] =
-                lcs * Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0);
+        let absmreal = mcomplex.unsigned_abs() as usize;
+        match mcomplex.cmp(&0) {
+            Ordering::Less => {
+                // Python-equivalent:
+                // upmat[-absmreal + l, mcomplex + l] = -1.0j / np.sqrt(2)
+                // upmat[+absmreal + l, mcomplex + l] = 1.0 / np.sqrt(2)
+                // mcomplex = -absmreal
+                upmat[(lsize - absmreal, lsize - absmreal)] =
+                    Complex::<f64>::new(0.0, -1.0 / 2.0f64.sqrt());
+                upmat[(lsize + absmreal, lsize - absmreal)] =
+                    Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0);
+            }
+            Ordering::Equal => {
+                upmat[(lsize, lsize)] = Complex::<f64>::from(1.0);
+            }
+            Ordering::Greater => {
+                let lcs = if csphase {
+                    (-1i32).pow(mcomplex as u32) as f64
+                } else {
+                    1.0
+                };
+                // Python-equivalent:
+                // upmat[-absmreal + l, mcomplex + l] = lcs * 1.0j / np.sqrt(2)
+                // upmat[+absmreal + l, mcomplex + l] = lcs * 1.0 / np.sqrt(2)
+                // mcomplex = absmreal
+                upmat[(lsize - absmreal, lsize + absmreal)] =
+                    lcs * Complex::<f64>::new(0.0, 1.0 / 2.0f64.sqrt());
+                upmat[(lsize + absmreal, lsize + absmreal)] =
+                    lcs * Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0);
+            }
         }
         if !increasingm {
             upmat.invert_axis(Axis(0));

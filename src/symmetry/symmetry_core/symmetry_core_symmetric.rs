@@ -481,7 +481,7 @@ impl Symmetry {
                 let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
                 self.point_group = if double_max_ord == ElementOrder::Int(2) {
                     // S2 is Ci.
-                    Some(format!("Ci"))
+                    Some("Ci".to_string())
                 } else {
                     Some(format!("S{double_max_ord}"))
                 };
