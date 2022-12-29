@@ -117,8 +117,8 @@ proptest! {
         approx::assert_relative_eq!(
             (d2 - d2b).map(|x| x.norm_sqr()).sum().sqrt(),
             0.0,
-            epsilon = 1e-14,
-            max_relative = 1e-14
+            epsilon = 1e-14 * angle.abs().max(1.0),
+            max_relative = 1e-14 * angle.abs().max(1.0)
         );
 
         let d3 = dmat_angleaxis(
@@ -131,14 +131,14 @@ proptest! {
         approx::assert_relative_eq!(
             (&d3 - &d3b).map(|x| x.norm_sqr()).sum().sqrt(),
             0.0,
-            epsilon = 1e-14,
-            max_relative = 1e-14
+            epsilon = 1e-14 * angle.abs().max(1.0),
+            max_relative = 1e-14 * angle.abs().max(1.0)
         );
         approx::assert_relative_eq!(
             (&d3 - &d3c).map(|x| x.norm_sqr()).sum().sqrt(),
             0.0,
-            epsilon = 1e-14,
-            max_relative = 1e-14
+            epsilon = 1e-14 * angle.abs().max(1.0),
+            max_relative = 1e-14 * angle.abs().max(1.0)
         );
 
         let d4 = dmat_angleaxis(

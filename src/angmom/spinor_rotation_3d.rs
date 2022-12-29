@@ -136,14 +136,15 @@ pub fn dmat_angleaxis(angle: f64, axis: Vector3<f64>, increasingm: bool) -> Arra
     let nz = normalised_axis.z;
 
     let i = Complex::<f64>::i();
+    let double_angle = angle.rem_euclid(4.0 * std::f64::consts::PI);
     let mut dmat = array![
         [
-            (angle / 2.0).cos() + i * nz * (angle / 2.0).sin(),
-            (ny - i * nx) * (angle / 2.0).sin()
+            (double_angle / 2.0).cos() + i * nz * (double_angle / 2.0).sin(),
+            (ny - i * nx) * (double_angle / 2.0).sin()
         ],
         [
-            -(ny + i * nx) * (angle / 2.0).sin(),
-            (angle / 2.0).cos() - i * nz * (angle / 2.0).sin(),
+            -(ny + i * nx) * (double_angle / 2.0).sin(),
+            (double_angle / 2.0).cos() - i * nz * (double_angle / 2.0).sin(),
         ]
     ];
     if !increasingm {
