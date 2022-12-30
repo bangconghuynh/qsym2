@@ -83,6 +83,7 @@ impl Atom {
     ///     three Cartesian coordinates.
     /// * `emap` - A hash map between atomic symbols and atomic numbers and
     ///     masses.
+    /// * `thresh` - A threshold for approximate equality comparisons.
     ///
     /// # Returns
     ///

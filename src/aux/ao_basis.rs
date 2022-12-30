@@ -15,6 +15,10 @@ use crate::aux::misc::ProductRepeat;
 #[path = "ao_basis_tests.rs"]
 mod ao_basis_tests;
 
+// ------
+// Shells
+// ------
+
 /// A struct to contain information about the ordering of Cartesian Gaussians of a certain rank.
 #[derive(Clone, Builder, PartialEq, Eq, Hash)]
 pub struct CartOrder {
@@ -23,7 +27,7 @@ pub struct CartOrder {
     cart_tuples: Vec<(u32, u32, u32)>,
 
     /// The rank of the Cartesian Gaussians.
-    lcart: u32,
+    pub lcart: u32,
 }
 
 impl CartOrderBuilder {
@@ -193,6 +197,7 @@ fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
 }
 
 /// An enum to indicate the type of the angular functions in a shell and how they are ordered.
+#[derive(Clone, PartialEq, Eq, Hash)]
 enum ShellOrder {
     /// This variant indicates that the angular functions are real solid harmonics. The associated
     /// value is a flag indicating if the functions are arranged in increasing $`m`$ order.
@@ -204,15 +209,45 @@ enum ShellOrder {
 }
 
 /// A struct representing a shell in an atomic-orbital basis set.
+#[derive(Clone, Builder, PartialEq, Eq, Hash)]
 struct BasisShell {
     /// A non-negative integer indicating the rank of the shell.
+    #[builder(setter(custom))]
     l: u32,
 
     /// An enum indicating the type of the angular functions in a shell and how they are ordered.
+    #[builder(setter(custom))]
     shell_order: ShellOrder,
 }
 
+impl BasisShellBuilder {
+    fn l(&mut self, l: u32) -> &mut Self {
+        if let Some(ShellOrder::Cart(cart_order)) = self.shell_order.as_ref() {
+            assert_eq!(cart_order.lcart, l);
+        }
+        self.l = Some(l);
+        self
+    }
+
+    fn shell_order(&mut self, shl_ord: ShellOrder) -> &mut Self {
+        if let (ShellOrder::Cart(cart_order), Some(l)) = (shl_ord.clone(), self.l) {
+            assert_eq!(cart_order.lcart, l);
+        };
+        self.shell_order = Some(shl_ord);
+        self
+    }
+}
+
 impl BasisShell {
+    /// Returns a builder to construct a new [`BasisShell`].
+    ///
+    /// # Returns
+    ///
+    /// A builder to construct a new [`BasisShell`].
+    pub fn builder() -> BasisShellBuilder {
+        BasisShellBuilder::default()
+    }
+
     /// The number of basis functions in this shell.
     fn n_funcs(&self) -> usize {
         let lsize = self.l as usize;
@@ -223,16 +258,38 @@ impl BasisShell {
     }
 }
 
+// -----
+// Atoms
+// -----
+
 /// A struct containing the ordered sequence of the shells for an atom.
-struct BasisAtom {
+#[derive(Clone, Builder, PartialEq, Eq, Hash)]
+struct BasisAtom<'a> {
     /// An atom in the basis set.
-    atom: Atom,
+    atom: &'a Atom,
 
     /// The ordered shells associated with this atom.
+    #[builder(setter(custom))]
     basis_shells: Vec<BasisShell>,
 }
 
-impl BasisAtom {
+impl<'a> BasisAtomBuilder<'a> {
+    fn basis_shells(&mut self, bss: &[BasisShell]) -> &mut Self {
+        self.basis_shells = Some(bss.to_vec());
+        self
+    }
+}
+
+impl<'a> BasisAtom<'a> {
+    /// Returns a builder to construct a new [`BasisAtom`].
+    ///
+    /// # Returns
+    ///
+    /// A builder to construct a new [`BasisAtom`].
+    pub fn builder() -> BasisAtomBuilder<'a> {
+        BasisAtomBuilder::default()
+    }
+
     /// The number of basis functions localised on this atom.
     fn n_funcs(&self) -> usize {
         self.basis_shells
@@ -255,14 +312,18 @@ impl BasisAtom {
     }
 }
 
+// -----
+// Basis
+// -----
+
 /// A struct containing the angular momentum information of an atomic-orbital basis set that is
 /// required for symmetry transformation to be performed.
-pub struct BasisAngularOrder {
+pub struct BasisAngularOrder<'a> {
     /// An ordered sequence of [`BasisAtom`] in the order the atoms are defined in the molecule.
-    basis_atoms: Vec<BasisAtom>,
+    basis_atoms: Vec<BasisAtom<'a>>,
 }
 
-impl BasisAngularOrder {
+impl<'a> BasisAngularOrder<'a> {
     /// The number of basis functions in this basis set.
     fn n_funcs(&self) -> usize {
         self.basis_atoms
@@ -298,6 +359,7 @@ impl BasisAngularOrder {
                     .map(|(shell_start, shell_end)| {
                         (shell_start + atom_start, shell_end + atom_start)
                     })
+                    .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>()
     }
