@@ -205,7 +205,7 @@ fn test_linalgreducedint_array() {
     let arr_5_ref = array![[i0_5, i2_5], [i4_5, i1_5]];
     assert_eq!(arr_5, arr_5_ref);
 
-    let arr_6 = arr.clone() * i2_5.inv().residue();
+    let arr_6 = arr * i2_5.inv().residue();
     let arr_6_ref = array![[i0_5, i3_5], [i1_5, i4_5]];
     assert_eq!(arr_6, arr_6_ref);
 }

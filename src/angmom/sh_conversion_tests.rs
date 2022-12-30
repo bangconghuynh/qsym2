@@ -188,14 +188,14 @@ fn test_sh_conversion_complexc() {
             < 1e-14
     );
     assert!(
-        (complexc((3, -1), (3, 0, 0), true) - C128::new(-3.0f64.sqrt() / 4.0, 0.0)).norm() < 1e-14
+        (complexc((3, -1), (3, 0, 0), true) - C128::new(-(3.0f64.sqrt()) / 4.0, 0.0)).norm() < 1e-14
     );
     assert!(
         (complexc((3, -1), (0, 3, 0), true) - C128::new(0.0, 3.0f64.sqrt() / 4.0)).norm() < 1e-14
     );
     assert!(
         (complexc((3, -1), (1, 2, 0), true)
-            - C128::new(-3.0f64.sqrt() / (4.0 * 5.0f64.sqrt()), 0.0))
+            - C128::new(-(3.0f64.sqrt()) / (4.0 * 5.0f64.sqrt()), 0.0))
         .norm()
             < 1e-14
     );
@@ -232,7 +232,7 @@ fn test_sh_conversion_complexc() {
     );
 
     assert!(
-        (complexc((3, 3), (3, 0, 0), true) - C128::new(-5.0f64.sqrt() / 4.0, 0.0)).norm() < 1e-14
+        (complexc((3, 3), (3, 0, 0), true) - C128::new(-(5.0f64.sqrt()) / 4.0, 0.0)).norm() < 1e-14
     );
     assert!(
         (complexc((3, 3), (0, 3, 0), true) - C128::new(0.0, 5.0f64.sqrt() / 4.0)).norm() < 1e-14
@@ -727,7 +727,7 @@ fn test_sh_conversion_rl2cart() {
         [0.0, 0.0, -0.5, 0.0, 3.0f64.sqrt() / 2.0],
         [1.0, 0.0, 0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0, 1.0, 0.0],
-        [0.0, 0.0, -0.5, 0.0, -3.0f64.sqrt() / 2.0],
+        [0.0, 0.0, -0.5, 0.0, -(3.0f64.sqrt()) / 2.0],
         [0.0, 1.0, 0.0, 0.0, 0.0],
         [0.0, 0.0, 1.0, 0.0, 0.0],
     ];

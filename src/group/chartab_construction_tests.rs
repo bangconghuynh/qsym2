@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use approx;
-use env_logger;
+
 use itertools::Itertools;
 use nalgebra::Vector3;
 use num::Complex;
@@ -3528,17 +3528,17 @@ fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_dnd(
         } else {
             // Even n, no g/u
             let mut irreps = vec![
-                MullikenIrrepSymbol::new(&format!("||A|_(1)|")).unwrap(),
-                MullikenIrrepSymbol::new(&format!("||A|_(2)|")).unwrap(),
-                MullikenIrrepSymbol::new(&format!("||B|_(1)|")).unwrap(),
-                MullikenIrrepSymbol::new(&format!("||B|_(2)|")).unwrap(),
+                MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+                MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+                MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+                MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
             ];
             if n > 2 {
                 irreps.extend(
                     (1..n).map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()),
                 );
             } else {
-                irreps.push(MullikenIrrepSymbol::new(&format!("||E||")).unwrap());
+                irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
             };
             irreps
         };
@@ -4482,10 +4482,10 @@ fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_magn
             irreps_gu
         } else {
             // Even n, no g/u possible.
-            let mut irreps = vec![MullikenIrrepSymbol::new(&format!("||A||")).unwrap()];
+            let mut irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
             irreps
                 .extend((1..n).map(|k| MullikenIrrepSymbol::new(&format!("||Γ|_({k})|")).unwrap()));
-            irreps.push(MullikenIrrepSymbol::new(&format!("||B||")).unwrap());
+            irreps.push(MullikenIrrepSymbol::new("||B||").unwrap());
             irreps.extend(
                 (n..(2 * n - 1))
                     .map(|k| MullikenIrrepSymbol::new(&format!("||Γ|_({k})|")).unwrap()),

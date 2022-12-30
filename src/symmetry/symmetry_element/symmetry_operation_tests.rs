@@ -71,7 +71,7 @@ fn test_symmetry_operation_constructor() {
     approx::assert_relative_eq!(c2.total_proper_angle, std::f64::consts::PI);
 
     let c2p2 = SymmetryOperation::builder()
-        .generating_element(c2_element.clone())
+        .generating_element(c2_element)
         .power(2)
         .build()
         .unwrap();
@@ -738,7 +738,7 @@ fn test_symmetry_operation_total_proper_fraction() {
     assert_eq!(c2.total_proper_fraction, Some(F::new(1u64, 2u64)));
 
     let c2p2 = SymmetryOperation::builder()
-        .generating_element(c2_element.clone())
+        .generating_element(c2_element)
         .power(2)
         .build()
         .unwrap();
@@ -878,7 +878,7 @@ fn test_symmetry_operation_total_proper_fraction() {
     assert_eq!(c4pm3.total_proper_fraction, Some(F::new(1u64, 4u64)));
 
     let c4p4 = SymmetryOperation::builder()
-        .generating_element(c4_element.clone())
+        .generating_element(c4_element)
         .power(4)
         .build()
         .unwrap();
@@ -927,7 +927,7 @@ fn test_symmetry_operation_total_proper_fraction() {
     assert_eq!(c7pm3.total_proper_fraction, Some(F::new(4u64, 7u64)));
 
     let c7p4 = SymmetryOperation::builder()
-        .generating_element(c7_element.clone())
+        .generating_element(c7_element)
         .power(4)
         .build()
         .unwrap();
@@ -1156,7 +1156,7 @@ fn test_symmetry_operation_total_proper_fraction() {
     assert_eq!(s3pp2.total_proper_fraction, Some(F::new(2u64, 3u64)));
 
     let s3pp2p3 = SymmetryOperation::builder()
-        .generating_element(s3pp2_element.clone())
+        .generating_element(s3pp2_element)
         .power(3)
         .build()
         .unwrap();
@@ -1231,7 +1231,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .unwrap();
 
     let sip2 = SymmetryOperation::builder()
-        .generating_element(si_element.clone())
+        .generating_element(si_element)
         .power(2)
         .build()
         .unwrap();
@@ -1641,7 +1641,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
     assert_eq!(s3pp2c.total_proper_fraction, Some(F::new(1u64, 6u64)));
 
     let s3pp2p3 = SymmetryOperation::builder()
-        .generating_element(s3pp2_element.clone())
+        .generating_element(s3pp2_element)
         .power(3)
         .build()
         .unwrap();
@@ -1672,7 +1672,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .unwrap();
 
     let sd3p3 = SymmetryOperation::builder()
-        .generating_element(sd3_element.clone())
+        .generating_element(sd3_element)
         .power(3)
         .build()
         .unwrap();
@@ -1747,7 +1747,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
     assert_eq!(s7p2c.total_proper_fraction, Some(F::new(2u64, 7u64)));
 
     let s7p5 = SymmetryOperation::builder()
-        .generating_element(s7_element.clone())
+        .generating_element(s7_element)
         .power(5)
         .build()
         .unwrap();
@@ -1778,7 +1778,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .unwrap();
 
     let s7pp2 = SymmetryOperation::builder()
-        .generating_element(s7pp2_element.clone())
+        .generating_element(s7pp2_element)
         .power(1)
         .build()
         .unwrap();
@@ -1853,7 +1853,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
     assert_eq!(sip2c.total_proper_fraction, None);
 
     let sip4 = SymmetryOperation::builder()
-        .generating_element(si_element.clone())
+        .generating_element(si_element)
         .power(4)
         .build()
         .unwrap();
@@ -1930,7 +1930,7 @@ fn test_symmetry_operation_poles() {
     );
 
     let c2p2 = SymmetryOperation::builder()
-        .generating_element(c2_element.clone())
+        .generating_element(c2_element)
         .power(2)
         .build()
         .unwrap();
@@ -1953,7 +1953,7 @@ fn test_symmetry_operation_poles() {
     approx::assert_relative_eq!(c2b.calc_pole(), Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt());
 
     let c2bpm1 = SymmetryOperation::builder()
-        .generating_element(c2b_element.clone())
+        .generating_element(c2b_element)
         .power(-1)
         .build()
         .unwrap();
@@ -2108,7 +2108,7 @@ fn test_symmetry_operation_poles() {
     );
 
     let c4p4 = SymmetryOperation::builder()
-        .generating_element(c4_element.clone())
+        .generating_element(c4_element)
         .power(4)
         .build()
         .unwrap();
@@ -2224,7 +2224,7 @@ fn test_symmetry_operation_poles() {
     );
 
     let cip6 = SymmetryOperation::builder()
-        .generating_element(ci_element.clone())
+        .generating_element(ci_element)
         .power(6)
         .build()
         .unwrap();
@@ -2301,7 +2301,7 @@ fn test_symmetry_operation_poles() {
         .unwrap();
 
     let sd2pp2 = SymmetryOperation::builder()
-        .generating_element(sd2pp2_element.clone())
+        .generating_element(sd2pp2_element)
         .power(1)
         .build()
         .unwrap();
@@ -2524,7 +2524,7 @@ fn test_symmetry_operation_poles() {
     approx::assert_relative_eq!(s3pp2p2.calc_pole(), -s3p2.calc_pole());
 
     let s3pp2p3 = SymmetryOperation::builder()
-        .generating_element(s3pp2_element.clone())
+        .generating_element(s3pp2_element)
         .power(3)
         .build()
         .unwrap();
@@ -2672,7 +2672,7 @@ fn test_symmetry_operation_poles() {
     approx::assert_relative_eq!(si.calc_pole(), -Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
 
     let sip2 = SymmetryOperation::builder()
-        .generating_element(si_element.clone())
+        .generating_element(si_element)
         .power(2)
         .build()
         .unwrap();
@@ -2695,7 +2695,7 @@ fn test_symmetry_operation_poles() {
     approx::assert_relative_eq!(sdi.calc_pole(), Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
 
     let sdip2 = SymmetryOperation::builder()
-        .generating_element(sdi_element.clone())
+        .generating_element(sdi_element)
         .power(2)
         .build()
         .unwrap();
@@ -2755,7 +2755,7 @@ fn test_symmetry_operation_comparisons() {
     assert_eq!(c2, c2pm1);
 
     let c2p2 = SymmetryOperation::builder()
-        .generating_element(c2_element.clone())
+        .generating_element(c2_element)
         .power(2)
         .build()
         .unwrap();
@@ -2830,7 +2830,7 @@ fn test_symmetry_operation_comparisons() {
     assert_ne!(c3, c3p2);
 
     let c3p4 = SymmetryOperation::builder()
-        .generating_element(c3_element.clone())
+        .generating_element(c3_element)
         .power(4)
         .build()
         .unwrap();
@@ -2860,7 +2860,7 @@ fn test_symmetry_operation_comparisons() {
     assert_eq!(c3, c3pp2p2);
 
     let c3pp2p3 = SymmetryOperation::builder()
-        .generating_element(c3pp2_element.clone())
+        .generating_element(c3pp2_element)
         .power(3)
         .build()
         .unwrap();
@@ -2912,7 +2912,7 @@ fn test_symmetry_operation_comparisons() {
         .unwrap();
 
     let c4p4 = SymmetryOperation::builder()
-        .generating_element(c4_element.clone())
+        .generating_element(c4_element)
         .power(4)
         .build()
         .unwrap();
@@ -2938,7 +2938,7 @@ fn test_symmetry_operation_comparisons() {
         .unwrap();
 
     let c4bpm1 = SymmetryOperation::builder()
-        .generating_element(c4b_element.clone())
+        .generating_element(c4b_element)
         .power(-1)
         .build()
         .unwrap();
@@ -3143,7 +3143,7 @@ fn test_symmetry_operation_comparisons() {
         .unwrap();
 
     let sd2pp2 = SymmetryOperation::builder()
-        .generating_element(sd2pp2_element.clone())
+        .generating_element(sd2pp2_element)
         .power(1)
         .build()
         .unwrap();
@@ -3318,7 +3318,7 @@ fn test_symmetry_operation_comparisons() {
     assert_eq!(s3pm5, s3);
 
     let s3p6 = SymmetryOperation::builder()
-        .generating_element(s3_element.clone())
+        .generating_element(s3_element)
         .power(6)
         .build()
         .unwrap();
@@ -3343,7 +3343,7 @@ fn test_symmetry_operation_comparisons() {
     assert_eq!(s3pp2, s3pp2c);
 
     let s3pp2p2 = SymmetryOperation::builder()
-        .generating_element(s3pp2_element.clone())
+        .generating_element(s3pp2_element)
         .power(2)
         .build()
         .unwrap();
@@ -3397,7 +3397,7 @@ fn test_symmetry_operation_comparisons() {
         .unwrap();
 
     let s6pp5 = SymmetryOperation::builder()
-        .generating_element(s6pp5_element.clone())
+        .generating_element(s6pp5_element)
         .power(1)
         .build()
         .unwrap();
@@ -3504,7 +3504,7 @@ fn test_symmetry_operation_comparisons() {
     assert_eq!(s7p10, s7pm4);
 
     let s7p11 = SymmetryOperation::builder()
-        .generating_element(s7_element.clone())
+        .generating_element(s7_element)
         .power(11)
         .build()
         .unwrap();
@@ -3546,7 +3546,7 @@ fn test_symmetry_operation_comparisons() {
     assert_eq!(sip2, sip2c);
 
     let sipm8 = SymmetryOperation::builder()
-        .generating_element(si_element.clone())
+        .generating_element(si_element)
         .power(-8)
         .build()
         .unwrap();
@@ -4067,7 +4067,7 @@ fn test_symmetry_operation_collinear_composition() {
     assert_eq!(&c5pm1 * &c5p2, c5);
 
     let c5p3 = SymmetryOperation::builder()
-        .generating_element(c5_element.clone())
+        .generating_element(c5_element)
         .power(3)
         .build()
         .unwrap();
@@ -4107,13 +4107,13 @@ fn test_symmetry_operation_collinear_composition() {
     assert_eq!(&c5 * &c7, c35p12);
 
     let c7pm1 = SymmetryOperation::builder()
-        .generating_element(c7_element.clone())
+        .generating_element(c7_element)
         .power(-1)
         .build()
         .unwrap();
 
     let c35p2 = SymmetryOperation::builder()
-        .generating_element(c35_element.clone())
+        .generating_element(c35_element)
         .power(2)
         .build()
         .unwrap();
@@ -4135,7 +4135,7 @@ fn test_symmetry_operation_collinear_composition() {
         .unwrap();
 
     let c10p3 = SymmetryOperation::builder()
-        .generating_element(c10_element.clone())
+        .generating_element(c10_element)
         .power(3)
         .build()
         .unwrap();
@@ -4170,7 +4170,7 @@ fn test_symmetry_operation_collinear_composition() {
         .unwrap();
 
     let s5pp2 = SymmetryOperation::builder()
-        .generating_element(s5pp2_element.clone())
+        .generating_element(s5pp2_element)
         .power(1)
         .build()
         .unwrap();
@@ -4186,7 +4186,7 @@ fn test_symmetry_operation_collinear_composition() {
     assert_eq!(&s5pp2 * &c5, s5p3);
 
     let s5p5 = SymmetryOperation::builder()
-        .generating_element(s5_element.clone())
+        .generating_element(s5_element)
         .power(5)
         .build()
         .unwrap();
@@ -4202,7 +4202,7 @@ fn test_symmetry_operation_collinear_composition() {
         .unwrap();
 
     let s8 = SymmetryOperation::builder()
-        .generating_element(s8_element.clone())
+        .generating_element(s8_element)
         .power(1)
         .build()
         .unwrap();
@@ -4217,7 +4217,7 @@ fn test_symmetry_operation_collinear_composition() {
         .unwrap();
 
     let c40p13 = SymmetryOperation::builder()
-        .generating_element(c40_element.clone())
+        .generating_element(c40_element)
         .power(13)
         .build()
         .unwrap();
@@ -4233,7 +4233,7 @@ fn test_symmetry_operation_collinear_composition() {
         .unwrap();
 
     let s40p21 = SymmetryOperation::builder()
-        .generating_element(s40_element.clone())
+        .generating_element(s40_element)
         .power(21)
         .build()
         .unwrap();
@@ -4249,7 +4249,7 @@ fn test_symmetry_operation_collinear_composition() {
         .unwrap();
 
     let s1 = SymmetryOperation::builder()
-        .generating_element(s1_element.clone())
+        .generating_element(s1_element)
         .power(1)
         .build()
         .unwrap();
@@ -4265,7 +4265,7 @@ fn test_symmetry_operation_collinear_composition() {
         .unwrap();
 
     let s2 = SymmetryOperation::builder()
-        .generating_element(s2_element.clone())
+        .generating_element(s2_element)
         .power(1)
         .build()
         .unwrap();
@@ -4280,7 +4280,7 @@ fn test_symmetry_operation_collinear_composition() {
         .unwrap();
 
     let sd5 = SymmetryOperation::builder()
-        .generating_element(sd5_element.clone())
+        .generating_element(sd5_element)
         .power(1)
         .build()
         .unwrap();
@@ -4302,7 +4302,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let c2x = SymmetryOperation::builder()
-        .generating_element(c2x_element.clone())
+        .generating_element(c2x_element)
         .power(1)
         .build()
         .unwrap();
@@ -4317,7 +4317,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let c2y = SymmetryOperation::builder()
-        .generating_element(c2y_element.clone())
+        .generating_element(c2y_element)
         .power(1)
         .build()
         .unwrap();
@@ -4332,7 +4332,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let c2z = SymmetryOperation::builder()
-        .generating_element(c2z_element.clone())
+        .generating_element(c2z_element)
         .power(1)
         .build()
         .unwrap();
@@ -4350,7 +4350,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let c3xyz = SymmetryOperation::builder()
-        .generating_element(c3xyz_element.clone())
+        .generating_element(c3xyz_element)
         .power(1)
         .build()
         .unwrap();
@@ -4365,7 +4365,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let c2xz = SymmetryOperation::builder()
-        .generating_element(c2xz_element.clone())
+        .generating_element(c2xz_element)
         .power(1)
         .build()
         .unwrap();
@@ -4380,7 +4380,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let c4zpm1 = SymmetryOperation::builder()
-        .generating_element(c4z_element.clone())
+        .generating_element(c4z_element)
         .power(-1)
         .build()
         .unwrap();
@@ -4399,7 +4399,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let s1x = SymmetryOperation::builder()
-        .generating_element(s1x_element.clone())
+        .generating_element(s1x_element)
         .power(1)
         .build()
         .unwrap();
@@ -4414,7 +4414,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let s1y = SymmetryOperation::builder()
-        .generating_element(s1y_element.clone())
+        .generating_element(s1y_element)
         .power(1)
         .build()
         .unwrap();
@@ -4429,7 +4429,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let s1z = SymmetryOperation::builder()
-        .generating_element(s1z_element.clone())
+        .generating_element(s1z_element)
         .power(1)
         .build()
         .unwrap();
@@ -4485,7 +4485,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let c = SymmetryOperation::builder()
-        .generating_element(c_element.clone())
+        .generating_element(c_element)
         .power(1)
         .build()
         .unwrap();
@@ -4505,7 +4505,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let s1c = SymmetryOperation::builder()
-        .generating_element(s1c_element.clone())
+        .generating_element(s1c_element)
         .power(1)
         .build()
         .unwrap();
@@ -4520,7 +4520,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let c1 = SymmetryOperation::builder()
-        .generating_element(c1_element.clone())
+        .generating_element(c1_element)
         .power(1)
         .build()
         .unwrap();
@@ -4541,7 +4541,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .unwrap();
 
     let s2d = SymmetryOperation::builder()
-        .generating_element(s2d_element.clone())
+        .generating_element(s2d_element)
         .power(1)
         .build()
         .unwrap();
@@ -4570,7 +4570,7 @@ fn test_symmetry_operation_time_reversal() {
     assert!((&tc2x * &tc2x).is_identity());
 
     let c2x = SymmetryOperation::builder()
-        .generating_element(c2x_element.clone())
+        .generating_element(c2x_element)
         .power(1)
         .build()
         .unwrap();
@@ -4600,7 +4600,7 @@ fn test_symmetry_operation_time_reversal() {
         .unwrap();
 
     let c2y = SymmetryOperation::builder()
-        .generating_element(c2y_element.clone())
+        .generating_element(c2y_element)
         .power(1)
         .build()
         .unwrap();
@@ -4675,7 +4675,7 @@ fn test_symmetry_operation_exponentiation() {
     assert_eq!((&c5).pow(-1), c5pm1);
 
     let c5p2 = SymmetryOperation::builder()
-        .generating_element(c5_element.clone())
+        .generating_element(c5_element)
         .power(2)
         .build()
         .unwrap();
@@ -4694,7 +4694,7 @@ fn test_symmetry_operation_exponentiation() {
         .unwrap();
 
     let c6 = SymmetryOperation::builder()
-        .generating_element(c6_element.clone())
+        .generating_element(c6_element)
         .power(1)
         .build()
         .unwrap();
@@ -4710,7 +4710,7 @@ fn test_symmetry_operation_exponentiation() {
         .unwrap();
 
     let c3 = SymmetryOperation::builder()
-        .generating_element(c3_element.clone())
+        .generating_element(c3_element)
         .power(1)
         .build()
         .unwrap();
@@ -4733,7 +4733,7 @@ fn test_symmetry_operation_exponentiation() {
         .unwrap();
 
     let c2pm1 = SymmetryOperation::builder()
-        .generating_element(c2_element.clone())
+        .generating_element(c2_element)
         .power(-1)
         .build()
         .unwrap();
@@ -4766,7 +4766,7 @@ fn test_symmetry_operation_exponentiation() {
     assert!((&s7).pow(14).is_identity());
 
     let s7p2 = SymmetryOperation::builder()
-        .generating_element(s7_element.clone())
+        .generating_element(s7_element)
         .power(2)
         .build()
         .unwrap();
@@ -4786,7 +4786,7 @@ fn test_symmetry_operation_exponentiation() {
         .unwrap();
 
     let ts5 = SymmetryOperation::builder()
-        .generating_element(s5_element.clone())
+        .generating_element(s5_element)
         .power(1)
         .time_reversal_power(1)
         .build()
@@ -4806,7 +4806,7 @@ fn test_symmetry_operation_exponentiation() {
         .unwrap();
 
     let tc5 = SymmetryOperation::builder()
-        .generating_element(c5_element.clone())
+        .generating_element(c5_element)
         .power(1)
         .time_reversal_power(1)
         .build()
@@ -4830,7 +4830,7 @@ fn test_symmetry_operation_hashability() {
         .unwrap();
 
     let c8 = SymmetryOperation::builder()
-        .generating_element(c8_element.clone())
+        .generating_element(c8_element)
         .power(1)
         .build()
         .unwrap();
@@ -4848,7 +4848,7 @@ fn test_symmetry_operation_hashability() {
         .unwrap();
 
     let c4 = SymmetryOperation::builder()
-        .generating_element(c4_element.clone())
+        .generating_element(c4_element)
         .power(1)
         .build()
         .unwrap();
@@ -4867,7 +4867,7 @@ fn test_symmetry_operation_hashability() {
         .unwrap();
 
     let s8 = SymmetryOperation::builder()
-        .generating_element(s8_element.clone())
+        .generating_element(s8_element)
         .power(1)
         .build()
         .unwrap();
@@ -4884,7 +4884,7 @@ fn test_symmetry_operation_hashability() {
         .unwrap();
 
     let tc12 = SymmetryOperation::builder()
-        .generating_element(c12_element.clone())
+        .generating_element(c12_element)
         .power(1)
         .time_reversal_power(1)
         .build()
