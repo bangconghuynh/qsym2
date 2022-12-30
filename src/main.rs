@@ -20,15 +20,15 @@ fn main() {
     });
     let thresh = matches
         .value_of("threshold")
-        .unwrap()
+        .expect("Threshold value not found.")
         .parse::<f64>()
-        .unwrap();
+        .expect("Unable to parse threshold value.");
 
     let mol = Molecule::from_xyz(filename, 1e-4);
     let com = mol.calc_com();
     let inertia = mol.calc_inertia_tensor(&com);
     let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, thresh);
-    println!("Rotational symmetry: {}", rotsym_result);
+    println!("Rotational symmetry: {rotsym_result}");
     let sea_groups = mol.calc_sea_groups();
-    println!("SEAs: {:?}", sea_groups);
+    println!("SEAs: {sea_groups:?}");
 }
