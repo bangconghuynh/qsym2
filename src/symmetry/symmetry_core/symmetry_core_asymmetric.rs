@@ -26,8 +26,13 @@ impl Symmetry {
     ///
     /// * `presym` - A pre-symmetry-analysis struct containing information about
     /// the molecular system.
+    ///
+    /// # Panics
+    ///
+    /// Panics when any inconsistencies are encountered along the point-group detection path.
+    #[allow(clippy::too_many_lines)]
     pub fn analyse_asymmetric(&mut self, presym: &PreSymmetry) {
-        let (_mois, _principal_axes) = presym.molecule.calc_moi();
+        let (_mois, principal_axes) = presym.molecule.calc_moi();
 
         assert!(matches!(
             presym.rotational_symmetry,
@@ -61,7 +66,7 @@ impl Symmetry {
             let mut c2_axes_iter = c2_axes.into_iter();
             self.add_proper(
                 max_ord,
-                c2_axes_iter.next().unwrap(),
+                c2_axes_iter.next().expect("No C2 axes found."),
                 true,
                 presym.dist_threshold,
             );
@@ -69,7 +74,7 @@ impl Symmetry {
             // One other C2 axis is also a generator.
             self.add_proper(
                 max_ord,
-                c2_axes_iter.next().unwrap(),
+                c2_axes_iter.next().expect("No other C2 axes found."),
                 true,
                 presym.dist_threshold,
             );
@@ -81,7 +86,7 @@ impl Symmetry {
                 self.point_group = Some("D2h".to_owned());
                 log::debug!(
                     "Point group determined: {}",
-                    self.point_group.as_ref().unwrap()
+                    self.point_group.as_ref().expect("No point groups found.")
                 );
                 self.add_improper(
                     ORDER_2,
@@ -98,7 +103,7 @@ impl Symmetry {
                     .iter()
                     .map(|ele| ele.axis)
                     .collect();
-                for c2_axis in c2_axes.into_iter() {
+                for c2_axis in c2_axes {
                     assert!(presym.check_improper(&ORDER_1, &c2_axis, &SIG));
                     self.add_improper(
                         ORDER_1,
@@ -112,10 +117,10 @@ impl Symmetry {
                 self.add_improper(
                     ORDER_1,
                     self.get_sigma_elements("")
-                        .unwrap()
+                        .expect("No σ found.")
                         .iter()
                         .next()
-                        .unwrap()
+                        .expect("No σ found.")
                         .axis,
                     true,
                     SIG.clone(),
@@ -127,7 +132,7 @@ impl Symmetry {
                 self.point_group = Some("D2".to_owned());
                 log::debug!(
                     "Point group determined: {}",
-                    self.point_group.as_ref().unwrap()
+                    self.point_group.as_ref().expect("No point groups found.")
                 );
             }
         } else if count_c2 == 1 {
@@ -136,7 +141,11 @@ impl Symmetry {
             assert_eq!(max_ord, ORDER_2);
 
             // Principal axis, which is C2, is also a generator.
-            let c2_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
+            let c2_axis = self.proper_elements[&max_ord]
+                .iter()
+                .next()
+                .expect("No C2 axes found.")
+                .axis;
             self.add_proper(max_ord, c2_axis, true, presym.dist_threshold);
 
             let z_vec = Vector3::new(0.0, 0.0, 1.0);
@@ -154,11 +163,15 @@ impl Symmetry {
                 self.point_group = Some("C2h".to_owned());
                 log::debug!(
                     "Point group determined: {}",
-                    self.point_group.as_ref().unwrap()
+                    self.point_group.as_ref().expect("No point groups found.")
                 );
 
                 // There is one σh.
-                let c2_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
+                let c2_axis = self.proper_elements[&max_ord]
+                    .iter()
+                    .next()
+                    .expect("No C2 axes found.")
+                    .axis;
                 assert!(presym.check_improper(&ORDER_1, &c2_axis, &SIG));
                 self.add_improper(
                     ORDER_1,
@@ -185,15 +198,15 @@ impl Symmetry {
                     RotationalSymmetry::AsymmetricPlanar
                 ) && matches!(presym.molecule.magnetic_atoms, None))
                 {
-                    assert!(presym.check_improper(&ORDER_1, &_principal_axes[2], &SIG));
-                    count_sigmav += self.add_improper(
+                    assert!(presym.check_improper(&ORDER_1, &principal_axes[2], &SIG));
+                    count_sigmav += u32::from(self.add_improper(
                         ORDER_1,
-                        _principal_axes[2],
+                        principal_axes[2],
                         false,
                         SIG.clone(),
                         Some("v".to_owned()),
                         presym.dist_threshold,
-                    ) as u32;
+                    ));
                 }
 
                 let sea_groups = &presym.sea_groups;
@@ -211,14 +224,14 @@ impl Symmetry {
                         let normal = (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords)
                             .normalize();
                         if presym.check_improper(&ORDER_1, &normal, &SIG) {
-                            count_sigmav += self.add_improper(
+                            count_sigmav += u32::from(self.add_improper(
                                 ORDER_1,
                                 normal,
                                 false,
                                 SIG.clone(),
                                 Some("v".to_owned()),
                                 presym.dist_threshold,
-                            ) as u32;
+                            ));
                         }
                     }
                 }
@@ -228,17 +241,17 @@ impl Symmetry {
                     self.point_group = Some("C2v".to_owned());
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
 
                     // In C2v, σv is also a generator.
                     self.add_improper(
                         ORDER_1,
                         self.get_sigma_elements("v")
-                            .unwrap()
+                            .expect("No σv found.")
                             .iter()
                             .next()
-                            .unwrap()
+                            .expect("No σv found.")
                             .axis,
                         true,
                         SIG.clone(),
@@ -250,7 +263,7 @@ impl Symmetry {
                     self.point_group = Some("C2".to_owned());
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
                 }
             }
@@ -263,7 +276,7 @@ impl Symmetry {
                 self.point_group = Some("Ci".to_owned());
                 log::debug!(
                     "Point group determined: {}",
-                    self.point_group.as_ref().unwrap()
+                    self.point_group.as_ref().expect("No point groups found.")
                 );
                 self.add_improper(
                     ORDER_2,
@@ -297,14 +310,14 @@ impl Symmetry {
                         let normal = (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords)
                             .normalize();
                         if presym.check_improper(&ORDER_1, &normal, &SIG) {
-                            count_sigma += self.add_improper(
+                            count_sigma += u32::from(self.add_improper(
                                 ORDER_1,
                                 normal,
                                 false,
                                 SIG.clone(),
                                 None,
                                 presym.dist_threshold,
-                            ) as u32;
+                            ));
                         }
                     }
                 }
@@ -318,13 +331,13 @@ impl Symmetry {
                     log::debug!("Planar molecule based on MoIs but no σ found from SEA groups.");
                     log::debug!("Locating the planar mirror plane based on MoIs...");
                     assert!(
-                        presym.check_improper(&ORDER_1, &_principal_axes[2], &SIG),
+                        presym.check_improper(&ORDER_1, &principal_axes[2], &SIG),
                         "Failed to check reflection symmetry from highest-MoI principal axis."
                     );
                     assert!(
                         self.add_improper(
                             ORDER_1,
-                            _principal_axes[2],
+                            principal_axes[2],
                             false,
                             SIG.clone(),
                             None,
@@ -371,9 +384,12 @@ impl Symmetry {
                 log::debug!("Located {} σ.", count_sigma);
                 if count_sigma > 0 {
                     assert_eq!(count_sigma, 1);
-                    let old_sigmas = self.improper_elements.remove(&ORDER_1).unwrap();
+                    let old_sigmas = self
+                        .improper_elements
+                        .remove(&ORDER_1)
+                        .expect("No σ found.");
                     assert_eq!(old_sigmas.len(), 1);
-                    let old_sigma = old_sigmas.into_iter().next().unwrap();
+                    let old_sigma = old_sigmas.into_iter().next().expect("No σ found.");
                     self.add_improper(
                         ORDER_1,
                         old_sigma.axis,
@@ -394,19 +410,23 @@ impl Symmetry {
                     self.point_group = Some("Cs".to_owned());
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
                 } else {
                     self.add_proper(
                         ORDER_1,
-                        self.proper_elements[&ORDER_1].iter().next().unwrap().axis,
+                        self.proper_elements[&ORDER_1]
+                            .iter()
+                            .next()
+                            .expect("No identity found.")
+                            .axis,
                         true,
                         presym.dist_threshold,
                     );
                     self.point_group = Some("C1".to_owned());
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
                 }
             }

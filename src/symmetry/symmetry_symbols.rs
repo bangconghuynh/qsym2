@@ -419,7 +419,10 @@ impl MathematicalSymbol for MullikenIrrepSymbol {
     /// The dimensionality of the irreducible representation.
     fn multiplicity(&self) -> Option<usize> {
         if let Some(&mult) = MULLIKEN_IRREP_DEGENERACIES.get(self.main()) {
-            Some(mult as usize)
+            Some(
+                mult.try_into()
+                    .unwrap_or_else(|_| panic!("Unable to convert {mult} to `usize`.")),
+            )
         } else {
             None
         }

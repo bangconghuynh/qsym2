@@ -85,23 +85,48 @@ impl PreSymmetryBuilder {
     }
 
     fn calc_rotational_symmetry(&self) -> RotationalSymmetry {
-        let com = self.molecule.as_ref().unwrap().calc_com();
-        let inertia = self.molecule.as_ref().unwrap().calc_inertia_tensor(&com);
+        let com = self
+            .molecule
+            .as_ref()
+            .expect("A molecule has not been set.")
+            .calc_com();
+        let inertia = self
+            .molecule
+            .as_ref()
+            .expect("A molecule has not been set.")
+            .calc_inertia_tensor(&com);
         approx::assert_relative_eq!(
             com,
             Point3::origin(),
-            epsilon = self.molecule.as_ref().unwrap().threshold,
-            max_relative = self.molecule.as_ref().unwrap().threshold
+            epsilon = self
+                .molecule
+                .as_ref()
+                .expect("A molecule has not been set.")
+                .threshold,
+            max_relative = self
+                .molecule
+                .as_ref()
+                .expect("A molecule has not been set.")
+                .threshold
         );
-        rotsym::calc_rotational_symmetry(&inertia, self.moi_threshold.unwrap())
+        rotsym::calc_rotational_symmetry(
+            &inertia,
+            self.moi_threshold.expect("MoI threshold has not been set."),
+        )
     }
 
     fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
-        self.molecule.as_ref().unwrap().calc_sea_groups()
+        self.molecule
+            .as_ref()
+            .expect("A molecule has not been set.")
+            .calc_sea_groups()
     }
 
     fn get_dist_threshold(&self) -> f64 {
-        self.molecule.as_ref().unwrap().threshold
+        self.molecule
+            .as_ref()
+            .expect("A molecule has not been set.")
+            .threshold
     }
 }
 
@@ -231,9 +256,8 @@ impl Symmetry {
             .axis(Vector3::new(0.0, 0.0, 1.0))
             .kind(SymmetryElementKind::Proper)
             .build()
-            .unwrap();
-        self.proper_elements
-            .insert(ORDER_1, HashSet::from([c1]));
+            .expect("Unable to construct the identity element.");
+        self.proper_elements.insert(ORDER_1, HashSet::from([c1]));
         match &presym.rotational_symmetry {
             RotationalSymmetry::Spherical => self.analyse_spherical(presym),
             RotationalSymmetry::ProlateLinear => self.analyse_linear(presym),
@@ -241,7 +265,7 @@ impl Symmetry {
             | RotationalSymmetry::OblateNonPlanar
             | RotationalSymmetry::ProlateNonLinear => self.analyse_symmetric(presym),
             RotationalSymmetry::AsymmetricPlanar | RotationalSymmetry::AsymmetricNonPlanar => {
-                self.analyse_asymmetric(presym)
+                self.analyse_asymmetric(presym);
             }
         }
     }
@@ -274,7 +298,7 @@ impl Symmetry {
             .kind(SymmetryElementKind::Proper)
             .generator(generator)
             .build()
-            .unwrap();
+            .expect("Unable to construct a proper element.");
         let detailed_symbol = element.get_detailed_symbol();
         let standard_symbol = element.get_standard_symbol();
         let result = if generator {
@@ -286,7 +310,7 @@ impl Symmetry {
             } else {
                 self.proper_generators
                     .get_mut(&order)
-                    .unwrap()
+                    .unwrap_or_else(|| panic!("Proper elements C{order} not found."))
                     .insert(element)
             }
         } else if let std::collections::hash_map::Entry::Vacant(e) =
@@ -297,7 +321,7 @@ impl Symmetry {
         } else {
             self.proper_elements
                 .get_mut(&order)
-                .unwrap()
+                .unwrap_or_else(|| panic!("Proper elements C{order} not found."))
                 .insert(element)
         };
         // } else if self.proper_elements.contains_key(&order) {
@@ -368,7 +392,7 @@ impl Symmetry {
                 .kind(kind)
                 .generator(generator)
                 .build()
-                .unwrap()
+                .expect("Unable to construct an improper symmetry element.")
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false);
             if sym_ele.proper_order == ElementOrder::Int(1) {
                 sym_ele.additional_subscript = sigma_str;
@@ -383,7 +407,7 @@ impl Symmetry {
                 .kind(kind)
                 .generator(generator)
                 .build()
-                .unwrap()
+                .expect("Unable to construct an improper symmetry element.")
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false)
         };
         let sig_order = element.proper_order;
@@ -400,7 +424,7 @@ impl Symmetry {
             } else {
                 self.improper_generators
                     .get_mut(&sig_order)
-                    .unwrap()
+                    .unwrap_or_else(|| panic!("Improper elements S{sig_order} not found."))
                     .insert(element)
             }
         } else if let std::collections::hash_map::Entry::Vacant(e) =
@@ -411,7 +435,7 @@ impl Symmetry {
         } else {
             self.improper_elements
                 .get_mut(&sig_order)
-                .unwrap()
+                .unwrap_or_else(|| panic!("Improper elements S{sig_order} not found."))
                 .insert(element)
         };
         let dest_str = if generator {
@@ -499,13 +523,19 @@ impl Symmetry {
     ///
     /// The highest proper rotation order.
     pub fn get_max_proper_order(&self) -> ElementOrder {
-        *self.proper_generators
+        *self
+            .proper_generators
             .keys()
             .chain(self.proper_elements.keys())
             .max()
-            .unwrap()
+            .expect("No highest proper rotation order could be obtained.")
     }
 
+    /// Determines if this group is an infinite group.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this group is an infinite group.
     pub fn is_infinite(&self) -> bool {
         self.get_max_proper_order() == ElementOrder::Inf
             || *self
@@ -528,10 +558,11 @@ impl Symmetry {
 /// * `asymmetric` - If `true`, the search assumes that the group is one of the
 /// Abelian point groups for which the highest possible rotation order is $`2`$
 /// and there can be at most three $`C_2`$ axes.
+#[allow(clippy::too_many_lines)]
 fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric: bool) {
     let mut linear_sea_groups: Vec<&Vec<Atom>> = vec![];
     let mut count_c2: usize = 0;
-    for sea_group in presym.sea_groups.iter() {
+    for sea_group in &presym.sea_groups {
         if asymmetric && count_c2 == 3 {
             break;
         }
@@ -579,23 +610,31 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                         );
                         divisors::get_divisors(k_sea)
                     };
-                    for k_fac in k_fac_range.iter() {
+                    for k_fac in &k_fac_range {
                         if presym.check_proper(
-                            &ElementOrder::Int((*k_fac).try_into().unwrap()),
+                            &ElementOrder::Int(
+                                (*k_fac).try_into().unwrap_or_else(|_| {
+                                    panic!("Unable to convert {k_fac} to `u32`.")
+                                }),
+                            ),
                             &sea_axes[2],
                         ) {
                             match *k_fac {
                                 2 => {
-                                    count_c2 += sym.add_proper(
-                                        ElementOrder::Int(*k_fac as u32),
+                                    count_c2 += usize::from(sym.add_proper(
+                                        ElementOrder::Int((*k_fac).try_into().unwrap_or_else(
+                                            |_| panic!("Unable to convert {k_fac} to `u32`."),
+                                        )),
                                         sea_axes[2],
                                         false,
                                         presym.dist_threshold,
-                                    ) as usize;
+                                    ));
                                 }
                                 _ => {
                                     sym.add_proper(
-                                        ElementOrder::Int(*k_fac as u32),
+                                        ElementOrder::Int((*k_fac).try_into().unwrap_or_else(
+                                            |_| panic!("Unable to convert {k_fac} to `u32`."),
+                                        )),
                                         sea_axes[2],
                                         false,
                                         presym.dist_threshold,
@@ -626,14 +665,16 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                 .moi_threshold(presym.moi_threshold)
                                 .molecule(&sea_mol, true)
                                 .build()
-                                .unwrap();
-                            let mut sea_sym = Symmetry::builder().build().unwrap();
+                                .expect("Unable to construct a `PreSymmetry` structure.");
+                            let mut sea_sym = Symmetry::builder()
+                                .build()
+                                .expect("Unable to construct a default `Symmetry` structure.");
                             log::debug!("Symmetry analysis for spherical top SEA begins.");
                             log::debug!("-----------------------------------------------");
                             sea_sym.analyse(&sea_presym);
                             log::debug!("Symmetry analysis for spherical top SEA ends.");
                             log::debug!("---------------------------------------------");
-                            for (order, proper_elements) in sea_sym.proper_elements.iter() {
+                            for (order, proper_elements) in &sea_sym.proper_elements {
                                 for proper_element in proper_elements {
                                     if presym.check_proper(order, &proper_element.axis) {
                                         sym.add_proper(
@@ -645,7 +686,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                     }
                                 }
                             }
-                            for (order, improper_elements) in sea_sym.improper_elements.iter() {
+                            for (order, improper_elements) in &sea_sym.improper_elements {
                                 for improper_element in improper_elements {
                                     if presym.check_improper(order, &improper_element.axis, &SIG) {
                                         sym.add_improper(
@@ -666,16 +707,18 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                 .iter()
                                 .chain(vec![k_sea / 2].iter())
                             {
-                                let k_fac_order = ElementOrder::Int(*k_fac as u32);
+                                let k_fac_order =
+                                    ElementOrder::Int((*k_fac).try_into().unwrap_or_else(|_| {
+                                        panic!("Unable to convert {k_fac} to u32.")
+                                    }));
                                 if presym.check_proper(&k_fac_order, &sea_axes[0]) {
                                     if *k_fac == 2 {
-                                        count_c2 += sym.add_proper(
+                                        count_c2 += usize::from(sym.add_proper(
                                             k_fac_order,
                                             sea_axes[0],
                                             false,
                                             presym.dist_threshold,
-                                        )
-                                            as usize;
+                                        ));
                                     } else {
                                         sym.add_proper(
                                             k_fac_order,
@@ -700,15 +743,18 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                             .iter()
                             .chain(vec![k_sea / 2].iter())
                         {
-                            let k_fac_order = ElementOrder::Int(*k_fac as u32);
+                            let k_fac_order =
+                                ElementOrder::Int((*k_fac).try_into().unwrap_or_else(|_| {
+                                    panic!("Unable to convert {k_fac} to u32.")
+                                }));
                             if presym.check_proper(&k_fac_order, &sea_axes[2]) {
                                 if *k_fac == 2 {
-                                    count_c2 += sym.add_proper(
+                                    count_c2 += usize::from(sym.add_proper(
                                         k_fac_order,
                                         sea_axes[2],
                                         false,
                                         presym.dist_threshold,
-                                    ) as usize;
+                                    ));
                                 } else {
                                     sym.add_proper(
                                         k_fac_order,
@@ -722,14 +768,14 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                     } else {
                         // Asymmetric top
                         log::debug!("An asymmetric top SEA set detected.");
-                        for sea_axis in sea_axes.iter() {
+                        for sea_axis in &sea_axes {
                             if presym.check_proper(&ORDER_2, sea_axis) {
-                                count_c2 += sym.add_proper(
+                                count_c2 += usize::from(sym.add_proper(
                                     ORDER_2,
                                     *sea_axis,
                                     false,
                                     presym.dist_threshold,
-                                ) as usize;
+                                ));
                             }
                         }
                     }
@@ -747,27 +793,29 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
 
                 // Case B: C2 might cross through any two atoms
                 if presym.check_proper(&ORDER_2, &atom_i_pos.coords) {
-                    count_c2 += sym.add_proper(
+                    count_c2 += usize::from(sym.add_proper(
                         ORDER_2,
                         atom_i_pos.coords,
                         false,
                         presym.dist_threshold,
-                    ) as usize;
+                    ));
                 }
 
                 // Case A: C2 might cross through the midpoint of two atoms
                 let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
                 if midvec.norm() > presym.dist_threshold && presym.check_proper(&ORDER_2, &midvec) {
                     count_c2 +=
-                        sym.add_proper(ORDER_2, midvec, false, presym.dist_threshold)
-                            as usize;
+                        usize::from(sym.add_proper(ORDER_2, midvec, false, presym.dist_threshold));
                 } else if let Some(electric_atoms) = &presym.molecule.electric_atoms {
                     let com = presym.molecule.calc_com();
                     let e_vector = electric_atoms[0].coordinates - com;
                     if presym.check_proper(&ORDER_2, &e_vector) {
-                        count_c2 +=
-                            sym.add_proper(ORDER_2, e_vector, false, presym.dist_threshold)
-                                as usize;
+                        count_c2 += usize::from(sym.add_proper(
+                            ORDER_2,
+                            e_vector,
+                            false,
+                            presym.dist_threshold,
+                        ));
                     }
                 }
             }

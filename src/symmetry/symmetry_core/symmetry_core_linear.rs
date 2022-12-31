@@ -13,6 +13,10 @@ impl Symmetry {
     ///
     /// * `presym` - A pre-symmetry-analysis struct containing information about
     /// the molecular system.
+    ///
+    /// # Panics
+    ///
+    /// Panics when any inconsistencies are encountered along the point-group detection path.
     pub fn analyse_linear(&mut self, presym: &PreSymmetry) {
         let (mois, principal_axes) = presym.molecule.calc_moi();
 
@@ -105,7 +109,7 @@ impl Symmetry {
         }
         log::debug!(
             "Point group determined: {}",
-            self.point_group.as_ref().unwrap()
+            self.point_group.as_ref().expect("No point groups found.")
         );
     }
 }

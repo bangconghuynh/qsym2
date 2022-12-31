@@ -67,7 +67,11 @@ impl Symmetry {
                             c2_ele.axis.dot(&principal_axis).abs() < presym.dist_threshold
                         })
                         .count();
-                    ElementOrder::Int(n_c2_perp as u32) == max_ord
+                    ElementOrder::Int(
+                        n_c2_perp
+                            .try_into()
+                            .unwrap_or_else(|_| panic!("Unable to convert {n_c2_perp} to `u32`.")),
+                    ) == max_ord
                 } else {
                     max_ord == ORDER_2 && self.proper_elements[&ORDER_2].len() == 3
                 }
