@@ -152,6 +152,7 @@ impl PreSymmetry {
     /// # Returns
     ///
     /// A flag indicating if the $`C_n`$ element exists in `[Self::molecule]`.
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn check_proper(&self, order: &ElementOrder, axis: &Vector3<f64>) -> bool {
         assert_ne!(
             *order,
@@ -176,6 +177,7 @@ impl PreSymmetry {
     /// # Returns
     ///
     /// A flag indicating if the improper element exists in `[Self::molecule]`.
+    #[allow(clippy::trivially_copy_pass_by_ref)]
     fn check_improper(
         &self,
         order: &ElementOrder,
