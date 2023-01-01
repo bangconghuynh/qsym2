@@ -20,13 +20,17 @@ impl ElementOrder {
     ///
     /// # Arguments
     ///
-    /// * order - A floating-point order value which must be either integral or
+    /// * `order` - A floating-point order value which must be either integral or
     /// infinite.
-    /// * thresh - A threshold for determining the integrality of `order`.
+    /// * `thresh` - A threshold for determining the integrality of `order`.
     ///
     /// # Returns
     ///
     /// An element order.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `order` is not positive.
     pub fn new(order: f64, thresh: f64) -> Self {
         assert!(
             order.is_sign_positive(),
@@ -55,7 +59,7 @@ impl ElementOrder {
     /// The floating-point representation of the current element order.
     pub fn to_float(&self) -> f64 {
         match self {
-            Self::Int(s_i) => *s_i as f64,
+            Self::Int(s_i) => f64::from(*s_i),
             Self::Inf => f64::INFINITY,
         }
     }
@@ -108,8 +112,8 @@ impl Hash for ElementOrder {
 impl fmt::Display for ElementOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self {
-            Self::Int(s_i) => write!(f, "{}", s_i),
-            Self::Inf => write!(f, "{}", "∞".to_owned()),
+            Self::Int(s_i) => write!(f, "{s_i}"),
+            Self::Inf => write!(f, "∞"),
         }
     }
 }
