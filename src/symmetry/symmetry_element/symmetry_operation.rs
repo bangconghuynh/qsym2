@@ -3,8 +3,8 @@ use std::hash::{Hash, Hasher};
 use std::ops::Mul;
 
 use approx;
-use fraction;
 use derive_builder::Builder;
+use fraction;
 use nalgebra::{Point3, Vector3};
 use num::Integer;
 use num_traits::Pow;
@@ -147,22 +147,30 @@ impl SymmetryOperationBuilder {
         geometry::normalise_rotation_angle(
             self.generating_element
                 .as_ref()
-                .unwrap()
+                .expect("Generating element has not been set.")
                 .proper_angle
-                .unwrap()
-                * (self.power.unwrap() as f64),
-            self.generating_element.as_ref().unwrap().threshold,
+                .expect("Proper angle has not been set.")
+                * (f64::from(self.power.expect("Power has not been set."))),
+            self.generating_element
+                .as_ref()
+                .expect("Generating element has not been set.")
+                .threshold,
         )
     }
 
     fn calc_total_proper_fraction(&self) -> Option<F> {
-        match self.generating_element.as_ref().unwrap().proper_fraction {
+        match self
+            .generating_element
+            .as_ref()
+            .expect("Generating element has not been set.")
+            .proper_fraction
+        {
             Some(frac) => {
-                let pow = self.power.unwrap();
+                let pow = self.power.expect("Power has not been set.");
                 let unnormalised_frac = if pow >= 0 {
-                    (frac * F::new(pow.unsigned_abs() as u64, 1u64)).fract()
+                    (frac * F::new(u64::from(pow.unsigned_abs()), 1u64)).fract()
                 } else {
-                    F::from(1u64) - (frac * F::new(pow.unsigned_abs() as u64, 1u64)).fract()
+                    F::from(1u64) - (frac * F::new(u64::from(pow.unsigned_abs()), 1u64)).fract()
                 };
                 if unnormalised_frac == F::from(0u64) {
                     Some(F::from(1u64))
@@ -205,6 +213,12 @@ impl SymmetryOperation {
     /// # Returns
     ///
     /// The constructed symmetry operation.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the scalar part of the provided quaternion lies outside $`[0, 1]`$ by more than
+    /// the specified threshold `thresh`, or when the rotation angle associated with the quaternion
+    /// cannot be gracefully converted into an integer tuple of order and power.
     pub fn from_quaternion(
         qtn: Quaternion,
         proper: bool,
@@ -228,8 +242,12 @@ impl SymmetryOperation {
                 );
                 (
                     axis,
-                    *proper_fraction.denom().unwrap(),
-                    *proper_fraction.numer().unwrap(),
+                    *proper_fraction.denom().unwrap_or_else(|| {
+                        panic!("Unable to extract the denominator of `{proper_fraction}`.")
+                    }),
+                    *proper_fraction.numer().unwrap_or_else(|| {
+                        panic!("Unable to extract the numerator of `{proper_fraction}`.")
+                    }),
                 )
             };
 
@@ -246,14 +264,14 @@ impl SymmetryOperation {
             .axis(axis)
             .kind(kind)
             .build()
-            .unwrap();
+            .expect("Unable to construct a symmetry element.");
 
         SymmetryOperation::builder()
             .generating_element(element)
             .power(1)
             .time_reversal_power(time_reversal_power)
             .build()
-            .unwrap()
+            .expect("Unable to construct a symmetry operation.")
     }
 
     /// Finds the pole associated with this operation.
@@ -275,6 +293,10 @@ impl SymmetryOperation {
     /// # Returns
     ///
     /// The pole associated with this operation.
+    ///
+    /// # Panics
+    ///
+    /// Panics when no total proper fractions could be found for this operation.
     pub fn calc_pole(&self) -> Point3<f64> {
         let op = if self.is_proper() {
             self.clone()
@@ -284,20 +306,36 @@ impl SymmetryOperation {
         match op.generating_element.proper_order {
             ElementOrder::Int(_) => {
                 let frac_1_2 = F::new(1u64, 2u64);
-                if op.total_proper_fraction.unwrap() == frac_1_2 {
+                if op
+                    .total_proper_fraction
+                    .expect("No total proper fractions found.")
+                    == frac_1_2
+                {
                     // Binary rotations or reflections
                     Point3::from(geometry::get_positive_pole(
                         &op.generating_element.axis,
                         op.generating_element.threshold,
                     ))
-                } else if op.total_proper_fraction.unwrap() < frac_1_2 {
+                } else if op
+                    .total_proper_fraction
+                    .expect("No total proper fractions found.")
+                    < frac_1_2
+                {
                     // Positive rotation angles
                     Point3::from(op.generating_element.axis)
-                } else if op.total_proper_fraction.unwrap() < F::from(1u64) {
+                } else if op
+                    .total_proper_fraction
+                    .expect("No total proper fractions found.")
+                    < F::from(1u64)
+                {
                     // Negative rotation angles
                     Point3::from(-op.generating_element.axis)
                 } else {
-                    assert_eq!(op.total_proper_fraction.unwrap(), F::from(1u64));
+                    assert_eq!(
+                        op.total_proper_fraction
+                            .expect("No total proper fractions found."),
+                        F::from(1u64)
+                    );
                     Point3::origin()
                 }
             }
@@ -348,6 +386,11 @@ impl SymmetryOperation {
     /// # Returns
     ///
     /// The quaternion associated with this operation.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the calculated scalar part of the quaternion lies outside the closed interval
+    /// $`[0, 1]`$ by more than the threshold value stored in the generating element in `self`.
     pub fn calc_quaternion(&self) -> Quaternion {
         let c_self = match self.generating_element.kind {
             SymmetryElementKind::Proper => self.clone(),
@@ -369,6 +412,15 @@ impl SymmetryOperation {
     /// Returns a copy of the current symmetry operation with the generating element
     /// converted to the requested improper kind (power-preserving), provided that
     /// it is an improper element.
+    ///
+    /// # Arguments
+    ///
+    /// `improper_kind` - The improper kind to which `self` is to be converted.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the converted symmetry operation cannot be constructed.
+    #[must_use]
     pub fn convert_to_improper_kind(&self, improper_kind: &SymmetryElementKind) -> Self {
         let c_element = self
             .generating_element
@@ -378,14 +430,14 @@ impl SymmetryOperation {
             .power(self.power)
             .time_reversal_power(self.time_reversal_power)
             .build()
-            .unwrap()
+            .expect("Unable to construct a symmetry operation.")
     }
 
     /// Generates the abbreviated symbol for this symmetry operation, which classifies
     /// certain improper axes into inversion centres or mirror planes,
     pub fn get_abbreviated_symbol(&self) -> String {
         let timerev = if self.time_reversal_power == 0 {
-            "".to_string()
+            String::new()
         } else if self.time_reversal_power == 1 {
             "θ·".to_string()
         } else {
@@ -413,7 +465,11 @@ impl FiniteOrder for SymmetryOperation {
 
     /// Calculates the order of this symmetry operation.
     fn order(&self) -> Self::Int {
-        let denom = *self.total_proper_fraction.unwrap().denom().unwrap();
+        let denom = *self
+            .total_proper_fraction
+            .expect("No total proper fractions found.")
+            .denom()
+            .expect("Unable to extract the denominator.");
         if (self.is_proper() && !self.is_antiunitary()) || denom.rem_euclid(2) == 0 {
             denom
         } else {
@@ -454,7 +510,10 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                 ElementOrder::Inf => {
                     approx::relative_eq!(
                         geometry::normalise_rotation_angle(
-                            self.generating_element.proper_angle.unwrap() * (self.power as f64),
+                            self.generating_element
+                                .proper_angle
+                                .expect("No proper angles found for the generating element.")
+                                * (f64::from(self.power)),
                             self.generating_element.threshold
                         ) % (2.0 * std::f64::consts::PI),
                         0.0,
@@ -480,7 +539,10 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     } else {
                         approx::relative_eq!(
                             geometry::normalise_rotation_angle(
-                                self.generating_element.proper_angle.unwrap() * (self.power as f64),
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
                                 self.generating_element.threshold
                             ) % (2.0 * std::f64::consts::PI),
                             std::f64::consts::PI,
@@ -495,7 +557,10 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     } else {
                         approx::relative_eq!(
                             geometry::normalise_rotation_angle(
-                                self.generating_element.proper_angle.unwrap() * (self.power as f64),
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
                                 self.generating_element.threshold
                             ) % (2.0 * std::f64::consts::PI),
                             0.0,
@@ -521,7 +586,10 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                 ElementOrder::Inf => {
                     approx::relative_eq!(
                         geometry::normalise_rotation_angle(
-                            self.generating_element.proper_angle.unwrap() * (self.power as f64),
+                            self.generating_element
+                                .proper_angle
+                                .expect("No proper angles found for the generating element.")
+                                * (f64::from(self.power)),
                             self.generating_element.threshold
                         ) % (2.0 * std::f64::consts::PI),
                         std::f64::consts::PI,
@@ -547,7 +615,10 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     } else {
                         approx::relative_eq!(
                             geometry::normalise_rotation_angle(
-                                self.generating_element.proper_angle.unwrap() * (self.power as f64),
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
                                 self.generating_element.threshold
                             ) % (2.0 * std::f64::consts::PI),
                             0.0,
@@ -562,7 +633,10 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     } else {
                         approx::relative_eq!(
                             geometry::normalise_rotation_angle(
-                                self.generating_element.proper_angle.unwrap() * (self.power as f64),
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
                                 self.generating_element.threshold
                             ) % (2.0 * std::f64::consts::PI),
                             std::f64::consts::PI,
@@ -588,7 +662,10 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                 ElementOrder::Inf => {
                     approx::relative_eq!(
                         geometry::normalise_rotation_angle(
-                            self.generating_element.proper_angle.unwrap() * (self.power as f64),
+                            self.generating_element
+                                .proper_angle
+                                .expect("No proper angles found for the generating element.")
+                                * (f64::from(self.power)),
                             self.generating_element.threshold
                         ) % (2.0 * std::f64::consts::PI),
                         0.0,
@@ -603,20 +680,16 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
 impl fmt::Debug for SymmetryOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let timerev = if self.time_reversal_power == 0 {
-            "".to_string()
+            String::new()
         } else if self.time_reversal_power == 1 {
             "θ·".to_string()
         } else {
             format!("θ^{}·", self.time_reversal_power)
         };
         if self.power == 1 {
-            write!(f, "{}{:?}", timerev, self.generating_element)
+            write!(f, "{timerev}{:?}", self.generating_element)
         } else {
-            write!(
-                f,
-                "{}[{:?}]^{}",
-                timerev, self.generating_element, self.power
-            )
+            write!(f, "{timerev}[{:?}]^{}", self.generating_element, self.power)
         }
     }
 }
@@ -817,7 +890,7 @@ impl Pow<i32> for &SymmetryOperation {
             .power(self.power * rhs)
             .time_reversal_power(self.time_reversal_power * rhs)
             .build()
-            .unwrap()
+            .expect("Unable to construct a symmetry operation.")
     }
 }
 
