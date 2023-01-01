@@ -47,6 +47,7 @@ impl ElementOrder {
             epsilon = thresh,
             max_relative = thresh
         ) {
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
             return Self::Int(rounded_order as u32);
         }
         panic!("The input order is not an integer.");
