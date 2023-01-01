@@ -245,6 +245,7 @@ where
     /// This method sets the [`Self::conjugacy_classes`], [`Self::inverse_conjugacy_classes`],
     /// [`Self::conjugacy_class_transversal`], [`Self::element_to_conjugacy_classes`], and
     /// [`Self::class_number`] fields.
+    #[allow(clippy::too_many_lines)]
     fn find_conjugacy_classes(&mut self) {
         // Find conjugacy classes
         log::debug!("Finding conjugacy classes...");

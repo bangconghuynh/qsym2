@@ -47,9 +47,13 @@ impl<R: Clone> CharacterTableBuilder<R> {
     fn order(&self) -> usize {
         self.classes
             .as_ref()
-            .unwrap()
+            .expect("Conjugacy classes not found.")
             .keys()
-            .map(|cc| cc.multiplicity().unwrap())
+            .map(|cc| {
+                cc.multiplicity().unwrap_or_else(|| {
+                    panic!("Unable to find the multiplicity for conjugacy class `{cc}`.")
+                })
+            })
             .sum()
     }
 }
@@ -63,14 +67,18 @@ impl<R: Clone> CharacterTable<R> {
     ///
     /// # Arguments
     ///
-    /// * name - A name given to the character table.
-    /// * irreps - A slice of Mulliken irreducible representation symbols in the right order.
-    /// * classes - A slice of conjugacy class symbols in the right order.
-    /// * char_arr - A two-dimensional array of characters,
+    /// * `name` - A name given to the character table.
+    /// * `irreps` - A slice of Mulliken irreducible representation symbols in the right order.
+    /// * `classes` - A slice of conjugacy class symbols in the right order.
+    /// * `char_arr` - A two-dimensional array of characters,
     ///
     /// # Returns
     ///
-    /// The required character.
+    /// A character table.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the character table cannot be constructed.
     pub fn new(
         name: &str,
         irreps: &[MullikenIrrepSymbol],
@@ -98,10 +106,8 @@ impl<R: Clone> CharacterTable<R> {
             .map(|(i, class)| (class, i))
             .collect();
 
-        let principal_classes_indexset: IndexSet<ClassSymbol<R>> = principal_classes
-            .iter()
-            .cloned()
-            .collect();
+        let principal_classes_indexset: IndexSet<ClassSymbol<R>> =
+            principal_classes.iter().cloned().collect();
 
         let frobenius_schurs_indexmap = iter::zip(irreps, frobenius_schurs)
             .map(|(irrep, &fsi)| (irrep.clone(), fsi))
@@ -115,7 +121,7 @@ impl<R: Clone> CharacterTable<R> {
             .characters(char_arr)
             .frobenius_schurs(frobenius_schurs_indexmap)
             .build()
-            .unwrap()
+            .expect("Unable to construct a character table.")
     }
 
     /// Retrieves the character of a particular irreducible representation in a particular
@@ -123,15 +129,25 @@ impl<R: Clone> CharacterTable<R> {
     ///
     /// # Arguments
     ///
-    /// * irrep - A Mulliken irreducible representation symbol.
-    /// * class - A conjugacy class symbol.
+    /// * `irrep` - A Mulliken irreducible representation symbol.
+    /// * `class` - A conjugacy class symbol.
     ///
     /// # Returns
     ///
     /// The required character.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the specified `irrep` or `class` cannot be found.
     pub fn get_character(&self, irrep: &MullikenIrrepSymbol, class: &ClassSymbol<R>) -> &Character {
-        let row = self.irreps.get(irrep).unwrap_or_else(|| panic!("Irrep {} not found.", irrep));
-        let col = self.classes.get(class).unwrap_or_else(|| panic!("Class {} not found.", class));
+        let row = self
+            .irreps
+            .get(irrep)
+            .unwrap_or_else(|| panic!("Irrep {irrep} not found."));
+        let col = self
+            .classes
+            .get(class)
+            .unwrap_or_else(|| panic!("Conjugacy class {class} not found."));
         &self.characters[(*row, *col)]
     }
 
@@ -140,13 +156,16 @@ impl<R: Clone> CharacterTable<R> {
     ///
     /// # Arguments
     ///
-    /// * irrep - A Mulliken irreducible representation symbol.
+    /// * `irrep` - A Mulliken irreducible representation symbol.
     ///
     /// # Returns
     ///
     /// The required characters.
     fn get_irrep(&self, irrep: &MullikenIrrepSymbol) -> ArrayView1<Character> {
-        let row = self.irreps.get(irrep).unwrap();
+        let row = self
+            .irreps
+            .get(irrep)
+            .unwrap_or_else(|| panic!("Irrep {irrep} not found."));
         self.characters.row(*row)
     }
 
@@ -155,13 +174,16 @@ impl<R: Clone> CharacterTable<R> {
     ///
     /// # Arguments
     ///
-    /// * class - A conjugacy class symbol.
+    /// * `class` - A conjugacy class symbol.
     ///
     /// # Returns
     ///
     /// The required characters.
     fn get_class(&self, class: &ClassSymbol<R>) -> ArrayView1<Character> {
-        let col = self.classes.get(class).unwrap();
+        let col = self
+            .classes
+            .get(class)
+            .unwrap_or_else(|| panic!("Conjugacy class {class} not found."));
         self.characters.column(*col)
     }
 
@@ -169,15 +191,25 @@ impl<R: Clone> CharacterTable<R> {
     ///
     /// # Arguments
     ///
-    /// * compact - Flag indicating if the columns are compact with unequal widths or expanded with
-    /// all equal widths.
-    /// * numerical - An option containing a non-negative integer specifying the number of decimal
+    /// * `compact` - Flag indicating if the columns are compact with unequal widths or expanded
+    /// with all equal widths.
+    /// * `numerical` - An option containing a non-negative integer specifying the number of decimal
     /// places for the numerical forms of the characters. If `None`, the characters will be shown
     /// as exact algebraic forms.
     ///
     /// # Returns
     ///
     /// A formatted string containing the character table in a printable form.
+    ///
+    /// # Panics
+    ///
+    /// Panics upon encountering any missing information required for a complete print-out of the
+    /// character table.
+    ///
+    /// # Errors
+    ///
+    /// Errors upon encountering any issue formatting the character table.
+    #[allow(clippy::too_many_lines)]
     pub fn write_nice_table(
         &self,
         f: &mut fmt::Formatter,
@@ -187,10 +219,14 @@ impl<R: Clone> CharacterTable<R> {
         let group_order: usize = self
             .classes
             .keys()
-            .map(|cc| cc.multiplicity().unwrap())
+            .map(|cc| {
+                cc.multiplicity().unwrap_or_else(|| {
+                    panic!("Unable to find the multiplicity for conjugacy class `{cc}`.")
+                })
+            })
             .sum();
 
-        let name = format!("{} ({})", self.name, group_order);
+        let name = format!("{} ({group_order})", self.name);
         let chars_str = self.characters.map(|character| {
             if let Some(precision) = numerical {
                 let real_only = self.characters.iter().all(|character| {
@@ -206,16 +242,21 @@ impl<R: Clone> CharacterTable<R> {
                 character.to_string()
             }
         });
-        let irreps_str: Vec<_> = self.irreps.keys().map(|irrep| irrep.to_string()).collect();
-        let ccs_str: Vec<_> = self.classes
+        let irreps_str: Vec<_> = self
+            .irreps
             .keys()
-            .map(|cc|
+            .map(std::string::ToString::to_string)
+            .collect();
+        let ccs_str: Vec<_> = self
+            .classes
+            .keys()
+            .map(|cc| {
                 if self.principal_classes.contains(cc) {
-                    format!("◈{}", cc)
+                    format!("◈{cc}")
                 } else {
                     cc.to_string()
                 }
-            )
+            })
             .collect();
 
         let first_width = max(
@@ -223,7 +264,7 @@ impl<R: Clone> CharacterTable<R> {
                 .iter()
                 .map(|irrep_str| irrep_str.chars().count())
                 .max()
-                .unwrap(),
+                .expect("Unable to find the maximum length for the irrep symbols."),
             name.chars().count(),
         ) + 1;
 
@@ -234,22 +275,30 @@ impl<R: Clone> CharacterTable<R> {
                         .iter()
                         .map(|c| c.chars().count())
                         .max()
-                        .unwrap();
+                        .expect("Unable to find the maximum length for the characters.");
                     let cc_width = cc_str.chars().count();
                     max(char_width, cc_width) + 1
                 })
                 .collect()
         } else {
-            let char_width = chars_str.iter().map(|c| c.chars().count()).max().unwrap();
-            let cc_width = ccs_str.iter().map(|cc| cc.chars().count()).max().unwrap();
+            let char_width = chars_str
+                .iter()
+                .map(|c| c.chars().count())
+                .max()
+                .expect("Unable to find the maximum length for the characters.");
+            let cc_width = ccs_str
+                .iter()
+                .map(|cc| cc.chars().count())
+                .max()
+                .expect("Unable to find the maximum length for the conjugacy class symbols.");
             let fixed_width = max(char_width, cc_width) + 1;
             iter::repeat(fixed_width).take(ccs_str.len()).collect()
         };
 
         // Table heading
-        let mut heading = format!(" {:^first_width$} ┆ FS ║", name);
+        let mut heading = format!(" {name:^first_width$} ┆ FS ║");
         ccs_str.iter().enumerate().for_each(|(i, cc)| {
-            heading.push_str(&format!("{:>width$} │", cc, width = digit_widths[i]));
+            heading.push_str(&format!("{cc:>width$} │", width = digit_widths[i]));
         });
         heading.pop();
         let tab_width = heading.chars().count();
@@ -259,7 +308,7 @@ impl<R: Clone> CharacterTable<R> {
             heading,
             "┈".repeat(tab_width),
         );
-        write!(f, "{}", heading)?;
+        write!(f, "{heading}")?;
 
         // Table body
         let rows =
@@ -267,9 +316,13 @@ impl<R: Clone> CharacterTable<R> {
                 .enumerate()
                 .map(|(i, (irrep, irrep_str))| {
                     let fs = FROBENIUS_SCHUR_SYMBOLS
-                        .get(self.frobenius_schurs.get(irrep).unwrap())
-                        .unwrap();
-                    let mut line = format!(" {:<first_width$} ┆ {:>2} ║", irrep_str, fs);
+                        .get(self.frobenius_schurs.get(irrep).unwrap_or_else(|| {
+                            panic!(
+                            "Unable to obtain the Frobenius--Schur indicator for irrep `{irrep}`."
+                        )
+                        }))
+                        .expect("Unknown Frobenius--Schur symbol.");
+                    let mut line = format!(" {irrep_str:<first_width$} ┆ {fs:>2} ║");
 
                     let line_chars: String = itertools::Itertools::intersperse(
                         ccs_str.iter().enumerate().map(|(j, _)| {
@@ -290,11 +343,7 @@ impl<R: Clone> CharacterTable<R> {
         )?;
 
         // Table bottom
-        write!(
-            f,
-            "\n{}\n",
-            &"━".repeat(tab_width)
-        )
+        write!(f, "\n{}\n", &"━".repeat(tab_width))
     }
 }
 
