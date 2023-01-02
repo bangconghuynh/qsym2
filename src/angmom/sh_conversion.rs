@@ -29,7 +29,10 @@ fn comb(n: i32, r: i32) -> BigUint {
     } else {
         let nu = n as u32;
         let ru = r as u32;
-        (nu - ru + 1..=nu).product::<BigUint>() / BigUint::from(ru).checked_factorial().unwrap()
+        (nu - ru + 1..=nu).product::<BigUint>()
+            / BigUint::from(ru)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {ru}."))
     }
 }
 
@@ -49,7 +52,10 @@ fn combu(nu: u32, ru: u32) -> BigUint {
     if ru > nu {
         BigUint::zero()
     } else {
-        (nu - ru + 1..=nu).product::<BigUint>() / BigUint::from(ru).checked_factorial().unwrap()
+        (nu - ru + 1..=nu).product::<BigUint>()
+            / BigUint::from(ru)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {ru}."))
     }
 }
 
@@ -119,15 +125,22 @@ fn permu(nu: u32, ru: u32) -> BigUint {
 /// The normalisation constant $`\tilde{N}(n, \alpha)`$.
 fn norm_sph_gaussian(n: u32, alpha: f64) -> f64 {
     let num = (BigUint::from(2u64).pow(2 * n + 3)
-        * BigUint::from(n as u64 + 1).checked_factorial().unwrap())
+        * BigUint::from(u64::from(n) + 1)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", u64::from(n) + 1)))
     .to_f64()
-    .unwrap()
-        * alpha.powf(n as f64 + 1.5);
-    let den = BigUint::from(2 * n as u64 + 2)
+    .expect("Unable to convert a `BigUint` value to `f64`.")
+        * alpha.powf(f64::from(n) + 1.5);
+    let den = BigUint::from(2 * u64::from(n) + 2)
         .checked_factorial()
-        .unwrap()
+        .unwrap_or_else(|| {
+            panic!(
+                "Unable to compute the factorial of {}.",
+                2 * u64::from(n) + 2
+            )
+        })
         .to_f64()
-        .unwrap()
+        .expect("Unable to convert a `BigUint` value to `f64`.")
         * std::f64::consts::PI.sqrt();
     (num / den).sqrt()
 }
@@ -157,17 +170,29 @@ fn norm_cart_gaussian(lcartqns: (u32, u32, u32), alpha: f64) -> f64 {
     let (lx, ly, lz) = lcartqns;
     let lcart = lx + ly + lz;
     let num = (BigUint::from(2u32).pow(2 * lcart)
-        * BigUint::from(lx).checked_factorial().unwrap()
-        * BigUint::from(ly).checked_factorial().unwrap()
-        * BigUint::from(lz).checked_factorial().unwrap())
+        * BigUint::from(lx)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {lx}."))
+        * BigUint::from(ly)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {ly}."))
+        * BigUint::from(lz)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {lz}.")))
     .to_f64()
-    .unwrap()
-        * alpha.powf(lcart as f64 + 1.5);
-    let den = (BigUint::from(2 * lx).checked_factorial().unwrap()
-        * BigUint::from(2 * ly).checked_factorial().unwrap()
-        * BigUint::from(2 * lz).checked_factorial().unwrap())
+    .expect("Unable to convert a `BigUint` value to `f64`.")
+        * alpha.powf(f64::from(lcart) + 1.5);
+    let den = (BigUint::from(2 * lx)
+        .checked_factorial()
+        .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lx))
+        * BigUint::from(2 * ly)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * ly))
+        * BigUint::from(2 * lz)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lz)))
     .to_f64()
-    .unwrap()
+    .expect("Unable to convert a `BigUint` value to `f64`.")
         * std::f64::consts::PI.powi(3).sqrt();
     (num / den).sqrt()
 }
@@ -254,6 +279,11 @@ fn norm_cart_gaussian(lcartqns: (u32, u32, u32), alpha: f64) -> f64 {
 /// # Returns
 ///
 /// The complex factor $`c(l, m_l, l_{\mathrm{cart}}, l_x, l_y, l_z)`$.
+///
+/// # Panics
+///
+/// Panics when any required factorials cannot be computed.
+#[allow(clippy::too_many_lines)]
 fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> Complex<f64> {
     let (l, m) = lpureqns;
     assert!(
@@ -267,28 +297,72 @@ fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> C
         return Complex::<f64>::zero();
     }
 
-    let num = ((2 * l + 1) * (l - m.unsigned_abs()).checked_factorial().unwrap()) as f64;
-    let den =
-        4.0 * std::f64::consts::PI * (l + m.unsigned_abs()).checked_factorial().unwrap() as f64;
+    let num = f64::from(
+        (2 * l + 1)
+            * (l - m.unsigned_abs())
+                .checked_factorial()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compute the factorial of {}.",
+                        l - m.unsigned_abs()
+                    )
+                }),
+    );
+    let den = 4.0
+        * std::f64::consts::PI
+        * f64::from(
+            (l + m.unsigned_abs())
+                .checked_factorial()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compute the factorial of {}.",
+                        l + m.unsigned_abs()
+                    )
+                }),
+        );
     let mut prefactor =
-        1.0 / ((2u32.pow(l) * l.checked_factorial().unwrap()) as f64) * (num / den).sqrt();
+        1.0 / f64::from(
+            2u32.pow(l)
+                * l.checked_factorial()
+                    .unwrap_or_else(|| panic!("Unable to compute the factorial of {l}.")),
+        ) * (num / den).sqrt();
     if csphase && m > 0 {
-        prefactor *= (-1i32).pow(m as u32) as f64;
+        prefactor *= f64::from((-1i32).pow(m as u32));
     }
     let ntilde = norm_sph_gaussian(lcart, 1.0);
     let n = norm_cart_gaussian(lcartqns, 1.0);
 
     let si =
         (0..=((l - m.unsigned_abs()).div_euclid(2))).fold(Complex::<f64>::zero(), |acc_si, i| {
-            let ifactor = combu(l, i).to_f64().unwrap()
-                * ((-1i32).pow(i) * (2 * l - 2 * i).checked_factorial().unwrap() as i32) as f64
-                / (l - m.unsigned_abs() - 2 * i).checked_factorial().unwrap() as f64;
+            let ifactor = combu(l, i)
+                .to_f64()
+                .expect("Unable to convert a `BigUint` value to `f64`.")
+                * f64::from(
+                    (-1i32).pow(i)
+                        * (2 * l - 2 * i).checked_factorial().unwrap_or_else(|| {
+                            panic!("Unable to compute the factorial of {}.", 2 * l - 2 * i)
+                        }) as i32,
+                )
+                / f64::from(
+                    (l - m.unsigned_abs() - 2 * i)
+                        .checked_factorial()
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Unable to compute the factorial of {}.",
+                                l - m.unsigned_abs() - 2 * i
+                            )
+                        }),
+                );
             let sp = (0..=(m.unsigned_abs())).fold(Complex::<f64>::zero(), |acc_sp, p| {
                 let pfactor = if m > 0 {
-                    combu(m.unsigned_abs(), p).to_f64().unwrap()
+                    combu(m.unsigned_abs(), p)
+                        .to_f64()
+                        .expect("Unable to convert a `BigUint` value to `f64`.")
                         * Complex::<f64>::i().powu(m.unsigned_abs() - p)
                 } else {
-                    combu(m.unsigned_abs(), p).to_f64().unwrap()
+                    combu(m.unsigned_abs(), p)
+                        .to_f64()
+                        .expect("Unable to convert a `BigUint` value to `f64`.")
                         * (-1.0 * Complex::<f64>::i()).powu(m.unsigned_abs() - p)
                 };
                 let sq = (0..=(dl.div_euclid(2))).fold(Complex::<f64>::zero(), |acc_sq, q| {
@@ -297,12 +371,14 @@ fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> C
                         let jq = jq_num.div_euclid(2);
                         let qfactor = (comb(dl.div_euclid(2), q) * comb(i as i32, jq))
                             .to_f64()
-                            .unwrap();
+                            .expect("Unable to convert a `BigUint` value to `f64`.");
                         let sk = (0..=jq).fold(Complex::<f64>::zero(), |acc_sk, k| {
                             let tpk_num = lx as i32 - p as i32 - 2 * k;
                             if tpk_num.rem_euclid(2) == 0 {
                                 let tpk = tpk_num.div_euclid(2);
-                                let kfactor = (comb(q, tpk) * comb(jq, k)).to_f64().unwrap();
+                                let kfactor = (comb(q, tpk) * comb(jq, k))
+                                    .to_f64()
+                                    .expect("Unable to convert a `BigUint` value to `f64`.");
                                 acc_sk + kfactor
                             } else {
                                 acc_sk
@@ -349,41 +425,86 @@ fn cartov(lcartqns1: (u32, u32, u32), lcartqns2: (u32, u32, u32)) -> f64 {
         && (ly1 + ly2).rem_euclid(2) == 0
         && (lz1 + lz2).rem_euclid(2) == 0
     {
-        let num1 = (BigUint::from(lx1 + lx2).checked_factorial().unwrap()
-            * BigUint::from(ly1 + ly2).checked_factorial().unwrap()
-            * BigUint::from(lz1 + lz2).checked_factorial().unwrap())
+        let num1 = (BigUint::from(lx1 + lx2)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", lx1 + lx2))
+            * BigUint::from(ly1 + ly2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", ly1 + ly2))
+            * BigUint::from(lz1 + lz2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", lz1 + lz2)))
         .to_f64()
-        .unwrap();
+        .expect("Unable to convert a `BigUint` value to `f64`.");
 
         let den1 = (BigUint::from((lx1 + lx2).div_euclid(2))
             .checked_factorial()
-            .unwrap()
+            .unwrap_or_else(|| {
+                panic!(
+                    "Unable to compute the factorial of {}.",
+                    (lx1 + lx2).div_euclid(2)
+                )
+            })
             * BigUint::from((ly1 + ly2).div_euclid(2))
                 .checked_factorial()
-                .unwrap()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compute the factorial of {}.",
+                        (ly1 + ly2).div_euclid(2)
+                    )
+                })
             * BigUint::from((lz1 + lz2).div_euclid(2))
                 .checked_factorial()
-                .unwrap())
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compute the factorial of {}.",
+                        (lz1 + lz2).div_euclid(2)
+                    )
+                }))
         .to_f64()
-        .unwrap();
+        .expect("Unable to convert a `BigUint` value to `f64`.");
 
-        let num2 = (BigUint::from(lx1).checked_factorial().unwrap()
-            * BigUint::from(ly1).checked_factorial().unwrap()
-            * BigUint::from(lz1).checked_factorial().unwrap()
-            * BigUint::from(lx2).checked_factorial().unwrap()
-            * BigUint::from(ly2).checked_factorial().unwrap()
-            * BigUint::from(lz2).checked_factorial().unwrap())
+        let num2 = (BigUint::from(lx1)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {lx1}."))
+            * BigUint::from(ly1)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {ly1}."))
+            * BigUint::from(lz1)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {lz1}."))
+            * BigUint::from(lx2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {lx2}."))
+            * BigUint::from(ly2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {ly2}."))
+            * BigUint::from(lz2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {lz2}.")))
         .to_f64()
-        .unwrap();
+        .expect("Unable to convert a `BigUint` value to `f64`.");
 
-        let den2 = (BigUint::from(2 * lx1).checked_factorial().unwrap()
-            * BigUint::from(2 * ly1).checked_factorial().unwrap()
-            * BigUint::from(2 * lz1).checked_factorial().unwrap()
-            * BigUint::from(2 * lx2).checked_factorial().unwrap()
-            * BigUint::from(2 * ly2).checked_factorial().unwrap()
-            * BigUint::from(2 * lz2).checked_factorial().unwrap())
+        let den2 = (BigUint::from(2 * lx1)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lx1))
+            * BigUint::from(2 * ly1)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * ly1))
+            * BigUint::from(2 * lz1)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lz1))
+            * BigUint::from(2 * lx2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lx2))
+            * BigUint::from(2 * ly2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * ly2))
+            * BigUint::from(2 * lz2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lz2)))
         .to_f64()
-        .unwrap();
+        .expect("Unable to convert a `BigUint` value to `f64`.");
 
         (num1 / den1) * (num2 / den2).sqrt()
     } else {
@@ -498,7 +619,7 @@ fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
             }
             Ordering::Greater => {
                 let lcs = if csphase {
-                    (-1i32).pow(mcomplex as u32) as f64
+                    f64::from((-1i32).pow(mcomplex as u32))
                 } else {
                     1.0
                 };
@@ -639,7 +760,7 @@ fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
 fn sh_cl2cart_mat(
     lcart: u32,
     l: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Array2<Complex<f64>> {
@@ -724,7 +845,7 @@ fn sh_cl2cart_mat(
 fn sh_cart2cl_mat(
     l: u32,
     lcart: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Array2<Complex<f64>> {
@@ -812,7 +933,7 @@ fn sh_cart2cl_mat(
 fn sh_rl2cart_mat(
     lcart: u32,
     l: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Array2<f64> {
@@ -892,7 +1013,7 @@ fn sh_rl2cart_mat(
 fn sh_cart2rl_mat(
     l: u32,
     lcart: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Array2<f64> {
@@ -932,18 +1053,20 @@ fn sh_cart2rl_mat(
 /// $`l`$ order.
 fn sh_r2cart(
     lcart: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Vec<Array2<f64>> {
     assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
     let lrange = if lcart.rem_euclid(2) == 0 {
+        #[allow(clippy::range_plus_one)]
         (0..lcart + 1).step_by(2).rev()
     } else {
+        #[allow(clippy::range_plus_one)]
         (1..lcart + 1).step_by(2).rev()
     };
     lrange
-        .map(|l| sh_rl2cart_mat(lcart, l, cartorder.clone(), csphase, increasingm))
+        .map(|l| sh_rl2cart_mat(lcart, l, cartorder, csphase, increasingm))
         .collect()
 }
 
@@ -971,17 +1094,19 @@ fn sh_r2cart(
 /// $`l`$ order.
 fn sh_cart2r(
     lcart: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Vec<Array2<f64>> {
     assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
     let lrange = if lcart.rem_euclid(2) == 0 {
+        #[allow(clippy::range_plus_one)]
         (0..lcart + 1).step_by(2).rev()
     } else {
+        #[allow(clippy::range_plus_one)]
         (1..lcart + 1).step_by(2).rev()
     };
     lrange
-        .map(|l| sh_cart2rl_mat(l, lcart, cartorder.clone(), csphase, increasingm))
+        .map(|l| sh_cart2rl_mat(l, lcart, cartorder, csphase, increasingm))
         .collect()
 }

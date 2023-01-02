@@ -496,6 +496,10 @@ where
     ///
     /// * J. D. Dixon, Numer. Math., 1967, 10, 446–450.
     /// * L. C. Grove, Groups and Characters, John Wiley & Sons, Inc., 1997.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the Frobenius--Schur indicator takes on unexpected values.
     #[allow(clippy::too_many_lines)]
     fn construct_character_table(&mut self) {
         // Variable definitions
@@ -871,7 +875,27 @@ where
                     epsilon = 1e-14,
                     max_relative = 1e-14
                 );
-                indicator.re.round() as i8
+                assert!(
+                    approx::relative_eq!(
+                        indicator.re,
+                        1.0,
+                        epsilon = 1e-14,
+                        max_relative = 1e-14
+                    ) || approx::relative_eq!(
+                        indicator.re,
+                        0.0,
+                        epsilon = 1e-14,
+                        max_relative = 1e-14
+                    ) || approx::relative_eq!(
+                        indicator.re,
+                        -1.0,
+                        epsilon = 1e-14,
+                        max_relative = 1e-14
+                    )
+                );
+                #[allow(clippy::cast_possible_truncation)]
+                let indicator_i8 = indicator.re.round() as i8;
+                indicator_i8
             })
             .collect();
 

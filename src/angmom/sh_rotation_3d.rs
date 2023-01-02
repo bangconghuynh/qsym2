@@ -14,7 +14,7 @@ mod sh_rotation_3d_tests;
 /// # Returns
 ///
 /// `0` if $`i \ne j`$, `1` if $`i = j`$.
-fn kdelta<T: PartialEq>(i: T, j: T) -> u8 {
+fn kdelta<T: PartialEq>(i: &T, j: &T) -> u8 {
     u8::from(i == j)
 }
 
@@ -25,14 +25,14 @@ fn kdelta<T: PartialEq>(i: T, j: T) -> u8 {
 ///
 /// # Arguments
 ///
-/// * i - The index $`i`$ satisfying $`-1 \le i \le 1`$.
-/// * l - The spherical harmonic order $`l \ge 2`$.
-/// * mu - The index $`\mu`$ satisfying $`-l+1 \le \mu \le l-1`$.
-/// * mdash - The index $`m'`$ satisfying $`-l \le m' \le l`$.
-/// * rmat - The representation matrix of the transformation of interest in the basis of coordinate
-/// *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
+/// * `i` - The index $`i`$ satisfying $`-1 \le i \le 1`$.
+/// * `l` - The spherical harmonic order $`l \ge 2`$.
+/// * `mu` - The index $`\mu`$ satisfying $`-l+1 \le \mu \le l-1`$.
+/// * `mdash` - The index $`m'`$ satisfying $`-l \le m' \le l`$.
+/// * `rmat` - The representation matrix of the transformation of interest in the basis of
+/// coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
 /// $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
-/// * rlm1 - The representation matrix of the transformation of interest in the basis of the real
+/// * `rlm1` - The representation matrix of the transformation of interest in the basis of the real
 /// spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
 ///
 /// # Returns
@@ -41,7 +41,7 @@ fn kdelta<T: PartialEq>(i: T, j: T) -> u8 {
 fn func_p(i: i8, l: u32, mu: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) -> f64 {
     assert!(i.abs() <= 1, "`i` must be between -1 and 1 (inclusive).");
     assert!(l >= 2, "`l` must be at least 2.");
-    let li64 = l as i64;
+    let li64 = i64::from(l);
     assert!(
         mu.abs() < li64,
         "Index `mu` = {} lies outside [{}, {}].",
@@ -93,13 +93,13 @@ fn func_p(i: i8, l: u32, mu: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<
 ///
 /// # Arguments
 ///
-/// * l - The spherical harmonic order $`l \ge 2`$.
-/// * m - The index $`m`$ satisfying $`-l+1 \le \mu \le l-1`$.
-/// * mdash - The index $`m'`$ satisfying $`-l \le m' \le l`$.
-/// * rmat - The representation matrix of the transformation of interest in the basis of coordinate
-/// *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
+/// * `l` - The spherical harmonic order $`l \ge 2`$.
+/// * `m` - The index $`m`$ satisfying $`-l+1 \le \mu \le l-1`$.
+/// * `mdash` - The index $`m'`$ satisfying $`-l \le m' \le l`$.
+/// * `rmat` - The representation matrix of the transformation of interest in the basis of
+/// coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
 /// $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
-/// * rlm1 - The representation matrix of the transformation of interest in the basis of the real
+/// *  rlm1 - The representation matrix of the transformation of interest in the basis of the real
 /// spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
 ///
 /// # Returns
@@ -116,13 +116,13 @@ fn func_u(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 ///
 /// # Arguments
 ///
-/// * l - The spherical harmonic order $`l \ge 2`$.
-/// * m - The index $`m`$ satisfying $`-l \le m \le l`$.
-/// * mdash - The index $`m'`$ satisfying $`-l \le m' \le l`$.
-/// * rmat - The representation matrix of the transformation of interest in the basis of coordinate
-/// *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
+/// * `l` - The spherical harmonic order $`l \ge 2`$.
+/// * `m` - The index $`m`$ satisfying $`-l \le m \le l`$.
+/// * `mdash` - The index $`m'`$ satisfying $`-l \le m' \le l`$.
+/// * `rmat` - The representation matrix of the transformation of interest in the basis of
+/// coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
 /// $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
-/// * rlm1 - The representation matrix of the transformation of interest in the basis of the real
+/// * `rlm1` - The representation matrix of the transformation of interest in the basis of the real
 /// spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
 ///
 /// # Returns
@@ -130,7 +130,7 @@ fn func_u(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 /// The value of $`V^l_{mm'}`$.
 fn func_v(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) -> f64 {
     assert!(l >= 2, "`l` must be at least 2.");
-    let li64 = l as i64;
+    let li64 = i64::from(l);
     assert!(
         m.abs() <= li64,
         "Index `m` = {} lies outside [-{}, {}].",
@@ -156,12 +156,12 @@ fn func_v(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 
     match m.cmp(&0) {
         Ordering::Greater => {
-            func_p(1, l, m - 1, mdash, rmat, rlm1) * ((1 + kdelta(m, 1)) as f64).sqrt()
-                - func_p(-1, l, -m + 1, mdash, rmat, rlm1) * ((1 - kdelta(m, 1)) as f64)
+            func_p(1, l, m - 1, mdash, rmat, rlm1) * (f64::from(1 + kdelta(&m, &1))).sqrt()
+                - func_p(-1, l, -m + 1, mdash, rmat, rlm1) * (f64::from(1 - kdelta(&m, &1)))
         }
         Ordering::Less => {
-            func_p(1, l, m + 1, mdash, rmat, rlm1) * ((1 - kdelta(m, -1)) as f64)
-                + func_p(-1, l, -m - 1, mdash, rmat, rlm1) * ((1 + kdelta(m, -1)) as f64).sqrt()
+            func_p(1, l, m + 1, mdash, rmat, rlm1) * (f64::from(1 - kdelta(&m, &(-1))))
+                + func_p(-1, l, -m - 1, mdash, rmat, rlm1) * (f64::from(1 + kdelta(&m, &(-1)))).sqrt()
         }
         Ordering::Equal => {
             func_p(1, l, 1, mdash, rmat, rlm1) + func_p(-1, l, -1, mdash, rmat, rlm1)
@@ -176,13 +176,13 @@ fn func_v(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 ///
 /// # Arguments
 ///
-/// * l - The spherical harmonic order $`l \ge 2`$.
-/// * m - The index $`m`$ satisfying $`-l+2 \le m \le l-2`$ and $`m \ne 0`$.
-/// * mdash - The index $`m'`$ satisfying $`-l \le m' \le l`$.
-/// * rmat - The representation matrix of the transformation of interest in the basis of coordinate
-/// *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
+/// * `l` - The spherical harmonic order $`l \ge 2`$.
+/// * `m` - The index $`m`$ satisfying $`-l+2 \le m \le l-2`$ and $`m \ne 0`$.
+/// * `mdash` - The index $`m'`$ satisfying $`-l \le m' \le l`$.
+/// * `rmat` - The representation matrix of the transformation of interest in the basis of
+/// coordinate *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
 /// $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
-/// * rlm1 - The representation matrix of the transformation of interest in the basis of the real
+/// * `rlm1` - The representation matrix of the transformation of interest in the basis of the real
 /// spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
 ///
 /// # Returns
@@ -190,7 +190,7 @@ fn func_v(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 /// The value of $`W^l_{mm'}`$.
 fn func_w(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) -> f64 {
     assert!(l >= 2, "`l` must be at least 2.");
-    let li64 = l as i64;
+    let li64 = i64::from(l);
     assert!(
         m.abs() <= li64 - 2,
         "Index `m` = {} lies outside [{}, {}].",
@@ -228,15 +228,15 @@ fn func_w(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 ///
 /// # Arguments
 ///
-/// * l - The spherical harmonic order $`l`$.
-/// * m - The index $`m`$ satisfying $`-l \le m \le l`$.
-/// * mdash - The index $`m'`$ satisfying $`-l \le m' \le l`$.
+/// * `l` - The spherical harmonic order $`l`$.
+/// * `m` - The index $`m`$ satisfying $`-l \le m \le l`$.
+/// * `mdash` - The index $`m'`$ satisfying $`-l \le m' \le l`$.
 ///
 /// # Returns
 ///
 /// The value of $`u^l_{mm'}`$.
 fn coeff_u(l: u32, m: i64, mdash: i64) -> f64 {
-    let li64 = l as i64;
+    let li64 = i64::from(l);
     assert!(
         m.abs() <= li64,
         "Index `m` = {} lies outside [-{}, {}].",
@@ -268,15 +268,15 @@ fn coeff_u(l: u32, m: i64, mdash: i64) -> f64 {
 ///
 /// # Arguments
 ///
-/// * l - The spherical harmonic order $`l`$.
-/// * m - The index $`m`$ satisfying $`-l \le m \le l`$.
-/// * mdash - The index $`m'`$ satisfying $`-l \le m' \le l`$.
+/// * `l` - The spherical harmonic order $`l`$.
+/// * `m` - The index $`m`$ satisfying $`-l \le m \le l`$.
+/// * `mdash` - The index $`m'`$ satisfying $`-l \le m' \le l`$.
 ///
 /// # Returns
 ///
 /// The value of $`v^l_{mm'}`$.
 fn coeff_v(l: u32, m: i64, mdash: i64) -> f64 {
-    let li64 = l as i64;
+    let li64 = i64::from(l);
     assert!(
         m.abs() <= li64,
         "Index `m` = {} lies outside [-{}, {}].",
@@ -292,13 +292,13 @@ fn coeff_v(l: u32, m: i64, mdash: i64) -> f64 {
         l
     );
 
-    let num = (1 + kdelta(m, 0) as i64) * (li64 + m.abs() - 1) * (li64 + m.abs());
+    let num = (1 + i64::from(kdelta(&m, &0))) * (li64 + m.abs() - 1) * (li64 + m.abs());
     let den = if mdash.abs() < li64 {
         (li64 + mdash) * (li64 - mdash)
     } else {
         (2 * li64) * (2 * li64 - 1)
     };
-    0.5 * ((num as f64) / (den as f64)).sqrt() * ((1 - 2 * kdelta(m, 0) as i16) as f64)
+    0.5 * ((num as f64) / (den as f64)).sqrt() * f64::from(1 - 2 * i16::from(kdelta(&m, &0)))
 }
 
 /// Returns the coefficient $`w^l_{mm'}`$ as defined in Table 1 of Ivanic, J. & Ruedenberg, K.
@@ -308,15 +308,15 @@ fn coeff_v(l: u32, m: i64, mdash: i64) -> f64 {
 ///
 /// # Arguments
 ///
-/// * l - The spherical harmonic order $`l`$.
-/// * m - The index $`m`$ satisfying $`-l \le m \le l`$.
-/// * mdash - The index $`m'`$ satisfying $`-l \le m' \le l`$.
+/// * `l` - The spherical harmonic order $`l`$.
+/// * `m` - The index $`m`$ satisfying $`-l \le m \le l`$.
+/// * `mdash` - The index $`m'`$ satisfying $`-l \le m' \le l`$.
 ///
 /// # Returns
 ///
 /// The value of $`w^l_{mm'}`$.
 fn coeff_w(l: u32, m: i64, mdash: i64) -> f64 {
-    let li64 = l as i64;
+    let li64 = i64::from(l);
     assert!(
         m.abs() <= li64,
         "Index `m` = {} lies outside [-{}, {}].",
@@ -338,7 +338,7 @@ fn coeff_w(l: u32, m: i64, mdash: i64) -> f64 {
     } else {
         (2 * li64) * (2 * li64 - 1)
     };
-    -0.5 * ((num as f64) / (den as f64)).sqrt() * ((1 - kdelta(m, 0)) as f64)
+    -0.5 * ((num as f64) / (den as f64)).sqrt() * f64::from(1 - kdelta(&m, &0))
 }
 
 /// Returns the representation matrix $`\mathbf{R}`$ for a rotation in the basis of the coordinate
@@ -359,14 +359,18 @@ fn coeff_w(l: u32, m: i64, mdash: i64) -> f64 {
 ///
 /// # Arguments
 ///
-/// * angle - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
+/// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
 /// anticlockwise rotation when looking down `axis`.
-/// * axis - A space-fixed vector defining the axis of rotation. The supplied vector will be
+/// * `axis` - A space-fixed vector defining the axis of rotation. The supplied vector will be
 /// normalised.
 
 /// # Returns
 ///
 /// The representation matrix $`\mathbf{R}(\phi, \hat{\mathbf{n}})`$.
+///
+/// # Panics
+///
+/// Panics when a three-dimensional rotation matrix cannot be constructed for `angle` and `axis`.
 pub fn rmat(angle: f64, axis: Vector3<f64>) -> Array2<f64> {
     let normalised_axis = Unit::new_normalize(axis);
     let rot = Rotation3::from_axis_angle(&normalised_axis, angle);
@@ -393,11 +397,11 @@ pub fn rmat(angle: f64, axis: Vector3<f64>) -> Array2<f64> {
 ///
 /// # Arguments
 ///
-/// * l - The spherical harmonic order $`l \ge 2`$.
-/// * rmat - The representation matrix of the transformation of interest in the basis of coordinate
+/// * `l` - The spherical harmonic order $`l \ge 2`$.
+/// * `rmat` - The representation matrix of the transformation of interest in the basis of coordinate
 /// *functions* $`(y, z, x)`$, which are isosymmetric to the real spherical harmonics
 /// $`(Y_{1, -1}, Y_{1, 0}, Y_{1, 1})`$.
-/// * rlm1 - The representation matrix of the transformation of interest in the basis of the real
+/// * `rlm1` - The representation matrix of the transformation of interest in the basis of the real
 /// spherical harmonics $`Y_{l-1, m}`$ ordered by increasing $`m`$.
 ///
 /// # Returns

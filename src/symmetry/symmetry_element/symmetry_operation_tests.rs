@@ -4,7 +4,7 @@ use std::collections::HashSet;
 
 use crate::aux::geometry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    SpecialSymmetryTransformation, SymmetryOperation, FiniteOrder
+    FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
     ElementOrder, SymmetryElement, SymmetryElementKind, F, INV, SIG,
@@ -4474,7 +4474,13 @@ fn test_symmetry_operation_noncollinear_composition() {
 
     let kaleidoscope_angle = s1a_element.axis.dot(&s1b_element.axis).acos();
     let rotation_axis = s1a_element.axis.cross(&s1b_element.axis);
-    let fract = geometry::get_proper_fraction(2.0 * kaleidoscope_angle, 1e-10, 20);
+    let fract =
+        geometry::get_proper_fraction(2.0 * kaleidoscope_angle, 1e-10, 20).unwrap_or_else(|| {
+            panic!(
+                "Unable to obtain a proper fraction for angle {}.",
+                2.0 * kaleidoscope_angle
+            )
+        });
     let c_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(*fract.denom().unwrap()))
