@@ -46,10 +46,11 @@ impl ElementMap<'static> {
 ///
 /// # Returns
 ///
-/// The mass value as a float.
+/// The numeric mass value.
 fn parse_atomic_mass(mass_str: &str) -> f64 {
     let mass = mass_str.replace(&['(', ')', '[', ']'][..], "");
-    mass.parse::<f64>().unwrap()
+    mass.parse::<f64>()
+        .unwrap_or_else(|_| panic!("Unable to parse atomic mass string {mass}."))
 }
 
 /// A struct representing an atom.
@@ -94,20 +95,32 @@ impl Atom {
         if split.len() != 4 {
             return None;
         };
-        let atomic_symbol = split.first().unwrap();
+        let atomic_symbol = split.first().expect("Unable to get the element symbol.");
         let (atomic_number, atomic_mass) = emap
             .map
             .get(atomic_symbol)
             .expect("Invalid atomic symbol encountered.");
         let coordinates = Point3::new(
-            split.get(1).unwrap().parse::<f64>().unwrap(),
-            split.get(2).unwrap().parse::<f64>().unwrap(),
-            split.get(3).unwrap().parse::<f64>().unwrap(),
+            split
+                .get(1)
+                .expect("Unable to get the x coordinate.")
+                .parse::<f64>()
+                .expect("Unable to parse the x coordinate."),
+            split
+                .get(2)
+                .expect("Unable to get the y coordinate.")
+                .parse::<f64>()
+                .expect("Unable to parse the y coordinate."),
+            split
+                .get(3)
+                .expect("Unable to get the z coordinate.")
+                .parse::<f64>()
+                .expect("Unable to parse the z coordinate."),
         );
         let atom = Atom {
             kind: AtomKind::Ordinary,
             atomic_number: *atomic_number,
-            atomic_symbol: atomic_symbol.to_string(),
+            atomic_symbol: (*atomic_symbol).to_string(),
             atomic_mass: *atomic_mass,
             coordinates,
             threshold: thresh,
@@ -131,12 +144,12 @@ impl Atom {
             AtomKind::Magnetic(_) | AtomKind::Electric(_) => Some(Atom {
                 kind,
                 atomic_number: 0,
-                atomic_symbol: "".to_owned(),
+                atomic_symbol: String::new(),
                 atomic_mass: 100.0,
                 coordinates,
                 threshold: thresh,
             }),
-            _ => None,
+            AtomKind::Ordinary => None,
         }
     }
 }
@@ -249,12 +262,7 @@ impl Transform for Atom {
         self.coordinates = rotation.transform_point(&self.coordinates);
     }
 
-    fn improper_rotate_mut(
-        &mut self,
-        angle: f64,
-        axis: &Vector3<f64>,
-        kind: &SymmetryElementKind,
-    ) {
+    fn improper_rotate_mut(&mut self, angle: f64, axis: &Vector3<f64>, kind: &SymmetryElementKind) {
         let mat = geometry::improper_rotation_matrix(angle, axis, 1, kind);
         self.transform_mut(&mat);
     }
@@ -280,12 +288,7 @@ impl Transform for Atom {
         rotated_atom
     }
 
-    fn improper_rotate(
-        &self,
-        angle: f64,
-        axis: &Vector3<f64>,
-        kind: &SymmetryElementKind,
-    ) -> Self {
+    fn improper_rotate(&self, angle: f64, axis: &Vector3<f64>, kind: &SymmetryElementKind) -> Self {
         let mut improper_rotated_atom = self.clone();
         improper_rotated_atom.improper_rotate_mut(angle, axis, kind);
         improper_rotated_atom

@@ -228,28 +228,35 @@ impl SymmetryOperation {
     ) -> Self {
         let (scalar_part, vector_part) = qtn;
         assert!(-thresh <= scalar_part && scalar_part <= 1.0 + thresh);
-        let (axis, order, power) =
-            if approx::relative_eq!(scalar_part, 1.0, epsilon = thresh, max_relative = thresh) {
-                // Zero-degree rotation, i.e. identity or inversion
-                (Vector3::new(0.0, 0.0, 1.0), 1u32, 1u32)
-            } else {
-                let positive_normalised_angle = 2.0 * scalar_part.acos(); // in [0, π]
-                let axis = vector_part / (0.5 * positive_normalised_angle).sin();
-                let proper_fraction = geometry::get_proper_fraction(
-                    positive_normalised_angle,
-                    thresh,
-                    max_trial_power,
-                );
-                (
-                    axis,
-                    *proper_fraction.denom().unwrap_or_else(|| {
-                        panic!("Unable to extract the denominator of `{proper_fraction}`.")
-                    }),
-                    *proper_fraction.numer().unwrap_or_else(|| {
-                        panic!("Unable to extract the numerator of `{proper_fraction}`.")
-                    }),
-                )
-            };
+        let (axis, order, power) = if approx::relative_eq!(
+            scalar_part,
+            1.0,
+            epsilon = thresh,
+            max_relative = thresh
+        ) {
+            // Zero-degree rotation, i.e. identity or inversion
+            (Vector3::new(0.0, 0.0, 1.0), 1u32, 1u32)
+        } else {
+            let positive_normalised_angle = 2.0 * scalar_part.acos(); // in [0, π]
+            let axis = vector_part / (0.5 * positive_normalised_angle).sin();
+            let proper_fraction = geometry::get_proper_fraction(
+                positive_normalised_angle,
+                thresh,
+                max_trial_power,
+            )
+            .unwrap_or_else(|| {
+                panic!("No proper fraction could be found for angle `{positive_normalised_angle}`.")
+            });
+            (
+                axis,
+                *proper_fraction.denom().unwrap_or_else(|| {
+                    panic!("Unable to extract the denominator of `{proper_fraction}`.")
+                }),
+                *proper_fraction.numer().unwrap_or_else(|| {
+                    panic!("Unable to extract the numerator of `{proper_fraction}`.")
+                }),
+            )
+        };
 
         let kind = if proper {
             SymmetryElementKind::Proper

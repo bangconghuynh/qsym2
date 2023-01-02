@@ -32,7 +32,7 @@ pub struct CartOrder {
 
 impl CartOrderBuilder {
     fn cart_tuples(&mut self, cart_tuples: &[(u32, u32, u32)]) -> &mut Self {
-        let lcart = self.lcart.unwrap();
+        let lcart = self.lcart.expect("`lcart` has not been set.");
         assert!(cart_tuples.iter().all(|(lx, ly, lz)| lx + ly + lz == lcart));
         assert_eq!(
             cart_tuples.len(),
@@ -74,7 +74,7 @@ impl CartOrder {
             .lcart(lcart)
             .cart_tuples(&cart_tuples)
             .build()
-            .unwrap()
+            .expect("Unable to construct a `CartOrder` structure with lexicographic order.")
     }
 
     /// Constructs a new `CartOrder` struct for a specified rank with Q-Chem order.
@@ -92,17 +92,17 @@ impl CartOrder {
                 .product_repeat(lcart as usize)
                 .filter_map(|tup| {
                     let mut tup_sorted = tup.clone();
-                    tup_sorted.sort();
+                    tup_sorted.sort_unstable();
                     tup_sorted.reverse();
                     if tup == tup_sorted {
                         let lcartqns = tup.iter().collect::<Counter<_>>();
                         Some((
                             <usize as TryInto<u32>>::try_into(*(lcartqns.get(&0).unwrap_or(&0)))
-                                .unwrap(),
+                                .expect("Unable to convert Cartesian x-exponent to `u32`."),
                             <usize as TryInto<u32>>::try_into(*(lcartqns.get(&1).unwrap_or(&0)))
-                                .unwrap(),
+                                .expect("Unable to convert Cartesian y-exponent to `u32`."),
                             <usize as TryInto<u32>>::try_into(*(lcartqns.get(&2).unwrap_or(&0)))
-                                .unwrap(),
+                                .expect("Unable to convert Cartesian z-exponent to `u32`."),
                         ))
                     } else {
                         None
@@ -116,7 +116,7 @@ impl CartOrder {
             .lcart(lcart)
             .cart_tuples(&cart_tuples)
             .build()
-            .unwrap()
+            .expect("Unable to construct a `CartOrder` structure with Q-Chem order.")
     }
 
     /// Verifies if this `CartOrder` struct is valid.
@@ -154,7 +154,7 @@ impl fmt::Debug for CartOrder {
         writeln!(f, "Cartesian rank: {}", self.lcart)?;
         writeln!(f, "Order:")?;
         for cart_tuple in self.iter() {
-            writeln!(f, "  {:?}", cart_tuple)?;
+            writeln!(f, "  {cart_tuple:?}")?;
         }
         Ok(())
     }
@@ -164,7 +164,7 @@ impl fmt::Debug for CartOrder {
 ///
 /// # Arguments
 ///
-/// * cart_tuple - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
+/// * `cart_tuple` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
 /// components of the Cartesian Gaussian.
 /// * flat - A flag indicating if the string representation is flat (*e.g.* `xxyz`) or compact
 /// (*e.g.* `x^2yz`).
@@ -184,13 +184,13 @@ fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
                     carts[i].repeat(l as usize)
                 } else {
                     match l.cmp(&1) {
-                        Ordering::Greater => format!("{}^{}", carts[i], l),
+                        Ordering::Greater => format!("{}^{l}", carts[i]),
                         Ordering::Equal => carts[i].to_string(),
-                        Ordering::Less => "".to_string(),
+                        Ordering::Less => String::new(),
                     }
                 }
             }),
-            "".to_string(),
+            String::new(),
         )
         .collect::<String>()
     }
@@ -294,7 +294,7 @@ impl<'a> BasisAtom<'a> {
     fn n_funcs(&self) -> usize {
         self.basis_shells
             .iter()
-            .map(|basis_shell| basis_shell.n_funcs())
+            .map(BasisShell::n_funcs)
             .sum()
     }
 
@@ -328,7 +328,7 @@ impl<'a> BasisAngularOrder<'a> {
     fn n_funcs(&self) -> usize {
         self.basis_atoms
             .iter()
-            .map(|basis_atom| basis_atom.n_funcs())
+            .map(BasisAtom::n_funcs)
             .sum()
     }
 

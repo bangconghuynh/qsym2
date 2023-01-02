@@ -39,28 +39,28 @@ fn kdelta<T: PartialEq>(i: T, j: T) -> u8 {
 ///
 /// The value of $`_iP^l_{\mu m'}`$.
 fn func_p(i: i8, l: u32, mu: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) -> f64 {
-    assert!(i.abs() <= 1, "i must be between -1 and 1 (inclusive).");
-    assert!(l >= 2, "l must be at least 2.");
+    assert!(i.abs() <= 1, "`i` must be between -1 and 1 (inclusive).");
+    assert!(l >= 2, "`l` must be at least 2.");
     let li64 = l as i64;
     assert!(
         mu.abs() < li64,
-        "Index mu = {} lies outside [{}, {}].",
+        "Index `mu` = {} lies outside [{}, {}].",
         mu,
         -(li64) + 1,
         l - 1
     );
     assert!(
         mdash.abs() <= li64,
-        "Index mdash = {} lies outside [-{}, {}].",
+        "Index `mdash` = {} lies outside [-{}, {}].",
         mdash,
         l,
         l
     );
-    assert_eq!(rmat.shape(), &[3, 3], "rmat must be a 3 × 3 matrix.");
+    assert_eq!(rmat.shape(), &[3, 3], "`rmat` must be a 3 × 3 matrix.");
     assert_eq!(
         rlm1.shape(),
         &[2 * l as usize - 1, 2 * l as usize - 1],
-        "rlm1 must be a {} × {} matrix.",
+        "`rlm1` must be a {} × {} matrix.",
         2 * l as usize - 1,
         2 * l as usize - 1
     );
@@ -129,27 +129,27 @@ fn func_u(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 ///
 /// The value of $`V^l_{mm'}`$.
 fn func_v(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) -> f64 {
-    assert!(l >= 2, "l must be at least 2.");
+    assert!(l >= 2, "`l` must be at least 2.");
     let li64 = l as i64;
     assert!(
         m.abs() <= li64,
-        "Index m = {} lies outside [-{}, {}].",
+        "Index `m` = {} lies outside [-{}, {}].",
         m,
         l,
         l
     );
     assert!(
         mdash.abs() <= li64,
-        "Index mdash = {} lies outside [-{}, {}].",
+        "Index `mdash` = {} lies outside [-{}, {}].",
         mdash,
         l,
         l
     );
-    assert_eq!(rmat.shape(), &[3, 3], "rmat must be a 3 × 3 matrix.");
+    assert_eq!(rmat.shape(), &[3, 3], "`rmat` must be a 3 × 3 matrix.");
     assert_eq!(
         rlm1.shape(),
         &[2 * l as usize - 1, 2 * l as usize - 1],
-        "rlm1 must be a {} × {} matrix.",
+        "`rlm1` must be a {} × {} matrix.",
         2 * l as usize - 1,
         2 * l as usize - 1
     );
@@ -189,28 +189,28 @@ fn func_v(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 ///
 /// The value of $`W^l_{mm'}`$.
 fn func_w(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) -> f64 {
-    assert!(l >= 2, "l must be at least 2.");
+    assert!(l >= 2, "`l` must be at least 2.");
     let li64 = l as i64;
     assert!(
         m.abs() <= li64 - 2,
-        "Index m = {} lies outside [{}, {}].",
+        "Index `m` = {} lies outside [{}, {}].",
         m,
         -li64 + 2,
         li64 - 2
     );
-    assert_ne!(m, 0, "m cannot be zero.");
+    assert_ne!(m, 0, "`m` cannot be zero.");
     assert!(
         mdash.abs() <= li64,
-        "Index mdash = {} lies outside [-{}, {}].",
+        "Index `mdash` = {} lies outside [-{}, {}].",
         mdash,
         l,
         l
     );
-    assert_eq!(rmat.shape(), &[3, 3], "rmat must be a 3 × 3 matrix.");
+    assert_eq!(rmat.shape(), &[3, 3], "`rmat` must be a 3 × 3 matrix.");
     assert_eq!(
         rlm1.shape(),
         &[2 * l as usize - 1, 2 * l as usize - 1],
-        "rlm1 must be a {} × {} matrix.",
+        "`rlm1` must be a {} × {} matrix.",
         2 * l as usize - 1,
         2 * l as usize - 1
     );
@@ -239,14 +239,14 @@ fn coeff_u(l: u32, m: i64, mdash: i64) -> f64 {
     let li64 = l as i64;
     assert!(
         m.abs() <= li64,
-        "Index m = {} lies outside [-{}, {}].",
+        "Index `m` = {} lies outside [-{}, {}].",
         m,
         l,
         l
     );
     assert!(
         mdash.abs() <= li64,
-        "Index mdash = {} lies outside [-{}, {}].",
+        "Index `mdash` = {} lies outside [-{}, {}].",
         mdash,
         l,
         l
@@ -279,14 +279,14 @@ fn coeff_v(l: u32, m: i64, mdash: i64) -> f64 {
     let li64 = l as i64;
     assert!(
         m.abs() <= li64,
-        "Index m = {} lies outside [-{}, {}].",
+        "Index `m` = {} lies outside [-{}, {}].",
         m,
         l,
         l
     );
     assert!(
         mdash.abs() <= li64,
-        "Index mdash = {} lies outside [-{}, {}].",
+        "Index `mdash` = {} lies outside [-{}, {}].",
         mdash,
         l,
         l
@@ -319,14 +319,14 @@ fn coeff_w(l: u32, m: i64, mdash: i64) -> f64 {
     let li64 = l as i64;
     assert!(
         m.abs() <= li64,
-        "Index m = {} lies outside [-{}, {}].",
+        "Index `m` = {} lies outside [-{}, {}].",
         m,
         l,
         l
     );
     assert!(
         mdash.abs() <= li64,
-        "Index mdash = {} lies outside [-{}, {}].",
+        "Index `mdash` = {} lies outside [-{}, {}].",
         mdash,
         l,
         l
@@ -373,9 +373,13 @@ pub fn rmat(angle: f64, axis: Vector3<f64>) -> Array2<f64> {
     // nalgebra matrix iter is column-major.
     let rot_array = Array2::<f64>::from_shape_vec(
         (3, 3).f(),
-        rot.into_inner().iter().cloned().collect::<Vec<_>>(),
+        rot.into_inner().iter().copied().collect::<Vec<_>>(),
     )
-    .unwrap();
+    .unwrap_or_else(
+        |_| panic!(
+            "Unable to construct a three-dimensional rotation matrix for angle {angle} and axis {axis}."
+        )
+    );
     rot_array
         .select(Axis(0), &[1, 2, 0])
         .select(Axis(1), &[1, 2, 0])
@@ -399,9 +403,13 @@ pub fn rmat(angle: f64, axis: Vector3<f64>) -> Array2<f64> {
 /// # Returns
 ///
 /// The required representation matrix $`\mathbf{R}^l`$.
+///
+/// # Panics
+///
+/// Panics when `l` is less than `2`.
 pub fn rlmat(l: u32, rmat: &Array2<f64>, rlm1: &Array2<f64>) -> Array2<f64> {
-    assert!(l >= 2, "l must be at least 2.");
-    let li64 = l as i64;
+    assert!(l >= 2, "`l` must be at least 2.");
+    let li64 = i64::from(l);
     let mut rl = Array2::<f64>::zeros((2 * l as usize + 1, 2 * l as usize + 1));
     for (mi, m) in (-li64..=li64).enumerate() {
         for (mdashi, mdash) in (-li64..=li64).enumerate() {

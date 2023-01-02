@@ -17,6 +17,7 @@ pub trait HashableFloat {
     /// Returns
     ///
     /// The rounded float.
+    #[must_use]
     fn round_factor(self, threshold: Self) -> Self;
 
     /// Returns the mantissa-exponent-sign triplet for a float.

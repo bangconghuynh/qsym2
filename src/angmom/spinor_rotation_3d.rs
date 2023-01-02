@@ -20,9 +20,9 @@ mod spinor_rotation_3d_tests;
 ///
 /// # Arguments
 ///
-/// * mdashi - Index for $`m'`$ given by $`m'+\tfrac{1}{2}`$.
-/// * mi - Index for $`m`$ given by $`m+\tfrac{1}{2}`$.
-/// * euler_angles - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
+/// * `mdashi` - Index for $`m'`$ given by $`m'+\tfrac{1}{2}`$.
+/// * `mi` - Index for $`m`$ given by $`m+\tfrac{1}{2}`$.
+/// * `euler_angles` - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
 /// the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
 ///
 /// # Returns
@@ -82,9 +82,9 @@ fn dmat_euler_element(mdashi: usize, mi: usize, euler_angles: (f64, f64, f64)) -
 ///
 /// # Arguments
 ///
-/// * euler_angles - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
+/// * `euler_angles` - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
 /// the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
-/// * increasingm - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
+/// * `increasingm` - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
 /// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
 ///
@@ -118,11 +118,11 @@ pub fn dmat_euler(euler_angles: (f64, f64, f64), increasingm: bool) -> Array2<Co
 ///
 /// # Arguments
 ///
-/// * angle - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
+/// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
 /// anticlockwise rotation when looking down `axis`.
-/// * axis - A space-fixed vector defining the axis of rotation. The supplied vector will be
+/// * `axis` - A space-fixed vector defining the axis of rotation. The supplied vector will be
 /// normalised.
-/// * increasingm - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
+/// * `increasingm` - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
 /// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
 ///
@@ -168,11 +168,11 @@ pub fn dmat_angleaxis(angle: f64, axis: Vector3<f64>, increasingm: bool) -> Arra
 ///
 /// # Arguments
 ///
-/// * twoj - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
+/// * `twoj` - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
 /// $`j`$ is half-integral.
-/// * mdashi - Index for $`m'`$ given by $`m'+\tfrac{1}{2}`$.
-/// * mi - Index for $`m`$ given by $`m+\tfrac{1}{2}`$.
-/// * euler_angles - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
+/// * `mdashi` - Index for $`m'`$ given by $`m'+\tfrac{1}{2}`$.
+/// * `mi` - Index for $`m`$ given by $`m+\tfrac{1}{2}`$.
+/// * `euler_angles` - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
 /// the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
 ///
 /// # Returns
@@ -195,7 +195,7 @@ fn dmat_euler_gen_element(
         twoj
     );
     let (alpha, beta, gamma) = euler_angles;
-    let j = twoj as f64 / 2.0;
+    let j = f64::from(twoj) / 2.0;
     let mdash = mdashi as f64 - j;
     let m = mi as f64 - j;
 
@@ -235,37 +235,67 @@ fn dmat_euler_gen_element(
     let d = (tmin..=tmax).fold(Complex::<f64>::zero(), |acc, t| {
         // j - m = twoj - mi
         // j - mdash = twoj - mdashi
-        let num = (BigUint::from(mdashi).checked_factorial().unwrap()
+        let num = (BigUint::from(mdashi)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {mdashi}."))
             * BigUint::from(twoj as usize - mdashi)
                 .checked_factorial()
-                .unwrap()
-            * BigUint::from(mi).checked_factorial().unwrap()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compute the factorial of {}.",
+                        twoj as usize - mdashi
+                    )
+                })
+            * BigUint::from(mi)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {mi}."))
             * BigUint::from(twoj as usize - mi)
                 .checked_factorial()
-                .unwrap())
+                .unwrap_or_else(|| {
+                    panic!("Unable to compute the factorial of {}.", twoj as usize - mi)
+                }))
         .to_f64()
-        .unwrap()
+        .expect("Unable to convert a `BigUint` value to `f64`.")
         .sqrt();
 
         // t <= j + mdash ==> j + mdash - t = mdashi - t >= 0
         // t <= j - m ==> j - m - t = twoj - mi - t >= 0
         // t >= 0
         // t >= mdash - m ==> t - (mdash - m) = t + mi - mdashi >= 0
-        let den = (BigUint::from(mdashi - t).checked_factorial().unwrap()
+        let den = (BigUint::from(mdashi - t)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", mdashi - t))
             * BigUint::from(twoj as usize - mi - t)
                 .checked_factorial()
-                .unwrap()
-            * BigUint::from(t).checked_factorial().unwrap()
-            * BigUint::from(t + mi - mdashi).checked_factorial().unwrap())
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compute the factorial of {}.",
+                        twoj as usize - mi - t
+                    )
+                })
+            * BigUint::from(t)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {t}."))
+            * BigUint::from(t + mi - mdashi)
+                .checked_factorial()
+                .unwrap_or_else(|| {
+                    panic!("Unable to compute the factorial of {}.", t + mi - mdashi)
+                }))
         .to_f64()
-        .unwrap();
+        .expect("Unable to convert a `BigUint` value to `f64`.");
 
-        let trigfactor = (beta / 2.0)
-            .cos()
-            .powi(<usize as TryInto<i32>>::try_into(twoj as usize + mdashi - mi - 2 * t).unwrap())
-            * (beta / 2.0)
-                .sin()
-                .powi(<usize as TryInto<i32>>::try_into(2 * t + mi - mdashi).unwrap());
+        let trigfactor = (beta / 2.0).cos().powi(
+            i32::try_from(twoj as usize + mdashi - mi - 2 * t).unwrap_or_else(|_| {
+                panic!(
+                    "Unable to convert `{}` to `i32`.",
+                    twoj as usize + mdashi - mi - 2 * t
+                )
+            }),
+        ) * (beta / 2.0).sin().powi(
+            i32::try_from(2 * t + mi - mdashi).unwrap_or_else(|_| {
+                panic!("Unable to convert `{}` to `i32`.", 2 * t + mi - mdashi)
+            }),
+        );
 
         if t % 2 == 0 {
             acc + (num / den) * trigfactor
@@ -289,11 +319,11 @@ fn dmat_euler_gen_element(
 ///
 /// # Arguments
 ///
-/// * twoj - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
+/// * `twoj` - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
 /// $`j`$ is half-integral.
-/// * euler_angles - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
+/// * `euler_angles` - A triplet of Euler angles $`(\alpha, \beta, \gamma)`$ in radians, following
 /// the Whitaker convention, *i.e.* $`z_2-y-z_1`$ (extrinsic rotations).
-/// * increasingm - If `true`, the rows and columns of $`\mathbf{D}^{(j)}`$ are
+/// * `increasingm` - If `true`, the rows and columns of $`\mathbf{D}^{(j)}`$ are
 /// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
 ///
@@ -329,13 +359,13 @@ pub fn dmat_euler_gen(
 ///
 /// # Arguments
 ///
-/// * twoj - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
+/// * `twoj` - Two times the angular momentum $`2j`$. If this is even, $`j`$ is integral; otherwise,
 /// $`j`$ is half-integral.
-/// * angle - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
+/// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
 /// anticlockwise rotation when looking down `axis`.
-/// * axis - A space-fixed vector defining the axis of rotation. The supplied vector will be
+/// * `axis` - A space-fixed vector defining the axis of rotation. The supplied vector will be
 /// normalised.
-/// * increasingm - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
+/// * `increasingm` - If `true`, the rows and columns of $`\mathbf{D}^{(1/2)}`$ are
 /// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `false`, in accordance with convention.
 ///
@@ -376,9 +406,9 @@ pub fn dmat_angleaxis_gen(
 ///
 /// # Arguments
 ///
-/// * angle - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
+/// * `angle` - The angle $`\phi`$ of the rotation in radians. A positive rotation is an
 /// anticlockwise rotation when looking down `axis`.
-/// * axis - A space-fixed vector defining the axis of rotation $`\hat{\mathbf{n}}`$. The supplied
+/// * `axis` - A space-fixed vector defining the axis of rotation $`\hat{\mathbf{n}}`$. The supplied
 /// vector will be normalised.
 ///
 /// # Returns
@@ -433,10 +463,10 @@ fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
             let den_gamma =
                 ny * basic_angle.sin() - 2.0 * nx * nz * (basic_angle / 2.0).sin().powi(2);
             let gamma_raw = num_gamma.atan2(den_gamma);
-            let gamma = if !double {
-                gamma_raw.rem_euclid(4.0 * std::f64::consts::PI)
-            } else {
+            let gamma = if double {
                 (gamma_raw + 2.0 * std::f64::consts::PI).rem_euclid(4.0 * std::f64::consts::PI)
+            } else {
+                gamma_raw.rem_euclid(4.0 * std::f64::consts::PI)
             };
 
             (alpha, gamma)
@@ -457,10 +487,10 @@ fn angleaxis_to_euler(angle: f64, axis: Vector3<f64>) -> (f64, f64, f64) {
             // We obtain the same gamma for phi and phi+2pi.
             // We therefore account for double-group behaviours separately.
             let gamma_raw = 2.0 * nx.atan2(ny);
-            let gamma = if !double {
-                gamma_raw.rem_euclid(4.0 * std::f64::consts::PI)
-            } else {
+            let gamma = if double {
                 (gamma_raw + 2.0 * std::f64::consts::PI).rem_euclid(4.0 * std::f64::consts::PI)
+            } else {
+                gamma_raw.rem_euclid(4.0 * std::f64::consts::PI)
             };
 
             (0.0, gamma)
