@@ -26,6 +26,7 @@ mod geometry_tests;
 /// # Returns
 ///
 /// The normalised rotation angle.
+#[must_use]
 pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> f64 {
     let mut norm_rot_ang = rot_ang;
     while norm_rot_ang > std::f64::consts::PI + thresh {
@@ -55,6 +56,7 @@ pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> f64 {
 /// # Panics
 ///
 /// Panics if the resulting pole is a null vector.
+#[must_use]
 pub fn get_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
     let mut pole = axis.normalize();
     if pole[2].abs() > thresh {
@@ -84,6 +86,7 @@ pub fn get_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
 /// # Panics
 ///
 /// Panics if the deduced order $`n`$ is negative.
+#[must_use]
 pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> Option<F32> {
     let normalised_angle = normalise_rotation_angle(angle, thresh);
     let positive_normalised_angle = if normalised_angle >= 0.0 {
@@ -149,6 +152,7 @@ fn outer<T: Scalar + ClosedMul + Copy>(vec1: &Vector3<T>, vec2: &Vector3<T>) -> 
 /// # Returns
 ///
 /// The rotation matrix.
+#[must_use]
 pub fn proper_rotation_matrix(angle: f64, axis: &Vector3<f64>, power: i8) -> Matrix3<f64> {
     let normalised_axis = UnitVector3::new_normalize(*axis);
     Rotation3::from_axis_angle(&normalised_axis, (f64::from(power)) * angle).into_inner()
@@ -172,6 +176,7 @@ pub fn proper_rotation_matrix(angle: f64, axis: &Vector3<f64>, power: i8) -> Mat
 /// # Panics
 ///
 /// Panics if `kind` is not one of the improper kinds.
+#[must_use]
 pub fn improper_rotation_matrix(
     angle: f64,
     axis: &Vector3<f64>,
@@ -210,6 +215,7 @@ pub fn improper_rotation_matrix(
 /// # Panics
 ///
 /// Panics if `atoms` contains fewer than three atoms.
+#[must_use]
 pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
     assert!(
         atoms.len() >= 3,

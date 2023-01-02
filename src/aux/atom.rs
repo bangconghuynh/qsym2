@@ -24,6 +24,7 @@ impl Default for ElementMap<'static> {
 
 impl ElementMap<'static> {
     /// Creates a new [`ElementMap`] for all elements in the periodic table.
+    #[must_use]
     pub fn new() -> ElementMap<'static> {
         let mut map = HashMap::new();
         let elements = periodic_table::periodic_table();
@@ -90,6 +91,7 @@ impl Atom {
     ///
     /// The parsed [`Atom`] struct if the line has the correct format,
     /// otherwise [`None`].
+    #[must_use]
     pub fn from_xyz(line: &str, emap: &ElementMap, thresh: f64) -> Option<Atom> {
         let split: Vec<&str> = line.split_whitespace().collect();
         if split.len() != 4 {
@@ -139,6 +141,7 @@ impl Atom {
     ///
     /// `None` if `kind` is not one of the special atom kinds, `Some<Atom>`
     /// otherwise.
+    #[must_use]
     pub fn new_special(kind: AtomKind, coordinates: Point3<f64>, thresh: f64) -> Option<Atom> {
         match kind {
             AtomKind::Magnetic(_) | AtomKind::Electric(_) => Some(Atom {

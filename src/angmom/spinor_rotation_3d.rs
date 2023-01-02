@@ -101,6 +101,7 @@ fn dmat_euler_element(mdashi: usize, mi: usize, euler_angles: (f64, f64, f64)) -
 /// # Returns
 ///
 /// The matrix $`\mathbf{D}^{(1/2)}(\alpha, \beta, \gamma)`$.
+#[must_use]
 pub fn dmat_euler(euler_angles: (f64, f64, f64), increasingm: bool) -> Array2<Complex<f64>> {
     let mut dmat = Array2::<Complex<f64>>::zeros((2, 2));
     for mdashi in 0..2 {
@@ -139,6 +140,7 @@ pub fn dmat_euler(euler_angles: (f64, f64, f64), increasingm: bool) -> Array2<Co
 /// # Returns
 ///
 /// The matrix $`\mathbf{D}^{(1/2)}(\phi\hat{\mathbf{n}})`$.
+#[must_use]
 pub fn dmat_angleaxis(angle: f64, axis: Vector3<f64>, increasingm: bool) -> Array2<Complex<f64>> {
     let normalised_axis = axis.normalize();
     let nx = normalised_axis.x;
@@ -347,6 +349,7 @@ fn dmat_euler_gen_element(
 /// # Returns
 ///
 /// The matrix $`\mathbf{D}^{(j)}(\alpha, \beta, \gamma)`$.
+#[must_use]
 pub fn dmat_euler_gen(
     twoj: u32,
     euler_angles: (f64, f64, f64),
@@ -389,6 +392,7 @@ pub fn dmat_euler_gen(
 /// # Returns
 ///
 /// The matrix $`\mathbf{D}^{(j)}(\phi\hat{\mathbf{n}})`$.
+#[must_use]
 pub fn dmat_angleaxis_gen(
     twoj: u32,
     angle: f64,

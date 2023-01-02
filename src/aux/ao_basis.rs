@@ -62,6 +62,7 @@ impl CartOrder {
     /// # Returns
     ///
     /// A `CartOrder` struct for a specified rank with lexicographic order.
+    #[must_use]
     pub fn lex(lcart: u32) -> Self {
         let mut cart_tuples =
             Vec::with_capacity(((lcart + 1) * (lcart + 2)).div_euclid(2) as usize);
@@ -86,6 +87,7 @@ impl CartOrder {
     /// # Returns
     ///
     /// A `CartOrder` struct for a specified rank with Q-Chem order.
+    #[must_use]
     pub fn qchem(lcart: u32) -> Self {
         let cart_tuples: Vec<(u32, u32, u32)> = if lcart > 0 {
             (0..3)
@@ -124,6 +126,7 @@ impl CartOrder {
     /// # Returns
     ///
     /// A boolean indicating if this `CartOrder` struct is valid.
+    #[must_use]
     pub fn verify(&self) -> bool {
         let cart_tuples_set = self.cart_tuples.iter().collect::<HashSet<_>>();
         let lcart = self.lcart;

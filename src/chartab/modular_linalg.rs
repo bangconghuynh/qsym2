@@ -247,6 +247,7 @@ where
 /// # Panics
 ///
 /// Panics when inconsistent ring moduli between matrix elements are encountered.
+#[must_use]
 pub fn modular_eig<T>(mat: &Array2<T>) -> HashMap<T, Vec<Array1<T>>>
 where
     T: Clone
@@ -349,6 +350,7 @@ where
 /// # Panics
 ///
 /// Panics when inconsistent ring moduli between vector elements are encountered.
+#[must_use]
 pub fn weighted_hermitian_inprod<T>(
     vec_pair: (&Array1<T>, &Array1<T>),
     class_sizes: &[usize],

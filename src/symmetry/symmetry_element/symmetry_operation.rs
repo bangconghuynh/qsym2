@@ -189,6 +189,7 @@ impl SymmetryOperation {
     /// # Returns
     ///
     /// A builder to construct a new symmetry operation.
+    #[must_use]
     pub fn builder() -> SymmetryOperationBuilder {
         SymmetryOperationBuilder::default()
     }
@@ -219,6 +220,7 @@ impl SymmetryOperation {
     /// Panics when the scalar part of the provided quaternion lies outside $`[0, 1]`$ by more than
     /// the specified threshold `thresh`, or when the rotation angle associated with the quaternion
     /// cannot be gracefully converted into an integer tuple of order and power.
+    #[must_use]
     pub fn from_quaternion(
         qtn: Quaternion,
         proper: bool,
@@ -304,6 +306,7 @@ impl SymmetryOperation {
     /// # Panics
     ///
     /// Panics when no total proper fractions could be found for this operation.
+    #[must_use]
     pub fn calc_pole(&self) -> Point3<f64> {
         let op = if self.is_proper() {
             self.clone()
@@ -398,6 +401,7 @@ impl SymmetryOperation {
     ///
     /// Panics if the calculated scalar part of the quaternion lies outside the closed interval
     /// $`[0, 1]`$ by more than the threshold value stored in the generating element in `self`.
+    #[must_use]
     pub fn calc_quaternion(&self) -> Quaternion {
         let c_self = match self.generating_element.kind {
             SymmetryElementKind::Proper => self.clone(),
@@ -442,6 +446,7 @@ impl SymmetryOperation {
 
     /// Generates the abbreviated symbol for this symmetry operation, which classifies
     /// certain improper axes into inversion centres or mirror planes,
+    #[must_use]
     pub fn get_abbreviated_symbol(&self) -> String {
         let timerev = if self.time_reversal_power == 0 {
             String::new()

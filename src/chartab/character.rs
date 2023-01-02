@@ -65,6 +65,7 @@ impl Character {
     /// # Returns
     ///
     /// A character.
+    #[must_use]
     pub fn new(ts: &[(UnityRoot, usize)]) -> Self {
         Self::builder()
             .terms(ts)
@@ -81,6 +82,7 @@ impl Character {
     /// # Panics
     ///
     /// Panics when encountering any multiplicity that cannot be converted to `f64`.
+    #[must_use]
     pub fn complex_value(&self) -> Complex<f64> {
         self.terms
             .iter()
@@ -109,6 +111,7 @@ impl Character {
     /// # Returns
     ///
     /// The formatted numerical form.
+    #[must_use]
     pub fn get_numerical(&self, real_only: bool, precision: usize) -> String {
         let Complex { re, im } = self.complex_value();
         if real_only {

@@ -56,6 +56,7 @@ impl UnityRoot {
     /// # Returns
     ///
     /// A unity root.
+    #[must_use]
     pub fn new(index: u32, order: u32) -> Self {
         Self::builder()
             .fraction(F::new(index, order))
@@ -91,6 +92,7 @@ impl UnityRoot {
     /// # Returns
     ///
     /// The complex value corresponding to this root.
+    #[must_use]
     pub fn complex_value(&self) -> Complex<f64> {
         let theta = self
             .fraction

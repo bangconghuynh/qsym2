@@ -63,6 +63,7 @@ impl fmt::Display for RotationalSymmetry {
 /// # Panics
 ///
 /// Panics when the moments of inertia cannot be compared.
+#[must_use]
 pub fn calc_rotational_symmetry(
     inertia_tensor: &na::Matrix3<f64>,
     thresh: f64,

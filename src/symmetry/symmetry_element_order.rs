@@ -31,6 +31,7 @@ impl ElementOrder {
     /// # Panics
     ///
     /// Panics if `order` is not positive.
+    #[must_use]
     pub fn new(order: f64, thresh: f64) -> Self {
         assert!(
             order.is_sign_positive(),
@@ -58,6 +59,7 @@ impl ElementOrder {
     /// # Returns
     ///
     /// The floating-point representation of the current element order.
+    #[must_use]
     pub fn to_float(&self) -> f64 {
         match self {
             Self::Int(s_i) => f64::from(*s_i),

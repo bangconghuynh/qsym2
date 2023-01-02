@@ -136,6 +136,7 @@ impl PreSymmetry {
     /// # Returns
     ///
     /// A builder to construct a new pre-symmetry struct.
+    #[must_use]
     pub fn builder() -> PreSymmetryBuilder {
         PreSymmetryBuilder::default()
     }
@@ -239,6 +240,7 @@ impl Symmetry {
     /// # Returns
     ///
     /// A builder to construct a new symmetry struct.
+    #[must_use]
     pub fn builder() -> SymmetryBuilder {
         SymmetryBuilder::default()
     }
@@ -486,6 +488,7 @@ impl Symmetry {
     /// # Returns
     ///
     /// A set of the required mirror-plane element type, if exists.
+    #[must_use]
     pub fn get_sigma_elements(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let order_1 = &ElementOrder::Int(1);
         if self.improper_elements.contains_key(order_1) {
@@ -505,6 +508,7 @@ impl Symmetry {
     /// # Returns
     ///
     /// A set of the required mirror-plane generator type, if exists.
+    #[must_use]
     pub fn get_sigma_generators(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let order_1 = &ElementOrder::Int(1);
         if self.improper_generators.contains_key(order_1) {
@@ -524,6 +528,7 @@ impl Symmetry {
     /// # Returns
     ///
     /// The highest proper rotation order.
+    #[must_use]
     pub fn get_max_proper_order(&self) -> ElementOrder {
         *self
             .proper_generators
@@ -538,6 +543,7 @@ impl Symmetry {
     /// # Returns
     ///
     /// A flag indicating if this group is an infinite group.
+    #[must_use]
     pub fn is_infinite(&self) -> bool {
         self.get_max_proper_order() == ElementOrder::Inf
             || *self

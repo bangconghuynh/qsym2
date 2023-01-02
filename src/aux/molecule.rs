@@ -48,6 +48,7 @@ impl Molecule {
     /// # Panics
     ///
     /// Panics when unable to parse the provided `xyz` file.
+    #[must_use]
     pub fn from_xyz(filename: &str, thresh: f64) -> Self {
         let contents = fs::read_to_string(filename).unwrap_or_else(|err| {
             log::error!("Unable to read file {}.", filename);
@@ -104,6 +105,7 @@ impl Molecule {
     ///
     /// Panics when the numbers of fictitious special atoms, if any, are invalid. It is expected
     /// that, when present, there are two magnetic special atoms and/or one electric special atom.
+    #[must_use]
     pub fn from_atoms(all_atoms: &[Atom], threshold: f64) -> Self {
         let atoms: Vec<Atom> = all_atoms
             .iter()
@@ -148,6 +150,7 @@ impl Molecule {
     /// # Returns
     ///
     /// All atoms in this molecule.
+    #[must_use]
     pub fn get_all_atoms(&self) -> Vec<&Atom> {
         let mut atoms: Vec<&Atom> = vec![];
         for atom in &self.atoms {
@@ -173,6 +176,7 @@ impl Molecule {
     /// # Returns
     ///
     /// The centre of mass.
+    #[must_use]
     pub fn calc_com(&self) -> Point3<f64> {
         let atoms = &self.atoms;
         let mut com: Point3<f64> = Point3::origin();
@@ -201,6 +205,7 @@ impl Molecule {
     /// # Returns
     ///
     /// The inertia tensor as a $`3 \times 3`$ matrix.
+    #[must_use]
     pub fn calc_inertia_tensor(&self, origin: &Point3<f64>) -> Matrix3<f64> {
         let atoms = self.get_all_atoms();
         let mut inertia_tensor = Matrix3::zeros();
@@ -238,6 +243,7 @@ impl Molecule {
     /// # Panics
     ///
     /// Panics when any of the moments of inertia cannot be compared.
+    #[must_use]
     pub fn calc_moi(&self) -> ([f64; 3], [Vector3<f64>; 3]) {
         let inertia_eig = self.calc_inertia_tensor(&self.calc_com()).symmetric_eigen();
         let eigenvalues: Vec<f64> = inertia_eig.eigenvalues.iter().copied().collect();
@@ -301,6 +307,7 @@ impl Molecule {
     /// # Panics
     ///
     /// Panics when the any of the mass-weighted interatomic distances cannot be compared.
+    #[must_use]
     pub fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
         let atoms = &self.atoms;
         let all_atoms = &self.get_all_atoms();

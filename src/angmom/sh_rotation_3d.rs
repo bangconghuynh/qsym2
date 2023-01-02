@@ -393,6 +393,7 @@ fn coeff_w(l: u32, m: i64, mdash: i64) -> f64 {
 /// # Panics
 ///
 /// Panics when a three-dimensional rotation matrix cannot be constructed for `angle` and `axis`.
+#[must_use]
 pub fn rmat(angle: f64, axis: Vector3<f64>) -> Array2<f64> {
     let normalised_axis = Unit::new_normalize(axis);
     let rot = Rotation3::from_axis_angle(&normalised_axis, angle);
@@ -433,6 +434,7 @@ pub fn rmat(angle: f64, axis: Vector3<f64>) -> Array2<f64> {
 /// # Panics
 ///
 /// Panics when `l` is less than `2`.
+#[must_use]
 pub fn rlmat(l: u32, rmat: &Array2<f64>, rlm1: &Array2<f64>) -> Array2<f64> {
     assert!(l >= 2, "`l` must be at least 2.");
     let li64 = i64::from(l);

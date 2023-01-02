@@ -240,6 +240,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A builder to construct a new symmetry element.
+    #[must_use]
     pub fn builder() -> SymmetryElementBuilder {
         SymmetryElementBuilder::default()
     }
@@ -249,6 +250,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if the symmetry element is proper.
+    #[must_use]
     pub fn is_proper(&self) -> bool {
         self.kind == SymmetryElementKind::Proper
     }
@@ -258,6 +260,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is an identity element.
+    #[must_use]
     pub fn is_identity(&self) -> bool {
         self.kind == SymmetryElementKind::Proper && self.proper_fraction == Some(F::from(1))
     }
@@ -267,6 +270,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is an inversion centre.
+    #[must_use]
     pub fn is_inversion_centre(&self) -> bool {
         (self.kind == SymmetryElementKind::ImproperMirrorPlane
             && self.proper_fraction == Some(F::new(1u32, 2u32)))
@@ -279,6 +283,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is a binary rotation axis.
+    #[must_use]
     pub fn is_binary_rotation_axis(&self) -> bool {
         self.kind == SymmetryElementKind::Proper && self.proper_fraction == Some(F::new(1u32, 2u32))
     }
@@ -288,6 +293,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is a mirror plane.
+    #[must_use]
     pub fn is_mirror_plane(&self) -> bool {
         (matches!(self.kind, SymmetryElementKind::ImproperMirrorPlane)
             && self.proper_fraction == Some(F::from(1)))
@@ -302,6 +308,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// The standard symbol for this symmetry element.
+    #[must_use]
     pub fn get_standard_symbol(&self) -> String {
         let main_symbol: String = match self.kind {
             SymmetryElementKind::Proper => "C".to_owned(),
@@ -338,6 +345,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// The detailed symbol for this symmetry element.
+    #[must_use]
     pub fn get_detailed_symbol(&self) -> String {
         let (main_symbol, needs_power) = match self.kind {
             SymmetryElementKind::Proper => {
@@ -546,6 +554,7 @@ impl SymmetryElement {
     ///
     /// Panics when $`\gamma`$ is outside the required closed interval $`[0, 1-1/\sqrt{3}]`$ by
     /// more than the threshold value in `self`.
+    #[must_use]
     pub fn closeness_to_cartesian_axes(&self) -> (f64, usize) {
         let normalised_axis = self.axis.normalize();
         let rev_normalised_axis = Vector3::new(
