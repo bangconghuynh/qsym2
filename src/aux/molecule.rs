@@ -1,11 +1,14 @@
-use crate::aux::atom::{Atom, AtomKind, ElementMap};
-use crate::aux::geometry::{self, Transform};
-use crate::symmetry::symmetry_element::SymmetryElementKind;
-use log;
-use nalgebra::{DVector, Matrix3, Point3, Vector3};
 use std::collections::HashSet;
 use std::fs;
 use std::process;
+
+use log;
+use nalgebra::{DVector, Matrix3, Point3, Vector3};
+use num_traits::ToPrimitive;
+
+use crate::aux::atom::{Atom, AtomKind, ElementMap};
+use crate::aux::geometry::{self, Transform};
+use crate::symmetry::symmetry_element::SymmetryElementKind;
 
 #[cfg(test)]
 #[path = "sea_tests.rs"]
@@ -367,6 +370,10 @@ impl Molecule {
     ///
     /// * `magnetic_field` - The magnetic field vector. If zero or `None`, any magnetic
     /// field present will be removed.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the number of atoms cannot be represented as an `f64` value.
     pub fn set_magnetic_field(&mut self, magnetic_field: Option<Vector3<f64>>) {
         if let Some(b_vec) = magnetic_field {
             if approx::relative_ne!(b_vec.norm(), 0.0) {
@@ -376,7 +383,9 @@ impl Molecule {
                         .atoms
                         .iter()
                         .fold(0.0, |acc, atom| acc + (atom.coordinates - com).magnitude())
-                        / self.atoms.len() as f64;
+                        / self.atoms.len().to_f64().unwrap_or_else(|| {
+                            panic!("Unable to convert `{}` to `f64`.", self.atoms.len())
+                        });
                     if average_distance > 0.0 {
                         average_distance
                     } else {
@@ -404,6 +413,10 @@ impl Molecule {
     ///
     /// * `electric_field` - The electric field vector. If zero or `None`, any electric
     /// field present will be removed.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the number of atoms cannot be represented as an `f64` value.
     pub fn set_electric_field(&mut self, electric_field: Option<Vector3<f64>>) {
         if let Some(e_vec) = electric_field {
             if approx::relative_ne!(e_vec.norm(), 0.0) {
@@ -413,7 +426,9 @@ impl Molecule {
                         .atoms
                         .iter()
                         .fold(0.0, |acc, atom| acc + (atom.coordinates - com).magnitude())
-                        / self.atoms.len() as f64;
+                        / self.atoms.len().to_f64().unwrap_or_else(|| {
+                            panic!("Unable to convert `{}` to `f64`.", self.atoms.len())
+                        });
                     if average_distance > 0.0 {
                         average_distance
                     } else {

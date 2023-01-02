@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use approx;
 use nalgebra::{Rotation3, Unit, Vector3};
 use ndarray::{Array2, Axis, ShapeBuilder};
+use num_traits::ToPrimitive;
 
 #[cfg(test)]
 #[path = "sh_rotation_3d_tests.rs"]
@@ -260,7 +261,12 @@ fn coeff_u(l: u32, m: i64, mdash: i64) -> f64 {
     } else {
         (2 * li64) * (2 * li64 - 1)
     };
-    ((num as f64) / (den as f64)).sqrt()
+    (num.to_f64()
+        .unwrap_or_else(|| panic!("Unable to convert `{num}` to `f64`."))
+        / den
+            .to_f64()
+            .unwrap_or_else(|| panic!("Unable to convert `{den}` to `f64`.")))
+    .sqrt()
 }
 
 /// Returns the coefficient $`v^l_{mm'}`$ as defined in Table 1 of Ivanic, J. & Ruedenberg, K.
@@ -300,7 +306,14 @@ fn coeff_v(l: u32, m: i64, mdash: i64) -> f64 {
     } else {
         (2 * li64) * (2 * li64 - 1)
     };
-    0.5 * ((num as f64) / (den as f64)).sqrt() * f64::from(1 - 2 * i16::from(kdelta(&m, &0)))
+    0.5 * (num
+        .to_f64()
+        .unwrap_or_else(|| panic!("Unable to convert `{num}` to `f64`."))
+        / den
+            .to_f64()
+            .unwrap_or_else(|| panic!("Unable to convert `{den}` to `f64`.")))
+    .sqrt()
+        * f64::from(1 - 2 * i16::from(kdelta(&m, &0)))
 }
 
 /// Returns the coefficient $`w^l_{mm'}`$ as defined in Table 1 of Ivanic, J. & Ruedenberg, K.
@@ -340,7 +353,14 @@ fn coeff_w(l: u32, m: i64, mdash: i64) -> f64 {
     } else {
         (2 * li64) * (2 * li64 - 1)
     };
-    -0.5 * ((num as f64) / (den as f64)).sqrt() * f64::from(1 - kdelta(&m, &0))
+    -0.5 * ((num
+        .to_f64()
+        .unwrap_or_else(|| panic!("Unable to convert `{num}` to `f64`.")))
+        / (den
+            .to_f64()
+            .unwrap_or_else(|| panic!("Unable to convert `{den}` to `f64`."))))
+    .sqrt()
+        * f64::from(1 - kdelta(&m, &0))
 }
 
 /// Returns the representation matrix $`\mathbf{R}`$ for a rotation in the basis of the coordinate

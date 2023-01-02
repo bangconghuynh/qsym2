@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use factorial::Factorial;
 use ndarray::{Array2, Axis};
-use num::{BigInt, BigUint, Complex};
+use num::{BigUint, Complex};
 use num_traits::{cast::ToPrimitive, Zero};
 
 use crate::aux::ao_basis::CartOrder;

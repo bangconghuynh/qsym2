@@ -51,8 +51,18 @@ fn dmat_euler_element(mdashi: usize, mi: usize, euler_angles: (f64, f64, f64)) -
     let alpha_basic = alpha.rem_euclid(2.0 * std::f64::consts::PI);
     let gamma_basic = gamma.rem_euclid(2.0 * std::f64::consts::PI);
     let i = Complex::<f64>::i();
-    let mut prefactor =
-        (-i * (alpha_basic * (mdashi as f64 - 0.5) + gamma_basic * (mi as f64 - 0.5))).exp();
+    let mut prefactor = (-i
+        * (alpha_basic
+            * (mdashi
+                .to_f64()
+                .unwrap_or_else(|| panic!("Unable to convert `{mdashi}` to `f64`."))
+                - 0.5)
+            + gamma_basic
+                * (mi
+                    .to_f64()
+                    .unwrap_or_else(|| panic!("Unable to convert `{mi}` to `f64`."))
+                    - 0.5)))
+        .exp();
 
     // Half-integer j = 1/2; double-group behaviours possible.
     let alpha_double = approx::relative_eq!(
@@ -178,6 +188,7 @@ pub fn dmat_angleaxis(angle: f64, axis: Vector3<f64>, increasingm: bool) -> Arra
 /// # Returns
 ///
 /// The element $`D^{(j)}_{m'm}(\alpha, \beta, \gamma)`$.
+#[allow(clippy::too_many_lines)]
 fn dmat_euler_gen_element(
     twoj: u32,
     mdashi: usize,
@@ -196,8 +207,14 @@ fn dmat_euler_gen_element(
     );
     let (alpha, beta, gamma) = euler_angles;
     let j = f64::from(twoj) / 2.0;
-    let mdash = mdashi as f64 - j;
-    let m = mi as f64 - j;
+    let mdash = mdashi
+        .to_f64()
+        .unwrap_or_else(|| panic!("Unable to convert `{mdashi}` to `f64`."))
+        - j;
+    let m = mi
+        .to_f64()
+        .unwrap_or_else(|| panic!("Unable to convert `{mi}` to `f64`."))
+        - j;
 
     let i = Complex::<f64>::i();
     let alpha_basic = alpha.rem_euclid(2.0 * std::f64::consts::PI);

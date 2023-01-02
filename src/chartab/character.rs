@@ -6,6 +6,7 @@ use approx;
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use num::Complex;
+use num_traits::ToPrimitive;
 
 use crate::aux::misc::HashableFloat;
 use crate::chartab::unityroot::UnityRoot;
@@ -65,7 +66,10 @@ impl Character {
     ///
     /// A character.
     pub fn new(ts: &[(UnityRoot, usize)]) -> Self {
-        Self::builder().terms(ts).build().expect("Unable to construct a character.")
+        Self::builder()
+            .terms(ts)
+            .build()
+            .expect("Unable to construct a character.")
     }
 
     /// The complex representation of this character.
@@ -73,12 +77,21 @@ impl Character {
     /// # Returns
     ///
     /// The complex value corresponding to this character.
+    ///
+    /// # Panics
+    ///
+    /// Panics when encountering any multiplicity that cannot be converted to `f64`.
     pub fn complex_value(&self) -> Complex<f64> {
         self.terms
             .iter()
             .filter_map(|(uroot, &mult)| {
                 if mult > 0 {
-                    Some(uroot.complex_value() * (mult as f64))
+                    Some(
+                        uroot.complex_value()
+                            * mult
+                                .to_f64()
+                                .unwrap_or_else(|| panic!("Unable to convert `{mult}` to `f64`.")),
+                    )
                 } else {
                     None
                 }

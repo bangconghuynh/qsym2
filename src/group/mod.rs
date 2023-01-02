@@ -12,7 +12,7 @@ use itertools::Itertools;
 use ndarray::{array, s, Array1, Array2, Array3, Axis, Zip};
 use num::{integer::lcm, Complex};
 use num_modular::{ModularInteger, MontgomeryInt};
-use num_traits::{Inv, Pow};
+use num_traits::{Inv, Pow, ToPrimitive};
 use ordered_float::OrderedFloat;
 use primes::is_prime;
 use rayon::iter::ParallelBridge;
@@ -524,9 +524,16 @@ where
         log::debug!("Found group exponent m = {}.", m);
         log::debug!("Chosen primitive unity root ζ = {}.", zeta);
 
-        let rf64 = (2.0 * (self.order as f64).sqrt() / (m as f64)).round();
+        let rf64 = (2.0
+            * self
+                .order
+                .to_f64()
+                .unwrap_or_else(|| panic!("Unable to convert `{}` to `f64`.", self.order))
+                .sqrt()
+            / (f64::from(m)))
+        .round();
         assert!(rf64.is_sign_positive());
-        assert!(rf64 <= u32::MAX as f64);
+        assert!(rf64 <= f64::from(u32::MAX));
         #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         let mut r = rf64 as u32;
         if r == 0 {
@@ -702,15 +709,15 @@ where
                 .inv()
                 .residue();
                 while !approx::relative_eq!(
-                    (dim2_mod_p as f64).sqrt().round(),
-                    (dim2_mod_p as f64).sqrt()
+                    f64::from(dim2_mod_p).sqrt().round(),
+                    f64::from(dim2_mod_p).sqrt()
                 ) {
                     dim2_mod_p += p;
                 }
 
-                let dim_if64 = (dim2_mod_p as f64).sqrt().round();
+                let dim_if64 = f64::from(dim2_mod_p).sqrt().round();
                 assert!(dim_if64.is_sign_positive());
-                assert!(dim_if64 <= u32::MAX as f64);
+                assert!(dim_if64 <= f64::from(u32::MAX));
                 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
                 let dim_i = dim_if64 as u32;
 
@@ -872,7 +879,9 @@ where
                                 .expect("Conjugacy classes not found.")[*ele_2_idx];
                             acc + char_arr[[irrep_i, class_2_j]].complex_value()
                         })
-                        / (self.order as f64);
+                        / self.order.to_f64().unwrap_or_else(|| {
+                            panic!("Unable to convert `{}` to `f64`.", self.order)
+                        });
                 approx::assert_relative_eq!(
                     indicator.im,
                     0.0,
@@ -886,22 +895,19 @@ where
                     max_relative = 1e-14
                 );
                 assert!(
-                    approx::relative_eq!(
-                        indicator.re,
-                        1.0,
-                        epsilon = 1e-14,
-                        max_relative = 1e-14
-                    ) || approx::relative_eq!(
-                        indicator.re,
-                        0.0,
-                        epsilon = 1e-14,
-                        max_relative = 1e-14
-                    ) || approx::relative_eq!(
-                        indicator.re,
-                        -1.0,
-                        epsilon = 1e-14,
-                        max_relative = 1e-14
-                    )
+                    approx::relative_eq!(indicator.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
+                        || approx::relative_eq!(
+                            indicator.re,
+                            0.0,
+                            epsilon = 1e-14,
+                            max_relative = 1e-14
+                        )
+                        || approx::relative_eq!(
+                            indicator.re,
+                            -1.0,
+                            epsilon = 1e-14,
+                            max_relative = 1e-14
+                        )
                 );
                 #[allow(clippy::cast_possible_truncation)]
                 let indicator_i8 = indicator.re.round() as i8;

@@ -1,11 +1,14 @@
-use crate::aux::atom::Atom;
-use crate::aux::misc::HashableFloat;
-use crate::symmetry::symmetry_element::SymmetryElementKind;
+use std::collections::HashSet;
+
 use approx;
 use fraction;
 use itertools::{self, Itertools};
 use nalgebra::{ClosedMul, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vector3};
-use std::collections::HashSet;
+use num_traits::ToPrimitive;
+
+use crate::aux::atom::Atom;
+use crate::aux::misc::HashableFloat;
+use crate::symmetry::symmetry_element::SymmetryElementKind;
 
 type F32 = fraction::GenericFraction<u32>;
 
@@ -230,7 +233,11 @@ pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
 
     // Check if all atoms are equidistant from the centre of mass
     if radial_dists.len() == 1 {
-        let regular_angle = 2.0 * std::f64::consts::PI / (atoms.len() as f64);
+        let regular_angle = 2.0 * std::f64::consts::PI
+            / atoms
+                .len()
+                .to_f64()
+                .unwrap_or_else(|| panic!("Unable to convert `{}` to `f64`.", atoms.len()));
         let thresh = atoms
             .iter()
             .fold(0.0_f64, |acc, atom| acc.max(atom.threshold));

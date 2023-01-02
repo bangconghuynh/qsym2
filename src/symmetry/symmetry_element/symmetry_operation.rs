@@ -168,9 +168,9 @@ impl SymmetryOperationBuilder {
             Some(frac) => {
                 let pow = self.power.expect("Power has not been set.");
                 let unnormalised_frac = if pow >= 0 {
-                    (frac * F::new(u32::from(pow.unsigned_abs()), 1u32)).fract()
+                    (frac * F::new(pow.unsigned_abs(), 1u32)).fract()
                 } else {
-                    F::from(1u32) - (frac * F::new(u32::from(pow.unsigned_abs()), 1u32)).fract()
+                    F::from(1u32) - (frac * F::new(pow.unsigned_abs(), 1u32)).fract()
                 };
                 if unnormalised_frac == F::from(0u64) {
                     Some(F::from(1u64))
