@@ -957,8 +957,8 @@ where
         );
     }
 
-    let e2p1 = UnityRoot::new(1u64, 2u64);
-    let e2p2 = UnityRoot::new(2u64, 2u64);
+    let e2p1 = UnityRoot::new(1u32, 2u32);
+    let e2p2 = UnityRoot::new(2u32, 2u32);
     let char_p1 = Character::new(&[(e2p2, 1usize)]);
     let char_m1 = Character::new(&[(e2p1, 1usize)]);
 

@@ -32,7 +32,7 @@ mod modular_linalg_tests;
 /// Panics if `mat` is not a square matrix.
 pub fn modular_determinant<T>(mat: &Array2<T>) -> T
 where
-    T: Clone + LinalgScalar + ModularInteger<Base = u64> + Div<Output = T>,
+    T: Clone + LinalgScalar + ModularInteger<Base = u32> + Div<Output = T>,
 {
     let mut mat = mat.clone();
     let rep = mat
@@ -40,9 +40,9 @@ where
         .expect("Unable to obtain the first element of `mat`.");
     assert_eq!(mat.ncols(), mat.nrows(), "A square matrix is expected.");
     let dim = mat.ncols();
-    let mut sign = rep.convert(1u64);
-    let mut prev = rep.convert(1u64);
-    let zero = rep.convert(0u64);
+    let mut sign = rep.convert(1u32);
+    let mut prev = rep.convert(1u32);
+    let zero = rep.convert(0u32);
 
     for i in 0..(dim - 1) {
         if mat[(i, i)] == zero {
@@ -87,7 +87,7 @@ where
 /// Panics when the pivoting values are not unity.
 pub fn modular_rref<T>(mat: &Array2<T>) -> (Array2<T>, usize)
 where
-    T: Clone + Copy + Debug + ModularInteger<Base = u64> + Div<Output = T>,
+    T: Clone + Copy + Debug + ModularInteger<Base = u32> + Div<Output = T>,
 {
     let mut mat = mat.clone();
     let nrows = mat.nrows();
@@ -189,7 +189,7 @@ where
 /// A vector of basis vectors for the kernel of `mat`.
 fn modular_kernel<T>(mat: &Array2<T>) -> Vec<Array1<T>>
 where
-    T: Clone + Copy + Debug + ModularInteger<Base = u64> + Div<Output = T>,
+    T: Clone + Copy + Debug + ModularInteger<Base = u32> + Div<Output = T>,
 {
     let (mat_rref, nullity) = modular_rref(mat);
     let ncols = mat.ncols();
@@ -253,7 +253,7 @@ where
         + LinalgScalar
         + Display
         + Debug
-        + ModularInteger<Base = u64>
+        + ModularInteger<Base = u32>
         + Eq
         + Hash
         + panic::UnwindSafe
@@ -261,7 +261,7 @@ where
 {
     assert!(mat.is_square(), "Only square matrices are supported.");
     let dim = mat.nrows();
-    let modulus_set: HashSet<u64> = mat
+    let modulus_set: HashSet<u32> = mat
         .iter()
         .filter_map(|x| panic::catch_unwind(|| x.modulus()).ok())
         .collect();
@@ -358,7 +358,7 @@ where
     T: Display
         + Debug
         + LinalgScalar
-        + ModularInteger<Base = u64>
+        + ModularInteger<Base = u32>
         + panic::UnwindSafe
         + panic::RefUnwindSafe,
 {
@@ -366,7 +366,7 @@ where
     assert_eq!(vec_u.len(), vec_w.len());
     assert_eq!(vec_u.len(), class_sizes.len());
 
-    let modulus_set: HashSet<u64> = vec_u
+    let modulus_set: HashSet<u32> = vec_u
         .iter()
         .chain(vec_w.iter())
         .filter_map(|x| panic::catch_unwind(|| x.modulus()).ok())
@@ -395,13 +395,13 @@ where
         .fold(T::zero(), |acc, &u, &w_conj, &k| {
             acc + (u * w_conj)
                 / rep.convert(
-                    u64::try_from(k)
-                        .unwrap_or_else(|_| panic!("Unable to convert `{k}` to `u64`.")),
+                    u32::try_from(k)
+                        .unwrap_or_else(|_| panic!("Unable to convert `{k}` to `u32`.")),
                 )
         })
         / rep.convert(
-            u64::try_from(class_sizes.iter().sum::<usize>())
-                .expect("Unable to convert the group order to `u64`."),
+            u32::try_from(class_sizes.iter().sum::<usize>())
+                .expect("Unable to convert the group order to `u32`."),
         )
 }
 
@@ -424,7 +424,7 @@ where
     T: Display
         + Debug
         + LinalgScalar
-        + ModularInteger<Base = u64>
+        + ModularInteger<Base = u32>
         + panic::UnwindSafe
         + panic::RefUnwindSafe,
 {
@@ -489,14 +489,14 @@ where
     T: Display
         + LinalgScalar
         + Debug
-        + ModularInteger<Base = u64>
+        + ModularInteger<Base = u32>
         + Eq
         + Hash
         + Zero
         + panic::UnwindSafe
         + panic::RefUnwindSafe,
 {
-    let modulus_set: HashSet<u64> = vecs
+    let modulus_set: HashSet<u32> = vecs
         .iter()
         .flatten()
         .chain(mat.iter())
@@ -558,8 +558,8 @@ where
                     Zip::from(col_i_conj.view())
                         .and(ArrayView1::from(class_sizes))
                         .map_collect(|&eij, &kj| {
-                            eij / rep.convert(u64::try_from(kj * group_order).unwrap_or_else(
-                                |_| panic!("Unable to convert `{}` to `u64`.", kj * group_order),
+                            eij / rep.convert(u32::try_from(kj * group_order).unwrap_or_else(
+                                |_| panic!("Unable to convert `{}` to `u32`.", kj * group_order),
                             ))
                         })
                 })

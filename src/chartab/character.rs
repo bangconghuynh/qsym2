@@ -325,7 +325,7 @@ impl fmt::Debug for Character {
     /// Prints the full form for this character showing all contributing unity
     /// roots and their multiplicities.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let one = UnityRoot::new(0u64, 2u64);
+        let one = UnityRoot::new(0u32, 2u32);
         let str_terms: Vec<String> = self
             .terms
             .clone()

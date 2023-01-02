@@ -6,7 +6,7 @@ use fraction::{self, ToPrimitive};
 use num::Complex;
 use num_traits::Pow;
 
-type F = fraction::Fraction;
+type F = fraction::GenericFraction<u32>;
 
 #[cfg(test)]
 #[path = "unityroot_tests.rs"]
@@ -56,7 +56,7 @@ impl UnityRoot {
     /// # Returns
     ///
     /// A unity root.
-    pub fn new(index: u64, order: u64) -> Self {
+    pub fn new(index: u32, order: u32) -> Self {
         Self::builder()
             .fraction(F::new(index, order))
             .build()
@@ -68,7 +68,7 @@ impl UnityRoot {
     /// # Returns
     ///
     /// The order $`n`$.
-    fn order(&self) -> &u64 {
+    fn order(&self) -> &u32 {
         self.fraction
             .denom()
             .expect("Unable to obtain the order of the root.")
@@ -80,7 +80,7 @@ impl UnityRoot {
     /// # Returns
     ///
     /// The index $`k`$.
-    fn index(&self) -> &u64 {
+    fn index(&self) -> &u32 {
         self.fraction
             .numer()
             .expect("Unable to obtain the index of the root.")
@@ -145,7 +145,7 @@ impl Pow<i32> for &UnityRoot {
 
     fn pow(self, rhs: i32) -> Self::Output {
         Self::Output::new(
-            u64::try_from(
+            u32::try_from(
                 (i32::try_from(*self.index())
                     .unwrap_or_else(|_| panic!("Unable to convert `{}` to `i32`.", self.index()))
                     * rhs)
@@ -161,15 +161,15 @@ impl Pow<i32> for &UnityRoot {
 
 impl fmt::Display for UnityRoot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.fraction == F::new(0u64, 4u64) {
+        if self.fraction == F::new(0u32, 4u32) {
             write!(f, "1")
-        } else if self.fraction == F::new(1u64, 4u64) {
+        } else if self.fraction == F::new(1u32, 4u32) {
             write!(f, "i")
-        } else if self.fraction == F::new(2u64, 4u64) {
+        } else if self.fraction == F::new(2u32, 4u32) {
             write!(f, "-1")
-        } else if self.fraction == F::new(3u64, 4u64) {
+        } else if self.fraction == F::new(3u32, 4u32) {
             write!(f, "-i")
-        } else if *self.index() == 1u64 {
+        } else if *self.index() == 1u32 {
             write!(f, "E{}", self.order())
         } else {
             write!(f, "(E{})^{}", self.order(), self.index())
@@ -179,9 +179,9 @@ impl fmt::Display for UnityRoot {
 
 impl fmt::Debug for UnityRoot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.fraction == F::new(0u64, 4u64) {
+        if self.fraction == F::new(0u32, 4u32) {
             write!(f, "1")
-        } else if *self.index() == 1u64 {
+        } else if *self.index() == 1u32 {
             write!(f, "E{}", self.order())
         } else {
             write!(f, "(E{})^{}", self.order(), self.index())

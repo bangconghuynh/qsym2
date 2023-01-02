@@ -1386,7 +1386,7 @@ fn test_character_table_construction_symmetric_arbitrary_half_sandwich_magnetic_
             .map(|(i, irrep)| {
                 (
                     (irrep, &cn),
-                    Character::new(&[(UnityRoot::new(i as u64, n as u64), 1)]),
+                    Character::new(&[(UnityRoot::new(i as u32, n as u32), 1)]),
                 )
             })
             .collect();

@@ -789,36 +789,35 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
         for atom2s in sea_group.iter().combinations(2) {
             if asymmetric && count_c2 == 3 {
                 break;
-            } else {
-                let atom_i_pos = atom2s[0].coordinates;
-                let atom_j_pos = atom2s[1].coordinates;
+            }
+            let atom_i_pos = atom2s[0].coordinates;
+            let atom_j_pos = atom2s[1].coordinates;
 
-                // Case B: C2 might cross through any two atoms
-                if presym.check_proper(&ORDER_2, &atom_i_pos.coords) {
+            // Case B: C2 might cross through any two atoms
+            if presym.check_proper(&ORDER_2, &atom_i_pos.coords) {
+                count_c2 += usize::from(sym.add_proper(
+                    ORDER_2,
+                    atom_i_pos.coords,
+                    false,
+                    presym.dist_threshold,
+                ));
+            }
+
+            // Case A: C2 might cross through the midpoint of two atoms
+            let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
+            if midvec.norm() > presym.dist_threshold && presym.check_proper(&ORDER_2, &midvec) {
+                count_c2 +=
+                    usize::from(sym.add_proper(ORDER_2, midvec, false, presym.dist_threshold));
+            } else if let Some(electric_atoms) = &presym.molecule.electric_atoms {
+                let com = presym.molecule.calc_com();
+                let e_vector = electric_atoms[0].coordinates - com;
+                if presym.check_proper(&ORDER_2, &e_vector) {
                     count_c2 += usize::from(sym.add_proper(
                         ORDER_2,
-                        atom_i_pos.coords,
+                        e_vector,
                         false,
                         presym.dist_threshold,
                     ));
-                }
-
-                // Case A: C2 might cross through the midpoint of two atoms
-                let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
-                if midvec.norm() > presym.dist_threshold && presym.check_proper(&ORDER_2, &midvec) {
-                    count_c2 +=
-                        usize::from(sym.add_proper(ORDER_2, midvec, false, presym.dist_threshold));
-                } else if let Some(electric_atoms) = &presym.molecule.electric_atoms {
-                    let com = presym.molecule.calc_com();
-                    let e_vector = electric_atoms[0].coordinates - com;
-                    if presym.check_proper(&ORDER_2, &e_vector) {
-                        count_c2 += usize::from(sym.add_proper(
-                            ORDER_2,
-                            e_vector,
-                            false,
-                            presym.dist_threshold,
-                        ));
-                    }
                 }
             }
         }

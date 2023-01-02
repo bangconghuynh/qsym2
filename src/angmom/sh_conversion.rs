@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use factorial::Factorial;
 use ndarray::{Array2, Axis};
-use num::{BigUint, Complex};
+use num::{BigInt, BigUint, Complex};
 use num_traits::{cast::ToPrimitive, Zero};
 
 use crate::aux::ao_basis::CartOrder;
@@ -17,8 +17,8 @@ mod sh_conversion_tests;
 ///
 /// # Arguments
 ///
-/// * n - Number of things.
-/// * r - Number of elements taken.
+/// * `n` - Number of things.
+/// * `r` - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -27,8 +27,8 @@ fn comb(n: i32, r: i32) -> BigUint {
     if n < 0 || r < 0 || r > n {
         BigUint::zero()
     } else {
-        let nu = n as u32;
-        let ru = r as u32;
+        let nu = u32::try_from(n).expect("Unable to convert `n` to `u32`.");
+        let ru = u32::try_from(r).expect("Unable to convert `r` to `u32`.");
         (nu - ru + 1..=nu).product::<BigUint>()
             / BigUint::from(ru)
                 .checked_factorial()
@@ -42,8 +42,8 @@ fn comb(n: i32, r: i32) -> BigUint {
 ///
 /// # Arguments
 ///
-/// * n - Number of things.
-/// * r - Number of elements taken.
+/// * `n` - Number of things.
+/// * `r` - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -65,8 +65,8 @@ fn combu(nu: u32, ru: u32) -> BigUint {
 ///
 /// # Arguments
 ///
-/// * n - Number of things.
-/// * r - Number of elements taken.
+/// * `n` - Number of things.
+/// * `r` - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -75,8 +75,8 @@ fn perm(n: i32, r: i32) -> BigUint {
     if n < 0 || r < 0 || r > n {
         BigUint::zero()
     } else {
-        let nu = n as u32;
-        let ru = r as u32;
+        let nu = u32::try_from(n).expect("Unable to convert `n` to `u32`.");
+        let ru = u32::try_from(r).expect("Unable to convert `r` to `u32`.");
         (nu - ru + 1..=nu).product::<BigUint>()
     }
 }
@@ -87,8 +87,8 @@ fn perm(n: i32, r: i32) -> BigUint {
 ///
 /// # Arguments
 ///
-/// * n - Number of things.
-/// * r - Number of elements taken.
+/// * `n` - Number of things.
+/// * `r` - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -117,8 +117,8 @@ fn permu(nu: u32, ru: u32) -> BigUint {
 ///
 /// # Arguments
 ///
-/// * n - The non-negative exponent of the radial part of the solid harmonic Gaussian.
-/// * alpha - The coefficient on the exponent of the Gaussian term.
+/// * `n` - The non-negative exponent of the radial part of the solid harmonic Gaussian.
+/// * `alpha` - The coefficient on the exponent of the Gaussian term.
 ///
 /// # Returns
 ///
@@ -159,9 +159,9 @@ fn norm_sph_gaussian(n: u32, alpha: f64) -> f64 {
 ///
 /// # Arguments
 ///
-/// * lcartqns - A tuple of $`(l_x, l_y, l_z)`$ specifying the non-negative exponents of
+/// * `lcartqns` - A tuple of $`(l_x, l_y, l_z)`$ specifying the non-negative exponents of
 /// the Cartesian components of the Cartesian Gaussian.
-/// * alpha - The coefficient on the exponent of the Gaussian term.
+/// * `alpha` - The coefficient on the exponent of the Gaussian term.
 ///
 /// # Returns
 ///
@@ -269,11 +269,11 @@ fn norm_cart_gaussian(lcartqns: (u32, u32, u32), alpha: f64) -> f64 {
 ///
 /// # Arguments
 ///
-/// * lpureqns - A tuple of $`(l, m_l)`$ specifying the quantum numbers for the spherical
+/// * `lpureqns` - A tuple of $`(l, m_l)`$ specifying the quantum numbers for the spherical
 /// harmonic component of the solid harmonic Gaussian.
-/// * lcartqns - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
+/// * `lcartqns` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
 /// components of the Cartesian Gaussian.
-/// * csphase - If `true`, the Condon--Shortley phase will be used as defined above.
+/// * `csphase` - If `true`, the Condon--Shortley phase will be used as defined above.
 /// If `false`, this phase will be set to unity.
 ///
 /// # Returns
@@ -286,13 +286,18 @@ fn norm_cart_gaussian(lcartqns: (u32, u32, u32), alpha: f64) -> f64 {
 #[allow(clippy::too_many_lines)]
 fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> Complex<f64> {
     let (l, m) = lpureqns;
+    let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
     assert!(
         m.unsigned_abs() <= l,
         "m must be between -l and l (inclusive)."
     );
     let (lx, ly, lz) = lcartqns;
+    let lxi32 = i32::try_from(lx).unwrap_or_else(|_| panic!("Cannot convert `{lx}` to `i32`."));
+    let lyi32 = i32::try_from(ly).unwrap_or_else(|_| panic!("Cannot convert `{ly}` to `i32`."));
+    let lzi32 = i32::try_from(lz).unwrap_or_else(|_| panic!("Cannot convert `{lz}` to `i32`."));
     let lcart = lx + ly + lz;
-    let dl = lcart as i32 - l as i32;
+    let lcarti32 = lxi32 + lyi32 + lzi32;
+    let dl = lcarti32 - li32;
     if dl % 2 != 0 {
         return Complex::<f64>::zero();
     }
@@ -327,33 +332,53 @@ fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> C
                     .unwrap_or_else(|| panic!("Unable to compute the factorial of {l}.")),
         ) * (num / den).sqrt();
     if csphase && m > 0 {
-        prefactor *= f64::from((-1i32).pow(m as u32));
+        prefactor *=
+            f64::from((-1i32).pow(u32::try_from(m).expect("Unable to convert `m` to `u32`.")));
     }
     let ntilde = norm_sph_gaussian(lcart, 1.0);
     let n = norm_cart_gaussian(lcartqns, 1.0);
 
     let si =
         (0..=((l - m.unsigned_abs()).div_euclid(2))).fold(Complex::<f64>::zero(), |acc_si, i| {
-            let ifactor = combu(l, i)
+            // i <= (l - |m|) / 2
+            let ii32 =
+                i32::try_from(i).unwrap_or_else(|_| panic!("Cannot convert `{i}` to `i32`."));
+            let mut ifactor = combu(l, i)
                 .to_f64()
                 .expect("Unable to convert a `BigUint` value to `f64`.")
-                * f64::from(
-                    (-1i32).pow(i)
-                        * (2 * l - 2 * i).checked_factorial().unwrap_or_else(|| {
-                            panic!("Unable to compute the factorial of {}.", 2 * l - 2 * i)
-                        }) as i32,
-                )
-                / f64::from(
-                    (l - m.unsigned_abs() - 2 * i)
-                        .checked_factorial()
-                        .unwrap_or_else(|| {
-                            panic!(
-                                "Unable to compute the factorial of {}.",
-                                l - m.unsigned_abs() - 2 * i
-                            )
-                        }),
-                );
+                * BigUint::from(2 * l - 2 * i)
+                    .checked_factorial()
+                    .unwrap_or_else(|| {
+                        panic!("Unable to compute the factorial of {}.", 2 * l - 2 * i)
+                    })
+                    .to_f64()
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Unable to convert the factorial of {} to `f64`.",
+                            2 * l - 2 * i
+                        )
+                    })
+                / BigUint::from(l - m.unsigned_abs() - 2 * i)
+                    .checked_factorial()
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Unable to compute the factorial of {}.",
+                            l - m.unsigned_abs() - 2 * i
+                        )
+                    })
+                    .to_f64()
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Unable to convert the factorial of {} to `f64`.",
+                            l - m.unsigned_abs() - 2 * i
+                        )
+                    });
+            if i % 2 == 1 {
+                ifactor *= -1.0;
+            };
             let sp = (0..=(m.unsigned_abs())).fold(Complex::<f64>::zero(), |acc_sp, p| {
+                let pi32 =
+                    i32::try_from(p).unwrap_or_else(|_| panic!("Cannot convert `{p}` to `i32`."));
                 let pfactor = if m > 0 {
                     combu(m.unsigned_abs(), p)
                         .to_f64()
@@ -366,14 +391,14 @@ fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> C
                         * (-1.0 * Complex::<f64>::i()).powu(m.unsigned_abs() - p)
                 };
                 let sq = (0..=(dl.div_euclid(2))).fold(Complex::<f64>::zero(), |acc_sq, q| {
-                    let jq_num = (lx + ly) as i32 - 2 * q - m.abs();
+                    let jq_num = lxi32 + lyi32 - 2 * q - m.abs();
                     if jq_num.rem_euclid(2) == 0 {
                         let jq = jq_num.div_euclid(2);
-                        let qfactor = (comb(dl.div_euclid(2), q) * comb(i as i32, jq))
+                        let qfactor = (comb(dl.div_euclid(2), q) * comb(ii32, jq))
                             .to_f64()
                             .expect("Unable to convert a `BigUint` value to `f64`.");
                         let sk = (0..=jq).fold(Complex::<f64>::zero(), |acc_sk, k| {
-                            let tpk_num = lx as i32 - p as i32 - 2 * k;
+                            let tpk_num = lxi32 - pi32 - 2 * k;
                             if tpk_num.rem_euclid(2) == 0 {
                                 let tpk = tpk_num.div_euclid(2);
                                 let kfactor = (comb(q, tpk) * comb(jq, k))
@@ -403,9 +428,9 @@ fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> C
 ///
 /// # Arguments
 ///
-/// * lcartqns1 - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
+/// * `lcartqns1` - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
 /// components of the first Cartesian Gaussian.
-/// * lcartqns2 - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
+/// * `lcartqns2` - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
 /// components of the first Cartesian Gaussian.
 ///
 /// # Returns
@@ -533,11 +558,11 @@ fn cartov(lcartqns1: (u32, u32, u32), lcartqns2: (u32, u32, u32)) -> f64 {
 ///
 /// # Arguments
 ///
-/// * lcartqns - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
+/// * `lcartqns` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
 /// components of the Cartesian Gaussian.
-/// * lpureqns - A tuple of $`(l, m_l)`$ specifying the quantum numbers for the spherical harmonic
-/// component of the solid harmonic Gaussian.
-/// * csphase - If `true`, the Condon--Shortley phase will be used as defined in
+/// * `lpureqns` - A tuple of $`(l, m_l)`$ specifying the quantum numbers for the spherical
+/// harmonic component of the solid harmonic Gaussian.
+/// * `csphase` - If `true`, the Condon--Shortley phase will be used as defined in
 /// [`complexc`]. If `false`, this phase will be set to unity.
 ///
 /// # Returns
@@ -588,10 +613,10 @@ fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: bool) -
 ///
 /// # Arguments
 ///
-/// * l - The spherical harmonic degree.
-/// * csphase - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
+/// * `l` - The spherical harmonic degree.
+/// * `csphase` - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
 /// $`\lambda_{\mathrm{cs}} = 1`$.
-/// * increasingm - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)}`$ are
+/// * `increasingm` - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)}`$ are
 /// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
@@ -599,9 +624,10 @@ fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: bool) -
 ///
 /// The $`\boldsymbol{\Upsilon}^{(l)}`$ matrix.
 fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
-    let mut upmat = Array2::<Complex<f64>>::zeros((2 * l as usize + 1, 2 * l as usize + 1));
-    let lsize = l as usize;
-    for mcomplex in -(l as i32)..=(l as i32) {
+    let lusize = l as usize;
+    let mut upmat = Array2::<Complex<f64>>::zeros((2 * lusize + 1, 2 * lusize + 1));
+    let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
+    for mcomplex in -li32..=li32 {
         let absmreal = mcomplex.unsigned_abs() as usize;
         match mcomplex.cmp(&0) {
             Ordering::Less => {
@@ -609,17 +635,19 @@ fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
                 // upmat[-absmreal + l, mcomplex + l] = -1.0j / np.sqrt(2)
                 // upmat[+absmreal + l, mcomplex + l] = 1.0 / np.sqrt(2)
                 // mcomplex = -absmreal
-                upmat[(lsize - absmreal, lsize - absmreal)] =
+                upmat[(lusize - absmreal, lusize - absmreal)] =
                     Complex::<f64>::new(0.0, -1.0 / 2.0f64.sqrt());
-                upmat[(lsize + absmreal, lsize - absmreal)] =
+                upmat[(lusize + absmreal, lusize - absmreal)] =
                     Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0);
             }
             Ordering::Equal => {
-                upmat[(lsize, lsize)] = Complex::<f64>::from(1.0);
+                upmat[(lusize, lusize)] = Complex::<f64>::from(1.0);
             }
             Ordering::Greater => {
                 let lcs = if csphase {
-                    f64::from((-1i32).pow(mcomplex as u32))
+                    f64::from((-1i32).pow(
+                        u32::try_from(mcomplex).expect("Unable to convert `mcomplex` to `u32`."),
+                    ))
                 } else {
                     1.0
                 };
@@ -627,9 +655,9 @@ fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
                 // upmat[-absmreal + l, mcomplex + l] = lcs * 1.0j / np.sqrt(2)
                 // upmat[+absmreal + l, mcomplex + l] = lcs * 1.0 / np.sqrt(2)
                 // mcomplex = absmreal
-                upmat[(lsize - absmreal, lsize + absmreal)] =
+                upmat[(lusize - absmreal, lusize + absmreal)] =
                     lcs * Complex::<f64>::new(0.0, 1.0 / 2.0f64.sqrt());
-                upmat[(lsize + absmreal, lsize + absmreal)] =
+                upmat[(lusize + absmreal, lusize + absmreal)] =
                     lcs * Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0);
             }
         }
@@ -678,10 +706,10 @@ fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
 ///
 /// # Arguments
 ///
-/// * l - The spherical harmonic degree.
-/// * csphase - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
+/// * `l` - The spherical harmonic degree.
+/// * `csphase` - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
 /// $`\lambda_{\mathrm{cs}} = 1`$.
-/// * increasingm - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ are
+/// * `increasingm` - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ are
 /// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
@@ -742,16 +770,16 @@ fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
 ///
 /// # Arguments
 ///
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+/// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
 ///  also for the radial part of the solid harmonic Gaussian.
-/// * l - The degree of the complex spherical harmonic factor in the solid
+/// * `l` - The degree of the complex spherical harmonic factor in the solid
 ///  harmonic Gaussian.
-/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
 /// coefficients. See [`complexc`] for more details.
-/// * increasingm - If `true`, the columns of $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ are arranged
-/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// * `increasingm` - If `true`, the columns of $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ are
+/// arranged in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
@@ -769,7 +797,8 @@ fn sh_cl2cart_mat(
         ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize,
         2 * l as usize + 1,
     ));
-    for (i, m) in (-(l as i32)..=(l as i32)).enumerate() {
+    let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
+    for (i, m) in (-li32..=li32).enumerate() {
         for (icart, &lcartqns) in cartorder.iter().enumerate() {
             umat[(icart, i)] = complexc((l, m), lcartqns, csphase);
         }
@@ -827,15 +856,15 @@ fn sh_cl2cart_mat(
 ///
 /// # Arguments
 ///
-/// * l - The degree of the complex spherical harmonic factor in the solid
+/// * `l` - The degree of the complex spherical harmonic factor in the solid
 ///  harmonic Gaussian.
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+/// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
 ///  also for the radial part of the solid harmonic Gaussian.
-/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
-/// * increasingm - If `true`, the rows of $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$ are arranged
+/// * `increasingm` - If `true`, the rows of $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
@@ -854,8 +883,9 @@ fn sh_cart2cl_mat(
         2 * l as usize + 1,
         ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize,
     ));
+    let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
     for (icart, &lcartqns) in cartorder.iter().enumerate() {
-        for (i, m) in (-(l as i32)..=(l as i32)).enumerate() {
+        for (i, m) in (-li32..=li32).enumerate() {
             vmat[(i, icart)] = complexcinv(lcartqns, (l, m), csphase);
         }
     }
@@ -921,10 +951,10 @@ fn sh_cart2cl_mat(
 ///  harmonic Gaussian.
 /// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
 /// coefficients. See [`complexc`] for more details.
-/// * increasingm - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are arranged
-/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// * `increasingm` - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are
+/// arranged in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
@@ -995,15 +1025,15 @@ fn sh_rl2cart_mat(
 ///
 /// # Arguments
 ///
-/// * l - The degree of the complex spherical harmonic factor in the solid
+/// * `l` - The degree of the complex spherical harmonic factor in the solid
 ///  harmonic Gaussian.
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+/// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
 ///  also for the radial part of the solid harmonic Gaussian.
-/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
-/// * increasingm - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
+/// * `increasingm` - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
@@ -1036,14 +1066,14 @@ fn sh_cart2rl_mat(
 ///
 /// # Arguments
 ///
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+/// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
 ///  also for the radial part of the solid harmonic Gaussian.
-/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c`$ coefficients. See [`complexc`] for more details.
-/// * increasingm - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are arranged
-/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// * `increasingm` - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are
+/// arranged in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
@@ -1077,13 +1107,13 @@ fn sh_r2cart(
 ///
 /// # Arguments
 ///
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+/// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
 ///  also for the radial part of the solid harmonic Gaussian.
-/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
-/// * increasingm - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
+/// * `increasingm` - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///

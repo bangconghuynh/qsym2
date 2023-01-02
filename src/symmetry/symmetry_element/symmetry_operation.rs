@@ -14,7 +14,7 @@ use crate::aux::misc::{self, HashableFloat};
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, INV};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
-type F = fraction::Fraction;
+type F = fraction::GenericFraction<u32>;
 type Quaternion = (f64, Vector3<f64>);
 
 #[cfg(test)]
@@ -168,9 +168,9 @@ impl SymmetryOperationBuilder {
             Some(frac) => {
                 let pow = self.power.expect("Power has not been set.");
                 let unnormalised_frac = if pow >= 0 {
-                    (frac * F::new(u64::from(pow.unsigned_abs()), 1u64)).fract()
+                    (frac * F::new(u32::from(pow.unsigned_abs()), 1u32)).fract()
                 } else {
-                    F::from(1u64) - (frac * F::new(u64::from(pow.unsigned_abs()), 1u64)).fract()
+                    F::from(1u32) - (frac * F::new(u32::from(pow.unsigned_abs()), 1u32)).fract()
                 };
                 if unnormalised_frac == F::from(0u64) {
                     Some(F::from(1u64))
@@ -312,7 +312,7 @@ impl SymmetryOperation {
         };
         match op.generating_element.proper_order {
             ElementOrder::Int(_) => {
-                let frac_1_2 = F::new(1u64, 2u64);
+                let frac_1_2 = F::new(1u32, 2u32);
                 if op
                     .total_proper_fraction
                     .expect("No total proper fractions found.")
@@ -468,7 +468,7 @@ impl SymmetryOperation {
 }
 
 impl FiniteOrder for SymmetryOperation {
-    type Int = u64;
+    type Int = u32;
 
     /// Calculates the order of this symmetry operation.
     fn order(&self) -> Self::Int {
@@ -542,7 +542,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             && match self.generating_element.kind {
                 SymmetryElementKind::ImproperMirrorPlane => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
-                        self.total_proper_fraction == Some(F::new(1u64, 2u64))
+                        self.total_proper_fraction == Some(F::new(1u32, 2u32))
                     } else {
                         approx::relative_eq!(
                             geometry::normalise_rotation_angle(
@@ -589,7 +589,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
         self.is_proper()
             && !self.is_antiunitary()
             && match self.generating_element.proper_order {
-                ElementOrder::Int(_) => self.total_proper_fraction == Some(F::new(1u64, 2u64)),
+                ElementOrder::Int(_) => self.total_proper_fraction == Some(F::new(1u32, 2u32)),
                 ElementOrder::Inf => {
                     approx::relative_eq!(
                         geometry::normalise_rotation_angle(
@@ -636,7 +636,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                 }
                 SymmetryElementKind::ImproperInversionCentre => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
-                        self.total_proper_fraction == Some(F::new(1u64, 2u64))
+                        self.total_proper_fraction == Some(F::new(1u32, 2u32))
                     } else {
                         approx::relative_eq!(
                             geometry::normalise_rotation_angle(
@@ -762,12 +762,12 @@ impl PartialEq for SymmetryOperation {
 
             let angle_comparison = if let Some(s_frac) = c_self.total_proper_fraction {
                 if let Some(o_frac) = c_other.total_proper_fraction {
-                    let abs_s_frac = if s_frac < F::new(1u64, 2u64) {
+                    let abs_s_frac = if s_frac < F::new(1u32, 2u32) {
                         s_frac
                     } else {
                         F::from(1u64) - s_frac
                     };
-                    let abs_o_frac = if o_frac < F::new(1u64, 2u64) {
+                    let abs_o_frac = if o_frac < F::new(1u32, 2u32) {
                         o_frac
                     } else {
                         F::from(1u64) - o_frac
@@ -838,10 +838,10 @@ impl Hash for SymmetryOperation {
                     // frac lies in (0, 1/2) ∪ (1/2, 1).
                     // 1/2 and 1 are excluded because this is not an identity,
                     // inversion, binary rotation, or reflection.
-                    let abs_frac = if frac < F::new(1u64, 2u64) {
+                    let abs_frac = if frac < F::new(1u32, 2u32) {
                         frac
                     } else {
-                        F::from(1u64) - frac
+                        F::from(1u32) - frac
                     };
                     abs_frac.hash(state);
                 } else {

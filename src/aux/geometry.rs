@@ -77,6 +77,10 @@ pub fn get_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
 /// # Returns
 ///
 /// An [`Option`] wrapping the required fraction.
+///
+/// # Panics
+///
+/// Panics if the deduced order $`n`$ is negative.
 pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> Option<F32> {
     let normalised_angle = normalise_rotation_angle(angle, thresh);
     let positive_normalised_angle = if normalised_angle >= 0.0 {
@@ -101,7 +105,11 @@ pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> Opt
         max_relative = thresh,
         epsilon = thresh
     ) {
-        let order = (rational_order * (f64::from(power))).round() as u32;
+        let orderf64 = (rational_order * (f64::from(power))).round();
+        assert!(orderf64.is_sign_positive());
+        assert!(orderf64 <= f64::from(u32::MAX));
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+        let order = orderf64 as u32;
         Some(F32::new(power, order))
     } else {
         None

@@ -65,24 +65,25 @@ fn func_p(i: i8, l: u32, mu: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<
         2 * l as usize - 1
     );
 
+    let ii = usize::try_from(i + 1).expect("Unable to convert `i + 1` to `usize`.");
+    let mui =
+        usize::try_from(mu + (li64 - 1)).expect("Unable to convert `mu + (l - 1)` to `usize`.");
+    let mdashi = usize::try_from(mdash + li64).expect("Unable to convert `mdash + l` to `usize`.");
+    let lusize = usize::try_from(l).expect("Unable to convert `l` to `usize`.");
     if mdash == li64 {
         // Easier-to-read expression:
         // R[i + 1, 1 + 1] * Rlm1[mu + (l - 1), l - 1 + (l - 1)]
         //  - R[i + 1, -1 + 1] * Rlm1[mu + (l - 1), -l + 1 + (l - 1)]
-        rmat[((i + 1) as usize, 2)] * rlm1[((mu + (li64 - 1)) as usize, (l - 1 + (l - 1)) as usize)]
-            - rmat[((i + 1) as usize, 0)] * rlm1[((mu + (li64 - 1)) as usize, 0)]
+        rmat[(ii, 2)] * rlm1[(mui, 2 * (lusize - 1))] - rmat[(ii, 0)] * rlm1[(mui, 0)]
     } else if mdash == -li64 {
         // Easier-to-read expression:
         // R[i + 1, 1 + 1] * Rlm1[mu + (l - 1), -l + 1 + (l - 1)]
         //  + R[i + 1, -1 + 1] * Rlm1[mu + (l - 1), l - 1 + (l - 1)]
-        rmat[((i + 1) as usize, 2)] * rlm1[((mu + (li64 - 1)) as usize, 0)]
-            + rmat[((i + 1) as usize, 0)]
-                * rlm1[((mu + (li64 - 1)) as usize, (l - 1 + (l - 1)) as usize)]
+        rmat[(ii, 2)] * rlm1[(mui, 0)] + rmat[(ii, 0)] * rlm1[(mui, 2 * (lusize - 1))]
     } else {
         // Easier-to-read expression:
         // R[i + 1, 0 + 1] * Rlm1[mu + (l - 1), mdash + (l - 1)]
-        rmat[((i + 1) as usize, 1)]
-            * rlm1[((mu + (li64 - 1)) as usize, (mdash + (li64 - 1)) as usize)]
+        rmat[(ii, 1)] * rlm1[(mui, mdashi - 1)]
     }
 }
 
@@ -161,7 +162,8 @@ fn func_v(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
         }
         Ordering::Less => {
             func_p(1, l, m + 1, mdash, rmat, rlm1) * (f64::from(1 - kdelta(&m, &(-1))))
-                + func_p(-1, l, -m - 1, mdash, rmat, rlm1) * (f64::from(1 + kdelta(&m, &(-1)))).sqrt()
+                + func_p(-1, l, -m - 1, mdash, rmat, rlm1)
+                    * (f64::from(1 + kdelta(&m, &(-1)))).sqrt()
         }
         Ordering::Equal => {
             func_p(1, l, 1, mdash, rmat, rlm1) + func_p(-1, l, -1, mdash, rmat, rlm1)

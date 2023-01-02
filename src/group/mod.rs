@@ -167,7 +167,7 @@ impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
 
 impl<T> Group<T>
 where
-    T: Hash + Eq + Clone + Sync + Send + Debug + Pow<i32, Output = T> + FiniteOrder<Int = u64>,
+    T: Hash + Eq + Clone + Sync + Send + Debug + Pow<i32, Output = T> + FiniteOrder<Int = u32>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Returns a builder to construct a new group.
@@ -484,7 +484,7 @@ where
         + Debug
         + Pow<i32, Output = T>
         + SpecialSymmetryTransformation
-        + FiniteOrder<Int = u64>,
+        + FiniteOrder<Int = u32>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Constructs the character table for this group using the Burnside--Dixon--Schneider
@@ -524,12 +524,16 @@ where
         log::debug!("Found group exponent m = {}.", m);
         log::debug!("Chosen primitive unity root ζ = {}.", zeta);
 
-        let mut r = (2.0 * (self.order as f64).sqrt() / (m as f64)).round() as u64;
+        let rf64 = (2.0 * (self.order as f64).sqrt() / (m as f64)).round();
+        assert!(rf64.is_sign_positive());
+        assert!(rf64 <= u32::MAX as f64);
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+        let mut r = rf64 as u32;
         if r == 0 {
             r = 1;
         };
         let mut p = r * m + 1;
-        while !is_prime(p) {
+        while !is_prime(u64::from(p)) {
             log::debug!("Trying {}: not prime.", p);
             r += 1;
             p = r * m + 1;
@@ -538,9 +542,9 @@ where
         log::debug!("Found prime number p = r * m + 1 = {}.", p);
         log::debug!("All arithmetic will now be carried out in GF({}).", p);
 
-        let modp = MontgomeryInt::<u64>::new(1, &p).linalg();
+        let modp = MontgomeryInt::<u32>::new(1, &p).linalg();
         // p is prime, so there is guaranteed a z < p such that z^m ≡ 1 (mod p).
-        let mut i = 1u64;
+        let mut i = 1u32;
         while modp.convert(i).multiplicative_order().unwrap_or_else(|| {
             panic!(
                 "Unable to find multiplicative order for `{}`",
@@ -568,20 +572,20 @@ where
             .map(HashSet::len)
             .collect();
         let inverse_conjugacy_classes = self.inverse_conjugacy_classes.as_ref();
-        let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u64>>> = vec![];
+        let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u32>>> = vec![];
 
         if self.class_number.expect("Class number not found.") == 1 {
             eigvecs_1d.push(array![modp.convert(1)]);
         } else {
-            let mut degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u64>>>> = vec![];
+            let mut degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> = vec![];
             let nmat = self
                 .class_matrix
                 .as_ref()
                 .expect("Class matrix not found.")
                 .map(|&i| {
                     modp.convert(
-                        u64::try_from(i)
-                            .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u64`.")),
+                        u32::try_from(i)
+                            .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
                     )
                 });
             log::debug!("Considering class matrix N1...");
@@ -628,7 +632,7 @@ where
                 log::debug!("Considering class matrix N{}...", r);
                 let nmat_r = nmat.slice(s![r, .., ..]).to_owned();
 
-                let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u64>>>> =
+                let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> =
                     vec![];
                 while !degenerate_subspaces.is_empty() {
                     let subspace = degenerate_subspaces
@@ -703,14 +707,20 @@ where
                 ) {
                     dim2_mod_p += p;
                 }
-                let dim_i = (dim2_mod_p as f64).sqrt().round() as u64;
+
+                let dim_if64 = (dim2_mod_p as f64).sqrt().round();
+                assert!(dim_if64.is_sign_positive());
+                assert!(dim_if64 <= u32::MAX as f64);
+                #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+                let dim_i = dim_if64 as u32;
+
                 let tchar_i =
                     Zip::from(vec_i)
                         .and(class_sizes.as_slice())
                         .par_map_collect(|&v, &k| {
                             v * dim_i
-                                / modp.convert(u64::try_from(k).unwrap_or_else(|_| {
-                                    panic!("Unable to convert `{k}` to `u64`.")
+                                / modp.convert(u32::try_from(k).unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{k}` to `u32`.")
                                 }))
                         });
                 let char_i: Vec<_> = class_transversal
@@ -1294,12 +1304,10 @@ fn group_from_molecular_symmetry(
                     let op_k = op_i_ref * op_j_ref;
                     if existing_operations.contains(&op_k) {
                         None
+                    } else if op_k.is_proper() {
+                        Some(op_k)
                     } else {
-                        if op_k.is_proper() {
-                            Some(op_k)
-                        } else {
-                            Some(op_k.convert_to_improper_kind(&SIG))
-                        }
+                        Some(op_k.convert_to_improper_kind(&SIG))
                     }
                 })
                 .collect();

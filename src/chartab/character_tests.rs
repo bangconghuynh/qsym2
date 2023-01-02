@@ -5,13 +5,13 @@ use crate::chartab::unityroot::UnityRoot;
 
 #[test]
 fn test_character_equality() {
-    let e3p1 = UnityRoot::new(1u64, 3u64);
-    let e5p1 = UnityRoot::new(1u64, 5u64);
+    let e3p1 = UnityRoot::new(1u32, 3u32);
+    let e5p1 = UnityRoot::new(1u32, 5u32);
     let c1 = Character::new(&[(e3p1.clone(), 2usize), (e5p1.clone(), 1usize)]);
     let c2 = Character::new(&[(e5p1.clone(), 1usize), (e3p1.clone(), 2usize)]);
     assert_eq!(c1, c2);
 
-    let e6p2 = UnityRoot::new(2u64, 6u64);
+    let e6p2 = UnityRoot::new(2u32, 6u32);
     let c3 = Character::new(&[(e5p1.clone(), 1usize), (e6p2.clone(), 2usize)]);
     assert_eq!(c1, c3);
 
@@ -25,7 +25,7 @@ fn test_character_equality() {
         (e3p1, 1usize)]);
     assert_ne!(c1, c5);
 
-    let e4 = UnityRoot::new(1u64, 4u64);
+    let e4 = UnityRoot::new(1u32, 4u32);
     let e4p0 = e4.pow(0);
     let e4p2 = e4.pow(2);
     let c6 = Character::new(&[(e4p0.clone(), 1usize)]);
@@ -47,7 +47,7 @@ fn test_character_equality() {
 
 #[test]
 fn test_character_partial_ord() {
-    let e3 = UnityRoot::new(1u64, 3u64);
+    let e3 = UnityRoot::new(1u32, 3u32);
     let e3p0 = e3.pow(0);
     let e3p1 = e3.pow(1);
     let e3p2 = e3.pow(2);
@@ -61,7 +61,7 @@ fn test_character_partial_ord() {
     assert!(c2 < c3);
 
     // Real characters
-    let e4 = UnityRoot::new(1u64, 4u64);
+    let e4 = UnityRoot::new(1u32, 4u32);
     let e4p0 = e4.pow(0);
     let e4p2 = e4.pow(2);
     let c4 = Character::new(&[(e4p0.clone(), 1usize)]);
@@ -73,7 +73,7 @@ fn test_character_partial_ord() {
     let c7 = Character::new(&[(e4p2, 2usize)]);
     assert!(c6 < c7);
 
-    let e7 = UnityRoot::new(1u64, 7u64);
+    let e7 = UnityRoot::new(1u32, 7u32);
     let e7p1 = e7.pow(1);
     let c8 = Character::new(&[(e7p1, 1usize)]);
     assert!(c8 < c7);
@@ -88,7 +88,7 @@ fn test_character_partial_ord() {
 
 #[test]
 fn test_character_partial_ord_advanced() {
-    let e8 = UnityRoot::new(1u64, 8u64);
+    let e8 = UnityRoot::new(1u32, 8u32);
     let e8pi: Vec<_> = (0..8).map(|i| e8.pow(i)).collect();
 
     let c1 = Character::new(&[(e8pi[1].clone(), 1usize), (e8pi[7].clone(), 1usize)]);
@@ -104,7 +104,7 @@ fn test_character_partial_ord_advanced() {
 
 #[test]
 fn test_character_debug() {
-    let e3 = UnityRoot::new(1u64, 3u64);
+    let e3 = UnityRoot::new(1u32, 3u32);
     let e3p0 = e3.pow(0);
     let e3p1 = e3.pow(1);
     let e3p2 = e3.pow(2);
@@ -127,7 +127,7 @@ fn test_character_debug() {
     let c6 = Character::new(&[(e3p2, 0usize), (e3p1, 0usize)]);
     assert_eq!(format!("{:?}", c6), "0".to_string());
 
-    let e7 = UnityRoot::new(1u64, 7u64);
+    let e7 = UnityRoot::new(1u32, 7u32);
     let c7 = Character::new(
         &(0..=6).into_iter().map(|x| (e7.pow(x), 1)).collect::<Vec<_>>()
     );
@@ -139,7 +139,7 @@ fn test_character_debug() {
 
 #[test]
 fn test_character_fmt() {
-    let e4 = UnityRoot::new(1u64, 4u64);
+    let e4 = UnityRoot::new(1u32, 4u32);
     let e4p0 = e4.pow(0);
     let e4p1 = e4.pow(1);
     let e4p2 = e4.pow(2);
@@ -164,7 +164,7 @@ fn test_character_fmt() {
     let c4b = Character::new(&[(e4p3, 1usize)]);
     assert_eq!(format!("{}", c4b), "-i".to_string());
 
-    let e3 = UnityRoot::new(1u64, 3u64);
+    let e3 = UnityRoot::new(1u32, 3u32);
     let e3p1 = e3.pow(1);
     let e3p2 = e3.pow(2);
     let c5 = Character::new(&[(e3p1.clone(), 1usize)]);
@@ -180,7 +180,7 @@ fn test_character_fmt() {
     assert_eq!(format!("{}", c7.get_concise(true)), "-1".to_string());
     assert_eq!(c7.get_numerical(false, 4), "-1.0000 + 0.0000i".to_string());
 
-    let e5 = UnityRoot::new(1u64, 5u64);
+    let e5 = UnityRoot::new(1u32, 5u32);
     let e5p1 = e5.pow(1);
     let c8 = Character::new(&[
         (e5p1.clone(), 1usize),
@@ -190,7 +190,7 @@ fn test_character_fmt() {
     assert_eq!(format!("{}", c8.get_concise(true)), "+0.618".to_string());
     assert_eq!(c8.get_numerical(false, 6), "+0.618034 + 0.000000i".to_string());
 
-    let e7 = UnityRoot::new(1u64, 7u64);
+    let e7 = UnityRoot::new(1u32, 7u32);
     let c9 = Character::new(
         &(0..=6).into_iter().map(|x| (e7.pow(x), 1)).collect::<Vec<_>>()
     );
