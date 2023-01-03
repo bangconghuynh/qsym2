@@ -1,4 +1,4 @@
-use crate::aux::ao_basis::{BasisAtom, BasisShell, CartOrder, ShellOrder};
+use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::aux::atom::{Atom, ElementMap};
 
 #[test]
@@ -238,6 +238,137 @@ fn test_ao_basis_basisatom() {
     assert_eq!(batm.n_funcs(), 15);
     assert_eq!(
         batm.shell_boundary_indices(),
+        &[(0, 1), (1, 2), (2, 5), (5, 6), (6, 9), (9, 15),]
+    );
+}
+
+#[test]
+fn test_ao_basis_basisangularorder() {
+    let emap = ElementMap::new();
+    let atm_c = Atom::from_xyz("C 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+
+    let bs1s_p = BasisShell::builder()
+        .l(0)
+        .shell_order(ShellOrder::Pure(true))
+        .build()
+        .unwrap();
+    let bs2s_p = BasisShell::builder()
+        .l(0)
+        .shell_order(ShellOrder::Pure(true))
+        .build()
+        .unwrap();
+    let bs2p_p = BasisShell::builder()
+        .l(1)
+        .shell_order(ShellOrder::Pure(true))
+        .build()
+        .unwrap();
+    let bs3s_p = BasisShell::builder()
+        .l(0)
+        .shell_order(ShellOrder::Pure(true))
+        .build()
+        .unwrap();
+    let bs3p_p = BasisShell::builder()
+        .l(1)
+        .shell_order(ShellOrder::Pure(true))
+        .build()
+        .unwrap();
+    let bs3d_c = BasisShell::builder()
+        .l(2)
+        .shell_order(ShellOrder::Cart(CartOrder::lex(2)))
+        .build()
+        .unwrap();
+    let bs3d_p = BasisShell::builder()
+        .l(2)
+        .shell_order(ShellOrder::Pure(true))
+        .build()
+        .unwrap();
+    let bs4s_p = BasisShell::builder()
+        .l(0)
+        .shell_order(ShellOrder::Pure(true))
+        .build()
+        .unwrap();
+    let bs4p_p = BasisShell::builder()
+        .l(1)
+        .shell_order(ShellOrder::Pure(true))
+        .build()
+        .unwrap();
+    let bs4d_p = BasisShell::builder()
+        .l(2)
+        .shell_order(ShellOrder::Pure(true))
+        .build()
+        .unwrap();
+
+    let batm_c = BasisAtom::builder()
+        .atom(&atm_c)
+        .basis_shells(&[
+            bs1s_p.clone(),
+            bs2s_p.clone(),
+            bs2p_p.clone(),
+            bs3s_p.clone(),
+            bs3p_p.clone(),
+            bs3d_c.clone(),
+        ])
+        .build()
+        .unwrap();
+
+    let atm_h1 = Atom::from_xyz("H 0.0 0.0 1.0", &emap, 1e-7).unwrap();
+    let batm_h1 = BasisAtom::builder()
+        .atom(&atm_h1)
+        .basis_shells(&[bs1s_p.clone(), bs2s_p.clone(), bs3s_p.clone()])
+        .build()
+        .unwrap();
+
+    let atm_h2 = Atom::from_xyz("H 0.0 0.0 -1.0", &emap, 1e-7).unwrap();
+    let batm_h2 = BasisAtom::builder()
+        .atom(&atm_h2)
+        .basis_shells(&[bs1s_p.clone(), bs2s_p.clone(), bs3s_p.clone()])
+        .build()
+        .unwrap();
+
+    let atm_f = Atom::from_xyz("F 0.0 1.0 0.0", &emap, 1e-7).unwrap();
+    let batm_f = BasisAtom::builder()
+        .atom(&atm_f)
+        .basis_shells(&[
+            bs1s_p.clone(),
+            bs2s_p.clone(),
+            bs2p_p.clone(),
+            bs3s_p.clone(),
+            bs3p_p.clone(),
+            bs3d_p.clone(),
+        ])
+        .build()
+        .unwrap();
+
+    let atm_cl = Atom::from_xyz("Cl 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
+    let batm_cl = BasisAtom::builder()
+        .atom(&atm_cl)
+        .basis_shells(&[
+            bs1s_p.clone(),
+            bs2s_p.clone(),
+            bs2p_p.clone(),
+            bs3s_p.clone(),
+            bs3p_p.clone(),
+            bs3d_p.clone(),
+            bs4s_p.clone(),
+            bs4p_p.clone(),
+            bs4d_p.clone(),
+        ])
+        .build()
+        .unwrap();
+
+    let bao = BasisAngularOrder::builder()
+        .basis_atoms(&[batm_c, batm_h1, batm_h2, batm_f, batm_cl])
+        .build()
+        .unwrap();
+
+    assert_eq!(bao.n_funcs(), 58);
+    assert_eq!(bao.basis_shells().collect::<Vec<_>>().len(), 27);
+    assert_eq!(
+        bao.atom_boundary_indices(),
+        &[(0, 15), (15, 18), (18, 21), (21, 35), (35, 58)]
+    );
+    assert_eq!(
+        bao.shell_boundary_indices(),
         &[
             (0, 1),
             (1, 2),
@@ -245,6 +376,27 @@ fn test_ao_basis_basisatom() {
             (5, 6),
             (6, 9),
             (9, 15),
+            (15, 16),
+            (16, 17),
+            (17, 18),
+            (18, 19),
+            (19, 20),
+            (20, 21),
+            (21, 22),
+            (22, 23),
+            (23, 26),
+            (26, 27),
+            (27, 30),
+            (30, 35),
+            (35, 36),
+            (36, 37),
+            (37, 40),
+            (40, 41),
+            (41, 44),
+            (44, 49),
+            (49, 50),
+            (50, 53),
+            (53, 58),
         ]
     );
 }

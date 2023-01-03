@@ -321,12 +321,31 @@ impl<'a> BasisAtom<'a> {
 
 /// A struct containing the angular momentum information of an atomic-orbital basis set that is
 /// required for symmetry transformation to be performed.
+#[derive(Clone, Builder, PartialEq, Eq, Hash)]
 pub struct BasisAngularOrder<'a> {
     /// An ordered sequence of [`BasisAtom`] in the order the atoms are defined in the molecule.
+    #[builder(setter(custom))]
     basis_atoms: Vec<BasisAtom<'a>>,
 }
 
+impl<'a> BasisAngularOrderBuilder<'a> {
+    fn basis_atoms(&mut self, batms: &[BasisAtom<'a>]) -> &mut Self {
+        self.basis_atoms = Some(batms.to_vec());
+        self
+    }
+}
+
 impl<'a> BasisAngularOrder<'a> {
+    /// Returns a builder to construct a new [`BasisAngularOrder`].
+    ///
+    /// # Returns
+    ///
+    /// A builder to construct a new [`BasisAngularOrder`].
+    #[must_use]
+    pub fn builder() -> BasisAngularOrderBuilder<'a> {
+        BasisAngularOrderBuilder::default()
+    }
+
     /// The number of basis functions in this basis set.
     fn n_funcs(&self) -> usize {
         self.basis_atoms
@@ -365,5 +384,11 @@ impl<'a> BasisAngularOrder<'a> {
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>()
+    }
+
+    fn basis_shells(&self) -> impl Iterator<Item = &BasisShell> + '_ {
+        self.basis_atoms
+            .iter()
+            .flat_map(|basis_atom| basis_atom.basis_shells.iter())
     }
 }
