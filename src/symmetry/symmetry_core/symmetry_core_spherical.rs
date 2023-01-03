@@ -16,19 +16,23 @@ impl Symmetry {
     ///
     /// * presym - A pre-symmetry-analysis struct containing information about
     /// the molecular system.
-    fn search_c2_spherical(&mut self, presym: &PreSymmetry) -> i8 {
+    ///
+    /// # Returns
+    ///
+    /// The number of distinct $`C_2`$ axes located.
+    fn search_c2_spherical(&mut self, presym: &PreSymmetry) -> u32 {
         assert!(matches!(
             presym.rotational_symmetry,
             RotationalSymmetry::Spherical
         ));
 
-        let start_guard: usize = 30;
+        let start_guard: u32 = 30;
         let stable_c2_ratio: f64 = 0.5;
         let c2_termination_counts = HashSet::from([3, 9, 15]);
 
-        let mut count_c2 = 0;
-        let mut count_c2_stable = 0;
-        let mut n_pairs = 0;
+        let mut count_c2: u32 = 0;
+        let mut count_c2_stable: u32 = 0;
+        let mut n_pairs: u32 = 0;
 
         let sea_groups = &presym.sea_groups;
         for sea_group in sea_groups.iter() {
@@ -42,12 +46,7 @@ impl Symmetry {
 
                 // Case B: C2 might cross through any two atoms
                 if presym.check_proper(&ORDER_2, &atom_i_pos.coords)
-                    && self.add_proper(
-                        ORDER_2,
-                        atom_i_pos.coords,
-                        false,
-                        presym.molecule.threshold,
-                    )
+                    && self.add_proper(ORDER_2, atom_i_pos.coords, false, presym.molecule.threshold)
                 {
                     count_c2 += 1;
                     count_c2_stable = 0;
@@ -64,7 +63,7 @@ impl Symmetry {
                 }
 
                 // Check if count_c2 has reached stability.
-                if (count_c2_stable as f64) / (n_pairs as f64) > stable_c2_ratio
+                if (f64::from(count_c2_stable)) / (f64::from(n_pairs)) > stable_c2_ratio
                     && n_pairs > start_guard
                     && c2_termination_counts.contains(&count_c2)
                 {
@@ -86,6 +85,11 @@ impl Symmetry {
     ///
     /// * presym - A pre-symmetry-analysis struct containing information about
     /// the molecular system.
+    ///
+    /// # Panics
+    ///
+    /// Panics when any inconsistencies are encountered along the point-group detection path.
+    #[allow(clippy::too_many_lines)]
     pub fn analyse_spherical(&mut self, presym: &PreSymmetry) {
         assert!(matches!(
             presym.rotational_symmetry,
@@ -95,7 +99,7 @@ impl Symmetry {
             self.point_group = Some("O(3)".to_owned());
             log::debug!(
                 "Point group determined: {}",
-                self.point_group.as_ref().unwrap()
+                self.point_group.as_ref().expect("No point groups found.")
             );
             self.add_proper(
                 ElementOrder::Inf,
@@ -142,7 +146,7 @@ impl Symmetry {
                     self.point_group = Some("Th".to_owned());
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
                     assert!(self.add_improper(
                         ORDER_2,
@@ -162,14 +166,15 @@ impl Symmetry {
                     ));
                 } else {
                     let mut c2s = self.proper_elements[&ORDER_2].iter();
-                    let normal = c2s.next().unwrap().axis + c2s.next().unwrap().axis;
+                    let normal = c2s.next().expect("No C2 axes found.").axis
+                        + c2s.next().expect("Only one C2 axis found.").axis;
                     if presym.check_improper(&ORDER_1, &normal, &SIG) {
                         // σd
                         log::debug!("Located σd.");
                         self.point_group = Some("Td".to_owned());
                         log::debug!(
                             "Point group determined: {}",
-                            self.point_group.as_ref().unwrap()
+                            self.point_group.as_ref().expect("No point groups found.")
                         );
                         let sigmad_normals = {
                             let mut axes = vec![];
@@ -207,7 +212,7 @@ impl Symmetry {
                         self.point_group = Some("T".to_owned());
                         log::debug!(
                             "Point group determined: {}",
-                            self.point_group.as_ref().unwrap()
+                            self.point_group.as_ref().expect("No point groups found.")
                         );
                     }
                 }
@@ -221,7 +226,7 @@ impl Symmetry {
                     self.point_group = Some("Oh".to_owned());
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
                     assert!(self.add_improper(
                         ORDER_2,
@@ -244,7 +249,7 @@ impl Symmetry {
                     self.point_group = Some("O".to_owned());
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
                 }
             } // end count_c2 = 9
@@ -257,7 +262,7 @@ impl Symmetry {
                     self.point_group = Some("Ih".to_owned());
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
                     assert!(self.add_improper(
                         ORDER_2,
@@ -280,7 +285,7 @@ impl Symmetry {
                     self.point_group = Some("I".to_owned());
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
                 }
             } // end count_c2 = 15
@@ -311,12 +316,12 @@ impl Symmetry {
                 let vec_normal = vec_ij.cross(&vec_ik);
                 assert!(vec_normal.norm() > presym.molecule.threshold);
                 if presym.check_proper(&order_3, &vec_normal) {
-                    count_c3 += self.add_proper(
+                    count_c3 += i32::from(self.add_proper(
                         order_3,
                         vec_normal,
                         false,
                         presym.molecule.threshold,
-                    ) as i32;
+                    ));
                 }
                 if count_c2 == 3 && count_c3 == 4 {
                     // Tetrahedral, 4 C3 axes
@@ -343,7 +348,7 @@ impl Symmetry {
                 .iter()
                 .map(|element| element.axis)
                 .collect();
-            for c3_axis in c3_axes.iter() {
+            for c3_axis in &c3_axes {
                 self.add_proper(order_3, *c3_axis, true, presym.molecule.threshold);
             }
         }
@@ -374,12 +379,12 @@ impl Symmetry {
                     let vec_normal = vec_ij.cross(&vec_ik);
                     assert!(vec_normal.norm() > presym.molecule.threshold);
                     if presym.check_proper(&order_4, &vec_normal) {
-                        count_c4 += self.add_proper(
+                        count_c4 += i32::from(self.add_proper(
                             order_4,
                             vec_normal,
                             false,
                             presym.molecule.threshold,
-                        ) as i32;
+                        ));
                     }
                     if count_c4 == 3 {
                         found_consistent_c4 = true;
@@ -390,7 +395,11 @@ impl Symmetry {
             assert!(found_consistent_c4);
             self.add_proper(
                 order_4,
-                self.proper_elements[&order_4].iter().next().unwrap().axis,
+                self.proper_elements[&order_4]
+                    .iter()
+                    .next()
+                    .expect("No C4 axes found.")
+                    .axis,
                 true,
                 presym.molecule.threshold,
             );
@@ -423,18 +432,13 @@ impl Symmetry {
                     let vec_normal = vec_ij.cross(&vec_ik);
                     assert!(vec_normal.norm() > presym.molecule.threshold);
                     if presym.check_proper(&order_5, &vec_normal) {
-                        count_c5 += self.add_proper(
+                        count_c5 += i32::from(self.add_proper(
                             order_5,
                             vec_normal,
                             false,
                             presym.molecule.threshold,
-                        ) as i32;
-                        self.add_proper(
-                            order_5,
-                            vec_normal,
-                            true,
-                            presym.molecule.threshold,
-                        );
+                        ));
+                        self.add_proper(order_5, vec_normal, true, presym.molecule.threshold);
                     }
                     if count_c5 == 6 {
                         found_consistent_c5 = true;
@@ -446,7 +450,7 @@ impl Symmetry {
         } // end locating C5 axes for I and Ih
 
         // Locating any other improper rotation axes for the non-chinal groups
-        if *self.point_group.as_ref().unwrap() == "Td" {
+        if *self.point_group.as_ref().expect("No point groups found.") == "Td" {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let improper_s4_axes: Vec<Vector3<f64>> = {
@@ -462,20 +466,20 @@ impl Symmetry {
                     .collect()
             };
             let mut count_s4 = 0;
-            for s4_axis in improper_s4_axes.into_iter() {
-                count_s4 += self.add_improper(
+            for s4_axis in improper_s4_axes {
+                count_s4 += i32::from(self.add_improper(
                     order_4,
                     s4_axis,
                     false,
                     SIG.clone(),
                     None,
                     presym.molecule.threshold,
-                ) as i32;
+                ));
             }
             assert_eq!(count_s4, 3);
         }
         // end locating improper axes for Td
-        else if *self.point_group.as_ref().unwrap() == "Th" {
+        else if *self.point_group.as_ref().expect("No point groups found.") == "Th" {
             // Locating σh
             let sigmah_normals: Vec<Vector3<f64>> = {
                 self.proper_elements[&ORDER_2]
@@ -490,15 +494,15 @@ impl Symmetry {
                     .collect()
             };
             let mut count_sigmah = 0;
-            for sigmah_normal in sigmah_normals.into_iter() {
-                count_sigmah += self.add_improper(
+            for sigmah_normal in sigmah_normals {
+                count_sigmah += i32::from(self.add_improper(
                     ORDER_1,
                     sigmah_normal,
                     false,
                     SIG.clone(),
                     Some("h".to_owned()),
                     presym.molecule.threshold,
-                ) as i32;
+                ));
             }
             assert_eq!(count_sigmah, 3);
 
@@ -517,20 +521,20 @@ impl Symmetry {
                     .collect()
             };
             let mut count_s6 = 0;
-            for s6_axis in s6_axes.into_iter() {
-                count_s6 += self.add_improper(
+            for s6_axis in s6_axes {
+                count_s6 += i32::from(self.add_improper(
                     order_6,
                     s6_axis,
                     false,
                     SIG.clone(),
                     None,
                     presym.molecule.threshold,
-                ) as i32;
+                ));
             }
             assert_eq!(count_s6, 4);
         }
         // end locating improper axes for Th
-        else if *self.point_group.as_ref().unwrap() == "Oh" {
+        else if *self.point_group.as_ref().expect("No point groups found.") == "Oh" {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let s4_axes: Vec<Vector3<f64>> = {
@@ -547,23 +551,23 @@ impl Symmetry {
             };
             let mut count_s4 = 0;
             let mut count_sigmah = 0;
-            for s4_axis in s4_axes.into_iter() {
-                count_s4 += self.add_improper(
+            for s4_axis in s4_axes {
+                count_s4 += i32::from(self.add_improper(
                     order_4,
                     s4_axis,
                     false,
                     SIG.clone(),
                     None,
                     presym.molecule.threshold,
-                ) as i32;
-                count_sigmah += self.add_improper(
+                ));
+                count_sigmah += i32::from(self.add_improper(
                     ORDER_1,
                     s4_axis,
                     false,
                     SIG.clone(),
                     Some("h".to_owned()),
                     presym.molecule.threshold,
-                ) as i32;
+                ));
             }
             assert_eq!(count_s4, 3);
             assert_eq!(count_sigmah, 3);
@@ -584,15 +588,15 @@ impl Symmetry {
                     .collect()
             };
             let mut count_sigmad = 0;
-            for sigmad_normal in sigmad_normals.into_iter() {
-                count_sigmad += self.add_improper(
+            for sigmad_normal in sigmad_normals {
+                count_sigmad += i32::from(self.add_improper(
                     ORDER_1,
                     sigmad_normal,
                     false,
                     SIG.clone(),
                     Some("d".to_owned()),
                     presym.molecule.threshold,
-                ) as i32;
+                ));
             }
             assert_eq!(count_sigmad, 6);
 
@@ -611,20 +615,20 @@ impl Symmetry {
                     .collect()
             };
             let mut count_s6 = 0;
-            for s6_axis in s6_axes.into_iter() {
-                count_s6 += self.add_improper(
+            for s6_axis in s6_axes {
+                count_s6 += i32::from(self.add_improper(
                     order_6,
                     s6_axis,
                     false,
                     SIG.clone(),
                     None,
                     presym.molecule.threshold,
-                ) as i32;
+                ));
             }
             assert_eq!(count_s6, 4);
         }
         // end locating improper axes for Oh
-        else if *self.point_group.as_ref().unwrap() == "Ih" {
+        else if *self.point_group.as_ref().expect("No point groups found.") == "Ih" {
             // Locating S10
             let order_5 = ElementOrder::Int(5);
             let order_10 = ElementOrder::Int(10);
@@ -641,15 +645,15 @@ impl Symmetry {
                     .collect()
             };
             let mut count_s10 = 0;
-            for s10_axis in s10_axes.into_iter() {
-                count_s10 += self.add_improper(
+            for s10_axis in s10_axes {
+                count_s10 += i32::from(self.add_improper(
                     order_10,
                     s10_axis,
                     false,
                     SIG.clone(),
                     None,
                     presym.molecule.threshold,
-                ) as i32;
+                ));
             }
             assert_eq!(count_s10, 6);
 
@@ -668,15 +672,15 @@ impl Symmetry {
                     .collect()
             };
             let mut count_s6 = 0;
-            for s6_axis in s6_axes.into_iter() {
-                count_s6 += self.add_improper(
+            for s6_axis in s6_axes {
+                count_s6 += i32::from(self.add_improper(
                     order_6,
                     s6_axis,
                     false,
                     SIG.clone(),
                     None,
                     presym.molecule.threshold,
-                ) as i32;
+                ));
             }
             assert_eq!(count_s6, 10);
 
@@ -694,15 +698,15 @@ impl Symmetry {
                     .collect()
             };
             let mut count_sigma = 0;
-            for sigma_normal in sigma_normals.into_iter() {
-                count_sigma += self.add_improper(
+            for sigma_normal in sigma_normals {
+                count_sigma += i32::from(self.add_improper(
                     ORDER_1,
                     sigma_normal,
                     false,
                     SIG.clone(),
                     None,
                     presym.molecule.threshold,
-                ) as i32;
+                ));
             }
             assert_eq!(count_sigma, 15);
         } // end locating improper axes for Ih

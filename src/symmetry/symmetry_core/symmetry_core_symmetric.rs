@@ -28,6 +28,11 @@ impl Symmetry {
     ///
     /// * `presym` - A pre-symmetry-analysis struct containing information about
     /// the molecular system.
+    ///
+    /// # Panics
+    ///
+    /// Panics when any inconsistencies are encountered along the point-group detection path.
+    #[allow(clippy::too_many_lines)]
     pub fn analyse_symmetric(&mut self, presym: &PreSymmetry) {
         let (_mois, _principal_axes) = presym.molecule.calc_moi();
 
@@ -44,21 +49,29 @@ impl Symmetry {
         let max_ord = self.get_max_proper_order();
         let max_ord_u32 = match max_ord {
             ElementOrder::Int(ord_i) => Some(ord_i),
-            _ => None,
+            ElementOrder::Inf => None,
         }
-        .unwrap();
+        .unwrap_or_else(|| panic!("`{max_ord}` has an unexpected order value."));
         let dihedral = {
             if self.proper_elements.contains_key(&ORDER_2) {
                 if max_ord > ORDER_2 {
                     assert_eq!(self.proper_elements[&max_ord].len(), 1);
-                    let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
+                    let principal_axis = self.proper_elements[&max_ord]
+                        .iter()
+                        .next()
+                        .expect("No principal axes found.")
+                        .axis;
                     let n_c2_perp = self.proper_elements[&ORDER_2]
                         .iter()
                         .filter(|c2_ele| {
                             c2_ele.axis.dot(&principal_axis).abs() < presym.dist_threshold
                         })
                         .count();
-                    ElementOrder::Int(n_c2_perp as u32) == max_ord
+                    ElementOrder::Int(
+                        n_c2_perp
+                            .try_into()
+                            .unwrap_or_else(|_| panic!("Unable to convert {n_c2_perp} to `u32`.")),
+                    ) == max_ord
                 } else {
                     max_ord == ORDER_2 && self.proper_elements[&ORDER_2].len() == 3
                 }
@@ -74,26 +87,31 @@ impl Symmetry {
             // Principal axis is also a generator.
             self.add_proper(
                 max_ord,
-                self.proper_elements[&max_ord].iter().next().unwrap().axis,
+                self.proper_elements[&max_ord]
+                    .iter()
+                    .next()
+                    .expect("No principal axes found.")
+                    .axis,
                 true,
                 presym.dist_threshold,
             );
 
-            let principal_element = self.proper_elements[&max_ord].iter().next().unwrap();
+            let principal_element = self.proper_elements[&max_ord]
+                .iter()
+                .next()
+                .expect("No principal axes found.");
             let c2_element = self.proper_elements[&ORDER_2]
                 .iter()
                 .find(|c2_ele| {
                     c2_ele.axis.dot(&principal_element.axis).abs() < presym.dist_threshold
                 })
-                .unwrap();
-            self.add_proper(
-                ORDER_2,
-                c2_element.axis,
-                true,
-                presym.dist_threshold,
-            );
+                .expect("No C2 axes found.");
+            self.add_proper(ORDER_2, c2_element.axis, true, presym.dist_threshold);
 
-            let principal_element = self.proper_elements[&max_ord].iter().next().unwrap();
+            let principal_element = self.proper_elements[&max_ord]
+                .iter()
+                .next()
+                .expect("No principal axes found.");
             if presym.check_improper(&ORDER_1, &principal_element.axis, &SIG) {
                 // Dnh (n > 2)
                 assert!(max_ord > ORDER_2);
@@ -101,7 +119,7 @@ impl Symmetry {
                 self.point_group = Some(format!("D{max_ord}h"));
                 log::debug!(
                     "Point group determined: {}",
-                    self.point_group.as_ref().unwrap()
+                    self.point_group.as_ref().expect("No point groups found.")
                 );
                 self.add_improper(
                     ORDER_1,
@@ -111,7 +129,10 @@ impl Symmetry {
                     Some("h".to_owned()),
                     presym.dist_threshold,
                 );
-                let principal_element = self.proper_elements[&max_ord].iter().next().unwrap();
+                let principal_element = self.proper_elements[&max_ord]
+                    .iter()
+                    .next()
+                    .expect("No principal axes found.");
                 self.add_improper(
                     ORDER_1,
                     principal_element.axis,
@@ -128,7 +149,12 @@ impl Symmetry {
                 let non_id_c_elements =
                     self.proper_elements.values().fold(vec![], |acc, c_eles| {
                         acc.into_iter()
-                            .chain(c_eles.iter().filter(|ele| ele.proper_order != ORDER_1).cloned())
+                            .chain(
+                                c_eles
+                                    .iter()
+                                    .filter(|ele| ele.proper_order != ORDER_1)
+                                    .cloned(),
+                            )
                             .collect()
                     });
                 if max_ord_u32 % 2 == 0 {
@@ -144,9 +170,11 @@ impl Symmetry {
                         presym.dist_threshold,
                     );
 
-                    for c_element in non_id_c_elements.into_iter() {
-                        let principal_element =
-                            self.proper_elements[&max_ord].iter().next().unwrap();
+                    for c_element in non_id_c_elements {
+                        let principal_element = self.proper_elements[&max_ord]
+                            .iter()
+                            .next()
+                            .expect("No principal axes found.");
                         let sigma_symbol = _deduce_sigma_symbol(
                             &c_element.axis,
                             principal_element,
@@ -154,7 +182,11 @@ impl Symmetry {
                             false,
                         );
                         // iCn
-                        assert!(presym.check_improper(&c_element.proper_order, &c_element.axis, &INV));
+                        assert!(presym.check_improper(
+                            &c_element.proper_order,
+                            &c_element.axis,
+                            &INV
+                        ));
                         self.add_improper(
                             c_element.proper_order,
                             c_element.axis,
@@ -168,10 +200,10 @@ impl Symmetry {
                     // Dnh, n odd, only σh is expected.
                     let sigma_h = self
                         .get_sigma_elements("h")
-                        .unwrap()
+                        .expect("No σh found.")
                         .into_iter()
                         .next()
-                        .unwrap()
+                        .expect("No σh found.")
                         .clone();
                     _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym);
                 }
@@ -197,15 +229,15 @@ impl Symmetry {
                 );
 
                 let mut count_sigmad = 0u32;
-                for sigmad_axis in sigmad_axes.into_iter() {
-                    count_sigmad += self.add_improper(
+                for sigmad_axis in sigmad_axes {
+                    count_sigmad += u32::from(self.add_improper(
                         ORDER_1,
                         sigmad_axis,
                         false,
                         SIG.clone(),
                         Some("d".to_owned()),
                         presym.dist_threshold,
-                    ) as u32;
+                    ));
                     if count_sigmad == max_ord_u32 {
                         break;
                     }
@@ -216,10 +248,10 @@ impl Symmetry {
                     // Dnd
                     let sigmad_axis = self
                         .get_sigma_elements("d")
-                        .unwrap()
+                        .expect("No σd found.")
                         .iter()
                         .next()
-                        .unwrap()
+                        .expect("No σd found.")
                         .axis;
                     self.add_improper(
                         ORDER_1,
@@ -232,7 +264,7 @@ impl Symmetry {
                     self.point_group = Some(format!("D{max_ord}d"));
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
 
                     if max_ord_u32 % 2 == 0 {
@@ -241,13 +273,18 @@ impl Symmetry {
                             self.proper_elements.values().fold(vec![], |acc, c_eles| {
                                 acc.into_iter()
                                     .chain(
-                                        c_eles.iter().filter(|ele| ele.proper_order != ORDER_1).cloned(),
+                                        c_eles
+                                            .iter()
+                                            .filter(|ele| ele.proper_order != ORDER_1)
+                                            .cloned(),
                                     )
                                     .collect()
                             });
-                        for c_element in non_id_c_elements.into_iter() {
-                            let double_order =
-                                ElementOrder::new(2.0 * c_element.proper_order.to_float(), f64::EPSILON);
+                        for c_element in non_id_c_elements {
+                            let double_order = ElementOrder::new(
+                                2.0 * c_element.proper_order.to_float(),
+                                f64::EPSILON,
+                            );
                             if presym.check_improper(&double_order, &c_element.axis, &SIG) {
                                 self.add_improper(
                                     double_order,
@@ -275,20 +312,29 @@ impl Symmetry {
                             self.proper_elements.values().fold(vec![], |acc, c_eles| {
                                 acc.into_iter()
                                     .chain(
-                                        c_eles.iter().filter(|ele| ele.proper_order != ORDER_1).cloned(),
+                                        c_eles
+                                            .iter()
+                                            .filter(|ele| ele.proper_order != ORDER_1)
+                                            .cloned(),
                                     )
                                     .collect()
                             });
-                        for c_element in non_id_c_elements.into_iter() {
-                            let principal_element =
-                                self.proper_elements[&max_ord].iter().next().unwrap();
+                        for c_element in non_id_c_elements {
+                            let principal_element = self.proper_elements[&max_ord]
+                                .iter()
+                                .next()
+                                .expect("No principal axes found.");
                             let sigma_symbol = _deduce_sigma_symbol(
                                 &c_element.axis,
                                 principal_element,
                                 presym.dist_threshold,
                                 true, // sigma_v forced to become sigma_d
                             );
-                            assert!(presym.check_improper(&c_element.proper_order, &c_element.axis, &INV));
+                            assert!(presym.check_improper(
+                                &c_element.proper_order,
+                                &c_element.axis,
+                                &INV
+                            ));
                             self.add_improper(
                                 c_element.proper_order,
                                 c_element.axis,
@@ -304,7 +350,7 @@ impl Symmetry {
                     self.point_group = Some(format!("D{max_ord}"));
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
                 }
             }
@@ -326,7 +372,10 @@ impl Symmetry {
                     if count_sigma == max_ord_u32 {
                         break;
                     }
-                    let principal_element = self.proper_elements[&max_ord].iter().next().unwrap();
+                    let principal_element = self.proper_elements[&max_ord]
+                        .iter()
+                        .next()
+                        .expect("No principal axes found.");
                     let normal =
                         (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords).normalize();
                     if presym.check_improper(&ORDER_1, &normal, &SIG) {
@@ -336,14 +385,14 @@ impl Symmetry {
                             presym.dist_threshold,
                             false,
                         );
-                        count_sigma += self.add_improper(
+                        count_sigma += u32::from(self.add_improper(
                             ORDER_1,
                             normal,
                             false,
                             SIG.clone(),
                             sigma_symbol,
                             presym.dist_threshold,
-                        ) as u32;
+                        ));
                     }
                 }
             }
@@ -356,16 +405,20 @@ impl Symmetry {
                     self.point_group = Some(format!("C{max_ord}v"));
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
-                    let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
+                    let principal_axis = self.proper_elements[&max_ord]
+                        .iter()
+                        .next()
+                        .expect("No principal axes found.")
+                        .axis;
                     self.add_proper(max_ord, principal_axis, true, presym.dist_threshold);
                     let sigma_v_normal = self
                         .get_sigma_elements("v")
-                        .unwrap()
+                        .expect("No σv found.")
                         .iter()
                         .next()
-                        .unwrap()
+                        .expect("No σv found.")
                         .axis;
                     self.add_improper(
                         ORDER_1,
@@ -381,11 +434,14 @@ impl Symmetry {
                     self.point_group = Some("Cs".to_owned());
                     log::debug!(
                         "Point group determined: {}",
-                        self.point_group.as_ref().unwrap()
+                        self.point_group.as_ref().expect("No point groups found.")
                     );
-                    let old_sigmas = self.improper_elements.remove(&ORDER_1).unwrap();
-                    assert_eq!(old_sigmas.len(), 1);
-                    let old_sigma = old_sigmas.into_iter().next().unwrap();
+                    let old_sigmas = self
+                        .improper_elements
+                        .remove(&ORDER_1)
+                        .expect("No σ found.");
+                    debug_assert_eq!(old_sigmas.len(), 1);
+                    let old_sigma = old_sigmas.into_iter().next().expect("No σ found.");
                     self.add_improper(
                         ORDER_1,
                         old_sigma.axis,
@@ -404,14 +460,22 @@ impl Symmetry {
                     );
                 }
             } else if {
-                let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
+                let principal_axis = self.proper_elements[&max_ord]
+                    .iter()
+                    .next()
+                    .expect("No principal axes found.")
+                    .axis;
                 presym.check_improper(&ORDER_1, &principal_axis, &SIG)
             } {
                 // Cnh (n > 2)
                 assert_eq!(count_sigma, 1);
                 log::debug!("Found no σv planes but one σh plane.");
                 self.point_group = Some(format!("C{max_ord}h"));
-                let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
+                let principal_axis = self.proper_elements[&max_ord]
+                    .iter()
+                    .next()
+                    .expect("No principal axes found.")
+                    .axis;
                 self.add_proper(max_ord, principal_axis, true, presym.dist_threshold);
                 self.add_improper(
                     ORDER_1,
@@ -426,7 +490,12 @@ impl Symmetry {
                 let non_id_c_elements =
                     self.proper_elements.values().fold(vec![], |acc, c_eles| {
                         acc.into_iter()
-                            .chain(c_eles.iter().filter(|ele| ele.proper_order != ORDER_1).cloned())
+                            .chain(
+                                c_eles
+                                    .iter()
+                                    .filter(|ele| ele.proper_order != ORDER_1)
+                                    .cloned(),
+                            )
                             .collect()
                     });
                 if max_ord_u32 % 2 == 0 {
@@ -441,9 +510,11 @@ impl Symmetry {
                         None,
                         presym.dist_threshold,
                     );
-                    for c_element in non_id_c_elements.into_iter() {
-                        let principal_element =
-                            self.proper_elements[&max_ord].iter().next().unwrap();
+                    for c_element in non_id_c_elements {
+                        let principal_element = self.proper_elements[&max_ord]
+                            .iter()
+                            .next()
+                            .expect("No principal axes found.");
                         let sigma_symbol = _deduce_sigma_symbol(
                             &c_element.axis,
                             principal_element,
@@ -451,7 +522,11 @@ impl Symmetry {
                             false,
                         );
                         // iCn
-                        assert!(presym.check_improper(&c_element.proper_order, &c_element.axis, &INV));
+                        assert!(presym.check_improper(
+                            &c_element.proper_order,
+                            &c_element.axis,
+                            &INV
+                        ));
                         self.add_improper(
                             c_element.proper_order,
                             c_element.axis,
@@ -465,16 +540,20 @@ impl Symmetry {
                     // Cnh, n odd, only σh is present.
                     let sigma_h = self
                         .get_sigma_elements("h")
-                        .unwrap()
+                        .expect("No σh found.")
                         .into_iter()
                         .next()
-                        .unwrap()
+                        .expect("No σh found.")
                         .clone();
                     _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym);
                 }
             } else if {
                 let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
-                let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
+                let principal_axis = self.proper_elements[&max_ord]
+                    .iter()
+                    .next()
+                    .expect("No principle axis found.")
+                    .axis;
                 presym.check_improper(&double_max_ord, &principal_axis, &SIG)
             } {
                 // S2n
@@ -487,9 +566,13 @@ impl Symmetry {
                 };
                 log::debug!(
                     "Point group determined: {}",
-                    self.point_group.as_ref().unwrap()
+                    self.point_group.as_ref().expect("No point groups found.")
                 );
-                let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
+                let principal_axis = self.proper_elements[&max_ord]
+                    .iter()
+                    .next()
+                    .expect("No principle axis found.")
+                    .axis;
                 self.add_improper(
                     double_max_ord,
                     principal_axis,
@@ -526,15 +609,18 @@ impl Symmetry {
                 self.point_group = Some(format!("C{max_ord}"));
                 log::debug!(
                     "Point group determined: {}",
-                    self.point_group.as_ref().unwrap()
+                    self.point_group.as_ref().expect("No point groups found.")
                 );
-                let principal_axis = self.proper_elements[&max_ord].iter().next().unwrap().axis;
+                let principal_axis = self.proper_elements[&max_ord]
+                    .iter()
+                    .next()
+                    .expect("No principal axes found.")
+                    .axis;
                 self.add_proper(max_ord, principal_axis, true, presym.dist_threshold);
             };
         }
     }
 }
-
 
 /// Determines the mirror-plane symbol given a principal axis.
 ///
@@ -600,7 +686,7 @@ fn _add_sigmahcn(
     presym: &PreSymmetry,
 ) {
     assert!(sigma_h.is_mirror_plane());
-    for c_element in non_id_c_elements.into_iter() {
+    for c_element in non_id_c_elements {
         if approx::relative_eq!(
             c_element.axis.cross(&sigma_h.axis).norm(),
             0.0,

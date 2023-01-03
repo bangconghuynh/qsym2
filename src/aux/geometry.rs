@@ -1,11 +1,14 @@
+use std::collections::HashSet;
+
+use approx;
+use fraction;
+use itertools::{self, Itertools};
+use nalgebra::{ClosedMul, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vector3};
+use num_traits::ToPrimitive;
+
 use crate::aux::atom::Atom;
 use crate::aux::misc::HashableFloat;
 use crate::symmetry::symmetry_element::SymmetryElementKind;
-use itertools::{self, Itertools};
-use nalgebra::{ClosedMul, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vector3};
-use std::collections::HashSet;
-use fraction;
-use approx;
 
 type F32 = fraction::GenericFraction<u32>;
 
@@ -23,6 +26,7 @@ mod geometry_tests;
 /// # Returns
 ///
 /// The normalised rotation angle.
+#[must_use]
 pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> f64 {
     let mut norm_rot_ang = rot_ang;
     while norm_rot_ang > std::f64::consts::PI + thresh {
@@ -48,6 +52,11 @@ pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> f64 {
 /// # Returns
 ///
 /// The positive pole of `axis`.
+///
+/// # Panics
+///
+/// Panics if the resulting pole is a null vector.
+#[must_use]
 pub fn get_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
     let mut pole = axis.normalize();
     if pole[2].abs() > thresh {
@@ -61,7 +70,24 @@ pub fn get_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
     pole
 }
 
-pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> F32 {
+/// Determines the reduced fraction $`k/n`$ where $`k`$ and $`n`$ are both integers representing a
+/// proper rotation $`C_n^k`$ corresponding to a specified rotation angle.
+///
+/// # Arguments
+///
+/// * `angle` - An angle of rotation.
+/// * `thresh` - A threshold for checking if a floating point number is integral.
+/// * `max_trial_power` - Maximum power $`k`$ to try.
+///
+/// # Returns
+///
+/// An [`Option`] wrapping the required fraction.
+///
+/// # Panics
+///
+/// Panics if the deduced order $`n`$ is negative.
+#[must_use]
+pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> Option<F32> {
     let normalised_angle = normalise_rotation_angle(angle, thresh);
     let positive_normalised_angle = if normalised_angle >= 0.0 {
         normalised_angle
@@ -71,36 +97,41 @@ pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> F32
     let rational_order = (2.0 * std::f64::consts::PI) / positive_normalised_angle;
     let mut power: u32 = 1;
     while approx::relative_ne!(
-        rational_order * (power as f64),
-        (rational_order * (power as f64)).round(),
+        rational_order * (f64::from(power)),
+        (rational_order * (f64::from(power))).round(),
         max_relative = thresh,
         epsilon = thresh
-    ) && power < max_trial_power {
+    ) && power < max_trial_power
+    {
         power += 1;
     }
-    let order = if approx::relative_eq!(
-        rational_order * (power as f64),
-        (rational_order * (power as f64)).round(),
+    if approx::relative_eq!(
+        rational_order * (f64::from(power)),
+        (rational_order * (f64::from(power))).round(),
         max_relative = thresh,
         epsilon = thresh
     ) {
-        Ok((rational_order * (power as f64)).round() as u32)
+        let orderf64 = (rational_order * (f64::from(power))).round();
+        assert!(orderf64.is_sign_positive());
+        assert!(orderf64 <= f64::from(u32::MAX));
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+        let order = orderf64 as u32;
+        Some(F32::new(power, order))
     } else {
-        Err("No proper fractions can be found.".to_string())
-    };
-    F32::new(power, order.unwrap())
+        None
+    }
 }
 
 /// Computes the outer product between two three-dimensional vectors.
 ///
 /// # Arguments
 ///
-/// * vec1 - The first vector, $\boldsymbol{v}_1$.
-/// * vec2 - The second vector, $\boldsymbol{v}_2$.
+/// * `vec1` - The first vector, $`\mathbf{v}_1`$.
+/// * `vec2` - The second vector, $`\mathbf{v}_2`$.
 ///
 /// # Returns
 ///
-/// The outer product $\boldsymbol{v}_1 \otimes \boldsymbol{v}_2$.
+/// The outer product $`\mathbf{v}_1 \otimes \mathbf{v}_2`$.
 fn outer<T: Scalar + ClosedMul + Copy>(vec1: &Vector3<T>, vec2: &Vector3<T>) -> Matrix3<T> {
     let outer_product_iter: Vec<T> = vec2
         .iter()
@@ -114,16 +145,17 @@ fn outer<T: Scalar + ClosedMul + Copy>(vec1: &Vector3<T>, vec2: &Vector3<T>) -> 
 ///
 /// # Arguments
 ///
-/// * angle - The angle of rotation.
-/// * axis - The axis of rotation.
-/// * power - The power of rotation.
+/// * `angle` - The angle of rotation.
+/// * `axis` - The axis of rotation.
+/// * `power` - The power of rotation.
 ///
 /// # Returns
 ///
 /// The rotation matrix.
+#[must_use]
 pub fn proper_rotation_matrix(angle: f64, axis: &Vector3<f64>, power: i8) -> Matrix3<f64> {
     let normalised_axis = UnitVector3::new_normalize(*axis);
-    Rotation3::from_axis_angle(&normalised_axis, (power as f64) * angle).into_inner()
+    Rotation3::from_axis_angle(&normalised_axis, (f64::from(power)) * angle).into_inner()
 }
 
 /// Returns a $3 \times 3$ transformation matrix in $\mathbb{R}^3$ corresponding
@@ -132,14 +164,19 @@ pub fn proper_rotation_matrix(angle: f64, axis: &Vector3<f64>, power: i8) -> Mat
 ///
 /// # Arguments
 ///
-/// * angle - The angle of rotation.
-/// * axis - The axis of rotation.
-/// * power - The power of transformation.
-/// * kind - The convention in which the improper rotation is defined.
+/// * `angle` - The angle of rotation.
+/// * `axis` - The axis of rotation.
+/// * `power` - The power of transformation.
+/// * `kind` - The convention in which the improper rotation is defined.
 ///
 /// # Returns
 ///
 /// The transformation matrix.
+///
+/// # Panics
+///
+/// Panics if `kind` is not one of the improper kinds.
+#[must_use]
 pub fn improper_rotation_matrix(
     angle: f64,
     axis: &Vector3<f64>,
@@ -151,7 +188,7 @@ pub fn improper_rotation_matrix(
     match kind {
         SymmetryElementKind::ImproperMirrorPlane => {
             let refmat = Matrix3::identity()
-                - 2.0 * ((power % 2) as f64) * outer(&normalised_axis, &normalised_axis);
+                - 2.0 * (f64::from(power % 2)) * outer(&normalised_axis, &normalised_axis);
             refmat * rotmat
         }
         SymmetryElementKind::ImproperInversionCentre => {
@@ -161,7 +198,7 @@ pub fn improper_rotation_matrix(
                 rotmat
             }
         }
-        _ => panic!("Only improper kinds are allowed."),
+        SymmetryElementKind::Proper => panic!("Only improper kinds are allowed."),
     }
 }
 
@@ -169,11 +206,16 @@ pub fn improper_rotation_matrix(
 ///
 /// # Arguments
 ///
-/// * atoms - A sequence of atoms to be tested.
+/// * `atoms` - A sequence of atoms to be tested.
 ///
 /// # Returns
 ///
 /// A flag indicating if the atoms form the vertices of a regular polygon.
+///
+/// # Panics
+///
+/// Panics if `atoms` contains fewer than three atoms.
+#[must_use]
 pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
     assert!(
         atoms.len() >= 3,
@@ -196,10 +238,12 @@ pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
         .collect();
 
     // Check if all atoms are equidistant from the centre of mass
-    if radial_dists.len() != 1 {
-        false
-    } else {
-        let regular_angle = 2.0 * std::f64::consts::PI / (atoms.len() as f64);
+    if radial_dists.len() == 1 {
+        let regular_angle = 2.0 * std::f64::consts::PI
+            / atoms
+                .len()
+                .to_f64()
+                .unwrap_or_else(|| panic!("Unable to convert `{}` to `f64`.", atoms.len()));
         let thresh = atoms
             .iter()
             .fold(0.0_f64, |acc, atom| acc.max(atom.threshold));
@@ -210,17 +254,23 @@ pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
                 v_i1.cross(v_j1)
                     .norm()
                     .partial_cmp(&v_i2.cross(v_j2).norm())
-                    .unwrap()
+                    .expect("Unable to compare the cross products of two vector pairs.")
             })
-            .unwrap();
+            .expect("Unable to find the vector pair with the largest norm cross product.");
         let normal = UnitVector3::new_normalize(vec_i.cross(vec_j));
-        if normal.norm() < thresh { return false }
+        if normal.norm() < thresh {
+            return false;
+        }
 
         let vec0 = atoms[0].coordinates - com;
         rad_vectors.sort_by(|a, b| {
             get_anticlockwise_angle(&vec0, a, &normal, thresh)
                 .partial_cmp(&get_anticlockwise_angle(&vec0, b, &normal, thresh))
-                .unwrap()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compare anticlockwise angles of {a} and {b} relative to {vec0}."
+                    )
+                })
         });
         let vector_pairs: Vec<(&Vector3<f64>, &Vector3<f64>)> =
             rad_vectors.iter().circular_tuple_windows().collect();
@@ -235,6 +285,8 @@ pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
         angles.insert(regular_angle.round_factor(thresh).integer_decode());
 
         angles.len() == 1
+    } else {
+        false
     }
 }
 
@@ -295,12 +347,7 @@ pub trait Transform {
     /// * angle - The angle of rotation.
     /// * axis - The axis of rotation.
     /// * kind - The convention in which the improper rotation is defined.
-    fn improper_rotate_mut(
-        &mut self,
-        angle: f64,
-        axis: &Vector3<f64>,
-        kind: &SymmetryElementKind,
-    );
+    fn improper_rotate_mut(&mut self, angle: f64, axis: &Vector3<f64>, kind: &SymmetryElementKind);
 
     /// Translates in-place the coordinates by a specified translation vector in
     /// three dimensions.
@@ -323,6 +370,7 @@ pub trait Transform {
     /// # Returns
     ///
     /// A transformed copy.
+    #[must_use]
     fn transform(&self, mat: &Matrix3<f64>) -> Self;
 
     /// Clones and rotates the coordinates through `angle` about `axis`.
@@ -335,6 +383,7 @@ pub trait Transform {
     /// # Returns
     ///
     /// A rotated copy.
+    #[must_use]
     fn rotate(&self, angle: f64, axis: &Vector3<f64>) -> Self;
 
     /// Clones and improper-rotates the coordinates through `angle` about `axis`.
@@ -348,12 +397,8 @@ pub trait Transform {
     /// # Returns
     ///
     /// An improper-rotated copy.
-    fn improper_rotate(
-        &self,
-        angle: f64,
-        axis: &Vector3<f64>,
-        kind: &SymmetryElementKind,
-    ) -> Self;
+    #[must_use]
+    fn improper_rotate(&self, angle: f64, axis: &Vector3<f64>, kind: &SymmetryElementKind) -> Self;
 
     /// Clones and translates in-place the coordinates by a specified
     /// translation in three dimensions.
@@ -365,6 +410,7 @@ pub trait Transform {
     /// # Returns
     ///
     /// A translated copy.
+    #[must_use]
     fn translate(&self, tvec: &Vector3<f64>) -> Self;
 
     /// Clones and recentres to put the centre of mass at the origin.
@@ -372,5 +418,6 @@ pub trait Transform {
     /// # Returns
     ///
     /// A recentred copy.
+    #[must_use]
     fn recentre(&self) -> Self;
 }

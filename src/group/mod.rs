@@ -12,7 +12,7 @@ use itertools::Itertools;
 use ndarray::{array, s, Array1, Array2, Array3, Axis, Zip};
 use num::{integer::lcm, Complex};
 use num_modular::{ModularInteger, MontgomeryInt};
-use num_traits::{Inv, Pow};
+use num_traits::{Inv, Pow, ToPrimitive};
 use ordered_float::OrderedFloat;
 use primes::is_prime;
 use rayon::iter::ParallelBridge;
@@ -50,7 +50,10 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> {
     elements: IndexMap<T, usize>,
 
     /// The order of the group.
-    #[builder(setter(skip), default = "self.elements.as_ref().unwrap().len()")]
+    #[builder(
+        setter(skip),
+        default = "self.elements.as_ref().expect(\"No group elements found.\").len()"
+    )]
     order: usize,
 
     /// An optional name if this group is actually a finite subgroup of [`Self::name`].
@@ -144,8 +147,12 @@ impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
 
     fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
         if name_opt.is_some() {
-            if self.name.as_ref().unwrap().clone() == *"O(3)"
-                || self.name.as_ref().unwrap().contains('∞')
+            if self.name.as_ref().expect("Group name not found.").clone() == *"O(3)"
+                || self
+                    .name
+                    .as_ref()
+                    .expect("Group name not found.")
+                    .contains('∞')
             {
                 self.finite_subgroup_name = Some(name_opt);
             } else {
@@ -160,7 +167,7 @@ impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
 
 impl<T> Group<T>
 where
-    T: Hash + Eq + Clone + Sync + Send + Debug + Pow<i32, Output = T> + FiniteOrder<Int = u64>,
+    T: Hash + Eq + Clone + Sync + Send + Debug + Pow<i32, Output = T> + FiniteOrder<Int = u32>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Returns a builder to construct a new group.
@@ -187,7 +194,7 @@ where
             .name(name.to_string())
             .elements(elements)
             .build()
-            .unwrap();
+            .expect("Unable to construct a group.");
         grp.construct_cayley_table();
         grp.find_conjugacy_classes();
         grp.assign_class_symbols();
@@ -203,7 +210,7 @@ where
     ///
     /// A flag indicating if this group is Abelian.
     fn is_abelian(&self) -> bool {
-        let ctb = self.cayley_table.as_ref().unwrap();
+        let ctb = self.cayley_table.as_ref().expect("Cayley table not found.");
         ctb == ctb.t()
     }
 
@@ -214,8 +221,12 @@ where
         log::debug!("Constructing Cayley table in parallel...");
         let mut ctb = Array2::<usize>::zeros((self.order, self.order));
         Zip::indexed(&mut ctb).par_for_each(|(i, j), k| {
-            let (op_i_ref, _) = self.elements.get_index(i).unwrap();
-            let (op_j_ref, _) = self.elements.get_index(j).unwrap();
+            let (op_i_ref, _) = self.elements
+                .get_index(i)
+                .unwrap_or_else(|| panic!("Element with index {i} cannot be retrieved."));
+            let (op_j_ref, _) = self.elements
+                .get_index(j)
+                .unwrap_or_else(|| panic!("Element with index {j} cannot be retrieved."));
             let op_k = op_i_ref * op_j_ref;
             *k = *self
                 .elements
@@ -234,6 +245,7 @@ where
     /// This method sets the [`Self::conjugacy_classes`], [`Self::inverse_conjugacy_classes`],
     /// [`Self::conjugacy_class_transversal`], [`Self::element_to_conjugacy_classes`], and
     /// [`Self::class_number`] fields.
+    #[allow(clippy::too_many_lines)]
     fn find_conjugacy_classes(&mut self) {
         // Find conjugacy classes
         log::debug!("Finding conjugacy classes...");
@@ -249,16 +261,21 @@ where
             let mut ccs: Vec<HashSet<usize>> = vec![HashSet::from([0usize])];
             let mut e2ccs = vec![0usize; self.order];
             let mut remaining_elements: HashSet<usize> = (1usize..self.order).collect();
-            let ctb = self.cayley_table.as_ref().unwrap();
+            let ctb = self.cayley_table.as_ref().expect("Cayley table not found.");
 
             while !remaining_elements.is_empty() {
                 // For a fixed g, find all h such that sg = hs for all s in the group.
-                let g = *remaining_elements.iter().next().unwrap();
+                let g = *remaining_elements
+                    .iter()
+                    .next()
+                    .expect("Unexpected empty `remaining_elements`.");
                 let mut cur_cc = HashSet::from([g]);
                 for s in 0usize..self.order {
                     let sg = ctb[[s, g]];
                     let ctb_xs = ctb.slice(s![.., s]);
-                    let h = ctb_xs.iter().position(|&x| x == sg).unwrap();
+                    let h = ctb_xs.iter().position(|&x| x == sg).unwrap_or_else(|| {
+                        panic!("No element `{sg}` can be found in column `{s}` of Cayley table.")
+                    });
                     if remaining_elements.contains(&h) {
                         remaining_elements.remove(&h);
                         cur_cc.insert(h);
@@ -266,7 +283,11 @@ where
                 }
                 ccs.push(cur_cc);
             }
-            ccs.sort_by_key(|cc| *cc.iter().min().unwrap());
+            ccs.sort_by_key(|cc| {
+                *cc.iter()
+                    .min()
+                    .expect("Unable to find the minimum element index in one conjugacy class.")
+            });
             ccs.iter().enumerate().for_each(|(i, cc)| {
                 cc.iter().for_each(|&j| e2ccs[j] = i);
             });
@@ -274,16 +295,25 @@ where
             assert!(e2ccs.iter().skip(1).all(|&x| x > 0));
             self.element_to_conjugacy_classes = Some(e2ccs);
         }
-        self.class_number = Some(self.conjugacy_classes.as_ref().unwrap().len());
+        self.class_number = Some(
+            self.conjugacy_classes
+                .as_ref()
+                .expect("Conjugacy classes not found.")
+                .len(),
+        );
         log::debug!("Finding conjugacy classes... Done.");
 
         // Set conjugacy class transversal
         self.conjugacy_class_transversal = Some(
             self.conjugacy_classes
                 .as_ref()
-                .unwrap()
+                .expect("Conjugacy classes not found.")
                 .iter()
-                .map(|cc| *cc.iter().next().unwrap())
+                .map(|cc| {
+                    *cc.iter()
+                        .next()
+                        .expect("No conjugacy classes can be empty.")
+                })
                 .collect(),
         );
 
@@ -295,21 +325,37 @@ where
         let mut iccs: Vec<_> = self
             .conjugacy_classes
             .as_ref()
-            .unwrap()
+            .expect("Conjugacy classes not found.")
             .iter()
             .map(|_| 0usize)
             .collect();
-        let mut remaining_classes: HashSet<_> = (1..self.class_number.unwrap()).collect();
-        let ctb = self.cayley_table.as_ref().unwrap();
+        let mut remaining_classes: HashSet<_> =
+            (1..self.class_number.expect("Class number not found.")).collect();
+        let ctb = self.cayley_table.as_ref().expect("Cayley table not found.");
         while !remaining_classes.is_empty() {
-            let class_index = *remaining_classes.iter().next().unwrap();
-            remaining_classes.remove(&class_index);
-            let g = *self.conjugacy_classes.as_ref().unwrap()[class_index]
+            let class_index = *remaining_classes
                 .iter()
                 .next()
-                .unwrap();
-            let g_inv = ctb.slice(s![g, ..]).iter().position(|&x| x == 0).unwrap();
-            let inv_class_index = self.element_to_conjugacy_classes.as_ref().unwrap()[g_inv];
+                .expect("Unexpected empty `remaining_classes`.");
+            remaining_classes.remove(&class_index);
+            let g = *self
+                .conjugacy_classes
+                .as_ref()
+                .expect("Conjugacy classes not found.")[class_index]
+                .iter()
+                .next()
+                .expect("No conjugacy classes can be empty.");
+            let g_inv = ctb
+                .slice(s![g, ..])
+                .iter()
+                .position(|&x| x == 0)
+                .unwrap_or_else(|| {
+                    panic!("No identity element can be found in row `{g}` of Cayley table.")
+                });
+            let inv_class_index = self
+                .element_to_conjugacy_classes
+                .as_ref()
+                .expect("No element-to-conjugacy-class mappings found.")[g_inv];
             iccs[class_index] = inv_class_index;
             if remaining_classes.contains(&inv_class_index) {
                 remaining_classes.remove(&inv_class_index);
@@ -329,28 +375,35 @@ where
         let class_sizes: Vec<_> = self
             .conjugacy_classes
             .as_ref()
-            .unwrap()
+            .expect("Conjugacy classes not found.")
             .iter()
-            .map(|cc| cc.len())
+            .map(HashSet::len)
             .collect();
         let class_symbols_iter = self
             .conjugacy_class_transversal
             .as_ref()
-            .unwrap()
+            .expect("Conjugacy class transversals not found.")
             .iter()
             .enumerate()
             .map(|(i, &rep_ele_index)| {
-                let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap();
+                let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap_or_else(|| {
+                    panic!("Element with index {rep_ele_index} cannot be retrieved.")
+                });
                 (
                     ClassSymbol::new(
-                        format!("{}||K{}||", class_sizes[i], i).as_str(),
+                        format!("{}||K{i}||", class_sizes[i]).as_str(),
                         Some(rep_ele.clone()),
                     )
-                    .unwrap(),
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "Unable to construct a class symbol from `{}||K{i}||`.",
+                            class_sizes[i]
+                        )
+                    }),
                     i,
                 )
             });
-        self.conjugacy_class_symbols = Some(IndexMap::from_iter(class_symbols_iter));
+        self.conjugacy_class_symbols = Some(class_symbols_iter.collect::<IndexMap<_, _>>());
         log::debug!("Assigning generic class symbols... Done.");
     }
 
@@ -369,27 +422,50 @@ where
     /// This method sets the [`Self::class_matrix`] field.
     fn calc_class_matrix(&mut self) {
         let mut nmat = Array3::<usize>::zeros((
-            self.class_number.unwrap(),
-            self.class_number.unwrap(),
-            self.class_number.unwrap(),
+            self.class_number.expect("Class number not found."),
+            self.class_number.expect("Class number not found."),
+            self.class_number.expect("Class number not found."),
         ));
-        for (r, class_r) in self.conjugacy_classes.as_ref().unwrap().iter().enumerate() {
-            let idx_r = class_r.iter().cloned().collect::<Vec<_>>();
-            for (s, class_s) in self.conjugacy_classes.as_ref().unwrap().iter().enumerate() {
-                let idx_s = class_s.iter().cloned().collect::<Vec<_>>();
+        for (r, class_r) in self
+            .conjugacy_classes
+            .as_ref()
+            .expect("Conjugacy classes not found.")
+            .iter()
+            .enumerate()
+        {
+            let idx_r = class_r.iter().copied().collect::<Vec<_>>();
+            for (s, class_s) in self
+                .conjugacy_classes
+                .as_ref()
+                .expect("Conjugacy classes not found.")
+                .iter()
+                .enumerate()
+            {
+                let idx_s = class_s.iter().copied().collect::<Vec<_>>();
                 let cayley_block_rs = self
                     .cayley_table
                     .as_ref()
-                    .unwrap()
+                    .expect("Cayley table not found.")
                     .select(Axis(0), &idx_r)
                     .select(Axis(1), &idx_s)
                     .iter()
-                    .cloned()
+                    .copied()
                     .counts();
 
-                for (t, class_t) in self.conjugacy_classes.as_ref().unwrap().iter().enumerate() {
+                for (t, class_t) in self
+                    .conjugacy_classes
+                    .as_ref()
+                    .expect("Conjugacy classes not found.")
+                    .iter()
+                    .enumerate()
+                {
                     nmat[[r, s, t]] = *cayley_block_rs
-                        .get(class_t.iter().next().unwrap())
+                        .get(
+                            class_t
+                                .iter()
+                                .next()
+                                .expect("No conjugacy classes can be empty."),
+                        )
                         .unwrap_or(&0);
                 }
             }
@@ -408,7 +484,7 @@ where
         + Debug
         + Pow<i32, Output = T>
         + SpecialSymmetryTransformation
-        + FiniteOrder<Int = u64>,
+        + FiniteOrder<Int = u32>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Constructs the character table for this group using the Burnside--Dixon--Schneider
@@ -420,6 +496,11 @@ where
     ///
     /// * J. D. Dixon, Numer. Math., 1967, 10, 446–450.
     /// * L. C. Grove, Groups and Characters, John Wiley & Sons, Inc., 1997.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the Frobenius--Schur indicator takes on unexpected values.
+    #[allow(clippy::too_many_lines)]
     fn construct_character_table(&mut self) {
         // Variable definitions
         // --------------------
@@ -436,19 +517,30 @@ where
         let m = self
             .elements
             .keys()
-            .map(|x| x.order())
+            .map(FiniteOrder::order)
             .reduce(lcm)
-            .unwrap();
+            .expect("Unable to find the LCM for the orders of the elements in this group.");
         let zeta = UnityRoot::new(1, m);
         log::debug!("Found group exponent m = {}.", m);
         log::debug!("Chosen primitive unity root ζ = {}.", zeta);
 
-        let mut r = (2.0 * (self.order as f64).sqrt() / (m as f64)).round() as u64;
+        let rf64 = (2.0
+            * self
+                .order
+                .to_f64()
+                .unwrap_or_else(|| panic!("Unable to convert `{}` to `f64`.", self.order))
+                .sqrt()
+            / (f64::from(m)))
+        .round();
+        assert!(rf64.is_sign_positive());
+        assert!(rf64 <= f64::from(u32::MAX));
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+        let mut r = rf64 as u32;
         if r == 0 {
             r = 1;
         };
         let mut p = r * m + 1;
-        while !is_prime(p) {
+        while !is_prime(u64::from(p)) {
             log::debug!("Trying {}: not prime.", p);
             r += 1;
             p = r * m + 1;
@@ -457,36 +549,52 @@ where
         log::debug!("Found prime number p = r * m + 1 = {}.", p);
         log::debug!("All arithmetic will now be carried out in GF({}).", p);
 
-        let modp = MontgomeryInt::<u64>::new(1, &p).linalg();
+        let modp = MontgomeryInt::<u32>::new(1, &p).linalg();
         // p is prime, so there is guaranteed a z < p such that z^m ≡ 1 (mod p).
-        let mut i = 1u64;
-        while modp.convert(i).multiplicative_order().unwrap() != m && i < p {
+        let mut i = 1u32;
+        while modp.convert(i).multiplicative_order().unwrap_or_else(|| {
+            panic!(
+                "Unable to find multiplicative order for `{}`",
+                modp.convert(i)
+            )
+        }) != m
+            && i < p
+        {
             i += 1;
         }
         let z = modp.convert(i);
-        assert_eq!(z.multiplicative_order().unwrap(), m);
+        assert_eq!(
+            z.multiplicative_order()
+                .unwrap_or_else(|| panic!("Unable to find multiplicative order for `{z}`.")),
+            m
+        );
         log::debug!("Found integer z = {} with multiplicative order {}.", z, m);
 
         // Diagonalise class matrices
         let class_sizes: Vec<_> = self
             .conjugacy_classes
             .as_ref()
-            .unwrap()
+            .expect("Conjugacy classes not found.")
             .iter()
-            .map(|cc| cc.len())
+            .map(HashSet::len)
             .collect();
         let inverse_conjugacy_classes = self.inverse_conjugacy_classes.as_ref();
-        let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u64>>> = vec![];
+        let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u32>>> = vec![];
 
-        if self.class_number.unwrap() == 1 {
+        if self.class_number.expect("Class number not found.") == 1 {
             eigvecs_1d.push(array![modp.convert(1)]);
         } else {
-            let mut degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u64>>>> = vec![];
+            let mut degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> = vec![];
             let nmat = self
                 .class_matrix
                 .as_ref()
-                .unwrap()
-                .map(|&i| modp.convert(u64::try_from(i).unwrap()));
+                .expect("Class matrix not found.")
+                .map(|&i| {
+                    modp.convert(
+                        u32::try_from(i)
+                            .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
+                    )
+                });
             log::debug!("Considering class matrix N1...");
             let nmat_1 = nmat.slice(s![1, .., ..]).to_owned();
             let eigs_1 = modular_eig(&nmat_1);
@@ -513,7 +621,7 @@ where
             let mut r = 1;
             while !degenerate_subspaces.is_empty() {
                 assert!(
-                    r < (self.class_number.unwrap() - 1),
+                    r < (self.class_number.expect("Class number not found.") - 1),
                     "Class matrices exhausted before degenerate subspaces are fully resolved."
                 );
 
@@ -521,7 +629,7 @@ where
                 log::debug!(
                     "Number of 1-D eigenvectors found: {} / {}.",
                     eigvecs_1d.len(),
-                    self.class_number.unwrap()
+                    self.class_number.expect("Class number not found.")
                 );
                 log::debug!(
                     "Number of degenerate subspaces found: {}.",
@@ -531,10 +639,12 @@ where
                 log::debug!("Considering class matrix N{}...", r);
                 let nmat_r = nmat.slice(s![r, .., ..]).to_owned();
 
-                let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u64>>>> =
+                let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> =
                     vec![];
                 while !degenerate_subspaces.is_empty() {
-                    let subspace = degenerate_subspaces.pop().unwrap();
+                    let subspace = degenerate_subspaces
+                        .pop()
+                        .expect("Unexpected empty `degenerate_subspaces`.");
                     if let Ok(subsubspaces) =
                         split_space(&nmat_r, &subspace, &class_sizes, inverse_conjugacy_classes)
                     {
@@ -565,11 +675,14 @@ where
             }
         }
 
-        assert_eq!(eigvecs_1d.len(), self.class_number.unwrap());
+        assert_eq!(
+            eigvecs_1d.len(),
+            self.class_number.expect("Class number not found.")
+        );
         log::debug!(
             "Successfully found {} / {} one-dimensional eigenvectors for the class matrices.",
             eigvecs_1d.len(),
-            self.class_number.unwrap()
+            self.class_number.expect("Class number not found.")
         );
         for (i, vec) in eigvecs_1d.iter().enumerate() {
             log::debug!("Eigenvector {}: {}", i, vec);
@@ -580,7 +693,10 @@ where
             "Lifting characters from GF({}) back to the complex field...",
             p
         );
-        let class_transversal = self.conjugacy_class_transversal.as_ref().unwrap();
+        let class_transversal = self
+            .conjugacy_class_transversal
+            .as_ref()
+            .expect("Conjugacy class transversals not found.");
 
         let chars: Vec<_> = eigvecs_1d
             .par_iter()
@@ -593,37 +709,84 @@ where
                 .inv()
                 .residue();
                 while !approx::relative_eq!(
-                    (dim2_mod_p as f64).sqrt().round(),
-                    (dim2_mod_p as f64).sqrt()
+                    f64::from(dim2_mod_p).sqrt().round(),
+                    f64::from(dim2_mod_p).sqrt()
                 ) {
                     dim2_mod_p += p;
                 }
-                let dim_i = (dim2_mod_p as f64).sqrt().round() as u64;
-                let tchar_i = Zip::from(vec_i)
-                    .and(class_sizes.as_slice())
-                    .par_map_collect(|&v, &k| v * dim_i / modp.convert(u64::try_from(k).unwrap()));
+
+                let dim_if64 = f64::from(dim2_mod_p).sqrt().round();
+                assert!(dim_if64.is_sign_positive());
+                assert!(dim_if64 <= f64::from(u32::MAX));
+                #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+                let dim_i = dim_if64 as u32;
+
+                let tchar_i =
+                    Zip::from(vec_i)
+                        .and(class_sizes.as_slice())
+                        .par_map_collect(|&v, &k| {
+                            v * dim_i
+                                / modp.convert(u32::try_from(k).unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{k}` to `u32`.")
+                                }))
+                        });
                 let char_i: Vec<_> = class_transversal
                     .par_iter()
                     .map(|x_idx| {
-                        let x = self.elements.get_index(*x_idx).unwrap().0;
+                        let x = self
+                            .elements
+                            .get_index(*x_idx)
+                            .unwrap_or_else(|| {
+                                panic!("Element with index {x_idx} cannot be retrieved.")
+                            })
+                            .0;
                         let k = x.order();
-                        let xi = zeta
-                            .clone()
-                            .pow(i32::try_from(m.checked_div_euclid(k).unwrap()).unwrap());
+                        let xi = zeta.clone().pow(
+                            i32::try_from(m.checked_div_euclid(k).unwrap_or_else(|| {
+                                panic!("`{m}` cannot be Euclid-divided by `{k}`.")
+                            }))
+                            .unwrap_or_else(|_| {
+                                panic!(
+                                    "The Euclid division `{m} / {k}` cannot be converted to `i32`."
+                                )
+                            }),
+                        );
                         let char_ij_terms: Vec<_> = (0..k)
                             .into_par_iter()
                             .map(|s| {
                                 let mu_s = (0..k).fold(modp.convert(0), |acc, l| {
-                                    let x_l = x.clone().pow(l as i32);
-                                    let x_l_idx = *self.elements.get(&x_l).unwrap();
+                                    let x_l =
+                                        x.clone().pow(i32::try_from(l).unwrap_or_else(|_| {
+                                            panic!("Unable to convert `{l}` to `i32`.")
+                                        }));
+                                    let x_l_idx = *self
+                                        .elements
+                                        .get(&x_l)
+                                        .unwrap_or_else(|| panic!("Element {x_l:?} not found."));
                                     let x_l_class_idx =
-                                        self.element_to_conjugacy_classes.as_ref().unwrap()
-                                            [x_l_idx];
+                                        self.element_to_conjugacy_classes.as_ref().expect(
+                                            "No element-to-conjugacy-class mappings found.",
+                                        )[x_l_idx];
                                     let tchar_i_x_l = tchar_i[x_l_class_idx];
                                     acc + tchar_i_x_l
-                                        * z.pow(s * l * m.checked_div_euclid(k).unwrap()).inv()
+                                        * z.pow(
+                                            s * l
+                                                * m.checked_div_euclid(k).unwrap_or_else(|| {
+                                                    panic!(
+                                                        "`{m}` cannot be Euclid-divided by `{k}`."
+                                                    )
+                                                }),
+                                        )
+                                        .inv()
                                 }) / k;
-                                (xi.pow(i32::try_from(s).unwrap()), mu_s.residue() as usize)
+                                (
+                                    xi.pow(i32::try_from(s).unwrap_or_else(|_| {
+                                        panic!("Unable to convert `{s}` to `i32`.")
+                                    })),
+                                    usize::try_from(mu_s.residue()).unwrap_or_else(|_| {
+                                        panic!("Unable to convert `{}` to `usize`.", mu_s.residue())
+                                    }),
+                                )
                             })
                             .collect();
                         Character::new(&char_ij_terms)
@@ -634,19 +797,27 @@ where
             .collect();
 
         let char_arr = Array2::from_shape_vec(
-            (self.class_number.unwrap(), self.class_number.unwrap()),
+            (
+                self.class_number.expect("Class number not found."),
+                self.class_number.expect("Class number not found."),
+            ),
             chars,
         )
-        .unwrap();
+        .expect("Unable to construct the two-dimensional table of characters.");
         log::debug!(
             "Lifting characters from GF({}) back to the complex field... Done.",
             p
         );
 
-        let class_symbols = self.conjugacy_class_symbols.as_ref().unwrap();
+        let class_symbols = self
+            .conjugacy_class_symbols
+            .as_ref()
+            .expect("No conjugacy class symbols found.");
 
-        let i_cc = ClassSymbol::new("1||i||", None).unwrap();
-        let s_cc = ClassSymbol::new("1||σh||", None).unwrap();
+        let i_cc = ClassSymbol::new("1||i||", None)
+            .expect("Unable to construct a class symbol from `1||i||`.");
+        let s_cc = ClassSymbol::new("1||σh||", None)
+            .expect("Unable to construct a class symbol from `1||σh||`.");
         let mut force_proper_principal = if class_symbols.contains_key(&i_cc) {
             log::debug!(
                 "Inversion centre exists. Principal-axis classes will be forced to be proper."
@@ -665,12 +836,13 @@ where
             || matches!(
                 self.finite_subgroup_name
                     .as_ref()
-                    .unwrap_or(&"".to_string())
+                    .unwrap_or(&String::new())
                     .as_str(),
                 "O" | "Oh" | "Td"
             ) {
             force_proper_principal = false;
-            let c3_cc: ClassSymbol<T> = ClassSymbol::new("8||C3||", None).unwrap();
+            let c3_cc: ClassSymbol<T> = ClassSymbol::new("8||C3||", None)
+                .expect("Unable to construct a class symbol from `8||C3||`.");
             log::debug!(
                 "Group is {}. Principal-axis classes will be forced to be {}. This is to obtain non-standard Mulliken symbols that are in line with conventions in the literature.",
                 self.name,
@@ -697,12 +869,19 @@ where
                     self.elements
                         .keys()
                         .fold(Complex::new(0.0f64, 0.0f64), |acc, ele| {
-                            let ele_2_idx = self.elements.get(&ele.clone().pow(2)).unwrap();
-                            let class_2_j =
-                                self.element_to_conjugacy_classes.as_ref().unwrap()[*ele_2_idx];
+                            let ele_2_idx =
+                                self.elements.get(&ele.clone().pow(2)).unwrap_or_else(|| {
+                                    panic!("Element {:?} not found.", &ele.clone().pow(2))
+                                });
+                            let class_2_j = self
+                                .element_to_conjugacy_classes
+                                .as_ref()
+                                .expect("Conjugacy classes not found.")[*ele_2_idx];
                             acc + char_arr[[irrep_i, class_2_j]].complex_value()
                         })
-                        / (self.order as f64);
+                        / self.order.to_f64().unwrap_or_else(|| {
+                            panic!("Unable to convert `{}` to `f64`.", self.order)
+                        });
                 approx::assert_relative_eq!(
                     indicator.im,
                     0.0,
@@ -715,12 +894,29 @@ where
                     epsilon = 1e-14,
                     max_relative = 1e-14
                 );
-                indicator.re.round() as i8
+                assert!(
+                    approx::relative_eq!(indicator.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
+                        || approx::relative_eq!(
+                            indicator.re,
+                            0.0,
+                            epsilon = 1e-14,
+                            max_relative = 1e-14
+                        )
+                        || approx::relative_eq!(
+                            indicator.re,
+                            -1.0,
+                            epsilon = 1e-14,
+                            max_relative = 1e-14
+                        )
+                );
+                #[allow(clippy::cast_possible_truncation)]
+                let indicator_i8 = indicator.re.round() as i8;
+                indicator_i8
             })
             .collect();
 
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name.as_ref() {
-            format!("{} > {}", self.name, finite_name)
+            format!("{} > {finite_name}", self.name)
         } else {
             self.name.clone()
         };
@@ -731,7 +927,7 @@ where
             &principal_classes,
             char_arr,
             &frobenius_schur_indicators,
-        ))
+        ));
     }
 }
 
@@ -739,6 +935,7 @@ impl Group<SymmetryOperation> {
     /// Assigns class symbols to the conjugacy classes.
     ///
     /// This method sets the [`Self::conjugacy_class_symbols`] field.
+    #[allow(clippy::too_many_lines)]
     fn assign_class_symbols_from_symmetry(&mut self) {
         // Assign class symbols
         log::debug!("Assigning class symbols from symmetry operations...");
@@ -749,31 +946,42 @@ impl Group<SymmetryOperation> {
         let class_symbols_iter = self
             .conjugacy_classes
             .as_ref()
-            .unwrap()
+            .expect("Conjugacy classes not found.")
             .iter()
             .enumerate()
             .map(|(i, class_element_indices)| {
                 let rep_ele_index = *class_element_indices
                     .iter()
                     .min_by_key(|&&j| {
-                        let op = self.elements.get_index(j).unwrap().0;
+                        let op = self
+                            .elements
+                            .get_index(j)
+                            .unwrap_or_else(|| {
+                                panic!("Element with index {j} cannot be retrieved.")
+                            })
+                            .0;
                         (op.power, op.generating_element.proper_power)
                     })
-                    .unwrap();
-                let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap();
+                    .expect("Unable to obtain a representative element index.");
+                let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap_or_else(|| {
+                    panic!("Unable to retrieve group element with index `{rep_ele_index}`.")
+                });
                 if rep_ele.is_identity() {
                     (
-                        ClassSymbol::new("1||E||", Some(rep_ele.clone())).unwrap(),
+                        ClassSymbol::new("1||E||", Some(rep_ele.clone()))
+                            .expect("Unable to construct a class symbol from `1||E||`."),
                         i,
                     )
                 } else if rep_ele.is_inversion() {
                     (
-                        ClassSymbol::new("1||i||", Some(rep_ele.clone())).unwrap(),
+                        ClassSymbol::new("1||i||", Some(rep_ele.clone()))
+                            .expect("Unable to construct a class symbol from `1||i||`."),
                         i,
                     )
                 } else if rep_ele.is_time_reversal() {
                     (
-                        ClassSymbol::new("1||θ||", Some(rep_ele.clone())).unwrap(),
+                        ClassSymbol::new("1||θ||", Some(rep_ele.clone()))
+                            .expect("Unable to construct a class symbol from `1||θ||`."),
                         i,
                     )
                 } else {
@@ -795,7 +1003,7 @@ impl Group<SymmetryOperation> {
                                 (rep_proper_order, rep_proper_power, rep_power, rep_sub),
                                 0,
                             );
-                            "".to_string()
+                            String::new()
                         }
                     } else if let Some(v) = improper_class_orders.get_mut(&(
                         rep_proper_order,
@@ -808,7 +1016,7 @@ impl Group<SymmetryOperation> {
                     } else {
                         improper_class_orders
                             .insert((rep_proper_order, rep_proper_power, rep_power, rep_sub), 0);
-                        "".to_string()
+                        String::new()
                     };
                     let size = class_element_indices.len();
                     (
@@ -822,12 +1030,17 @@ impl Group<SymmetryOperation> {
                             .as_str(),
                             Some(rep_ele.clone()),
                         )
-                        .unwrap(),
+                        .unwrap_or_else(|_| {
+                            panic!(
+                                "Unable to construct a class symbol from `{size}||{}|^({dash})|`",
+                                rep_ele.get_abbreviated_symbol()
+                            )
+                        }),
                         i,
                     )
                 }
             });
-        self.conjugacy_class_symbols = Some(IndexMap::from_iter(class_symbols_iter));
+        self.conjugacy_class_symbols = Some(class_symbols_iter.collect::<IndexMap<_, _>>());
         log::debug!("Assigning class symbols from symmetry operations... Done.");
     }
 }
@@ -836,19 +1049,24 @@ impl Group<SymmetryOperation> {
 ///
 /// # Arguments
 ///
-/// * sym - A molecular symmetry struct.
-/// * infinite_order_to_finite - Interpret infinite-order generating
+/// * `sym` - A molecular symmetry struct.
+/// * `infinite_order_to_finite` - Interpret infinite-order generating
 /// elements as finite-order generating elements to create a finite subgroup
 /// of an otherwise infinite group.
 ///
 /// # Returns
 ///
 /// A finite abstract group struct.
+#[allow(clippy::too_many_lines)]
 fn group_from_molecular_symmetry(
-    sym: Symmetry,
+    sym: &Symmetry,
     infinite_order_to_finite: Option<u32>,
 ) -> Group<SymmetryOperation> {
-    let group_name = sym.point_group.as_ref().unwrap().clone();
+    let group_name = sym
+        .point_group
+        .as_ref()
+        .expect("No point groups found.")
+        .clone();
 
     let handles_infinite_group = if sym.is_infinite() {
         assert_ne!(infinite_order_to_finite, None);
@@ -870,38 +1088,43 @@ fn group_from_molecular_symmetry(
     let id_element = sym
         .proper_elements
         .get(&ORDER_1)
-        .unwrap()
+        .expect("No identity elements found.")
         .iter()
         .next()
-        .unwrap()
+        .expect("No identity elements found.")
         .clone();
 
     let id_operation = SymmetryOperation::builder()
         .generating_element(id_element)
         .power(1)
         .build()
-        .unwrap();
+        .expect("Unable to construct an identity operation.");
 
     // Finite proper operations
     let mut proper_orders = sym.proper_elements.keys().collect::<Vec<_>>();
-    proper_orders.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    proper_orders.sort_by(|a, b| {
+        a.partial_cmp(b)
+            .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
+    });
     let proper_operations =
         proper_orders
             .iter()
             .fold(vec![id_operation], |mut acc, proper_order| {
                 sym.proper_elements
                     .get(proper_order)
-                    .unwrap()
+                    .unwrap_or_else(|| panic!("Proper elements C{proper_order} not found."))
                     .iter()
                     .for_each(|proper_element| {
                         if let ElementOrder::Int(io) = proper_order {
                             acc.extend((1..*io).map(|power| {
                                 SymmetryOperation::builder()
                                     .generating_element(proper_element.clone())
-                                    .power(power as i32)
+                                    .power(power.try_into().unwrap_or_else(|_| {
+                                        panic!("Unable to convert `{power}` to `i32`.")
+                                    }))
                                     .build()
-                                    .unwrap()
-                            }))
+                                    .expect("Unable to construct a symmetry operation.")
+                            }));
                         }
                     });
                 acc
@@ -912,7 +1135,7 @@ fn group_from_molecular_symmetry(
         sym.proper_generators
             .par_iter()
             .fold(std::vec::Vec::new, |mut acc, (order, proper_generators)| {
-                proper_generators.iter().for_each(|proper_generator| {
+                for proper_generator in proper_generators.iter() {
                     let finite_order = match order {
                         ElementOrder::Int(io) => *io,
                         ElementOrder::Inf => fin_ord,
@@ -926,15 +1149,17 @@ fn group_from_molecular_symmetry(
                         .additional_superscript(proper_generator.additional_superscript.clone())
                         .additional_subscript(proper_generator.additional_subscript.clone())
                         .build()
-                        .unwrap();
+                        .expect("Unable to construct a symmetry element.");
                     acc.extend((1..finite_order).map(|power| {
                         SymmetryOperation::builder()
                             .generating_element(finite_proper_element.clone())
-                            .power(power as i32)
+                            .power(power.try_into().unwrap_or_else(|_| {
+                                panic!("Unable to convert `{power}` to `i32`.")
+                            }))
                             .build()
-                            .unwrap()
+                            .expect("Unable to construct a symmetry operation.")
                     }));
-                });
+                }
                 acc
             })
             .reduce(std::vec::Vec::new, |mut acc, vec| {
@@ -947,23 +1172,28 @@ fn group_from_molecular_symmetry(
 
     // Finite improper operations
     let mut improper_orders = sym.improper_elements.keys().collect::<Vec<_>>();
-    improper_orders.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    improper_orders.sort_by(|a, b| {
+        a.partial_cmp(b)
+            .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
+    });
     let improper_operations = improper_orders
         .iter()
         .fold(vec![], |mut acc, improper_order| {
             sym.improper_elements
                 .get(improper_order)
-                .unwrap()
+                .unwrap_or_else(|| panic!("Improper elements S{improper_order} not found."))
                 .iter()
                 .for_each(|improper_element| {
                     if let ElementOrder::Int(io) = improper_order {
                         acc.extend((1..(2 * *io)).step_by(2).map(|power| {
                             SymmetryOperation::builder()
                                 .generating_element(improper_element.clone())
-                                .power(power as i32)
+                                .power(power.try_into().unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{power}` to `i32`.")
+                                }))
                                 .build()
-                                .unwrap()
-                        }))
+                                .expect("Unable to construct a symmetry operation.")
+                        }));
                     }
                 });
             acc
@@ -976,7 +1206,7 @@ fn group_from_molecular_symmetry(
             .fold(
                 std::vec::Vec::new,
                 |mut acc, (order, improper_generators)| {
-                    improper_generators.iter().for_each(|improper_generator| {
+                    for improper_generator in improper_generators.iter() {
                         let finite_order = match order {
                             ElementOrder::Int(io) => *io,
                             ElementOrder::Inf => fin_ord,
@@ -992,15 +1222,17 @@ fn group_from_molecular_symmetry(
                             )
                             .additional_subscript(improper_generator.additional_subscript.clone())
                             .build()
-                            .unwrap();
+                            .expect("Unable to construct a symmetry element.");
                         acc.extend((1..(2 * finite_order)).step_by(2).map(|power| {
                             SymmetryOperation::builder()
                                 .generating_element(finite_improper_element.clone())
-                                .power(power as i32)
+                                .power(power.try_into().unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{power}` to `i32`.")
+                                }))
                                 .build()
-                                .unwrap()
+                                .expect("Unable to construct a symmetry operation.")
                         }));
-                    });
+                    }
                     acc
                 },
             )
@@ -1076,14 +1308,12 @@ fn group_from_molecular_symmetry(
                     let op_i_ref = op_pairs[0];
                     let op_j_ref = op_pairs[1];
                     let op_k = op_i_ref * op_j_ref;
-                    if !existing_operations.contains(&op_k) {
-                        if !op_k.is_proper() {
-                            Some(op_k.convert_to_improper_kind(&SIG))
-                        } else {
-                            Some(op_k)
-                        }
-                    } else {
+                    if existing_operations.contains(&op_k) {
                         None
+                    } else if op_k.is_proper() {
+                        Some(op_k)
+                    } else {
+                        Some(op_k.convert_to_improper_kind(&SIG))
                     }
                 })
                 .collect();
@@ -1109,7 +1339,18 @@ fn group_from_molecular_symmetry(
             !op.is_proper(),
             !(op.is_identity() || op.is_inversion()),
             op.is_binary_rotation() || op.is_reflection(),
-            -(*op.total_proper_fraction.unwrap().denom().unwrap() as i64),
+            -(i64::try_from(
+                *op.total_proper_fraction
+                    .expect("No total proper fractions found.")
+                    .denom()
+                    .expect("The denominator of the total proper fraction cannot be extracted."),
+            )
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Unable to convert the denominator of `{:?}` to `i64`.",
+                    op.total_proper_fraction
+                )
+            })),
             op.power,
             OrderedFloat(axis_closeness),
             closest_axis,
@@ -1121,7 +1362,15 @@ fn group_from_molecular_symmetry(
         let finite_group = if group.name.contains('∞') {
             // # C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d
             if group.name.as_bytes()[0] == b'D' {
-                if matches!(group.name.as_bytes().iter().last().unwrap(), b'h' | b'd') {
+                if matches!(
+                    group
+                        .name
+                        .as_bytes()
+                        .iter()
+                        .last()
+                        .expect("The last character in the group name cannot be retrieved."),
+                    b'h' | b'd'
+                ) {
                     assert_eq!(group.order % 4, 0);
                     group
                         .name
@@ -1134,7 +1383,15 @@ fn group_from_molecular_symmetry(
                 }
             } else {
                 assert!(matches!(group.name.as_bytes()[0], b'C' | b'S'));
-                if matches!(group.name.as_bytes().iter().last().unwrap(), b'h' | b'v') {
+                if matches!(
+                    group
+                        .name
+                        .as_bytes()
+                        .iter()
+                        .last()
+                        .expect("The last character in the group name cannot be retrieved."),
+                    b'h' | b'v'
+                ) {
                     assert_eq!(group.order % 2, 0);
                     if group.order > 2 {
                         group

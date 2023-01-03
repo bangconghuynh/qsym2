@@ -13,7 +13,7 @@ use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
-type F = fraction::Fraction;
+type F = fraction::GenericFraction<u32>;
 
 pub mod symmetry_operation;
 pub use symmetry_operation::*;
@@ -125,17 +125,20 @@ pub struct SymmetryElement {
     pub threshold: f64,
 
     /// An additional superscript for distinguishing the symmetry element.
-    #[builder(default = "\"\".to_owned()")]
+    #[builder(default = "String::new()")]
     pub additional_superscript: String,
 
     /// An additional subscript for distinguishing the symmetry element.
-    #[builder(default = "\"\".to_owned()")]
+    #[builder(default = "String::new()")]
     pub additional_subscript: String,
 }
 
 impl SymmetryElementBuilder {
     pub fn proper_power(&mut self, prop_pow: u32) -> &mut Self {
-        let proper_order = self.proper_order.as_ref().unwrap();
+        let proper_order = self
+            .proper_order
+            .as_ref()
+            .expect("Proper order has not been set.");
         self.proper_power = match proper_order {
             ElementOrder::Int(io) => {
                 let residual = prop_pow % io;
@@ -150,43 +153,64 @@ impl SymmetryElementBuilder {
         self
     }
 
+    /// # Panics
+    ///
+    /// Panics when `self` is of finite order.
     pub fn proper_angle(&mut self, ang: f64) -> &mut Self {
-        let proper_order = self.proper_order.as_ref().unwrap();
+        let proper_order = self
+            .proper_order
+            .as_ref()
+            .expect("Proper order has not been set.");
         self.proper_angle = match proper_order {
             ElementOrder::Int(_) => panic!(
                 "Arbitrary proper rotation angles can only be set for infinite-order elements."
             ),
             ElementOrder::Inf => Some(Some(geometry::normalise_rotation_angle(
                 ang,
-                self.threshold.unwrap(),
+                self.threshold.expect("Threshold value has not been set."),
             ))),
         };
         self
     }
 
     fn calc_proper_fraction(&self) -> Option<F> {
-        let proper_order = self.proper_order.as_ref().unwrap();
+        let proper_order = self
+            .proper_order
+            .as_ref()
+            .expect("Proper order has not been set.");
         match proper_order {
-            ElementOrder::Int(io) => Some(F::new(self.proper_power.unwrap().unwrap(), *io)),
+            ElementOrder::Int(io) => Some(F::new(
+                self.proper_power
+                    .expect("Proper power has not been set.")
+                    .expect("No proper powers found."),
+                *io,
+            )),
             ElementOrder::Inf => None,
         }
     }
 
     fn calc_proper_angle(&self) -> Option<f64> {
-        let proper_order = self.proper_order.as_ref().unwrap();
+        let proper_order = self
+            .proper_order
+            .as_ref()
+            .expect("Proper order has not been set.");
         match proper_order {
             ElementOrder::Int(io) => Some(geometry::normalise_rotation_angle(
-                ((self.proper_power.unwrap().unwrap() as f64) / (*io as f64))
+                (f64::from(self
+                    .proper_power
+                    .expect("Proper power has not been set.")
+                    .expect("No proper powers found."))
+                    / (f64::from(*io)))
                     * 2.0
                     * std::f64::consts::PI,
-                self.threshold.unwrap(),
+                self.threshold.expect("Threshold value has not been set."),
             )),
             ElementOrder::Inf => self.proper_angle.unwrap_or(None),
         }
     }
 
     pub fn axis(&mut self, axs: Vector3<f64>) -> &mut Self {
-        let thresh = self.threshold.unwrap();
+        let thresh = self.threshold.expect("Threshold value has not been set.");
         if approx::relative_eq!(axs.norm(), 1.0, epsilon = thresh, max_relative = thresh) {
             self.axis = Some(axs);
         } else {
@@ -216,6 +240,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A builder to construct a new symmetry element.
+    #[must_use]
     pub fn builder() -> SymmetryElementBuilder {
         SymmetryElementBuilder::default()
     }
@@ -225,6 +250,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if the symmetry element is proper.
+    #[must_use]
     pub fn is_proper(&self) -> bool {
         self.kind == SymmetryElementKind::Proper
     }
@@ -234,6 +260,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is an identity element.
+    #[must_use]
     pub fn is_identity(&self) -> bool {
         self.kind == SymmetryElementKind::Proper && self.proper_fraction == Some(F::from(1))
     }
@@ -243,9 +270,10 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is an inversion centre.
+    #[must_use]
     pub fn is_inversion_centre(&self) -> bool {
         (self.kind == SymmetryElementKind::ImproperMirrorPlane
-            && self.proper_fraction == Some(F::new(1u64, 2u64)))
+            && self.proper_fraction == Some(F::new(1u32, 2u32)))
             || (self.kind == SymmetryElementKind::ImproperInversionCentre
                 && self.proper_fraction == Some(F::from(1)))
     }
@@ -255,8 +283,9 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is a binary rotation axis.
+    #[must_use]
     pub fn is_binary_rotation_axis(&self) -> bool {
-        self.kind == SymmetryElementKind::Proper && self.proper_fraction == Some(F::new(1u64, 2u64))
+        self.kind == SymmetryElementKind::Proper && self.proper_fraction == Some(F::new(1u32, 2u32))
     }
 
     /// Checks if the symmetry element is a mirror plane.
@@ -264,11 +293,12 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is a mirror plane.
+    #[must_use]
     pub fn is_mirror_plane(&self) -> bool {
         (matches!(self.kind, SymmetryElementKind::ImproperMirrorPlane)
             && self.proper_fraction == Some(F::from(1)))
             || (self.kind == SymmetryElementKind::ImproperInversionCentre
-                && self.proper_fraction == Some(F::new(1u64, 2u64)))
+                && self.proper_fraction == Some(F::new(1u32, 2u32)))
     }
 
     /// Returns the standard symbol for this symmetry element, which does not
@@ -278,6 +308,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// The standard symbol for this symmetry element.
+    #[must_use]
     pub fn get_standard_symbol(&self) -> String {
         let main_symbol: String = match self.kind {
             SymmetryElementKind::Proper => "C".to_owned(),
@@ -298,14 +329,14 @@ impl SymmetryElement {
         };
         let proper_power = if let Some(pow) = self.proper_power {
             if pow > 1 {
-                format!("^{}", pow)
+                format!("^{pow}")
             } else {
-                "".to_owned()
+                String::new()
             }
         } else {
-            "".to_owned()
+            String::new()
         };
-        format!("{}{}{}", main_symbol, self.proper_order, proper_power)
+        format!("{main_symbol}{}{proper_power}", self.proper_order)
     }
 
     /// Returns the detailed symbol for this symmetry element, which classifies
@@ -314,6 +345,7 @@ impl SymmetryElement {
     /// # Returns
     ///
     /// The detailed symbol for this symmetry element.
+    #[must_use]
     pub fn get_detailed_symbol(&self) -> String {
         let (main_symbol, needs_power) = match self.kind {
             SymmetryElementKind::Proper => {
@@ -351,7 +383,7 @@ impl SymmetryElement {
             if !self.is_identity() && !self.is_inversion_centre() && !self.is_mirror_plane() {
                 format!("{}", self.proper_order)
             } else {
-                "".to_owned()
+                String::new()
             };
 
         let proper_power = if needs_power {
@@ -359,18 +391,18 @@ impl SymmetryElement {
                 ElementOrder::Int(_) => {
                     if let Some(pow) = self.proper_power {
                         if pow > 1 {
-                            format!("^{}", pow)
+                            format!("^{pow}")
                         } else {
-                            "".to_owned()
+                            String::new()
                         }
                     } else {
-                        "".to_owned()
+                        String::new()
                     }
                 }
-                ElementOrder::Inf => "".to_owned(),
+                ElementOrder::Inf => String::new(),
             }
         } else {
-            "".to_owned()
+            String::new()
         };
 
         main_symbol
@@ -410,13 +442,19 @@ impl SymmetryElement {
     ///
     /// # Arguments
     ///
-    /// * improper_kind - Reference to the required improper kind.
-    /// * preserves_power - Flag indicating if the proper rotation power $`k'`$
+    /// * `improper_kind` - Reference to the required improper kind.
+    /// * `preserves_power` - Flag indicating if the proper rotation power $`k'`$
     /// should be preserved or should be set to $`1`$.
     ///
     /// # Returns
     ///
     /// A copy of the current improper symmetry element that has been converted.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `self` is not an improper element, or when `improper_kind` is not one of the
+    /// improper variants.
+    #[must_use]
     pub fn convert_to_improper_kind(
         &self,
         improper_kind: &SymmetryElementKind,
@@ -438,14 +476,18 @@ impl SymmetryElement {
 
         let dest_order = match self.proper_order {
             ElementOrder::Int(order_int) => ElementOrder::Int(
-                2 * order_int / (gcd(2 * order_int, order_int + 2 * self.proper_power.unwrap())),
+                2 * order_int
+                    / (gcd(
+                        2 * order_int,
+                        order_int + 2 * self.proper_power.expect("No proper powers found."),
+                    )),
             ),
             ElementOrder::Inf => ElementOrder::Inf,
         };
         let dest_proper_power = if preserves_power {
             match self.proper_order {
                 ElementOrder::Int(order_int) => {
-                    let pow = self.proper_power.unwrap();
+                    let pow = self.proper_power.expect("No proper powers found.");
                     (order_int + 2 * pow) / (gcd(2 * order_int, order_int + 2 * pow))
                 }
                 ElementOrder::Inf => 1,
@@ -464,7 +506,7 @@ impl SymmetryElement {
                 .additional_superscript(self.additional_superscript.clone())
                 .additional_subscript(self.additional_subscript.clone())
                 .build()
-                .unwrap(),
+                .expect("Unable to construct a symmetry element."),
             ElementOrder::Inf => {
                 if let Some(ang) = self.proper_angle {
                     Self::builder()
@@ -478,7 +520,7 @@ impl SymmetryElement {
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())
                         .build()
-                        .unwrap()
+                        .expect("Unable to construct a symmetry element.")
                 } else {
                     Self::builder()
                         .threshold(self.threshold)
@@ -490,7 +532,7 @@ impl SymmetryElement {
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())
                         .build()
-                        .unwrap()
+                        .expect("Unable to construct a symmetry element.")
                 }
             }
         }
@@ -507,6 +549,12 @@ impl SymmetryElement {
     /// $`\gamma`$ is to $`0`$, the closer the alignment.
     /// - An index for the closest axis: `0` for $`z`$, `1` for $`y`$, `2`
     /// for $`x`$.
+    ///
+    /// # Panics
+    ///
+    /// Panics when $`\gamma`$ is outside the required closed interval $`[0, 1-1/\sqrt{3}]`$ by
+    /// more than the threshold value in `self`.
+    #[must_use]
     pub fn closeness_to_cartesian_axes(&self) -> (f64, usize) {
         let normalised_axis = self.axis.normalize();
         let rev_normalised_axis = Vector3::new(
@@ -533,12 +581,12 @@ impl fmt::Display for SymmetryElement {
         let proper_angle = match self.proper_order {
             ElementOrder::Inf => {
                 if let Some(ang) = self.proper_angle {
-                    format!("({:+.3})", ang)
+                    format!("({ang:+.3})")
                 } else {
-                    "".to_owned()
+                    String::new()
                 }
             }
-            _ => "".to_owned(),
+            ElementOrder::Int(_) => String::new(),
         };
         if self.is_identity() || self.is_inversion_centre() {
             write!(f, "{}", self.get_detailed_symbol())
@@ -561,12 +609,12 @@ impl fmt::Debug for SymmetryElement {
         let proper_angle = match self.proper_order {
             ElementOrder::Inf => {
                 if let Some(ang) = self.proper_angle {
-                    format!("({:+.3})", ang)
+                    format!("({ang:+.3})")
                 } else {
-                    "".to_owned()
+                    String::new()
                 }
             }
-            _ => "".to_owned(),
+            ElementOrder::Int(_) => String::new(),
         };
         write!(
             f,
@@ -637,8 +685,13 @@ impl PartialEq for SymmetryElement {
                 false
             } else {
                 (self.proper_fraction == converted_other.proper_fraction)
-                    || (self.proper_fraction.unwrap() + converted_other.proper_fraction.unwrap()
-                        == F::from(1u64))
+                    || (self
+                        .proper_fraction
+                        .expect("No proper fractions found for `self`.")
+                        + converted_other
+                            .proper_fraction
+                            .expect("No proper fractions found for `converted_other`.")
+                        == F::from(1u32))
             };
             if result {
                 assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
@@ -674,7 +727,13 @@ impl PartialEq for SymmetryElement {
             false
         } else {
             (self.proper_fraction == other.proper_fraction)
-                || (self.proper_fraction.unwrap() + other.proper_fraction.unwrap() == F::from(1u64))
+                || (self
+                    .proper_fraction
+                    .expect("No proper fractions found for `self`.")
+                    + other
+                        .proper_fraction
+                        .expect("No proper fractions found for `other`.")
+                    == F::from(1u64))
         };
         if result {
             assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
@@ -690,80 +749,79 @@ impl Hash for SymmetryElement {
         self.is_proper().hash(state);
         if self.is_identity() || self.is_inversion_centre() {
             true.hash(state);
-        } else {
-            match self.kind {
-                SymmetryElementKind::ImproperMirrorPlane => {
-                    let c_self = self.convert_to_improper_kind(
-                        &SymmetryElementKind::ImproperInversionCentre,
-                        false,
-                    );
-                    let pole = geometry::get_positive_pole(&c_self.axis, c_self.threshold);
-                    pole[0]
+        } else if self.kind == SymmetryElementKind::ImproperMirrorPlane {
+            let c_self = self
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
+            let pole = geometry::get_positive_pole(&c_self.axis, c_self.threshold);
+            pole[0]
+                .round_factor(self.threshold)
+                .integer_decode()
+                .hash(state);
+            pole[1]
+                .round_factor(self.threshold)
+                .integer_decode()
+                .hash(state);
+            pole[2]
+                .round_factor(self.threshold)
+                .integer_decode()
+                .hash(state);
+            if let ElementOrder::Inf = c_self.proper_order {
+                if let Some(angle) = c_self.proper_angle {
+                    angle
+                        .abs()
                         .round_factor(self.threshold)
                         .integer_decode()
                         .hash(state);
-                    pole[1]
-                        .round_factor(self.threshold)
-                        .integer_decode()
-                        .hash(state);
-                    pole[2]
-                        .round_factor(self.threshold)
-                        .integer_decode()
-                        .hash(state);
-                    if let ElementOrder::Inf = c_self.proper_order {
-                        if let Some(angle) = c_self.proper_angle {
-                            angle
-                                .abs()
-                                .round_factor(self.threshold)
-                                .integer_decode()
-                                .hash(state);
-                        } else {
-                            0.hash(state);
-                        }
-                    } else {
-                        cmp::min_by(
-                            c_self.proper_fraction.unwrap(),
-                            F::from(1u64) - c_self.proper_fraction.unwrap(),
-                            |a, b| a.partial_cmp(b).unwrap(),
-                        )
-                        .hash(state);
-                    };
+                } else {
+                    0.hash(state);
                 }
-                _ => {
-                    let pole = geometry::get_positive_pole(&self.axis, self.threshold);
-                    pole[0]
-                        .round_factor(self.threshold)
-                        .integer_decode()
-                        .hash(state);
-                    pole[1]
-                        .round_factor(self.threshold)
-                        .integer_decode()
-                        .hash(state);
-                    pole[2]
-                        .round_factor(self.threshold)
-                        .integer_decode()
-                        .hash(state);
-                    if let ElementOrder::Inf = self.proper_order {
-                        if let Some(angle) = self.proper_angle {
-                            angle
-                                .abs()
-                                .round_factor(self.threshold)
-                                .integer_decode()
-                                .hash(state);
-                        } else {
-                            0.hash(state);
-                        }
-                    } else {
-                        cmp::min_by(
-                            self.proper_fraction.unwrap(),
-                            F::from(1u64) - self.proper_fraction.unwrap(),
-                            |a, b| a.partial_cmp(b).unwrap(),
-                        )
-                        .hash(state);
-                    };
-                }
+            } else {
+                cmp::min_by(
+                    c_self.proper_fraction.expect("No proper fractions found."),
+                    F::from(1u64) - c_self.proper_fraction.expect("No proper fractions found."),
+                    |a, b| {
+                        a.partial_cmp(b)
+                            .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
+                    },
+                )
+                .hash(state);
             };
-        }
+        } else {
+            let pole = geometry::get_positive_pole(&self.axis, self.threshold);
+            pole[0]
+                .round_factor(self.threshold)
+                .integer_decode()
+                .hash(state);
+            pole[1]
+                .round_factor(self.threshold)
+                .integer_decode()
+                .hash(state);
+            pole[2]
+                .round_factor(self.threshold)
+                .integer_decode()
+                .hash(state);
+            if let ElementOrder::Inf = self.proper_order {
+                if let Some(angle) = self.proper_angle {
+                    angle
+                        .abs()
+                        .round_factor(self.threshold)
+                        .integer_decode()
+                        .hash(state);
+                } else {
+                    0.hash(state);
+                }
+            } else {
+                cmp::min_by(
+                    self.proper_fraction.expect("No proper fractions found."),
+                    F::from(1u64) - self.proper_fraction.expect("No proper fractions found."),
+                    |a, b| {
+                        a.partial_cmp(b)
+                            .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
+                    },
+                )
+                .hash(state);
+            };
+        };
     }
 }
 

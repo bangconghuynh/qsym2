@@ -6,7 +6,7 @@ use fraction::{self, ToPrimitive};
 use num::Complex;
 use num_traits::Pow;
 
-type F = fraction::Fraction;
+type F = fraction::GenericFraction<u32>;
 
 #[cfg(test)]
 #[path = "unityroot_tests.rs"]
@@ -29,8 +29,12 @@ impl UnityRootBuilder {
         self.fraction = if F::from(0) <= frac && frac < F::from(1) {
             Some(frac)
         } else {
-            let numer = frac.numer().unwrap();
-            let denom = frac.denom().unwrap();
+            let numer = frac
+                .numer()
+                .unwrap_or_else(|| panic!("The numerator of {frac} cannot be extracted."));
+            let denom = frac
+                .denom()
+                .unwrap_or_else(|| panic!("The denominator of {frac} cannot be extracted."));
             Some(F::new(numer.rem_euclid(*denom), *denom))
         };
         self
@@ -52,11 +56,12 @@ impl UnityRoot {
     /// # Returns
     ///
     /// A unity root.
-    pub fn new(index: u64, order: u64) -> Self {
+    #[must_use]
+    pub fn new(index: u32, order: u32) -> Self {
         Self::builder()
             .fraction(F::new(index, order))
             .build()
-            .unwrap()
+            .expect("Unable to construct a unity root.")
     }
 
     /// The order $`n`$ of the root $`z`$, *i.e.* $`z^n = 1`$.
@@ -64,8 +69,10 @@ impl UnityRoot {
     /// # Returns
     ///
     /// The order $`n`$.
-    fn order(&self) -> &u64 {
-        self.fraction.denom().unwrap()
+    fn order(&self) -> &u32 {
+        self.fraction
+            .denom()
+            .expect("Unable to obtain the order of the root.")
     }
 
     /// The index $`k`$ of the root $`z`$, *i.e.* $`z = e^{\frac{2k\pi i}{n}}`$
@@ -74,8 +81,10 @@ impl UnityRoot {
     /// # Returns
     ///
     /// The index $`k`$.
-    fn index(&self) -> &u64 {
-        self.fraction.numer().unwrap()
+    fn index(&self) -> &u32 {
+        self.fraction
+            .numer()
+            .expect("Unable to obtain the index of the root.")
     }
 
     /// The complex representation of this root.
@@ -83,8 +92,14 @@ impl UnityRoot {
     /// # Returns
     ///
     /// The complex value corresponding to this root.
+    #[must_use]
     pub fn complex_value(&self) -> Complex<f64> {
-        let theta = self.fraction.to_f64().unwrap() * std::f64::consts::PI * 2.0;
+        let theta = self
+            .fraction
+            .to_f64()
+            .expect("Unable to convert a fraction to `f64`.")
+            * std::f64::consts::PI
+            * 2.0;
         Complex::<f64>::from_polar(1.0, theta)
     }
 
@@ -93,9 +108,20 @@ impl UnityRoot {
     /// # Returns
     ///
     /// The complex conjugate of this root.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the complex conjugate cannot be found.
+    #[must_use]
     pub fn complex_conjugate(&self) -> Self {
         Self::new(
-            self.order().checked_sub(*self.index()).unwrap(),
+            self.order().checked_sub(*self.index()).unwrap_or_else(|| {
+                panic!(
+                    "Unable to perform the subtraction `{} - {}` correctly.",
+                    self.order(),
+                    self.index()
+                )
+            }),
             *self.order(),
         )
     }
@@ -107,7 +133,12 @@ impl<'a, 'b> Mul<&'a UnityRoot> for &'b UnityRoot {
     fn mul(self, rhs: &'a UnityRoot) -> Self::Output {
         #[allow(clippy::suspicious_arithmetic_impl)]
         let fract_sum = self.fraction + rhs.fraction;
-        Self::Output::builder().fraction(fract_sum).build().unwrap()
+        Self::Output::builder()
+            .fraction(fract_sum)
+            .build()
+            .unwrap_or_else(|_| {
+                panic!("Unable to construct a unity root with fraction {fract_sum}.")
+            })
     }
 }
 
@@ -116,8 +147,15 @@ impl Pow<i32> for &UnityRoot {
 
     fn pow(self, rhs: i32) -> Self::Output {
         Self::Output::new(
-            u64::try_from((*self.index() as i32 * rhs).rem_euclid(*self.order() as i32))
-                .expect("Unexpected negative remainder."),
+            u32::try_from(
+                (i32::try_from(*self.index())
+                    .unwrap_or_else(|_| panic!("Unable to convert `{}` to `i32`.", self.index()))
+                    * rhs)
+                    .rem_euclid(i32::try_from(*self.order()).unwrap_or_else(|_| {
+                        panic!("Unable to convert `{}` to `i32`.", self.order())
+                    })),
+            )
+            .expect("Unexpected negative remainder."),
             *self.order(),
         )
     }
@@ -125,15 +163,15 @@ impl Pow<i32> for &UnityRoot {
 
 impl fmt::Display for UnityRoot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.fraction == F::new(0u64, 4u64) {
+        if self.fraction == F::new(0u32, 4u32) {
             write!(f, "1")
-        } else if self.fraction == F::new(1u64, 4u64) {
+        } else if self.fraction == F::new(1u32, 4u32) {
             write!(f, "i")
-        } else if self.fraction == F::new(2u64, 4u64) {
+        } else if self.fraction == F::new(2u32, 4u32) {
             write!(f, "-1")
-        } else if self.fraction == F::new(3u64, 4u64) {
+        } else if self.fraction == F::new(3u32, 4u32) {
             write!(f, "-i")
-        } else if *self.index() == 1u64 {
+        } else if *self.index() == 1u32 {
             write!(f, "E{}", self.order())
         } else {
             write!(f, "(E{})^{}", self.order(), self.index())
@@ -143,9 +181,9 @@ impl fmt::Display for UnityRoot {
 
 impl fmt::Debug for UnityRoot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.fraction == F::new(0u64, 4u64) {
+        if self.fraction == F::new(0u32, 4u32) {
             write!(f, "1")
-        } else if *self.index() == 1u64 {
+        } else if *self.index() == 1u32 {
             write!(f, "E{}", self.order())
         } else {
             write!(f, "(E{})^{}", self.order(), self.index())

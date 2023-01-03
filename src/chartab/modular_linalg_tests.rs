@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+
 
 use ndarray::{array, Array1};
 use num_modular::{ModularInteger, MontgomeryInt};
@@ -10,7 +10,7 @@ use crate::chartab::reducedint::IntoLinAlgReducedInt;
 
 #[test]
 fn test_modular_linalg_deteterminant() {
-    let i0_5 = MontgomeryInt::<u64>::new(0, &5).linalg();
+    let i0_5 = MontgomeryInt::<u32>::new(0, &5).linalg();
     let i1_5 = i0_5.convert(1);
     let i2_5 = i0_5.convert(2);
     let i3_5 = i0_5.convert(3);
@@ -27,10 +27,10 @@ fn test_modular_linalg_deteterminant() {
     let arr_4 = arr.clone() * 4;
     assert_eq!(modular_determinant(&arr_4), i3_5);
 
-    let arr_5 = arr.clone() * 5;
+    let arr_5 = arr * 5;
     assert_eq!(modular_determinant(&arr_5), i0_5);
 
-    let i0_13 = MontgomeryInt::<u64>::new(0, &13).linalg();
+    let i0_13 = MontgomeryInt::<u32>::new(0, &13).linalg();
     let i1_13 = i0_13.convert(1);
     let i2_13 = i0_13.convert(2);
     let i3_13 = i0_13.convert(3);
@@ -89,7 +89,7 @@ fn test_modular_linalg_deteterminant() {
 
 #[test]
 fn test_modular_linalg_rref_kernel() {
-    let i0_13 = MontgomeryInt::<u64>::new(0, &13).linalg();
+    let i0_13 = MontgomeryInt::<u32>::new(0, &13).linalg();
     let i1_13 = i0_13.convert(1);
     let i2_13 = i0_13.convert(2);
     let i3_13 = i0_13.convert(3);
@@ -260,7 +260,7 @@ fn test_modular_linalg_rref_kernel() {
 
 #[test]
 fn test_modular_linalg_eig() {
-    let m19 = MontgomeryInt::<u64>::new(0, &19).linalg();
+    let m19 = MontgomeryInt::<u32>::new(0, &19).linalg();
     let i_19s: Vec<_> = (0..19).map(|x| m19.convert(x)).collect();
 
     let arr_1 = array![
@@ -276,7 +276,7 @@ fn test_modular_linalg_eig() {
         })
     });
 
-    let m5 = MontgomeryInt::<u64>::new(0, &5).linalg();
+    let m5 = MontgomeryInt::<u32>::new(0, &5).linalg();
     let i_5s: Vec<_> = (0..5).map(|x| m5.convert(x)).collect();
 
     let arr_2 = array![[i_5s[2], i_5s[2]], [i_5s[1], i_5s[1]]];
@@ -297,7 +297,7 @@ fn test_modular_linalg_eig() {
 
     // Ref: L. C. Grove, Groups and Characters, John Wiley & Sons, Inc., 1997,
     // p. 157
-    let m41 = MontgomeryInt::<u64>::new(0, &41).linalg();
+    let m41 = MontgomeryInt::<u32>::new(0, &41).linalg();
     let i_41s: Vec<_> = (0..41).map(|x| m41.convert(x)).collect();
     let arr_4 = array![
         [i_41s[0], i_41s[1], i_41s[0], i_41s[0], i_41s[0]],
@@ -318,7 +318,7 @@ fn test_modular_linalg_eig() {
 
     // Ref: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.598.7381&rep=rep1&type=pdf,
     // p. 11
-    let m5 = MontgomeryInt::<u64>::new(0, &5).linalg();
+    let m5 = MontgomeryInt::<u32>::new(0, &5).linalg();
     let i_5s: Vec<_> = (0..5).map(|x| m5.convert(x)).collect();
     let arr_5 = array![
         [i_5s[0], i_5s[1], i_5s[0], i_5s[0]],
@@ -343,7 +343,7 @@ fn test_modular_linalg_split_space() {
     // p. 157
     let class_sizes: Vec<usize> = vec![1, 4, 5, 5, 5];
     let perm_for_conj = vec![0, 1, 2, 3, 4];
-    let m41 = MontgomeryInt::<u64>::new(0, &41).linalg();
+    let m41 = MontgomeryInt::<u32>::new(0, &41).linalg();
     let i_41s: Vec<_> = (0..41).map(|x| m41.convert(x)).collect();
     let arr_1 = array![
         [i_41s[0], i_41s[1], i_41s[0], i_41s[0], i_41s[0]],

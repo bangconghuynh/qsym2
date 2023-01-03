@@ -31,7 +31,7 @@ fn test_abstract_group_creation() {
         .unwrap();
 
     let c5 = SymmetryOperation::builder()
-        .generating_element(c5_element.clone())
+        .generating_element(c5_element)
         .power(1)
         .build()
         .unwrap();
@@ -54,7 +54,7 @@ fn test_abstract_group_creation() {
         .unwrap();
 
     let c29 = SymmetryOperation::builder()
-        .generating_element(c29_element.clone())
+        .generating_element(c29_element)
         .power(1)
         .build()
         .unwrap();
@@ -79,7 +79,7 @@ fn test_abstract_group_from_molecular_symmetry() {
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
-    let group = group_from_molecular_symmetry(sym, None);
+    let group = group_from_molecular_symmetry(&sym, None);
     assert_eq!(group.name, "C3v".to_string());
     assert_eq!(group.order, 6);
     assert_eq!(group.class_number, Some(3));
@@ -97,7 +97,7 @@ fn test_abstract_group_element_to_conjugacy_class() {
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
-    let group = group_from_molecular_symmetry(sym, None);
+    let group = group_from_molecular_symmetry(&sym, None);
     assert_eq!(group.name, "C5v".to_string());
     assert_eq!(group.order, 10);
     assert_eq!(group.class_number, Some(4));
@@ -126,7 +126,7 @@ fn test_abstract_group_element_sort() {
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
-    let group = group_from_molecular_symmetry(sym, None);
+    let group = group_from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
         group
             .elements
@@ -159,7 +159,7 @@ fn test_abstract_group_element_sort() {
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
-    let group = group_from_molecular_symmetry(sym, None);
+    let group = group_from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
         group
             .elements
@@ -236,7 +236,7 @@ fn test_abstract_group_class_matrices() {
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
-    let group = group_from_molecular_symmetry(sym, None);
+    let group = group_from_molecular_symmetry(&sym, None);
     let nmat_rst = group.class_matrix.unwrap();
     let mut nmat_srt = nmat_rst.clone();
     nmat_srt.swap_axes(0, 1);
@@ -312,7 +312,7 @@ fn test_abstract_group(
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
-    let group = group_from_molecular_symmetry(sym, None);
+    let group = group_from_molecular_symmetry(&sym, None);
     test_abstract_group_validity(group, name, order, class_number, abelian);
 }
 
@@ -321,7 +321,7 @@ fn test_abstract_group_from_infinite_group(
     finite_order: u32,
     thresh: f64,
     name: &str,
-    finite_name: &str,
+    _finite_name: &str,
     order: usize,
     class_number: usize,
     abelian: bool,
@@ -333,7 +333,7 @@ fn test_abstract_group_from_infinite_group(
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
-    let group = group_from_molecular_symmetry(sym, Some(finite_order));
+    let group = group_from_molecular_symmetry(&sym, Some(finite_order));
     test_abstract_group_validity(group, name, order, class_number, abelian);
 }
 
@@ -345,7 +345,7 @@ fn test_abstract_group_class_order(mol: &Molecule, thresh: f64, class_order_str:
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym);
-    let group = group_from_molecular_symmetry(sym, None);
+    let group = group_from_molecular_symmetry(&sym, None);
     assert!(group
         .conjugacy_class_symbols
         .unwrap()
@@ -589,7 +589,7 @@ fn test_abstract_group_linear_atom_electric_field_cinfv() {
                 } else {
                     2
                 }
-            }) as usize,
+            }),
             false,
         );
     }
@@ -616,7 +616,7 @@ fn test_abstract_group_linear_c2h2_dinfh() {
                 "D∞h",
                 format!("D{}h", n).as_str(),
                 4 * n,
-                2 * (n / 2 - 1 + 4) as usize,
+                2 * (n / 2 - 1 + 4),
                 false,
             );
         } else {
@@ -627,7 +627,7 @@ fn test_abstract_group_linear_c2h2_dinfh() {
                 "D∞h",
                 format!("D{}h", 2 * n).as_str(),
                 8 * n,
-                2 * (n - 1 + 4) as usize,
+                2 * (n - 1 + 4),
                 false,
             );
         }
@@ -650,7 +650,7 @@ fn test_abstract_group_linear_c2h2_magnetic_field_cinfh() {
                 "C∞h",
                 format!("C{}h", n).as_str(),
                 2 * n,
-                2 * n as usize,
+                2 * n,
                 true,
             );
         } else {
@@ -661,7 +661,7 @@ fn test_abstract_group_linear_c2h2_magnetic_field_cinfh() {
                 "C∞h",
                 format!("C{}h", 2 * n).as_str(),
                 4 * n,
-                4 * n as usize,
+                4 * n,
                 true,
             );
         }
@@ -696,7 +696,7 @@ fn test_abstract_group_linear_c2h2_electric_field_cinfv() {
                 } else {
                     2
                 }
-            }) as usize,
+            }),
             false,
         );
     }
@@ -727,7 +727,7 @@ fn test_abstract_group_linear_n3_cinfv() {
                 } else {
                     2
                 }
-            }) as usize,
+            }),
             false,
         );
     }
@@ -783,7 +783,7 @@ fn test_abstract_group_linear_n3_electric_field_cinfv() {
                 } else {
                     2
                 }
-            }) as usize,
+            }),
             false,
         );
     }

@@ -3,9 +3,10 @@ use crate::aux::molecule::Molecule;
 use nalgebra::Point3;
 
 
+#[must_use]
 pub fn gen_twisted_h8(theta: f64) -> Molecule {
     let emap = ElementMap::new();
-    let (atomic_number, atomic_mass) = emap.map.get("H").unwrap();
+    let (atomic_number, atomic_mass) = emap.map.get("H").expect("Unable to retrieve element.");
     let atoms: [Atom; 8] = [
         Atom {
             kind: AtomKind::Ordinary,
@@ -92,19 +93,20 @@ pub fn gen_twisted_h8(theta: f64) -> Molecule {
 }
 
 
+#[must_use]
 pub fn gen_arbitrary_half_sandwich(n: u32) -> Molecule {
     let emap = ElementMap::new();
     let mut atoms: Vec<Atom> = vec![];
-    let (h_atomic_number, h_atomic_mass) = emap.map.get("H").unwrap();
-    let (c_atomic_number, c_atomic_mass) = emap.map.get("C").unwrap();
-    let (v_atomic_number, v_atomic_mass) = emap.map.get("V").unwrap();
+    let (h_atomic_number, h_atomic_mass) = emap.map.get("H").expect("Unable to retrieve element.");
+    let (c_atomic_number, c_atomic_mass) = emap.map.get("C").expect("Unable to retrieve element.");
+    let (v_atomic_number, v_atomic_mass) = emap.map.get("V").expect("Unable to retrieve element.");
     atoms.push(
         Atom {
             kind: AtomKind::Ordinary,
             atomic_number: *v_atomic_number,
             atomic_symbol: "V".to_owned(),
             atomic_mass: *v_atomic_mass,
-            coordinates: Point3::new(0.0, 0.0, 1.0 + 0.1 * (n as f64)),
+            coordinates: Point3::new(0.0, 0.0, 1.0 + 0.1 * (f64::from(n))),
             threshold: 1e-7
         },
     );
@@ -116,8 +118,8 @@ pub fn gen_arbitrary_half_sandwich(n: u32) -> Molecule {
                 atomic_symbol: "C".to_owned(),
                 atomic_mass: *c_atomic_mass,
                 coordinates: Point3::new(
-                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
-                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
+                    1.0 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).cos(),
+                    1.0 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).sin(),
                     0.0),
                 threshold: 1e-7
             }
@@ -129,8 +131,8 @@ pub fn gen_arbitrary_half_sandwich(n: u32) -> Molecule {
                 atomic_symbol: "H".to_owned(),
                 atomic_mass: *h_atomic_mass,
                 coordinates: Point3::new(
-                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
-                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
+                    1.5 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).cos(),
+                    1.5 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).sin(),
                     0.0),
                 threshold: 1e-7
             }
@@ -139,12 +141,13 @@ pub fn gen_arbitrary_half_sandwich(n: u32) -> Molecule {
     Molecule::from_atoms(&atoms, 1e-7)
 }
 
+#[must_use]
 pub fn gen_arbitrary_eclipsed_sandwich(n: u32) -> Molecule {
     let emap = ElementMap::new();
     let mut atoms: Vec<Atom> = vec![];
-    let (h_atomic_number, h_atomic_mass) = emap.map.get("H").unwrap();
-    let (c_atomic_number, c_atomic_mass) = emap.map.get("C").unwrap();
-    let (m_atomic_number, m_atomic_mass) = emap.map.get("Co").unwrap();
+    let (h_atomic_number, h_atomic_mass) = emap.map.get("H").expect("Unable to retrieve element.");
+    let (c_atomic_number, c_atomic_mass) = emap.map.get("C").expect("Unable to retrieve element.");
+    let (m_atomic_number, m_atomic_mass) = emap.map.get("Co").expect("Unable to retrieve element.");
     atoms.push(
         Atom {
             kind: AtomKind::Ordinary,
@@ -163,9 +166,9 @@ pub fn gen_arbitrary_eclipsed_sandwich(n: u32) -> Molecule {
                 atomic_symbol: "C".to_owned(),
                 atomic_mass: *c_atomic_mass,
                 coordinates: Point3::new(
-                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
-                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
-                    -1.0 - 0.1 * (n as f64)),
+                    1.0 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).cos(),
+                    1.0 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).sin(),
+                    -1.0 - 0.1 * (f64::from(n))),
                 threshold: 1e-7
             }
         );
@@ -176,9 +179,9 @@ pub fn gen_arbitrary_eclipsed_sandwich(n: u32) -> Molecule {
                 atomic_symbol: "H".to_owned(),
                 atomic_mass: *h_atomic_mass,
                 coordinates: Point3::new(
-                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
-                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
-                    -1.0 - 0.1 * (n as f64)),
+                    1.5 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).cos(),
+                    1.5 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).sin(),
+                    -1.0 - 0.1 * (f64::from(n))),
                 threshold: 1e-7
             }
         );
@@ -189,9 +192,9 @@ pub fn gen_arbitrary_eclipsed_sandwich(n: u32) -> Molecule {
                 atomic_symbol: "C".to_owned(),
                 atomic_mass: *c_atomic_mass,
                 coordinates: Point3::new(
-                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
-                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
-                    1.0 + 0.1 * (n as f64)),
+                    1.0 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).cos(),
+                    1.0 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).sin(),
+                    1.0 + 0.1 * (f64::from(n))),
                 threshold: 1e-7
             }
         );
@@ -202,9 +205,9 @@ pub fn gen_arbitrary_eclipsed_sandwich(n: u32) -> Molecule {
                 atomic_symbol: "H".to_owned(),
                 atomic_mass: *h_atomic_mass,
                 coordinates: Point3::new(
-                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
-                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
-                    1.0 + 0.1 * (n as f64)),
+                    1.5 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).cos(),
+                    1.5 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).sin(),
+                    1.0 + 0.1 * (f64::from(n))),
                 threshold: 1e-7
             }
         );
@@ -212,12 +215,13 @@ pub fn gen_arbitrary_eclipsed_sandwich(n: u32) -> Molecule {
     Molecule::from_atoms(&atoms, 1e-7)
 }
 
+#[must_use]
 pub fn gen_arbitrary_twisted_sandwich(n: u32, frac: f64) -> Molecule {
     let emap = ElementMap::new();
     let mut atoms: Vec<Atom> = vec![];
-    let (h_atomic_number, h_atomic_mass) = emap.map.get("H").unwrap();
-    let (c_atomic_number, c_atomic_mass) = emap.map.get("C").unwrap();
-    let (m_atomic_number, m_atomic_mass) = emap.map.get("Co").unwrap();
+    let (h_atomic_number, h_atomic_mass) = emap.map.get("H").expect("Unable to retrieve element.");
+    let (c_atomic_number, c_atomic_mass) = emap.map.get("C").expect("Unable to retrieve element.");
+    let (m_atomic_number, m_atomic_mass) = emap.map.get("Co").expect("Unable to retrieve element.");
     atoms.push(
         Atom {
             kind: AtomKind::Ordinary,
@@ -236,9 +240,9 @@ pub fn gen_arbitrary_twisted_sandwich(n: u32, frac: f64) -> Molecule {
                 atomic_symbol: "C".to_owned(),
                 atomic_mass: *c_atomic_mass,
                 coordinates: Point3::new(
-                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
-                    1.0 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
-                    -1.0 - 0.1 * (n as f64)),
+                    1.0 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).cos(),
+                    1.0 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).sin(),
+                    -1.0 - 0.1 * (f64::from(n))),
                 threshold: 1e-7
             }
         );
@@ -249,9 +253,9 @@ pub fn gen_arbitrary_twisted_sandwich(n: u32, frac: f64) -> Molecule {
                 atomic_symbol: "H".to_owned(),
                 atomic_mass: *h_atomic_mass,
                 coordinates: Point3::new(
-                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
-                    1.5 * ((i as f64) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
-                    -1.0 - 0.1 * (n as f64)),
+                    1.5 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).cos(),
+                    1.5 * ((f64::from(i)) * 2.0 * std::f64::consts::PI / (f64::from(n))).sin(),
+                    -1.0 - 0.1 * (f64::from(n))),
                 threshold: 1e-7
             }
         );
@@ -262,9 +266,9 @@ pub fn gen_arbitrary_twisted_sandwich(n: u32, frac: f64) -> Molecule {
                 atomic_symbol: "C".to_owned(),
                 atomic_mass: *c_atomic_mass,
                 coordinates: Point3::new(
-                    1.0 * ((i as f64 + frac) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
-                    1.0 * ((i as f64 + frac) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
-                    1.0 + 0.1 * (n as f64)),
+                    1.0 * ((f64::from(i) + frac) * 2.0 * std::f64::consts::PI / (f64::from(n))).cos(),
+                    1.0 * ((f64::from(i) + frac) * 2.0 * std::f64::consts::PI / (f64::from(n))).sin(),
+                    1.0 + 0.1 * (f64::from(n))),
                 threshold: 1e-7
             }
         );
@@ -275,9 +279,9 @@ pub fn gen_arbitrary_twisted_sandwich(n: u32, frac: f64) -> Molecule {
                 atomic_symbol: "H".to_owned(),
                 atomic_mass: *h_atomic_mass,
                 coordinates: Point3::new(
-                    1.5 * ((i as f64 + frac) * 2.0 * std::f64::consts::PI / (n as f64)).cos(),
-                    1.5 * ((i as f64 + frac) * 2.0 * std::f64::consts::PI / (n as f64)).sin(),
-                    1.0 + 0.1 * (n as f64)),
+                    1.5 * ((f64::from(i) + frac) * 2.0 * std::f64::consts::PI / (f64::from(n))).cos(),
+                    1.5 * ((f64::from(i) + frac) * 2.0 * std::f64::consts::PI / (f64::from(n))).sin(),
+                    1.0 + 0.1 * (f64::from(n))),
                 threshold: 1e-7
             }
         );

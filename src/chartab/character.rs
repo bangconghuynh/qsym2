@@ -6,6 +6,7 @@ use approx;
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use num::Complex;
+use num_traits::ToPrimitive;
 
 use crate::aux::misc::HashableFloat;
 use crate::chartab::unityroot::UnityRoot;
@@ -64,8 +65,12 @@ impl Character {
     /// # Returns
     ///
     /// A character.
+    #[must_use]
     pub fn new(ts: &[(UnityRoot, usize)]) -> Self {
-        Self::builder().terms(ts).build().unwrap()
+        Self::builder()
+            .terms(ts)
+            .build()
+            .expect("Unable to construct a character.")
     }
 
     /// The complex representation of this character.
@@ -73,12 +78,22 @@ impl Character {
     /// # Returns
     ///
     /// The complex value corresponding to this character.
+    ///
+    /// # Panics
+    ///
+    /// Panics when encountering any multiplicity that cannot be converted to `f64`.
+    #[must_use]
     pub fn complex_value(&self) -> Complex<f64> {
         self.terms
             .iter()
             .filter_map(|(uroot, &mult)| {
                 if mult > 0 {
-                    Some(uroot.complex_value() * (mult as f64))
+                    Some(
+                        uroot.complex_value()
+                            * mult
+                                .to_f64()
+                                .unwrap_or_else(|| panic!("Unable to convert `{mult}` to `f64`.")),
+                    )
                 } else {
                     None
                 }
@@ -96,6 +111,7 @@ impl Character {
     /// # Returns
     ///
     /// The formatted numerical form.
+    #[must_use]
     pub fn get_numerical(&self, real_only: bool, precision: usize) -> String {
         let Complex { re, im } = self.complex_value();
         if real_only {
@@ -156,7 +172,7 @@ impl Character {
     ///
     /// # Arguments
     ///
-    /// * num_non_int - A flag indicating of non-integers should be shown in numerical form
+    /// * `num_non_int` - A flag indicating of non-integers should be shown in numerical form
     /// instead of analytic.
     ///
     /// # Returns
@@ -195,7 +211,7 @@ impl Character {
                 if num_non_int {
                     format!("{:+.3}", complex_value.re)
                 } else {
-                    format!("{:?}", self)
+                    format!("{self:?}")
                 }
             }
         } else if approx::relative_eq!(
@@ -232,7 +248,7 @@ impl Character {
                 if num_non_int {
                     format!("{:+.3}i", complex_value.im)
                 } else {
-                    format!("{:?}", self)
+                    format!("{self:?}")
                 }
             }
         } else {
@@ -252,7 +268,7 @@ impl Character {
                 max_relative = self.threshold
             )) && !num_non_int
             {
-                format!("{:?}", self)
+                format!("{self:?}")
             } else {
                 format!(
                     "{:+.3} {} {:.3}i",
@@ -301,11 +317,19 @@ impl PartialOrd for Character {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let mut self_terms = self.terms.clone();
         self_terms.retain(|_, mult| *mult > 0);
-        self_terms.sort_by(|uroot1, _, uroot2, _| uroot1.partial_cmp(uroot2).unwrap());
+        self_terms.sort_by(|uroot1, _, uroot2, _| {
+            uroot1
+                .partial_cmp(uroot2)
+                .unwrap_or_else(|| panic!("{uroot1} and {uroot2} cannot be compared."))
+        });
 
         let mut other_terms = other.terms.clone();
         other_terms.retain(|_, mult| *mult > 0);
-        other_terms.sort_by(|uroot1, _, uroot2, _| uroot1.partial_cmp(uroot2).unwrap());
+        other_terms.sort_by(|uroot1, _, uroot2, _| {
+            uroot1
+                .partial_cmp(uroot2)
+                .unwrap_or_else(|| panic!("{uroot1} and {uroot2} cannot be compared."))
+        });
 
         let self_terms_vec = self_terms.into_iter().collect::<Vec<_>>();
         let other_terms_vec = other_terms.into_iter().collect::<Vec<_>>();
@@ -317,28 +341,31 @@ impl fmt::Debug for Character {
     /// Prints the full form for this character showing all contributing unity
     /// roots and their multiplicities.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let one = UnityRoot::new(0u64, 2u64);
+        let one = UnityRoot::new(0u32, 2u32);
         let str_terms: Vec<String> = self
             .terms
             .clone()
-            .sorted_by(|k1, _, k2, _| k1.partial_cmp(k2).unwrap())
+            .sorted_by(|k1, _, k2, _| {
+                k1.partial_cmp(k2)
+                    .unwrap_or_else(|| panic!("{k1} and {k2} cannot be compared."))
+            })
             .into_iter()
             .filter_map(|(root, mult)| {
                 if mult == 1 {
-                    Some(format!("{}", root))
+                    Some(format!("{root}"))
                 } else if mult == 0 {
                     None
                 } else if root == one {
-                    Some(format!("{}", mult))
+                    Some(format!("{mult}"))
                 } else {
-                    Some(format!("{}*{}", mult, root))
+                    Some(format!("{mult}*{root}"))
                 }
             })
             .collect();
-        if !str_terms.is_empty() {
-            write!(f, "{}", str_terms.join(" + "))
-        } else {
+        if str_terms.is_empty() {
             write!(f, "0")
+        } else {
+            write!(f, "{}", str_terms.join(" + "))
         }
     }
 }
@@ -357,7 +384,15 @@ impl Hash for Character {
             .terms
             .clone()
             .sorted_by(|ur1, m1, ur2, m2| {
-                PartialOrd::partial_cmp(&(ur1.clone(), m1), &(ur2.clone(), m2)).unwrap()
+                PartialOrd::partial_cmp(&(ur1.clone(), m1), &(ur2.clone(), m2)).unwrap_or_else(
+                    || {
+                        panic!(
+                            "{:?} anmd {:?} cannot be compared.",
+                            (ur1.clone(), m1),
+                            (ur2.clone(), m2)
+                        )
+                    },
+                )
             })
             .collect::<Vec<_>>();
         terms_vec.hash(state);

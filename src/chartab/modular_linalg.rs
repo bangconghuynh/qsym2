@@ -21,22 +21,28 @@ mod modular_linalg_tests;
 ///
 /// # Arguments
 ///
-/// * mat - A square matrix.
+/// * `mat` - A square matrix.
 ///
 /// # Returns
 ///
 /// The determinant of `mat` in the same field.
+///
+/// # Panics
+///
+/// Panics if `mat` is not a square matrix.
 pub fn modular_determinant<T>(mat: &Array2<T>) -> T
 where
-    T: Clone + LinalgScalar + ModularInteger<Base = u64> + Div<Output = T>,
+    T: Clone + LinalgScalar + ModularInteger<Base = u32> + Div<Output = T>,
 {
     let mut mat = mat.clone();
-    let rep = mat.first().unwrap();
+    let rep = mat
+        .first()
+        .expect("Unable to obtain the first element of `mat`.");
     assert_eq!(mat.ncols(), mat.nrows(), "A square matrix is expected.");
     let dim = mat.ncols();
-    let mut sign = rep.convert(1u64);
-    let mut prev = rep.convert(1u64);
-    let zero = rep.convert(0u64);
+    let mut sign = rep.convert(1u32);
+    let mut prev = rep.convert(1u32);
+    let zero = rep.convert(0u32);
 
     for i in 0..(dim - 1) {
         if mat[(i, i)] == zero {
@@ -59,7 +65,9 @@ where
         }
         prev = mat[(i, i)];
     }
-    sign * *mat.last().unwrap()
+    sign * *mat
+        .last()
+        .expect("Unable to obtain the last element of `mat`.")
 }
 
 /// Converts an array into its unique reduced row echelon form using Gaussian
@@ -67,20 +75,26 @@ where
 ///
 /// # Arguments
 ///
-/// * mat - A rectangular matrix.
+/// * `mat` - A rectangular matrix.
 ///
 /// # Returns
 ///
 /// * The reduced row echelon form of `mat`.
 /// * The nullity of `mat`.
+///
+/// # Panics
+///
+/// Panics when the pivoting values are not unity.
 pub fn modular_rref<T>(mat: &Array2<T>) -> (Array2<T>, usize)
 where
-    T: Clone + Copy + Debug + ModularInteger<Base = u64> + Div<Output = T>,
+    T: Clone + Copy + Debug + ModularInteger<Base = u32> + Div<Output = T>,
 {
     let mut mat = mat.clone();
     let nrows = mat.nrows();
     let ncols = mat.ncols();
-    let rep = mat.first().unwrap();
+    let rep = mat
+        .first()
+        .expect("Unable to obtain the first element in `mat`.");
     let zero = rep.convert(0);
     let one = rep.convert(1);
     let mut rank = 0usize;
@@ -157,14 +171,14 @@ where
 /// Determines a set of basis vectors for the kernel of a matrix via Gaussian
 /// elimination over a finite integer field.
 ///
-/// The kernel of an `$m \times n$` matrix `$\boldsymbol{M}$` is the space of
+/// The kernel of an `$m \times n$` matrix `$\mathbf{M}$` is the space of
 /// the solutions to the equation
 ///
 /// ```math
-///     \boldsymbol{M} \boldsymbbol{x} = \boldsymbol{0},
+///     \mathbf{M} \mathbf{x} = \mathbf{0},
 /// ```
 ///
-/// where `$\boldsymbol{x}$` is an `$n \times 1$` column vector.
+/// where `$\mathbf{x}$` is an `$n \times 1$` column vector.
 ///
 /// # Arguments
 ///
@@ -175,11 +189,13 @@ where
 /// A vector of basis vectors for the kernel of `mat`.
 fn modular_kernel<T>(mat: &Array2<T>) -> Vec<Array1<T>>
 where
-    T: Clone + Copy + Debug + ModularInteger<Base = u64> + Div<Output = T>,
+    T: Clone + Copy + Debug + ModularInteger<Base = u32> + Div<Output = T>,
 {
     let (mat_rref, nullity) = modular_rref(mat);
     let ncols = mat.ncols();
-    let rep = mat.first().unwrap();
+    let rep = mat
+        .first()
+        .expect("Unable to obtain the first element in `mat`.");
     let zero = rep.convert(0);
     let one = rep.convert(1);
     let pivot_cols: Vec<usize> = mat_rref
@@ -191,8 +207,8 @@ where
     log::debug!("Rank: {}", rank);
     log::debug!("Kernel dim: {}", nullity);
 
-    let pivot_cols_set: HashSet<usize> = HashSet::from_iter(pivot_cols.iter().cloned());
-    let non_pivot_cols = HashSet::from_iter(0..ncols);
+    let pivot_cols_set: HashSet<usize> = pivot_cols.iter().copied().collect::<HashSet<_>>();
+    let non_pivot_cols = (0..ncols).collect::<HashSet<_>>();
     let non_pivot_cols = non_pivot_cols.difference(&pivot_cols_set);
     non_pivot_cols
         .map(|&non_pivot_col| {
@@ -227,13 +243,18 @@ where
 /// A hashmap containing the eigenvalues and the associated eigenvectors.
 /// One eigenvalue can be associated with multiple eigenvectors in cases of
 /// degeneracy.
+///
+/// # Panics
+///
+/// Panics when inconsistent ring moduli between matrix elements are encountered.
+#[must_use]
 pub fn modular_eig<T>(mat: &Array2<T>) -> HashMap<T, Vec<Array1<T>>>
 where
     T: Clone
         + LinalgScalar
         + Display
         + Debug
-        + ModularInteger<Base = u64>
+        + ModularInteger<Base = u32>
         + Eq
         + Hash
         + panic::UnwindSafe
@@ -241,16 +262,19 @@ where
 {
     assert!(mat.is_square(), "Only square matrices are supported.");
     let dim = mat.nrows();
-    let modulus_set: HashSet<u64> = mat
+    let modulus_set: HashSet<u32> = mat
         .iter()
         .filter_map(|x| panic::catch_unwind(|| x.modulus()).ok())
         .collect();
     assert_eq!(
         modulus_set.len(),
         1,
-        "Inconsistent moduli between matrix elements."
+        "Inconsistent ring moduli between matrix elements."
     );
-    let modulus = *modulus_set.iter().next().unwrap();
+    let modulus = *modulus_set
+        .iter()
+        .next()
+        .expect("Unexpected empty `modulus_set`.");
     let rep = mat
         .iter()
         .find(|x| panic::catch_unwind(|| x.modulus()).is_ok())
@@ -301,13 +325,13 @@ where
 /// as:
 ///
 /// ```math
-///     \langle \boldsymbol{u}, \boldsymbol{w} \rangle
-///     = \lvert G \rvert^{-1} \sum_i
-///         \frac{u_i \bar{w}_i}{\lvert K_i \rvert},
+/// \langle \mathbf{u}, \mathbf{w} \rangle
+/// = \lvert G \rvert^{-1} \sum_i
+///     \frac{u_i \bar{w}_i}{\lvert K_i \rvert},
 /// ```
 ///
 /// where `$K_i$` is the i-th conjugacy class of the group, and
-/// `$\bar{w_i}$` the character in `$\boldsymbol{w}$` corresponding to the
+/// `$\bar{w_i}$` the character in `$\mathbf{w}$` corresponding to the
 /// inverse conjugacy class of `$K_i$`.
 ///
 /// Note that, in `$\mathbb{C}$`, `$\bar{w}_i = w_i^*$`, but this is not true
@@ -315,13 +339,18 @@ where
 ///
 /// # Arguments
 ///
-/// * vec_pair - A pair of vectors for which the Hermitian inner product is to be
+/// * `vec_pair` - A pair of vectors for which the Hermitian inner product is to be
 /// calculated.
-/// * class_sizes - The sizes of the conjugacy classes.
-/// * perm_for_conj - The permutation indices to take a vector into its conjugate.
+/// * `class_sizes` - The sizes of the conjugacy classes.
+/// * `perm_for_conj` - The permutation indices to take a vector into its conjugate.
 ///
 /// # Returns
 /// The weighted Hermitian inner product.
+///
+/// # Panics
+///
+/// Panics when inconsistent ring moduli between vector elements are encountered.
+#[must_use]
 pub fn weighted_hermitian_inprod<T>(
     vec_pair: (&Array1<T>, &Array1<T>),
     class_sizes: &[usize],
@@ -331,7 +360,7 @@ where
     T: Display
         + Debug
         + LinalgScalar
-        + ModularInteger<Base = u64>
+        + ModularInteger<Base = u32>
         + panic::UnwindSafe
         + panic::RefUnwindSafe,
 {
@@ -339,7 +368,7 @@ where
     assert_eq!(vec_u.len(), vec_w.len());
     assert_eq!(vec_u.len(), class_sizes.len());
 
-    let modulus_set: HashSet<u64> = vec_u
+    let modulus_set: HashSet<u32> = vec_u
         .iter()
         .chain(vec_w.iter())
         .filter_map(|x| panic::catch_unwind(|| x.modulus()).ok())
@@ -347,7 +376,7 @@ where
     assert_eq!(
         modulus_set.len(),
         1,
-        "Inconsistent moduli between vector elements."
+        "Inconsistent ring moduli between vector elements."
     );
 
     let rep = vec_u
@@ -366,18 +395,25 @@ where
         .and(&vec_w_conj)
         .and(class_sizes)
         .fold(T::zero(), |acc, &u, &w_conj, &k| {
-            acc + (u * w_conj) / rep.convert(u64::try_from(k).unwrap())
+            acc + (u * w_conj)
+                / rep.convert(
+                    u32::try_from(k)
+                        .unwrap_or_else(|_| panic!("Unable to convert `{k}` to `u32`.")),
+                )
         })
-        / rep.convert(u64::try_from(class_sizes.iter().sum::<usize>()).unwrap())
+        / rep.convert(
+            u32::try_from(class_sizes.iter().sum::<usize>())
+                .expect("Unable to convert the group order to `u32`."),
+        )
 }
 
 /// Performs Gram--Schmidt orthogonalisation (but not normalisation) on a set of vectors.
 ///
 /// # Arguments
 ///
-/// * vecs - Vectors forming a basis for a subspace.
-/// * class_sizes - Sizes for the conjugacy classes.
-/// * perm_for_conj - The permutation indices to take a vector into its conjugate.
+/// * `vecs` - Vectors forming a basis for a subspace.
+/// * `class_sizes` - Sizes for the conjugacy classes.
+/// * `perm_for_conj` - The permutation indices to take a vector into its conjugate.
 ///
 /// # Returns
 /// The orthogonal vectors forming a basis for the same subspace.
@@ -390,7 +426,7 @@ where
     T: Display
         + Debug
         + LinalgScalar
-        + ModularInteger<Base = u64>
+        + ModularInteger<Base = u32>
         + panic::UnwindSafe
         + panic::RefUnwindSafe,
 {
@@ -426,14 +462,25 @@ impl<'a, T: Display + Debug> fmt::Display for SplitSpaceError<'a, T> {
 ///
 /// # Arguments
 ///
-/// * mat - A matrix to act on the specified space.
-/// * vecs - The basis vectors specifying the space.
-/// * class_sizes - Sizes for the conjugacy classes.
-/// * perm_for_conj - The permutation indices to take a vector into its conjugate.
+/// * `mat` - A matrix to act on the specified space.
+/// * `vecs` - The basis vectors specifying the space.
+/// * `class_sizes` - Sizes for the conjugacy classes.
+/// * `perm_for_conj` - The permutation indices to take a vector into its conjugate.
 ///
 /// # Returns
+///
 /// A vector of vectors of vectors, where each inner vector contains the basis
 /// vectors for an `$n$`-dimensional subspace, `$n \ge 1$`.
+///
+/// # Panics
+///
+/// Panics when inconsistent ring moduli between vector and matrix elements are found.
+///
+/// # Errors
+///
+/// Errors when the degeneracy subspace cannot be split, which occurs when any of the
+/// orthogonalised vectors spanning the subspace is a null vector.
+#[allow(clippy::too_many_lines)]
 pub fn split_space<'a, T>(
     mat: &'a Array2<T>,
     vecs: &'a [Array1<T>],
@@ -443,16 +490,15 @@ pub fn split_space<'a, T>(
 where
     T: Display
         + LinalgScalar
-        + Display
         + Debug
-        + ModularInteger<Base = u64>
+        + ModularInteger<Base = u32>
         + Eq
         + Hash
         + Zero
         + panic::UnwindSafe
         + panic::RefUnwindSafe,
 {
-    let modulus_set: HashSet<u64> = vecs
+    let modulus_set: HashSet<u32> = vecs
         .iter()
         .flatten()
         .chain(mat.iter())
@@ -461,7 +507,7 @@ where
     assert_eq!(
         modulus_set.len(),
         1,
-        "Inconsistent moduli between vector and matrix elements."
+        "Inconsistent ring moduli between vector and matrix elements."
     );
 
     let rep = vecs
@@ -481,9 +527,9 @@ where
         let ortho_vecs = gram_schmidt(vecs, class_sizes, perm_for_conj);
         let ortho_vecs_mat = Array2::from_shape_vec(
             (class_sizes.len(), dim).f(),
-            ortho_vecs.iter().flatten().cloned().collect::<Vec<_>>(),
+            ortho_vecs.iter().flatten().copied().collect::<Vec<_>>(),
         )
-        .unwrap();
+        .expect("Unable to construct a two-dimensional matrix of the orthogonal vectors.");
 
         // Find the representation matrix of the action of `mat` on the basis vectors
         let ortho_vecs_mag = Array2::from_shape_vec(
@@ -493,12 +539,11 @@ where
                 .map(|col_i| weighted_hermitian_inprod((col_i, col_i), class_sizes, perm_for_conj))
                 .collect(),
         )
-        .unwrap();
+        .expect(
+            "Unable to construct a column vector of the magnitudes of the orthogonalised vectors.",
+        );
         if ortho_vecs_mag.iter().any(|x| Zero::is_zero(x)) {
-            return Err(SplitSpaceError {
-                mat,
-                vecs,
-            });
+            return Err(SplitSpaceError { mat, vecs });
         }
 
         let group_order = class_sizes.iter().sum::<usize>();
@@ -515,12 +560,16 @@ where
                     Zip::from(col_i_conj.view())
                         .and(ArrayView1::from(class_sizes))
                         .map_collect(|&eij, &kj| {
-                            eij / rep.convert(u64::try_from(kj * group_order).unwrap())
+                            eij / rep.convert(u32::try_from(kj * group_order).unwrap_or_else(
+                                |_| panic!("Unable to convert `{}` to `u32`.", kj * group_order),
+                            ))
                         })
                 })
                 .collect::<Vec<_>>(),
         )
-        .unwrap();
+        .expect(
+            "Unable to construct a two-dimensional matrix of the conjugated orthogonal vectors.",
+        );
         let rep_mat = ortho_vecs_conj_mat.t().dot(mat).dot(&ortho_vecs_mat) / ortho_vecs_mag;
 
         // Diagonalise the representation matrix
@@ -539,7 +588,7 @@ where
                 "{}-dimensional space is incompletely split into {} subspace{}.",
                 dim,
                 n_subspaces,
-                if n_subspaces != 1 { "s" } else { "" }
+                if n_subspaces == 1 { "" } else { "s" }
             );
         }
 
@@ -557,8 +606,10 @@ where
                         let transformed_vec = ortho_vecs_mat.dot(vec);
 
                         // Normalise so that the first non-zero element is one
-                        let first_non_zero =
-                            transformed_vec.iter().find(|&x| !Zero::is_zero(x)).unwrap();
+                        let first_non_zero = transformed_vec
+                            .iter()
+                            .find(|&x| !Zero::is_zero(x))
+                            .expect("Unexpected zero eigenvector.");
                         Array1::from_vec(
                             transformed_vec
                                 .iter()

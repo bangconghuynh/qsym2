@@ -17,6 +17,7 @@ pub trait HashableFloat {
     /// Returns
     ///
     /// The rounded float.
+    #[must_use]
     fn round_factor(self, threshold: Self) -> Self;
 
     /// Returns the mantissa-exponent-sign triplet for a float.
@@ -43,9 +44,9 @@ impl HashableFloat for f64 {
         let sign: i8 = if bits >> 63 == 0 { 1 } else { -1 };
         let mut exponent: i16 = ((bits >> 52) & 0x7ff) as i16;
         let mantissa = if exponent == 0 {
-            (bits & 0xfffffffffffff) << 1
+            (bits & 0x000f_ffff_ffff_ffff) << 1
         } else {
-            (bits & 0xfffffffffffff) | 0x10000000000000
+            (bits & 0x000f_ffff_ffff_ffff) | 0x0010_0000_0000_0000
         };
 
         exponent -= 1023 + 52;

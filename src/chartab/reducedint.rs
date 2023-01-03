@@ -446,8 +446,8 @@ where
 {
     fn eq(&self, other: &Self) -> bool {
         let result = match (self, other) {
-            (LinAlgReducedInt::Zero, LinAlgReducedInt::Zero) => true,
-            (LinAlgReducedInt::One, LinAlgReducedInt::One) => true,
+            (LinAlgReducedInt::Zero, LinAlgReducedInt::Zero)
+            | (LinAlgReducedInt::One, LinAlgReducedInt::One) => true,
             (LinAlgReducedInt::Zero, LinAlgReducedInt::One)
             | (LinAlgReducedInt::One, LinAlgReducedInt::Zero) => false,
             (LinAlgReducedInt::Zero, LinAlgReducedInt::KnownChar(rint))
@@ -594,9 +594,9 @@ where
             LinAlgReducedInt::One => T::one().hash(state),
             LinAlgReducedInt::KnownChar(rint) => {
                 if Zero::is_zero(self) {
-                    T::zero().hash(state)
+                    T::zero().hash(state);
                 } else if self.is_one() {
-                    T::one().hash(state)
+                    T::one().hash(state);
                 } else {
                     rint.residue().hash(state);
                     rint.modulus().hash(state);
@@ -618,7 +618,7 @@ where
         match self {
             Self::Zero => write!(f, "0"),
             Self::One => write!(f, "1"),
-            _ => write!(f, "{} (mod {})", self.residue(), self.modulus()),
+            Self::KnownChar(_) => write!(f, "{} (mod {})", self.residue(), self.modulus()),
         }
     }
 }
@@ -635,11 +635,11 @@ where
         match self {
             Self::Zero => None,
             Self::One => Some(T::one()),
-            _ => {
+            Self::KnownChar(_) => {
                 // Check that residue and modulus are coprime.
                 if gcd(self.residue(), self.modulus()) != T::one() {
                     log::debug!("{} is not coprime to {}.", self.residue(), self.modulus());
-                    return None
+                    return None;
                 }
                 let unity = Self::one();
                 let mut k = T::one();

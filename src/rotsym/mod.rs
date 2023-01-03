@@ -1,7 +1,7 @@
 use std::fmt;
 
-use log;
 use approx;
+use log;
 use nalgebra as na;
 
 #[cfg(test)]
@@ -59,16 +59,26 @@ impl fmt::Display for RotationalSymmetry {
 /// # Returns
 ///
 /// The rotational symmetry as one of the [`RotationalSymmetry`] variants.
+///
+/// # Panics
+///
+/// Panics when the moments of inertia cannot be compared.
+#[must_use]
 pub fn calc_rotational_symmetry(
     inertia_tensor: &na::Matrix3<f64>,
     thresh: f64,
 ) -> RotationalSymmetry {
     let moi_mat = inertia_tensor.symmetric_eigenvalues();
     let mut moi: Vec<&f64> = moi_mat.iter().collect();
-    moi.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    moi.sort_by(|a, b| {
+        a.partial_cmp(b)
+            .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
+    });
     log::debug!(
         "Moments of inertia:\n {:.6}\n {:.6}\n {:.6}",
-        moi[0], moi[1], moi[2]
+        moi[0],
+        moi[1],
+        moi[2]
     );
     if approx::relative_eq!(*moi[0], *moi[1], epsilon = thresh, max_relative = thresh) {
         if approx::relative_eq!(*moi[1], *moi[2], epsilon = thresh, max_relative = thresh) {

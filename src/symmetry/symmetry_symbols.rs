@@ -1,6 +1,6 @@
-use std::fmt;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
@@ -218,7 +218,12 @@ impl FromStr for GenericSymbol {
     fn from_str(symstr: &str) -> Result<Self, Self::Err> {
         let strs: Vec<&str> = symstr.split('|').collect();
         if strs.len() == 1 {
-            Ok(Self::builder().main(strs[0].to_string()).build().unwrap())
+            Ok(Self::builder()
+                .main(strs[0].to_string())
+                .build()
+                .unwrap_or_else(|_| {
+                    panic!("Unable to construct a generic symbol from `{symstr}`.")
+                }))
         } else if strs.len() == 5 {
             let prefacstr = strs[0];
             let prestr = strs[1];
@@ -226,30 +231,38 @@ impl FromStr for GenericSymbol {
             let poststr = strs[3];
             let postfacstr = strs[4];
 
-            let presuper_re = Regex::new(r"\^\((.*?)\)").unwrap();
+            let presuper_re = Regex::new(r"\^\((.*?)\)").expect("Regex pattern invalid.");
             let presuperstr = if let Some(cap) = presuper_re.captures(prestr) {
-                cap.get(1).unwrap().as_str()
+                cap.get(1)
+                    .expect("Expected regex group cannot be captured.")
+                    .as_str()
             } else {
                 ""
             };
 
-            let presub_re = Regex::new(r"_\((.*?)\)").unwrap();
+            let presub_re = Regex::new(r"_\((.*?)\)").expect("Regex pattern invalid.");
             let presubstr = if let Some(cap) = presub_re.captures(prestr) {
-                cap.get(1).unwrap().as_str()
+                cap.get(1)
+                    .expect("Expected regex group cannot be captured.")
+                    .as_str()
             } else {
                 ""
             };
 
-            let postsuper_re = Regex::new(r"\^\((.*?)\)").unwrap();
+            let postsuper_re = Regex::new(r"\^\((.*?)\)").expect("Regex pattern invalid.");
             let postsuperstr = if let Some(cap) = postsuper_re.captures(poststr) {
-                cap.get(1).unwrap().as_str()
+                cap.get(1)
+                    .expect("Expected regex group cannot be captured.")
+                    .as_str()
             } else {
                 ""
             };
 
-            let postsub_re = Regex::new(r"_\((.*?)\)").unwrap();
+            let postsub_re = Regex::new(r"_\((.*?)\)").expect("Regex pattern invalid.");
             let postsubstr = if let Some(cap) = postsub_re.captures(poststr) {
-                cap.get(1).unwrap().as_str()
+                cap.get(1)
+                    .expect("Expected regex group cannot be captured.")
+                    .as_str()
             } else {
                 ""
             };
@@ -263,7 +276,9 @@ impl FromStr for GenericSymbol {
                 .prefactor(prefacstr.to_string())
                 .postfactor(postfacstr.to_string())
                 .build()
-                .unwrap())
+                .unwrap_or_else(|_| {
+                    panic!("Unable to construct a generic symbol from `{symstr}`.")
+                }))
         } else {
             Err(GenericSymbolParsingError(format!(
                 "{} is not parsable.",
@@ -278,36 +293,36 @@ impl FromStr for GenericSymbol {
 // -------
 impl fmt::Display for GenericSymbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let prefac_str = if self.prefactor() != "1" {
+        let prefac_str = if self.prefactor() == "1" {
+            String::new()
+        } else {
             self.prefactor().to_string()
-        } else {
-            "".to_string()
         };
-        let presuper_str = if !self.presuper().is_empty() {
+        let presuper_str = if self.presuper().is_empty() {
+            String::new()
+        } else {
             format!("^({})", self.presuper())
-        } else {
-            "".to_string()
         };
-        let presub_str = if !self.presub().is_empty() {
-            format!("_({})", self.presub())
+        let presub_str = if self.presub().is_empty() {
+            String::new()
         } else {
-            "".to_string()
+            format!("_({})", self.presub())
         };
         let main_str = format!("|{}|", self.main());
-        let postsuper_str = if !self.postsuper().is_empty() {
+        let postsuper_str = if self.postsuper().is_empty() {
+            String::new()
+        } else {
             format!("^({})", self.postsuper())
-        } else {
-            "".to_string()
         };
-        let postsub_str = if !self.postsub().is_empty() {
+        let postsub_str = if self.postsub().is_empty() {
+            String::new()
+        } else {
             format!("_({})", self.postsub())
-        } else {
-            "".to_string()
         };
-        let postfac_str = if self.postfactor() != "1" {
-            self.postfactor().to_string()
+        let postfac_str = if self.postfactor() == "1" {
+            String::new()
         } else {
-            "".to_string()
+            self.postfactor().to_string()
         };
         write!(
             f,
@@ -351,6 +366,14 @@ impl MullikenIrrepSymbol {
     /// "||T|_(2g)|"
     /// "|^(3)|T|_(2g)|"
     /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a Mulliken symbol.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string cannot be parsed as a generic symbol.
     pub fn new(symstr: &str) -> Result<Self, GenericSymbolParsingError> {
         Self::from_str(symstr)
     }
@@ -396,7 +419,10 @@ impl MathematicalSymbol for MullikenIrrepSymbol {
     /// The dimensionality of the irreducible representation.
     fn multiplicity(&self) -> Option<usize> {
         if let Some(&mult) = MULLIKEN_IRREP_DEGENERACIES.get(self.main()) {
-            Some(mult as usize)
+            Some(
+                mult.try_into()
+                    .unwrap_or_else(|_| panic!("Unable to convert {mult} to `usize`.")),
+            )
         } else {
             None
         }
@@ -415,12 +441,27 @@ impl FromStr for MullikenIrrepSymbol {
     /// "||T|_(2g)|"
     /// "|^(3)|T|_(2g)|"
     /// ```
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a Mulliken symbol.
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] wrapping the constructed Mulliken symbol.
+    ///
+    /// # Panics
+    ///
+    /// Panics when unable to construct a Mulliken symbol from the specified string.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string cannot be parsed as a generic symbol.
     fn from_str(symstr: &str) -> Result<Self, Self::Err> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
         Ok(Self::builder()
             .generic_symbol(generic_symbol)
             .build()
-            .unwrap())
+            .unwrap_or_else(|_| panic!("Unable to construct a Mulliken symbol from `{symstr}`.")))
     }
 }
 
@@ -470,7 +511,7 @@ impl<R: Clone> Eq for ClassSymbol<R> {}
 
 impl<R: Clone> Hash for ClassSymbol<R> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.generic_symbol.hash(state)
+        self.generic_symbol.hash(state);
     }
 }
 
@@ -546,6 +587,24 @@ impl<R: Clone> ClassSymbol<R> {
     /// ```
     ///
     /// Note that the prefactor is required.
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a class symbol.
+    /// * `rep` - An optional representative element for this class.
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] wrapping the constructed class symbol.
+    ///
+    /// # Panics
+    ///
+    /// Panics when unable to construct a class symbol from the specified string.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string contains no parsable class size prefactor, or when the string cannot
+    /// be parsed as a generic symbol.
     pub fn new(symstr: &str, rep: Option<R>) -> Result<Self, GenericSymbolParsingError> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
         if generic_symbol.multiplicity().is_none() {
@@ -558,7 +617,7 @@ impl<R: Clone> ClassSymbol<R> {
                 .generic_symbol(generic_symbol)
                 .representative(rep)
                 .build()
-                .unwrap())
+                .unwrap_or_else(|_| panic!("Unable to construct a class symbol from `{symstr}`.")))
         }
     }
 }
@@ -570,7 +629,10 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is proper.
     fn is_proper(&self) -> bool {
-        self.representative.as_ref().unwrap().is_proper()
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_proper()
     }
 
     /// Checks if this class is antiunitary.
@@ -579,7 +641,10 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is antiunitary.
     fn is_antiunitary(&self) -> bool {
-        self.representative.as_ref().unwrap().is_antiunitary()
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_antiunitary()
     }
 
     /// Checks if this class is the identity class.
@@ -588,7 +653,10 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is the identity class.
     fn is_identity(&self) -> bool {
-        self.representative.as_ref().unwrap().is_identity()
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_identity()
     }
 
     /// Checks if this class is the inversion class.
@@ -597,7 +665,10 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is the inversion class.
     fn is_inversion(&self) -> bool {
-        self.representative.as_ref().unwrap().is_inversion()
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_inversion()
     }
 
     /// Checks if this class is a binary rotation class.
@@ -606,7 +677,10 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is a binary rotation class.
     fn is_binary_rotation(&self) -> bool {
-        self.representative.as_ref().unwrap().is_binary_rotation()
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_binary_rotation()
     }
 
     /// Checks if this class is a reflection class.
@@ -615,7 +689,10 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is a reflection class.
     fn is_reflection(&self) -> bool {
-        self.representative.as_ref().unwrap().is_reflection()
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_reflection()
     }
 
     /// Checks if this class is a pure time-reversal class.
@@ -624,7 +701,10 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     ///
     /// A flag indicating if this class is a pure time-reversal class.
     fn is_time_reversal(&self) -> bool {
-        self.representative.as_ref().unwrap().is_time_reversal()
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_time_reversal()
     }
 }
 
@@ -632,7 +712,10 @@ impl<R: FiniteOrder + Clone> FiniteOrder for ClassSymbol<R> {
     type Int = R::Int;
 
     fn order(&self) -> Self::Int {
-        self.representative.as_ref().unwrap().order()
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .order()
     }
 }
 
@@ -656,23 +739,30 @@ impl<R: Clone> fmt::Display for ClassSymbol<R> {
 ///
 /// # Arguments
 ///
-/// * char_arr - A view of a two-dimensional square array containing the characters where
+/// * `char_arr` - A view of a two-dimensional square array containing the characters where
 /// each column is for one conjugacy class and each row one irrep.
-/// * class_symbols - An index map containing the conjugacy class symbols for the columns of
+/// * `class_symbols` - An index map containing the conjugacy class symbols for the columns of
 /// `char_arr`. The keys are the symbols and the values are the column indices.
 ///
 /// # Returns
 ///
 /// A new array with the rows correctly sorted.
+///
+/// # Panics
+///
+/// Panics when expected classes cannot be found.
 pub fn sort_irreps<R: Clone>(
     char_arr: &ArrayView2<Character>,
     class_symbols: &IndexMap<ClassSymbol<R>, usize>,
     principal_classes: &[ClassSymbol<R>],
 ) -> Array2<Character> {
     log::debug!("Sorting irreducible representations...");
-    let class_e = ClassSymbol::new("1||E||", None).unwrap();
-    let class_i = ClassSymbol::new("1||i||", None).unwrap();
-    let class_s = ClassSymbol::new("1||σh||", None).unwrap();
+    let class_e =
+        ClassSymbol::new("1||E||", None).expect("Unable to construct class symbol `1||E||`.");
+    let class_i =
+        ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
+    let class_s =
+        ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
     let mut leading_classes: IndexSet<ClassSymbol<R>> = IndexSet::new();
 
     if class_symbols.contains_key(&class_i) {
@@ -691,7 +781,11 @@ pub fn sort_irreps<R: Clone>(
 
     let leading_idxs: IndexSet<usize> = leading_classes
         .iter()
-        .map(|cc| *class_symbols.get(cc).unwrap())
+        .map(|cc| {
+            *class_symbols
+                .get(cc)
+                .unwrap_or_else(|| panic!("Class `{cc}` cannot be found."))
+        })
         .collect();
 
     let n_rows = char_arr.nrows();
@@ -704,7 +798,9 @@ pub fn sort_irreps<R: Clone>(
         .sorted_by(|&i, &j| {
             let keys_i = sort_arr.row(i).iter().cloned().collect_vec();
             let keys_j = sort_arr.row(j).iter().cloned().collect_vec();
-            keys_i.partial_cmp(&keys_j).unwrap()
+            keys_i
+                .partial_cmp(&keys_j)
+                .unwrap_or_else(|| panic!("`{keys_i:?}` and `{keys_j:?}` cannot be compared."))
         })
         .collect();
     let char_arr = char_arr.select(Axis(0), &sort_row_indices);
@@ -716,13 +812,22 @@ pub fn sort_irreps<R: Clone>(
 ///
 /// # Arguments
 ///
-/// * class_symbols - An indexmap of class symbols and their corresponding indices.
-/// * force_proper_principal - A flag indicating if the principal classes are forced to be proper.
-/// * force_principal - An option containing specific classes that are forced to be principal.
+/// * `class_symbols` - An indexmap of class symbols and their corresponding indices.
+/// * `force_proper_principal` - A flag indicating if the principal classes are forced to be
+/// proper.
+/// * `force_principal` - An option containing specific classes that are forced to be principal.
 ///
 /// # Returns
 ///
 /// A vector of symbols of principal classes.
+///
+/// # Panics
+///
+/// Panics when:
+///
+/// * both `force_proper_principal` and `force_principal` are specified;
+/// * classes specified in `force_principal` cannot be found in `class_symbols`;
+/// * no principal classes can be found.
 pub fn deduce_principal_classes<R>(
     class_symbols: &IndexMap<ClassSymbol<R>, usize>,
     force_proper_principal: bool,
@@ -732,7 +837,43 @@ where
     R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
 {
     log::debug!("Determining principal classes...");
-    let principal_classes = if let Some(principal_cc) = force_principal {
+    let principal_classes = force_principal.map_or_else(|| {
+        // sorted_class_symbols contains class symbols sorted in the order:
+        // - decreasing operation order
+        // - proper operations, then improper operations in each operation order
+        let mut sorted_class_symbols = class_symbols
+            .clone()
+            .sorted_by(|cc1, _, cc2, _| {
+                PartialOrd::partial_cmp(
+                    &(cc1.order(), cc1.is_proper()),
+                    &(cc2.order(), cc2.is_proper()),
+                )
+                .expect("Unable to sort class symbols.")
+            })
+            .rev();
+        let (principal_rep, _) = if force_proper_principal {
+            // Larger order always prioritised, regardless of proper or improper,
+            // unless force_proper_principal is set, in which case
+            sorted_class_symbols
+                .find(|(cc, _)| cc.is_proper())
+                .expect("`Unable to find proper classes.`")
+        } else {
+            // No force_proper_principal, so proper prioritised, which has been ensured by the sort
+            // in the construction of `sorted_class_symbols`.
+            sorted_class_symbols
+                .next()
+                .expect("Unexpected empty `sorted_class_symbols`.")
+        };
+
+        // Now find all principal classes with the same order and parity as `principal_rep`.
+        class_symbols
+            .keys()
+            .filter(|cc| {
+                cc.is_proper() == principal_rep.is_proper() && cc.order() == principal_rep.order()
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+    }, |principal_cc| {
         assert!(
             !force_proper_principal,
             "`force_proper_principal` and `force_principal` cannot be both provided."
@@ -749,46 +890,14 @@ where
             principal_cc
         );
         vec![principal_cc]
-    } else {
-        // sorted_class_symbols contains class symbols sorted in the order:
-        // - decreasing operation order
-        // - proper operations, then improper operations in each operation order
-        let mut sorted_class_symbols = class_symbols
-            .clone()
-            .sorted_by(|cc1, _, cc2, _| {
-                PartialOrd::partial_cmp(
-                    &(cc1.order(), cc1.is_proper()),
-                    &(cc2.order(), cc2.is_proper()),
-                )
-                .unwrap()
-            })
-            .rev();
-        let (principal_rep, _) = if force_proper_principal {
-            // Larger order always prioritised, regardless of proper or improper,
-            // unless force_proper_principal is set, in which case
-            sorted_class_symbols.find(|(cc, _)| cc.is_proper()).unwrap()
-        } else {
-            // No force_proper_principal, so proper prioritised, which has been ensured by the sort
-            // in the construction of `sorted_class_symbols`.
-            sorted_class_symbols.next().unwrap()
-        };
-
-        // Now find all principal classes with the same order and parity as `principal_rep`.
-        class_symbols
-            .keys()
-            .filter(|cc| {
-                cc.is_proper() == principal_rep.is_proper() && cc.order() == principal_rep.order()
-            })
-            .cloned()
-            .collect::<Vec<_>>()
-    };
+    });
 
     assert!(!principal_classes.is_empty());
     if principal_classes.len() == 1 {
         log::debug!("Principal-axis class found: {}", principal_classes[0]);
     } else {
         log::debug!("Principal-axis classes found:");
-        for princc in principal_classes.iter() {
+        for princc in &principal_classes {
             log::debug!("  {}", princc);
         }
     }
@@ -800,17 +909,22 @@ where
 ///
 /// # Arguments
 ///
-/// * char_arr - A view of a two-dimensional square array containing the characters where
+/// * `char_arr` - A view of a two-dimensional square array containing the characters where
 /// each column is for one conjugacy class and each row one irrep.
-/// * class_symbols - An index map containing the conjugacy class symbols for the columns of
+/// * `class_symbols` - An index map containing the conjugacy class symbols for the columns of
 /// `char_arr`. The keys are the symbols and the values are the column indices.
-/// * force_proper_principal - Flag indicating if the principal-axis classes must be proper.
-/// * force_principal - The class symbol to be used as the principal-axis class
+/// * `force_proper_principal` - Flag indicating if the principal-axis classes must be proper.
+/// * `force_principal` - The class symbol to be used as the principal-axis class
 /// (`force_proper_principal` must be `False` if this is used).
 ///
 /// # Returns
 ///
 /// A vector of Mulliken symbols corresponding to the rows of `char_arr`.
+///
+/// # Panics
+///
+/// Panics when expected classes cannot be found in `class_symbols`.
+#[allow(clippy::too_many_lines)]
 pub fn deduce_mulliken_irrep_symbols<R>(
     char_arr: &ArrayView2<Character>,
     class_symbols: &IndexMap<ClassSymbol<R>, usize>,
@@ -821,9 +935,12 @@ where
 {
     log::debug!("Generating Mulliken irreducible representation symbols...");
 
-    let e_cc: ClassSymbol<R> = ClassSymbol::new("1||E||", None).unwrap();
-    let i_cc: ClassSymbol<R> = ClassSymbol::new("1||i||", None).unwrap();
-    let s_cc: ClassSymbol<R> = ClassSymbol::new("1||σh||", None).unwrap();
+    let e_cc: ClassSymbol<R> =
+        ClassSymbol::new("1||E||", None).expect("Unable to construct class symbol `1||E||`.");
+    let i_cc: ClassSymbol<R> =
+        ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
+    let s_cc: ClassSymbol<R> =
+        ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
 
     // Inversion parity?
     let i_parity = class_symbols.contains_key(&i_cc);
@@ -840,8 +957,8 @@ where
         );
     }
 
-    let e2p1 = UnityRoot::new(1u64, 2u64);
-    let e2p2 = UnityRoot::new(2u64, 2u64);
+    let e2p1 = UnityRoot::new(1u32, 2u32);
+    let e2p2 = UnityRoot::new(2u32, 2u32);
     let char_p1 = Character::new(&[(e2p2, 1usize)]);
     let char_m1 = Character::new(&[(e2p1, 1usize)]);
 
@@ -850,27 +967,34 @@ where
 
     let raw_irrep_symbols = char_arr.rows().into_iter().map(|irrep| {
         // Determine the main symmetry
-        let dim = irrep[*class_symbols.get(&e_cc).unwrap()].complex_value();
+        let dim = irrep[
+            *class_symbols.get(&e_cc).unwrap_or_else(|| panic!("Class `{}` not found.", &e_cc))
+        ].complex_value();
         assert!(
             approx::relative_eq!(dim.im, 0.0)
                 && approx::relative_eq!(dim.re.round(), dim.re)
                 && dim.re.round() > 0.0
         );
+
+        assert!(dim.re.round() > 0.0);
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         let dim = dim.re.round() as u64;
         assert!(dim > 0);
         let main = if dim >= 2 {
-            if let Some(sym) = INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim) {
-                sym
-            } else {
+            INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim).map_or_else(|| {
                 log::warn!("{} cannot be assigned a standard dimensionality symbol. A generic 'Λ' will be used instead.", dim);
                 "Λ"
-            }
+            }, |sym| sym)
         } else {
             let char_rots: HashSet<_> = principal_classes
                 .iter()
-                .map(|cc| irrep[*class_symbols.get(cc).unwrap()].clone())
+                .map(|cc| {
+                    irrep[
+                        *class_symbols.get(cc).unwrap_or_else(|| panic!("Class `{cc}` not found."))
+                    ].clone()
+                })
                 .collect();
-            if char_rots.len() == 1 && *char_rots.iter().next().unwrap() == char_p1 {
+            if char_rots.len() == 1 && *char_rots.iter().next().expect("No rotation classes found.") == char_p1 {
                 "A"
             } else if char_rots
                 .iter()
@@ -887,7 +1011,11 @@ where
         let (inv, mir) = if i_parity {
             // Determine inversion symmetry
             // Inversion symmetry trumps reflection symmetry.
-            let char_inv = irrep[*class_symbols.get(&i_cc).unwrap()].clone();
+            let char_inv = irrep[
+                *class_symbols.get(&i_cc).unwrap_or_else(|| {
+                    panic!("Class `{}` not found.", &i_cc)
+                })
+            ].clone();
             let char_inv_c = char_inv.complex_value();
             assert!(
                 approx::relative_eq!(
@@ -902,6 +1030,8 @@ where
                     max_relative = char_inv.threshold
                 ),
             );
+
+            #[allow(clippy::cast_possible_truncation)]
             let char_inv_c = char_inv_c.re.round() as i32;
             match char_inv_c.cmp(&0) {
                 Ordering::Greater => ("g", ""),
@@ -910,7 +1040,11 @@ where
             }
         } else if s_parity {
             // Determine reflection symmetry
-            let char_ref = irrep[*class_symbols.get(&s_cc).unwrap()].clone();
+            let char_ref = irrep[
+                *class_symbols.get(&s_cc).unwrap_or_else(|| {
+                    panic!("Class `{}` not found.", &s_cc)
+                })
+            ].clone();
             let char_ref_c = char_ref.complex_value();
             assert!(
                 approx::relative_eq!(
@@ -925,6 +1059,8 @@ where
                     max_relative = char_ref.threshold
                 ),
             );
+
+            #[allow(clippy::cast_possible_truncation)]
             let char_ref_c = char_ref_c.re.round() as i32;
             match char_ref_c.cmp(&0) {
                 Ordering::Greater => ("", "'"),
@@ -935,7 +1071,15 @@ where
             ("", "")
         };
 
-        MullikenIrrepSymbol::new(format!("||{}|^({})_({})|", main, mir, inv).as_str()).unwrap()
+        MullikenIrrepSymbol::new(format!("||{main}|^({mir})_({inv})|").as_str())
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Unable to construct symmetry symbol `||{}|^({})_({})|`.",
+                    main,
+                    mir,
+                    inv
+                )
+            })
     });
 
     log::debug!("Second pass: disambiguate identical cases not distinguishable by rules");
@@ -960,7 +1104,15 @@ where
                             )
                             .as_str(),
                         )
-                        .unwrap()
+                        .unwrap_or_else(|_| {
+                            panic!(
+                                "Unable to construct symmetry symbol `||{}|^({})_({}{})|`.",
+                                raw_irrep.main(),
+                                raw_irrep.postsuper(),
+                                i + 1,
+                                raw_irrep.postsub(),
+                            )
+                        })
                     })
                     .collect();
                 (raw_irrep.clone(), irreps)
@@ -972,9 +1124,16 @@ where
         .map(|raw_irrep| {
             raw_symbols_to_full_symbols
                 .get_mut(&raw_irrep)
-                .unwrap()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unknown conversion of raw symbol {} to full symbol.",
+                        &raw_irrep
+                    )
+                })
                 .pop_front()
-                .unwrap()
+                .unwrap_or_else(|| {
+                    panic!("No conversion to full symbol possible for {}", &raw_irrep)
+                })
         })
         .collect();
     log::debug!("Generating Mulliken irreducible representation symbols... Done.");

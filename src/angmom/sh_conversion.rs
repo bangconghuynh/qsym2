@@ -1,199 +1,15 @@
 use std::cmp::Ordering;
-use std::collections::HashSet;
-use std::convert::TryInto;
-use std::fmt;
-use std::slice::Iter;
 
-use counter::Counter;
-use derive_builder::Builder;
 use factorial::Factorial;
-use itertools::Itertools;
 use ndarray::{Array2, Axis};
 use num::{BigUint, Complex};
 use num_traits::{cast::ToPrimitive, Zero};
 
-use crate::aux::misc::ProductRepeat;
+use crate::aux::ao_basis::CartOrder;
 
 #[cfg(test)]
 #[path = "sh_conversion_tests.rs"]
 mod sh_conversion_tests;
-
-/// A struct to contain information about the ordering of Cartesian Gaussians of a certain rank.
-#[derive(Clone, Builder, PartialEq, Eq, Hash)]
-struct CartOrder {
-    /// A sequence of $`(l_x, l_y, l_z)`$ tuples giving the ordering of the Cartesian Gaussians.
-    #[builder(setter(custom))]
-    cart_tuples: Vec<(u32, u32, u32)>,
-
-    /// The rank of the Cartesian Gaussians.
-    lcart: u32,
-}
-
-impl CartOrderBuilder {
-    fn cart_tuples(&mut self, cart_tuples: &[(u32, u32, u32)]) -> &mut Self {
-        let lcart = self.lcart.unwrap();
-        assert!(cart_tuples.iter().all(|(lx, ly, lz)| lx + ly + lz == lcart));
-        assert_eq!(
-            cart_tuples.len(),
-            ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize
-        );
-        self.cart_tuples = Some(cart_tuples.to_vec());
-        self
-    }
-}
-
-impl CartOrder {
-    /// Returns a builder to construct a new `CartOrder` struct.
-    ///
-    /// # Returns
-    ///
-    /// A builder to construct a new `CartOrder` struct.
-    fn builder() -> CartOrderBuilder {
-        CartOrderBuilder::default()
-    }
-
-    /// Constructs a new `CartOrder` struct for a specified rank with lexicographic order.
-    ///
-    /// # Arguments
-    ///
-    /// * lcart - The required Cartesian Gaussian rank.
-    ///
-    /// # Returns
-    ///
-    /// A `CartOrder` struct for a specified rank with lexicographic order.
-    pub fn lex(lcart: u32) -> Self {
-        let mut cart_tuples =
-            Vec::with_capacity(((lcart + 1) * (lcart + 2)).div_euclid(2) as usize);
-        for lx in (0..=lcart).rev() {
-            for ly in (0..=(lcart - lx)).rev() {
-                cart_tuples.push((lx, ly, lcart - lx - ly));
-            }
-        }
-        Self::builder()
-            .lcart(lcart)
-            .cart_tuples(&cart_tuples)
-            .build()
-            .unwrap()
-    }
-
-    /// Constructs a new `CartOrder` struct for a specified rank with Q-Chem order.
-    ///
-    /// # Arguments
-    ///
-    /// * lcart - The required Cartesian Gaussian rank.
-    ///
-    /// # Returns
-    ///
-    /// A `CartOrder` struct for a specified rank with Q-Chem order.
-    pub fn qchem(lcart: u32) -> Self {
-        let cart_tuples: Vec<(u32, u32, u32)> = if lcart > 0 {
-            (0..3)
-                .product_repeat(lcart as usize)
-                .filter_map(|tup| {
-                    let mut tup_sorted = tup.clone();
-                    tup_sorted.sort();
-                    tup_sorted.reverse();
-                    if tup == tup_sorted {
-                        let lcartqns = tup.iter().collect::<Counter<_>>();
-                        Some((
-                            <usize as TryInto<u32>>::try_into(*(lcartqns.get(&0).unwrap_or(&0)))
-                                .unwrap(),
-                            <usize as TryInto<u32>>::try_into(*(lcartqns.get(&1).unwrap_or(&0)))
-                                .unwrap(),
-                            <usize as TryInto<u32>>::try_into(*(lcartqns.get(&2).unwrap_or(&0)))
-                                .unwrap(),
-                        ))
-                    } else {
-                        None
-                    }
-                })
-                .collect()
-        } else {
-            vec![(0, 0, 0)]
-        };
-        Self::builder()
-            .lcart(lcart)
-            .cart_tuples(&cart_tuples)
-            .build()
-            .unwrap()
-    }
-
-    /// Verifies if this `CartOrder` struct is valid.
-    ///
-    /// # Returns
-    ///
-    /// A boolean indicating if this `CartOrder` struct is valid.
-    pub fn verify(&self) -> bool {
-        let cart_tuples_set = self.cart_tuples.iter().collect::<HashSet<_>>();
-        let lcart = self.lcart;
-        cart_tuples_set.len() == ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize
-            && cart_tuples_set
-                .iter()
-                .all(|(lx, ly, lz)| lx + ly + lz == lcart)
-    }
-
-    pub fn iter(&self) -> Iter<(u32, u32, u32)> {
-        self.cart_tuples.iter()
-    }
-}
-
-impl fmt::Display for CartOrder {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Cartesian rank: {}", self.lcart)?;
-        writeln!(f, "Order:")?;
-        for cart_tuple in self.iter() {
-            writeln!(f, "  {}", cart_tuple_to_str(cart_tuple, true))?;
-        }
-        Ok(())
-    }
-}
-
-impl fmt::Debug for CartOrder {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Cartesian rank: {}", self.lcart)?;
-        writeln!(f, "Order:")?;
-        for cart_tuple in self.iter() {
-            writeln!(f, "  {:?}", cart_tuple)?;
-        }
-        Ok(())
-    }
-}
-
-/// Translates a Cartesian exponent tuple to a human-understandable string.
-///
-/// # Arguments
-///
-/// * cart_tuple - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
-/// components of the Cartesian Gaussian.
-/// * flat - A flag indicating if the string representation is flat (*e.g.* `xxyz`) or compact
-/// (*e.g.* `x^2yz`).
-///
-/// Returns
-///
-/// The string representation of the Cartesian exponent tuple.
-fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
-    if cart_tuple.0 + cart_tuple.1 + cart_tuple.2 == 0u32 {
-        "1".to_string()
-    } else {
-        let cart_array = [cart_tuple.0, cart_tuple.1, cart_tuple.2];
-        let carts = ["x", "y", "z"];
-        Itertools::intersperse(
-            cart_array.iter().enumerate().map(|(i, &l)| {
-                if flat {
-                    carts[i].repeat(l as usize)
-                } else {
-                    match l.cmp(&1) {
-                        Ordering::Greater => format!("{}^{}", carts[i], l),
-                        Ordering::Equal => carts[i].to_string(),
-                        Ordering::Less => "".to_string(),
-                    }
-                }
-            }),
-            "".to_string(),
-        )
-        .collect::<String>()
-    }
-}
 
 /// Calculates the number of combinations of `n` things taken `r` at a time (signed arguments).
 ///
@@ -201,8 +17,8 @@ fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
 ///
 /// # Arguments
 ///
-/// * n - Number of things.
-/// * r - Number of elements taken.
+/// * `n` - Number of things.
+/// * `r` - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -211,9 +27,12 @@ fn comb(n: i32, r: i32) -> BigUint {
     if n < 0 || r < 0 || r > n {
         BigUint::zero()
     } else {
-        let nu = n as u32;
-        let ru = r as u32;
-        (nu - ru + 1..=nu).product::<BigUint>() / BigUint::from(ru).checked_factorial().unwrap()
+        let nu = u32::try_from(n).expect("Unable to convert `n` to `u32`.");
+        let ru = u32::try_from(r).expect("Unable to convert `r` to `u32`.");
+        (nu - ru + 1..=nu).product::<BigUint>()
+            / BigUint::from(ru)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {ru}."))
     }
 }
 
@@ -223,8 +42,8 @@ fn comb(n: i32, r: i32) -> BigUint {
 ///
 /// # Arguments
 ///
-/// * n - Number of things.
-/// * r - Number of elements taken.
+/// * `n` - Number of things.
+/// * `r` - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -233,7 +52,10 @@ fn combu(nu: u32, ru: u32) -> BigUint {
     if ru > nu {
         BigUint::zero()
     } else {
-        (nu - ru + 1..=nu).product::<BigUint>() / BigUint::from(ru).checked_factorial().unwrap()
+        (nu - ru + 1..=nu).product::<BigUint>()
+            / BigUint::from(ru)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {ru}."))
     }
 }
 
@@ -243,8 +65,8 @@ fn combu(nu: u32, ru: u32) -> BigUint {
 ///
 /// # Arguments
 ///
-/// * n - Number of things.
-/// * r - Number of elements taken.
+/// * `n` - Number of things.
+/// * `r` - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -253,8 +75,8 @@ fn perm(n: i32, r: i32) -> BigUint {
     if n < 0 || r < 0 || r > n {
         BigUint::zero()
     } else {
-        let nu = n as u32;
-        let ru = r as u32;
+        let nu = u32::try_from(n).expect("Unable to convert `n` to `u32`.");
+        let ru = u32::try_from(r).expect("Unable to convert `r` to `u32`.");
         (nu - ru + 1..=nu).product::<BigUint>()
     }
 }
@@ -265,8 +87,8 @@ fn perm(n: i32, r: i32) -> BigUint {
 ///
 /// # Arguments
 ///
-/// * n - Number of things.
-/// * r - Number of elements taken.
+/// * `n` - Number of things.
+/// * `r` - Number of elements taken.
 ///
 /// # Returns
 ///
@@ -295,23 +117,30 @@ fn permu(nu: u32, ru: u32) -> BigUint {
 ///
 /// # Arguments
 ///
-/// * n - The non-negative exponent of the radial part of the solid harmonic Gaussian.
-/// * alpha - The coefficient on the exponent of the Gaussian term.
+/// * `n` - The non-negative exponent of the radial part of the solid harmonic Gaussian.
+/// * `alpha` - The coefficient on the exponent of the Gaussian term.
 ///
 /// # Returns
 ///
 /// The normalisation constant $`\tilde{N}(n, \alpha)`$.
 fn norm_sph_gaussian(n: u32, alpha: f64) -> f64 {
     let num = (BigUint::from(2u64).pow(2 * n + 3)
-        * BigUint::from(n as u64 + 1).checked_factorial().unwrap())
+        * BigUint::from(u64::from(n) + 1)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", u64::from(n) + 1)))
     .to_f64()
-    .unwrap()
-        * alpha.powf(n as f64 + 1.5);
-    let den = BigUint::from(2 * n as u64 + 2)
+    .expect("Unable to convert a `BigUint` value to `f64`.")
+        * alpha.powf(f64::from(n) + 1.5);
+    let den = BigUint::from(2 * u64::from(n) + 2)
         .checked_factorial()
-        .unwrap()
+        .unwrap_or_else(|| {
+            panic!(
+                "Unable to compute the factorial of {}.",
+                2 * u64::from(n) + 2
+            )
+        })
         .to_f64()
-        .unwrap()
+        .expect("Unable to convert a `BigUint` value to `f64`.")
         * std::f64::consts::PI.sqrt();
     (num / den).sqrt()
 }
@@ -330,9 +159,9 @@ fn norm_sph_gaussian(n: u32, alpha: f64) -> f64 {
 ///
 /// # Arguments
 ///
-/// * lcartqns - A tuple of $`(l_x, l_y, l_z)`$ specifying the non-negative exponents of
+/// * `lcartqns` - A tuple of $`(l_x, l_y, l_z)`$ specifying the non-negative exponents of
 /// the Cartesian components of the Cartesian Gaussian.
-/// * alpha - The coefficient on the exponent of the Gaussian term.
+/// * `alpha` - The coefficient on the exponent of the Gaussian term.
 ///
 /// # Returns
 ///
@@ -341,17 +170,29 @@ fn norm_cart_gaussian(lcartqns: (u32, u32, u32), alpha: f64) -> f64 {
     let (lx, ly, lz) = lcartqns;
     let lcart = lx + ly + lz;
     let num = (BigUint::from(2u32).pow(2 * lcart)
-        * BigUint::from(lx).checked_factorial().unwrap()
-        * BigUint::from(ly).checked_factorial().unwrap()
-        * BigUint::from(lz).checked_factorial().unwrap())
+        * BigUint::from(lx)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {lx}."))
+        * BigUint::from(ly)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {ly}."))
+        * BigUint::from(lz)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {lz}.")))
     .to_f64()
-    .unwrap()
-        * alpha.powf(lcart as f64 + 1.5);
-    let den = (BigUint::from(2 * lx).checked_factorial().unwrap()
-        * BigUint::from(2 * ly).checked_factorial().unwrap()
-        * BigUint::from(2 * lz).checked_factorial().unwrap())
+    .expect("Unable to convert a `BigUint` value to `f64`.")
+        * alpha.powf(f64::from(lcart) + 1.5);
+    let den = (BigUint::from(2 * lx)
+        .checked_factorial()
+        .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lx))
+        * BigUint::from(2 * ly)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * ly))
+        * BigUint::from(2 * lz)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lz)))
     .to_f64()
-    .unwrap()
+    .expect("Unable to convert a `BigUint` value to `f64`.")
         * std::f64::consts::PI.powi(3).sqrt();
     (num / den).sqrt()
 }
@@ -428,65 +269,141 @@ fn norm_cart_gaussian(lcartqns: (u32, u32, u32), alpha: f64) -> f64 {
 ///
 /// # Arguments
 ///
-/// * lpureqns - A tuple of $`(l, m_l)`$ specifying the quantum numbers for the spherical
+/// * `lpureqns` - A tuple of $`(l, m_l)`$ specifying the quantum numbers for the spherical
 /// harmonic component of the solid harmonic Gaussian.
-/// * lcartqns - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
+/// * `lcartqns` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
 /// components of the Cartesian Gaussian.
-/// * csphase - If `true`, the Condon--Shortley phase will be used as defined above.
+/// * `csphase` - If `true`, the Condon--Shortley phase will be used as defined above.
 /// If `false`, this phase will be set to unity.
 ///
 /// # Returns
 ///
 /// The complex factor $`c(l, m_l, l_{\mathrm{cart}}, l_x, l_y, l_z)`$.
+///
+/// # Panics
+///
+/// Panics when any required factorials cannot be computed.
+#[allow(clippy::too_many_lines)]
 fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> Complex<f64> {
     let (l, m) = lpureqns;
+    let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
     assert!(
         m.unsigned_abs() <= l,
         "m must be between -l and l (inclusive)."
     );
     let (lx, ly, lz) = lcartqns;
+    let lxi32 = i32::try_from(lx).unwrap_or_else(|_| panic!("Cannot convert `{lx}` to `i32`."));
+    let lyi32 = i32::try_from(ly).unwrap_or_else(|_| panic!("Cannot convert `{ly}` to `i32`."));
+    let lzi32 = i32::try_from(lz).unwrap_or_else(|_| panic!("Cannot convert `{lz}` to `i32`."));
     let lcart = lx + ly + lz;
-    let dl = lcart as i32 - l as i32;
+    let lcarti32 = lxi32 + lyi32 + lzi32;
+    let dl = lcarti32 - li32;
     if dl % 2 != 0 {
         return Complex::<f64>::zero();
     }
 
-    let num = ((2 * l + 1) * (l - m.unsigned_abs()).checked_factorial().unwrap()) as f64;
-    let den =
-        4.0 * std::f64::consts::PI * (l + m.unsigned_abs()).checked_factorial().unwrap() as f64;
+    let num = f64::from(
+        (2 * l + 1)
+            * (l - m.unsigned_abs())
+                .checked_factorial()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compute the factorial of {}.",
+                        l - m.unsigned_abs()
+                    )
+                }),
+    );
+    let den = 4.0
+        * std::f64::consts::PI
+        * f64::from(
+            (l + m.unsigned_abs())
+                .checked_factorial()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compute the factorial of {}.",
+                        l + m.unsigned_abs()
+                    )
+                }),
+        );
     let mut prefactor =
-        1.0 / ((2u32.pow(l) * l.checked_factorial().unwrap()) as f64) * (num / den).sqrt();
+        1.0 / f64::from(
+            2u32.pow(l)
+                * l.checked_factorial()
+                    .unwrap_or_else(|| panic!("Unable to compute the factorial of {l}.")),
+        ) * (num / den).sqrt();
     if csphase && m > 0 {
-        prefactor *= (-1i32).pow(m as u32) as f64;
+        prefactor *=
+            f64::from((-1i32).pow(u32::try_from(m).expect("Unable to convert `m` to `u32`.")));
     }
     let ntilde = norm_sph_gaussian(lcart, 1.0);
     let n = norm_cart_gaussian(lcartqns, 1.0);
 
     let si =
         (0..=((l - m.unsigned_abs()).div_euclid(2))).fold(Complex::<f64>::zero(), |acc_si, i| {
-            let ifactor = combu(l, i).to_f64().unwrap()
-                * ((-1i32).pow(i) * (2 * l - 2 * i).checked_factorial().unwrap() as i32) as f64
-                / (l - m.unsigned_abs() - 2 * i).checked_factorial().unwrap() as f64;
+            // i <= (l - |m|) / 2
+            let ii32 =
+                i32::try_from(i).unwrap_or_else(|_| panic!("Cannot convert `{i}` to `i32`."));
+            let mut ifactor = combu(l, i)
+                .to_f64()
+                .expect("Unable to convert a `BigUint` value to `f64`.")
+                * BigUint::from(2 * l - 2 * i)
+                    .checked_factorial()
+                    .unwrap_or_else(|| {
+                        panic!("Unable to compute the factorial of {}.", 2 * l - 2 * i)
+                    })
+                    .to_f64()
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Unable to convert the factorial of {} to `f64`.",
+                            2 * l - 2 * i
+                        )
+                    })
+                / BigUint::from(l - m.unsigned_abs() - 2 * i)
+                    .checked_factorial()
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Unable to compute the factorial of {}.",
+                            l - m.unsigned_abs() - 2 * i
+                        )
+                    })
+                    .to_f64()
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Unable to convert the factorial of {} to `f64`.",
+                            l - m.unsigned_abs() - 2 * i
+                        )
+                    });
+            if i % 2 == 1 {
+                ifactor *= -1.0;
+            };
             let sp = (0..=(m.unsigned_abs())).fold(Complex::<f64>::zero(), |acc_sp, p| {
+                let pi32 =
+                    i32::try_from(p).unwrap_or_else(|_| panic!("Cannot convert `{p}` to `i32`."));
                 let pfactor = if m > 0 {
-                    combu(m.unsigned_abs(), p).to_f64().unwrap()
+                    combu(m.unsigned_abs(), p)
+                        .to_f64()
+                        .expect("Unable to convert a `BigUint` value to `f64`.")
                         * Complex::<f64>::i().powu(m.unsigned_abs() - p)
                 } else {
-                    combu(m.unsigned_abs(), p).to_f64().unwrap()
+                    combu(m.unsigned_abs(), p)
+                        .to_f64()
+                        .expect("Unable to convert a `BigUint` value to `f64`.")
                         * (-1.0 * Complex::<f64>::i()).powu(m.unsigned_abs() - p)
                 };
                 let sq = (0..=(dl.div_euclid(2))).fold(Complex::<f64>::zero(), |acc_sq, q| {
-                    let jq_num = (lx + ly) as i32 - 2 * q - m.abs();
+                    let jq_num = lxi32 + lyi32 - 2 * q - m.abs();
                     if jq_num.rem_euclid(2) == 0 {
                         let jq = jq_num.div_euclid(2);
-                        let qfactor = (comb(dl.div_euclid(2), q) * comb(i as i32, jq))
+                        let qfactor = (comb(dl.div_euclid(2), q) * comb(ii32, jq))
                             .to_f64()
-                            .unwrap();
+                            .expect("Unable to convert a `BigUint` value to `f64`.");
                         let sk = (0..=jq).fold(Complex::<f64>::zero(), |acc_sk, k| {
-                            let tpk_num = lx as i32 - p as i32 - 2 * k;
+                            let tpk_num = lxi32 - pi32 - 2 * k;
                             if tpk_num.rem_euclid(2) == 0 {
                                 let tpk = tpk_num.div_euclid(2);
-                                let kfactor = (comb(q, tpk) * comb(jq, k)).to_f64().unwrap();
+                                let kfactor = (comb(q, tpk) * comb(jq, k))
+                                    .to_f64()
+                                    .expect("Unable to convert a `BigUint` value to `f64`.");
                                 acc_sk + kfactor
                             } else {
                                 acc_sk
@@ -511,9 +428,9 @@ fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> C
 ///
 /// # Arguments
 ///
-/// * lcartqns1 - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
+/// * `lcartqns1` - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
 /// components of the first Cartesian Gaussian.
-/// * lcartqns2 - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
+/// * `lcartqns2` - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
 /// components of the first Cartesian Gaussian.
 ///
 /// # Returns
@@ -533,41 +450,86 @@ fn cartov(lcartqns1: (u32, u32, u32), lcartqns2: (u32, u32, u32)) -> f64 {
         && (ly1 + ly2).rem_euclid(2) == 0
         && (lz1 + lz2).rem_euclid(2) == 0
     {
-        let num1 = (BigUint::from(lx1 + lx2).checked_factorial().unwrap()
-            * BigUint::from(ly1 + ly2).checked_factorial().unwrap()
-            * BigUint::from(lz1 + lz2).checked_factorial().unwrap())
+        let num1 = (BigUint::from(lx1 + lx2)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", lx1 + lx2))
+            * BigUint::from(ly1 + ly2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", ly1 + ly2))
+            * BigUint::from(lz1 + lz2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", lz1 + lz2)))
         .to_f64()
-        .unwrap();
+        .expect("Unable to convert a `BigUint` value to `f64`.");
 
         let den1 = (BigUint::from((lx1 + lx2).div_euclid(2))
             .checked_factorial()
-            .unwrap()
+            .unwrap_or_else(|| {
+                panic!(
+                    "Unable to compute the factorial of {}.",
+                    (lx1 + lx2).div_euclid(2)
+                )
+            })
             * BigUint::from((ly1 + ly2).div_euclid(2))
                 .checked_factorial()
-                .unwrap()
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compute the factorial of {}.",
+                        (ly1 + ly2).div_euclid(2)
+                    )
+                })
             * BigUint::from((lz1 + lz2).div_euclid(2))
                 .checked_factorial()
-                .unwrap())
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compute the factorial of {}.",
+                        (lz1 + lz2).div_euclid(2)
+                    )
+                }))
         .to_f64()
-        .unwrap();
+        .expect("Unable to convert a `BigUint` value to `f64`.");
 
-        let num2 = (BigUint::from(lx1).checked_factorial().unwrap()
-            * BigUint::from(ly1).checked_factorial().unwrap()
-            * BigUint::from(lz1).checked_factorial().unwrap()
-            * BigUint::from(lx2).checked_factorial().unwrap()
-            * BigUint::from(ly2).checked_factorial().unwrap()
-            * BigUint::from(lz2).checked_factorial().unwrap())
+        let num2 = (BigUint::from(lx1)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {lx1}."))
+            * BigUint::from(ly1)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {ly1}."))
+            * BigUint::from(lz1)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {lz1}."))
+            * BigUint::from(lx2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {lx2}."))
+            * BigUint::from(ly2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {ly2}."))
+            * BigUint::from(lz2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {lz2}.")))
         .to_f64()
-        .unwrap();
+        .expect("Unable to convert a `BigUint` value to `f64`.");
 
-        let den2 = (BigUint::from(2 * lx1).checked_factorial().unwrap()
-            * BigUint::from(2 * ly1).checked_factorial().unwrap()
-            * BigUint::from(2 * lz1).checked_factorial().unwrap()
-            * BigUint::from(2 * lx2).checked_factorial().unwrap()
-            * BigUint::from(2 * ly2).checked_factorial().unwrap()
-            * BigUint::from(2 * lz2).checked_factorial().unwrap())
+        let den2 = (BigUint::from(2 * lx1)
+            .checked_factorial()
+            .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lx1))
+            * BigUint::from(2 * ly1)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * ly1))
+            * BigUint::from(2 * lz1)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lz1))
+            * BigUint::from(2 * lx2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lx2))
+            * BigUint::from(2 * ly2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * ly2))
+            * BigUint::from(2 * lz2)
+                .checked_factorial()
+                .unwrap_or_else(|| panic!("Unable to compute the factorial of {}.", 2 * lz2)))
         .to_f64()
-        .unwrap();
+        .expect("Unable to convert a `BigUint` value to `f64`.");
 
         (num1 / den1) * (num2 / den2).sqrt()
     } else {
@@ -596,11 +558,11 @@ fn cartov(lcartqns1: (u32, u32, u32), lcartqns2: (u32, u32, u32)) -> f64 {
 ///
 /// # Arguments
 ///
-/// * lcartqns - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
+/// * `lcartqns` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
 /// components of the Cartesian Gaussian.
-/// * lpureqns - A tuple of $`(l, m_l)`$ specifying the quantum numbers for the spherical harmonic
-/// component of the solid harmonic Gaussian.
-/// * csphase - If `true`, the Condon--Shortley phase will be used as defined in
+/// * `lpureqns` - A tuple of $`(l, m_l)`$ specifying the quantum numbers for the spherical
+/// harmonic component of the solid harmonic Gaussian.
+/// * `csphase` - If `true`, the Condon--Shortley phase will be used as defined in
 /// [`complexc`]. If `false`, this phase will be set to unity.
 ///
 /// # Returns
@@ -651,10 +613,10 @@ fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: bool) -
 ///
 /// # Arguments
 ///
-/// * l - The spherical harmonic degree.
-/// * csphase - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
+/// * `l` - The spherical harmonic degree.
+/// * `csphase` - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
 /// $`\lambda_{\mathrm{cs}} = 1`$.
-/// * increasingm - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)}`$ are
+/// * `increasingm` - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)}`$ are
 /// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
@@ -662,9 +624,10 @@ fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: bool) -
 ///
 /// The $`\boldsymbol{\Upsilon}^{(l)}`$ matrix.
 fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
-    let mut upmat = Array2::<Complex<f64>>::zeros((2 * l as usize + 1, 2 * l as usize + 1));
-    let lsize = l as usize;
-    for mcomplex in -(l as i32)..=(l as i32) {
+    let lusize = l as usize;
+    let mut upmat = Array2::<Complex<f64>>::zeros((2 * lusize + 1, 2 * lusize + 1));
+    let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
+    for mcomplex in -li32..=li32 {
         let absmreal = mcomplex.unsigned_abs() as usize;
         match mcomplex.cmp(&0) {
             Ordering::Less => {
@@ -672,17 +635,19 @@ fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
                 // upmat[-absmreal + l, mcomplex + l] = -1.0j / np.sqrt(2)
                 // upmat[+absmreal + l, mcomplex + l] = 1.0 / np.sqrt(2)
                 // mcomplex = -absmreal
-                upmat[(lsize - absmreal, lsize - absmreal)] =
+                upmat[(lusize - absmreal, lusize - absmreal)] =
                     Complex::<f64>::new(0.0, -1.0 / 2.0f64.sqrt());
-                upmat[(lsize + absmreal, lsize - absmreal)] =
+                upmat[(lusize + absmreal, lusize - absmreal)] =
                     Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0);
             }
             Ordering::Equal => {
-                upmat[(lsize, lsize)] = Complex::<f64>::from(1.0);
+                upmat[(lusize, lusize)] = Complex::<f64>::from(1.0);
             }
             Ordering::Greater => {
                 let lcs = if csphase {
-                    (-1i32).pow(mcomplex as u32) as f64
+                    f64::from((-1i32).pow(
+                        u32::try_from(mcomplex).expect("Unable to convert `mcomplex` to `u32`."),
+                    ))
                 } else {
                     1.0
                 };
@@ -690,9 +655,9 @@ fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
                 // upmat[-absmreal + l, mcomplex + l] = lcs * 1.0j / np.sqrt(2)
                 // upmat[+absmreal + l, mcomplex + l] = lcs * 1.0 / np.sqrt(2)
                 // mcomplex = absmreal
-                upmat[(lsize - absmreal, lsize + absmreal)] =
+                upmat[(lusize - absmreal, lusize + absmreal)] =
                     lcs * Complex::<f64>::new(0.0, 1.0 / 2.0f64.sqrt());
-                upmat[(lsize + absmreal, lsize + absmreal)] =
+                upmat[(lusize + absmreal, lusize + absmreal)] =
                     lcs * Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0);
             }
         }
@@ -741,10 +706,10 @@ fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
 ///
 /// # Arguments
 ///
-/// * l - The spherical harmonic degree.
-/// * csphase - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
+/// * `l` - The spherical harmonic degree.
+/// * `csphase` - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
 /// $`\lambda_{\mathrm{cs}} = 1`$.
-/// * increasingm - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ are
+/// * `increasingm` - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ are
 /// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
@@ -805,16 +770,16 @@ fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
 ///
 /// # Arguments
 ///
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+/// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
 ///  also for the radial part of the solid harmonic Gaussian.
-/// * l - The degree of the complex spherical harmonic factor in the solid
+/// * `l` - The degree of the complex spherical harmonic factor in the solid
 ///  harmonic Gaussian.
-/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
 /// coefficients. See [`complexc`] for more details.
-/// * increasingm - If `true`, the columns of $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ are arranged
-/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// * `increasingm` - If `true`, the columns of $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ are
+/// arranged in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
@@ -823,7 +788,7 @@ fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
 fn sh_cl2cart_mat(
     lcart: u32,
     l: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Array2<Complex<f64>> {
@@ -832,7 +797,8 @@ fn sh_cl2cart_mat(
         ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize,
         2 * l as usize + 1,
     ));
-    for (i, m) in (-(l as i32)..=(l as i32)).enumerate() {
+    let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
+    for (i, m) in (-li32..=li32).enumerate() {
         for (icart, &lcartqns) in cartorder.iter().enumerate() {
             umat[(icart, i)] = complexc((l, m), lcartqns, csphase);
         }
@@ -890,15 +856,15 @@ fn sh_cl2cart_mat(
 ///
 /// # Arguments
 ///
-/// * l - The degree of the complex spherical harmonic factor in the solid
+/// * `l` - The degree of the complex spherical harmonic factor in the solid
 ///  harmonic Gaussian.
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+/// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
 ///  also for the radial part of the solid harmonic Gaussian.
-/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
-/// * increasingm - If `true`, the rows of $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$ are arranged
+/// * `increasingm` - If `true`, the rows of $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
@@ -908,7 +874,7 @@ fn sh_cl2cart_mat(
 fn sh_cart2cl_mat(
     l: u32,
     lcart: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Array2<Complex<f64>> {
@@ -917,8 +883,9 @@ fn sh_cart2cl_mat(
         2 * l as usize + 1,
         ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize,
     ));
+    let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
     for (icart, &lcartqns) in cartorder.iter().enumerate() {
-        for (i, m) in (-(l as i32)..=(l as i32)).enumerate() {
+        for (i, m) in (-li32..=li32).enumerate() {
             vmat[(i, icart)] = complexcinv(lcartqns, (l, m), csphase);
         }
     }
@@ -984,10 +951,10 @@ fn sh_cart2cl_mat(
 ///  harmonic Gaussian.
 /// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
 /// coefficients. See [`complexc`] for more details.
-/// * increasingm - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are arranged
-/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// * `increasingm` - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are
+/// arranged in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
@@ -996,7 +963,7 @@ fn sh_cart2cl_mat(
 fn sh_rl2cart_mat(
     lcart: u32,
     l: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Array2<f64> {
@@ -1058,15 +1025,15 @@ fn sh_rl2cart_mat(
 ///
 /// # Arguments
 ///
-/// * l - The degree of the complex spherical harmonic factor in the solid
+/// * `l` - The degree of the complex spherical harmonic factor in the solid
 ///  harmonic Gaussian.
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+/// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
 ///  also for the radial part of the solid harmonic Gaussian.
-/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
-/// * increasingm - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
+/// * `increasingm` - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
@@ -1076,7 +1043,7 @@ fn sh_rl2cart_mat(
 fn sh_cart2rl_mat(
     l: u32,
     lcart: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Array2<f64> {
@@ -1099,14 +1066,14 @@ fn sh_cart2rl_mat(
 ///
 /// # Arguments
 ///
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+/// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
 ///  also for the radial part of the solid harmonic Gaussian.
-/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c`$ coefficients. See [`complexc`] for more details.
-/// * increasingm - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are arranged
-/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
+/// * `increasingm` - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are
+/// arranged in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
 /// # Returns
@@ -1116,18 +1083,20 @@ fn sh_cart2rl_mat(
 /// $`l`$ order.
 fn sh_r2cart(
     lcart: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Vec<Array2<f64>> {
     assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
     let lrange = if lcart.rem_euclid(2) == 0 {
+        #[allow(clippy::range_plus_one)]
         (0..lcart + 1).step_by(2).rev()
     } else {
+        #[allow(clippy::range_plus_one)]
         (1..lcart + 1).step_by(2).rev()
     };
     lrange
-        .map(|l| sh_rl2cart_mat(lcart, l, cartorder.clone(), csphase, increasingm))
+        .map(|l| sh_rl2cart_mat(lcart, l, cartorder, csphase, increasingm))
         .collect()
 }
 
@@ -1138,13 +1107,13 @@ fn sh_r2cart(
 ///
 /// # Arguments
 ///
-/// * lcart - The total Cartesian degree for the Cartesian Gaussians and
+/// * `lcart` - The total Cartesian degree for the Cartesian Gaussians and
 ///  also for the radial part of the solid harmonic Gaussian.
-/// * cartorder - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
+/// * `cartorder` - A [`CartOrder`] struct giving the ordering of the components of the Cartesian
 /// Gaussians.
-/// * csphase - Set to `true` to use the Condon--Shortley phase in the calculations of the
+/// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
-/// * increasingm - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
+/// * `increasingm` - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
 /// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
 /// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
 ///
@@ -1155,17 +1124,19 @@ fn sh_r2cart(
 /// $`l`$ order.
 fn sh_cart2r(
     lcart: u32,
-    cartorder: CartOrder,
+    cartorder: &CartOrder,
     csphase: bool,
     increasingm: bool,
 ) -> Vec<Array2<f64>> {
     assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
     let lrange = if lcart.rem_euclid(2) == 0 {
+        #[allow(clippy::range_plus_one)]
         (0..lcart + 1).step_by(2).rev()
     } else {
+        #[allow(clippy::range_plus_one)]
         (1..lcart + 1).step_by(2).rev()
     };
     lrange
-        .map(|l| sh_cart2rl_mat(l, lcart, cartorder.clone(), csphase, increasingm))
+        .map(|l| sh_cart2rl_mat(l, lcart, cartorder, csphase, increasingm))
         .collect()
 }
