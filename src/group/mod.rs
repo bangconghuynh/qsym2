@@ -27,7 +27,7 @@ use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
 };
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, SIG};
+use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, ROT, SIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, ClassSymbol,
@@ -1086,7 +1086,8 @@ fn group_from_molecular_symmetry(
     }
 
     let id_element = sym
-        .proper_elements
+        .get_elements(&ROT)
+        .unwrap_or(&HashMap::new())
         .get(&ORDER_1)
         .expect("No identity elements found.")
         .iter()
@@ -1101,7 +1102,12 @@ fn group_from_molecular_symmetry(
         .expect("Unable to construct an identity operation.");
 
     // Finite proper operations
-    let mut proper_orders = sym.proper_elements.keys().collect::<Vec<_>>();
+    let empty_elements: HashMap<ElementOrder, HashSet<SymmetryElement>> = HashMap::new();
+    let mut proper_orders = sym
+        .get_elements(&ROT)
+        .unwrap_or(&empty_elements)
+        .keys()
+        .collect::<Vec<_>>();
     proper_orders.sort_by(|a, b| {
         a.partial_cmp(b)
             .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
@@ -1110,7 +1116,8 @@ fn group_from_molecular_symmetry(
         proper_orders
             .iter()
             .fold(vec![id_operation], |mut acc, proper_order| {
-                sym.proper_elements
+                sym.get_elements(&ROT)
+                    .unwrap_or(&HashMap::new())
                     .get(proper_order)
                     .unwrap_or_else(|| panic!("Proper elements C{proper_order} not found."))
                     .iter()
@@ -1132,7 +1139,8 @@ fn group_from_molecular_symmetry(
 
     // Finite proper operations from generators
     let proper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
-        sym.proper_generators
+        sym.get_generators(&ROT)
+            .unwrap_or(&HashMap::new())
             .par_iter()
             .fold(std::vec::Vec::new, |mut acc, (order, proper_generators)| {
                 for proper_generator in proper_generators.iter() {
@@ -1171,7 +1179,11 @@ fn group_from_molecular_symmetry(
     };
 
     // Finite improper operations
-    let mut improper_orders = sym.improper_elements.keys().collect::<Vec<_>>();
+    let mut improper_orders = sym
+        .get_elements(&SIG)
+        .unwrap_or(&empty_elements)
+        .keys()
+        .collect::<Vec<_>>();
     improper_orders.sort_by(|a, b| {
         a.partial_cmp(b)
             .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
@@ -1179,7 +1191,8 @@ fn group_from_molecular_symmetry(
     let improper_operations = improper_orders
         .iter()
         .fold(vec![], |mut acc, improper_order| {
-            sym.improper_elements
+            sym.get_elements(&SIG)
+                .unwrap_or(&HashMap::new())
                 .get(improper_order)
                 .unwrap_or_else(|| panic!("Improper elements S{improper_order} not found."))
                 .iter()
@@ -1201,7 +1214,8 @@ fn group_from_molecular_symmetry(
 
     // Finite improper operations from generators
     let improper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
-        sym.improper_generators
+        sym.get_generators(&SIG)
+            .unwrap_or(&HashMap::new())
             .par_iter()
             .fold(
                 std::vec::Vec::new,

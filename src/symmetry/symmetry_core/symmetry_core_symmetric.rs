@@ -1,12 +1,15 @@
-use super::{PreSymmetry, Symmetry};
-use crate::rotsym::RotationalSymmetry;
-use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::{SymmetryElement, INV, SIG};
-use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use approx;
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
+use std::collections::HashMap;
+
+use crate::rotsym::RotationalSymmetry;
+use crate::symmetry::symmetry_core::_search_proper_rotations;
+use crate::symmetry::symmetry_element::{SymmetryElement, INV, ROT, SIG};
+use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
+
+use super::{PreSymmetry, Symmetry};
 
 impl Symmetry {
     /// Performs point-group detection analysis for a symmetric-top molecule.
@@ -53,15 +56,23 @@ impl Symmetry {
         }
         .unwrap_or_else(|| panic!("`{max_ord}` has an unexpected order value."));
         let dihedral = {
-            if self.proper_elements.contains_key(&ORDER_2) {
+            if self
+                .get_elements(&ROT)
+                .unwrap_or(&HashMap::new())
+                .contains_key(&ORDER_2)
+            {
                 if max_ord > ORDER_2 {
-                    assert_eq!(self.proper_elements[&max_ord].len(), 1);
-                    let principal_axis = self.proper_elements[&max_ord]
+                    assert_eq!(
+                        self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord].len(),
+                        1
+                    );
+                    let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())
+                        [&max_ord]
                         .iter()
                         .next()
                         .expect("No principal axes found.")
                         .axis;
-                    let n_c2_perp = self.proper_elements[&ORDER_2]
+                    let n_c2_perp = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
                         .iter()
                         .filter(|c2_ele| {
                             c2_ele.axis.dot(&principal_axis).abs() < presym.dist_threshold
@@ -73,7 +84,8 @@ impl Symmetry {
                             .unwrap_or_else(|_| panic!("Unable to convert {n_c2_perp} to `u32`.")),
                     ) == max_ord
                 } else {
-                    max_ord == ORDER_2 && self.proper_elements[&ORDER_2].len() == 3
+                    max_ord == ORDER_2
+                        && self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2].len() == 3
                 }
             } else {
                 false
@@ -87,7 +99,7 @@ impl Symmetry {
             // Principal axis is also a generator.
             self.add_proper(
                 max_ord,
-                self.proper_elements[&max_ord]
+                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
                     .iter()
                     .next()
                     .expect("No principal axes found.")
@@ -96,11 +108,12 @@ impl Symmetry {
                 presym.dist_threshold,
             );
 
-            let principal_element = self.proper_elements[&max_ord]
+            let principal_element = self.get_elements(&ROT).expect("No proper elements found.")
+                [&max_ord]
                 .iter()
                 .next()
                 .expect("No principal axes found.");
-            let c2_element = self.proper_elements[&ORDER_2]
+            let c2_element = self.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2]
                 .iter()
                 .find(|c2_ele| {
                     c2_ele.axis.dot(&principal_element.axis).abs() < presym.dist_threshold
@@ -108,10 +121,12 @@ impl Symmetry {
                 .expect("No C2 axes found.");
             self.add_proper(ORDER_2, c2_element.axis, true, presym.dist_threshold);
 
-            let principal_element = self.proper_elements[&max_ord]
+            let principal_element = self.get_elements(&ROT).expect("No proper elements found.")
+                [&max_ord]
                 .iter()
                 .next()
-                .expect("No principal axes found.");
+                .expect("No principal axes found.")
+                .clone();
             if presym.check_improper(&ORDER_1, &principal_element.axis, &SIG) {
                 // Dnh (n > 2)
                 assert!(max_ord > ORDER_2);
@@ -129,10 +144,6 @@ impl Symmetry {
                     Some("h".to_owned()),
                     presym.dist_threshold,
                 );
-                let principal_element = self.proper_elements[&max_ord]
-                    .iter()
-                    .next()
-                    .expect("No principal axes found.");
                 self.add_improper(
                     ORDER_1,
                     principal_element.axis,
@@ -146,8 +157,11 @@ impl Symmetry {
                 // We take all the other mirror planes to be σv.
                 // It's really not worth trying to classify them into σv and σd,
                 // as this classification is more conventional than fundamental.
-                let non_id_c_elements =
-                    self.proper_elements.values().fold(vec![], |acc, c_eles| {
+                let non_id_c_elements = self
+                    .get_elements(&ROT)
+                    .unwrap_or(&HashMap::new())
+                    .values()
+                    .fold(vec![], |acc, c_eles| {
                         acc.into_iter()
                             .chain(
                                 c_eles
@@ -171,10 +185,11 @@ impl Symmetry {
                     );
 
                     for c_element in non_id_c_elements {
-                        let principal_element = self.proper_elements[&max_ord]
-                            .iter()
-                            .next()
-                            .expect("No principal axes found.");
+                        let principal_element =
+                            self.get_elements(&ROT).expect("No proper elements found.")[&max_ord]
+                                .iter()
+                                .next()
+                                .expect("No principal axes found.");
                         let sigma_symbol = _deduce_sigma_symbol(
                             &c_element.axis,
                             principal_element,
@@ -211,9 +226,10 @@ impl Symmetry {
             // end Dnh
             else {
                 // Dnd
-                let sigmad_axes = self.proper_elements[&ORDER_2].iter().combinations(2).fold(
-                    vec![],
-                    |mut acc, c2_elements| {
+                let sigmad_axes = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
+                    .iter()
+                    .combinations(2)
+                    .fold(vec![], |mut acc, c2_elements| {
                         let c2_axis_i = c2_elements[0].axis;
                         let c2_axis_j = c2_elements[1].axis;
                         let axis_p = (c2_axis_i + c2_axis_j).normalize();
@@ -225,8 +241,7 @@ impl Symmetry {
                             acc.push(axis_m);
                         };
                         acc
-                    },
-                );
+                    });
 
                 let mut count_sigmad = 0u32;
                 for sigmad_axis in sigmad_axes {
@@ -269,8 +284,11 @@ impl Symmetry {
 
                     if max_ord_u32 % 2 == 0 {
                         // Dnd, n even, only σd planes are present.
-                        let non_id_c_elements =
-                            self.proper_elements.values().fold(vec![], |acc, c_eles| {
+                        let non_id_c_elements = self
+                            .get_elements(&ROT)
+                            .unwrap_or(&HashMap::new())
+                            .values()
+                            .fold(vec![], |acc, c_eles| {
                                 acc.into_iter()
                                     .chain(
                                         c_eles
@@ -308,8 +326,11 @@ impl Symmetry {
                             None,
                             presym.dist_threshold,
                         );
-                        let non_id_c_elements =
-                            self.proper_elements.values().fold(vec![], |acc, c_eles| {
+                        let non_id_c_elements = self
+                            .get_elements(&ROT)
+                            .unwrap_or(&HashMap::new())
+                            .values()
+                            .fold(vec![], |acc, c_eles| {
                                 acc.into_iter()
                                     .chain(
                                         c_eles
@@ -320,7 +341,9 @@ impl Symmetry {
                                     .collect()
                             });
                         for c_element in non_id_c_elements {
-                            let principal_element = self.proper_elements[&max_ord]
+                            let principal_element = self
+                                .get_elements(&ROT)
+                                .expect("No proper elements found.")[&max_ord]
                                 .iter()
                                 .next()
                                 .expect("No principal axes found.");
@@ -372,10 +395,11 @@ impl Symmetry {
                     if count_sigma == max_ord_u32 {
                         break;
                     }
-                    let principal_element = self.proper_elements[&max_ord]
-                        .iter()
-                        .next()
-                        .expect("No principal axes found.");
+                    let principal_element =
+                        self.get_elements(&ROT).expect("No proper elements found.")[&max_ord]
+                            .iter()
+                            .next()
+                            .expect("No principal axes found.");
                     let normal =
                         (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords).normalize();
                     if presym.check_improper(&ORDER_1, &normal, &SIG) {
@@ -407,7 +431,8 @@ impl Symmetry {
                         "Point group determined: {}",
                         self.point_group.as_ref().expect("No point groups found.")
                     );
-                    let principal_axis = self.proper_elements[&max_ord]
+                    let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())
+                        [&max_ord]
                         .iter()
                         .next()
                         .expect("No principal axes found.")
@@ -437,7 +462,8 @@ impl Symmetry {
                         self.point_group.as_ref().expect("No point groups found.")
                     );
                     let old_sigmas = self
-                        .improper_elements
+                        .get_elements_mut(&SIG)
+                        .expect("No improper elements found.")
                         .remove(&ORDER_1)
                         .expect("No σ found.");
                     debug_assert_eq!(old_sigmas.len(), 1);
@@ -460,7 +486,7 @@ impl Symmetry {
                     );
                 }
             } else if {
-                let principal_axis = self.proper_elements[&max_ord]
+                let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
                     .iter()
                     .next()
                     .expect("No principal axes found.")
@@ -471,7 +497,7 @@ impl Symmetry {
                 assert_eq!(count_sigma, 1);
                 log::debug!("Found no σv planes but one σh plane.");
                 self.point_group = Some(format!("C{max_ord}h"));
-                let principal_axis = self.proper_elements[&max_ord]
+                let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
                     .iter()
                     .next()
                     .expect("No principal axes found.")
@@ -487,8 +513,11 @@ impl Symmetry {
                 );
 
                 // Locate the remaining improper elements
-                let non_id_c_elements =
-                    self.proper_elements.values().fold(vec![], |acc, c_eles| {
+                let non_id_c_elements = self
+                    .get_elements(&ROT)
+                    .unwrap_or(&HashMap::new())
+                    .values()
+                    .fold(vec![], |acc, c_eles| {
                         acc.into_iter()
                             .chain(
                                 c_eles
@@ -511,10 +540,11 @@ impl Symmetry {
                         presym.dist_threshold,
                     );
                     for c_element in non_id_c_elements {
-                        let principal_element = self.proper_elements[&max_ord]
-                            .iter()
-                            .next()
-                            .expect("No principal axes found.");
+                        let principal_element =
+                            self.get_elements(&ROT).expect("No proper elements found.")[&max_ord]
+                                .iter()
+                                .next()
+                                .expect("No principal axes found.");
                         let sigma_symbol = _deduce_sigma_symbol(
                             &c_element.axis,
                             principal_element,
@@ -549,7 +579,7 @@ impl Symmetry {
                 }
             } else if {
                 let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
-                let principal_axis = self.proper_elements[&max_ord]
+                let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
                     .iter()
                     .next()
                     .expect("No principle axis found.")
@@ -568,7 +598,7 @@ impl Symmetry {
                     "Point group determined: {}",
                     self.point_group.as_ref().expect("No point groups found.")
                 );
-                let principal_axis = self.proper_elements[&max_ord]
+                let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
                     .iter()
                     .next()
                     .expect("No principle axis found.")
@@ -611,7 +641,7 @@ impl Symmetry {
                     "Point group determined: {}",
                     self.point_group.as_ref().expect("No point groups found.")
                 );
-                let principal_axis = self.proper_elements[&max_ord]
+                let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
                     .iter()
                     .next()
                     .expect("No principal axes found.")

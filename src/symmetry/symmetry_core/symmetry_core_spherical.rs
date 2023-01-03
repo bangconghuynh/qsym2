@@ -1,12 +1,15 @@
-use super::{PreSymmetry, Symmetry};
-use crate::aux::geometry;
-use crate::rotsym::RotationalSymmetry;
-use crate::symmetry::symmetry_element::{SymmetryElementKind, SIG};
-use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
+use std::collections::{HashMap, HashSet};
+
 use itertools::{self, Itertools};
 use log;
 use nalgebra::Vector3;
-use std::collections::HashSet;
+
+use crate::aux::geometry;
+use crate::rotsym::RotationalSymmetry;
+use crate::symmetry::symmetry_element::{SymmetryElementKind, ROT, SIG};
+use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
+
+use super::{PreSymmetry, Symmetry};
 
 impl Symmetry {
     /// Locates and adds all possible and distinct $`C_2`$ axes present in the
@@ -165,7 +168,9 @@ impl Symmetry {
                         presym.molecule.threshold
                     ));
                 } else {
-                    let mut c2s = self.proper_elements[&ORDER_2].iter();
+                    let mut c2s = self.get_elements(&ROT).expect("No proper elements found.")
+                        [&ORDER_2]
+                        .iter();
                     let normal = c2s.next().expect("No C2 axes found.").axis
                         + c2s.next().expect("Only one C2 axis found.").axis;
                     if presym.check_improper(&ORDER_1, &normal, &SIG) {
@@ -178,7 +183,10 @@ impl Symmetry {
                         );
                         let sigmad_normals = {
                             let mut axes = vec![];
-                            for c2s in self.proper_elements[&ORDER_2].iter().combinations(2) {
+                            for c2s in self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
+                                .iter()
+                                .combinations(2)
+                            {
                                 let axis_p = c2s[0].axis + c2s[1].axis;
                                 assert!(presym.check_improper(&ORDER_1, &axis_p, &SIG));
                                 axes.push(axis_p);
@@ -344,7 +352,8 @@ impl Symmetry {
 
         if count_c3 == 4 {
             // Tetrahedral or octahedral, C3 axes are also generators.
-            let c3_axes: Vec<Vector3<f64>> = self.proper_elements[&order_3]
+            let c3_axes: Vec<Vector3<f64>> = self.get_elements(&ROT).unwrap_or(&HashMap::new())
+                [&order_3]
                 .iter()
                 .map(|element| element.axis)
                 .collect();
@@ -395,7 +404,7 @@ impl Symmetry {
             assert!(found_consistent_c4);
             self.add_proper(
                 order_4,
-                self.proper_elements[&order_4]
+                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&order_4]
                     .iter()
                     .next()
                     .expect("No C4 axes found.")
@@ -454,7 +463,7 @@ impl Symmetry {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let improper_s4_axes: Vec<Vector3<f64>> = {
-                self.proper_elements[&ORDER_2]
+                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym.check_improper(&order_4, &c2_ele.axis, &SIG) {
@@ -482,7 +491,7 @@ impl Symmetry {
         else if *self.point_group.as_ref().expect("No point groups found.") == "Th" {
             // Locating σh
             let sigmah_normals: Vec<Vector3<f64>> = {
-                self.proper_elements[&ORDER_2]
+                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG) {
@@ -509,7 +518,7 @@ impl Symmetry {
             // Locating S6
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<Vector3<f64>> = {
-                self.proper_elements[&order_3]
+                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&order_3]
                     .iter()
                     .filter_map(|c3_ele| {
                         if presym.check_improper(&order_6, &c3_ele.axis, &SIG) {
@@ -538,7 +547,7 @@ impl Symmetry {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let s4_axes: Vec<Vector3<f64>> = {
-                self.proper_elements[&ORDER_2]
+                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym.check_improper(&order_4, &c2_ele.axis, &SIG) {
@@ -574,7 +583,7 @@ impl Symmetry {
 
             // Locating σd
             let sigmad_normals: Vec<Vector3<f64>> = {
-                self.proper_elements[&ORDER_2]
+                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
                     .iter()
                     .filter_map(|c2_ele| {
                         if !presym.check_improper(&order_4, &c2_ele.axis, &SIG)
@@ -603,7 +612,7 @@ impl Symmetry {
             // Locating S6
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<Vector3<f64>> = {
-                self.proper_elements[&order_3]
+                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&order_3]
                     .iter()
                     .filter_map(|c3_ele| {
                         if presym.check_improper(&order_6, &c3_ele.axis, &SIG) {
@@ -633,7 +642,7 @@ impl Symmetry {
             let order_5 = ElementOrder::Int(5);
             let order_10 = ElementOrder::Int(10);
             let s10_axes: Vec<Vector3<f64>> = {
-                self.proper_elements[&order_5]
+                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&order_5]
                     .iter()
                     .filter_map(|c5_ele| {
                         if presym.check_improper(&order_10, &c5_ele.axis, &SIG) {
@@ -660,7 +669,7 @@ impl Symmetry {
             // Locating S6
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<Vector3<f64>> = {
-                self.proper_elements[&order_3]
+                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&order_3]
                     .iter()
                     .filter_map(|c3_ele| {
                         if presym.check_improper(&order_6, &c3_ele.axis, &SIG) {
@@ -686,7 +695,7 @@ impl Symmetry {
 
             // Locating σ
             let sigma_normals: Vec<Vector3<f64>> = {
-                self.proper_elements[&ORDER_2]
+                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG) {
