@@ -279,6 +279,12 @@ impl Transform for Atom {
         self.coordinates = Point3::origin();
     }
 
+    fn reverse_time_mut(&mut self) {
+        if let AtomKind::Magnetic(polarity) = self.kind {
+            self.kind = AtomKind::Magnetic(!polarity);
+        }
+    }
+
     fn transform(&self, mat: &Matrix3<f64>) -> Self {
         let mut transformed_atom = self.clone();
         transformed_atom.transform_mut(mat);
@@ -307,6 +313,12 @@ impl Transform for Atom {
         let mut recentred_atom = self.clone();
         recentred_atom.recentre_mut();
         recentred_atom
+    }
+
+    fn reverse_time(&self) -> Self {
+        let mut time_reversed_atom = self.clone();
+        time_reversed_atom.reverse_time_mut();
+        time_reversed_atom
     }
 }
 

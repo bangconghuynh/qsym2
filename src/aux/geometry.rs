@@ -360,6 +360,9 @@ pub trait Transform {
     /// Recentres in-place to put the centre of mass at the origin.
     fn recentre_mut(&mut self);
 
+    /// Reverses time by reversing in-place the polarity of any magnetic special atoms.
+    fn reverse_time_mut(&mut self);
+
     /// Clones and transforms the coordinates about the origin by a given
     /// transformation.
     ///
@@ -420,4 +423,13 @@ pub trait Transform {
     /// A recentred copy.
     #[must_use]
     fn recentre(&self) -> Self;
+
+    /// Clones the molecule and reverses time by reversing the polarity of any magnetic special
+    /// atoms.
+    ///
+    /// # Returns
+    ///
+    /// A time-reversed copy.
+    #[must_use]
+    fn reverse_time(&self) -> Self;
 }

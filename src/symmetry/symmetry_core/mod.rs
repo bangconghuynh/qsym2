@@ -383,6 +383,7 @@ impl Symmetry {
     ///
     /// `true` if the specified element is not present and has just been added,
     /// `false` otherwise.
+    #[allow(clippy::too_many_lines)]
     fn add_improper(
         &mut self,
         order: ElementOrder,
