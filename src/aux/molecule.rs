@@ -529,6 +529,14 @@ impl Transform for Molecule {
         self.translate_mut(&tvec);
     }
 
+    fn reverse_time_mut(&mut self) {
+        if let Some(ref mut mag_atoms) = self.magnetic_atoms {
+            for atom in mag_atoms.iter_mut() {
+                atom.reverse_time_mut();
+            }
+        }
+    }
+
     fn transform(&self, mat: &Matrix3<f64>) -> Self {
         let mut transformed_mol = self.clone();
         transformed_mol.transform_mut(mat);
@@ -557,6 +565,12 @@ impl Transform for Molecule {
         let mut recentred_mol = self.clone();
         recentred_mol.recentre_mut();
         recentred_mol
+    }
+
+    fn reverse_time(&self) -> Self {
+        let mut time_reversed_mol = self.clone();
+        time_reversed_mol.reverse_time_mut();
+        time_reversed_mol
     }
 }
 

@@ -22,7 +22,7 @@ pub use symmetry_operation::*;
 mod symmetry_element_tests;
 
 /// An enum to classify the types of symmetry element.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SymmetryElementKind {
     /// Proper symmetry element which consists of just a proper rotation axis.
     Proper,
@@ -34,6 +34,16 @@ pub enum SymmetryElementKind {
     /// Improper symmetry element in the inversion-centre convention, which
     /// consists of a proper rotation axis and an inversion centre.
     ImproperInversionCentre,
+}
+
+impl fmt::Display for SymmetryElementKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Proper => write!(f, "Proper"),
+            Self::ImproperMirrorPlane => write!(f, "Improper (mirror-plane convention)"),
+            Self::ImproperInversionCentre => write!(f, "Improper (inversion-centre convention)"),
+        }
+    }
 }
 
 /// A struct for storing and managing symmetry elements.
@@ -825,5 +835,6 @@ impl Hash for SymmetryElement {
     }
 }
 
+pub const ROT: SymmetryElementKind = SymmetryElementKind::Proper;
 pub const SIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane;
 pub const INV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre;

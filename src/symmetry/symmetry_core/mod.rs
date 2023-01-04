@@ -1,15 +1,17 @@
+use std::collections::hash_map::Entry::Vacant;
+use std::collections::{HashMap, HashSet};
+
+use derive_builder::Builder;
+use itertools::Itertools;
+use log;
+use nalgebra::{Point3, Vector3};
+
 use crate::aux::atom::Atom;
 use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, SIG};
+use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, ROT, SIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
-use itertools::Itertools;
-use log;
-use nalgebra::{Point3, Vector3};
-use std::collections::{HashMap, HashSet};
-
-use derive_builder::Builder;
 
 #[cfg(test)]
 mod symmetry_core_tests;
@@ -203,35 +205,25 @@ pub struct Symmetry {
     #[builder(setter(skip, strip_option), default = "None")]
     pub point_group: Option<String>,
 
-    /// The proper generators found.
+    /// The symmetry elements found.
     ///
-    /// Each key gives the order and the matching value gives the [`HashSet`] of
-    /// the corresponding proper generators.
+    /// Each entry in the hash map is for one kind of symmetry elements: the key gives the kind,
+    /// and the value is a hash map where each key gives the order and the corresponding value
+    /// gives the [`HashSet`] of the elements with that order.
+    ///
+    /// Note that for improper elements, the mirror-plane convention is preferred.
     #[builder(setter(skip), default = "HashMap::new()")]
-    pub proper_generators: HashMap<ElementOrder, HashSet<SymmetryElement>>,
+    pub elements: HashMap<SymmetryElementKind, HashMap<ElementOrder, HashSet<SymmetryElement>>>,
 
-    /// The improper generators found. These generators are always defined in
-    /// the mirror-plane convention.
+    /// The symmetry generators found.
     ///
-    /// Each key gives the order and the matching value gives the [`HashSet`] of
-    /// the corresponding improper generators.
-    #[builder(setter(skip), default = "HashMap::new()")]
-    pub improper_generators: HashMap<ElementOrder, HashSet<SymmetryElement>>,
-
-    /// The proper elements found.
+    /// Each entry in the hash map is for one kind of symmetry generators: the key gives the kind,
+    /// and the value is a hash map where each key gives the order and the corresponding value
+    /// gives the [`HashSet`] of the generators with that order.
     ///
-    /// Each key gives the order and the matching value gives the [`HashSet`] of
-    /// the corresponding proper elements.
+    /// Note that for improper generatrors, the mirror-plane convention is preferred.
     #[builder(setter(skip), default = "HashMap::new()")]
-    pub proper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
-
-    /// The improper elements found. These elements are always defined in the
-    /// mirror-plane convention.
-    ///
-    /// Each key gives the order and the matching value gives the [`HashSet`] of
-    /// the corresponding improper elements.
-    #[builder(setter(skip), default = "HashMap::new()")]
-    pub improper_elements: HashMap<ElementOrder, HashSet<SymmetryElement>>,
+    pub generators: HashMap<SymmetryElementKind, HashMap<ElementOrder, HashSet<SymmetryElement>>>,
 }
 
 impl Symmetry {
@@ -261,7 +253,14 @@ impl Symmetry {
             .kind(SymmetryElementKind::Proper)
             .build()
             .expect("Unable to construct the identity element.");
-        self.proper_elements.insert(ORDER_1, HashSet::from([c1]));
+        if let Vacant(proper_elements) = self.elements.entry(ROT) {
+            proper_elements.insert(HashMap::from([(ORDER_1, HashSet::from([c1]))]));
+        } else {
+            self.elements
+                .get_mut(&ROT)
+                .expect("Unable to add proper elements.")
+                .insert(ORDER_1, HashSet::from([c1]));
+        };
         match &presym.rotational_symmetry {
             RotationalSymmetry::Spherical => self.analyse_spherical(presym),
             RotationalSymmetry::ProlateLinear => self.analyse_linear(presym),
@@ -306,37 +305,45 @@ impl Symmetry {
         let detailed_symbol = element.get_detailed_symbol();
         let standard_symbol = element.get_standard_symbol();
         let result = if generator {
-            if let std::collections::hash_map::Entry::Vacant(e) =
-                self.proper_generators.entry(order)
-            {
+            if let Vacant(proper_generators) = self.generators.entry(ROT) {
+                proper_generators.insert(HashMap::from([(order, HashSet::from([element]))]));
+                true
+            } else {
+                let proper_generators = self
+                    .generators
+                    .get_mut(&ROT)
+                    .expect("Proper generators not found.");
+
+                if let Vacant(proper_generators_order) = proper_generators.entry(order) {
+                    proper_generators_order.insert(HashSet::from([element]));
+                    true
+                } else {
+                    proper_generators
+                        .get_mut(&order)
+                        .unwrap_or_else(|| panic!("Proper generators C{order} not found."))
+                        .insert(element)
+                }
+            }
+        } else if let Vacant(proper_elements) = self.elements.entry(ROT) {
+            proper_elements.insert(HashMap::from([(order, HashSet::from([element]))]));
+            true
+        } else {
+            let proper_elements = self
+                .elements
+                .get_mut(&ROT)
+                .expect("Proper elements not found.");
+
+            if let Vacant(e) = proper_elements.entry(order) {
                 e.insert(HashSet::from([element]));
                 true
             } else {
-                self.proper_generators
+                proper_elements
                     .get_mut(&order)
                     .unwrap_or_else(|| panic!("Proper elements C{order} not found."))
                     .insert(element)
             }
-        } else if let std::collections::hash_map::Entry::Vacant(e) =
-            self.proper_elements.entry(order)
-        {
-            e.insert(HashSet::from([element]));
-            true
-        } else {
-            self.proper_elements
-                .get_mut(&order)
-                .unwrap_or_else(|| panic!("Proper elements C{order} not found."))
-                .insert(element)
         };
-        // } else if self.proper_elements.contains_key(&order) {
-        //     self.proper_elements
-        //         .get_mut(&order)
-        //         .unwrap()
-        //         .insert(element)
-        // } else {
-        //     self.proper_elements.insert(order, HashSet::from([element]));
-        //     true
-        // };
+
         let dest_str = if generator {
             "generator".to_owned()
         } else {
@@ -376,6 +383,7 @@ impl Symmetry {
     ///
     /// `true` if the specified element is not present and has just been added,
     /// `false` otherwise.
+    #[allow(clippy::too_many_lines)]
     fn add_improper(
         &mut self,
         order: ElementOrder,
@@ -420,27 +428,43 @@ impl Symmetry {
         let is_mirror_plane = element.is_mirror_plane();
         let is_inversion_centre = element.is_inversion_centre();
         let result = if generator {
-            if let std::collections::hash_map::Entry::Vacant(e) =
-                self.improper_generators.entry(sig_order)
-            {
+            if let Vacant(improper_generators) = self.generators.entry(SIG) {
+                improper_generators.insert(HashMap::from([(order, HashSet::from([element]))]));
+                true
+            } else {
+                let improper_generators = self
+                    .generators
+                    .get_mut(&SIG)
+                    .expect("Improper generators not found.");
+
+                if let Vacant(e) = improper_generators.entry(sig_order) {
+                    e.insert(HashSet::from([element]));
+                    true
+                } else {
+                    improper_generators
+                        .get_mut(&sig_order)
+                        .unwrap_or_else(|| panic!("Improper elements S{sig_order} not found."))
+                        .insert(element)
+                }
+            }
+        } else if let Vacant(improper_elements) = self.elements.entry(SIG) {
+            improper_elements.insert(HashMap::from([(order, HashSet::from([element]))]));
+            true
+        } else {
+            let improper_elements = self
+                .elements
+                .get_mut(&SIG)
+                .expect("Improper elements not found.");
+
+            if let Vacant(e) = improper_elements.entry(sig_order) {
                 e.insert(HashSet::from([element]));
                 true
             } else {
-                self.improper_generators
+                improper_elements
                     .get_mut(&sig_order)
                     .unwrap_or_else(|| panic!("Improper elements S{sig_order} not found."))
                     .insert(element)
             }
-        } else if let std::collections::hash_map::Entry::Vacant(e) =
-            self.improper_elements.entry(sig_order)
-        {
-            e.insert(HashSet::from([element]));
-            true
-        } else {
-            self.improper_elements
-                .get_mut(&sig_order)
-                .unwrap_or_else(|| panic!("Improper elements S{sig_order} not found."))
-                .insert(element)
         };
         let dest_str = if generator {
             "generator".to_owned()
@@ -483,6 +507,74 @@ impl Symmetry {
         result
     }
 
+    /// Obtains elements of a particular kind.
+    ///
+    /// # Arguments
+    ///
+    /// * `kind` - An element kind to be obtained.
+    ///
+    /// # Returns
+    ///
+    /// An optional shared reference to the hash map of the required element kind.
+    #[must_use]
+    pub fn get_elements(
+        &self,
+        kind: &SymmetryElementKind,
+    ) -> Option<&HashMap<ElementOrder, HashSet<SymmetryElement>>> {
+        self.elements.get(kind)
+    }
+
+    /// Obtains elements of a particular kind (mutable).
+    ///
+    /// # Arguments
+    ///
+    /// * `kind` - An element kind to be obtained.
+    ///
+    /// # Returns
+    ///
+    /// An optional exclusive reference to the hash map of the required element kind.
+    #[must_use]
+    pub fn get_elements_mut(
+        &mut self,
+        kind: &SymmetryElementKind,
+    ) -> Option<&mut HashMap<ElementOrder, HashSet<SymmetryElement>>> {
+        self.elements.get_mut(kind)
+    }
+
+    /// Obtains generators of a particular kind.
+    ///
+    /// # Arguments
+    ///
+    /// * `kind` - A generator kind to be obtained.
+    ///
+    /// # Returns
+    ///
+    /// An optional shared reference to the hash map of the required generator kind.
+    #[must_use]
+    pub fn get_generators(
+        &self,
+        kind: &SymmetryElementKind,
+    ) -> Option<&HashMap<ElementOrder, HashSet<SymmetryElement>>> {
+        self.generators.get(kind)
+    }
+
+    /// Obtains generators of a particular kind (mutable).
+    ///
+    /// # Arguments
+    ///
+    /// * `kind` - A generator kind to be obtained.
+    ///
+    /// # Returns
+    ///
+    /// An optional exclusive reference to the hash map of the required generator kind.
+    #[must_use]
+    pub fn get_generators_mut(
+        &mut self,
+        kind: &SymmetryElementKind,
+    ) -> Option<&mut HashMap<ElementOrder, HashSet<SymmetryElement>>> {
+        self.generators.get_mut(kind)
+    }
+
     /// Obtains mirror-plane elements by their type (`"h"`, `"v"`, `"d"`, or `""`).
     ///
     /// # Returns
@@ -491,9 +583,12 @@ impl Symmetry {
     #[must_use]
     pub fn get_sigma_elements(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let order_1 = &ElementOrder::Int(1);
-        if self.improper_elements.contains_key(order_1) {
+        let improper_elements = self
+            .get_elements(&SIG)
+            .expect("No improper elements found.");
+        if improper_elements.contains_key(order_1) {
             Some(
-                self.improper_elements[order_1]
+                improper_elements[order_1]
                     .iter()
                     .filter(|ele| ele.additional_subscript == sigma)
                     .collect(),
@@ -511,9 +606,12 @@ impl Symmetry {
     #[must_use]
     pub fn get_sigma_generators(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         let order_1 = &ElementOrder::Int(1);
-        if self.improper_generators.contains_key(order_1) {
+        let improper_generators = self
+            .get_generators(&SIG)
+            .expect("No improper generators found.");
+        if improper_generators.contains_key(order_1) {
             Some(
-                self.improper_generators[order_1]
+                improper_generators[order_1]
                     .iter()
                     .filter(|ele| ele.additional_subscript == sigma)
                     .collect(),
@@ -531,9 +629,10 @@ impl Symmetry {
     #[must_use]
     pub fn get_max_proper_order(&self) -> ElementOrder {
         *self
-            .proper_generators
+            .get_generators(&ROT)
+            .unwrap_or(&HashMap::new())
             .keys()
-            .chain(self.proper_elements.keys())
+            .chain(self.get_elements(&ROT).unwrap_or(&HashMap::new()).keys())
             .max()
             .expect("No highest proper rotation order could be obtained.")
     }
@@ -547,9 +646,10 @@ impl Symmetry {
     pub fn is_infinite(&self) -> bool {
         self.get_max_proper_order() == ElementOrder::Inf
             || *self
-                .improper_generators
+                .get_generators(&ROT)
+                .unwrap_or(&HashMap::new())
                 .keys()
-                .chain(self.improper_elements.keys())
+                .chain(self.get_elements(&ROT).unwrap_or(&HashMap::new()).keys())
                 .max()
                 .unwrap_or(&ElementOrder::Int(0))
                 == ElementOrder::Inf
@@ -682,7 +782,9 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                             sea_sym.analyse(&sea_presym);
                             log::debug!("Symmetry analysis for spherical top SEA ends.");
                             log::debug!("---------------------------------------------");
-                            for (order, proper_elements) in &sea_sym.proper_elements {
+                            for (order, proper_elements) in
+                                sea_sym.get_elements(&ROT).unwrap_or(&HashMap::new())
+                            {
                                 for proper_element in proper_elements {
                                     if presym.check_proper(order, &proper_element.axis) {
                                         sym.add_proper(
@@ -694,7 +796,9 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                     }
                                 }
                             }
-                            for (order, improper_elements) in &sea_sym.improper_elements {
+                            for (order, improper_elements) in
+                                sea_sym.get_elements(&SIG).unwrap_or(&HashMap::new())
+                            {
                                 for improper_element in improper_elements {
                                     if presym.check_improper(order, &improper_element.axis, &SIG) {
                                         sym.add_improper(

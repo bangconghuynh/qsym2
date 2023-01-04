@@ -1,11 +1,15 @@
-use super::{PreSymmetry, Symmetry};
-use crate::rotsym::RotationalSymmetry;
-use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::SIG;
-use crate::symmetry::symmetry_element_order::{ORDER_1, ORDER_2};
+use std::collections::HashMap;
+
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
+
+use crate::rotsym::RotationalSymmetry;
+use crate::symmetry::symmetry_core::_search_proper_rotations;
+use crate::symmetry::symmetry_element::{ROT, SIG};
+use crate::symmetry::symmetry_element_order::{ORDER_1, ORDER_2};
+
+use super::{PreSymmetry, Symmetry};
 
 impl Symmetry {
     /// Performs point-group detection analysis for an asymmetric-top molecule.
@@ -40,11 +44,15 @@ impl Symmetry {
         ));
 
         _search_proper_rotations(presym, self, true);
-        log::debug!("Proper elements found: {:?}", self.proper_elements);
+        log::debug!("Proper elements found: {:?}", self.get_elements(&ROT));
 
         // Classify into point groups
-        let count_c2 = if self.proper_elements.contains_key(&ORDER_2) {
-            self.proper_elements[&ORDER_2].len()
+        let count_c2 = if self
+            .get_elements(&ROT)
+            .unwrap_or(&HashMap::new())
+            .contains_key(&ORDER_2)
+        {
+            self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2].len()
         } else {
             0
         };
@@ -59,7 +67,7 @@ impl Symmetry {
 
             // Principal axis, which is C2, is also a generator.
             #[allow(clippy::needless_collect)]
-            let c2_axes: Vec<_> = self.proper_elements[&ORDER_2]
+            let c2_axes: Vec<_> = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
                 .iter()
                 .map(|ele| ele.axis)
                 .collect();
@@ -99,7 +107,7 @@ impl Symmetry {
 
                 // Add remaining mirror planes, each of which is
                 // perpendicular to a C2 axis.
-                let c2_axes: Vec<_> = self.proper_elements[&ORDER_2]
+                let c2_axes: Vec<_> = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
                     .iter()
                     .map(|ele| ele.axis)
                     .collect();
@@ -141,7 +149,7 @@ impl Symmetry {
             assert_eq!(max_ord, ORDER_2);
 
             // Principal axis, which is C2, is also a generator.
-            let c2_axis = self.proper_elements[&max_ord]
+            let c2_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
                 .iter()
                 .next()
                 .expect("No C2 axes found.")
@@ -167,7 +175,7 @@ impl Symmetry {
                 );
 
                 // There is one σh.
-                let c2_axis = self.proper_elements[&max_ord]
+                let c2_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
                     .iter()
                     .next()
                     .expect("No C2 axes found.")
@@ -385,7 +393,8 @@ impl Symmetry {
                 if count_sigma > 0 {
                     assert_eq!(count_sigma, 1);
                     let old_sigmas = self
-                        .improper_elements
+                        .get_elements_mut(&SIG)
+                        .expect("No improper elements found.")
                         .remove(&ORDER_1)
                         .expect("No σ found.");
                     assert_eq!(old_sigmas.len(), 1);
@@ -415,7 +424,7 @@ impl Symmetry {
                 } else {
                     self.add_proper(
                         ORDER_1,
-                        self.proper_elements[&ORDER_1]
+                        self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_1]
                             .iter()
                             .next()
                             .expect("No identity found.")
