@@ -175,7 +175,7 @@ pub fn proper_rotation_matrix(angle: f64, axis: &Vector3<f64>, power: i8) -> Mat
 ///
 /// # Panics
 ///
-/// Panics if `kind` is not one of the improper kinds.
+/// Panics if `kind` is not one of the improper kinds, or if `kind` contains time reversal.
 #[must_use]
 pub fn improper_rotation_matrix(
     angle: f64,
@@ -186,19 +186,21 @@ pub fn improper_rotation_matrix(
     let rotmat = proper_rotation_matrix(angle, axis, power);
     let normalised_axis = UnitVector3::new_normalize(*axis);
     match kind {
-        SymmetryElementKind::ImproperMirrorPlane => {
+        SymmetryElementKind::ImproperMirrorPlane(tr) => {
+            assert!(!tr, "Time reversal is not allowed.");
             let refmat = Matrix3::identity()
                 - 2.0 * (f64::from(power % 2)) * outer(&normalised_axis, &normalised_axis);
             refmat * rotmat
         }
-        SymmetryElementKind::ImproperInversionCentre => {
+        SymmetryElementKind::ImproperInversionCentre(tr) => {
+            assert!(!tr, "Time reversal is not allowed.");
             if power % 2 == 1 {
                 -rotmat
             } else {
                 rotmat
             }
         }
-        SymmetryElementKind::Proper => panic!("Only improper kinds are allowed."),
+        SymmetryElementKind::Proper(_) => panic!("Only improper kinds are allowed."),
     }
 }
 
