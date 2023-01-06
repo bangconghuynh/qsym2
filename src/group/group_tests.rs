@@ -11,7 +11,7 @@ use crate::aux::template_molecules;
 use crate::group::{group_from_molecular_symmetry, Group};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, SymmetryOperation};
+use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, ROT};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
@@ -26,7 +26,7 @@ fn test_abstract_group_creation() {
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 2.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -49,7 +49,7 @@ fn test_abstract_group_creation() {
         .proper_order(ElementOrder::Int(29))
         .proper_power(1)
         .axis(Vector3::new(1.0, 0.5, 2.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -78,7 +78,7 @@ fn test_abstract_group_from_molecular_symmetry() {
         .build()
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
+    sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     assert_eq!(group.name, "C3v".to_string());
     assert_eq!(group.order, 6);
@@ -96,7 +96,7 @@ fn test_abstract_group_element_to_conjugacy_class() {
         .build()
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
+    sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     assert_eq!(group.name, "C5v".to_string());
     assert_eq!(group.order, 10);
@@ -125,7 +125,7 @@ fn test_abstract_group_element_sort() {
         .build()
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
+    sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
         group
@@ -158,7 +158,7 @@ fn test_abstract_group_element_sort() {
         .build()
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
+    sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
         group
@@ -235,7 +235,7 @@ fn test_abstract_group_class_matrices() {
         .build()
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
+    sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     let nmat_rst = group.class_matrix.unwrap();
     let mut nmat_srt = nmat_rst.clone();
@@ -311,7 +311,7 @@ fn test_abstract_group(
         .build()
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
+    sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     test_abstract_group_validity(group, name, order, class_number, abelian);
 }
@@ -332,7 +332,7 @@ fn test_abstract_group_from_infinite_group(
         .build()
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
+    sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, Some(finite_order));
     test_abstract_group_validity(group, name, order, class_number, abelian);
 }
@@ -344,7 +344,7 @@ fn test_abstract_group_class_order(mol: &Molecule, thresh: f64, class_order_str:
         .build()
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
+    sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     assert!(group
         .conjugacy_class_symbols

@@ -194,8 +194,7 @@ impl Symmetry {
                         .iter();
                     let normal = c2s.next().expect("No C2 axes found.").axis
                         + c2s.next().expect("Only one C2 axis found.").axis;
-                    if let Some(improper_kind) = presym.check_improper(&ORDER_1, &normal, &SIG, tr)
-                    {
+                    if presym.check_improper(&ORDER_1, &normal, &SIG, tr).is_some() {
                         // σd
                         log::debug!("Located σd.");
                         self.point_group = Some("Td".to_owned());
@@ -396,7 +395,7 @@ impl Symmetry {
 
         if count_c3 == 4 {
             // Tetrahedral or octahedral, C3 axes are also generators.
-            let mut c3s = self
+            let c3s = self
                 .get_elements(&ROT)
                 .unwrap_or(&HashMap::new())
                 .get(&order_3)
@@ -408,7 +407,9 @@ impl Symmetry {
                         .get(&order_3)
                         .unwrap_or(&HashSet::new())
                         .iter(),
-                );
+                )
+                .cloned()
+                .collect::<Vec<_>>();
             for c3 in c3s {
                 self.add_proper(
                     order_3,
@@ -467,16 +468,15 @@ impl Symmetry {
                 .get(&order_4)
                 .unwrap_or(&HashSet::new())
                 .iter()
-                .next()
-                .unwrap_or_else(|| {
+                .chain(
                     self.get_elements(&TRROT)
                         .unwrap_or(&HashMap::new())
                         .get(&order_4)
-                        .unwrap_or(&HashSet::new())
-                        .iter()
-                        .next()
-                        .expect("No C4 axes found.")
-                });
+                        .unwrap_or(&HashSet::new()),
+                )
+                .next()
+                .expect("Expected C4 not found.")
+                .clone();
             self.add_proper(
                 order_4,
                 c4.axis,

@@ -286,7 +286,7 @@ impl Symmetry {
     ///
     /// * presym - A pre-symmetry-analysis struct containing the molecule
     /// and its rotational symmetry required for point-group detection.
-    pub fn analyse(&mut self, presym: &PreSymmetry) {
+    pub fn analyse(&mut self, presym: &PreSymmetry, tr: bool) {
         log::debug!("Rotational symmetry found: {}", presym.rotational_symmetry);
 
         // Add the identity, which must always exist.
@@ -308,13 +308,13 @@ impl Symmetry {
         };
 
         match &presym.rotational_symmetry {
-            RotationalSymmetry::Spherical => self.analyse_spherical(presym),
-            RotationalSymmetry::ProlateLinear => self.analyse_linear(presym),
+            RotationalSymmetry::Spherical => self.analyse_spherical(presym, tr),
+            RotationalSymmetry::ProlateLinear => self.analyse_linear(presym, tr),
             RotationalSymmetry::OblatePlanar
             | RotationalSymmetry::OblateNonPlanar
-            | RotationalSymmetry::ProlateNonLinear => self.analyse_symmetric(presym),
+            | RotationalSymmetry::ProlateNonLinear => self.analyse_symmetric(presym, tr),
             RotationalSymmetry::AsymmetricPlanar | RotationalSymmetry::AsymmetricNonPlanar => {
-                self.analyse_asymmetric(presym);
+                self.analyse_asymmetric(presym, tr);
             }
         }
     }
@@ -353,7 +353,7 @@ impl Symmetry {
         let standard_symbol = element.get_standard_symbol();
         let proper_kind = if tr { TRROT } else { ROT };
         let result = if generator {
-            if let Vacant(proper_generators) = self.generators.entry(proper_kind) {
+            if let Vacant(proper_generators) = self.generators.entry(proper_kind.clone()) {
                 proper_generators.insert(HashMap::from([(order, HashSet::from([element]))]));
                 true
             } else {
@@ -380,7 +380,7 @@ impl Symmetry {
                         .insert(element)
                 }
             }
-        } else if let Vacant(proper_elements) = self.elements.entry(proper_kind) {
+        } else if let Vacant(proper_elements) = self.elements.entry(proper_kind.clone()) {
             proper_elements.insert(HashMap::from([(order, HashSet::from([element]))]));
             true
         } else {
@@ -493,7 +493,7 @@ impl Symmetry {
         let is_inversion_centre = element.is_inversion_centre(tr);
         let improper_kind = if tr { TRSIG } else { SIG };
         let result = if generator {
-            if let Vacant(improper_generators) = self.generators.entry(improper_kind) {
+            if let Vacant(improper_generators) = self.generators.entry(improper_kind.clone()) {
                 improper_generators.insert(HashMap::from([(order, HashSet::from([element]))]));
                 true
             } else {
@@ -524,7 +524,7 @@ impl Symmetry {
                         .insert(element)
                 }
             }
-        } else if let Vacant(improper_elements) = self.elements.entry(improper_kind) {
+        } else if let Vacant(improper_elements) = self.elements.entry(improper_kind.clone()) {
             improper_elements.insert(HashMap::from([(order, HashSet::from([element]))]));
             true
         } else {
@@ -670,19 +670,29 @@ impl Symmetry {
     /// A set of the required mirror-plane element type, if exists.
     #[must_use]
     pub fn get_sigma_elements(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
-        let order_1 = &ElementOrder::Int(1);
-        let improper_elements = self
-            .get_elements(&SIG)
-            .expect("No improper elements found.");
-        if improper_elements.contains_key(order_1) {
-            Some(
-                improper_elements[order_1]
-                    .iter()
-                    .filter(|ele| ele.additional_subscript == sigma)
-                    .collect(),
-            )
-        } else {
+        let mut sigma_elements: HashSet<&SymmetryElement> = HashSet::new();
+        if let Some(improper_elements) = self.get_elements(&SIG) {
+            if let Some(sigmas) = improper_elements.get(&ORDER_1) {
+                sigma_elements.extend(
+                    sigmas
+                        .iter()
+                        .filter(|ele| ele.additional_subscript == sigma),
+                );
+            }
+        }
+        if let Some(tr_improper_elements) = self.get_elements(&TRSIG) {
+            if let Some(sigmas) = tr_improper_elements.get(&ORDER_1) {
+                sigma_elements.extend(
+                    sigmas
+                        .iter()
+                        .filter(|ele| ele.additional_subscript == sigma),
+                );
+            }
+        }
+        if sigma_elements.is_empty() {
             None
+        } else {
+            Some(sigma_elements)
         }
     }
 
@@ -693,19 +703,29 @@ impl Symmetry {
     /// A set of the required mirror-plane generator type, if exists.
     #[must_use]
     pub fn get_sigma_generators(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
-        let order_1 = &ElementOrder::Int(1);
-        let improper_generators = self
-            .get_generators(&SIG)
-            .expect("No improper generators found.");
-        if improper_generators.contains_key(order_1) {
-            Some(
-                improper_generators[order_1]
-                    .iter()
-                    .filter(|ele| ele.additional_subscript == sigma)
-                    .collect(),
-            )
-        } else {
+        let mut sigma_generators: HashSet<&SymmetryElement> = HashSet::new();
+        if let Some(improper_generators) = self.get_generators(&SIG) {
+            if let Some(sigmas) = improper_generators.get(&ORDER_1) {
+                sigma_generators.extend(
+                    sigmas
+                        .iter()
+                        .filter(|ele| ele.additional_subscript == sigma),
+                );
+            }
+        }
+        if let Some(tr_improper_generators) = self.get_elements(&TRSIG) {
+            if let Some(sigmas) = tr_improper_generators.get(&ORDER_1) {
+                sigma_generators.extend(
+                    sigmas
+                        .iter()
+                        .filter(|ele| ele.additional_subscript == sigma),
+                );
+            }
+        }
+        if sigma_generators.is_empty() {
             None
+        } else {
+            Some(sigma_generators)
         }
     }
 
@@ -883,7 +903,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                 .expect("Unable to construct a default `Symmetry` structure.");
                             log::debug!("Symmetry analysis for spherical top SEA begins.");
                             log::debug!("-----------------------------------------------");
-                            sea_sym.analyse(&sea_presym);
+                            sea_sym.analyse(&sea_presym, tr);
                             log::debug!("Symmetry analysis for spherical top SEA ends.");
                             log::debug!("---------------------------------------------");
                             for (order, proper_elements) in sea_sym
@@ -1046,17 +1066,19 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
 
             // Case A: C2 might cross through the midpoint of two atoms
             let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
-            if midvec.norm() > presym.dist_threshold
-                && presym.check_proper(&ORDER_2, &midvec, tr).is_some()
-            {
-                let Some(proper_kind) = presym.check_proper(&ORDER_2, &midvec, tr);
-                count_c2 += usize::from(sym.add_proper(
-                    ORDER_2,
-                    midvec,
-                    false,
-                    presym.dist_threshold,
-                    proper_kind.contains_time_reversal(),
-                ));
+            let c2_check = presym.check_proper(&ORDER_2, &midvec, tr);
+            if midvec.norm() > presym.dist_threshold && c2_check.is_some() {
+                count_c2 += usize::from(
+                    sym.add_proper(
+                        ORDER_2,
+                        midvec,
+                        false,
+                        presym.dist_threshold,
+                        c2_check
+                            .expect("Expected C2 not found.")
+                            .contains_time_reversal(),
+                    ),
+                );
             } else if let Some(electric_atoms) = &presym.molecule.electric_atoms {
                 let com = presym.molecule.calc_com();
                 let e_vector = electric_atoms[0].coordinates - com;

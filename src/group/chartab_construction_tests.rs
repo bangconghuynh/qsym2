@@ -142,7 +142,7 @@ fn test_character_table_construction(
         .build()
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
+    sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     let chartab = group.character_table.as_ref().unwrap();
     test_character_table_validity(chartab, expected_irreps, expected_chars_option);
@@ -163,7 +163,7 @@ fn test_character_table_construction_from_infinite_group(
         .build()
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
-    sym.analyse(&presym);
+    sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, Some(finite_order));
     let chartab = group.character_table.as_ref().unwrap();
     test_character_table_validity(chartab, expected_irreps, expected_chars_option);

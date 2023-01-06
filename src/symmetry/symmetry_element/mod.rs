@@ -383,7 +383,7 @@ impl SymmetryElement {
     /// A flag indicating if this symmetry element is a mirror plane.
     #[must_use]
     pub fn is_mirror_plane(&self, tr: bool) -> bool {
-        (matches!(self.kind, SymmetryElementKind::ImproperMirrorPlane(tr))
+        (self.kind == SymmetryElementKind::ImproperMirrorPlane(tr)
             && self.proper_fraction == Some(F::from(1)))
             || (self.kind == SymmetryElementKind::ImproperInversionCentre(tr)
                 && self.proper_fraction == Some(F::new(1u32, 2u32)))

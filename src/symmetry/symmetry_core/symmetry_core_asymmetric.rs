@@ -85,7 +85,6 @@ impl Symmetry {
             assert_eq!(max_ord, ORDER_2);
 
             // Principal axis, which is C2, is also a generator.
-            #[allow(clippy::needless_collect)]
             let mut c2s = self
                 .get_elements(&ROT)
                 .unwrap_or(&HashMap::new())
@@ -97,7 +96,10 @@ impl Symmetry {
                         .unwrap_or(&HashMap::new())
                         .get(&ORDER_2)
                         .unwrap_or(&HashSet::new()),
-                );
+                )
+                .cloned()
+                .collect_vec()
+                .into_iter();
             let c2 = c2s.next().expect("No C2s found.");
             self.add_proper(
                 max_ord,
@@ -138,7 +140,7 @@ impl Symmetry {
 
                 // Add remaining mirror planes, each of which is
                 // perpendicular to a C2 axis.
-                let mut c2s = self
+                let c2s = self
                     .get_elements(&ROT)
                     .unwrap_or(&HashMap::new())
                     .get(&ORDER_2)
@@ -149,7 +151,9 @@ impl Symmetry {
                             .unwrap_or(&HashMap::new())
                             .get(&ORDER_2)
                             .unwrap_or(&HashSet::new()),
-                    );
+                    )
+                    .cloned()
+                    .collect_vec();
                 for c2 in c2s {
                     let improper_check = presym.check_improper(&ORDER_1, &c2.axis, &SIG, tr);
                     assert!(improper_check.is_some());
@@ -170,10 +174,10 @@ impl Symmetry {
                             .contains_time_reversal(),
                     );
                 }
-                let sigma = self
+                let sigmas = self
                     .get_sigma_elements("")
-                    .expect("No σ found.")
-                    .iter()
+                    .expect("No σ found.");
+                let sigma = sigmas.iter()
                     .next()
                     .expect("No σ found.");
                 self.add_improper(
@@ -213,7 +217,8 @@ impl Symmetry {
                         .iter(),
                 )
                 .next()
-                .expect("No C2s found.");
+                .expect("No C2s found.")
+                .clone();
             self.add_proper(
                 max_ord,
                 c2.axis,
@@ -256,7 +261,8 @@ impl Symmetry {
                             .iter(),
                     )
                     .next()
-                    .expect("No C2s found.");
+                    .expect("No C2s found.")
+                    .clone();
 
                 let improper_check = presym.check_improper(&ORDER_1, &c2.axis, &SIG, tr);
                 assert!(improper_check.is_some());
@@ -268,6 +274,7 @@ impl Symmetry {
                     Some("h".to_owned()),
                     presym.dist_threshold,
                     improper_check
+                        .as_ref()
                         .unwrap_or_else(|| {
                             panic!(
                                 "Expected mirror plane perpendicular to {} not found.",
@@ -360,10 +367,10 @@ impl Symmetry {
                     );
 
                     // In C2v, σv is also a generator.
-                    let sigmav = self
+                    let sigmavs = self
                         .get_sigma_elements("v")
-                        .expect("No σv found.")
-                        .iter()
+                        .expect("No σv found.");
+                    let sigmav = sigmavs.iter()
                         .next()
                         .expect("No σv found.");
                     self.add_improper(
@@ -556,7 +563,8 @@ impl Symmetry {
                         .unwrap_or(&HashSet::new())
                         .iter()
                         .next()
-                        .expect("No identity found.");
+                        .expect("No identity found.")
+                        .clone();
                     self.add_proper(ORDER_1, identity.axis, true, presym.dist_threshold, false);
                     self.point_group = Some("C1".to_owned());
                     log::debug!(

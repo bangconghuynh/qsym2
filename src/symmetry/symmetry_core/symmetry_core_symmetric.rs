@@ -2,11 +2,11 @@ use approx;
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::{SymmetryElement, INV, ROT, SIG};
+use crate::symmetry::symmetry_element::{SymmetryElement, INV, ROT, SIG, TRROT, TRSIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 
 use super::{PreSymmetry, Symmetry};
@@ -36,7 +36,7 @@ impl Symmetry {
     ///
     /// Panics when any inconsistencies are encountered along the point-group detection path.
     #[allow(clippy::too_many_lines)]
-    pub fn analyse_symmetric(&mut self, presym: &PreSymmetry) {
+    pub fn analyse_symmetric(&mut self, presym: &PreSymmetry, tr: bool) {
         let (_mois, _principal_axes) = presym.molecule.calc_moi();
 
         assert!(matches!(
@@ -46,7 +46,7 @@ impl Symmetry {
                 | RotationalSymmetry::OblatePlanar
         ));
 
-        _search_proper_rotations(presym, self, false);
+        _search_proper_rotations(presym, self, false, tr);
 
         // Classify into point groups
         let max_ord = self.get_max_proper_order();
@@ -97,37 +97,72 @@ impl Symmetry {
             log::debug!("Dihedral family.");
 
             // Principal axis is also a generator.
-            self.add_proper(
-                max_ord,
-                self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
-                    .iter()
-                    .next()
-                    .expect("No principal axes found.")
-                    .axis,
-                true,
-                presym.dist_threshold,
-            );
-
-            let principal_element = self.get_elements(&ROT).expect("No proper elements found.")
-                [&max_ord]
+            let principal_element = self
+                .get_elements(&ROT)
+                .unwrap_or(&HashMap::new())
+                .get(&max_ord)
+                .unwrap_or(&HashSet::new())
                 .iter()
-                .next()
-                .expect("No principal axes found.");
-            let c2_element = self.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2]
-                .iter()
-                .find(|c2_ele| {
-                    c2_ele.axis.dot(&principal_element.axis).abs() < presym.dist_threshold
-                })
-                .expect("No C2 axes found.");
-            self.add_proper(ORDER_2, c2_element.axis, true, presym.dist_threshold);
-
-            let principal_element = self.get_elements(&ROT).expect("No proper elements found.")
-                [&max_ord]
-                .iter()
+                .chain(
+                    self.get_elements(&TRROT)
+                        .unwrap_or(&HashMap::new())
+                        .get(&max_ord)
+                        .unwrap_or(&HashSet::new()),
+                )
                 .next()
                 .expect("No principal axes found.")
                 .clone();
-            if presym.check_improper(&ORDER_1, &principal_element.axis, &SIG) {
+            self.add_proper(
+                max_ord,
+                principal_element.axis,
+                true,
+                presym.dist_threshold,
+                principal_element.contains_time_reversal(),
+            );
+
+            let c2_element = self
+                .get_elements(&ROT)
+                .unwrap_or(&HashMap::new())
+                .get(&ORDER_2)
+                .unwrap_or(&HashSet::new())
+                .iter()
+                .chain(
+                    self.get_elements(&TRROT)
+                        .unwrap_or(&HashMap::new())
+                        .get(&ORDER_2)
+                        .unwrap_or(&HashSet::new()),
+                )
+                .find(|c2_ele| {
+                    c2_ele.axis.dot(&principal_element.axis).abs() < presym.dist_threshold
+                })
+                .expect("No C2 axes found.")
+                .clone();
+            self.add_proper(
+                ORDER_2,
+                c2_element.axis,
+                true,
+                presym.dist_threshold,
+                c2_element.contains_time_reversal(),
+            );
+
+            let principal_element = self
+                .get_elements(&ROT)
+                .unwrap_or(&HashMap::new())
+                .get(&max_ord)
+                .unwrap_or(&HashSet::new())
+                .iter()
+                .chain(
+                    self.get_elements(&TRROT)
+                        .unwrap_or(&HashMap::new())
+                        .get(&max_ord)
+                        .unwrap_or(&HashSet::new()),
+                )
+                .next()
+                .expect("No principal axes found.")
+                .clone();
+            if let Some(improper_kind) =
+                presym.check_improper(&ORDER_1, &principal_element.axis, &SIG, tr)
+            {
                 // Dnh (n > 2)
                 assert!(max_ord > ORDER_2);
                 log::debug!("Located σh.");
@@ -143,6 +178,7 @@ impl Symmetry {
                     SIG.clone(),
                     Some("h".to_owned()),
                     presym.dist_threshold,
+                    improper_kind.contains_time_reversal(),
                 );
                 self.add_improper(
                     ORDER_1,
@@ -151,6 +187,7 @@ impl Symmetry {
                     SIG.clone(),
                     Some("h".to_owned()),
                     presym.dist_threshold,
+                    improper_kind.contains_time_reversal(),
                 );
 
                 // Locate all other mirror planes and improper axes
@@ -161,6 +198,11 @@ impl Symmetry {
                     .get_elements(&ROT)
                     .unwrap_or(&HashMap::new())
                     .values()
+                    .chain(
+                        self.get_elements(&TRROT)
+                            .unwrap_or(&HashMap::new())
+                            .values(),
+                    )
                     .fold(vec![], |acc, c_eles| {
                         acc.into_iter()
                             .chain(
@@ -174,7 +216,8 @@ impl Symmetry {
                 if max_ord_u32 % 2 == 0 {
                     // Dnh, n even, an inversion centre is expected.
                     let z_vec = Vector3::new(0.0, 0.0, 1.0);
-                    assert!(presym.check_improper(&ORDER_2, &z_vec, &SIG));
+                    let inversion_check = presym.check_improper(&ORDER_2, &z_vec, &SIG, tr);
+                    assert!(inversion_check.is_some());
                     self.add_improper(
                         ORDER_2,
                         z_vec,
@@ -182,26 +225,41 @@ impl Symmetry {
                         SIG.clone(),
                         None,
                         presym.dist_threshold,
+                        inversion_check
+                            .expect("Expected inversion centre not found.")
+                            .contains_time_reversal(),
                     );
 
                     for c_element in non_id_c_elements {
-                        let principal_element =
-                            self.get_elements(&ROT).expect("No proper elements found.")[&max_ord]
-                                .iter()
-                                .next()
-                                .expect("No principal axes found.");
+                        let principal_element = self
+                            .get_elements(&ROT)
+                            .unwrap_or(&HashMap::new())
+                            .get(&max_ord)
+                            .unwrap_or(&HashSet::new())
+                            .iter()
+                            .chain(
+                                self.get_elements(&TRROT)
+                                    .unwrap_or(&HashMap::new())
+                                    .get(&max_ord)
+                                    .unwrap_or(&HashSet::new()),
+                            )
+                            .next()
+                            .expect("No principal axes found.")
+                            .clone();
                         let sigma_symbol = _deduce_sigma_symbol(
                             &c_element.axis,
-                            principal_element,
+                            &principal_element,
                             presym.dist_threshold,
                             false,
                         );
                         // iCn
-                        assert!(presym.check_improper(
+                        let icn_check = presym.check_improper(
                             &c_element.proper_order,
                             &c_element.axis,
-                            &INV
-                        ));
+                            &INV,
+                            tr,
+                        );
+                        assert!(icn_check.is_some());
                         self.add_improper(
                             c_element.proper_order,
                             c_element.axis,
@@ -209,6 +267,9 @@ impl Symmetry {
                             INV.clone(),
                             sigma_symbol,
                             presym.dist_threshold,
+                            icn_check
+                                .expect("Expected iCn not found.")
+                                .contains_time_reversal(),
                         );
                     }
                 } else {
@@ -220,31 +281,45 @@ impl Symmetry {
                         .next()
                         .expect("No σh found.")
                         .clone();
-                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym);
+                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym, tr);
                 }
             }
             // end Dnh
             else {
                 // Dnd
-                let sigmad_axes = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
+                let sigmad_axes = self
+                    .get_elements(&ROT)
+                    .unwrap_or(&HashMap::new())
+                    .get(&ORDER_2)
+                    .unwrap_or(&HashSet::new())
                     .iter()
+                    .chain(
+                        self.get_elements(&TRROT)
+                            .unwrap_or(&HashMap::new())
+                            .get(&ORDER_2)
+                            .unwrap_or(&HashSet::new()),
+                    )
                     .combinations(2)
                     .fold(vec![], |mut acc, c2_elements| {
                         let c2_axis_i = c2_elements[0].axis;
                         let c2_axis_j = c2_elements[1].axis;
                         let axis_p = (c2_axis_i + c2_axis_j).normalize();
-                        if presym.check_improper(&ORDER_1, &axis_p, &SIG) {
-                            acc.push(axis_p);
+                        if let Some(improper_kind) =
+                            presym.check_improper(&ORDER_1, &axis_p, &SIG, tr)
+                        {
+                            acc.push((axis_p, improper_kind.contains_time_reversal()));
                         };
                         let axis_m = (c2_axis_i - c2_axis_j).normalize();
-                        if presym.check_improper(&ORDER_1, &axis_m, &SIG) {
-                            acc.push(axis_m);
+                        if let Some(improper_kind) =
+                            presym.check_improper(&ORDER_1, &axis_m, &SIG, tr)
+                        {
+                            acc.push((axis_m, improper_kind.contains_time_reversal()));
                         };
                         acc
                     });
 
                 let mut count_sigmad = 0u32;
-                for sigmad_axis in sigmad_axes {
+                for (sigmad_axis, sigmad_axis_tr) in sigmad_axes {
                     count_sigmad += u32::from(self.add_improper(
                         ORDER_1,
                         sigmad_axis,
@@ -252,6 +327,7 @@ impl Symmetry {
                         SIG.clone(),
                         Some("d".to_owned()),
                         presym.dist_threshold,
+                        sigmad_axis_tr,
                     ));
                     if count_sigmad == max_ord_u32 {
                         break;
@@ -261,20 +337,16 @@ impl Symmetry {
 
                 if count_sigmad == max_ord_u32 {
                     // Dnd
-                    let sigmad_axis = self
-                        .get_sigma_elements("d")
-                        .expect("No σd found.")
-                        .iter()
-                        .next()
-                        .expect("No σd found.")
-                        .axis;
+                    let sigmads = self.get_sigma_elements("d").expect("No σd found.");
+                    let sigmad = sigmads.iter().next().expect("No σd found.");
                     self.add_improper(
                         ORDER_1,
-                        sigmad_axis,
+                        sigmad.axis,
                         true,
                         SIG.clone(),
                         Some("d".to_owned()),
                         presym.dist_threshold,
+                        sigmad.contains_time_reversal(),
                     );
                     self.point_group = Some(format!("D{max_ord}d"));
                     log::debug!(
@@ -288,6 +360,11 @@ impl Symmetry {
                             .get_elements(&ROT)
                             .unwrap_or(&HashMap::new())
                             .values()
+                            .chain(
+                                self.get_elements(&TRROT)
+                                    .unwrap_or(&HashMap::new())
+                                    .values(),
+                            )
                             .fold(vec![], |acc, c_eles| {
                                 acc.into_iter()
                                     .chain(
@@ -303,7 +380,9 @@ impl Symmetry {
                                 2.0 * c_element.proper_order.to_float(),
                                 f64::EPSILON,
                             );
-                            if presym.check_improper(&double_order, &c_element.axis, &SIG) {
+                            if let Some(improper_kind) =
+                                presym.check_improper(&double_order, &c_element.axis, &SIG, tr)
+                            {
                                 self.add_improper(
                                     double_order,
                                     c_element.axis,
@@ -311,13 +390,15 @@ impl Symmetry {
                                     SIG.clone(),
                                     None,
                                     presym.dist_threshold,
+                                    improper_kind.contains_time_reversal(),
                                 );
                             }
                         }
                     } else {
                         // Dnd, n odd, an inversion centre is expected.
                         let vec_z = Vector3::new(0.0, 0.0, 1.0);
-                        assert!(presym.check_improper(&ORDER_2, &vec_z, &SIG));
+                        let inversion_check = presym.check_improper(&ORDER_2, &vec_z, &SIG, tr);
+                        assert!(inversion_check.is_some());
                         self.add_improper(
                             ORDER_2,
                             vec_z,
@@ -325,11 +406,19 @@ impl Symmetry {
                             SIG.clone(),
                             None,
                             presym.dist_threshold,
+                            inversion_check
+                                .expect("Expected inversion centre not found.")
+                                .contains_time_reversal(),
                         );
                         let non_id_c_elements = self
                             .get_elements(&ROT)
                             .unwrap_or(&HashMap::new())
                             .values()
+                            .chain(
+                                self.get_elements(&TRROT)
+                                    .unwrap_or(&HashMap::new())
+                                    .values(),
+                            )
                             .fold(vec![], |acc, c_eles| {
                                 acc.into_iter()
                                     .chain(
@@ -343,21 +432,32 @@ impl Symmetry {
                         for c_element in non_id_c_elements {
                             let principal_element = self
                                 .get_elements(&ROT)
-                                .expect("No proper elements found.")[&max_ord]
+                                .unwrap_or(&HashMap::new())
+                                .get(&max_ord)
+                                .unwrap_or(&HashSet::new())
                                 .iter()
+                                .chain(
+                                    self.get_elements(&TRROT)
+                                        .unwrap_or(&HashMap::new())
+                                        .get(&max_ord)
+                                        .unwrap_or(&HashSet::new()),
+                                )
                                 .next()
-                                .expect("No principal axes found.");
+                                .expect("No principal axes found.")
+                                .clone();
                             let sigma_symbol = _deduce_sigma_symbol(
                                 &c_element.axis,
-                                principal_element,
+                                &principal_element,
                                 presym.dist_threshold,
                                 true, // sigma_v forced to become sigma_d
                             );
-                            assert!(presym.check_improper(
+                            let icn_check = presym.check_improper(
                                 &c_element.proper_order,
                                 &c_element.axis,
-                                &INV
-                            ));
+                                &INV,
+                                tr,
+                            );
+                            assert!(icn_check.is_some());
                             self.add_improper(
                                 c_element.proper_order,
                                 c_element.axis,
@@ -365,6 +465,9 @@ impl Symmetry {
                                 INV.clone(),
                                 sigma_symbol,
                                 presym.dist_threshold,
+                                icn_check
+                                    .expect("Expected iCn not found.")
+                                    .contains_time_reversal(),
                             );
                         }
                     }
@@ -395,17 +498,28 @@ impl Symmetry {
                     if count_sigma == max_ord_u32 {
                         break;
                     }
-                    let principal_element =
-                        self.get_elements(&ROT).expect("No proper elements found.")[&max_ord]
-                            .iter()
-                            .next()
-                            .expect("No principal axes found.");
+                    let principal_element = self
+                        .get_elements(&ROT)
+                        .unwrap_or(&HashMap::new())
+                        .get(&max_ord)
+                        .unwrap_or(&HashSet::new())
+                        .iter()
+                        .chain(
+                            self.get_elements(&TRROT)
+                                .unwrap_or(&HashMap::new())
+                                .get(&max_ord)
+                                .unwrap_or(&HashSet::new()),
+                        )
+                        .next()
+                        .expect("No principal axes found.")
+                        .clone();
                     let normal =
                         (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords).normalize();
-                    if presym.check_improper(&ORDER_1, &normal, &SIG) {
+                    if let Some(improper_kind) = presym.check_improper(&ORDER_1, &normal, &SIG, tr)
+                    {
                         let sigma_symbol = _deduce_sigma_symbol(
                             &normal,
-                            principal_element,
+                            &principal_element,
                             presym.dist_threshold,
                             false,
                         );
@@ -416,12 +530,12 @@ impl Symmetry {
                             SIG.clone(),
                             sigma_symbol,
                             presym.dist_threshold,
+                            improper_kind.contains_time_reversal(),
                         ));
                     }
                 }
             }
 
-            #[allow(clippy::blocks_in_if_conditions)]
             if count_sigma == max_ord_u32 {
                 if max_ord_u32 > 1 {
                     // Cnv (n > 2)
@@ -431,27 +545,42 @@ impl Symmetry {
                         "Point group determined: {}",
                         self.point_group.as_ref().expect("No point groups found.")
                     );
-                    let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())
-                        [&max_ord]
+                    let principal_element = self
+                        .get_elements(&ROT)
+                        .unwrap_or(&HashMap::new())
+                        .get(&max_ord)
+                        .unwrap_or(&HashSet::new())
                         .iter()
+                        .chain(
+                            self.get_elements(&TRROT)
+                                .unwrap_or(&HashMap::new())
+                                .get(&max_ord)
+                                .unwrap_or(&HashSet::new()),
+                        )
                         .next()
                         .expect("No principal axes found.")
-                        .axis;
-                    self.add_proper(max_ord, principal_axis, true, presym.dist_threshold);
-                    let sigma_v_normal = self
+                        .clone();
+                    self.add_proper(
+                        max_ord,
+                        principal_element.axis,
+                        true,
+                        presym.dist_threshold,
+                        principal_element.contains_time_reversal(),
+                    );
+                    let sigmavs = self
                         .get_sigma_elements("v")
-                        .expect("No σv found.")
-                        .iter()
+                        .expect("No σv found.");
+                    let sigmav = sigmavs.iter()
                         .next()
-                        .expect("No σv found.")
-                        .axis;
+                        .expect("No σv found.");
                     self.add_improper(
                         ORDER_1,
-                        sigma_v_normal,
+                        sigmav.axis,
                         true,
                         SIG.clone(),
                         Some("v".to_owned()),
                         presym.dist_threshold,
+                        sigmav.contains_time_reversal(),
                     );
                 } else {
                     // Cs
@@ -461,11 +590,19 @@ impl Symmetry {
                         "Point group determined: {}",
                         self.point_group.as_ref().expect("No point groups found.")
                     );
-                    let old_sigmas = self
+                    let old_sigmas = if self.elements.contains_key(&SIG) {
+                        self
                         .get_elements_mut(&SIG)
                         .expect("No improper elements found.")
                         .remove(&ORDER_1)
-                        .expect("No σ found.");
+                        .expect("No σ found.")
+                    } else {
+                        self
+                        .get_elements_mut(&TRSIG)
+                        .expect("No time-reversed improper elements found.")
+                        .remove(&ORDER_1)
+                        .expect("No σ found.")
+                    };
                     debug_assert_eq!(old_sigmas.len(), 1);
                     let old_sigma = old_sigmas.into_iter().next().expect("No σ found.");
                     self.add_improper(
@@ -475,6 +612,7 @@ impl Symmetry {
                         SIG.clone(),
                         Some("h".to_owned()),
                         presym.dist_threshold,
+                        old_sigma.contains_time_reversal(),
                     );
                     self.add_improper(
                         ORDER_1,
@@ -483,171 +621,199 @@ impl Symmetry {
                         SIG.clone(),
                         Some("h".to_owned()),
                         presym.dist_threshold,
-                    );
-                }
-            } else if {
-                let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
-                    .iter()
-                    .next()
-                    .expect("No principal axes found.")
-                    .axis;
-                presym.check_improper(&ORDER_1, &principal_axis, &SIG)
-            } {
-                // Cnh (n > 2)
-                assert_eq!(count_sigma, 1);
-                log::debug!("Found no σv planes but one σh plane.");
-                self.point_group = Some(format!("C{max_ord}h"));
-                let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
-                    .iter()
-                    .next()
-                    .expect("No principal axes found.")
-                    .axis;
-                self.add_proper(max_ord, principal_axis, true, presym.dist_threshold);
-                self.add_improper(
-                    ORDER_1,
-                    principal_axis,
-                    true,
-                    SIG.clone(),
-                    Some("h".to_owned()),
-                    presym.dist_threshold,
-                );
-
-                // Locate the remaining improper elements
-                let non_id_c_elements = self
-                    .get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .values()
-                    .fold(vec![], |acc, c_eles| {
-                        acc.into_iter()
-                            .chain(
-                                c_eles
-                                    .iter()
-                                    .filter(|ele| ele.proper_order != ORDER_1)
-                                    .cloned(),
-                            )
-                            .collect()
-                    });
-                if max_ord_u32 % 2 == 0 {
-                    // Cnh, n even, an inversion centre is expected.
-                    let vec_z = Vector3::new(0.0, 0.0, 1.0);
-                    assert!(presym.check_improper(&ORDER_2, &vec_z, &SIG));
-                    self.add_improper(
-                        ORDER_2,
-                        vec_z,
-                        false,
-                        SIG.clone(),
-                        None,
-                        presym.dist_threshold,
-                    );
-                    for c_element in non_id_c_elements {
-                        let principal_element =
-                            self.get_elements(&ROT).expect("No proper elements found.")[&max_ord]
-                                .iter()
-                                .next()
-                                .expect("No principal axes found.");
-                        let sigma_symbol = _deduce_sigma_symbol(
-                            &c_element.axis,
-                            principal_element,
-                            presym.dist_threshold,
-                            false,
-                        );
-                        // iCn
-                        assert!(presym.check_improper(
-                            &c_element.proper_order,
-                            &c_element.axis,
-                            &INV
-                        ));
-                        self.add_improper(
-                            c_element.proper_order,
-                            c_element.axis,
-                            false,
-                            INV.clone(),
-                            sigma_symbol,
-                            presym.dist_threshold,
-                        );
-                    }
-                } else {
-                    // Cnh, n odd, only σh is present.
-                    let sigma_h = self
-                        .get_sigma_elements("h")
-                        .expect("No σh found.")
-                        .into_iter()
-                        .next()
-                        .expect("No σh found.")
-                        .clone();
-                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym);
-                }
-            } else if {
-                let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
-                let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
-                    .iter()
-                    .next()
-                    .expect("No principle axis found.")
-                    .axis;
-                presym.check_improper(&double_max_ord, &principal_axis, &SIG)
-            } {
-                // S2n
-                let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
-                self.point_group = if double_max_ord == ElementOrder::Int(2) {
-                    // S2 is Ci.
-                    Some("Ci".to_string())
-                } else {
-                    Some(format!("S{double_max_ord}"))
-                };
-                log::debug!(
-                    "Point group determined: {}",
-                    self.point_group.as_ref().expect("No point groups found.")
-                );
-                let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
-                    .iter()
-                    .next()
-                    .expect("No principle axis found.")
-                    .axis;
-                self.add_improper(
-                    double_max_ord,
-                    principal_axis,
-                    false,
-                    SIG.clone(),
-                    None,
-                    presym.dist_threshold,
-                );
-                self.add_improper(
-                    double_max_ord,
-                    principal_axis,
-                    true,
-                    SIG.clone(),
-                    None,
-                    presym.dist_threshold,
-                );
-
-                // Locate the remaining improper symmetry elements
-                if max_ord_u32 % 2 != 0 {
-                    // Odd rotation sub groups, an inversion centre is expected.
-                    let vec_z = Vector3::new(0.0, 0.0, 1.0);
-                    assert!(presym.check_improper(&ORDER_2, &vec_z, &SIG));
-                    self.add_improper(
-                        ORDER_2,
-                        vec_z,
-                        false,
-                        SIG.clone(),
-                        None,
-                        presym.dist_threshold,
+                        old_sigma.contains_time_reversal(),
                     );
                 }
             } else {
-                // Cn (n > 2)
-                self.point_group = Some(format!("C{max_ord}"));
-                log::debug!(
-                    "Point group determined: {}",
-                    self.point_group.as_ref().expect("No point groups found.")
-                );
-                let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
+                let principal_element = self
+                    .get_elements(&ROT)
+                    .unwrap_or(&HashMap::new())
+                    .get(&max_ord)
+                    .unwrap_or(&HashSet::new())
                     .iter()
+                    .chain(
+                        self.get_elements(&TRROT)
+                            .unwrap_or(&HashMap::new())
+                            .get(&max_ord)
+                            .unwrap_or(&HashSet::new()),
+                    )
                     .next()
                     .expect("No principal axes found.")
-                    .axis;
-                self.add_proper(max_ord, principal_axis, true, presym.dist_threshold);
-            };
+                    .clone();
+                if let Some(improper_kind) =
+                    presym.check_improper(&ORDER_1, &principal_element.axis, &SIG, tr)
+                {
+                    // Cnh (n > 2)
+                    assert_eq!(count_sigma, 1);
+                    log::debug!("Found no σv planes but one σh plane.");
+                    self.point_group = Some(format!("C{max_ord}h"));
+                    self.add_proper(
+                        max_ord,
+                        principal_element.axis,
+                        true,
+                        presym.dist_threshold,
+                        principal_element.contains_time_reversal(),
+                    );
+                    self.add_improper(
+                        ORDER_1,
+                        principal_element.axis,
+                        true,
+                        SIG.clone(),
+                        Some("h".to_owned()),
+                        presym.dist_threshold,
+                        improper_kind.contains_time_reversal(),
+                    );
+
+                    // Locate the remaining improper elements
+                    let non_id_c_elements = self
+                        .get_elements(&ROT)
+                        .unwrap_or(&HashMap::new())
+                        .values()
+                        .chain(
+                            self.get_elements(&TRROT)
+                                .unwrap_or(&HashMap::new())
+                                .values(),
+                        )
+                        .fold(vec![], |acc, c_eles| {
+                            acc.into_iter()
+                                .chain(
+                                    c_eles
+                                        .iter()
+                                        .filter(|ele| ele.proper_order != ORDER_1)
+                                        .cloned(),
+                                )
+                                .collect()
+                        });
+                    if max_ord_u32 % 2 == 0 {
+                        // Cnh, n even, an inversion centre is expected.
+                        let vec_z = Vector3::new(0.0, 0.0, 1.0);
+                        let inversion_check = presym.check_improper(&ORDER_2, &vec_z, &SIG, tr);
+                        assert!(inversion_check.is_some());
+                        self.add_improper(
+                            ORDER_2,
+                            vec_z,
+                            false,
+                            SIG.clone(),
+                            None,
+                            presym.dist_threshold,
+                            inversion_check
+                                .expect("Expected inversion centre not found.")
+                                .contains_time_reversal(),
+                        );
+                        for c_element in non_id_c_elements {
+                            let principal_element = self
+                                .get_elements(&ROT)
+                                .expect("No proper elements found.")[&max_ord]
+                                .iter()
+                                .next()
+                                .expect("No principal axes found.");
+                            let sigma_symbol = _deduce_sigma_symbol(
+                                &c_element.axis,
+                                principal_element,
+                                presym.dist_threshold,
+                                false,
+                            );
+                            // iCn
+                            let icn_check = presym.check_improper(
+                                &c_element.proper_order,
+                                &c_element.axis,
+                                &INV,
+                                tr,
+                            );
+                            assert!(icn_check.is_some());
+                            self.add_improper(
+                                c_element.proper_order,
+                                c_element.axis,
+                                false,
+                                INV.clone(),
+                                sigma_symbol,
+                                presym.dist_threshold,
+                                icn_check
+                                    .expect("Expected iCn not found.")
+                                    .contains_time_reversal(),
+                            );
+                        }
+                    } else {
+                        // Cnh, n odd, only σh is present.
+                        let sigma_h = self
+                            .get_sigma_elements("h")
+                            .expect("No σh found.")
+                            .into_iter()
+                            .next()
+                            .expect("No σh found.")
+                            .clone();
+                        _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym, tr);
+                    }
+                } else {
+                    let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
+                    if let Some(improper_kind) =
+                        presym.check_improper(&double_max_ord, &principal_element.axis, &SIG, tr)
+                    {
+                        // S2n
+                        self.point_group = if double_max_ord == ElementOrder::Int(2) {
+                            // S2 is Ci.
+                            Some("Ci".to_string())
+                        } else {
+                            Some(format!("S{double_max_ord}"))
+                        };
+                        log::debug!(
+                            "Point group determined: {}",
+                            self.point_group.as_ref().expect("No point groups found.")
+                        );
+                        self.add_improper(
+                            double_max_ord,
+                            principal_element.axis,
+                            false,
+                            SIG.clone(),
+                            None,
+                            presym.dist_threshold,
+                            improper_kind.contains_time_reversal(),
+                        );
+                        self.add_improper(
+                            double_max_ord,
+                            principal_element.axis,
+                            true,
+                            SIG.clone(),
+                            None,
+                            presym.dist_threshold,
+                            improper_kind.contains_time_reversal(),
+                        );
+
+                        // Locate the remaining improper symmetry elements
+                        if max_ord_u32 % 2 != 0 {
+                            // Odd rotation sub groups, an inversion centre is expected.
+                            let vec_z = Vector3::new(0.0, 0.0, 1.0);
+                            let inversion_check = presym.check_improper(&ORDER_2, &vec_z, &SIG, tr);
+                            assert!(inversion_check.is_some());
+                            self.add_improper(
+                                ORDER_2,
+                                vec_z,
+                                false,
+                                SIG.clone(),
+                                None,
+                                presym.dist_threshold,
+                                inversion_check
+                                    .expect("Expected inversion centre not found.")
+                                    .contains_time_reversal(),
+                            );
+                        }
+                    } else {
+                        // Cn (n > 2)
+                        self.point_group = Some(format!("C{max_ord}"));
+                        log::debug!(
+                            "Point group determined: {}",
+                            self.point_group.as_ref().expect("No point groups found.")
+                        );
+                        self.add_proper(
+                            max_ord,
+                            principal_element.axis,
+                            true,
+                            presym.dist_threshold,
+                            principal_element.contains_time_reversal(),
+                        );
+                    }
+                }
+            }
         }
     }
 }
@@ -714,8 +880,9 @@ fn _add_sigmahcn(
     sigma_h: &SymmetryElement,
     non_id_c_elements: Vec<SymmetryElement>,
     presym: &PreSymmetry,
+    tr: bool,
 ) {
-    assert!(sigma_h.is_mirror_plane());
+    assert!(sigma_h.is_mirror_plane(false) || sigma_h.is_mirror_plane(true));
     for c_element in non_id_c_elements {
         if approx::relative_eq!(
             c_element.axis.cross(&sigma_h.axis).norm(),
@@ -725,7 +892,9 @@ fn _add_sigmahcn(
         ) {
             // Cn is orthogonal to σh. The product Cn * σh is Sn.
             log::debug!("Cn is orthogonal to σh.");
-            assert!(presym.check_improper(&c_element.proper_order, &c_element.axis, &SIG));
+            let sn_check =
+                presym.check_improper(&c_element.proper_order, &c_element.axis, &SIG, tr);
+            assert!(sn_check.is_some());
             let sigma_symbol = if c_element.proper_order == ORDER_1 {
                 Some("h".to_owned())
             } else {
@@ -738,6 +907,9 @@ fn _add_sigmahcn(
                 SIG.clone(),
                 sigma_symbol,
                 presym.dist_threshold,
+                sn_check
+                    .expect("Expected Sn axis not found.")
+                    .contains_time_reversal(),
             );
         } else {
             // Cn is C2 and is contained in σh.
@@ -751,7 +923,8 @@ fn _add_sigmahcn(
             assert_eq!(c_element.proper_order, ORDER_2);
             log::debug!("Cn is C2 and must therefore be contained in σh.");
             let s_axis = c_element.axis.cross(&sigma_h.axis).normalize();
-            assert!(presym.check_improper(&ORDER_1, &s_axis, &SIG));
+            let sigmav_check = presym.check_improper(&ORDER_1, &s_axis, &SIG, tr);
+            assert!(sigmav_check.is_some());
             sym.add_improper(
                 ORDER_1,
                 s_axis,
@@ -759,6 +932,9 @@ fn _add_sigmahcn(
                 SIG.clone(),
                 Some("v".to_owned()),
                 presym.dist_threshold,
+                sigmav_check
+                    .expect("Expected σv not found.")
+                    .contains_time_reversal(),
             );
         }
     }
