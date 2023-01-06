@@ -717,6 +717,57 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_c3() {
 }
 
 #[test]
+fn test_point_group_detection_symmetric_ch4_magnetic_field_bw_c3v() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    assert_eq!(magsym.point_group, Some("C3v".to_owned()));
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ElementOrder::Int(3)]
+            .len(),
+        1
+    );
+    assert!(magsym.get_elements(&TRROT).is_none());
+    assert!(magsym.get_elements(&SIG).is_none());
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ElementOrder::Int(1)]
+            .len(),
+        3
+    );
+    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 3);
+
+    assert_eq!(
+        magsym
+            .get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(3)]
+            .len(),
+        1
+    );
+    assert!(magsym.get_generators(&TRROT).is_none());
+    assert!(magsym.get_generators(&SIG).is_none());
+    assert_eq!(
+        magsym
+            .get_generators(&TRSIG)
+            .expect("No improper generators found.")[&ElementOrder::Int(1)]
+            .len(),
+        1
+    );
+    assert_eq!(magsym.get_sigma_generators("v").unwrap().len(), 1);
+}
+
+#[test]
 fn test_point_group_detection_symmetric_adamantane_magnetic_field_c3() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
@@ -740,6 +791,57 @@ fn test_point_group_detection_symmetric_adamantane_magnetic_field_c3() {
             .len(),
         1
     );
+}
+
+#[test]
+fn test_point_group_detection_symmetric_adamantane_magnetic_field_bw_c3v() {
+    env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.1)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    assert_eq!(magsym.point_group, Some("C3v".to_owned()));
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ElementOrder::Int(3)]
+            .len(),
+        1
+    );
+    assert!(magsym.get_elements(&TRROT).is_none());
+    assert!(magsym.get_elements(&SIG).is_none());
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ElementOrder::Int(1)]
+            .len(),
+        3
+    );
+    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 3);
+
+    assert_eq!(
+        magsym
+            .get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(3)]
+            .len(),
+        1
+    );
+    assert!(magsym.get_generators(&TRROT).is_none());
+    assert!(magsym.get_generators(&SIG).is_none());
+    assert_eq!(
+        magsym
+            .get_generators(&TRSIG)
+            .expect("No improper generators found.")[&ElementOrder::Int(1)]
+            .len(),
+        1
+    );
+    assert_eq!(magsym.get_sigma_generators("v").unwrap().len(), 1);
 }
 
 #[test]

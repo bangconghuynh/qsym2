@@ -281,7 +281,9 @@ impl Symmetry {
     }
 
     pub fn new() -> Self {
-        Symmetry::builder().build().expect("Unable to construct a `Symmetry` structure.")
+        Symmetry::builder()
+            .build()
+            .expect("Unable to construct a `Symmetry` structure.")
     }
 
     /// Performs point-group detection analysis.
@@ -862,8 +864,14 @@ impl Symmetry {
 /// * `tr` - A flag indicating if time reversal should also be considered.
 #[allow(clippy::too_many_lines)]
 fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric: bool, tr: bool) {
+    log::debug!("==============================");
+    log::debug!("Proper rotation search begins.");
+    log::debug!("==============================");
     let mut linear_sea_groups: Vec<&Vec<Atom>> = vec![];
     let mut count_c2: usize = 0;
+    log::debug!("++++++++++++++++++++++++++");
+    log::debug!("SEA group analysis begins.");
+    log::debug!("++++++++++++++++++++++++++");
     for sea_group in &presym.sea_groups {
         if asymmetric && count_c2 == 3 {
             break;
@@ -974,9 +982,11 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                             let mut sea_sym = Symmetry::builder()
                                 .build()
                                 .expect("Unable to construct a default `Symmetry` structure.");
+                            log::debug!("-----------------------------------------------");
                             log::debug!("Symmetry analysis for spherical top SEA begins.");
                             log::debug!("-----------------------------------------------");
                             sea_sym.analyse(&sea_presym, tr);
+                            log::debug!("---------------------------------------------");
                             log::debug!("Symmetry analysis for spherical top SEA ends.");
                             log::debug!("---------------------------------------------");
                             for (order, proper_elements) in sea_sym
@@ -1004,28 +1014,46 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                     }
                                 }
                             }
-                            for (order, improper_elements) in
-                                sea_sym.get_elements(&SIG).unwrap_or(&HashMap::new())
-                            {
-                                for improper_element in improper_elements {
-                                    if let Some(improper_kind) = presym.check_improper(
-                                        order,
-                                        &improper_element.axis,
-                                        &SIG,
-                                        tr,
-                                    ) {
-                                        sym.add_improper(
-                                            *order,
-                                            improper_element.axis,
-                                            false,
-                                            SIG.clone(),
-                                            None,
-                                            presym.dist_threshold,
-                                            improper_kind.contains_time_reversal(),
-                                        );
-                                    }
-                                }
-                            }
+
+                            // BCH Jan 2023: The following shouldn't be here as this function is
+                            // only to locate proper rotations. Including the following results in
+                            // premature additions of mirror planes in
+                            // adamantane_magnetic_field_bw_c3v case that cause the main symmetric
+                            // algorithm to later fail to register these mirror planes.
+                            // for (order, improper_elements) in sea_sym
+                            //     .get_elements(&SIG)
+                            //     .unwrap_or(&HashMap::new())
+                            //     .iter()
+                            //     .chain(
+                            //         sea_sym
+                            //             .get_elements(&TRSIG)
+                            //             .unwrap_or(&HashMap::new())
+                            //             .iter(),
+                            //     )
+                            // {
+                            //     for improper_element in improper_elements {
+                            //         if let Some(improper_kind) = presym.check_improper(
+                            //             order,
+                            //             &improper_element.axis,
+                            //             &SIG,
+                            //             tr,
+                            //         ) {
+                            //             log::debug!(
+                            //                 "Check improper passed for {}.",
+                            //                 improper_element
+                            //             );
+                            //             sym.add_improper(
+                            //                 *order,
+                            //                 improper_element.axis,
+                            //                 false,
+                            //                 SIG.clone(),
+                            //                 None,
+                            //                 presym.dist_threshold,
+                            //                 improper_kind.contains_time_reversal(),
+                            //             );
+                            //         }
+                            //     }
+                            // }
                         } else {
                             // Prolate symmetric top
                             log::debug!("A prolate symmetric top SEA set detected.");
@@ -1167,6 +1195,9 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
             }
         }
     } // end for sea_group in presym.sea_groups.iter()
+    log::debug!("++++++++++++++++++++++++");
+    log::debug!("SEA group analysis ends.");
+    log::debug!("++++++++++++++++++++++++");
 
     if asymmetric && count_c2 == 3 {
     } else {
@@ -1196,6 +1227,9 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
             }
         }
     }
+    log::debug!("============================");
+    log::debug!("Proper rotation search ends.");
+    log::debug!("============================");
 }
 
 mod symmetry_core_asymmetric;
