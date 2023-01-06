@@ -400,10 +400,10 @@ impl SymmetryElement {
     pub fn get_standard_symbol(&self) -> String {
         let main_symbol: String = match self.kind {
             SymmetryElementKind::Proper(tr) => {
-                format!("{}C", if tr { "θ" } else { "" })
+                format!("{}C", if tr { "θ·" } else { "" })
             }
             SymmetryElementKind::ImproperMirrorPlane(tr) => {
-                let tr_sym = if tr { "θ" } else { "" };
+                let tr_sym = if tr { "θ·" } else { "" };
                 if self.proper_order != ElementOrder::Inf && self.proper_power == Some(1) {
                     format!("{tr_sym}S")
                 } else {
@@ -411,7 +411,7 @@ impl SymmetryElement {
                 }
             }
             SymmetryElementKind::ImproperInversionCentre(tr) => {
-                let tr_sym = if tr { "θ" } else { "" };
+                let tr_sym = if tr { "θ·" } else { "" };
                 if self.proper_order != ElementOrder::Inf && self.proper_power == Some(1) {
                     format!("{tr_sym}Ṡ")
                 } else {
@@ -448,11 +448,11 @@ impl SymmetryElement {
                         ("E".to_owned(), false)
                     }
                 } else {
-                    (format!("{}C", if tr { "θ" } else { "" }), true)
+                    (format!("{}C", if tr { "θ·" } else { "" }), true)
                 }
             }
             SymmetryElementKind::ImproperMirrorPlane(tr) => {
-                let tr_sym = if tr { "θ" } else { "" };
+                let tr_sym = if tr { "θ·" } else { "" };
                 if self.is_mirror_plane(tr) {
                     (format!("{tr_sym}σ"), false)
                 } else if self.is_inversion_centre(tr) {
@@ -464,7 +464,7 @@ impl SymmetryElement {
                 }
             }
             SymmetryElementKind::ImproperInversionCentre(tr) => {
-                let tr_sym = if tr { "θ" } else { "" };
+                let tr_sym = if tr { "θ·" } else { "" };
                 if self.is_mirror_plane(tr) {
                     (format!("{tr_sym}σ"), false)
                 } else if self.is_inversion_centre(tr) {
@@ -545,7 +545,9 @@ impl SymmetryElement {
     ///
     /// # Arguments
     ///
-    /// * `improper_kind` - Reference to the required improper kind.
+    /// * `improper_kind` - The improper kind to which `self` is to be converted. There is no need
+    /// to make sure the time reversal specification in `improper_kind` matches that of `self` as
+    /// the conversion will take care of this.
     /// * `preserves_power` - Flag indicating if the proper rotation power $`k'`$
     /// should be preserved or should be set to $`1`$.
     ///
@@ -567,12 +569,13 @@ impl SymmetryElement {
             !(self.is_proper(false) || self.is_proper(true)),
             "Only improper elements can be converted."
         );
+        let improper_kind = improper_kind.to_tr(self.contains_time_reversal());
         assert!(
-            !matches!(*improper_kind, SymmetryElementKind::Proper(_)),
+            !matches!(improper_kind, SymmetryElementKind::Proper(_)),
             "`improper_kind` must be one of the improper variants."
         );
 
-        if self.kind == *improper_kind {
+        if self.kind == improper_kind {
             return self.clone();
         }
 
@@ -603,7 +606,7 @@ impl SymmetryElement {
                 .proper_order(dest_order)
                 .proper_power(dest_proper_power)
                 .axis(self.axis)
-                .kind(improper_kind.clone())
+                .kind(improper_kind)
                 .generator(self.generator)
                 .additional_superscript(self.additional_superscript.clone())
                 .additional_subscript(self.additional_subscript.clone())
@@ -617,7 +620,7 @@ impl SymmetryElement {
                         .proper_power(dest_proper_power)
                         .proper_angle(std::f64::consts::PI + ang)
                         .axis(self.axis)
-                        .kind(improper_kind.clone())
+                        .kind(improper_kind)
                         .generator(self.generator)
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())
@@ -629,7 +632,7 @@ impl SymmetryElement {
                         .proper_order(dest_order)
                         .proper_power(dest_proper_power)
                         .axis(self.axis)
-                        .kind(improper_kind.clone())
+                        .kind(improper_kind)
                         .generator(self.generator)
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())

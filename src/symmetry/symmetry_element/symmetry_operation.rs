@@ -11,7 +11,7 @@ use num_traits::Pow;
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, INV, TRINV};
+use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, INV};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
 type F = fraction::GenericFraction<u32>;
@@ -91,7 +91,6 @@ pub trait SpecialSymmetryTransformation {
 #[derive(Builder, Clone)]
 pub struct SymmetryOperation {
     /// The generating symmetry element for this symmetry operation.
-    #[builder(setter(custom))]
     pub generating_element: SymmetryElement,
 
     /// The integral power indicating the number of times
@@ -131,31 +130,9 @@ pub struct SymmetryOperation {
     /// of the range.
     #[builder(setter(skip), default = "self.calc_total_proper_fraction()")]
     pub total_proper_fraction: Option<F>,
-
-    /// The power of the antiunitary time-reversal action accompanying this
-    /// unitary operation.
-    #[builder(setter(custom), default = "0")]
-    time_reversal_power: i32,
 }
 
 impl SymmetryOperationBuilder {
-    pub fn generating_element(&mut self, gen_ele: SymmetryElement) -> &mut Self {
-        let notr_gen_ele = if gen_ele.contains_time_reversal() {
-            let mut notr_gen_ele_cloned = gen_ele.clone();
-            notr_gen_ele_cloned.kind = notr_gen_ele_cloned.kind.to_tr(false);
-            notr_gen_ele_cloned
-        } else {
-            gen_ele
-        };
-        self.generating_element = Some(notr_gen_ele);
-        self
-    }
-
-    pub fn time_reversal_power(&mut self, timerevpow: i32) -> &mut Self {
-        self.time_reversal_power = Some(timerevpow % 2);
-        self
-    }
-
     fn calc_total_proper_angle(&self) -> f64 {
         geometry::normalise_rotation_angle(
             self.generating_element
@@ -219,10 +196,12 @@ impl SymmetryOperation {
     ///
     /// # Arguments
     ///
-    /// * qtn - A quaternion encoding the proper rotation associated with the
+    /// * `qtn` - A quaternion encoding the proper rotation associated with the
     /// generating element of the operation to be constructed.
-    /// * proper - A flag indicating if the operation is proper or improper.
-    /// * thresh - Threshold for comparisons.
+    /// * `proper` - A flag indicating if the operation is proper or improper.
+    /// * `thresh` - Threshold for comparisons.
+    /// * `tr` - A flag indicating if the resulting symmetry operation should be accompanied by a
+    /// time-reversal operator.
     ///
     /// # Returns
     ///
@@ -239,7 +218,7 @@ impl SymmetryOperation {
         proper: bool,
         thresh: f64,
         max_trial_power: u32,
-        time_reversal_power: i32,
+        tr: bool,
     ) -> Self {
         let (scalar_part, vector_part) = qtn;
         assert!(-thresh <= scalar_part && scalar_part <= 1.0 + thresh);
@@ -270,9 +249,9 @@ impl SymmetryOperation {
             };
 
         let kind = if proper {
-            SymmetryElementKind::Proper(false)
+            SymmetryElementKind::Proper(tr)
         } else {
-            SymmetryElementKind::ImproperInversionCentre(false)
+            SymmetryElementKind::ImproperInversionCentre(tr)
         };
 
         let element = SymmetryElement::builder()
@@ -287,7 +266,6 @@ impl SymmetryOperation {
         SymmetryOperation::builder()
             .generating_element(element)
             .power(1)
-            .time_reversal_power(time_reversal_power)
             .build()
             .expect("Unable to construct a symmetry operation.")
     }
@@ -437,7 +415,9 @@ impl SymmetryOperation {
     ///
     /// # Arguments
     ///
-    /// `improper_kind` - The improper kind to which `self` is to be converted.
+    /// * `improper_kind` - The improper kind to which `self` is to be converted. There is no need to
+    /// make sure the time reversal specification in `improper_kind` matches that of the generating
+    /// element of `self` as the conversion will take care of this.
     ///
     /// # Panics
     ///
@@ -446,11 +426,10 @@ impl SymmetryOperation {
     pub fn convert_to_improper_kind(&self, improper_kind: &SymmetryElementKind) -> Self {
         let c_element = self
             .generating_element
-            .convert_to_improper_kind(improper_kind, true);
+            .convert_to_improper_kind(&improper_kind, true);
         Self::builder()
             .generating_element(c_element)
             .power(self.power)
-            .time_reversal_power(self.time_reversal_power)
             .build()
             .expect("Unable to construct a symmetry operation.")
     }
@@ -459,23 +438,11 @@ impl SymmetryOperation {
     /// certain improper axes into inversion centres or mirror planes,
     #[must_use]
     pub fn get_abbreviated_symbol(&self) -> String {
-        let timerev = if self.time_reversal_power == 0 {
-            String::new()
-        } else if self.time_reversal_power == 1 {
-            "θ·".to_string()
-        } else {
-            format!("θ^{}·", self.time_reversal_power)
-        };
         if self.power == 1 {
-            format!(
-                "{}{}",
-                timerev,
-                self.generating_element.get_detailed_symbol()
-            )
+            format!("{}", self.generating_element.get_detailed_symbol())
         } else {
             format!(
-                "{}[{}]^{}",
-                timerev,
+                "[{}]^{}",
                 self.generating_element.get_detailed_symbol(),
                 self.power
             )
@@ -502,7 +469,7 @@ impl FiniteOrder for SymmetryOperation {
 }
 
 impl SpecialSymmetryTransformation for SymmetryOperation {
-    /// Checks if the symmetry operation is proper or not.
+    /// Checks if the spatial part of the symmetry operation is proper or not.
     ///
     /// # Returns
     ///
@@ -519,10 +486,10 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A flag indicating if the symmetry oppperation is antiunitary.
     fn is_antiunitary(&self) -> bool {
-        self.time_reversal_power % 2 == 1
+        self.generating_element.contains_time_reversal() && self.power % 2 == 1
     }
 
-    /// Checks if the symmetry operation is the identity.
+    /// Checks if the whole symmetry operation is the identity.
     ///
     /// # Returns
     ///
@@ -549,7 +516,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             }
     }
 
-    /// Checks if the symmetry operation is an inversion.
+    /// Checks if the whole symmetry operation is an inversion.
     ///
     /// # Returns
     ///
@@ -598,7 +565,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             }
     }
 
-    /// Checks if the symmetry operation is a binary rotation.
+    /// Checks if the whole symmetry operation is a binary rotation.
     ///
     /// # Returns
     ///
@@ -625,7 +592,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             }
     }
 
-    /// Checks if the symmetry operation is a reflection.
+    /// Checks if the whole symmetry operation is a reflection.
     ///
     /// # Returns
     ///
@@ -674,7 +641,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             }
     }
 
-    /// Checks if the symmetry operation is a pure time-reversal.
+    /// Checks if the whole symmetry operation is a pure time-reversal.
     ///
     /// # Returns
     ///
@@ -704,17 +671,10 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
 
 impl fmt::Debug for SymmetryOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let timerev = if self.time_reversal_power == 0 {
-            String::new()
-        } else if self.time_reversal_power == 1 {
-            "θ·".to_string()
-        } else {
-            format!("θ^{}·", self.time_reversal_power)
-        };
         if self.power == 1 {
-            write!(f, "{timerev}{:?}", self.generating_element)
+            write!(f, "{:?}", self.generating_element)
         } else {
-            write!(f, "{timerev}[{:?}]^{}", self.generating_element, self.power)
+            write!(f, "[{:?}]^{}", self.generating_element, self.power)
         }
     }
 }
@@ -903,7 +863,7 @@ impl<'a, 'b> Mul<&'a SymmetryOperation> for &'b SymmetryOperation {
             proper,
             thresh,
             max_trial_power,
-            self.time_reversal_power + rhs.time_reversal_power,
+            self.is_antiunitary() != rhs.is_antiunitary(),
         )
     }
 }
@@ -915,7 +875,6 @@ impl Pow<i32> for &SymmetryOperation {
         SymmetryOperation::builder()
             .generating_element(self.generating_element.clone())
             .power(self.power * rhs)
-            .time_reversal_power(self.time_reversal_power * rhs)
             .build()
             .expect("Unable to construct a symmetry operation.")
     }
