@@ -280,6 +280,10 @@ impl Symmetry {
         SymmetryBuilder::default()
     }
 
+    pub fn new() -> Self {
+        Symmetry::builder().build().expect("Unable to construct a `Symmetry` structure.")
+    }
+
     /// Performs point-group detection analysis.
     ///
     /// # Arguments
@@ -663,7 +667,8 @@ impl Symmetry {
         self.generators.get_mut(kind)
     }
 
-    /// Obtains mirror-plane elements by their type (`"h"`, `"v"`, `"d"`, or `""`).
+    /// Obtains mirror-plane elements by their type (`"h"`, `"v"`, `"d"`, or `""`), including both
+    /// time-reversed and non-time-reversed variants.
     ///
     /// # Returns
     ///
@@ -684,7 +689,8 @@ impl Symmetry {
         })
     }
 
-    /// Obtains mirror-plane generators by their type (`"h"`, `"v"`, `"d"`, or `""`).
+    /// Obtains mirror-plane generators by their type (`"h"`, `"v"`, `"d"`, or `""`), including both
+    /// time-reversed and non-time-reversed variants.
     ///
     /// # Returns
     ///
@@ -701,7 +707,7 @@ impl Symmetry {
                 );
             }
         }
-        if let Some(tr_improper_generators) = self.get_elements(&TRSIG) {
+        if let Some(tr_improper_generators) = self.get_generators(&TRSIG) {
             if let Some(sigmas) = tr_improper_generators.get(&ORDER_1) {
                 sigma_generators.extend(
                     sigmas
