@@ -60,32 +60,44 @@ impl Symmetry {
                 .get_elements(&ROT)
                 .unwrap_or(&HashMap::new())
                 .contains_key(&ORDER_2)
+                || self
+                    .get_elements(&TRROT)
+                    .unwrap_or(&HashMap::new())
+                    .contains_key(&ORDER_2)
             {
                 if max_ord > ORDER_2 {
                     assert_eq!(
-                        self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord].len(),
+                        self.get_proper(&max_ord)
+                            .unwrap_or_else(|| panic!(
+                                "No proper elements of order `{max_ord}` found."
+                            ))
+                            .len(),
                         1
                     );
-                    let principal_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())
-                        [&max_ord]
-                        .iter()
-                        .next()
-                        .expect("No principal axes found.")
-                        .axis;
-                    let n_c2_perp = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
+
+                    let principal_axis = self.get_principal_element().axis;
+                    let n_c2_perp = self
+                        .get_proper(&ORDER_2)
+                        .unwrap_or_else(|| panic!("No proper elements of order `{ORDER_2}` found."))
                         .iter()
                         .filter(|c2_ele| {
                             c2_ele.axis.dot(&principal_axis).abs() < presym.dist_threshold
                         })
                         .count();
                     ElementOrder::Int(
-                        n_c2_perp
-                            .try_into()
-                            .unwrap_or_else(|_| panic!("Unable to convert {n_c2_perp} to `u32`.")),
+                        n_c2_perp.try_into().unwrap_or_else(|_| {
+                            panic!("Unable to convert `{n_c2_perp}` to `u32`.")
+                        }),
                     ) == max_ord
                 } else {
                     max_ord == ORDER_2
-                        && self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2].len() == 3
+                        && self
+                            .get_proper(&ORDER_2)
+                            .unwrap_or_else(|| {
+                                panic!("No proper elements of order `{ORDER_2}` found.")
+                            })
+                            .len()
+                            == 3
                 }
             } else {
                 false
@@ -97,21 +109,7 @@ impl Symmetry {
             log::debug!("Dihedral family.");
 
             // Principal axis is also a generator.
-            let principal_element = self
-                .get_elements(&ROT)
-                .unwrap_or(&HashMap::new())
-                .get(&max_ord)
-                .unwrap_or(&HashSet::new())
-                .iter()
-                .chain(
-                    self.get_elements(&TRROT)
-                        .unwrap_or(&HashMap::new())
-                        .get(&max_ord)
-                        .unwrap_or(&HashSet::new()),
-                )
-                .next()
-                .expect("No principal axes found.")
-                .clone();
+            let principal_element = self.get_principal_element().clone();
             self.add_proper(
                 max_ord,
                 principal_element.axis,
@@ -120,46 +118,24 @@ impl Symmetry {
                 principal_element.contains_time_reversal(),
             );
 
-            let c2_element = self
-                .get_elements(&ROT)
-                .unwrap_or(&HashMap::new())
-                .get(&ORDER_2)
-                .unwrap_or(&HashSet::new())
+            // A C2 axis perpendicular to the principal axis is also a generator.
+            let perp_c2_element = self
+                .get_proper(&ORDER_2)
+                .expect("No C2 elements found.")
                 .iter()
-                .chain(
-                    self.get_elements(&TRROT)
-                        .unwrap_or(&HashMap::new())
-                        .get(&ORDER_2)
-                        .unwrap_or(&HashSet::new()),
-                )
                 .find(|c2_ele| {
                     c2_ele.axis.dot(&principal_element.axis).abs() < presym.dist_threshold
                 })
-                .expect("No C2 axes found.")
+                .expect("No C2 axes perpendicular to the principal axis found.")
                 .clone();
             self.add_proper(
                 ORDER_2,
-                c2_element.axis,
+                perp_c2_element.axis,
                 true,
                 presym.dist_threshold,
-                c2_element.contains_time_reversal(),
+                perp_c2_element.contains_time_reversal(),
             );
 
-            let principal_element = self
-                .get_elements(&ROT)
-                .unwrap_or(&HashMap::new())
-                .get(&max_ord)
-                .unwrap_or(&HashSet::new())
-                .iter()
-                .chain(
-                    self.get_elements(&TRROT)
-                        .unwrap_or(&HashMap::new())
-                        .get(&max_ord)
-                        .unwrap_or(&HashSet::new()),
-                )
-                .next()
-                .expect("No principal axes found.")
-                .clone();
             if let Some(improper_kind) =
                 presym.check_improper(&ORDER_1, &principal_element.axis, &SIG, tr)
             {
@@ -231,24 +207,10 @@ impl Symmetry {
                     );
 
                     for c_element in non_id_c_elements {
-                        let principal_element = self
-                            .get_elements(&ROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&max_ord)
-                            .unwrap_or(&HashSet::new())
-                            .iter()
-                            .chain(
-                                self.get_elements(&TRROT)
-                                    .unwrap_or(&HashMap::new())
-                                    .get(&max_ord)
-                                    .unwrap_or(&HashSet::new()),
-                            )
-                            .next()
-                            .expect("No principal axes found.")
-                            .clone();
+                        let principal_element = self.get_principal_element();
                         let sigma_symbol = _deduce_sigma_symbol(
                             &c_element.axis,
-                            &principal_element,
+                            principal_element,
                             presym.dist_threshold,
                             false,
                         );
@@ -430,24 +392,10 @@ impl Symmetry {
                                     .collect()
                             });
                         for c_element in non_id_c_elements {
-                            let principal_element = self
-                                .get_elements(&ROT)
-                                .unwrap_or(&HashMap::new())
-                                .get(&max_ord)
-                                .unwrap_or(&HashSet::new())
-                                .iter()
-                                .chain(
-                                    self.get_elements(&TRROT)
-                                        .unwrap_or(&HashMap::new())
-                                        .get(&max_ord)
-                                        .unwrap_or(&HashSet::new()),
-                                )
-                                .next()
-                                .expect("No principal axes found.")
-                                .clone();
+                            let principal_element = self.get_principal_element();
                             let sigma_symbol = _deduce_sigma_symbol(
                                 &c_element.axis,
-                                &principal_element,
+                                principal_element,
                                 presym.dist_threshold,
                                 true, // sigma_v forced to become sigma_d
                             );
@@ -498,28 +446,14 @@ impl Symmetry {
                     if count_sigma == max_ord_u32 {
                         break;
                     }
-                    let principal_element = self
-                        .get_elements(&ROT)
-                        .unwrap_or(&HashMap::new())
-                        .get(&max_ord)
-                        .unwrap_or(&HashSet::new())
-                        .iter()
-                        .chain(
-                            self.get_elements(&TRROT)
-                                .unwrap_or(&HashMap::new())
-                                .get(&max_ord)
-                                .unwrap_or(&HashSet::new()),
-                        )
-                        .next()
-                        .expect("No principal axes found.")
-                        .clone();
+                    let principal_element = self.get_principal_element();
                     let normal =
                         (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords).normalize();
                     if let Some(improper_kind) = presym.check_improper(&ORDER_1, &normal, &SIG, tr)
                     {
                         let sigma_symbol = _deduce_sigma_symbol(
                             &normal,
-                            &principal_element,
+                            principal_element,
                             presym.dist_threshold,
                             false,
                         );
@@ -545,21 +479,7 @@ impl Symmetry {
                         "Point group determined: {}",
                         self.point_group.as_ref().expect("No point groups found.")
                     );
-                    let principal_element = self
-                        .get_elements(&ROT)
-                        .unwrap_or(&HashMap::new())
-                        .get(&max_ord)
-                        .unwrap_or(&HashSet::new())
-                        .iter()
-                        .chain(
-                            self.get_elements(&TRROT)
-                                .unwrap_or(&HashMap::new())
-                                .get(&max_ord)
-                                .unwrap_or(&HashSet::new()),
-                        )
-                        .next()
-                        .expect("No principal axes found.")
-                        .clone();
+                    let principal_element = self.get_principal_element();
                     self.add_proper(
                         max_ord,
                         principal_element.axis,
@@ -567,12 +487,8 @@ impl Symmetry {
                         presym.dist_threshold,
                         principal_element.contains_time_reversal(),
                     );
-                    let sigmavs = self
-                        .get_sigma_elements("v")
-                        .expect("No σv found.");
-                    let sigmav = sigmavs.iter()
-                        .next()
-                        .expect("No σv found.");
+                    let sigmavs = self.get_sigma_elements("v").expect("No σv found.");
+                    let sigmav = sigmavs.iter().next().expect("No σv found.");
                     self.add_improper(
                         ORDER_1,
                         sigmav.axis,
@@ -591,17 +507,15 @@ impl Symmetry {
                         self.point_group.as_ref().expect("No point groups found.")
                     );
                     let old_sigmas = if self.elements.contains_key(&SIG) {
-                        self
-                        .get_elements_mut(&SIG)
-                        .expect("No improper elements found.")
-                        .remove(&ORDER_1)
-                        .expect("No σ found.")
+                        self.get_elements_mut(&SIG)
+                            .expect("No improper elements found.")
+                            .remove(&ORDER_1)
+                            .expect("No σ found.")
                     } else {
-                        self
-                        .get_elements_mut(&TRSIG)
-                        .expect("No time-reversed improper elements found.")
-                        .remove(&ORDER_1)
-                        .expect("No σ found.")
+                        self.get_elements_mut(&TRSIG)
+                            .expect("No time-reversed improper elements found.")
+                            .remove(&ORDER_1)
+                            .expect("No σ found.")
                     };
                     debug_assert_eq!(old_sigmas.len(), 1);
                     let old_sigma = old_sigmas.into_iter().next().expect("No σ found.");
@@ -625,21 +539,7 @@ impl Symmetry {
                     );
                 }
             } else {
-                let principal_element = self
-                    .get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .get(&max_ord)
-                    .unwrap_or(&HashSet::new())
-                    .iter()
-                    .chain(
-                        self.get_elements(&TRROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&max_ord)
-                            .unwrap_or(&HashSet::new()),
-                    )
-                    .next()
-                    .expect("No principal axes found.")
-                    .clone();
+                let principal_element = self.get_principal_element().clone();
                 if let Some(improper_kind) =
                     presym.check_improper(&ORDER_1, &principal_element.axis, &SIG, tr)
                 {
@@ -701,12 +601,7 @@ impl Symmetry {
                                 .contains_time_reversal(),
                         );
                         for c_element in non_id_c_elements {
-                            let principal_element = self
-                                .get_elements(&ROT)
-                                .expect("No proper elements found.")[&max_ord]
-                                .iter()
-                                .next()
-                                .expect("No principal axes found.");
+                            let principal_element = self.get_principal_element();
                             let sigma_symbol = _deduce_sigma_symbol(
                                 &c_element.axis,
                                 principal_element,

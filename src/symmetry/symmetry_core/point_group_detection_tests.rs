@@ -2373,6 +2373,7 @@ Dnd
 
 #[test]
 fn test_point_group_detection_symmetric_b2cl4_d2d() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -3184,10 +3185,6 @@ fn test_point_group_detection_symmetric_c60_magnetic_field_s6() {
         .unwrap();
     let mut sym = Symmetry::builder().build().unwrap();
     sym.analyse(&presym, false);
-    println!(
-        "{:?}",
-        sym.get_elements(&ROT).expect("No proper elements found.")
-    );
     assert_eq!(sym.point_group, Some("S6".to_owned()));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),

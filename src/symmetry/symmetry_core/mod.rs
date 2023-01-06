@@ -751,6 +751,62 @@ impl Symmetry {
             .expect("No highest proper rotation order could be obtained.")
     }
 
+    /// Obtains all proper elements of a certain order (both time-reversed and non-time-reversed).
+    ///
+    /// # Arguments
+    ///
+    /// * `order` - The required order of elements.
+    ///
+    /// # Returns
+    ///
+    /// An optional hash set of proper elements of the required order. If no such elements exist,
+    /// `None` will be returned.
+    pub fn get_proper(&self, order: &ElementOrder) -> Option<HashSet<&SymmetryElement>> {
+        let opt_proper_elements = self
+            .get_elements(&ROT)
+            .map(|proper_elements| proper_elements.get(&order))
+            .unwrap_or_default();
+        let opt_tr_proper_elements = self
+            .get_elements(&TRROT)
+            .map(|tr_proper_elements| tr_proper_elements.get(&order))
+            .unwrap_or_default();
+
+        match (opt_proper_elements, opt_tr_proper_elements) {
+            (None, None) => None,
+            (Some(proper_elements), None) => Some(HashSet::from_iter(proper_elements.iter())),
+            (None, Some(tr_proper_elements)) => Some(HashSet::from_iter(tr_proper_elements.iter())),
+            (Some(proper_elements), Some(tr_proper_elements)) => Some(HashSet::from_iter(
+                proper_elements.iter().chain(tr_proper_elements.iter()),
+            )),
+        }
+    }
+
+    pub fn get_principal_element(&self) -> &SymmetryElement {
+        let max_ord = self.get_max_proper_order();
+        self.get_proper(&max_ord)
+            .expect("No proper elements found.")
+            .iter()
+            .next()
+            .expect("No principal elements found.")
+        // self.get_elements(&ROT)
+        //     .map(|proper_elements| {
+        //         proper_elements
+        //             .get(&max_ord)
+        //             .map(|principal_elements| principal_elements.iter().next())
+        //     })
+        //     .unwrap_or_else(|| {
+        //         self.get_elements(&TRROT)
+        //             .map(|tr_proper_elements| {
+        //                 tr_proper_elements
+        //                     .get(&max_ord)
+        //                     .map(|principal_elements| principal_elements.iter().next())
+        //             })
+        //             .expect("No proper elements found.")
+        //     })
+        //     .unwrap_or_else(|| panic!("No proper elements of order {max_ord} found."))
+        //     .expect("No principal elements found.")
+    }
+
     /// Determines if this group is an infinite group.
     ///
     /// # Returns
