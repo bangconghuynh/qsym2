@@ -189,11 +189,19 @@ impl Symmetry {
                         improper_kind.contains_time_reversal()
                     ));
                 } else {
-                    let mut c2s = self.get_elements(&ROT).expect("No proper elements found.")
-                        [&ORDER_2]
-                        .iter();
-                    let normal = c2s.next().expect("No C2 axes found.").axis
-                        + c2s.next().expect("Only one C2 axis found.").axis;
+                    let mut c2s = self
+                        .get_proper(&ORDER_2)
+                        .expect(" No C2 elements found.")
+                        .into_iter()
+                        .take(2)
+                        .cloned()
+                        .collect_vec()
+                        .into_iter();
+                    let normal = c2s.next().expect("No C2 elements found.").axis
+                        + c2s
+                            .next()
+                            .expect("Two C2 elements expected, but only one found.")
+                            .axis;
                     if presym.check_improper(&ORDER_1, &normal, &SIG, tr).is_some() {
                         // σd
                         log::debug!("Located σd.");
@@ -204,7 +212,9 @@ impl Symmetry {
                         );
                         let sigmad_normals = {
                             let mut axes = vec![];
-                            for c2s in self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
+                            for c2s in self
+                                .get_proper(&ORDER_2)
+                                .expect(" No C2 elements found.")
                                 .iter()
                                 .combinations(2)
                             {
@@ -396,21 +406,12 @@ impl Symmetry {
         if count_c3 == 4 {
             // Tetrahedral or octahedral, C3 axes are also generators.
             let c3s = self
-                .get_elements(&ROT)
-                .unwrap_or(&HashMap::new())
-                .get(&order_3)
-                .unwrap_or(&HashSet::new())
-                .iter()
-                .chain(
-                    self.get_elements(&ROT)
-                        .unwrap_or(&HashMap::new())
-                        .get(&order_3)
-                        .unwrap_or(&HashSet::new())
-                        .iter(),
-                )
+                .get_proper(&order_3)
+                .expect(" No C3 elements found.")
+                .into_iter()
                 .cloned()
-                .collect::<Vec<_>>();
-            for c3 in c3s {
+                .collect_vec();
+            for c3 in &c3s {
                 self.add_proper(
                     order_3,
                     c3.axis,
@@ -462,21 +463,14 @@ impl Symmetry {
                 }
             }
             assert!(found_consistent_c4);
-            let c4 = self
-                .get_elements(&ROT)
-                .unwrap_or(&HashMap::new())
-                .get(&order_4)
-                .unwrap_or(&HashSet::new())
+
+            // Add a C4 as a generator
+            let c4 = *self
+                .get_proper(&order_4)
+                .expect(" No C4 elements found.")
                 .iter()
-                .chain(
-                    self.get_elements(&TRROT)
-                        .unwrap_or(&HashMap::new())
-                        .get(&order_4)
-                        .unwrap_or(&HashSet::new()),
-                )
                 .next()
-                .expect("Expected C4 not found.")
-                .clone();
+                .expect("Expected C4 not found.");
             self.add_proper(
                 order_4,
                 c4.axis,
@@ -542,17 +536,9 @@ impl Symmetry {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let improper_s4_axes: Vec<(Vector3<f64>, bool)> = {
-                self.get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .get(&ORDER_2)
-                    .unwrap_or(&HashSet::new())
+                self.get_proper(&ORDER_2)
+                    .expect("Expected C2 elements not found.")
                     .iter()
-                    .chain(
-                        self.get_elements(&TRROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&ORDER_2)
-                            .unwrap_or(&HashSet::new()),
-                    )
                     .filter_map(|c2_ele| {
                         if let Some(improper_kind) =
                             presym.check_improper(&order_4, &c2_ele.axis, &SIG, tr)
@@ -582,17 +568,20 @@ impl Symmetry {
         else if *self.point_group.as_ref().expect("No point groups found.") == "Th" {
             // Locating σh
             let sigmah_normals: Vec<(Vector3<f64>, bool)> = {
-                self.get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .get(&ORDER_2)
-                    .unwrap_or(&HashSet::new())
+                // self.get_elements(&ROT)
+                //     .unwrap_or(&HashMap::new())
+                //     .get(&ORDER_2)
+                //     .unwrap_or(&HashSet::new())
+                //     .iter()
+                //     .chain(
+                //         self.get_elements(&TRROT)
+                //             .unwrap_or(&HashMap::new())
+                //             .get(&ORDER_2)
+                //             .unwrap_or(&HashSet::new()),
+                //     )
+                self.get_proper(&ORDER_2)
+                    .expect("Expected C2 elements not found.")
                     .iter()
-                    .chain(
-                        self.get_elements(&TRROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&ORDER_2)
-                            .unwrap_or(&HashSet::new()),
-                    )
                     .filter_map(|c2_ele| {
                         if let Some(improper_kind) =
                             presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG, tr)
@@ -621,17 +610,9 @@ impl Symmetry {
             // Locating S6
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<(Vector3<f64>, bool)> = {
-                self.get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .get(&order_3)
-                    .unwrap_or(&HashSet::new())
+                self.get_proper(&order_3)
+                    .expect("Expected C3 elements not found.")
                     .iter()
-                    .chain(
-                        self.get_elements(&TRROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&order_3)
-                            .unwrap_or(&HashSet::new()),
-                    )
                     .filter_map(|c3_ele| {
                         if let Some(improper_kind) =
                             presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr)
@@ -662,17 +643,9 @@ impl Symmetry {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let s4_axes: Vec<(Vector3<f64>, bool)> = {
-                self.get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .get(&ORDER_2)
-                    .unwrap_or(&HashSet::new())
+                self.get_proper(&ORDER_2)
+                    .expect("Expected C2 elements not found.")
                     .iter()
-                    .chain(
-                        self.get_elements(&TRROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&ORDER_2)
-                            .unwrap_or(&HashSet::new()),
-                    )
                     .filter_map(|c2_ele| {
                         if let Some(improper_kind) =
                             presym.check_improper(&order_4, &c2_ele.axis, &SIG, tr)
@@ -728,17 +701,9 @@ impl Symmetry {
 
             // Locating σd
             let sigmad_normals: Vec<(Vector3<f64>, bool)> = {
-                self.get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .get(&ORDER_2)
-                    .unwrap_or(&HashSet::new())
+                self.get_proper(&ORDER_2)
+                    .expect("Expected C2 elements not found.")
                     .iter()
-                    .chain(
-                        self.get_elements(&TRROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&ORDER_2)
-                            .unwrap_or(&HashSet::new()),
-                    )
                     .filter_map(|c2_ele| {
                         if presym
                             .check_improper(&order_4, &c2_ele.axis, &SIG, tr)
@@ -774,17 +739,9 @@ impl Symmetry {
             // Locating S6
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<(Vector3<f64>, bool)> = {
-                self.get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .get(&order_3)
-                    .unwrap_or(&HashSet::new())
+                self.get_proper(&order_3)
+                    .expect("Expected C3 elements not found.")
                     .iter()
-                    .chain(
-                        self.get_elements(&TRROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&order_3)
-                            .unwrap_or(&HashSet::new()),
-                    )
                     .filter_map(|c3_ele| {
                         if let Some(improper_kind) =
                             presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr)
@@ -816,17 +773,20 @@ impl Symmetry {
             let order_5 = ElementOrder::Int(5);
             let order_10 = ElementOrder::Int(10);
             let s10_axes: Vec<(Vector3<f64>, bool)> = {
-                self.get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .get(&order_5)
-                    .unwrap_or(&HashSet::new())
+                // self.get_elements(&ROT)
+                //     .unwrap_or(&HashMap::new())
+                //     .get(&order_5)
+                //     .unwrap_or(&HashSet::new())
+                //     .iter()
+                //     .chain(
+                //         self.get_elements(&TRROT)
+                //             .unwrap_or(&HashMap::new())
+                //             .get(&order_5)
+                //             .unwrap_or(&HashSet::new()),
+                //     )
+                self.get_proper(&order_5)
+                    .expect("Expected C5 elements not found.")
                     .iter()
-                    .chain(
-                        self.get_elements(&TRROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&order_5)
-                            .unwrap_or(&HashSet::new()),
-                    )
                     .filter_map(|c5_ele| {
                         if let Some(improper_kind) =
                             presym.check_improper(&order_10, &c5_ele.axis, &SIG, tr)
@@ -855,17 +815,9 @@ impl Symmetry {
             // Locating S6
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<(Vector3<f64>, bool)> = {
-                self.get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .get(&order_3)
-                    .unwrap_or(&HashSet::new())
+                self.get_proper(&order_3)
+                    .expect("Expected C3 elements not found.")
                     .iter()
-                    .chain(
-                        self.get_elements(&TRROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&order_3)
-                            .unwrap_or(&HashSet::new()),
-                    )
                     .filter_map(|c3_ele| {
                         if let Some(improper_kind) =
                             presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr)
@@ -893,17 +845,9 @@ impl Symmetry {
 
             // Locating σ
             let sigma_normals: Vec<(Vector3<f64>, bool)> = {
-                self.get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .get(&ORDER_2)
-                    .unwrap_or(&HashSet::new())
+                self.get_proper(&ORDER_2)
+                    .expect("Expected C2 elements not found.")
                     .iter()
-                    .chain(
-                        self.get_elements(&TRROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&ORDER_2)
-                            .unwrap_or(&HashSet::new()),
-                    )
                     .filter_map(|c2_ele| {
                         if let Some(improper_kind) =
                             presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG, tr)

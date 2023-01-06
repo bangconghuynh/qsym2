@@ -1,5 +1,3 @@
-use std::collections::{HashMap, HashSet};
-
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
@@ -66,30 +64,15 @@ impl Symmetry {
             assert_eq!(max_ord, ORDER_2);
 
             // Principal axis, which is C2, is also a generator.
-            // let mut c2s = self
-            //     .get_elements(&ROT)
-            //     .unwrap_or(&HashMap::new())
-            //     .get(&ORDER_2)
-            //     .unwrap_or(&HashSet::new())
-            //     .iter()
-            //     .chain(
-            //         self.get_elements(&TRROT)
-            //             .unwrap_or(&HashMap::new())
-            //             .get(&ORDER_2)
-            //             .unwrap_or(&HashSet::new()),
-            //     )
-            //     .cloned()
-            //     .collect_vec()
-            //     .into_iter();
             let mut c2s = self
                 .get_proper(&ORDER_2)
-                .expect("No C2s found.")
+                .expect(" No C2 elements found.")
                 .into_iter()
                 .take(2)
                 .cloned()
                 .collect_vec()
                 .into_iter();
-            let c2 = c2s.next().expect("No C2s found.");
+            let c2 = c2s.next().expect(" No C2 elements found.");
             self.add_proper(
                 max_ord,
                 c2.axis,
@@ -131,7 +114,7 @@ impl Symmetry {
                 // perpendicular to a C2 axis.
                 let c2s = self
                     .get_proper(&ORDER_2)
-                    .expect("No C2s found.")
+                    .expect(" No C2 elements found.")
                     .into_iter()
                     .cloned()
                     .collect_vec();
@@ -180,8 +163,8 @@ impl Symmetry {
             assert_eq!(max_ord, ORDER_2);
 
             // Principal axis, which is C2, is also a generator.
-            let c2s = self.get_proper(&ORDER_2).expect("No C2s found.");
-            let c2 = c2s.iter().next().expect("No C2s found.");
+            let c2s = self.get_proper(&ORDER_2).expect(" No C2 elements found.");
+            let c2 = c2s.iter().next().expect(" No C2 elements found.");
             self.add_proper(
                 max_ord,
                 c2.axis,
@@ -212,10 +195,10 @@ impl Symmetry {
                 // There is one σh.
                 let c2 = (*self
                     .get_proper(&ORDER_2)
-                    .expect("No C2s found.")
+                    .expect(" No C2 elements found.")
                     .iter()
                     .next()
-                    .expect("No C2s found."))
+                    .expect(" No C2 elements found."))
                 .clone();
 
                 let improper_check = presym.check_improper(&ORDER_1, &c2.axis, &SIG, tr);
