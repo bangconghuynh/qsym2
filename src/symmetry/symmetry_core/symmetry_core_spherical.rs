@@ -685,36 +685,27 @@ impl Symmetry {
                     .collect()
             };
             let mut count_s4 = 0;
-            for (s4_axis, s4_axis_tr) in s4_axes {
+            for (s4_axis, s4_axis_tr) in &s4_axes {
                 count_s4 += i32::from(self.add_improper(
                     order_4,
-                    s4_axis,
+                    s4_axis.clone(),
                     false,
                     SIG.clone(),
                     None,
                     presym.molecule.threshold,
-                    s4_axis_tr,
+                    *s4_axis_tr,
                 ));
             }
             assert_eq!(count_s4, 3);
 
             let sigmah_axes: Vec<(Vector3<f64>, bool)> = {
-                self.get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
-                    .get(&ORDER_2)
-                    .unwrap_or(&HashSet::new())
+                s4_axes
                     .iter()
-                    .chain(
-                        self.get_elements(&TRROT)
-                            .unwrap_or(&HashMap::new())
-                            .get(&ORDER_2)
-                            .unwrap_or(&HashSet::new()),
-                    )
-                    .filter_map(|c2_ele| {
+                    .filter_map(|(sigmah_axis, _)| {
                         if let Some(improper_kind) =
-                            presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG, tr)
+                            presym.check_improper(&ORDER_1, &sigmah_axis, &SIG, tr)
                         {
-                            Some((c2_ele.axis, improper_kind.contains_time_reversal()))
+                            Some((sigmah_axis.clone(), improper_kind.contains_time_reversal()))
                         } else {
                             None
                         }

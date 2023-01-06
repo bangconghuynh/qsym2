@@ -273,6 +273,7 @@ fn test_point_group_detection_spherical_vh2o6_th() {
 
 #[test]
 fn test_point_group_detection_spherical_vf6_oh() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let mol = Molecule::from_xyz(&path, 1e-12);
     let presym = PreSymmetry::builder()
@@ -4950,7 +4951,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_cs() {
 /// This is another special case: Cs point group in a symmetric top.
 #[test]
 fn test_point_group_detection_symmetric_ch4_electric_field_cs() {
-    env_logger::init();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.0)));
