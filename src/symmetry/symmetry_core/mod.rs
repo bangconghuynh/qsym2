@@ -670,30 +670,18 @@ impl Symmetry {
     /// A set of the required mirror-plane element type, if exists.
     #[must_use]
     pub fn get_sigma_elements(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
-        let mut sigma_elements: HashSet<&SymmetryElement> = HashSet::new();
-        if let Some(improper_elements) = self.get_elements(&SIG) {
-            if let Some(sigmas) = improper_elements.get(&ORDER_1) {
-                sigma_elements.extend(
-                    sigmas
-                        .iter()
-                        .filter(|ele| ele.additional_subscript == sigma),
-                );
-            }
-        }
-        if let Some(tr_improper_elements) = self.get_elements(&TRSIG) {
-            if let Some(sigmas) = tr_improper_elements.get(&ORDER_1) {
-                sigma_elements.extend(
-                    sigmas
-                        .iter()
-                        .filter(|ele| ele.additional_subscript == sigma),
-                );
-            }
-        }
-        if sigma_elements.is_empty() {
-            None
-        } else {
-            Some(sigma_elements)
-        }
+        self.get_improper(&ORDER_1).map(|sigma_elements| {
+            sigma_elements
+                .iter()
+                .filter_map(|ele| {
+                    if ele.additional_subscript == sigma {
+                        Some(*ele)
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        })
     }
 
     /// Obtains mirror-plane generators by their type (`"h"`, `"v"`, `"d"`, or `""`).
@@ -781,30 +769,53 @@ impl Symmetry {
         }
     }
 
-    pub fn get_principal_element(&self) -> &SymmetryElement {
+    /// Obtains all improper elements of a certain order (both time-reversed and non-time-reversed).
+    ///
+    /// # Arguments
+    ///
+    /// * `order` - The required order of elements.
+    ///
+    /// # Returns
+    ///
+    /// An optional hash set of improper elements of the required order. If no such elements exist,
+    /// `None` will be returned.
+    pub fn get_improper(&self, order: &ElementOrder) -> Option<HashSet<&SymmetryElement>> {
+        let opt_improper_elements = self
+            .get_elements(&SIG)
+            .map(|improper_elements| improper_elements.get(&order))
+            .unwrap_or_default();
+        let opt_tr_improper_elements = self
+            .get_elements(&TRSIG)
+            .map(|tr_improper_elements| tr_improper_elements.get(&order))
+            .unwrap_or_default();
+
+        match (opt_improper_elements, opt_tr_improper_elements) {
+            (None, None) => None,
+            (Some(improper_elements), None) => Some(HashSet::from_iter(improper_elements.iter())),
+            (None, Some(tr_improper_elements)) => {
+                Some(HashSet::from_iter(tr_improper_elements.iter()))
+            }
+            (Some(improper_elements), Some(tr_improper_elements)) => Some(HashSet::from_iter(
+                improper_elements.iter().chain(tr_improper_elements.iter()),
+            )),
+        }
+    }
+
+    /// Obtains a proper principal element, *i.e.* a time-reversed or non-time-reversed proper
+    /// element with the highest order.
+    ///
+    /// If there are several such elements, the element to be returned will be randomly chosen.
+    ///
+    /// # Returns
+    ///
+    /// A proper principal element.
+    pub fn get_proper_principal_element(&self) -> &SymmetryElement {
         let max_ord = self.get_max_proper_order();
         self.get_proper(&max_ord)
             .expect("No proper elements found.")
             .iter()
             .next()
-            .expect("No principal elements found.")
-        // self.get_elements(&ROT)
-        //     .map(|proper_elements| {
-        //         proper_elements
-        //             .get(&max_ord)
-        //             .map(|principal_elements| principal_elements.iter().next())
-        //     })
-        //     .unwrap_or_else(|| {
-        //         self.get_elements(&TRROT)
-        //             .map(|tr_proper_elements| {
-        //                 tr_proper_elements
-        //                     .get(&max_ord)
-        //                     .map(|principal_elements| principal_elements.iter().next())
-        //             })
-        //             .expect("No proper elements found.")
-        //     })
-        //     .unwrap_or_else(|| panic!("No proper elements of order {max_ord} found."))
-        //     .expect("No principal elements found.")
+            .expect("No proper principal elements found.")
     }
 
     /// Determines if this group is an infinite group.

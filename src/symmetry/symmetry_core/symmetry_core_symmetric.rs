@@ -75,7 +75,7 @@ impl Symmetry {
                         1
                     );
 
-                    let principal_axis = self.get_principal_element().axis;
+                    let principal_axis = self.get_proper_principal_element().axis;
                     let n_c2_perp = self
                         .get_proper(&ORDER_2)
                         .unwrap_or_else(|| panic!("No proper elements of order `{ORDER_2}` found."))
@@ -109,7 +109,7 @@ impl Symmetry {
             log::debug!("Dihedral family.");
 
             // Principal axis is also a generator.
-            let principal_element = self.get_principal_element().clone();
+            let principal_element = self.get_proper_principal_element().clone();
             self.add_proper(
                 max_ord,
                 principal_element.axis,
@@ -207,7 +207,7 @@ impl Symmetry {
                     );
 
                     for c_element in non_id_c_elements {
-                        let principal_element = self.get_principal_element();
+                        let principal_element = self.get_proper_principal_element();
                         let sigma_symbol = _deduce_sigma_symbol(
                             &c_element.axis,
                             principal_element,
@@ -392,7 +392,7 @@ impl Symmetry {
                                     .collect()
                             });
                         for c_element in non_id_c_elements {
-                            let principal_element = self.get_principal_element();
+                            let principal_element = self.get_proper_principal_element();
                             let sigma_symbol = _deduce_sigma_symbol(
                                 &c_element.axis,
                                 principal_element,
@@ -446,7 +446,7 @@ impl Symmetry {
                     if count_sigma == max_ord_u32 {
                         break;
                     }
-                    let principal_element = self.get_principal_element();
+                    let principal_element = self.get_proper_principal_element();
                     let normal =
                         (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords).normalize();
                     if let Some(improper_kind) = presym.check_improper(&ORDER_1, &normal, &SIG, tr)
@@ -479,7 +479,7 @@ impl Symmetry {
                         "Point group determined: {}",
                         self.point_group.as_ref().expect("No point groups found.")
                     );
-                    let principal_element = self.get_principal_element();
+                    let principal_element = self.get_proper_principal_element();
                     self.add_proper(
                         max_ord,
                         principal_element.axis,
@@ -539,7 +539,7 @@ impl Symmetry {
                     );
                 }
             } else {
-                let principal_element = self.get_principal_element().clone();
+                let principal_element = self.get_proper_principal_element().clone();
                 if let Some(improper_kind) =
                     presym.check_improper(&ORDER_1, &principal_element.axis, &SIG, tr)
                 {
@@ -601,7 +601,7 @@ impl Symmetry {
                                 .contains_time_reversal(),
                         );
                         for c_element in non_id_c_elements {
-                            let principal_element = self.get_principal_element();
+                            let principal_element = self.get_proper_principal_element();
                             let sigma_symbol = _deduce_sigma_symbol(
                                 &c_element.axis,
                                 principal_element,
