@@ -236,6 +236,15 @@ fn test_point_group_detection_spherical_vf6_oh() {
     );
 }
 
+/// Verifies the validity of the deduced $`\mathcal{T}_d`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_td(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
@@ -468,6 +477,15 @@ fn test_point_group_detection_linear_n3_electric_field_cinfv() {
     verify_cinfv(&presym);
 }
 
+/// Verifies the validity of the deduced $`\mathcal{D}_{\infty h}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_dinfh(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
@@ -493,6 +511,15 @@ fn verify_dinfh(presym: &PreSymmetry) {
     assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
 }
 
+/// Verifies the validity of the deduced $`\mathcal{D}_{\infty h}`$ black-white magnetic group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_bw_dinfh(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
@@ -527,6 +554,15 @@ fn verify_bw_dinfh(presym: &PreSymmetry) {
     assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
 }
 
+/// Verifies the validity of the deduced $`\mathcal{C}_{\infty v}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_cinfv(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
@@ -546,6 +582,15 @@ fn verify_cinfv(presym: &PreSymmetry) {
     assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
 }
 
+/// Verifies the validity of the deduced $`\mathcal{C}_{\infty v}`$ black-white magnetic group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_bw_cinfv(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
@@ -823,6 +868,16 @@ fn test_point_group_detection_symmetric_arbitrary_half_sandwich_magnetic_field_b
     }
 }
 
+/// Verifies the validity of the deduced $`\mathcal{C}_{n}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+/// * `n` - The value of $`n`$.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_cn(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
@@ -839,6 +894,17 @@ fn verify_cn(presym: &PreSymmetry, n: u32) {
     );
 }
 
+/// Verifies the validity of the deduced $`\mathcal{C}_{nv}(\mathcal{C}_n)`$ black-white magnetic
+/// group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+/// * `n` - The value of $`n`$.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_bw_cnv_cn(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
@@ -1108,6 +1174,16 @@ fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_electric_fi
     }
 }
 
+/// Verifies the validity of the deduced $`\mathcal{C}_{nv}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+/// * `n` - The value of $`n`$.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_cnv(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
@@ -1335,6 +1411,16 @@ fn test_point_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_fie
     }
 }
 
+/// Verifies the validity of the deduced $`\mathcal{C}_{nh}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+/// * `n` - The value of $`n`$.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_cnh(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
@@ -1378,6 +1464,17 @@ fn verify_cnh(presym: &PreSymmetry, n: u32) {
     assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
 }
 
+/// Verifies the validity of the deduced $`\mathcal{D}_{nh}(\mathcal{C}_{nh})`$ black-white
+/// magnetic group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+/// * `n` - The value of $`n`$.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_bw_dnh(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
@@ -1587,6 +1684,16 @@ fn test_point_group_detection_symmetric_arbitrary_twisted_sandwich_dn() {
     }
 }
 
+/// Verifies the validity of the deduced $`\mathcal{D}_{n}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+/// * `n` - The value of $`n`$.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_dn(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
@@ -1728,6 +1835,16 @@ fn test_point_group_detection_symmetric_arbitrary_eclipsed_sandwich_dnh() {
     }
 }
 
+/// Verifies the validity of the deduced $`\mathcal{D}_{nh}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+/// * `n` - The value of $`n`$.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_dnh(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
@@ -1961,6 +2078,16 @@ fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_dnd() {
     }
 }
 
+/// Verifies the validity of the deduced $`\mathcal{D}_{nd}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+/// * `n` - The value of $`n`$.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_dnd(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
@@ -2442,6 +2569,17 @@ fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic_fi
     }
 }
 
+/// Verifies the validity of the deduced $`\mathcal{S}_{2n}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+/// * `n` - The value of $`n`$.
+/// * `tr` - A flag indicating if time-reversal should also be considered in the symmetry analysis.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_s2n(presym: &PreSymmetry, n: u32, tr: bool) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, tr);
@@ -2470,6 +2608,16 @@ fn verify_s2n(presym: &PreSymmetry, n: u32, tr: bool) {
     );
 }
 
+/// Verifies the validity of the deduced $`\mathcal{D}_{nd}`$ black-white magnetic group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+/// * `n` - The value of $`n`$.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_bw_dnd(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
     magsym.analyse(presym, true);
@@ -3490,6 +3638,15 @@ fn test_point_group_detection_asymmetric_atom_magnetic_electric_field_bw_c2v_cs(
     verify_bw_c2v_cs(&presym);
 }
 
+/// Verifies the validity of the deduced $`\mathcal{C}_{s}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_cs(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
@@ -3509,6 +3666,16 @@ fn verify_cs(presym: &PreSymmetry) {
     assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
 }
 
+/// Verifies the validity of the deduced $`\mathcal{C}_{2v}(\mathcal{C}_{s})`$ black-white
+/// magnetic group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_bw_c2v_cs(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
@@ -3763,6 +3930,15 @@ fn test_point_group_detection_symmetric_c60_magnetic_field_ci() {
     verify_ci(&presym);
 }
 
+/// Verifies the validity of the deduced $`\mathcal{C}_{i}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_ci(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
@@ -3864,6 +4040,15 @@ fn test_point_group_detection_symmetric_c60_electric_field_c1() {
     verify_c1(&presym);
 }
 
+/// Verifies the validity of the deduced $`\mathcal{C}_{1}`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
 fn verify_c1(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
