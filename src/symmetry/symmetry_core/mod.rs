@@ -812,18 +812,26 @@ impl Symmetry {
     /// Obtains a proper principal element, *i.e.* a time-reversed or non-time-reversed proper
     /// element with the highest order.
     ///
-    /// If there are several such elements, the element to be returned will be randomly chosen.
+    /// If there are several such elements, the element to be returned will be randomly chosen but
+    /// with any non-time-reversed ones prioritised.
     ///
     /// # Returns
     ///
     /// A proper principal element.
     pub fn get_proper_principal_element(&self) -> &SymmetryElement {
         let max_ord = self.get_max_proper_order();
-        self.get_proper(&max_ord)
-            .expect("No proper elements found.")
+        let principal_elements = self
+            .get_proper(&max_ord)
+            .expect("No proper elements found.");
+        principal_elements
             .iter()
-            .next()
-            .expect("No proper principal elements found.")
+            .find(|ele| !ele.contains_time_reversal())
+            .unwrap_or_else(|| {
+                principal_elements
+                    .iter()
+                    .next()
+                    .expect("No proper principal elements found.")
+            })
     }
 
     /// Determines if this group is an infinite group.
