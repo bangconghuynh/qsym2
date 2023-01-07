@@ -97,40 +97,7 @@ fn test_point_group_detection_spherical_ch4_td() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("Td".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        4
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        6
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 6);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        4
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_td(&presym);
 }
 
 #[test]
@@ -142,40 +109,7 @@ fn test_point_group_detection_spherical_adamantane_td() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("Td".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        4
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        6
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 6);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        4
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_td(&presym);
 }
 
 #[test]
@@ -187,40 +121,7 @@ fn test_point_group_detection_spherical_c165_diamond_nanoparticle_td() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("Td".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        4
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        6
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 6);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        4
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_td(&presym);
 }
 
 #[test]
@@ -335,6 +236,43 @@ fn test_point_group_detection_spherical_vf6_oh() {
     );
 }
 
+fn verify_td(presym: &PreSymmetry) {
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    assert_eq!(sym.point_group, Some("Td".to_owned()));
+    assert_eq!(
+        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
+        4
+    );
+    assert_eq!(
+        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
+        3
+    );
+    assert_eq!(
+        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
+        3
+    );
+    assert_eq!(
+        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
+        6
+    );
+    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 6);
+
+    assert_eq!(
+        sym.get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(3)]
+            .len(),
+        4
+    );
+    assert_eq!(
+        sym.get_generators(&SIG)
+            .expect("No improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+}
+
 /*****
 Linear
 *****/
@@ -377,37 +315,7 @@ fn test_point_group_detection_linear_atom_magnetic_field_bw_dinfh() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D∞h".to_owned()));
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Inf]
-            .len(),
-        1
-    );
-    assert!(magsym
-        .get_generators(&ROT)
-        .expect("No time-reversed proper generators found.")
-        .get(&ORDER_2)
-        .is_none());
-    assert_eq!(
-        magsym
-            .get_generators(&TRROT)
-            .expect("No time-reversed proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert!(magsym.get_generators(&TRSIG).is_none());
-    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_bw_dinfh(&presym);
 }
 
 #[test]
@@ -420,22 +328,7 @@ fn test_point_group_detection_linear_atom_electric_field_cinfv() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C∞v".to_owned()));
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Inf]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cinfv(&presym);
 }
 
 #[test]
@@ -447,28 +340,7 @@ fn test_point_group_detection_linear_c2h2_dinfh() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D∞h".to_owned()));
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Inf]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_dinfh(&presym);
 }
 
 #[test]
@@ -513,37 +385,7 @@ fn test_point_group_detection_linear_c2h2_magnetic_field_bw_dinfh() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D∞h".to_owned()));
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Inf]
-            .len(),
-        1
-    );
-    assert!(magsym
-        .get_generators(&ROT)
-        .expect("No time-reversed proper generators found.")
-        .get(&ORDER_2)
-        .is_none());
-    assert_eq!(
-        magsym
-            .get_generators(&TRROT)
-            .expect("No time-reversed proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert!(magsym.get_generators(&TRSIG).is_none());
-    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_bw_dinfh(&presym);
 }
 
 #[test]
@@ -558,15 +400,7 @@ fn test_point_group_detection_linear_c2h2_electric_field_cinfv() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C∞v".to_owned()));
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Inf]
-            .len(),
-        1
-    );
+    verify_cinfv(&presym);
 }
 
 #[test]
@@ -578,22 +412,7 @@ fn test_point_group_detection_linear_n3_cinfv() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C∞v".to_owned()));
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Inf]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cinfv(&presym);
 }
 
 #[test]
@@ -631,6 +450,103 @@ fn test_point_group_detection_linear_n3_magnetic_field_bw_cinfv() {
         .molecule(&mol, true)
         .build()
         .unwrap();
+    verify_bw_cinfv(&presym);
+}
+
+#[test]
+fn test_point_group_detection_linear_n3_electric_field_cinfv() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+
+    // Parallel field
+    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_cinfv(&presym);
+}
+
+fn verify_dinfh(presym: &PreSymmetry) {
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    assert_eq!(sym.point_group, Some("D∞h".to_owned()));
+    assert_eq!(
+        sym.get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Inf]
+            .len(),
+        1
+    );
+    assert_eq!(
+        sym.get_generators(&ROT)
+            .expect("No proper generators found.")[&ORDER_2]
+            .len(),
+        1
+    );
+    assert_eq!(
+        sym.get_generators(&SIG)
+            .expect("No improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+fn verify_bw_dinfh(presym: &PreSymmetry) {
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    assert_eq!(magsym.point_group, Some("D∞h".to_owned()));
+    assert_eq!(
+        magsym
+            .get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Inf]
+            .len(),
+        1
+    );
+    assert!(magsym
+        .get_generators(&ROT)
+        .expect("No time-reversed proper generators found.")
+        .get(&ORDER_2)
+        .is_none());
+    assert_eq!(
+        magsym
+            .get_generators(&TRROT)
+            .expect("No time-reversed proper generators found.")[&ORDER_2]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&SIG)
+            .expect("No improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert!(magsym.get_generators(&TRSIG).is_none());
+    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+fn verify_cinfv(presym: &PreSymmetry) {
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    assert_eq!(sym.point_group, Some("C∞v".to_owned()));
+    assert_eq!(
+        sym.get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Inf]
+            .len(),
+        1
+    );
+    assert_eq!(
+        sym.get_generators(&SIG)
+            .expect("No improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+}
+
+fn verify_bw_cinfv(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     assert_eq!(magsym.point_group, Some("C∞v".to_owned()));
@@ -653,36 +569,6 @@ fn test_point_group_detection_linear_n3_magnetic_field_bw_cinfv() {
     assert_eq!(magsym.get_sigma_generators("v").unwrap().len(), 1);
 }
 
-#[test]
-fn test_point_group_detection_linear_n3_electric_field_cinfv() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
-    let mut mol = Molecule::from_xyz(&path, 1e-6);
-
-    // Parallel field
-    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    let presym = PreSymmetry::builder()
-        .moi_threshold(1e-6)
-        .molecule(&mol, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C∞v".to_owned()));
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Inf]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
-}
-
 /********
 Symmetric
 ********/
@@ -701,19 +587,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_c3() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C3".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
+    verify_cn(&presym, 3);
 }
 
 #[test]
@@ -727,44 +601,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_bw_c3v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("C3v".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert!(magsym.get_elements(&TRROT).is_none());
-    assert!(magsym.get_elements(&SIG).is_none());
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        3
-    );
-    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 3);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert!(magsym.get_generators(&TRROT).is_none());
-    assert!(magsym.get_generators(&SIG).is_none());
-    assert_eq!(
-        magsym
-            .get_generators(&TRSIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_bw_cnv(&presym, 3);
 }
 
 #[test]
@@ -778,19 +615,7 @@ fn test_point_group_detection_symmetric_adamantane_magnetic_field_c3() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C3".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
+    verify_cn(&presym, 3);
 }
 
 #[test]
@@ -804,44 +629,7 @@ fn test_point_group_detection_symmetric_adamantane_magnetic_field_bw_c3v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("C3v".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert!(magsym.get_elements(&TRROT).is_none());
-    assert!(magsym.get_elements(&SIG).is_none());
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        3
-    );
-    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 3);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert!(magsym.get_generators(&TRROT).is_none());
-    assert!(magsym.get_generators(&SIG).is_none());
-    assert_eq!(
-        magsym
-            .get_generators(&TRSIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_bw_cnv(&presym, 3);
 }
 
 #[test]
@@ -854,19 +642,7 @@ fn test_point_group_detection_symmetric_vh2o6_electric_field_c3() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C3".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
+    verify_cn(&presym, 3);
 }
 
 #[test]
@@ -879,19 +655,7 @@ fn test_point_group_detection_symmetric_65coronane_electric_field_c3() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C3".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
+    verify_cn(&presym, 3);
 }
 
 #[test]
@@ -904,19 +668,7 @@ fn test_point_group_detection_symmetric_h8_twisted_magnetic_field_c4() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C4".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
+    verify_cn(&presym, 4);
 }
 
 #[test]
@@ -929,6 +681,8 @@ fn test_point_group_detection_symmetric_h8_twisted_magnetic_field_bw_d4() {
         .molecule(&mol, true)
         .build()
         .unwrap();
+
+    // Slightly special case.
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     assert_eq!(magsym.point_group, Some("D4".to_owned()));
@@ -982,19 +736,7 @@ fn test_point_group_detection_symmetric_h8_twisted_electric_field_c4() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C4".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
+    verify_cn(&presym, 4);
 }
 
 #[test]
@@ -1008,19 +750,7 @@ fn test_point_group_detection_symmetric_cpnico_magnetic_field_c5() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C5".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
+    verify_cn(&presym, 5);
 }
 
 #[test]
@@ -1034,43 +764,7 @@ fn test_point_group_detection_symmetric_cpnico_magnetic_field_bw_c5v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert!(magsym.get_elements(&TRROT).is_none());
-    assert!(magsym.get_elements(&SIG).is_none());
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        5
-    );
-    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 5);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert!(magsym.get_generators(&TRROT).is_none());
-    assert!(magsym.get_generators(&SIG).is_none());
-    assert_eq!(
-        magsym
-            .get_generators(&TRSIG)
-            .expect("No time-reversed improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_bw_cnv(&presym, 5);
 }
 
 #[test]
@@ -1084,19 +778,7 @@ fn test_point_group_detection_symmetric_b7_magnetic_field_c6() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C6".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
+    verify_cn(&presym, 6);
 }
 
 #[test]
@@ -1110,44 +792,7 @@ fn test_point_group_detection_symmetric_b7_magnetic_field_bw_c6v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("C6v".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert!(magsym.get_elements(&TRROT).is_none());
-    assert!(magsym.get_elements(&SIG).is_none());
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        6
-    );
-    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 6);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert!(magsym.get_generators(&TRROT).is_none());
-    assert!(magsym.get_generators(&SIG).is_none());
-    assert_eq!(
-        magsym
-            .get_generators(&TRSIG)
-            .expect("No time-reversed improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_bw_cnv(&presym, 6);
 }
 
 #[test]
@@ -1160,19 +805,7 @@ fn test_point_group_detection_symmetric_arbitrary_half_sandwich_magnetic_field_c
             .molecule(&mol, true)
             .build()
             .unwrap();
-        let mut sym = Symmetry::new();
-        sym.analyse(&presym, false);
-        assert_eq!(sym.point_group, Some(format!("C{n}")));
-        assert_eq!(
-            sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
-            1
-        );
-        assert_eq!(
-            sym.get_generators(&ROT)
-                .expect("No proper generators found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
+        verify_cn(&presym, n);
     }
 }
 
@@ -1186,45 +819,65 @@ fn test_point_group_detection_symmetric_arbitrary_half_sandwich_magnetic_field_b
             .molecule(&mol, true)
             .build()
             .unwrap();
-        let mut magsym = Symmetry::new();
-        magsym.analyse(&presym, true);
-        assert_eq!(magsym.point_group, Some(format!("C{n}v")));
-        assert_eq!(
-            magsym
-                .get_elements(&ROT)
-                .expect("No proper elements found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert!(magsym.get_elements(&TRROT).is_none());
-        assert!(magsym.get_elements(&SIG).is_none());
-        assert_eq!(
-            magsym
-                .get_elements(&TRSIG)
-                .expect("No time-reversed improper elements found.")[&ORDER_1]
-                .len() as u32,
-            n
-        );
-        assert_eq!(magsym.get_sigma_elements("v").unwrap().len() as u32, n);
-
-        assert_eq!(
-            magsym
-                .get_generators(&ROT)
-                .expect("No proper generators found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert!(magsym.get_generators(&TRROT).is_none());
-        assert!(magsym.get_generators(&SIG).is_none());
-        assert_eq!(
-            magsym
-                .get_generators(&TRSIG)
-                .expect("No time-reversed improper generators found.")[&ORDER_1]
-                .len(),
-            1
-        );
-        assert_eq!(magsym.get_sigma_generators("v").unwrap().len(), 1);
+        verify_bw_cnv(&presym, n);
     }
+}
+
+fn verify_cn(presym: &PreSymmetry, n: u32) {
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    assert_eq!(sym.point_group, Some(format!("C{n}")));
+    assert_eq!(
+        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
+        1
+    );
+    assert_eq!(
+        sym.get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+}
+
+fn verify_bw_cnv(presym: &PreSymmetry, n: u32) {
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    assert_eq!(magsym.point_group, Some(format!("C{n}v")));
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert!(magsym.get_elements(&TRROT).is_none());
+    assert!(magsym.get_elements(&SIG).is_none());
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ORDER_1]
+            .len() as u32,
+        n
+    );
+    assert_eq!(magsym.get_sigma_elements("v").unwrap().len() as u32, n);
+
+    assert_eq!(
+        magsym
+            .get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert!(magsym.get_generators(&TRROT).is_none());
+    assert!(magsym.get_generators(&SIG).is_none());
+    assert_eq!(
+        magsym
+            .get_generators(&TRSIG)
+            .expect("No time-reversed improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(magsym.get_sigma_generators("v").unwrap().len(), 1);
 }
 
 /*
@@ -1240,32 +893,7 @@ fn test_point_group_detection_symmetric_nh3_c3v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C3v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        3
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 3);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 3);
 }
 
 #[test]
@@ -1278,32 +906,7 @@ fn test_point_group_detection_symmetric_bf3_electric_field_c3v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C3v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        3
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 3);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 3);
 }
 
 #[test]
@@ -1317,32 +920,7 @@ fn test_point_group_detection_symmetric_adamantane_electric_field_c3v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C3v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        3
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 3);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 3);
 }
 
 #[test]
@@ -1355,32 +933,7 @@ fn test_point_group_detection_symmetric_ch4_electric_field_c3v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C3v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        3
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 3);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 3);
 }
 
 #[test]
@@ -1393,32 +946,7 @@ fn test_point_group_detection_symmetric_vf6_electric_field_c3v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C3v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        3
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 3);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 3);
 }
 
 #[test]
@@ -1430,32 +958,7 @@ fn test_point_group_detection_symmetric_sf5cl_c4v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C4v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        4
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 4);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 4);
 }
 
 #[test]
@@ -1469,32 +972,7 @@ fn test_point_group_detection_symmetric_h8_electric_field_c4v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C4v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        4
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 4);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 4);
 }
 
 #[test]
@@ -1507,32 +985,7 @@ fn test_point_group_detection_symmetric_vf6_electric_field_c4v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C4v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        4
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 4);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 4);
 }
 
 #[test]
@@ -1545,32 +998,7 @@ fn test_point_group_detection_symmetric_antiprism_pb10_electric_field_c4v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C4v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        4
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 4);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 4);
 }
 
 #[test]
@@ -1583,32 +1011,7 @@ fn test_point_group_detection_symmetric_cpnico_c5v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C5v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        5
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 5);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 5);
 }
 
 #[test]
@@ -1622,32 +1025,7 @@ fn test_point_group_detection_symmetric_staggered_ferrocene_electric_field_c5v()
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C5v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        5
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 5);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 5);
 }
 
 #[test]
@@ -1660,32 +1038,7 @@ fn test_point_group_detection_symmetric_c60_electric_field_c5v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C5v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        5
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 5);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 5);
 }
 
 #[test]
@@ -1697,32 +1050,7 @@ fn test_point_group_detection_symmetric_b7_c6v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C6v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        6
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 6);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 6);
 }
 
 #[test]
@@ -1735,32 +1063,7 @@ fn test_point_group_detection_symmetric_au26_electric_field_c6v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C6v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        6
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 6);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 6);
 }
 
 #[test]
@@ -1774,32 +1077,7 @@ fn test_point_group_detection_symmetric_benzene_electric_field_c6v() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C6v".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        6
-    );
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 6);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+    verify_cnv(&presym, 6);
 }
 
 #[test]
@@ -1811,32 +1089,7 @@ fn test_point_group_detection_symmetric_arbitrary_half_sandwich_cnv() {
             .molecule(&mol, true)
             .build()
             .unwrap();
-        let mut sym = Symmetry::new();
-        sym.analyse(&presym, false);
-        assert_eq!(sym.point_group, Some(format!("C{n}v")));
-        assert_eq!(
-            sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
-            1
-        );
-        assert_eq!(
-            sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len() as u32,
-            n
-        );
-        assert_eq!(sym.get_sigma_elements("v").unwrap().len() as u32, n);
-
-        assert_eq!(
-            sym.get_generators(&ROT)
-                .expect("No proper generators found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert_eq!(
-            sym.get_generators(&SIG)
-                .expect("No improper generators found.")[&ORDER_1]
-                .len(),
-            1
-        );
-        assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+        verify_cnv(&presym, n);
     }
 }
 
@@ -1851,33 +1104,37 @@ fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_electric_fi
             .molecule(&mol, true)
             .build()
             .unwrap();
-        let mut sym = Symmetry::new();
-        sym.analyse(&presym, false);
-        assert_eq!(sym.point_group, Some(format!("C{n}v")));
-        assert_eq!(
-            sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
-            1
-        );
-        assert_eq!(
-            sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len() as u32,
-            n
-        );
-        assert_eq!(sym.get_sigma_elements("v").unwrap().len() as u32, n);
-
-        assert_eq!(
-            sym.get_generators(&ROT)
-                .expect("No proper generators found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert_eq!(
-            sym.get_generators(&SIG)
-                .expect("No improper generators found.")[&ORDER_1]
-                .len(),
-            1
-        );
-        assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
+        verify_cnv(&presym, n);
     }
+}
+
+fn verify_cnv(presym: &PreSymmetry, n: u32) {
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    assert_eq!(sym.point_group, Some(format!("C{n}v")));
+    assert_eq!(
+        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
+        1
+    );
+    assert_eq!(
+        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len() as u32,
+        n
+    );
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len() as u32, n);
+
+    assert_eq!(
+        sym.get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert_eq!(
+        sym.get_generators(&SIG)
+            .expect("No improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(sym.get_sigma_generators("v").unwrap().len(), 1);
 }
 
 /*
@@ -1894,36 +1151,7 @@ fn test_point_group_detection_symmetric_bf3_magnetic_field_c3h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C3h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_cnh(&presym, 3);
 }
 
 #[test]
@@ -1936,70 +1164,7 @@ fn test_point_group_detection_symmetric_bf3_magnetic_field_bw_d3h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D3h".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRROT)
-            .expect("No proper elements found.")[&ORDER_2]
-            .len(),
-        3
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        3
-    );
-    assert_eq!(magsym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 3);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&TRROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert!(magsym.get_generators(&TRSIG).is_none());
-    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_bw_dnh(&presym, 3);
 }
 
 #[test]
@@ -2013,40 +1178,7 @@ fn test_point_group_detection_symmetric_xef4_magnetic_field_c4h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C4h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_cnh(&presym, 4);
 }
 
 #[test]
@@ -2060,83 +1192,7 @@ fn test_point_group_detection_symmetric_xef4_magnetic_field_bw_d4h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D4h".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRROT)
-            .expect("No time-reversed proper elements found.")[&ORDER_2]
-            .len(),
-        4
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        4
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 4);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&TRROT)
-            .expect("No time-reversed proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_bw_dnh(&presym, 4);
 }
 
 #[test]
@@ -2149,40 +1205,7 @@ fn test_point_group_detection_symmetric_vf6_magnetic_field_c4h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C4h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_cnh(&presym, 4);
 }
 
 #[test]
@@ -2195,83 +1218,7 @@ fn test_point_group_detection_symmetric_vf6_magnetic_field_bw_d4h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D4h".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRROT)
-            .expect("No time-reversed proper elements found.")[&ORDER_2]
-            .len(),
-        4
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        4
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 4);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&TRROT)
-            .expect("No time-reversed proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_bw_dnh(&presym, 4);
 }
 
 #[test]
@@ -2285,40 +1232,7 @@ fn test_point_group_detection_symmetric_h8_magnetic_field_c4h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C4h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_cnh(&presym, 4);
 }
 
 #[test]
@@ -2332,83 +1246,7 @@ fn test_point_group_detection_symmetric_h8_magnetic_field_bw_d4h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D4h".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRROT)
-            .expect("No time-reversed proper elements found.")[&ORDER_2]
-            .len(),
-        4
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        4
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 4);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&TRROT)
-            .expect("No time-reversed proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_bw_dnh(&presym, 4);
 }
 
 #[test]
@@ -2422,36 +1260,7 @@ fn test_point_group_detection_symmetric_eclipsed_ferrocene_magnetic_field_c5h() 
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C5h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_cnh(&presym, 5);
 }
 
 #[test]
@@ -2465,70 +1274,7 @@ fn test_point_group_detection_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D5h".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRROT)
-            .expect("No time-reversed proper elements found.")[&ORDER_2]
-            .len(),
-        5
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        5
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 5);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&TRROT)
-            .expect("No time-reversed proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert!(magsym.get_generators(&TRSIG).is_none());
-    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_bw_dnh(&presym, 5);
 }
 
 #[test]
@@ -2542,40 +1288,7 @@ fn test_point_group_detection_symmetric_benzene_magnetic_field_c6h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C6h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_cnh(&presym, 6);
 }
 
 #[test]
@@ -2589,83 +1302,7 @@ fn test_point_group_detection_symmetric_benzene_magnetic_field_bw_d6h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D6h".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRROT)
-            .expect("No time-reversed proper elements found.")[&ORDER_2]
-            .len(),
-        6
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        6
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(magsym.get_sigma_elements("v").unwrap().len(), 6);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&TRROT)
-            .expect("No time-reversed proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_bw_dnh(&presym, 6);
 }
 
 #[test]
@@ -2679,47 +1316,7 @@ fn test_point_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_fie
             .molecule(&mol, true)
             .build()
             .unwrap();
-        let mut sym = Symmetry::new();
-        sym.analyse(&presym, false);
-        assert_eq!(sym.point_group, Some(format!("C{n}h")));
-        assert_eq!(
-            sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
-            1
-        );
-        assert_eq!(
-            sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-            1
-        );
-        assert_eq!(
-            sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-        if n % 2 == 0 {
-            assert_eq!(
-                sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-                1
-            );
-            assert_eq!(
-                sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-                1
-            );
-        };
-
-        assert_eq!(
-            sym.get_generators(&ROT)
-                .expect("No proper generators found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert_eq!(
-            sym.get_generators(&SIG)
-                .expect("No improper generators found.")[&ORDER_1]
-                .len(),
-            1
-        );
-        assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+        verify_cnh(&presym, n);
     }
 }
 
@@ -2734,85 +1331,133 @@ fn test_point_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_fie
             .molecule(&mol, true)
             .build()
             .unwrap();
-        let mut magsym = Symmetry::new();
-        magsym.analyse(&presym, true);
+        verify_bw_dnh(&presym, n);
+    }
+}
+
+fn verify_cnh(presym: &PreSymmetry, n: u32) {
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    assert_eq!(sym.point_group, Some(format!("C{n}h")));
+    assert_eq!(
+        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
+        1
+    );
+    assert_eq!(
+        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
+        1
+    );
+    assert_eq!(
+        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
+    if n % 2 == 0 {
+        assert_eq!(
+            sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
+            1
+        );
+        assert_eq!(
+            sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
+            1
+        );
+    };
+
+    assert_eq!(
+        sym.get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert_eq!(
+        sym.get_generators(&SIG)
+            .expect("No improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
+fn verify_bw_dnh(presym: &PreSymmetry, n: u32) {
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ORDER_1]
+            .len() as u32,
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ORDER_1]
+            .len() as u32,
+        n
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert_eq!(magsym.get_sigma_elements("h").unwrap().len() as u32, 1);
+    assert_eq!(magsym.get_sigma_elements("v").unwrap().len() as u32, n);
+    if n % 2 == 0 {
+        assert_eq!(
+            magsym
+                .get_elements(&SIG)
+                .expect("No improper elements found.")[&ORDER_2]
+                .len(),
+            1
+        );
         assert_eq!(
             magsym
                 .get_elements(&ROT)
-                .expect("No proper elements found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert_eq!(
-            magsym
-                .get_elements(&SIG)
-                .expect("No improper elements found.")[&ORDER_1]
+                .expect("No proper elements found.")[&ORDER_2]
                 .len() as u32,
             1
         );
         assert_eq!(
             magsym
-                .get_elements(&TRSIG)
-                .expect("No time-reversed improper elements found.")[&ORDER_1]
+                .get_elements(&TRROT)
+                .expect("No time-reversed proper elements found.")[&ORDER_2]
                 .len() as u32,
             n
         );
-        assert_eq!(
-            magsym
-                .get_elements(&SIG)
-                .expect("No improper elements found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert_eq!(magsym.get_sigma_elements("h").unwrap().len() as u32, 1);
-        assert_eq!(magsym.get_sigma_elements("v").unwrap().len() as u32, n);
-        if n % 2 == 0 {
-            assert_eq!(
-                magsym
-                    .get_elements(&SIG)
-                    .expect("No improper elements found.")[&ORDER_2]
-                    .len(),
-                1
-            );
-            assert_eq!(
-                magsym
-                    .get_elements(&ROT)
-                    .expect("No proper elements found.")[&ORDER_2]
-                    .len() as u32,
-                1
-            );
-            assert_eq!(
-                magsym
-                    .get_elements(&TRROT)
-                    .expect("No time-reversed proper elements found.")[&ORDER_2]
-                    .len() as u32,
-                n
-            );
-        }
-
-        assert_eq!(
-            magsym
-                .get_generators(&ROT)
-                .expect("No proper generators found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert_eq!(
-            magsym
-                .get_generators(&TRROT)
-                .expect("No time-reversed proper generators found.")[&ORDER_2]
-                .len(),
-            1
-        );
-        assert_eq!(
-            magsym
-                .get_generators(&SIG)
-                .expect("No improper generators found.")[&ORDER_1]
-                .len(),
-            1
-        );
-        assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
     }
+
+    assert_eq!(
+        magsym
+            .get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&TRROT)
+            .expect("No time-reversed proper generators found.")[&ORDER_2]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&SIG)
+            .expect("No improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
 }
 
 /*
@@ -2828,30 +1473,7 @@ fn test_point_group_detection_symmetric_triphenyl_radical_d3() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D3".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        3
-    );
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
+    verify_dn(&presym, 3);
 }
 
 #[test]
@@ -2862,29 +1484,7 @@ fn test_point_group_detection_symmetric_h8_twisted_d4() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D4".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        5
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
+    verify_dn(&presym, 4);
 }
 
 #[test]
@@ -2896,30 +1496,7 @@ fn test_point_group_detection_symmetric_c5ph5_d5() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D5".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        5
-    );
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
+    verify_dn(&presym, 5);
 }
 
 #[test]
@@ -2931,30 +1508,7 @@ fn test_point_group_detection_symmetric_c6ph6_d6() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D6".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        7
-    );
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
+    verify_dn(&presym, 6);
 }
 
 #[test]
@@ -2967,38 +1521,42 @@ fn test_point_group_detection_symmetric_arbitrary_twisted_sandwich_dn() {
             .molecule(&mol, true)
             .build()
             .unwrap();
-        let mut sym = Symmetry::new();
-        sym.analyse(&presym, false);
-        assert_eq!(sym.point_group, Some(format!("D{n}")));
-        assert_eq!(
-            sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
-            1
-        );
-        if n % 2 == 0 {
-            assert_eq!(
-                sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len() as u32,
-                n + 1
-            );
-        } else {
-            assert_eq!(
-                sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len() as u32,
-                n
-            );
-        };
-
-        assert_eq!(
-            sym.get_generators(&ROT)
-                .expect("No proper generators found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert_eq!(
-            sym.get_generators(&ROT)
-                .expect("No proper generators found.")[&ORDER_2]
-                .len(),
-            1
-        );
+        verify_dn(&presym, n);
     }
+}
+
+fn verify_dn(presym: &PreSymmetry, n: u32) {
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    assert_eq!(sym.point_group, Some(format!("D{n}")));
+    assert_eq!(
+        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
+        1
+    );
+    if n % 2 == 0 {
+        assert_eq!(
+            sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len() as u32,
+            n + 1
+        );
+    } else {
+        assert_eq!(
+            sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len() as u32,
+            n
+        );
+    };
+
+    assert_eq!(
+        sym.get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert_eq!(
+        sym.get_generators(&ROT)
+            .expect("No proper generators found.")[&ORDER_2]
+            .len(),
+        1
+    );
 }
 
 /*
@@ -3014,47 +1572,7 @@ fn test_point_group_detection_symmetric_bf3_d3h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D3h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        4
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 3);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_dnh(&presym, 3);
 }
 
 #[test]
@@ -3067,51 +1585,7 @@ fn test_point_group_detection_symmetric_xef4_d4h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D4h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        5
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        5
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 4);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_dnh(&presym, 4);
 }
 
 #[test]
@@ -3124,51 +1598,7 @@ fn test_point_group_detection_symmetric_h8_d4h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D4h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        5
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        5
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 4);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_dnh(&presym, 4);
 }
 
 #[test]
@@ -3181,47 +1611,7 @@ fn test_point_group_detection_symmetric_eclipsed_ferrocene_d5h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D5h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        5
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        6
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 5);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_dnh(&presym, 5);
 }
 
 #[test]
@@ -3234,51 +1624,7 @@ fn test_point_group_detection_symmetric_benzene_d6h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D6h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        7
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        7
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 6);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_dnh(&presym, 6);
 }
 
 #[test]
@@ -3290,43 +1636,7 @@ fn test_point_group_detection_symmetric_h100_d100h() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D100h".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(100)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(100)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("h").unwrap().len(), 1);
-    assert_eq!(sym.get_sigma_elements("v").unwrap().len(), 100);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(100)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
+    verify_dnh(&presym, 100);
 }
 
 #[test]
@@ -3339,55 +1649,59 @@ fn test_point_group_detection_symmetric_arbitrary_eclipsed_sandwich_dnh() {
             .molecule(&mol, true)
             .build()
             .unwrap();
-        let mut sym = Symmetry::new();
-        sym.analyse(&presym, false);
-        assert_eq!(sym.point_group, Some(format!("D{n}h")));
+        verify_dnh(&presym, n);
+    }
+}
+
+fn verify_dnh(presym: &PreSymmetry, n: u32) {
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    assert_eq!(sym.point_group, Some(format!("D{n}h")));
+    assert_eq!(
+        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
+        1
+    );
+    assert_eq!(
+        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len() as u32,
+        n + 1
+    );
+    assert_eq!(
+        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert_eq!(sym.get_sigma_elements("h").unwrap().len() as u32, 1);
+    assert_eq!(sym.get_sigma_elements("v").unwrap().len() as u32, n);
+    if n % 2 == 0 {
         assert_eq!(
-            sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
+            sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
             1
         );
         assert_eq!(
-            sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len() as u32,
+            sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len() as u32,
             n + 1
         );
-        assert_eq!(
-            sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert_eq!(sym.get_sigma_elements("h").unwrap().len() as u32, 1);
-        assert_eq!(sym.get_sigma_elements("v").unwrap().len() as u32, n);
-        if n % 2 == 0 {
-            assert_eq!(
-                sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-                1
-            );
-            assert_eq!(
-                sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len() as u32,
-                n + 1
-            );
-        }
-
-        assert_eq!(
-            sym.get_generators(&ROT)
-                .expect("No proper generators found.")[&ElementOrder::Int(n)]
-                .len(),
-            1
-        );
-        assert_eq!(
-            sym.get_generators(&ROT)
-                .expect("No proper generators found.")[&ORDER_2]
-                .len(),
-            1
-        );
-        assert_eq!(
-            sym.get_generators(&SIG)
-                .expect("No improper generators found.")[&ORDER_1]
-                .len(),
-            1
-        );
-        assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
     }
+
+    assert_eq!(
+        sym.get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert_eq!(
+        sym.get_generators(&ROT)
+            .expect("No proper generators found.")[&ORDER_2]
+            .len(),
+        1
+    );
+    assert_eq!(
+        sym.get_generators(&SIG)
+            .expect("No improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(sym.get_sigma_generators("h").unwrap().len(), 1);
 }
 
 /*
@@ -3404,36 +1718,7 @@ fn test_point_group_detection_symmetric_b2cl4_d2d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D2d".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        2
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 2);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        2
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_dnd(&presym, 2);
 }
 
 #[test]
@@ -3445,36 +1730,7 @@ fn test_point_group_detection_symmetric_s4n4_d2d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D2d".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        2
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 2);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        2
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_dnd(&presym, 2);
 }
 
 #[test]
@@ -3486,36 +1742,7 @@ fn test_point_group_detection_symmetric_pbet4_d2d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D2d".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        2
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 2);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        2
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_dnd(&presym, 2);
 }
 
 #[test]
@@ -3527,36 +1754,7 @@ fn test_point_group_detection_symmetric_allene_d2d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D2d".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        2
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 2);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        2
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_dnd(&presym, 2);
 }
 
 #[test]
@@ -3568,50 +1766,7 @@ fn test_point_group_detection_symmetric_staggered_c2h6_d3d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D3d".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 3);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_dnd(&presym, 3);
 }
 
 #[test]
@@ -3623,50 +1778,7 @@ fn test_point_group_detection_symmetric_cyclohexane_chair_d3d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D3d".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        3
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 3);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(3)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_dnd(&presym, 3);
 }
 
 #[test]
@@ -3678,46 +1790,7 @@ fn test_point_group_detection_symmetric_s8_d4d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D4d".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        5
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        4
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(8)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 4);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_dnd(&presym, 4);
 }
 
 #[test]
@@ -3728,46 +1801,7 @@ fn test_point_group_detection_symmetric_antiprism_h8_d4d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D4d".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        5
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        4
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(8)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 4);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_dnd(&presym, 4);
 }
 
 #[test]
@@ -3779,46 +1813,7 @@ fn test_point_group_detection_symmetric_antiprism_pb10_d4d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D4d".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        5
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        4
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(8)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 4);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_dnd(&presym, 4);
 }
 
 #[test]
@@ -3831,50 +1826,7 @@ fn test_point_group_detection_symmetric_staggered_ferrocene_d5d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D5d".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        5
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        5
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(10)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 5);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(5)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_dnd(&presym, 5);
 }
 
 #[test]
@@ -3886,46 +1838,7 @@ fn test_point_group_detection_symmetric_au26_d6d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D6d".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        7
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
-        6
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(12)].len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 6);
-
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_dnd(&presym, 6);
 }
 
 #[test]
@@ -3938,9 +1851,44 @@ fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_dnd() {
             .molecule(&mol, true)
             .build()
             .unwrap();
-        let mut sym = Symmetry::new();
-        sym.analyse(&presym, false);
-        assert_eq!(sym.point_group, Some(format!("D{n}d")));
+        verify_dnd(&presym, n);
+    }
+}
+
+fn verify_dnd(presym: &PreSymmetry, n: u32) {
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    assert_eq!(sym.point_group, Some(format!("D{n}d")));
+    if n == 2 {
+        assert_eq!(
+            sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
+            3
+        );
+        assert_eq!(
+            sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
+            2
+        );
+        assert_eq!(
+            sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)]
+                .len(),
+            1
+        );
+        assert_eq!(sym.get_sigma_elements("d").unwrap().len(), 2);
+
+        assert_eq!(
+            sym.get_generators(&ROT)
+                .expect("No proper generators found.")[&ORDER_2]
+                .len(),
+            2
+        );
+        assert_eq!(
+            sym.get_generators(&SIG)
+                .expect("No improper generators found.")[&ORDER_1]
+                .len(),
+            1
+        );
+        assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
+    } else {
         assert_eq!(
             sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
             1
@@ -4007,24 +1955,7 @@ fn test_point_group_detection_symmetric_b2cl4_magnetic_field_s4() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S4".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
+    verify_s2n(&presym, 2);
 }
 
 #[test]
@@ -4038,62 +1969,7 @@ fn test_point_group_detection_symmetric_b2cl4_magnetic_field_bw_d2d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D2d".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRROT)
-            .expect("No time-reversed proper elements found.")[&ORDER_2]
-            .len(),
-        2
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        2
-    );
-    assert_eq!(magsym.get_sigma_elements("d").unwrap().len(), 2);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&TRROT)
-            .expect("No time-reversed proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert!(magsym.get_generators(&SIG).is_none());
-    assert_eq!(
-        magsym
-            .get_generators(&TRSIG)
-            .expect("No time-reversed improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_bw_dnd(&presym, 2);
 }
 
 #[test]
@@ -4106,24 +1982,7 @@ fn test_point_group_detection_symmetric_adamantane_magnetic_field_s4() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S4".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
+    verify_s2n(&presym, 2);
 }
 
 #[test]
@@ -4136,62 +1995,7 @@ fn test_point_group_detection_symmetric_adamantane_magnetic_field_bw_d2d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D2d".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRROT)
-            .expect("No time-reversed proper elements found.")[&ORDER_2]
-            .len(),
-        2
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        2
-    );
-    assert_eq!(magsym.get_sigma_elements("d").unwrap().len(), 2);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&TRROT)
-            .expect("No time-reversed proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert!(magsym.get_generators(&SIG).is_none());
-    assert_eq!(
-        magsym
-            .get_generators(&TRSIG)
-            .expect("No time-reversed improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_bw_dnd(&presym, 2);
 }
 
 #[test]
@@ -4204,24 +2008,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_s4() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S4".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
+    verify_s2n(&presym, 2);
 }
 
 #[test]
@@ -4234,62 +2021,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_bw_d2d() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D2d".to_owned()));
-    assert_eq!(
-        magsym
-            .get_elements(&ROT)
-            .expect("No proper elements found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRROT)
-            .expect("No time-reversed proper elements found.")[&ORDER_2]
-            .len(),
-        2
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&SIG)
-            .expect("No improper elements found.")[&ElementOrder::Int(4)]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_elements(&TRSIG)
-            .expect("No time-reversed improper elements found.")[&ORDER_1]
-            .len(),
-        2
-    );
-    assert_eq!(magsym.get_sigma_elements("d").unwrap().len(), 2);
-
-    assert_eq!(
-        magsym
-            .get_generators(&ROT)
-            .expect("No proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert_eq!(
-        magsym
-            .get_generators(&TRROT)
-            .expect("No time-reversed proper generators found.")[&ORDER_2]
-            .len(),
-        1
-    );
-    assert!(magsym.get_generators(&SIG).is_none());
-    assert_eq!(
-        magsym
-            .get_generators(&TRSIG)
-            .expect("No time-reversed improper generators found.")[&ORDER_1]
-            .len(),
-        1
-    );
-    assert_eq!(magsym.get_sigma_generators("d").unwrap().len(), 1);
+    verify_bw_dnd(&presym, 2);
 }
 
 #[test]
@@ -4301,28 +2033,7 @@ fn test_point_group_detection_symmetric_65coronane_s6() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S6".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
-
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
+    verify_s2n(&presym, 3);
 }
 
 #[test]
@@ -4335,28 +2046,20 @@ fn test_point_group_detection_symmetric_65coronane_magnetic_field_s6() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S6".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
+    verify_s2n(&presym, 3);
+}
 
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
+#[test]
+fn test_point_group_detection_symmetric_65coronane_magnetic_field_nonbw_s6() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_s2n(&presym, 3);
 }
 
 #[test]
@@ -4369,28 +2072,20 @@ fn test_point_group_detection_symmetric_staggered_c2h6_magnetic_field_s6() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S6".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
+    verify_s2n(&presym, 3);
+}
 
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
+#[test]
+fn test_point_group_detection_symmetric_staggered_c2h6_magnetic_field_bw_d3d() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_bw_dnd(&presym, 3);
 }
 
 #[test]
@@ -4407,28 +2102,24 @@ fn test_point_group_detection_symmetric_c60_magnetic_field_s6() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S6".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
+    verify_s2n(&presym, 3);
+}
 
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
+#[test]
+fn test_point_group_detection_symmetric_c60_magnetic_field_bw_d3d() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-5);
+    mol.set_magnetic_field(Some(Vector3::new(
+        -0.5773503107731,
+        -0.1875926572335,
+        0.7946543988441,
+    )));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_bw_dnd(&presym, 3);
 }
 
 #[test]
@@ -4441,28 +2132,20 @@ fn test_point_group_detection_symmetric_vh2o6_magnetic_field_s6() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S6".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
+    verify_s2n(&presym, 3);
+}
 
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
+#[test]
+fn test_point_group_detection_symmetric_vh2o6_magnetic_field_nonbw_s6() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-12);
+    mol.set_magnetic_field(Some(Vector3::new(-0.2, 0.2, 0.2)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-12)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_s2n(&presym, 3);
 }
 
 #[test]
@@ -4475,28 +2158,20 @@ fn test_point_group_detection_symmetric_vf6_magnetic_field_s6() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S6".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
+    verify_s2n(&presym, 3);
+}
 
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(6)]
-            .len(),
-        1
-    );
+#[test]
+fn test_point_group_detection_symmetric_vf6_magnetic_field_bw_d3d() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-12);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-12)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_bw_dnd(&presym, 3);
 }
 
 #[test]
@@ -4509,24 +2184,20 @@ fn test_point_group_detection_symmetric_s8_magnetic_field_s8() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S8".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(8)].len(),
-        1
-    );
+    verify_s2n(&presym, 4);
+}
 
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(8)]
-            .len(),
-        1
-    );
+#[test]
+fn test_point_group_detection_symmetric_s8_magnetic_field_bw_d4d() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_bw_dnd(&presym, 4);
 }
 
 #[test]
@@ -4539,24 +2210,20 @@ fn test_point_group_detection_symmetric_antiprism_pb10_magnetic_field_s8() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S8".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(8)].len(),
-        1
-    );
+    verify_s2n(&presym, 4);
+}
 
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(8)]
-            .len(),
-        1
-    );
+#[test]
+fn test_point_group_detection_symmetric_antiprism_pb10_magnetic_field_bw_d4d() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_bw_dnd(&presym, 4);
 }
 
 #[test]
@@ -4570,28 +2237,21 @@ fn test_point_group_detection_symmetric_staggered_ferrocene_magnetic_field_s10()
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S10".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(10)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
+    verify_s2n(&presym, 5);
+}
 
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(10)]
-            .len(),
-        1
-    );
+#[test]
+fn test_point_group_detection_symmetric_staggered_ferrocene_magnetic_field_bw_d5d() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_bw_dnd(&presym, 5);
 }
 
 #[test]
@@ -4604,28 +2264,20 @@ fn test_point_group_detection_symmetric_c60_magnetic_field_s10() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S10".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(5)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(10)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-        1
-    );
+    verify_s2n(&presym, 5);
+}
 
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(10)]
-            .len(),
-        1
-    );
+#[test]
+fn test_point_group_detection_symmetric_c60_magnetic_field_bw_d5d() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-5);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_bw_dnd(&presym, 5);
 }
 
 #[test]
@@ -4638,24 +2290,20 @@ fn test_point_group_detection_symmetric_au26_magnetic_field_s12() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("S12".to_owned()));
-    assert_eq!(
-        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(6)].len(),
-        1
-    );
-    assert_eq!(
-        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(12)].len(),
-        1
-    );
+    verify_s2n(&presym, 6);
+}
 
-    assert_eq!(
-        sym.get_generators(&SIG)
-            .expect("No improper generators found.")[&ElementOrder::Int(12)]
-            .len(),
-        1
-    );
+#[test]
+fn test_point_group_detection_symmetric_au26_magnetic_field_bw_d6d() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_bw_dnd(&presym, 6);
 }
 
 #[test]
@@ -4669,32 +2317,133 @@ fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic_fi
             .molecule(&mol, true)
             .build()
             .unwrap();
-        let mut sym = Symmetry::new();
-        sym.analyse(&presym, false);
-        assert_eq!(sym.point_group, Some(format!("S{}", 2 * n)));
-        assert_eq!(
-            sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
-            1
-        );
-        assert_eq!(
-            sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(2 * n)]
-                .len(),
-            1
-        );
-        if n % 2 == 1 {
-            assert_eq!(
-                sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
-                1
-            );
-        };
-
-        assert_eq!(
-            sym.get_generators(&SIG)
-                .expect("No improper generators found.")[&ElementOrder::Int(2 * n)]
-                .len(),
-            1
-        );
+        verify_s2n(&presym, n);
     }
+}
+
+#[test]
+fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd() {
+    // env_logger::init();
+    for n in 3..=20 {
+        let mut mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
+        mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+        let presym = PreSymmetry::builder()
+            .moi_threshold(1e-7)
+            .molecule(&mol, true)
+            .build()
+            .unwrap();
+        verify_bw_dnd(&presym, n);
+    }
+}
+
+fn verify_s2n(presym: &PreSymmetry, n: u32) {
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    assert_eq!(sym.point_group, Some(format!("S{}", 2 * n)));
+    assert_eq!(
+        sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
+        1
+    );
+    assert_eq!(
+        sym.get_elements(&SIG).expect("No improper elements found.")[&ElementOrder::Int(2 * n)]
+            .len(),
+        1
+    );
+    if n % 2 == 1 {
+        assert_eq!(
+            sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
+            1
+        );
+    };
+
+    assert_eq!(
+        sym.get_generators(&SIG)
+            .expect("No improper generators found.")[&ElementOrder::Int(2 * n)]
+            .len(),
+        1
+    );
+}
+
+fn verify_bw_dnd(presym: &PreSymmetry, n: u32) {
+    let mut magsym = Symmetry::new();
+    magsym.analyse(presym, true);
+    assert_eq!(magsym.point_group, Some(format!("D{n}d")));
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ORDER_1]
+            .len() as u32,
+        n
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ElementOrder::Int(2 * n)]
+            .len(),
+        1
+    );
+    assert_eq!(magsym.get_sigma_elements("d").unwrap().len() as u32, n);
+    if n % 2 == 0 {
+        assert_eq!(
+            magsym
+                .get_elements(&ROT)
+                .expect("No proper elements found.")[&ORDER_2]
+                .len() as u32,
+            1
+        );
+        assert_eq!(
+            magsym
+                .get_elements(&TRROT)
+                .expect("No time-reversed proper elements found.")[&ORDER_2]
+                .len() as u32,
+            n
+        );
+    } else {
+        assert_eq!(
+            magsym
+                .get_elements(&TRROT)
+                .expect("No time-reversed proper elements found.")[&ORDER_2]
+                .len() as u32,
+            n
+        );
+        assert_eq!(
+            magsym
+                .get_elements(&SIG)
+                .expect("No improper elements found.")[&ORDER_2]
+                .len(),
+            1
+        );
+    };
+
+    assert_eq!(
+        magsym
+            .get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(n)]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&TRROT)
+            .expect("No time-reversed proper generators found.")[&ORDER_2]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&TRSIG)
+            .expect("No time-reversed improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(magsym.get_sigma_generators("d").unwrap().len(), 1);
 }
 
 /*********
