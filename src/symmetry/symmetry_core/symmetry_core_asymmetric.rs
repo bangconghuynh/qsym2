@@ -64,14 +64,18 @@ impl Symmetry {
             assert_eq!(max_ord, ORDER_2);
 
             // Principal axis, which is C2, is also a generator.
+            // If the group is a black-white magnetic group, then one C2 axis is non-time-reversed,
+            // while the other two are. Hence, one C2 generator is non-time-reversed, and the other
+            // must be. We take care of this by sorting `c2s` to put any non-time-reversed elements
+            // first.
             let mut c2s = self
                 .get_proper(&ORDER_2)
                 .expect(" No C2 elements found.")
                 .into_iter()
-                .take(2)
                 .cloned()
-                .collect_vec()
-                .into_iter();
+                .collect_vec();
+            c2s.sort_by_key(|c2| c2.contains_time_reversal());
+            let mut c2s = c2s.into_iter();
             let c2 = c2s.next().expect(" No C2 elements found.");
             self.add_proper(
                 max_ord,
@@ -138,16 +142,24 @@ impl Symmetry {
                             .contains_time_reversal(),
                     );
                 }
-                let sigmas = self.get_sigma_elements("").expect("No σ found.");
-                let sigma = sigmas.iter().next().expect("No σ found.");
+                // let sigmas = self.get_sigma_elements("").expect("No σ found.");
+                // let sigma = sigmas.iter().next().expect("No σ found.");
+                let principal_element = self.get_proper_principal_element();
+                let improper_check =
+                    presym.check_improper(&ORDER_1, &principal_element.axis, &SIG, tr);
+                assert!(improper_check.is_some());
                 self.add_improper(
                     ORDER_1,
-                    sigma.axis,
+                    principal_element.axis,
                     true,
                     SIG.clone(),
                     None,
                     presym.dist_threshold,
-                    sigma.contains_time_reversal(),
+                    improper_check
+                        .expect(
+                            "Expected mirror plane perpendicular to the principal axis not found.",
+                        )
+                        .contains_time_reversal(),
                 );
             } else {
                 // Chiral, D2
@@ -243,8 +255,12 @@ impl Symmetry {
                 if (matches!(
                     presym.rotational_symmetry,
                     RotationalSymmetry::AsymmetricPlanar
-                ) && matches!(presym.molecule.magnetic_atoms, None))
+                ) && (tr == presym.molecule.magnetic_atoms.is_some()))
                 {
+                    // Planar system. The plane of the system (perpendicular to the highest-MoI
+                    // principal axis) must be a symmetry element: non-time-reversed in the absence
+                    // of a magnetic field and time-reversed in the presence of a magnetic field
+                    // (which must also lie in this plane).
                     let improper_check =
                         presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr);
                     assert!(improper_check.is_some());
@@ -303,8 +319,15 @@ impl Symmetry {
                         self.point_group.as_ref().expect("No point groups found.")
                     );
 
-                    // In C2v, σv is also a generator.
-                    let sigmavs = self.get_sigma_elements("v").expect("No σv found.");
+                    // In C2v, σv is also a generator. We prioritise the non-time-reversed one as
+                    // the generator.
+                    let mut sigmavs = self
+                        .get_sigma_elements("v")
+                        .expect("No σv found.")
+                        .into_iter()
+                        .cloned()
+                        .collect_vec();
+                    sigmavs.sort_by_key(|sigmav| sigmav.contains_time_reversal());
                     let sigmav = sigmavs.iter().next().expect("No σv found.");
                     self.add_improper(
                         ORDER_1,

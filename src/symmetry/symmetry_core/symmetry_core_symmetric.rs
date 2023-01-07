@@ -487,7 +487,16 @@ impl Symmetry {
                         presym.dist_threshold,
                         principal_element.contains_time_reversal(),
                     );
-                    let sigmavs = self.get_sigma_elements("v").expect("No σv found.");
+
+                    // One of the σv's is also a generator. We prioritise the non-time-reversed one
+                    // as the generator.
+                    let mut sigmavs = self
+                        .get_sigma_elements("v")
+                        .expect("No σv found.")
+                        .into_iter()
+                        .cloned()
+                        .collect_vec();
+                    sigmavs.sort_by_key(|sigmav| sigmav.contains_time_reversal());
                     let sigmav = sigmavs.iter().next().expect("No σv found.");
                     self.add_improper(
                         ORDER_1,
