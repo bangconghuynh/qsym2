@@ -1492,10 +1492,10 @@ fn group_from_molecular_symmetry(
                 .to_string(),
                 n_extra_operations,
                 {
-                    if n_extra_operations > 1 {
-                        "are"
-                    } else {
+                    if n_extra_operations == 1 {
                         "is"
+                    } else {
+                        "are"
                     }
                 }
                 .to_string(),
