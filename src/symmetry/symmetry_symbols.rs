@@ -11,14 +11,17 @@ use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use ndarray::{Array2, ArrayView2, Axis};
+use nalgebra::Vector3;
 use phf::phf_map;
 use regex::Regex;
 
 use crate::chartab::character::Character;
 use crate::chartab::unityroot::UnityRoot;
+use crate::symmetry::symmetry_element::SymmetryElement;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
 };
+use crate::symmetry::symmetry_element_order::ORDER_1;
 
 // =========
 // Constants
@@ -706,6 +709,30 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
             .expect("No representative element found for this class.")
             .is_time_reversal()
     }
+
+    /// Checks if this class is a time-reversed binary rotation class.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this class is a time-reversed binary rotation class.
+    fn is_tr_binary_rotation(&self) -> bool {
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_tr_binary_rotation()
+    }
+
+    /// Checks if this class is a time-reversed reflection class.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this class is a time-reversed reflection class.
+    fn is_tr_reflection(&self) -> bool {
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_tr_reflection()
+    }
 }
 
 impl<R: FiniteOrder + Clone> FiniteOrder for ClassSymbol<R> {
@@ -1138,4 +1165,48 @@ where
         .collect();
     log::debug!("Generating Mulliken irreducible representation symbols... Done.");
     irrep_symbols
+}
+
+/// Determines the mirror-plane symbol given a principal axis.
+///
+/// Arguments:
+///
+/// * `sigma_axis` - The normalised normal vector of a mirror plane.
+/// * `principal_axis` - The normalised principal rotation axis.
+/// * `thresh` - Threshold for comparisons.
+///
+/// Returns:
+///
+/// The mirror-plane symbol.
+pub fn deduce_sigma_symbol(
+    sigma_axis: &Vector3<f64>,
+    principal_element: &SymmetryElement,
+    thresh: f64,
+    force_d: bool,
+) -> Option<String> {
+    if approx::relative_eq!(
+        principal_element.axis.dot(sigma_axis).abs(),
+        0.0,
+        epsilon = thresh,
+        max_relative = thresh
+    ) && principal_element.proper_order != ORDER_1
+    {
+        // Vertical plane containing principal axis
+        if force_d {
+            Some("d".to_owned())
+        } else {
+            Some("v".to_owned())
+        }
+    } else if approx::relative_eq!(
+        principal_element.axis.cross(sigma_axis).norm(),
+        0.0,
+        epsilon = thresh,
+        max_relative = thresh
+    ) && principal_element.proper_order != ORDER_1
+    {
+        // Horizontal plane perpendicular to principal axis
+        Some("h".to_owned())
+    } else {
+        None
+    }
 }

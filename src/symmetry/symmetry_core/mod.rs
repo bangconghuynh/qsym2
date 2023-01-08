@@ -820,9 +820,27 @@ impl Symmetry {
     /// A proper principal element.
     pub fn get_proper_principal_element(&self) -> &SymmetryElement {
         let max_ord = self.get_max_proper_order();
-        let principal_elements = self
-            .get_proper(&max_ord)
-            .expect("No proper elements found.");
+        let principal_elements = self.get_proper(&max_ord).unwrap_or_else(|| {
+            let opt_proper_generators = self
+                .get_generators(&ROT)
+                .map(|proper_generators| proper_generators.get(&max_ord))
+                .unwrap_or_default();
+            let opt_tr_proper_generators = self
+                .get_elements(&TRROT)
+                .map(|tr_proper_generators| tr_proper_generators.get(&max_ord))
+                .unwrap_or_default();
+
+            match (opt_proper_generators, opt_tr_proper_generators) {
+                (None, None) => panic!("No proper elements found."),
+                (Some(proper_generators), None) => HashSet::from_iter(proper_generators.iter()),
+                (None, Some(tr_proper_generators)) => {
+                    HashSet::from_iter(tr_proper_generators.iter())
+                }
+                (Some(proper_generators), Some(tr_proper_generators)) => {
+                    HashSet::from_iter(proper_generators.iter().chain(tr_proper_generators.iter()))
+                }
+            }
+        });
         principal_elements
             .iter()
             .find(|ele| !ele.contains_time_reversal())

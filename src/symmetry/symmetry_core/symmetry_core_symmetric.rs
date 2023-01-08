@@ -7,6 +7,7 @@ use std::collections::{HashMap, HashSet};
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
 use crate::symmetry::symmetry_element::{SymmetryElement, INV, ROT, SIG, TRROT, TRSIG};
+use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 
 use super::{PreSymmetry, Symmetry};
@@ -208,7 +209,7 @@ impl Symmetry {
 
                     for c_element in non_id_c_elements {
                         let principal_element = self.get_proper_principal_element();
-                        let sigma_symbol = _deduce_sigma_symbol(
+                        let sigma_symbol = deduce_sigma_symbol(
                             &c_element.axis,
                             principal_element,
                             presym.dist_threshold,
@@ -393,7 +394,7 @@ impl Symmetry {
                             });
                         for c_element in non_id_c_elements {
                             let principal_element = self.get_proper_principal_element();
-                            let sigma_symbol = _deduce_sigma_symbol(
+                            let sigma_symbol = deduce_sigma_symbol(
                                 &c_element.axis,
                                 principal_element,
                                 presym.dist_threshold,
@@ -451,7 +452,7 @@ impl Symmetry {
                         (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords).normalize();
                     if let Some(improper_kind) = presym.check_improper(&ORDER_1, &normal, &SIG, tr)
                     {
-                        let sigma_symbol = _deduce_sigma_symbol(
+                        let sigma_symbol = deduce_sigma_symbol(
                             &normal,
                             principal_element,
                             presym.dist_threshold,
@@ -611,7 +612,7 @@ impl Symmetry {
                         );
                         for c_element in non_id_c_elements {
                             let principal_element = self.get_proper_principal_element();
-                            let sigma_symbol = _deduce_sigma_symbol(
+                            let sigma_symbol = deduce_sigma_symbol(
                                 &c_element.axis,
                                 principal_element,
                                 presym.dist_threshold,
@@ -719,50 +720,6 @@ impl Symmetry {
                 }
             }
         }
-    }
-}
-
-/// Determines the mirror-plane symbol given a principal axis.
-///
-/// Arguments:
-///
-/// * `sigma_axis` - The normalised normal vector of a mirror plane.
-/// * `principal_axis` - The normalised principal rotation axis.
-/// * `thresh` - Threshold for comparisons.
-///
-/// Returns:
-///
-/// The mirror-plane symbol.
-fn _deduce_sigma_symbol(
-    sigma_axis: &Vector3<f64>,
-    principal_element: &SymmetryElement,
-    thresh: f64,
-    force_d: bool,
-) -> Option<String> {
-    if approx::relative_eq!(
-        principal_element.axis.dot(sigma_axis).abs(),
-        0.0,
-        epsilon = thresh,
-        max_relative = thresh
-    ) && principal_element.proper_order != ORDER_1
-    {
-        // Vertical plane containing principal axis
-        if force_d {
-            Some("d".to_owned())
-        } else {
-            Some("v".to_owned())
-        }
-    } else if approx::relative_eq!(
-        principal_element.axis.cross(sigma_axis).norm(),
-        0.0,
-        epsilon = thresh,
-        max_relative = thresh
-    ) && principal_element.proper_order != ORDER_1
-    {
-        // Horizontal plane perpendicular to principal axis
-        Some("h".to_owned())
-    } else {
-        None
     }
 }
 

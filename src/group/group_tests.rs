@@ -77,7 +77,7 @@ fn test_abstract_group_from_molecular_symmetry() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
+    let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     assert_eq!(group.name, "C3v".to_string());
@@ -95,7 +95,7 @@ fn test_abstract_group_element_to_conjugacy_class() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
+    let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     assert_eq!(group.name, "C5v".to_string());
@@ -124,7 +124,7 @@ fn test_abstract_group_element_sort() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
+    let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
@@ -157,7 +157,7 @@ fn test_abstract_group_element_sort() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
+    let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
@@ -234,7 +234,7 @@ fn test_abstract_group_class_matrices() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
+    let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     let nmat_rst = group.class_matrix.unwrap();
@@ -247,8 +247,8 @@ fn test_abstract_group_class_matrices() {
 // Abstract group from molecular symmetry tests
 // ============================================
 
-fn test_abstract_group_validity(
-    group: Group<SymmetryOperation>,
+fn verify_abstract_group(
+    group: &Group<SymmetryOperation>,
     name: &str,
     order: usize,
     class_number: usize,
@@ -260,9 +260,10 @@ fn test_abstract_group_validity(
     assert_eq!(group.is_abelian(), abelian);
 
     // Test element to conjugacy class
-    let conjugacy_classes = group.conjugacy_classes.unwrap();
+    let conjugacy_classes = group.conjugacy_classes.as_ref().unwrap();
     for (element_i, class_i) in group
         .element_to_conjugacy_classes
+        .as_ref()
         .unwrap()
         .iter()
         .enumerate()
@@ -291,7 +292,7 @@ fn test_abstract_group_validity(
     }
 
     // Test class matrix symmetry w.r.t. the first two indices
-    let nmat_rst = group.class_matrix.unwrap();
+    let nmat_rst = group.class_matrix.as_ref().unwrap();
     let mut nmat_srt = nmat_rst.clone();
     nmat_srt.swap_axes(0, 1);
     assert_eq!(nmat_rst, nmat_srt);
@@ -310,10 +311,10 @@ fn test_abstract_group(
         .molecule(mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
+    let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
-    test_abstract_group_validity(group, name, order, class_number, abelian);
+    verify_abstract_group(&group, name, order, class_number, abelian);
 }
 
 fn test_abstract_group_from_infinite_group(
@@ -331,10 +332,43 @@ fn test_abstract_group_from_infinite_group(
         .molecule(mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
+    let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, Some(finite_order));
-    test_abstract_group_validity(group, name, order, class_number, abelian);
+    verify_abstract_group(&group, name, order, class_number, abelian);
+}
+
+fn test_abstract_bw_group_from_infinite_group(
+    mol: &Molecule,
+    finite_order: u32,
+    thresh: f64,
+    name: &str,
+    _finite_name: &str,
+    order: usize,
+    class_number: usize,
+    abelian: bool,
+) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    // use crate::symmetry::symmetry_element::{SIG, TRROT, TRSIG};
+    // println!("ROT: {:?}", magsym.get_generators(&ROT));
+    // println!("TRROT: {:?}", magsym.get_generators(&TRROT));
+    // println!("SIG: {:?}", magsym.get_generators(&SIG));
+    // println!("TRSIG: {:?}", magsym.get_generators(&TRSIG));
+    let group = group_from_molecular_symmetry(&magsym, Some(finite_order));
+    for op in group.elements.keys() {
+        println!("{}", op);
+    }
+    assert_eq!(
+        group.elements.keys().filter(|op| op.is_antiunitary()).count(),
+        group.elements.keys().filter(|op| !op.is_antiunitary()).count(),
+    );
+    verify_abstract_group(&group, name, order, class_number, abelian);
 }
 
 fn test_abstract_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
@@ -343,7 +377,7 @@ fn test_abstract_group_class_order(mol: &Molecule, thresh: f64, class_order_str:
         .molecule(mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
+    let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     assert!(group
@@ -559,6 +593,47 @@ fn test_abstract_group_linear_atom_magnetic_field_cinfh() {
 }
 
 #[test]
+fn test_abstract_group_linear_atom_magnetic_field_bw_dinfh() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Dnh groups.
+     * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
+     * where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1('/''), A2('/''), Ek('/'')
+     * where k = 1, ..., n//2.
+     */
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
+    for n in 2usize..=20usize {
+        if n % 2 == 0 {
+            test_abstract_bw_group_from_infinite_group(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h",
+                format!("D{}h", n).as_str(),
+                4 * n,
+                2 * (n / 2 - 1 + 4),
+                n == 2,
+            );
+        } else {
+            test_abstract_bw_group_from_infinite_group(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h",
+                format!("D{}h", 2 * n).as_str(),
+                8 * n,
+                2 * (n - 1 + 4),
+                false,
+            );
+        }
+    }
+}
+
+#[test]
 fn test_abstract_group_linear_atom_electric_field_cinfv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
@@ -669,6 +744,47 @@ fn test_abstract_group_linear_c2h2_magnetic_field_cinfh() {
 }
 
 #[test]
+fn test_abstract_group_linear_c2h2_magnetic_field_bw_dinfh() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Dnh groups.
+     * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
+     * where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1('/''), A2('/''), Ek('/'')
+     * where k = 1, ..., n//2.
+     */
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    for n in 2usize..=20usize {
+        if n % 2 == 0 {
+            test_abstract_bw_group_from_infinite_group(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h",
+                format!("D{}h", n).as_str(),
+                4 * n,
+                2 * (n / 2 - 1 + 4),
+                n == 2,
+            );
+        } else {
+            test_abstract_bw_group_from_infinite_group(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h",
+                format!("D{}h", 2 * n).as_str(),
+                8 * n,
+                2 * (n - 1 + 4),
+                false,
+            );
+        }
+    }
+}
+
+#[test]
 fn test_abstract_group_linear_c2h2_electric_field_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
@@ -751,6 +867,40 @@ fn test_abstract_group_linear_n3_magnetic_field_cinf() {
             n,
             n,
             true,
+        );
+    }
+}
+
+#[test]
+fn test_abstract_group_linear_n3_magnetic_field_bw_cinfv() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+
+    // Parallel field
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    for n in 2usize..=20usize {
+        test_abstract_bw_group_from_infinite_group(
+            &mol,
+            n as u32,
+            thresh,
+            "C∞v",
+            format!("C{}v", n).as_str(),
+            2 * n,
+            ({
+                if n % 2 == 0 {
+                    n / 2 - 1
+                } else {
+                    n / 2
+                }
+            } + {
+                if n % 2 == 0 {
+                    4
+                } else {
+                    2
+                }
+            }),
+            n == 2,
         );
     }
 }
