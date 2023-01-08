@@ -1169,13 +1169,15 @@ where
 
 /// Determines the mirror-plane symbol given a principal axis.
 ///
-/// Arguments:
+/// # Arguments
 ///
 /// * `sigma_axis` - The normalised normal vector of a mirror plane.
 /// * `principal_axis` - The normalised principal rotation axis.
 /// * `thresh` - Threshold for comparisons.
+/// * `force_d` - Flag indicating if vertical mirror planes should be given the $`d`$ symbol
+/// instead of $`v`$.
 ///
-/// Returns:
+/// # Returns
 ///
 /// The mirror-plane symbol.
 pub fn deduce_sigma_symbol(
