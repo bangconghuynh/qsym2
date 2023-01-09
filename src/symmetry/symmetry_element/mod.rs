@@ -336,8 +336,7 @@ impl SymmetryElement {
     /// A flag indicating if this symmetry element is an identity element.
     #[must_use]
     pub fn is_identity(&self, tr: bool) -> bool {
-        self.kind == SymmetryElementKind::Proper(tr)
-            && self.proper_fraction == Some(F::from(1))
+        self.kind == SymmetryElementKind::Proper(tr) && self.proper_fraction == Some(F::from(1))
     }
 
     /// Checks if the symmetry element is an inversion centre.
@@ -760,13 +759,20 @@ impl PartialEq for SymmetryElement {
         }
 
         if self.is_identity(tr) && other.is_identity(tr) {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            assert_eq!(
+                misc::calculate_hash(self),
+                misc::calculate_hash(other),
+                "{self} and {other} have unequal hashes."
+            );
             return true;
         }
 
-        if self.is_inversion_centre(tr) && other.is_inversion_centre(tr)
-        {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+        if self.is_inversion_centre(tr) && other.is_inversion_centre(tr) {
+            assert_eq!(
+                misc::calculate_hash(self),
+                misc::calculate_hash(other),
+                "{self} and {other} have unequal hashes."
+            );
             return true;
         }
 
@@ -811,7 +817,11 @@ impl PartialEq for SymmetryElement {
                         == F::from(1u32))
             };
             if result {
-                assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+                assert_eq!(
+                    misc::calculate_hash(self),
+                    misc::calculate_hash(other),
+                    "{self} and {other} have unequal hashes."
+                );
             }
             return result;
         }
@@ -853,7 +863,11 @@ impl PartialEq for SymmetryElement {
                     == F::from(1u64))
         };
         if result {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            assert_eq!(
+                misc::calculate_hash(self),
+                misc::calculate_hash(other),
+                "{self} and {other} have unequal hashes."
+            );
         }
         result
     }
@@ -869,8 +883,8 @@ impl Hash for SymmetryElement {
         if self.is_identity(tr) || self.is_inversion_centre(tr) {
             true.hash(state);
         } else if self.kind == SymmetryElementKind::ImproperMirrorPlane(tr) {
-            let c_self =
-                self.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(tr), false);
+            let c_self = self
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(tr), false);
             let pole = geometry::get_positive_pole(&c_self.axis, c_self.threshold);
             pole[0]
                 .round_factor(self.threshold)

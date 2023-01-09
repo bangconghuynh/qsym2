@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::fmt::Debug;
+use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
 
@@ -42,9 +42,42 @@ mod group_tests;
 #[cfg(test)]
 mod chartab_construction_tests;
 
+/// An enum to contain information about the type of a group.
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
+enum GroupType {
+    /// Variant for an ordinary group which contains no time-reversed operations.
+    ///
+    /// The associated boolean indicates whether this group is a double group or not.
+    Ordinary(bool),
+
+    /// Variant for a magnetic grey group which contains the time-reversal operation.
+    ///
+    /// The associated boolean indicates whether this group is a double group or not.
+    MagneticGrey(bool),
+
+    /// Variant for a magnetic black and white group which contains time-reversed operations, but
+    /// not the time-reversal operation itself.
+    ///
+    /// The associated boolean indicates whether this group is a double group or not.
+    MagneticBlackWhite(bool),
+}
+
+impl fmt::Display for GroupType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ordinary(true) => write!(f, "Double ordinary group"),
+            Self::Ordinary(false) => write!(f, "Ordinary group"),
+            Self::MagneticGrey(true) => write!(f, "Double magnetic grey group"),
+            Self::MagneticGrey(false) => write!(f, "Magnetic grey group"),
+            Self::MagneticBlackWhite(true) => write!(f, "Double magnetic black and white group"),
+            Self::MagneticBlackWhite(false) => write!(f, "Magnetic black and white group"),
+        }
+    }
+}
+
 /// A struct for managing abstract groups.
 #[derive(Builder)]
-struct Group<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> {
+struct Group<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> {
     /// A name for the group.
     name: String,
 
@@ -136,7 +169,7 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> {
     pub character_table: Option<CharacterTable<T>>,
 }
 
-impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
+impl<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> GroupBuilder<T> {
     fn elements(&mut self, elems: Vec<T>) -> &mut Self {
         self.elements = Some(
             elems
@@ -170,7 +203,7 @@ impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
 
 impl<T> Group<T>
 where
-    T: Hash + Eq + Clone + Sync + Send + Debug + Pow<i32, Output = T> + FiniteOrder<Int = u32>,
+    T: Hash + Eq + Clone + Sync + Send + fmt::Debug + Pow<i32, Output = T> + FiniteOrder<Int = u32>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Returns a builder to construct a new group.
@@ -234,7 +267,7 @@ where
             *k = *self
                 .elements
                 .get(&op_k)
-                .unwrap_or_else(|| panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group.",
+                .unwrap_or_else(|| panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try reducing thresholds.",
                         op_i_ref,
                         op_j_ref,
                         &op_k));
@@ -484,7 +517,7 @@ where
         + Clone
         + Sync
         + Send
-        + Debug
+        + fmt::Debug
         + Pow<i32, Output = T>
         + SpecialSymmetryTransformation
         + FiniteOrder<Int = u32>,
@@ -497,6 +530,16 @@ where
     /// A flag indicating if this group is unitary.
     fn is_unitary(&self) -> bool {
         self.elements.keys().all(|op| !op.is_antiunitary())
+    }
+
+    fn group_type(&self) -> GroupType {
+        if self.is_unitary() {
+            GroupType::Ordinary(false)
+        } else if self.elements.keys().any(|op| op.is_time_reversal()) {
+            GroupType::MagneticGrey(false)
+        } else {
+            GroupType::MagneticBlackWhite(false)
+        }
     }
 
     /// Constructs the character table for this group using the Burnside--Dixon--Schneider
@@ -955,6 +998,10 @@ impl Group<SymmetryOperation> {
             HashMap::new();
         let mut improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
             HashMap::new();
+        let mut tr_proper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+            HashMap::new();
+        let mut tr_improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+            HashMap::new();
         let class_symbols_iter = self
             .conjugacy_classes
             .as_ref()
@@ -1001,23 +1048,13 @@ impl Group<SymmetryOperation> {
                     let rep_proper_power = rep_ele.generating_element.proper_power;
                     let rep_power = rep_ele.power;
                     let rep_sub = rep_ele.generating_element.additional_subscript.clone();
-                    let dash = if rep_ele.is_proper() {
-                        if let Some(v) = proper_class_orders.get_mut(&(
-                            rep_proper_order,
-                            rep_proper_power,
-                            rep_power,
-                            rep_sub.clone(),
-                        )) {
-                            *v += 1;
-                            "'".repeat(*v)
-                        } else {
-                            proper_class_orders.insert(
-                                (rep_proper_order, rep_proper_power, rep_power, rep_sub),
-                                0,
-                            );
-                            String::new()
-                        }
-                    } else if let Some(v) = improper_class_orders.get_mut(&(
+                    let class_orders = match (rep_ele.is_antiunitary(), rep_ele.is_proper()) {
+                        (false, true) => &mut proper_class_orders,
+                        (false, false) => &mut improper_class_orders,
+                        (true, true) => &mut tr_proper_class_orders,
+                        (true, false) => &mut tr_improper_class_orders,
+                    };
+                    let dash = if let Some(v) = class_orders.get_mut(&(
                         rep_proper_order,
                         rep_proper_power,
                         rep_power,
@@ -1026,7 +1063,7 @@ impl Group<SymmetryOperation> {
                         *v += 1;
                         "'".repeat(*v)
                     } else {
-                        improper_class_orders
+                        class_orders
                             .insert((rep_proper_order, rep_proper_power, rep_power, rep_sub), 0);
                         String::new()
                     };

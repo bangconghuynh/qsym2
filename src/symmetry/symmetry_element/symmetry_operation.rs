@@ -878,7 +878,11 @@ impl PartialEq for SymmetryOperation {
         };
 
         if result {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            assert_eq!(
+                misc::calculate_hash(self),
+                misc::calculate_hash(other),
+                "{self} and {other} have unequal hashes."
+            );
         }
         result
     }
