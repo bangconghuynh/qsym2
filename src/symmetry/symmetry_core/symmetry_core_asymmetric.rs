@@ -242,33 +242,30 @@ impl Symmetry {
                 // No inversion centres.
                 // Locate σv planes
                 let mut count_sigmav = 0;
-                if (matches!(
+                if matches!(
                     presym.rotational_symmetry,
                     RotationalSymmetry::AsymmetricPlanar
-                ) && (tr == presym.molecule.magnetic_atoms.is_some()))
-                {
+                ) {
                     // Planar system. The plane of the system (perpendicular to the highest-MoI
-                    // principal axis) must be a symmetry element: non-time-reversed in the absence
-                    // of a magnetic field and time-reversed in the presence of a magnetic field
-                    // (which must also lie in this plane).
-                    let improper_check =
-                        presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr);
-                    assert!(improper_check.is_some());
-                    count_sigmav += u32::from(
-                        self.add_improper(
+                    // principal axis) might be a symmetry element: time-reversed in the presence of
+                    // a magnetic field (which must also lie in this plane), or both in the absence
+                    // of a magnetic field.
+                    if let Some(improper_kind) =
+                        presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr)
+                    {
+                        if presym.molecule.magnetic_atoms.is_some() {
+                            assert!(improper_kind.contains_time_reversal());
+                        }
+                        count_sigmav += u32::from(self.add_improper(
                             ORDER_1,
                             principal_axes[2],
                             false,
                             SIG.clone(),
                             Some("v".to_owned()),
                             presym.dist_threshold,
-                            improper_check
-                                .expect(
-                                    "Expected σv perpendicular to the highest-MoI principal axis not found.",
-                                )
-                                .contains_time_reversal(),
-                        ),
-                    );
+                            improper_kind.contains_time_reversal(),
+                        ));
+                    }
                 }
 
                 let sea_groups = &presym.sea_groups;
