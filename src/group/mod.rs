@@ -1125,11 +1125,19 @@ fn group_from_molecular_symmetry(
     };
 
     if let Some(finite_order) = handles_infinite_group {
-        if group_name == "O(3)" {
+        if group_name.contains("O(3)") {
+            if !matches!(finite_order, 2 | 4) {
+                log::error!(
+                    "Finite order of {} is not yet supported for {}.",
+                    finite_order,
+                    group_name
+                );
+            }
             assert!(
                 matches!(finite_order, 2 | 4),
-                "Finite order of {} is not yet supported for O(3).",
-                finite_order
+                "Finite order of {} is not yet supported for {}.",
+                finite_order,
+                group_name
             );
         }
     }
@@ -1591,7 +1599,7 @@ fn group_from_molecular_symmetry(
         (
             op.is_antiunitary(),
             !op.is_proper(),
-            !(op.is_identity() || op.is_inversion() || op.is_time_reversal()),
+            !(op.is_identity() || op.is_inversion() || op.is_time_reversal() || op.is_tr_inversion()),
             op.is_binary_rotation()
                 || op.is_tr_binary_rotation()
                 || op.is_reflection()
@@ -1617,7 +1625,7 @@ fn group_from_molecular_symmetry(
     let mut group = Group::<SymmetryOperation>::new(group_name.as_str(), sorted_operations);
     if handles_infinite_group.is_some() {
         let finite_group = if group.name.contains('∞') {
-            // # C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d
+            // C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d, or the corresponding grey groups
             if group.name.as_bytes()[0] == b'D' {
                 if matches!(
                     group
@@ -1663,10 +1671,12 @@ fn group_from_molecular_symmetry(
                 }
             }
         } else {
-            // O(3)
+            // O(3) or the corresponding grey group
             match group.order {
                 8 => "D2h".to_string(),
+                16 => "D2h + θ·D2h".to_string(),
                 48 => "Oh".to_string(),
+                96 => "Oh + θ·Oh".to_string(),
                 _ => panic!("Unsupported number of group elements."),
             }
         };

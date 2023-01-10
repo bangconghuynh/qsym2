@@ -710,6 +710,18 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
             .is_time_reversal()
     }
 
+    /// Checks if this class is the time-reversed inversion class.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this class is the time-reversed inversion class.
+    fn is_tr_inversion(&self) -> bool {
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_tr_inversion()
+    }
+
     /// Checks if this class is a time-reversed binary rotation class.
     ///
     /// # Returns

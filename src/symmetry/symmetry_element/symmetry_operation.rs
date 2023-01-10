@@ -52,6 +52,13 @@ pub trait SpecialSymmetryTransformation {
     /// A flag indicating if this symmetry operation is the identity.
     fn is_identity(&self) -> bool;
 
+    /// Checks if the symmetry operation is a pure time-reversal.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this symmetry operation is a pure time-reversal.
+    fn is_time_reversal(&self) -> bool;
+
     /// Checks if the symmetry operation is an inversion.
     ///
     /// # Returns
@@ -59,12 +66,12 @@ pub trait SpecialSymmetryTransformation {
     /// A flag indicating if this symmetry operation is an inversion.
     fn is_inversion(&self) -> bool;
 
-    /// Checks if the symmetry operation is a pure time-reversal.
+    /// Checks if the symmetry operation is an inversion accompanied by a time reversal.
     ///
     /// # Returns
     ///
-    /// A flag indicating if this symmetry operation is a pure time-reversal.
-    fn is_time_reversal(&self) -> bool;
+    /// A flag indicating if this symmetry operation is an inversion accompanied by a time reversal.
+    fn is_tr_inversion(&self) -> bool;
 
     /// Checks if the symmetry operation is a binary rotation.
     ///
@@ -73,19 +80,19 @@ pub trait SpecialSymmetryTransformation {
     /// A flag indicating if this symmetry operation is a binary rotation.
     fn is_binary_rotation(&self) -> bool;
 
-    /// Checks if the symmetry operation is a reflection.
-    ///
-    /// # Returns
-    ///
-    /// A flag indicating if this symmetry operation is a reflection.
-    fn is_reflection(&self) -> bool;
-
     /// Checks if the symmetry operation is a binary rotation accompanied by a time reversal.
     ///
     /// # Returns
     ///
     /// A flag indicating if this symmetry operation is a binary rotation.
     fn is_tr_binary_rotation(&self) -> bool;
+
+    /// Checks if the symmetry operation is a reflection.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this symmetry operation is a reflection.
+    fn is_reflection(&self) -> bool;
 
     /// Checks if the symmetry operation is a reflection.
     ///
@@ -487,7 +494,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// # Returns
     ///
-    /// A flag indicating if the symmetry operation is proper.
+    /// A flag indicating if the spatial part of the symmetry operation is proper.
     fn is_proper(&self) -> bool {
         self.generating_element.is_proper(true)
             || self.generating_element.is_proper(false)
@@ -558,6 +565,55 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     }
                 }
                 SymmetryElementKind::ImproperInversionCentre(false) => {
+                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                        self.total_proper_fraction == Some(F::from(1u64))
+                    } else {
+                        approx::relative_eq!(
+                            geometry::normalise_rotation_angle(
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
+                                self.generating_element.threshold
+                            ) % (2.0 * std::f64::consts::PI),
+                            0.0,
+                            max_relative = self.generating_element.threshold,
+                            epsilon = self.generating_element.threshold
+                        )
+                    }
+                }
+                _ => false,
+            }
+    }
+
+    /// Checks if the whole symmetry operation is an inversion accompanied by a time reversal.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this symmetry operation is an inversion accompanied by a time reversal.
+    fn is_tr_inversion(&self) -> bool {
+        !self.is_proper()
+            && self.is_antiunitary()
+            && match self.generating_element.kind {
+                SymmetryElementKind::ImproperMirrorPlane(true) => {
+                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                        self.total_proper_fraction == Some(F::new(1u32, 2u32))
+                    } else {
+                        approx::relative_eq!(
+                            geometry::normalise_rotation_angle(
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
+                                self.generating_element.threshold
+                            ) % (2.0 * std::f64::consts::PI),
+                            std::f64::consts::PI,
+                            max_relative = self.generating_element.threshold,
+                            epsilon = self.generating_element.threshold
+                        )
+                    }
+                }
+                SymmetryElementKind::ImproperInversionCentre(true) => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
                         self.total_proper_fraction == Some(F::from(1u64))
                     } else {
@@ -814,6 +870,11 @@ impl PartialEq for SymmetryOperation {
             return true;
         }
 
+        if self.is_tr_inversion() && other.is_tr_inversion() {
+            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            return true;
+        }
+
         let thresh =
             (self.generating_element.threshold * other.generating_element.threshold).sqrt();
 
@@ -900,7 +961,7 @@ impl Hash for SymmetryOperation {
         };
         c_self.is_proper().hash(state);
         c_self.is_antiunitary().hash(state);
-        if c_self.is_identity() || c_self.is_inversion() {
+        if c_self.is_identity() || c_self.is_inversion() || c_self.is_time_reversal() || c_self.is_tr_inversion() {
             true.hash(state);
         } else {
             let pole = c_self.calc_pole();
