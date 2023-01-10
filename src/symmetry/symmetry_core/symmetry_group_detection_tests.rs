@@ -2784,7 +2784,7 @@ fn verify_grey_dn(presym: &PreSymmetry, n: u32) {
         assert_eq!(
             magsym
                 .get_generators(&TRROT)
-                .expect("No time-reversed proper generators found.")[&ORDER_2]
+                .expect("No time-reversed proper generators found.")[&ORDER_1]
                 .len(),
             1
         );
