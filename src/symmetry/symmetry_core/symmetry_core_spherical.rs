@@ -17,8 +17,11 @@ impl Symmetry {
     ///
     /// # Arguments
     ///
-    /// * presym - A pre-symmetry-analysis struct containing information about
-    /// the molecular system.
+    /// * `presym` - A pre-symmetry-analysis structure containing information about the molecular
+    /// system.
+    /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
+    /// symmetry element will only be considered if its non-time-reversed version turns out to be
+    /// not a symmetry element.
     ///
     /// # Returns
     ///
@@ -99,8 +102,11 @@ impl Symmetry {
     ///
     /// # Arguments
     ///
-    /// * presym - A pre-symmetry-analysis struct containing information about
-    /// the molecular system.
+    /// * `presym` - A pre-symmetry-analysis structure containing information about the molecular
+    /// system.
+    /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
+    /// symmetry element will only be considered if its non-time-reversed version turns out to be
+    /// not a symmetry element.
     ///
     /// # Panics
     ///
@@ -112,11 +118,7 @@ impl Symmetry {
             RotationalSymmetry::Spherical
         ));
         if presym.molecule.atoms.len() == 1 {
-            self.point_group = Some("O(3)".to_owned());
-            log::debug!(
-                "Point group determined: {}",
-                self.point_group.as_ref().expect("No point groups found.")
-            );
+            self.set_group_name("O(3)".to_owned());
             self.add_proper(
                 ElementOrder::Inf,
                 Vector3::new(0.0, 0.0, 1.0),
@@ -165,11 +167,7 @@ impl Symmetry {
                 {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
-                    self.point_group = Some("Th".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("Th".to_owned());
                     assert!(self.add_improper(
                         ORDER_2,
                         Vector3::new(0.0, 0.0, 1.0),
@@ -205,11 +203,7 @@ impl Symmetry {
                     if presym.check_improper(&ORDER_1, &normal, &SIG, tr).is_some() {
                         // σd
                         log::debug!("Located σd.");
-                        self.point_group = Some("Td".to_owned());
-                        log::debug!(
-                            "Point group determined: {}",
-                            self.point_group.as_ref().expect("No point groups found.")
-                        );
+                        self.set_group_name("Td".to_owned());
                         let sigmad_normals = {
                             let mut axes = vec![];
                             for c2s in self
@@ -261,11 +255,7 @@ impl Symmetry {
                         ));
                     } else {
                         // No σd => chiral
-                        self.point_group = Some("T".to_owned());
-                        log::debug!(
-                            "Point group determined: {}",
-                            self.point_group.as_ref().expect("No point groups found.")
-                        );
+                        self.set_group_name("T".to_owned());
                     }
                 }
             } // end count_c2 = 3
@@ -277,11 +267,7 @@ impl Symmetry {
                 {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
-                    self.point_group = Some("Oh".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("Oh".to_owned());
                     assert!(self.add_improper(
                         ORDER_2,
                         Vector3::new(0.0, 0.0, 1.0),
@@ -302,11 +288,7 @@ impl Symmetry {
                     ));
                 } else {
                     // No inversion centre => chiral
-                    self.point_group = Some("O".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("O".to_owned());
                 }
             } // end count_c2 = 9
             15 => {
@@ -317,11 +299,7 @@ impl Symmetry {
                 {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
-                    self.point_group = Some("Ih".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("Ih".to_owned());
                     assert!(self.add_improper(
                         ORDER_2,
                         Vector3::new(0.0, 0.0, 1.0),
@@ -342,11 +320,7 @@ impl Symmetry {
                     ));
                 } else {
                     // No inversion centre => chiral
-                    self.point_group = Some("I".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("I".to_owned());
                 }
             } // end count_c2 = 15
             _ => panic!("Invalid number of C2 axes."),
@@ -532,7 +506,7 @@ impl Symmetry {
         } // end locating C5 axes for I and Ih
 
         // Locating any other improper rotation axes for the non-chinal groups
-        if *self.point_group.as_ref().expect("No point groups found.") == "Td" {
+        if *self.group_name.as_ref().expect("No point groups found.") == "Td" {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let improper_s4_axes: Vec<(Vector3<f64>, bool)> = {
@@ -565,7 +539,7 @@ impl Symmetry {
             assert_eq!(count_s4, 3);
         }
         // end locating improper axes for Td
-        else if *self.point_group.as_ref().expect("No point groups found.") == "Th" {
+        else if *self.group_name.as_ref().expect("No point groups found.") == "Th" {
             // Locating σh
             let sigmah_normals: Vec<(Vector3<f64>, bool)> = {
                 // self.get_elements(&ROT)
@@ -639,7 +613,7 @@ impl Symmetry {
             assert_eq!(count_s6, 4);
         }
         // end locating improper axes for Th
-        else if *self.point_group.as_ref().expect("No point groups found.") == "Oh" {
+        else if *self.group_name.as_ref().expect("No point groups found.") == "Oh" {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let s4_axes: Vec<(Vector3<f64>, bool)> = {
@@ -768,7 +742,7 @@ impl Symmetry {
             assert_eq!(count_s6, 4);
         }
         // end locating improper axes for Oh
-        else if *self.point_group.as_ref().expect("No point groups found.") == "Ih" {
+        else if *self.group_name.as_ref().expect("No point groups found.") == "Ih" {
             // Locating S10
             let order_5 = ElementOrder::Int(5);
             let order_10 = ElementOrder::Int(10);

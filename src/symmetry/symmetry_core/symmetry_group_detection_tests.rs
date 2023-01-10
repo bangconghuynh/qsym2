@@ -13,7 +13,7 @@ Spherical
 ********/
 
 #[test]
-fn test_point_group_detection_spherical_atom_o3() {
+fn test_symmetry_group_detection_spherical_atom_o3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -23,7 +23,7 @@ fn test_point_group_detection_spherical_atom_o3() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("O(3)".to_owned()));
+    assert_eq!(sym.group_name, Some("O(3)".to_owned()));
     assert_eq!(
         sym.get_generators(&ROT)
             .expect("No proper generators found.")[&ElementOrder::Inf]
@@ -33,7 +33,35 @@ fn test_point_group_detection_spherical_atom_o3() {
 }
 
 #[test]
-fn test_point_group_detection_spherical_c60_ih() {
+fn test_symmetry_group_detection_spherical_atom_grey_o3() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-6);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-14)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    assert_eq!(magsym.group_name, Some("O(3) + θ·O(3)".to_owned()));
+    assert_eq!(
+        magsym
+            .get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Inf]
+            .len(),
+        3
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&TRROT)
+            .expect("No time-reversed proper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn test_symmetry_group_detection_spherical_c60_ih() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -43,7 +71,7 @@ fn test_point_group_detection_spherical_c60_ih() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("Ih".to_owned()));
+    assert_eq!(sym.group_name, Some("Ih".to_owned()));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(5)].len(),
         6
@@ -89,7 +117,142 @@ fn test_point_group_detection_spherical_c60_ih() {
 }
 
 #[test]
-fn test_point_group_detection_spherical_ch4_td() {
+fn test_symmetry_group_detection_spherical_c60_grey_ih() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-6);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    assert_eq!(magsym.group_name, Some("Ih + θ·Ih".to_owned()));
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ElementOrder::Int(5)]
+            .len(),
+        6
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ElementOrder::Int(3)]
+            .len(),
+        10
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ORDER_2]
+            .len(),
+        15
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRROT)
+            .expect("No time-reversed proper elements found.")[&ElementOrder::Int(5)]
+            .len(),
+        6
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRROT)
+            .expect("No time-reversed proper elements found.")[&ElementOrder::Int(3)]
+            .len(),
+        10
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRROT)
+            .expect("No time-reversed proper elements found.")[&ORDER_2]
+            .len(),
+        15
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ElementOrder::Int(10)]
+            .len(),
+        6
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ElementOrder::Int(6)]
+            .len(),
+        10
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ORDER_2]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ORDER_1]
+            .len(),
+        15
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ElementOrder::Int(10)]
+            .len(),
+        6
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ElementOrder::Int(6)]
+            .len(),
+        10
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ORDER_2]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ORDER_1]
+            .len(),
+        15
+    );
+    assert_eq!(magsym.get_sigma_elements("").unwrap().len(), 30);
+
+    assert_eq!(
+        magsym
+            .get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(5)]
+            .len(),
+        6
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&TRROT)
+            .expect("No time-reversed proper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&SIG)
+            .expect("No improper generators found.")[&ORDER_2]
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn test_symmetry_group_detection_spherical_ch4_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -101,7 +264,19 @@ fn test_point_group_detection_spherical_ch4_td() {
 }
 
 #[test]
-fn test_point_group_detection_spherical_adamantane_td() {
+fn test_symmetry_group_detection_spherical_ch4_grey_td() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-6);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_grey_td(&presym);
+}
+
+#[test]
+fn test_symmetry_group_detection_spherical_adamantane_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -113,7 +288,20 @@ fn test_point_group_detection_spherical_adamantane_td() {
 }
 
 #[test]
-fn test_point_group_detection_spherical_c165_diamond_nanoparticle_td() {
+fn test_symmetry_group_detection_spherical_adamantane_grey_td() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-6);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_grey_td(&presym);
+}
+
+#[test]
+fn test_symmetry_group_detection_spherical_c165_diamond_nanoparticle_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c165.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -125,7 +313,19 @@ fn test_point_group_detection_spherical_c165_diamond_nanoparticle_td() {
 }
 
 #[test]
-fn test_point_group_detection_spherical_vh2o6_th() {
+fn test_symmetry_group_detection_spherical_c165_diamond_nanoparticle_grey_td() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c165.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-6);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_grey_td(&presym);
+}
+
+#[test]
+fn test_symmetry_group_detection_spherical_vh2o6_th() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let mol = Molecule::from_xyz(&path, 1e-12);
     let presym = PreSymmetry::builder()
@@ -135,7 +335,7 @@ fn test_point_group_detection_spherical_vh2o6_th() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("Th".to_owned()));
+    assert_eq!(sym.group_name, Some("Th".to_owned()));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
         4
@@ -173,7 +373,114 @@ fn test_point_group_detection_spherical_vh2o6_th() {
 }
 
 #[test]
-fn test_point_group_detection_spherical_vf6_oh() {
+fn test_symmetry_group_detection_spherical_vh2o6_grey_th() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
+    let mol = Molecule::from_xyz(&path, 1e-12);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-12)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    assert_eq!(magsym.group_name, Some("Th + θ·Th".to_owned()));
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ElementOrder::Int(3)]
+            .len(),
+        4
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ORDER_2]
+            .len(),
+        3
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRROT)
+            .expect("No time-reversed proper elements found.")[&ElementOrder::Int(3)]
+            .len(),
+        4
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRROT)
+            .expect("No time-reversed proper elements found.")[&ORDER_2]
+            .len(),
+        3
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ElementOrder::Int(6)]
+            .len(),
+        4
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ORDER_2]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ORDER_1]
+            .len(),
+        3
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ElementOrder::Int(6)]
+            .len(),
+        4
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ORDER_2]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ORDER_1]
+            .len(),
+        3
+    );
+    assert_eq!(magsym.get_sigma_elements("h").unwrap().len(), 6);
+
+    assert_eq!(
+        magsym
+            .get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(3)]
+            .len(),
+        4
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&TRROT)
+            .expect("No time-reversed proper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&SIG)
+            .expect("No improper generators found.")[&ORDER_2]
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn test_symmetry_group_detection_spherical_vf6_oh() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let mol = Molecule::from_xyz(&path, 1e-12);
@@ -184,7 +491,7 @@ fn test_point_group_detection_spherical_vf6_oh() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("Oh".to_owned()));
+    assert_eq!(sym.group_name, Some("Oh".to_owned()));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(4)].len(),
         3
@@ -248,7 +555,7 @@ fn test_point_group_detection_spherical_vf6_oh() {
 fn verify_td(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("Td".to_owned()));
+    assert_eq!(sym.group_name, Some("Td".to_owned()));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
         4
@@ -282,12 +589,107 @@ fn verify_td(presym: &PreSymmetry) {
     assert_eq!(sym.get_sigma_generators("d").unwrap().len(), 1);
 }
 
+/// Verifies the validity of the deduced $`\mathcal{T}_d + \theta\cdot\mathcal{T}_d`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
+fn verify_grey_td(presym: &PreSymmetry) {
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    assert_eq!(magsym.group_name, Some("Td + θ·Td".to_owned()));
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ElementOrder::Int(3)]
+            .len(),
+        4
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&ROT)
+            .expect("No proper elements found.")[&ORDER_2]
+            .len(),
+        3
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRROT)
+            .expect("No time-reversed proper elements found.")[&ElementOrder::Int(3)]
+            .len(),
+        4
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRROT)
+            .expect("No time-reversed proper elements found.")[&ORDER_2]
+            .len(),
+        3
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ElementOrder::Int(4)]
+            .len(),
+        3
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&SIG)
+            .expect("No improper elements found.")[&ORDER_1]
+            .len(),
+        6
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ElementOrder::Int(4)]
+            .len(),
+        3
+    );
+    assert_eq!(
+        magsym
+            .get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ORDER_1]
+            .len(),
+        6
+    );
+    assert_eq!(magsym.get_sigma_elements("d").unwrap().len(), 12);
+
+    assert_eq!(
+        magsym
+            .get_generators(&ROT)
+            .expect("No proper generators found.")[&ElementOrder::Int(3)]
+            .len(),
+        4
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&TRROT)
+            .expect("No time-reversed proper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(
+        magsym
+            .get_generators(&SIG)
+            .expect("No improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(magsym.get_sigma_generators("d").unwrap().len(), 1);
+}
+
 /*****
 Linear
 *****/
 
 #[test]
-fn test_point_group_detection_linear_atom_magnetic_field_cinfh() {
+fn test_symmetry_group_detection_linear_atom_magnetic_field_cinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
@@ -298,7 +700,7 @@ fn test_point_group_detection_linear_atom_magnetic_field_cinfh() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C∞h".to_owned()));
+    assert_eq!(sym.group_name, Some("C∞h".to_owned()));
     assert_eq!(
         sym.get_generators(&ROT)
             .expect("No proper generators found.")[&ElementOrder::Inf]
@@ -315,7 +717,7 @@ fn test_point_group_detection_linear_atom_magnetic_field_cinfh() {
 }
 
 #[test]
-fn test_point_group_detection_linear_atom_magnetic_field_bw_dinfh_cinfh() {
+fn test_symmetry_group_detection_linear_atom_magnetic_field_bw_dinfh_cinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
@@ -328,7 +730,7 @@ fn test_point_group_detection_linear_atom_magnetic_field_bw_dinfh_cinfh() {
 }
 
 #[test]
-fn test_point_group_detection_linear_atom_electric_field_cinfv() {
+fn test_symmetry_group_detection_linear_atom_electric_field_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
@@ -341,7 +743,7 @@ fn test_point_group_detection_linear_atom_electric_field_cinfv() {
 }
 
 #[test]
-fn test_point_group_detection_linear_c2h2_dinfh() {
+fn test_symmetry_group_detection_linear_c2h2_dinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -353,7 +755,7 @@ fn test_point_group_detection_linear_c2h2_dinfh() {
 }
 
 #[test]
-fn test_point_group_detection_linear_c2h2_magnetic_field_cinfh() {
+fn test_symmetry_group_detection_linear_c2h2_magnetic_field_cinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
 
@@ -366,7 +768,7 @@ fn test_point_group_detection_linear_c2h2_magnetic_field_cinfh() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C∞h".to_owned()));
+    assert_eq!(sym.group_name, Some("C∞h".to_owned()));
     assert_eq!(
         sym.get_generators(&ROT)
             .expect("No proper generators found.")[&ElementOrder::Inf]
@@ -383,7 +785,7 @@ fn test_point_group_detection_linear_c2h2_magnetic_field_cinfh() {
 }
 
 #[test]
-fn test_point_group_detection_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
+fn test_symmetry_group_detection_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
 
@@ -398,7 +800,7 @@ fn test_point_group_detection_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
 }
 
 #[test]
-fn test_point_group_detection_linear_c2h2_electric_field_cinfv() {
+fn test_symmetry_group_detection_linear_c2h2_electric_field_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
 
@@ -413,7 +815,7 @@ fn test_point_group_detection_linear_c2h2_electric_field_cinfv() {
 }
 
 #[test]
-fn test_point_group_detection_linear_n3_cinfv() {
+fn test_symmetry_group_detection_linear_n3_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -425,7 +827,7 @@ fn test_point_group_detection_linear_n3_cinfv() {
 }
 
 #[test]
-fn test_point_group_detection_linear_n3_magnetic_field_cinf() {
+fn test_symmetry_group_detection_linear_n3_magnetic_field_cinf() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
 
@@ -438,7 +840,7 @@ fn test_point_group_detection_linear_n3_magnetic_field_cinf() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C∞".to_owned()));
+    assert_eq!(sym.group_name, Some("C∞".to_owned()));
     assert_eq!(
         sym.get_generators(&ROT)
             .expect("No proper generators found.")[&ElementOrder::Inf]
@@ -448,7 +850,7 @@ fn test_point_group_detection_linear_n3_magnetic_field_cinf() {
 }
 
 #[test]
-fn test_point_group_detection_linear_n3_magnetic_field_bw_cinfv_cinf() {
+fn test_symmetry_group_detection_linear_n3_magnetic_field_bw_cinfv_cinf() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
 
@@ -463,7 +865,7 @@ fn test_point_group_detection_linear_n3_magnetic_field_bw_cinfv_cinf() {
 }
 
 #[test]
-fn test_point_group_detection_linear_n3_electric_field_cinfv() {
+fn test_symmetry_group_detection_linear_n3_electric_field_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
 
@@ -489,7 +891,7 @@ fn test_point_group_detection_linear_n3_electric_field_cinfv() {
 fn verify_dinfh(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("D∞h".to_owned()));
+    assert_eq!(sym.group_name, Some("D∞h".to_owned()));
     assert_eq!(
         sym.get_generators(&ROT)
             .expect("No proper generators found.")[&ElementOrder::Inf]
@@ -524,7 +926,7 @@ fn verify_dinfh(presym: &PreSymmetry) {
 fn verify_bw_dinfh_cinfh(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D∞h".to_owned()));
+    assert_eq!(magsym.group_name, Some("D∞h".to_owned()));
     assert_eq!(
         magsym
             .get_generators(&ROT)
@@ -567,7 +969,7 @@ fn verify_bw_dinfh_cinfh(presym: &PreSymmetry) {
 fn verify_cinfv(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C∞v".to_owned()));
+    assert_eq!(sym.group_name, Some("C∞v".to_owned()));
     assert_eq!(
         sym.get_generators(&ROT)
             .expect("No proper generators found.")[&ElementOrder::Inf]
@@ -596,7 +998,7 @@ fn verify_cinfv(presym: &PreSymmetry) {
 fn verify_bw_cinfv_cinf(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("C∞v".to_owned()));
+    assert_eq!(magsym.group_name, Some("C∞v".to_owned()));
     assert_eq!(
         magsym
             .get_generators(&ROT)
@@ -625,7 +1027,7 @@ Cn
 */
 
 #[test]
-fn test_point_group_detection_symmetric_ch4_magnetic_field_c3() {
+fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
@@ -638,7 +1040,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_c3() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_ch4_magnetic_field_bw_c3v_c3() {
+fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_bw_c3v_c3() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
@@ -652,7 +1054,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_bw_c3v_c3() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_adamantane_magnetic_field_c3() {
+fn test_symmetry_group_detection_symmetric_adamantane_magnetic_field_c3() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
@@ -666,7 +1068,7 @@ fn test_point_group_detection_symmetric_adamantane_magnetic_field_c3() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_adamantane_magnetic_field_bw_c3v_c3() {
+fn test_symmetry_group_detection_symmetric_adamantane_magnetic_field_bw_c3v_c3() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
@@ -680,7 +1082,7 @@ fn test_point_group_detection_symmetric_adamantane_magnetic_field_bw_c3v_c3() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_vh2o6_electric_field_c3() {
+fn test_symmetry_group_detection_symmetric_vh2o6_electric_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_electric_field(Some(Vector3::new(-0.2, -0.2, -0.2)));
@@ -693,7 +1095,7 @@ fn test_point_group_detection_symmetric_vh2o6_electric_field_c3() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_65coronane_electric_field_c3() {
+fn test_symmetry_group_detection_symmetric_65coronane_electric_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -1.0)));
@@ -706,7 +1108,7 @@ fn test_point_group_detection_symmetric_65coronane_electric_field_c3() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_h8_twisted_magnetic_field_c4() {
+fn test_symmetry_group_detection_symmetric_h8_twisted_magnetic_field_c4() {
     // env_logger::init();
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
@@ -719,7 +1121,7 @@ fn test_point_group_detection_symmetric_h8_twisted_magnetic_field_c4() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_h8_twisted_magnetic_field_bw_d4_c4() {
+fn test_symmetry_group_detection_symmetric_h8_twisted_magnetic_field_bw_d4_c4() {
     // env_logger::init();
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
@@ -732,7 +1134,7 @@ fn test_point_group_detection_symmetric_h8_twisted_magnetic_field_bw_d4_c4() {
     // Slightly special case.
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("D4".to_owned()));
+    assert_eq!(magsym.group_name, Some("D4".to_owned()));
     assert_eq!(
         magsym
             .get_elements(&ROT)
@@ -775,7 +1177,7 @@ fn test_point_group_detection_symmetric_h8_twisted_magnetic_field_bw_d4_c4() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_h8_twisted_electric_field_c4() {
+fn test_symmetry_group_detection_symmetric_h8_twisted_electric_field_c4() {
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -0.1)));
     let presym = PreSymmetry::builder()
@@ -787,7 +1189,7 @@ fn test_point_group_detection_symmetric_h8_twisted_electric_field_c4() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_cpnico_magnetic_field_c5() {
+fn test_symmetry_group_detection_symmetric_cpnico_magnetic_field_c5() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -801,7 +1203,7 @@ fn test_point_group_detection_symmetric_cpnico_magnetic_field_c5() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_cpnico_magnetic_field_bw_c5v_c5() {
+fn test_symmetry_group_detection_symmetric_cpnico_magnetic_field_bw_c5v_c5() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -815,7 +1217,7 @@ fn test_point_group_detection_symmetric_cpnico_magnetic_field_bw_c5v_c5() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_b7_magnetic_field_c6() {
+fn test_symmetry_group_detection_symmetric_b7_magnetic_field_c6() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
@@ -829,7 +1231,7 @@ fn test_point_group_detection_symmetric_b7_magnetic_field_c6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_b7_magnetic_field_bw_c6v_c6() {
+fn test_symmetry_group_detection_symmetric_b7_magnetic_field_bw_c6v_c6() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
@@ -843,7 +1245,7 @@ fn test_point_group_detection_symmetric_b7_magnetic_field_bw_c6v_c6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
+fn test_symmetry_group_detection_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
     for n in 3..=32 {
         let mut mol = template_molecules::gen_arbitrary_half_sandwich(n);
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
@@ -857,7 +1259,7 @@ fn test_point_group_detection_symmetric_arbitrary_half_sandwich_magnetic_field_c
 }
 
 #[test]
-fn test_point_group_detection_symmetric_arbitrary_half_sandwich_magnetic_field_bw_cnv_cn() {
+fn test_symmetry_group_detection_symmetric_arbitrary_half_sandwich_magnetic_field_bw_cnv_cn() {
     for n in 3..=32 {
         let mut mol = template_molecules::gen_arbitrary_half_sandwich(n);
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
@@ -883,7 +1285,7 @@ fn test_point_group_detection_symmetric_arbitrary_half_sandwich_magnetic_field_b
 fn verify_cn(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some(format!("C{n}")));
+    assert_eq!(sym.group_name, Some(format!("C{n}")));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
         1
@@ -910,7 +1312,7 @@ fn verify_cn(presym: &PreSymmetry, n: u32) {
 fn verify_bw_cnv_cn(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some(format!("C{n}v")));
+    assert_eq!(magsym.group_name, Some(format!("C{n}v")));
     assert_eq!(
         magsym
             .get_elements(&ROT)
@@ -953,7 +1355,7 @@ Cnv
 */
 
 #[test]
-fn test_point_group_detection_symmetric_nh3_c3v() {
+fn test_symmetry_group_detection_symmetric_nh3_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -965,7 +1367,7 @@ fn test_point_group_detection_symmetric_nh3_c3v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_bf3_electric_field_c3v() {
+fn test_symmetry_group_detection_symmetric_bf3_electric_field_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -978,7 +1380,7 @@ fn test_point_group_detection_symmetric_bf3_electric_field_c3v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_adamantane_electric_field_c3v() {
+fn test_symmetry_group_detection_symmetric_adamantane_electric_field_c3v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
@@ -992,7 +1394,7 @@ fn test_point_group_detection_symmetric_adamantane_electric_field_c3v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_ch4_electric_field_c3v() {
+fn test_symmetry_group_detection_symmetric_ch4_electric_field_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
@@ -1005,7 +1407,7 @@ fn test_point_group_detection_symmetric_ch4_electric_field_c3v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_vf6_electric_field_c3v() {
+fn test_symmetry_group_detection_symmetric_vf6_electric_field_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 1.0, 1.0)));
@@ -1018,7 +1420,7 @@ fn test_point_group_detection_symmetric_vf6_electric_field_c3v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_sf5cl_c4v() {
+fn test_symmetry_group_detection_symmetric_sf5cl_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -1030,7 +1432,7 @@ fn test_point_group_detection_symmetric_sf5cl_c4v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_h8_electric_field_c4v() {
+fn test_symmetry_group_detection_symmetric_h8_electric_field_c4v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -1044,7 +1446,7 @@ fn test_point_group_detection_symmetric_h8_electric_field_c4v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_vf6_electric_field_c4v() {
+fn test_symmetry_group_detection_symmetric_vf6_electric_field_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 0.0, 0.0)));
@@ -1057,7 +1459,7 @@ fn test_point_group_detection_symmetric_vf6_electric_field_c4v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_antiprism_pb10_electric_field_c4v() {
+fn test_symmetry_group_detection_symmetric_antiprism_pb10_electric_field_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -1070,7 +1472,7 @@ fn test_point_group_detection_symmetric_antiprism_pb10_electric_field_c4v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_cpnico_c5v() {
+fn test_symmetry_group_detection_symmetric_cpnico_c5v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -1083,7 +1485,7 @@ fn test_point_group_detection_symmetric_cpnico_c5v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_staggered_ferrocene_electric_field_c5v() {
+fn test_symmetry_group_detection_symmetric_staggered_ferrocene_electric_field_c5v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
@@ -1097,7 +1499,7 @@ fn test_point_group_detection_symmetric_staggered_ferrocene_electric_field_c5v()
 }
 
 #[test]
-fn test_point_group_detection_symmetric_c60_electric_field_c5v() {
+fn test_symmetry_group_detection_symmetric_c60_electric_field_c5v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -1110,7 +1512,7 @@ fn test_point_group_detection_symmetric_c60_electric_field_c5v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_b7_c6v() {
+fn test_symmetry_group_detection_symmetric_b7_c6v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -1122,7 +1524,7 @@ fn test_point_group_detection_symmetric_b7_c6v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_au26_electric_field_c6v() {
+fn test_symmetry_group_detection_symmetric_au26_electric_field_c6v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -1135,7 +1537,7 @@ fn test_point_group_detection_symmetric_au26_electric_field_c6v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_benzene_electric_field_c6v() {
+fn test_symmetry_group_detection_symmetric_benzene_electric_field_c6v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -1149,7 +1551,7 @@ fn test_point_group_detection_symmetric_benzene_electric_field_c6v() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_arbitrary_half_sandwich_cnv() {
+fn test_symmetry_group_detection_symmetric_arbitrary_half_sandwich_cnv() {
     for n in 3..=32 {
         let mol = template_molecules::gen_arbitrary_half_sandwich(n);
         let presym = PreSymmetry::builder()
@@ -1162,7 +1564,7 @@ fn test_point_group_detection_symmetric_arbitrary_half_sandwich_cnv() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_electric_field_cnv() {
+fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_electric_field_cnv() {
     // env_logger::init();
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
@@ -1189,7 +1591,7 @@ fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_electric_fi
 fn verify_cnv(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some(format!("C{n}v")));
+    assert_eq!(sym.group_name, Some(format!("C{n}v")));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
         1
@@ -1220,7 +1622,7 @@ Cnh
 */
 
 #[test]
-fn test_point_group_detection_symmetric_bf3_magnetic_field_c3h() {
+fn test_symmetry_group_detection_symmetric_bf3_magnetic_field_c3h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -1233,7 +1635,7 @@ fn test_point_group_detection_symmetric_bf3_magnetic_field_c3h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
+fn test_symmetry_group_detection_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -1246,7 +1648,7 @@ fn test_point_group_detection_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_xef4_magnetic_field_c4h() {
+fn test_symmetry_group_detection_symmetric_xef4_magnetic_field_c4h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -1260,7 +1662,7 @@ fn test_point_group_detection_symmetric_xef4_magnetic_field_c4h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_xef4_magnetic_field_bw_d4h_c4h() {
+fn test_symmetry_group_detection_symmetric_xef4_magnetic_field_bw_d4h_c4h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -1274,7 +1676,7 @@ fn test_point_group_detection_symmetric_xef4_magnetic_field_bw_d4h_c4h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_vf6_magnetic_field_c4h() {
+fn test_symmetry_group_detection_symmetric_vf6_magnetic_field_c4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -1287,7 +1689,7 @@ fn test_point_group_detection_symmetric_vf6_magnetic_field_c4h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
+fn test_symmetry_group_detection_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -1300,7 +1702,7 @@ fn test_point_group_detection_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_h8_magnetic_field_c4h() {
+fn test_symmetry_group_detection_symmetric_h8_magnetic_field_c4h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -1314,7 +1716,7 @@ fn test_point_group_detection_symmetric_h8_magnetic_field_c4h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_h8_magnetic_field_bw_d4h_c4h() {
+fn test_symmetry_group_detection_symmetric_h8_magnetic_field_bw_d4h_c4h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -1328,7 +1730,7 @@ fn test_point_group_detection_symmetric_h8_magnetic_field_bw_d4h_c4h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_eclipsed_ferrocene_magnetic_field_c5h() {
+fn test_symmetry_group_detection_symmetric_eclipsed_ferrocene_magnetic_field_c5h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -1342,7 +1744,7 @@ fn test_point_group_detection_symmetric_eclipsed_ferrocene_magnetic_field_c5h() 
 }
 
 #[test]
-fn test_point_group_detection_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h_c5h() {
+fn test_symmetry_group_detection_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h_c5h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -1356,7 +1758,7 @@ fn test_point_group_detection_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h
 }
 
 #[test]
-fn test_point_group_detection_symmetric_benzene_magnetic_field_c6h() {
+fn test_symmetry_group_detection_symmetric_benzene_magnetic_field_c6h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -1370,7 +1772,7 @@ fn test_point_group_detection_symmetric_benzene_magnetic_field_c6h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_benzene_magnetic_field_bw_d6h_c6h() {
+fn test_symmetry_group_detection_symmetric_benzene_magnetic_field_bw_d6h_c6h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -1384,7 +1786,7 @@ fn test_point_group_detection_symmetric_benzene_magnetic_field_bw_d6h_c6h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
+fn test_symmetry_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
     // env_logger::init();
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
@@ -1399,7 +1801,7 @@ fn test_point_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_fie
 }
 
 #[test]
-fn test_point_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_bw_dnh_cnh() {
+fn test_symmetry_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_bw_dnh_cnh() {
     // env_logger::init();
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
@@ -1426,7 +1828,7 @@ fn test_point_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_fie
 fn verify_cnh(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some(format!("C{n}h")));
+    assert_eq!(sym.group_name, Some(format!("C{n}h")));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
         1
@@ -1480,7 +1882,7 @@ fn verify_cnh(presym: &PreSymmetry, n: u32) {
 fn verify_bw_dnh_cnh(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some(format!("D{n}h")));
+    assert_eq!(magsym.group_name, Some(format!("D{n}h")));
     if n == 2 {
         assert_eq!(
             magsym
@@ -1626,7 +2028,7 @@ Dn
 */
 
 #[test]
-fn test_point_group_detection_symmetric_triphenyl_radical_d3() {
+fn test_symmetry_group_detection_symmetric_triphenyl_radical_d3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/triphenylradical.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -1638,7 +2040,7 @@ fn test_point_group_detection_symmetric_triphenyl_radical_d3() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_h8_twisted_d4() {
+fn test_symmetry_group_detection_symmetric_h8_twisted_d4() {
     let mol = template_molecules::gen_twisted_h8(0.1);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
@@ -1649,7 +2051,7 @@ fn test_point_group_detection_symmetric_h8_twisted_d4() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_c5ph5_d5() {
+fn test_symmetry_group_detection_symmetric_c5ph5_d5() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c5ph5.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -1661,7 +2063,7 @@ fn test_point_group_detection_symmetric_c5ph5_d5() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_c6ph6_d6() {
+fn test_symmetry_group_detection_symmetric_c6ph6_d6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6ph6.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -1673,7 +2075,7 @@ fn test_point_group_detection_symmetric_c6ph6_d6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_arbitrary_twisted_sandwich_dn() {
+fn test_symmetry_group_detection_symmetric_arbitrary_twisted_sandwich_dn() {
     // env_logger::init();
     for n in 3..=20 {
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.1);
@@ -1699,7 +2101,7 @@ fn test_point_group_detection_symmetric_arbitrary_twisted_sandwich_dn() {
 fn verify_dn(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some(format!("D{n}")));
+    assert_eq!(sym.group_name, Some(format!("D{n}")));
     if n == 2 {
         assert_eq!(
             sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
@@ -1748,7 +2150,7 @@ Dnh
 */
 
 #[test]
-fn test_point_group_detection_symmetric_bf3_d3h() {
+fn test_symmetry_group_detection_symmetric_bf3_d3h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -1760,7 +2162,7 @@ fn test_point_group_detection_symmetric_bf3_d3h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_xef4_d4h() {
+fn test_symmetry_group_detection_symmetric_xef4_d4h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -1773,7 +2175,7 @@ fn test_point_group_detection_symmetric_xef4_d4h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_h8_d4h() {
+fn test_symmetry_group_detection_symmetric_h8_d4h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -1786,7 +2188,7 @@ fn test_point_group_detection_symmetric_h8_d4h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_eclipsed_ferrocene_d5h() {
+fn test_symmetry_group_detection_symmetric_eclipsed_ferrocene_d5h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -1799,7 +2201,7 @@ fn test_point_group_detection_symmetric_eclipsed_ferrocene_d5h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_benzene_d6h() {
+fn test_symmetry_group_detection_symmetric_benzene_d6h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -1812,7 +2214,7 @@ fn test_point_group_detection_symmetric_benzene_d6h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_h100_d100h() {
+fn test_symmetry_group_detection_symmetric_h100_d100h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -1824,7 +2226,7 @@ fn test_point_group_detection_symmetric_h100_d100h() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_arbitrary_eclipsed_sandwich_dnh() {
+fn test_symmetry_group_detection_symmetric_arbitrary_eclipsed_sandwich_dnh() {
     // env_logger::init();
     for n in 3..=20 {
         let mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
@@ -1850,7 +2252,7 @@ fn test_point_group_detection_symmetric_arbitrary_eclipsed_sandwich_dnh() {
 fn verify_dnh(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some(format!("D{n}h")));
+    assert_eq!(sym.group_name, Some(format!("D{n}h")));
 
     if n == 2 {
         assert_eq!(
@@ -1934,7 +2336,7 @@ Dnd
 */
 
 #[test]
-fn test_point_group_detection_symmetric_b2cl4_d2d() {
+fn test_symmetry_group_detection_symmetric_b2cl4_d2d() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -1947,7 +2349,7 @@ fn test_point_group_detection_symmetric_b2cl4_d2d() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_s4n4_d2d() {
+fn test_symmetry_group_detection_symmetric_s4n4_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s4n4.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -1959,7 +2361,7 @@ fn test_point_group_detection_symmetric_s4n4_d2d() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_pbet4_d2d() {
+fn test_symmetry_group_detection_symmetric_pbet4_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pbet4.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -1971,7 +2373,7 @@ fn test_point_group_detection_symmetric_pbet4_d2d() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_allene_d2d() {
+fn test_symmetry_group_detection_symmetric_allene_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/allene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -1983,7 +2385,7 @@ fn test_point_group_detection_symmetric_allene_d2d() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_staggered_c2h6_d3d() {
+fn test_symmetry_group_detection_symmetric_staggered_c2h6_d3d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -1995,7 +2397,7 @@ fn test_point_group_detection_symmetric_staggered_c2h6_d3d() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_cyclohexane_chair_d3d() {
+fn test_symmetry_group_detection_symmetric_cyclohexane_chair_d3d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexane_chair.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -2007,7 +2409,7 @@ fn test_point_group_detection_symmetric_cyclohexane_chair_d3d() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_s8_d4d() {
+fn test_symmetry_group_detection_symmetric_s8_d4d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -2019,7 +2421,7 @@ fn test_point_group_detection_symmetric_s8_d4d() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_antiprism_h8_d4d() {
+fn test_symmetry_group_detection_symmetric_antiprism_h8_d4d() {
     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
@@ -2030,7 +2432,7 @@ fn test_point_group_detection_symmetric_antiprism_h8_d4d() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_antiprism_pb10_d4d() {
+fn test_symmetry_group_detection_symmetric_antiprism_pb10_d4d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -2042,7 +2444,7 @@ fn test_point_group_detection_symmetric_antiprism_pb10_d4d() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_staggered_ferrocene_d5d() {
+fn test_symmetry_group_detection_symmetric_staggered_ferrocene_d5d() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
@@ -2055,7 +2457,7 @@ fn test_point_group_detection_symmetric_staggered_ferrocene_d5d() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_au26_d6d() {
+fn test_symmetry_group_detection_symmetric_au26_d6d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -2067,7 +2469,7 @@ fn test_point_group_detection_symmetric_au26_d6d() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_dnd() {
+fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_dnd() {
     // env_logger::init();
     for n in 3..=20 {
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
@@ -2093,7 +2495,7 @@ fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_dnd() {
 fn verify_dnd(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some(format!("D{n}d")));
+    assert_eq!(sym.group_name, Some(format!("D{n}d")));
     if n == 2 {
         assert_eq!(
             sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_2].len(),
@@ -2181,7 +2583,7 @@ S2n
 */
 
 #[test]
-fn test_point_group_detection_symmetric_b2cl4_magnetic_field_s4() {
+fn test_symmetry_group_detection_symmetric_b2cl4_magnetic_field_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2194,7 +2596,7 @@ fn test_point_group_detection_symmetric_b2cl4_magnetic_field_s4() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_b2cl4_magnetic_field_bw_d2d_s4() {
+fn test_symmetry_group_detection_symmetric_b2cl4_magnetic_field_bw_d2d_s4() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2208,7 +2610,7 @@ fn test_point_group_detection_symmetric_b2cl4_magnetic_field_bw_d2d_s4() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_adamantane_magnetic_field_s4() {
+fn test_symmetry_group_detection_symmetric_adamantane_magnetic_field_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_magnetic_field(Some(Vector3::new(-0.1, 0.0, 0.0)));
@@ -2221,7 +2623,7 @@ fn test_point_group_detection_symmetric_adamantane_magnetic_field_s4() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_adamantane_magnetic_field_bw_d2d_s4() {
+fn test_symmetry_group_detection_symmetric_adamantane_magnetic_field_bw_d2d_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_magnetic_field(Some(Vector3::new(-0.1, 0.0, 0.0)));
@@ -2234,7 +2636,7 @@ fn test_point_group_detection_symmetric_adamantane_magnetic_field_bw_d2d_s4() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_ch4_magnetic_field_s4() {
+fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2247,7 +2649,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_s4() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_ch4_magnetic_field_bw_d2d_s4() {
+fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_bw_d2d_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2260,7 +2662,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_bw_d2d_s4() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_65coronane_s6() {
+fn test_symmetry_group_detection_symmetric_65coronane_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -2272,7 +2674,7 @@ fn test_point_group_detection_symmetric_65coronane_s6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_65coronane_magnetic_field_s6() {
+fn test_symmetry_group_detection_symmetric_65coronane_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
@@ -2285,7 +2687,7 @@ fn test_point_group_detection_symmetric_65coronane_magnetic_field_s6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_65coronane_magnetic_field_nonbw_s6() {
+fn test_symmetry_group_detection_symmetric_65coronane_magnetic_field_nonbw_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
@@ -2298,7 +2700,7 @@ fn test_point_group_detection_symmetric_65coronane_magnetic_field_nonbw_s6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_staggered_c2h6_magnetic_field_s6() {
+fn test_symmetry_group_detection_symmetric_staggered_c2h6_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2311,7 +2713,7 @@ fn test_point_group_detection_symmetric_staggered_c2h6_magnetic_field_s6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_staggered_c2h6_magnetic_field_bw_d3d_s6() {
+fn test_symmetry_group_detection_symmetric_staggered_c2h6_magnetic_field_bw_d3d_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2324,7 +2726,7 @@ fn test_point_group_detection_symmetric_staggered_c2h6_magnetic_field_bw_d3d_s6(
 }
 
 #[test]
-fn test_point_group_detection_symmetric_c60_magnetic_field_s6() {
+fn test_symmetry_group_detection_symmetric_c60_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-5);
     mol.set_magnetic_field(Some(Vector3::new(
@@ -2341,7 +2743,7 @@ fn test_point_group_detection_symmetric_c60_magnetic_field_s6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_c60_magnetic_field_bw_d3d_s6() {
+fn test_symmetry_group_detection_symmetric_c60_magnetic_field_bw_d3d_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-5);
     mol.set_magnetic_field(Some(Vector3::new(
@@ -2358,7 +2760,7 @@ fn test_point_group_detection_symmetric_c60_magnetic_field_bw_d3d_s6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_vh2o6_magnetic_field_s6() {
+fn test_symmetry_group_detection_symmetric_vh2o6_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_magnetic_field(Some(Vector3::new(-0.2, 0.2, 0.2)));
@@ -2371,7 +2773,7 @@ fn test_point_group_detection_symmetric_vh2o6_magnetic_field_s6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_vh2o6_magnetic_field_nonbw_s6() {
+fn test_symmetry_group_detection_symmetric_vh2o6_magnetic_field_nonbw_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_magnetic_field(Some(Vector3::new(-0.2, 0.2, 0.2)));
@@ -2384,7 +2786,7 @@ fn test_point_group_detection_symmetric_vh2o6_magnetic_field_nonbw_s6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_vf6_magnetic_field_s6() {
+fn test_symmetry_group_detection_symmetric_vf6_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
@@ -2397,7 +2799,7 @@ fn test_point_group_detection_symmetric_vf6_magnetic_field_s6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_vf6_magnetic_field_bw_d3d_s6() {
+fn test_symmetry_group_detection_symmetric_vf6_magnetic_field_bw_d3d_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
@@ -2410,7 +2812,7 @@ fn test_point_group_detection_symmetric_vf6_magnetic_field_bw_d3d_s6() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_s8_magnetic_field_s8() {
+fn test_symmetry_group_detection_symmetric_s8_magnetic_field_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2423,7 +2825,7 @@ fn test_point_group_detection_symmetric_s8_magnetic_field_s8() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_s8_magnetic_field_bw_d4d_s8() {
+fn test_symmetry_group_detection_symmetric_s8_magnetic_field_bw_d4d_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2436,7 +2838,7 @@ fn test_point_group_detection_symmetric_s8_magnetic_field_bw_d4d_s8() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_antiprism_pb10_magnetic_field_s8() {
+fn test_symmetry_group_detection_symmetric_antiprism_pb10_magnetic_field_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2449,7 +2851,7 @@ fn test_point_group_detection_symmetric_antiprism_pb10_magnetic_field_s8() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8() {
+fn test_symmetry_group_detection_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2462,7 +2864,7 @@ fn test_point_group_detection_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8(
 }
 
 #[test]
-fn test_point_group_detection_symmetric_staggered_ferrocene_magnetic_field_s10() {
+fn test_symmetry_group_detection_symmetric_staggered_ferrocene_magnetic_field_s10() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
@@ -2476,7 +2878,7 @@ fn test_point_group_detection_symmetric_staggered_ferrocene_magnetic_field_s10()
 }
 
 #[test]
-fn test_point_group_detection_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10() {
+fn test_symmetry_group_detection_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
@@ -2490,7 +2892,7 @@ fn test_point_group_detection_symmetric_staggered_ferrocene_magnetic_field_bw_d5
 }
 
 #[test]
-fn test_point_group_detection_symmetric_c60_magnetic_field_s10() {
+fn test_symmetry_group_detection_symmetric_c60_magnetic_field_s10() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-5);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2503,7 +2905,7 @@ fn test_point_group_detection_symmetric_c60_magnetic_field_s10() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_c60_magnetic_field_bw_d5d_s10() {
+fn test_symmetry_group_detection_symmetric_c60_magnetic_field_bw_d5d_s10() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-5);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2516,7 +2918,7 @@ fn test_point_group_detection_symmetric_c60_magnetic_field_bw_d5d_s10() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_au26_magnetic_field_s12() {
+fn test_symmetry_group_detection_symmetric_au26_magnetic_field_s12() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2529,7 +2931,7 @@ fn test_point_group_detection_symmetric_au26_magnetic_field_s12() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_au26_magnetic_field_bw_d6d_s12() {
+fn test_symmetry_group_detection_symmetric_au26_magnetic_field_bw_d6d_s12() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
@@ -2542,7 +2944,7 @@ fn test_point_group_detection_symmetric_au26_magnetic_field_bw_d6d_s12() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
+fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
     // env_logger::init();
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
@@ -2557,7 +2959,7 @@ fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic_fi
 }
 
 #[test]
-fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd_s2n() {
+fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd_s2n() {
     // env_logger::init();
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
@@ -2585,7 +2987,7 @@ fn test_point_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic_fi
 fn verify_s2n(presym: &PreSymmetry, n: u32, tr: bool) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, tr);
-    assert_eq!(sym.point_group, Some(format!("S{}", 2 * n)));
+    assert_eq!(sym.group_name, Some(format!("S{}", 2 * n)));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
         1
@@ -2624,7 +3026,7 @@ fn verify_s2n(presym: &PreSymmetry, n: u32, tr: bool) {
 fn verify_bw_dnd_s2n(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
     magsym.analyse(presym, true);
-    assert_eq!(magsym.point_group, Some(format!("D{n}d")));
+    assert_eq!(magsym.group_name, Some(format!("D{n}d")));
     assert_eq!(
         magsym
             .get_elements(&ROT)
@@ -2712,7 +3114,7 @@ C2
 */
 
 #[test]
-fn test_point_group_detection_asymmetric_spiroketal_c2() {
+fn test_symmetry_group_detection_asymmetric_spiroketal_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/spiroketal.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -2724,7 +3126,7 @@ fn test_point_group_detection_asymmetric_spiroketal_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cyclohexene_c2() {
+fn test_symmetry_group_detection_asymmetric_cyclohexene_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -2736,7 +3138,7 @@ fn test_point_group_detection_asymmetric_cyclohexene_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_thf_c2() {
+fn test_symmetry_group_detection_asymmetric_thf_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/thf.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -2748,7 +3150,7 @@ fn test_point_group_detection_asymmetric_thf_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_tartaricacid_c2() {
+fn test_symmetry_group_detection_asymmetric_tartaricacid_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/tartaricacid.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -2760,7 +3162,7 @@ fn test_point_group_detection_asymmetric_tartaricacid_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_f2allene_c2() {
+fn test_symmetry_group_detection_asymmetric_f2allene_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/f2allene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -2772,7 +3174,7 @@ fn test_point_group_detection_asymmetric_f2allene_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_water_magnetic_field_c2() {
+fn test_symmetry_group_detection_asymmetric_water_magnetic_field_c2() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2786,7 +3188,7 @@ fn test_point_group_detection_asymmetric_water_magnetic_field_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_water_magnetic_field_bw_c2v_c2() {
+fn test_symmetry_group_detection_asymmetric_water_magnetic_field_bw_c2v_c2() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2800,7 +3202,7 @@ fn test_point_group_detection_asymmetric_water_magnetic_field_bw_c2v_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_pyridine_magnetic_field_c2() {
+fn test_symmetry_group_detection_asymmetric_pyridine_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.2, 0.0)));
@@ -2813,7 +3215,7 @@ fn test_point_group_detection_asymmetric_pyridine_magnetic_field_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_pyridine_magnetic_field_bw_c2v_c2() {
+fn test_symmetry_group_detection_asymmetric_pyridine_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.2, 0.0)));
@@ -2826,7 +3228,7 @@ fn test_point_group_detection_asymmetric_pyridine_magnetic_field_bw_c2v_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cyclobutene_magnetic_field_c2() {
+fn test_symmetry_group_detection_asymmetric_cyclobutene_magnetic_field_c2() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2840,7 +3242,7 @@ fn test_point_group_detection_asymmetric_cyclobutene_magnetic_field_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2() {
+fn test_symmetry_group_detection_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2854,7 +3256,7 @@ fn test_point_group_detection_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2() 
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_azulene_magnetic_field_c2() {
+fn test_symmetry_group_detection_asymmetric_azulene_magnetic_field_c2() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2868,7 +3270,7 @@ fn test_point_group_detection_asymmetric_azulene_magnetic_field_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_azulene_magnetic_field_bw_c2v_c2() {
+fn test_symmetry_group_detection_asymmetric_azulene_magnetic_field_bw_c2v_c2() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2882,7 +3284,7 @@ fn test_point_group_detection_asymmetric_azulene_magnetic_field_bw_c2v_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_c2() {
+fn test_symmetry_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_c2() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2896,7 +3298,7 @@ fn test_point_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2() {
+fn test_symmetry_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2910,7 +3312,7 @@ fn test_point_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2(
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cuneane_magnetic_field_c2() {
+fn test_symmetry_group_detection_asymmetric_cuneane_magnetic_field_c2() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2924,7 +3326,7 @@ fn test_point_group_detection_asymmetric_cuneane_magnetic_field_c2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cuneane_magnetic_field_bw_c2v_c2() {
+fn test_symmetry_group_detection_asymmetric_cuneane_magnetic_field_bw_c2v_c2() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2942,7 +3344,7 @@ C2v
 ***/
 
 #[test]
-fn test_point_group_detection_asymmetric_water_c2v() {
+fn test_symmetry_group_detection_asymmetric_water_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -2954,7 +3356,7 @@ fn test_point_group_detection_asymmetric_water_c2v() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_pyridine_c2v() {
+fn test_symmetry_group_detection_asymmetric_pyridine_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -2966,7 +3368,7 @@ fn test_point_group_detection_asymmetric_pyridine_c2v() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cyclobutene_c2v() {
+fn test_symmetry_group_detection_asymmetric_cyclobutene_c2v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -2979,7 +3381,7 @@ fn test_point_group_detection_asymmetric_cyclobutene_c2v() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_azulene_c2v() {
+fn test_symmetry_group_detection_asymmetric_azulene_c2v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -2992,7 +3394,7 @@ fn test_point_group_detection_asymmetric_azulene_c2v() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cuneane_c2v() {
+fn test_symmetry_group_detection_asymmetric_cuneane_c2v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3005,7 +3407,7 @@ fn test_point_group_detection_asymmetric_cuneane_c2v() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_bf3_electric_field_c2v() {
+fn test_symmetry_group_detection_asymmetric_bf3_electric_field_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_electric_field(Some(Vector3::new(0.2, 0.0, 0.0)));
@@ -3022,7 +3424,7 @@ C2h
 ***/
 
 #[test]
-fn test_point_group_detection_asymmetric_h2o2_c2h() {
+fn test_symmetry_group_detection_asymmetric_h2o2_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
@@ -3035,7 +3437,7 @@ fn test_point_group_detection_asymmetric_h2o2_c2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_zethrene_c2h() {
+fn test_symmetry_group_detection_asymmetric_zethrene_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/zethrene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
@@ -3048,7 +3450,7 @@ fn test_point_group_detection_asymmetric_zethrene_c2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_distorted_vf6_magnetic_field_c2h() {
+fn test_symmetry_group_detection_asymmetric_distorted_vf6_magnetic_field_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3062,7 +3464,7 @@ fn test_point_group_detection_asymmetric_distorted_vf6_magnetic_field_c2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h() {
+fn test_symmetry_group_detection_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3076,7 +3478,7 @@ fn test_point_group_detection_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_b2h6_magnetic_field_c2h() {
+fn test_symmetry_group_detection_asymmetric_b2h6_magnetic_field_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3090,7 +3492,7 @@ fn test_point_group_detection_asymmetric_b2h6_magnetic_field_c2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_b2h6_magnetic_field_bw_d2h_c2h() {
+fn test_symmetry_group_detection_asymmetric_b2h6_magnetic_field_bw_d2h_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3104,7 +3506,7 @@ fn test_point_group_detection_asymmetric_b2h6_magnetic_field_bw_d2h_c2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_naphthalene_magnetic_field_c2h() {
+fn test_symmetry_group_detection_asymmetric_naphthalene_magnetic_field_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3118,7 +3520,7 @@ fn test_point_group_detection_asymmetric_naphthalene_magnetic_field_c2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_naphthalene_magnetic_field_bw_d2h_c2h() {
+fn test_symmetry_group_detection_asymmetric_naphthalene_magnetic_field_bw_d2h_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3132,7 +3534,7 @@ fn test_point_group_detection_asymmetric_naphthalene_magnetic_field_bw_d2h_c2h()
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_pyrene_magnetic_field_c2h() {
+fn test_symmetry_group_detection_asymmetric_pyrene_magnetic_field_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3146,7 +3548,7 @@ fn test_point_group_detection_asymmetric_pyrene_magnetic_field_c2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_pyrene_magnetic_field_bw_d2h_c2h() {
+fn test_symmetry_group_detection_asymmetric_pyrene_magnetic_field_bw_d2h_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3160,7 +3562,7 @@ fn test_point_group_detection_asymmetric_pyrene_magnetic_field_bw_d2h_c2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_c6o6_magnetic_field_c2h() {
+fn test_symmetry_group_detection_asymmetric_c6o6_magnetic_field_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3174,7 +3576,7 @@ fn test_point_group_detection_asymmetric_c6o6_magnetic_field_c2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_c6o6_magnetic_field_bw_d2h_c2h() {
+fn test_symmetry_group_detection_asymmetric_c6o6_magnetic_field_bw_d2h_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3192,7 +3594,7 @@ Cs
 */
 
 #[test]
-fn test_point_group_detection_asymmetric_propene_cs() {
+fn test_symmetry_group_detection_asymmetric_propene_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -3204,7 +3606,7 @@ fn test_point_group_detection_asymmetric_propene_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_socl2_cs() {
+fn test_symmetry_group_detection_asymmetric_socl2_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/socl2.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -3216,7 +3618,7 @@ fn test_point_group_detection_asymmetric_socl2_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_hocl_cs() {
+fn test_symmetry_group_detection_asymmetric_hocl_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/hocl.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3229,7 +3631,7 @@ fn test_point_group_detection_asymmetric_hocl_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_hocn_cs() {
+fn test_symmetry_group_detection_asymmetric_hocn_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/hocn.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3242,7 +3644,7 @@ fn test_point_group_detection_asymmetric_hocn_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_nh2f_cs() {
+fn test_symmetry_group_detection_asymmetric_nh2f_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh2f.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
@@ -3255,7 +3657,7 @@ fn test_point_group_detection_asymmetric_nh2f_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_phenol_cs() {
+fn test_symmetry_group_detection_asymmetric_phenol_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/phenol.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3268,7 +3670,7 @@ fn test_point_group_detection_asymmetric_phenol_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_f_pyrrole_cs() {
+fn test_symmetry_group_detection_asymmetric_f_pyrrole_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/f-pyrrole.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
@@ -3281,7 +3683,7 @@ fn test_point_group_detection_asymmetric_f_pyrrole_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_n2o_cs() {
+fn test_symmetry_group_detection_asymmetric_n2o_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n2o.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3294,7 +3696,7 @@ fn test_point_group_detection_asymmetric_n2o_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_fclbenzene_cs() {
+fn test_symmetry_group_detection_asymmetric_fclbenzene_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/fclbenzene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-5);
@@ -3307,7 +3709,7 @@ fn test_point_group_detection_asymmetric_fclbenzene_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_water_magnetic_field_cs() {
+fn test_symmetry_group_detection_asymmetric_water_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
@@ -3320,7 +3722,7 @@ fn test_point_group_detection_asymmetric_water_magnetic_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_water_magnetic_field_bw_c2v_cs() {
+fn test_symmetry_group_detection_asymmetric_water_magnetic_field_bw_c2v_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3334,7 +3736,7 @@ fn test_point_group_detection_asymmetric_water_magnetic_field_bw_c2v_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_pyridine_magnetic_field_cs() {
+fn test_symmetry_group_detection_asymmetric_pyridine_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
@@ -3347,7 +3749,7 @@ fn test_point_group_detection_asymmetric_pyridine_magnetic_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_pyridine_magnetic_field_bw_c2v_cs() {
+fn test_symmetry_group_detection_asymmetric_pyridine_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
@@ -3360,7 +3762,7 @@ fn test_point_group_detection_asymmetric_pyridine_magnetic_field_bw_c2v_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cyclobutene_magnetic_field_cs() {
+fn test_symmetry_group_detection_asymmetric_cyclobutene_magnetic_field_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3374,7 +3776,7 @@ fn test_point_group_detection_asymmetric_cyclobutene_magnetic_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs() {
+fn test_symmetry_group_detection_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3388,7 +3790,7 @@ fn test_point_group_detection_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs() 
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_azulene_magnetic_field_cs() {
+fn test_symmetry_group_detection_asymmetric_azulene_magnetic_field_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3402,7 +3804,7 @@ fn test_point_group_detection_asymmetric_azulene_magnetic_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_azulene_magnetic_field_bw_c2v_cs() {
+fn test_symmetry_group_detection_asymmetric_azulene_magnetic_field_bw_c2v_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3416,7 +3818,7 @@ fn test_point_group_detection_asymmetric_azulene_magnetic_field_bw_c2v_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_cs() {
+fn test_symmetry_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3430,7 +3832,7 @@ fn test_point_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_cs() {
+fn test_symmetry_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3444,7 +3846,7 @@ fn test_point_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_cs(
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cuneane_magnetic_field_cs() {
+fn test_symmetry_group_detection_asymmetric_cuneane_magnetic_field_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3458,7 +3860,7 @@ fn test_point_group_detection_asymmetric_cuneane_magnetic_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cuneane_magnetic_field_bw_c2v_cs() {
+fn test_symmetry_group_detection_asymmetric_cuneane_magnetic_field_bw_c2v_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3472,7 +3874,7 @@ fn test_point_group_detection_asymmetric_cuneane_magnetic_field_bw_c2v_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_water_electric_field_cs() {
+fn test_symmetry_group_detection_asymmetric_water_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
@@ -3485,7 +3887,7 @@ fn test_point_group_detection_asymmetric_water_electric_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_pyridine_electric_field_cs() {
+fn test_symmetry_group_detection_asymmetric_pyridine_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 0.2)));
@@ -3498,7 +3900,7 @@ fn test_point_group_detection_asymmetric_pyridine_electric_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cyclobutene_electric_field_cs() {
+fn test_symmetry_group_detection_asymmetric_cyclobutene_electric_field_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3512,7 +3914,7 @@ fn test_point_group_detection_asymmetric_cyclobutene_electric_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_azulene_electric_field_cs() {
+fn test_symmetry_group_detection_asymmetric_azulene_electric_field_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3526,7 +3928,7 @@ fn test_point_group_detection_asymmetric_azulene_electric_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cis_cocl2h4o2_electric_field_cs() {
+fn test_symmetry_group_detection_asymmetric_cis_cocl2h4o2_electric_field_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3540,7 +3942,7 @@ fn test_point_group_detection_asymmetric_cis_cocl2h4o2_electric_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_cuneane_electric_field_cs() {
+fn test_symmetry_group_detection_asymmetric_cuneane_electric_field_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3554,7 +3956,7 @@ fn test_point_group_detection_asymmetric_cuneane_electric_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_bf3_magnetic_field_cs() {
+fn test_symmetry_group_detection_asymmetric_bf3_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));
@@ -3568,7 +3970,7 @@ fn test_point_group_detection_asymmetric_bf3_magnetic_field_cs() {
 
 /// This is a special case: Cs point group in a symmetric top.
 #[test]
-fn test_point_group_detection_symmetric_ch4_magnetic_field_cs() {
+fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3583,7 +3985,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_cs() {
 
 /// This is a special case: C2v magnetic group in a symmetric top.
 #[test]
-fn test_point_group_detection_symmetric_ch4_magnetic_field_bw_c2v_cs() {
+fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_bw_c2v_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3598,7 +4000,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_bw_c2v_cs() {
 
 /// This is another special case: Cs point group in a symmetric top.
 #[test]
-fn test_point_group_detection_symmetric_ch4_electric_field_cs() {
+fn test_symmetry_group_detection_symmetric_ch4_electric_field_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3612,7 +4014,7 @@ fn test_point_group_detection_symmetric_ch4_electric_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_atom_magnetic_electric_field_cs() {
+fn test_symmetry_group_detection_asymmetric_atom_magnetic_electric_field_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3627,7 +4029,7 @@ fn test_point_group_detection_asymmetric_atom_magnetic_electric_field_cs() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_atom_magnetic_electric_field_bw_c2v_cs() {
+fn test_symmetry_group_detection_asymmetric_atom_magnetic_electric_field_bw_c2v_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3653,7 +4055,7 @@ fn test_point_group_detection_asymmetric_atom_magnetic_electric_field_bw_c2v_cs(
 fn verify_cs(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("Cs".to_owned()));
+    assert_eq!(sym.group_name, Some("Cs".to_owned()));
     assert_eq!(
         sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
         1
@@ -3682,7 +4084,7 @@ fn verify_cs(presym: &PreSymmetry) {
 fn verify_bw_c2v_cs(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
-    assert_eq!(magsym.point_group, Some("C2v".to_owned()));
+    assert_eq!(magsym.group_name, Some("C2v".to_owned()));
     assert_eq!(
         magsym
             .get_elements(&TRROT)
@@ -3730,7 +4132,7 @@ D2
 */
 
 #[test]
-fn test_point_group_detection_asymmetric_i4_biphenyl_d2() {
+fn test_symmetry_group_detection_asymmetric_i4_biphenyl_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -3742,7 +4144,7 @@ fn test_point_group_detection_asymmetric_i4_biphenyl_d2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_twistane_d2() {
+fn test_symmetry_group_detection_asymmetric_twistane_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/twistane.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -3754,7 +4156,7 @@ fn test_point_group_detection_asymmetric_twistane_d2() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_22_paracyclophane_d2() {
+fn test_symmetry_group_detection_asymmetric_22_paracyclophane_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/paracyclophane22.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
@@ -3770,7 +4172,7 @@ D2h
 ***/
 
 #[test]
-fn test_point_group_detection_asymmetric_b2h6_d2h() {
+fn test_symmetry_group_detection_asymmetric_b2h6_d2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3783,7 +4185,7 @@ fn test_point_group_detection_asymmetric_b2h6_d2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_naphthalene_d2h() {
+fn test_symmetry_group_detection_asymmetric_naphthalene_d2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3796,7 +4198,7 @@ fn test_point_group_detection_asymmetric_naphthalene_d2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_pyrene_d2h() {
+fn test_symmetry_group_detection_asymmetric_pyrene_d2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3809,7 +4211,7 @@ fn test_point_group_detection_asymmetric_pyrene_d2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_c6o6_d2h() {
+fn test_symmetry_group_detection_asymmetric_c6o6_d2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3822,7 +4224,7 @@ fn test_point_group_detection_asymmetric_c6o6_d2h() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_distorted_vf6_d2h() {
+fn test_symmetry_group_detection_asymmetric_distorted_vf6_d2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3839,7 +4241,7 @@ Ci
 ***/
 
 #[test]
-fn test_point_group_detection_asymmetric_meso_tartaricacid_ci() {
+fn test_symmetry_group_detection_asymmetric_meso_tartaricacid_ci() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3852,7 +4254,7 @@ fn test_point_group_detection_asymmetric_meso_tartaricacid_ci() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_dibromodimethylcyclohexane_ci() {
+fn test_symmetry_group_detection_asymmetric_dibromodimethylcyclohexane_ci() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/dibromodimethylcyclohexane.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3865,7 +4267,7 @@ fn test_point_group_detection_asymmetric_dibromodimethylcyclohexane_ci() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_h2o2_magnetic_field_ci() {
+fn test_symmetry_group_detection_asymmetric_h2o2_magnetic_field_ci() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
@@ -3879,7 +4281,7 @@ fn test_point_group_detection_asymmetric_h2o2_magnetic_field_ci() {
 }
 
 #[test]
-fn test_point_group_detection_symmetric_xef4_magnetic_field_ci() {
+fn test_symmetry_group_detection_symmetric_xef4_magnetic_field_ci() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -3893,7 +4295,7 @@ fn test_point_group_detection_symmetric_xef4_magnetic_field_ci() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_c2h2_magnetic_field_ci() {
+fn test_symmetry_group_detection_asymmetric_c2h2_magnetic_field_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
@@ -3907,7 +4309,7 @@ fn test_point_group_detection_asymmetric_c2h2_magnetic_field_ci() {
 
 /// This is a special case: Ci from S2 via symmetric top.
 #[test]
-fn test_point_group_detection_symmetric_vf6_magnetic_field_ci() {
+fn test_symmetry_group_detection_symmetric_vf6_magnetic_field_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
@@ -3921,7 +4323,7 @@ fn test_point_group_detection_symmetric_vf6_magnetic_field_ci() {
 
 /// This is a special case: Ci from S2 via symmetric top.
 #[test]
-fn test_point_group_detection_symmetric_c60_magnetic_field_ci() {
+fn test_symmetry_group_detection_symmetric_c60_magnetic_field_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
@@ -3945,7 +4347,7 @@ fn test_point_group_detection_symmetric_c60_magnetic_field_ci() {
 fn verify_ci(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("Ci".to_owned()));
+    assert_eq!(sym.group_name, Some("Ci".to_owned()));
     assert_eq!(
         sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
         1
@@ -3963,7 +4365,7 @@ C1
 ***/
 
 #[test]
-fn test_point_group_detection_asymmetric_butan1ol_c1() {
+fn test_symmetry_group_detection_asymmetric_butan1ol_c1() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3976,7 +4378,7 @@ fn test_point_group_detection_asymmetric_butan1ol_c1() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_subst_5m_ring_c1() {
+fn test_symmetry_group_detection_asymmetric_subst_5m_ring_c1() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/subst-5m-ring.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -3989,7 +4391,7 @@ fn test_point_group_detection_asymmetric_subst_5m_ring_c1() {
 }
 
 #[test]
-fn test_point_group_detection_asymmetric_bf3_magnetic_field_c1() {
+fn test_symmetry_group_detection_asymmetric_bf3_magnetic_field_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
@@ -4003,7 +4405,7 @@ fn test_point_group_detection_asymmetric_bf3_magnetic_field_c1() {
 
 /// This is a special case: C1 via symmetric top.
 #[test]
-fn test_point_group_detection_symmetric_ch4_magnetic_field_c1() {
+fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -3.0, 2.0)));
@@ -4017,7 +4419,7 @@ fn test_point_group_detection_symmetric_ch4_magnetic_field_c1() {
 
 /// This is a special case: C1 via symmetric top.
 #[test]
-fn test_point_group_detection_symmetric_vf6_electric_field_c1() {
+fn test_symmetry_group_detection_symmetric_vf6_electric_field_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-12);
     mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
@@ -4031,7 +4433,7 @@ fn test_point_group_detection_symmetric_vf6_electric_field_c1() {
 
 /// This is a special case: C1 via symmetric top.
 #[test]
-fn test_point_group_detection_symmetric_c60_electric_field_c1() {
+fn test_symmetry_group_detection_symmetric_c60_electric_field_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
@@ -4055,7 +4457,7 @@ fn test_point_group_detection_symmetric_c60_electric_field_c1() {
 fn verify_c1(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    assert_eq!(sym.point_group, Some("C1".to_owned()));
+    assert_eq!(sym.group_name, Some("C1".to_owned()));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_1].len(),
         1

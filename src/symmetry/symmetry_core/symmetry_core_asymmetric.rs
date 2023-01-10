@@ -26,9 +26,11 @@ impl Symmetry {
     ///
     /// # Arguments
     ///
-    /// * `presym` - A pre-symmetry-analysis struct containing information about
-    /// the molecular system.
-    /// * `tr` - A flag indicating if time reversal should also be considered.
+    /// * `presym` - A pre-symmetry-analysis structure containing information about the molecular
+    /// system.
+    /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
+    /// symmetry element will only be considered if its non-time-reversed version turns out to be
+    /// not a symmetry element.
     ///
     /// # Panics
     ///
@@ -99,11 +101,7 @@ impl Symmetry {
             if let Some(improper_kind) = presym.check_improper(&ORDER_2, &z_vec, &SIG, tr) {
                 // Inversion centre, D2h
                 log::debug!("Located an inversion centre.");
-                self.point_group = Some("D2h".to_owned());
-                log::debug!(
-                    "Point group determined: {}",
-                    self.point_group.as_ref().expect("No point groups found.")
-                );
+                self.set_group_name("D2h".to_owned());
                 self.add_improper(
                     ORDER_2,
                     z_vec,
@@ -163,11 +161,7 @@ impl Symmetry {
                 );
             } else {
                 // Chiral, D2
-                self.point_group = Some("D2".to_owned());
-                log::debug!(
-                    "Point group determined: {}",
-                    self.point_group.as_ref().expect("No point groups found.")
-                );
+                self.set_group_name("D2".to_owned());
             }
         } else if count_c2 == 1 {
             // Non-dihedral, either C2, C2v, or C2h
@@ -198,11 +192,7 @@ impl Symmetry {
                     presym.dist_threshold,
                     improper_kind.contains_time_reversal(),
                 );
-                self.point_group = Some("C2h".to_owned());
-                log::debug!(
-                    "Point group determined: {}",
-                    self.point_group.as_ref().expect("No point groups found.")
-                );
+                self.set_group_name("C2h".to_owned());
 
                 // There is one σh.
                 let c2 = (*self
@@ -313,11 +303,7 @@ impl Symmetry {
 
                 log::debug!("Located {} σv.", count_sigmav);
                 if count_sigmav == 2 {
-                    self.point_group = Some("C2v".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("C2v".to_owned());
 
                     // In C2v, σv is also a generator. We prioritise the non-time-reversed one as
                     // the generator.
@@ -340,11 +326,7 @@ impl Symmetry {
                     );
                 } else {
                     assert_eq!(count_sigmav, 0);
-                    self.point_group = Some("C2".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("C2".to_owned());
                 }
             }
         } else {
@@ -353,11 +335,7 @@ impl Symmetry {
             let z_vec = Vector3::new(0.0, 0.0, 1.0);
             if let Some(improper_kind) = presym.check_improper(&ORDER_2, &z_vec, &SIG, tr) {
                 log::debug!("Located an inversion centre.");
-                self.point_group = Some("Ci".to_owned());
-                log::debug!(
-                    "Point group determined: {}",
-                    self.point_group.as_ref().expect("No point groups found.")
-                );
+                self.set_group_name("Ci".to_owned());
                 self.add_improper(
                     ORDER_2,
                     z_vec,
@@ -506,11 +484,7 @@ impl Symmetry {
                         old_sigma.contains_time_reversal(),
                     );
 
-                    self.point_group = Some("Cs".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("Cs".to_owned());
                 } else {
                     let identity = (*self
                         .get_proper(&ORDER_1)
@@ -521,11 +495,7 @@ impl Symmetry {
                     .clone();
 
                     self.add_proper(ORDER_1, identity.axis, true, presym.dist_threshold, false);
-                    self.point_group = Some("C1".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("C1".to_owned());
                 }
             }
         }

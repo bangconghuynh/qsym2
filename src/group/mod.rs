@@ -69,8 +69,8 @@ impl fmt::Display for GroupType {
             Self::Ordinary(false) => write!(f, "Ordinary group"),
             Self::MagneticGrey(true) => write!(f, "Double magnetic grey group"),
             Self::MagneticGrey(false) => write!(f, "Magnetic grey group"),
-            Self::MagneticBlackWhite(true) => write!(f, "Double magnetic black and white group"),
-            Self::MagneticBlackWhite(false) => write!(f, "Magnetic black and white group"),
+            Self::MagneticBlackWhite(true) => write!(f, "Double magnetic black-and-white group"),
+            Self::MagneticBlackWhite(false) => write!(f, "Magnetic black-and-white group"),
         }
     }
 }
@@ -1112,7 +1112,7 @@ fn group_from_molecular_symmetry(
     infinite_order_to_finite: Option<u32>,
 ) -> Group<SymmetryOperation> {
     let group_name = sym
-        .point_group
+        .group_name
         .as_ref()
         .expect("No point groups found.")
         .clone();

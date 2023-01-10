@@ -11,8 +11,11 @@ impl Symmetry {
     ///
     /// # Arguments
     ///
-    /// * `presym` - A pre-symmetry-analysis struct containing information about
-    /// the molecular system.
+    /// * `presym` - A pre-symmetry-analysis structure containing information about the molecular
+    /// system.
+    /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
+    /// symmetry element will only be considered if its non-time-reversed version turns out to be
+    /// not a symmetry element.
     ///
     /// # Panics
     ///
@@ -89,11 +92,11 @@ impl Symmetry {
                     presym.dist_threshold,
                     proper_kind.contains_time_reversal()
                 );
-                self.point_group = Some("D∞h".to_owned());
+                self.set_group_name("D∞h".to_owned());
             } else {
                 // No C2
                 log::debug!("No C2 axes perpendicular to C∞ found.");
-                self.point_group = Some("C∞h".to_owned());
+                self.set_group_name("C∞h".to_owned());
             }
         } else {
             // No i
@@ -110,16 +113,12 @@ impl Symmetry {
                     presym.dist_threshold,
                     improper_kind.contains_time_reversal()
                 );
-                self.point_group = Some("C∞v".to_owned());
+                self.set_group_name("C∞v".to_owned());
             } else {
                 // No σv
                 log::debug!("No σv planes found.");
-                self.point_group = Some("C∞".to_owned());
+                self.set_group_name("C∞".to_owned());
             }
         }
-        log::debug!(
-            "Point group determined: {}",
-            self.point_group.as_ref().expect("No point groups found.")
-        );
     }
 }

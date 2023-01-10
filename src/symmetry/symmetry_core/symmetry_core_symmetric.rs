@@ -7,8 +7,8 @@ use std::collections::{HashMap, HashSet};
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
 use crate::symmetry::symmetry_element::{SymmetryElement, INV, ROT, SIG, TRROT, TRSIG};
-use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
+use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
 
 use super::{PreSymmetry, Symmetry};
 
@@ -30,8 +30,11 @@ impl Symmetry {
     ///
     /// # Arguments
     ///
-    /// * `presym` - A pre-symmetry-analysis struct containing information about
-    /// the molecular system.
+    /// * `presym` - A pre-symmetry-analysis structure containing information about the molecular
+    /// system.
+    /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
+    /// symmetry element will only be considered if its non-time-reversed version turns out to be
+    /// not a symmetry element.
     ///
     /// # Panics
     ///
@@ -143,11 +146,7 @@ impl Symmetry {
                 // Dnh (n > 2)
                 assert!(max_ord > ORDER_2);
                 log::debug!("Located σh.");
-                self.point_group = Some(format!("D{max_ord}h"));
-                log::debug!(
-                    "Point group determined: {}",
-                    self.point_group.as_ref().expect("No point groups found.")
-                );
+                self.set_group_name(format!("D{max_ord}h"));
                 self.add_improper(
                     ORDER_1,
                     principal_element.axis,
@@ -311,11 +310,7 @@ impl Symmetry {
                         presym.dist_threshold,
                         sigmad.contains_time_reversal(),
                     );
-                    self.point_group = Some(format!("D{max_ord}d"));
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name(format!("D{max_ord}d"));
 
                     if max_ord_u32 % 2 == 0 {
                         // Dnd, n even, only σd planes are present.
@@ -422,11 +417,7 @@ impl Symmetry {
                     }
                 } else {
                     // Dn (n > 2)
-                    self.point_group = Some(format!("D{max_ord}"));
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name(format!("D{max_ord}"));
                 }
             }
         } else {
@@ -475,11 +466,7 @@ impl Symmetry {
                 if max_ord_u32 > 1 {
                     // Cnv (n > 2)
                     log::debug!("Found {} σv planes.", count_sigma);
-                    self.point_group = Some(format!("C{max_ord}v"));
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name(format!("C{max_ord}v"));
                     let principal_element = self.get_proper_principal_element();
                     self.add_proper(
                         max_ord,
@@ -511,11 +498,7 @@ impl Symmetry {
                 } else {
                     // Cs
                     log::debug!("Found {} σ planes.", count_sigma);
-                    self.point_group = Some("Cs".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("Cs".to_owned());
                     let old_sigmas = if self.elements.contains_key(&SIG) {
                         self.get_elements_mut(&SIG)
                             .expect("No improper elements found.")
@@ -556,7 +539,7 @@ impl Symmetry {
                     // Cnh (n > 2)
                     assert_eq!(count_sigma, 1);
                     log::debug!("Found no σv planes but one σh plane.");
-                    self.point_group = Some(format!("C{max_ord}h"));
+                    self.set_group_name(format!("C{max_ord}h"));
                     self.add_proper(
                         max_ord,
                         principal_element.axis,
@@ -655,16 +638,12 @@ impl Symmetry {
                         presym.check_improper(&double_max_ord, &principal_element.axis, &SIG, tr)
                     {
                         // S2n
-                        self.point_group = if double_max_ord == ElementOrder::Int(2) {
+                        self.set_group_name(if double_max_ord == ElementOrder::Int(2) {
                             // S2 is Ci.
-                            Some("Ci".to_string())
+                            "Ci".to_string()
                         } else {
-                            Some(format!("S{double_max_ord}"))
-                        };
-                        log::debug!(
-                            "Point group determined: {}",
-                            self.point_group.as_ref().expect("No point groups found.")
-                        );
+                            format!("S{double_max_ord}")
+                        });
                         self.add_improper(
                             double_max_ord,
                             principal_element.axis,
@@ -704,11 +683,7 @@ impl Symmetry {
                         }
                     } else {
                         // Cn (n > 2)
-                        self.point_group = Some(format!("C{max_ord}"));
-                        log::debug!(
-                            "Point group determined: {}",
-                            self.point_group.as_ref().expect("No point groups found.")
-                        );
+                        self.set_group_name(format!("C{max_ord}"));
                         self.add_proper(
                             max_ord,
                             principal_element.axis,
