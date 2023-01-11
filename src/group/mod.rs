@@ -75,6 +75,10 @@ impl fmt::Display for GroupType {
     }
 }
 
+const ORGRP: GroupType = GroupType::Ordinary(false);
+const BWGRP: GroupType = GroupType::MagneticBlackWhite(false);
+const GRGRP: GroupType = GroupType::MagneticGrey(false);
+
 /// A struct for managing abstract groups.
 #[derive(Builder)]
 struct Group<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> {
