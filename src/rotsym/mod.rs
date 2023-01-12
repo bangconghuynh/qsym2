@@ -74,12 +74,10 @@ pub fn calc_rotational_symmetry(
         a.partial_cmp(b)
             .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
     });
-    log::debug!(
-        "Moments of inertia:\n {:.6}\n {:.6}\n {:.6}",
-        moi[0],
-        moi[1],
-        moi[2]
-    );
+    log::debug!("Moments of inertia:");
+    for component in moi.iter() {
+        log::debug!("  {component:+.14}");
+    }
     if approx::relative_eq!(*moi[0], *moi[1], epsilon = thresh, max_relative = thresh) {
         if approx::relative_eq!(*moi[1], *moi[2], epsilon = thresh, max_relative = thresh) {
             return RotationalSymmetry::Spherical;
