@@ -880,6 +880,8 @@ impl PartialEq for SymmetryOperation {
 
         let result = if (self.is_binary_rotation() && other.is_binary_rotation())
             || (self.is_reflection() && other.is_reflection())
+            || (self.is_tr_binary_rotation() && other.is_tr_binary_rotation())
+            || (self.is_tr_reflection() && other.is_tr_reflection())
         {
             approx::relative_eq!(
                 self.calc_pole(),
@@ -959,8 +961,8 @@ impl Hash for SymmetryOperation {
             }
             SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
         };
-        c_self.is_proper().hash(state);
         c_self.is_antiunitary().hash(state);
+        c_self.is_proper().hash(state);
         if c_self.is_identity() || c_self.is_inversion() || c_self.is_time_reversal() || c_self.is_tr_inversion() {
             true.hash(state);
         } else {
