@@ -1192,6 +1192,7 @@ where
 /// # Returns
 ///
 /// The mirror-plane symbol.
+#[must_use]
 pub fn deduce_sigma_symbol(
     sigma_axis: &Vector3<f64>,
     principal_element: &SymmetryElement,

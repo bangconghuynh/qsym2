@@ -123,14 +123,14 @@ impl Symmetry {
             );
 
             // A C2 axis perpendicular to the principal axis is also a generator.
-            let perp_c2_element = self
+            let perp_c2_element = &(*self
                 .get_proper(&ORDER_2)
                 .expect("No C2 elements found.")
                 .iter()
                 .find(|c2_ele| {
                     c2_ele.axis.dot(&principal_element.axis).abs() < presym.dist_threshold
                 })
-                .expect("No C2 axes perpendicular to the principal axis found.")
+                .expect("No C2 axes perpendicular to the principal axis found."))
                 .clone();
             self.add_proper(
                 ORDER_2,
@@ -484,8 +484,8 @@ impl Symmetry {
                         .into_iter()
                         .cloned()
                         .collect_vec();
-                    sigmavs.sort_by_key(|sigmav| sigmav.contains_time_reversal());
-                    let sigmav = sigmavs.iter().next().expect("No σv found.");
+                    sigmavs.sort_by_key(SymmetryElement::contains_time_reversal);
+                    let sigmav = sigmavs.first().expect("No σv found.");
                     self.add_improper(
                         ORDER_1,
                         sigmav.axis,

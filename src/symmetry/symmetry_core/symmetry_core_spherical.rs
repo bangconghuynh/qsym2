@@ -717,13 +717,11 @@ impl Symmetry {
                     .expect("Expected C3 elements not found.")
                     .iter()
                     .filter_map(|c3_ele| {
-                        if let Some(improper_kind) =
-                            presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr)
-                        {
-                            Some((c3_ele.axis, improper_kind.contains_time_reversal()))
-                        } else {
-                            None
-                        }
+                        presym
+                            .check_improper(&order_6, &c3_ele.axis, &SIG, tr)
+                            .map(|improper_kind| {
+                                (c3_ele.axis, improper_kind.contains_time_reversal())
+                            })
                     })
                     .collect()
             };
@@ -747,28 +745,15 @@ impl Symmetry {
             let order_5 = ElementOrder::Int(5);
             let order_10 = ElementOrder::Int(10);
             let s10_axes: Vec<(Vector3<f64>, bool)> = {
-                // self.get_elements(&ROT)
-                //     .unwrap_or(&HashMap::new())
-                //     .get(&order_5)
-                //     .unwrap_or(&HashSet::new())
-                //     .iter()
-                //     .chain(
-                //         self.get_elements(&TRROT)
-                //             .unwrap_or(&HashMap::new())
-                //             .get(&order_5)
-                //             .unwrap_or(&HashSet::new()),
-                //     )
                 self.get_proper(&order_5)
                     .expect("Expected C5 elements not found.")
                     .iter()
                     .filter_map(|c5_ele| {
-                        if let Some(improper_kind) =
-                            presym.check_improper(&order_10, &c5_ele.axis, &SIG, tr)
-                        {
-                            Some((c5_ele.axis, improper_kind.contains_time_reversal()))
-                        } else {
-                            None
-                        }
+                        presym
+                            .check_improper(&order_10, &c5_ele.axis, &SIG, tr)
+                            .map(|improper_kind| {
+                                (c5_ele.axis, improper_kind.contains_time_reversal())
+                            })
                     })
                     .collect()
             };
@@ -793,13 +778,9 @@ impl Symmetry {
                     .expect("Expected C3 elements not found.")
                     .iter()
                     .filter_map(|c3_ele| {
-                        if let Some(improper_kind) =
-                            presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr)
-                        {
-                            Some((c3_ele.axis, improper_kind.contains_time_reversal()))
-                        } else {
-                            None
-                        }
+                        presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr).map(
+                            |improper_kind| (c3_ele.axis, improper_kind.contains_time_reversal()),
+                        )
                     })
                     .collect()
             };
@@ -823,13 +804,9 @@ impl Symmetry {
                     .expect("Expected C2 elements not found.")
                     .iter()
                     .filter_map(|c2_ele| {
-                        if let Some(improper_kind) =
-                            presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG, tr)
-                        {
-                            Some((c2_ele.axis, improper_kind.contains_time_reversal()))
-                        } else {
-                            None
-                        }
+                        presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG, tr).map(
+                            |improper_kind| (c2_ele.axis, improper_kind.contains_time_reversal()),
+                        )
                     })
                     .collect()
             };
