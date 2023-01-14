@@ -15,16 +15,44 @@ fn test_symmetry_check_proper_improper_n3() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    assert!(presym.check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, 1.0, 1.0)));
-    assert!(presym.check_proper(&ElementOrder::Int(15), &Vector3::new(1.0, 1.0, 1.0)));
-    assert!(!presym.check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, -1.0, 0.0)));
+    assert!(presym
+        .check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, 1.0, 1.0), false)
+        .is_some());
+    assert!(presym
+        .check_proper(&ElementOrder::Int(15), &Vector3::new(1.0, 1.0, 1.0), false)
+        .is_some());
+    assert!(presym
+        .check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, -1.0, 0.0), false).is_none());
 
-    let sig = SymmetryElementKind::ImproperMirrorPlane;
-    let inv = SymmetryElementKind::ImproperInversionCentre;
-    assert!(presym.check_improper(&ElementOrder::Int(1), &Vector3::new(-1.0, 0.0, 1.0), &sig));
-    assert!(!presym.check_improper(&ElementOrder::Int(1), &Vector3::new(-1.0, 0.0, 1.0), &inv));
-    assert!(presym.check_improper(&ElementOrder::Int(2), &Vector3::new(0.0, 1.0, -1.0), &inv));
-    assert!(!presym.check_improper(&ElementOrder::Int(2), &Vector3::new(0.0, 1.0, -1.0), &sig));
+    let sig = SymmetryElementKind::ImproperMirrorPlane(false);
+    let inv = SymmetryElementKind::ImproperInversionCentre(false);
+    assert!(presym.check_improper(
+        &ElementOrder::Int(1),
+        &Vector3::new(-1.0, 0.0, 1.0),
+        &sig,
+        false
+    ).is_some());
+    assert!(presym.check_improper(
+        &ElementOrder::Int(1),
+        &Vector3::new(-1.0, 0.0, 1.0),
+        &inv,
+        false
+    ).is_none());
+    assert!(presym
+        .check_improper(
+            &ElementOrder::Int(2),
+            &Vector3::new(0.0, 1.0, -1.0),
+            &inv,
+            false
+        )
+        .is_some());
+    assert!(presym
+        .check_improper(
+            &ElementOrder::Int(2),
+            &Vector3::new(0.0, 1.0, -1.0),
+            &sig,
+            false
+        ).is_none());
 }
 
 #[test]
@@ -36,26 +64,48 @@ fn test_symmetry_check_proper_improper_h8() {
         .molecule(&mol, true)
         .build()
         .unwrap();
-    assert!(presym.check_proper(&ElementOrder::Int(4), &Vector3::new(0.0, 0.0, 1.0)));
-    assert!(presym.check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, 0.0, 0.0)));
-    assert!(presym.check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, 1.0, 0.0)));
+    assert!(presym
+        .check_proper(&ElementOrder::Int(4), &Vector3::new(0.0, 0.0, 1.0), false)
+        .is_some());
+    assert!(presym
+        .check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, 0.0, 0.0), false)
+        .is_some());
+    assert!(presym
+        .check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, 1.0, 0.0), false)
+        .is_some());
 
-    let sig = SymmetryElementKind::ImproperMirrorPlane;
-    let inv = SymmetryElementKind::ImproperInversionCentre;
-    assert!(presym.check_improper(&ElementOrder::Int(1), &Vector3::new(0.0, 0.0, 1.0), &inv));
-    assert!(presym.check_improper(&ElementOrder::Int(1), &Vector3::new(0.0, 0.0, 1.0), &sig));
-    assert!(presym.check_improper(&ElementOrder::Int(1), &Vector3::new(0.0, 1.0, 0.0), &sig));
-    assert!(presym.check_improper(&ElementOrder::Int(1), &Vector3::new(1.0, 1.0, 0.0), &sig));
+    let sig = SymmetryElementKind::ImproperMirrorPlane(false);
+    let inv = SymmetryElementKind::ImproperInversionCentre(false);
+    assert!(presym
+        .check_improper(
+            &ElementOrder::Int(1),
+            &Vector3::new(0.0, 0.0, 1.0),
+            &inv,
+            false
+        )
+        .is_some());
+    assert!(presym
+        .check_improper(
+            &ElementOrder::Int(1),
+            &Vector3::new(0.0, 0.0, 1.0),
+            &sig,
+            false
+        )
+        .is_some());
+    assert!(presym
+        .check_improper(
+            &ElementOrder::Int(1),
+            &Vector3::new(0.0, 1.0, 0.0),
+            &sig,
+            false
+        )
+        .is_some());
+    assert!(presym
+        .check_improper(
+            &ElementOrder::Int(1),
+            &Vector3::new(1.0, 1.0, 0.0),
+            &sig,
+            false
+        )
+        .is_some());
 }
-
-// #[test]
-// fn test_search_c2_spherical_c60() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
-//     let mol = Molecule::from_xyz(&path, 1e-6);
-//     let presym = PreSymmetry::builder()
-//         .moi_threshold(1e-6)
-//         .molecule(&mol, true)
-//         .build()
-//         .unwrap();
-//     // Missing
-// }

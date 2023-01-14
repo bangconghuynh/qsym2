@@ -190,7 +190,10 @@ impl Molecule {
             tot_m += m;
         }
         com *= 1.0 / tot_m;
-        log::debug!("Centre of mass: {}", com);
+        log::debug!("Centre of mass:");
+        for component in com.iter() {
+            log::debug!("  {component:+.14}");
+        }
         com
     }
 
@@ -226,7 +229,10 @@ impl Molecule {
                 }
             }
         }
-        log::debug!("Origin for inertia tensor: {}", origin);
+        log::debug!("Origin for inertia tensor:");
+        for component in origin.iter() {
+            log::debug!("  {component:+.14}");
+        }
         log::debug!("Inertia tensor:\n{}", inertia_tensor);
         inertia_tensor
     }

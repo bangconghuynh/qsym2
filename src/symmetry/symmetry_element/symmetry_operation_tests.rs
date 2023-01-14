@@ -7,7 +7,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    ElementOrder, SymmetryElement, SymmetryElementKind, F, INV, SIG,
+    ElementOrder, SymmetryElement, F, INV, ROT, SIG, TRINV, TRROT, TRSIG,
 };
 
 #[test]
@@ -20,7 +20,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -57,7 +57,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -89,7 +89,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -112,7 +112,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -149,7 +149,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(2)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -172,7 +172,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::new(4.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -209,7 +209,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, -1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_6)
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -260,7 +260,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -297,7 +297,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -334,7 +334,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -371,7 +371,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -408,7 +408,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -445,7 +445,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -482,7 +482,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -519,7 +519,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -556,7 +556,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -593,7 +593,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -630,7 +630,7 @@ fn test_symmetry_operation_constructor() {
         .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -660,8 +660,7 @@ fn test_symmetry_operation_constructor() {
         epsilon = sip4.generating_element.threshold
     );
 
-    let sib_element =
-        si_element.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
+    let sib_element = si_element.convert_to_improper_kind(&INV, false);
 
     let sibp2 = SymmetryOperation::builder()
         .generating_element(sib_element.clone())
@@ -700,7 +699,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -725,7 +724,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -750,7 +749,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -767,7 +766,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -824,7 +823,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(2)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -841,7 +840,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::new(4.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -890,7 +889,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 2.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -942,7 +941,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -967,7 +966,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -992,7 +991,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -1017,7 +1016,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1042,7 +1041,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1067,7 +1066,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -1092,7 +1091,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1143,7 +1142,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1168,7 +1167,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1193,7 +1192,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -1226,7 +1225,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1248,7 +1247,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1301,7 +1300,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -1354,7 +1353,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -1407,7 +1406,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1460,7 +1459,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -1513,7 +1512,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1614,7 +1613,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1667,7 +1666,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -1698,7 +1697,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.5, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1773,7 +1772,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_order(ElementOrder::Int(7))
         .proper_power(2)
         .axis(Vector3::new(2.0, 2.5, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1804,7 +1803,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -1885,7 +1884,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -1908,7 +1907,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -1941,7 +1940,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -1967,7 +1966,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2037,7 +2036,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(2)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2066,7 +2065,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::new(4.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, -1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2119,7 +2118,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, -2.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2172,7 +2171,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, -1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_6)
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2238,7 +2237,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, -2.0, 0.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -2267,7 +2266,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -2296,7 +2295,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -2315,7 +2314,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -2344,7 +2343,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -2373,7 +2372,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -2402,7 +2401,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -2505,7 +2504,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -2535,7 +2534,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -2558,7 +2557,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -2591,7 +2590,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, -1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -2660,7 +2659,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::PI / 5.0)
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -2683,7 +2682,7 @@ fn test_symmetry_operation_poles() {
         .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::PI / 5.0)
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -2715,7 +2714,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2737,7 +2736,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2766,7 +2765,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(-1.0, -1.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2782,7 +2781,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2841,7 +2840,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(2)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2871,7 +2870,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::new(4.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, -1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2927,7 +2926,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::new(4.0, 1e-14))
         .proper_power(1)
         .axis(-Vector3::new(1.0, 1.0, -1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2951,7 +2950,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(6))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -2988,7 +2987,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Inf)
         .axis(-Vector3::new(1.0, 1.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_6)
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -3068,7 +3067,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, -2.0, 0.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3110,7 +3109,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -3138,7 +3137,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(-1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -3156,7 +3155,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3184,7 +3183,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
         .axis(Vector3::new(0.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3213,7 +3212,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -3242,7 +3241,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3329,7 +3328,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
         .axis(-Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3354,7 +3353,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3377,7 +3376,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -3392,7 +3391,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(6))
         .proper_power(5)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3422,7 +3421,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
         .axis(Vector3::new(2.0, 2.0, -1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3515,7 +3514,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_order(ElementOrder::Inf)
         .axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::PI / 5.0)
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3564,7 +3563,7 @@ fn test_symmetry_operation_to_quaternion() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -3638,7 +3637,7 @@ fn test_symmetry_operation_to_quaternion() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3709,7 +3708,7 @@ fn test_symmetry_operation_to_quaternion() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -3786,7 +3785,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_order(ElementOrder::Int(4))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -3797,8 +3796,13 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let c4p2q = c4p2.calc_quaternion();
-    let c4p2r =
-        SymmetryOperation::from_quaternion(c4p2q, c4p2.is_proper(), c4_element.threshold, 10, 0);
+    let c4p2r = SymmetryOperation::from_quaternion(
+        c4p2q,
+        c4p2.is_proper(),
+        c4_element.threshold,
+        10,
+        false,
+    );
     assert_eq!(c4p2, c4p2r);
 
     let c7_element = SymmetryElement::builder()
@@ -3806,7 +3810,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
         .axis(Vector3::new(2.0, -2.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -3817,7 +3821,8 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let c7q = c7.calc_quaternion();
-    let c7r = SymmetryOperation::from_quaternion(c7q, c7.is_proper(), c7_element.threshold, 10, 0);
+    let c7r =
+        SymmetryOperation::from_quaternion(c7q, c7.is_proper(), c7_element.threshold, 10, false);
     assert_eq!(c7, c7r);
 
     let c7p2 = SymmetryOperation::builder()
@@ -3827,8 +3832,13 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let c7p2q = c7p2.calc_quaternion();
-    let c7p2r =
-        SymmetryOperation::from_quaternion(c7p2q, c7p2.is_proper(), c7_element.threshold, 10, 0);
+    let c7p2r = SymmetryOperation::from_quaternion(
+        c7p2q,
+        c7p2.is_proper(),
+        c7_element.threshold,
+        10,
+        false,
+    );
     assert_eq!(c7p2, c7p2r);
 
     let c7p3 = SymmetryOperation::builder()
@@ -3838,8 +3848,13 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let c7p3q = c7p3.calc_quaternion();
-    let c7p3r =
-        SymmetryOperation::from_quaternion(c7p3q, c7p3.is_proper(), c7_element.threshold, 10, 0);
+    let c7p3r = SymmetryOperation::from_quaternion(
+        c7p3q,
+        c7p3.is_proper(),
+        c7_element.threshold,
+        10,
+        false,
+    );
     assert_eq!(c7p3, c7p3r);
 
     let c7p7 = SymmetryOperation::builder()
@@ -3849,8 +3864,13 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let c7p7q = c7p7.calc_quaternion();
-    let c7p7r =
-        SymmetryOperation::from_quaternion(c7p7q, c7p7.is_proper(), c7_element.threshold, 10, 0);
+    let c7p7r = SymmetryOperation::from_quaternion(
+        c7p7q,
+        c7p7.is_proper(),
+        c7_element.threshold,
+        10,
+        false,
+    );
     assert_eq!(c7p7, c7p7r);
 
     // ============================
@@ -3861,7 +3881,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 2.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3872,7 +3892,8 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let s1q = s1.calc_quaternion();
-    let s1r = SymmetryOperation::from_quaternion(s1q, s1.is_proper(), s1_element.threshold, 10, 0);
+    let s1r =
+        SymmetryOperation::from_quaternion(s1q, s1.is_proper(), s1_element.threshold, 10, false);
     assert_eq!(s1, s1r);
 
     let s1pm4 = SymmetryOperation::builder()
@@ -3882,8 +3903,13 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let s1pm4q = s1pm4.calc_quaternion();
-    let s1pm4r =
-        SymmetryOperation::from_quaternion(s1pm4q, s1pm4.is_proper(), s1_element.threshold, 10, 0);
+    let s1pm4r = SymmetryOperation::from_quaternion(
+        s1pm4q,
+        s1pm4.is_proper(),
+        s1_element.threshold,
+        10,
+        false,
+    );
     assert_eq!(s1pm4, s1pm4r);
 
     let s2_element = SymmetryElement::builder()
@@ -3891,7 +3917,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 2.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3902,7 +3928,8 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let s2q = s2.calc_quaternion();
-    let s2r = SymmetryOperation::from_quaternion(s2q, s2.is_proper(), s2_element.threshold, 10, 0);
+    let s2r =
+        SymmetryOperation::from_quaternion(s2q, s2.is_proper(), s2_element.threshold, 10, false);
     assert_eq!(s2, s2r);
 
     let s2p2 = SymmetryOperation::builder()
@@ -3912,8 +3939,13 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let s2p2q = s2p2.calc_quaternion();
-    let s2p2r =
-        SymmetryOperation::from_quaternion(s2p2q, s2p2.is_proper(), s2_element.threshold, 10, 0);
+    let s2p2r = SymmetryOperation::from_quaternion(
+        s2p2q,
+        s2p2.is_proper(),
+        s2_element.threshold,
+        10,
+        false,
+    );
     assert_eq!(s2p2, s2p2r);
 
     let s3_element = SymmetryElement::builder()
@@ -3921,7 +3953,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3932,7 +3964,8 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let s3q = s3.calc_quaternion();
-    let s3r = SymmetryOperation::from_quaternion(s3q, s3.is_proper(), s3_element.threshold, 10, 0);
+    let s3r =
+        SymmetryOperation::from_quaternion(s3q, s3.is_proper(), s3_element.threshold, 10, false);
     assert_eq!(s3, s3r);
 
     let s3p2 = SymmetryOperation::builder()
@@ -3942,8 +3975,13 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let s3p2q = s3p2.calc_quaternion();
-    let s3p2r =
-        SymmetryOperation::from_quaternion(s3p2q, s3p2.is_proper(), s3_element.threshold, 10, 0);
+    let s3p2r = SymmetryOperation::from_quaternion(
+        s3p2q,
+        s3p2.is_proper(),
+        s3_element.threshold,
+        10,
+        false,
+    );
     assert_eq!(s3p2, s3p2r);
 
     let s3pm1 = SymmetryOperation::builder()
@@ -3953,8 +3991,13 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let s3pm1q = s3pm1.calc_quaternion();
-    let s3pm1r =
-        SymmetryOperation::from_quaternion(s3pm1q, s3pm1.is_proper(), s3_element.threshold, 10, 0);
+    let s3pm1r = SymmetryOperation::from_quaternion(
+        s3pm1q,
+        s3pm1.is_proper(),
+        s3_element.threshold,
+        10,
+        false,
+    );
     assert_eq!(s3pm1, s3pm1r);
 
     let s3p3 = SymmetryOperation::builder()
@@ -3964,8 +4007,13 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let s3p3q = s3p3.calc_quaternion();
-    let s3p3r =
-        SymmetryOperation::from_quaternion(s3p3q, s3p3.is_proper(), s3_element.threshold, 10, 0);
+    let s3p3r = SymmetryOperation::from_quaternion(
+        s3p3q,
+        s3p3.is_proper(),
+        s3_element.threshold,
+        10,
+        false,
+    );
     assert_eq!(s3p3, s3p3r);
 
     let s17pp3_element = SymmetryElement::builder()
@@ -3973,7 +4021,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_order(ElementOrder::Int(17))
         .proper_power(3)
         .axis(Vector3::new(5.0, -1.0, 2.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -3989,7 +4037,7 @@ fn test_symmetry_operation_from_quaternion() {
         s17pp3.is_proper(),
         s17pp3_element.threshold,
         17,
-        0,
+        false,
     );
     assert_eq!(s17pp3, s17pp3r);
 
@@ -3998,7 +4046,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_order(ElementOrder::Int(11))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -4009,8 +4057,13 @@ fn test_symmetry_operation_from_quaternion() {
         .unwrap();
 
     let sd11q = sd11.calc_quaternion();
-    let sd11r =
-        SymmetryOperation::from_quaternion(sd11q, sd11.is_proper(), sd11_element.threshold, 11, 0);
+    let sd11r = SymmetryOperation::from_quaternion(
+        sd11q,
+        sd11.is_proper(),
+        sd11_element.threshold,
+        11,
+        false,
+    );
     assert_eq!(sd11, sd11r);
 
     let sd11p6 = SymmetryOperation::builder()
@@ -4025,7 +4078,7 @@ fn test_symmetry_operation_from_quaternion() {
         sd11p6.is_proper(),
         sd11_element.threshold,
         11,
-        0,
+        false,
     );
     assert_eq!(sd11p6, sd11p6r);
 }
@@ -4040,7 +4093,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4080,7 +4133,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4095,7 +4148,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(35))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4124,7 +4177,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(10))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4149,7 +4202,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4165,7 +4218,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(5))
         .proper_power(2)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4197,7 +4250,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(8))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4212,7 +4265,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(40))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4228,7 +4281,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(40))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4244,7 +4297,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4260,7 +4313,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4275,7 +4328,7 @@ fn test_symmetry_operation_collinear_composition() {
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -4297,7 +4350,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 0.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4312,7 +4365,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(0.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4327,7 +4380,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(0.0, 0.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4345,7 +4398,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4360,7 +4413,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 0.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4375,7 +4428,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(4))
         .proper_power(1)
         .axis(Vector3::new(0.0, 0.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4394,7 +4447,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 0.0, 0.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4409,7 +4462,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4424,7 +4477,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 0.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4443,7 +4496,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 0.0, 0.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4462,7 +4515,7 @@ fn test_symmetry_operation_noncollinear_composition() {
             (2.0 * std::f64::consts::PI * 3.0 / 17.0).sin(),
             0.0,
         ))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4486,7 +4539,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(*fract.denom().unwrap()))
         .proper_power(*fract.numer().unwrap())
         .axis(rotation_axis)
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4506,7 +4559,7 @@ fn test_symmetry_operation_noncollinear_composition() {
             -(std::f64::consts::PI * 3.0).cos(),
             0.0,
         ))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4521,7 +4574,7 @@ fn test_symmetry_operation_noncollinear_composition() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(0.0, 0.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4542,7 +4595,7 @@ fn test_symmetry_operation_noncollinear_composition() {
             -(std::f64::consts::PI * 3.0).cos(),
             0.0,
         ))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
@@ -4556,25 +4609,32 @@ fn test_symmetry_operation_noncollinear_composition() {
 
 #[test]
 fn test_symmetry_operation_time_reversal() {
-    let c2x_element = SymmetryElement::builder()
+    let tc2x_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 0.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(TRROT)
         .build()
         .unwrap();
 
     let tc2x = SymmetryOperation::builder()
-        .generating_element(c2x_element.clone())
+        .generating_element(tc2x_element)
         .power(1)
-        .time_reversal_power(1)
         .build()
         .unwrap();
     assert_eq!(tc2x.order(), 2);
     assert!(tc2x.is_antiunitary());
     assert!((&tc2x * &tc2x).is_identity());
 
+    let c2x_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(ROT)
+        .build()
+        .unwrap();
     let c2x = SymmetryOperation::builder()
         .generating_element(c2x_element)
         .power(1)
@@ -4589,22 +4649,29 @@ fn test_symmetry_operation_time_reversal() {
     assert!(t.is_time_reversal());
     assert!((&t * &t).is_identity());
 
+    let tc2y_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRROT)
+        .build()
+        .unwrap();
+
+    let tc2y = SymmetryOperation::builder()
+        .generating_element(tc2y_element)
+        .power(1)
+        .build()
+        .unwrap();
+
     let c2y_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(0.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
-
-    let tc2y = SymmetryOperation::builder()
-        .generating_element(c2y_element.clone())
-        .power(1)
-        .time_reversal_power(1)
-        .build()
-        .unwrap();
-
     let c2y = SymmetryOperation::builder()
         .generating_element(c2y_element)
         .power(1)
@@ -4626,22 +4693,30 @@ fn test_symmetry_operation_time_reversal() {
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
         .axis(Vector3::new(1.0, 0.0, 0.0))
-        .kind(SymmetryElementKind::ImproperInversionCentre)
+        .kind(INV)
         .build()
         .unwrap();
 
     let sd1 = SymmetryOperation::builder()
-        .generating_element(sd1_element.clone())
+        .generating_element(sd1_element)
         .power(1)
         .build()
         .unwrap();
     assert_eq!(sd1.order(), 2);
     assert!(!sd1.is_antiunitary());
 
+    let tsd1_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(TRINV)
+        .build()
+        .unwrap();
+
     let tsd1 = SymmetryOperation::builder()
-        .generating_element(sd1_element)
+        .generating_element(tsd1_element)
         .power(1)
-        .time_reversal_power(1)
         .build()
         .unwrap();
     assert_eq!(tsd1.order(), 2);
@@ -4662,7 +4737,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4695,7 +4770,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_order(ElementOrder::Int(6))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4711,7 +4786,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4728,7 +4803,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 0.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4757,7 +4832,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
         .axis(Vector3::new(2.0, -2.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4782,19 +4857,18 @@ fn test_symmetry_operation_exponentiation() {
     // ===============================
     // Antiunitary symmetry operations
     // ===============================
-    let s5_element = SymmetryElement::builder()
+    let ts5_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .axis(Vector3::new(2.0, -2.0, 2.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(TRSIG)
         .build()
         .unwrap();
 
     let ts5 = SymmetryOperation::builder()
-        .generating_element(s5_element)
+        .generating_element(ts5_element)
         .power(1)
-        .time_reversal_power(1)
         .build()
         .unwrap();
     assert_eq!(ts5.order(), 10);
@@ -4802,19 +4876,18 @@ fn test_symmetry_operation_exponentiation() {
     assert!(!(&ts5).pow(2).is_antiunitary());
     assert!(!(&ts5).pow(5).is_time_reversal());
 
-    let c5_element = SymmetryElement::builder()
+    let tc5_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .axis(Vector3::new(2.0, -2.0, 2.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(TRROT)
         .build()
         .unwrap();
 
     let tc5 = SymmetryOperation::builder()
-        .generating_element(c5_element)
+        .generating_element(tc5_element)
         .power(1)
-        .time_reversal_power(1)
         .build()
         .unwrap();
     assert_eq!(tc5.order(), 10);
@@ -4831,7 +4904,7 @@ fn test_symmetry_operation_hashability() {
         .proper_order(ElementOrder::Int(8))
         .proper_power(1)
         .axis(Vector3::new(1.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4849,7 +4922,7 @@ fn test_symmetry_operation_hashability() {
         .proper_order(ElementOrder::Int(4))
         .proper_power(1)
         .axis(Vector3::new(-1.0, 1.0, -1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(ROT)
         .build()
         .unwrap();
 
@@ -4868,7 +4941,7 @@ fn test_symmetry_operation_hashability() {
         .proper_order(ElementOrder::Int(8))
         .proper_power(1)
         .axis(Vector3::new(1.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::ImproperMirrorPlane)
+        .kind(SIG)
         .build()
         .unwrap();
 
@@ -4880,19 +4953,18 @@ fn test_symmetry_operation_hashability() {
     assert!(!symops.contains(&s8));
     assert!(symops.contains(&s8.pow(2)));
 
-    let c12_element = SymmetryElement::builder()
+    let tc12_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(12))
         .proper_power(1)
         .axis(Vector3::new(1.0, -1.0, 1.0))
-        .kind(SymmetryElementKind::Proper)
+        .kind(TRROT)
         .build()
         .unwrap();
 
     let tc12 = SymmetryOperation::builder()
-        .generating_element(c12_element)
+        .generating_element(tc12_element)
         .power(1)
-        .time_reversal_power(1)
         .build()
         .unwrap();
     assert!(!symops.contains(&tc12));

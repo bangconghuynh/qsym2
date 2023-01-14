@@ -10,14 +10,16 @@ use crate::aux::atom::Atom;
 use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, ROT, SIG};
+use crate::symmetry::symmetry_element::{
+    SymmetryElement, SymmetryElementKind, ROT, SIG, TRROT, TRSIG,
+};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 
 #[cfg(test)]
 mod symmetry_core_tests;
 
 #[cfg(test)]
-mod point_group_detection_tests;
+mod symmetry_group_detection_tests;
 
 /// A struct for storing and managing information required for symmetry analysis.
 #[derive(Builder)]
@@ -143,20 +145,30 @@ impl PreSymmetry {
         PreSymmetryBuilder::default()
     }
 
-    /// Checks for the existence of the proper symmetry element $`C_n`$ along
+    /// Checks for the existence of the proper symmetry element $`C_n`$  or $`\theta C_n`$ along
     /// `axis` in `[Self::molecule]`.
+    ///
+    /// Non-time-reversed elements are always preferred.
     ///
     /// # Arguments
     ///
-    /// * order - The geometrical order $`n`$ of the rotation axis. Only finite
+    /// * `order` - The geometrical order $`n`$ of the rotation axis. Only finite
     /// orders are supported.
-    /// * axis - The rotation axis.
+    /// * `axis` - The rotation axis.
+    /// * `tr` - A flag indicating if time reversal should also be considered in case the
+    /// non-time-reversed symmetry element does not exist.
     ///
     /// # Returns
     ///
-    /// A flag indicating if the $`C_n`$ element exists in `[Self::molecule]`.
+    /// An [`Option`] containing the proper kind if the $`C_n`$ or $`\theta C_n`$ element exists in
+    /// `[Self::molecule]`. If not, [`None`] is returned.
     #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn check_proper(&self, order: &ElementOrder, axis: &Vector3<f64>) -> bool {
+    fn check_proper(
+        &self,
+        order: &ElementOrder,
+        axis: &Vector3<f64>,
+        tr: bool,
+    ) -> Option<SymmetryElementKind> {
         assert_ne!(
             *order,
             ElementOrder::Inf,
@@ -164,37 +176,68 @@ impl PreSymmetry {
         );
         let angle = 2.0 * std::f64::consts::PI / order.to_float();
         let rotated_mol = self.molecule.rotate(angle, axis);
-        rotated_mol == self.molecule
+        if rotated_mol == self.molecule {
+            Some(SymmetryElementKind::Proper(false))
+        } else if tr {
+            let tr_rotated_mol = rotated_mol.reverse_time();
+            if tr_rotated_mol == self.molecule {
+                Some(SymmetryElementKind::Proper(true))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
-    /// Checks for the existence of the improper symmetry element $`S_n`$ or
-    /// $`\dot{S}_n`$ along `axis` in `[Self::molecule]`.
+    /// Checks for the existence of the improper symmetry element $`S_n`$, $`\dot{S}_n`$,
+    /// $`\theta S_n`$, or $`\theta \dot{S}_n`$ along `axis` in `[Self::molecule]`.
+    ///
+    /// Non-time-reversed elements are always preferred.
     ///
     /// # Arguments
     ///
-    /// * order - The geometrical order $`n`$ of the improper rotation axis. Only
+    /// * `order` - The geometrical order $`n`$ of the improper rotation axis. Only
     /// finite orders are supported.
-    /// * axis - The rotation axis.
-    /// * kind - The convention in which the improper element is defined.
+    /// * `axis` - The rotation axis.
+    /// * `kind` - The convention in which the improper element is defined. The time reversal
+    /// property of this does not matter.
+    /// * `tr` - A flag indicating if time reversal should also be considered in case the
+    /// non-time-reversed symmetry element does not exist.
     ///
     /// # Returns
     ///
-    /// A flag indicating if the improper element exists in `[Self::molecule]`.
+    /// An [`Option`] containing the improper kind if the $`S_n`$, $`\theta S_n`$, $`\theta S_n`$,
+    /// or $`\theta \dot{S}_n`$ element exists in `[Self::molecule]`. If not, [`None`] is returned.
     #[allow(clippy::trivially_copy_pass_by_ref)]
     fn check_improper(
         &self,
         order: &ElementOrder,
         axis: &Vector3<f64>,
         kind: &SymmetryElementKind,
-    ) -> bool {
+        tr: bool,
+    ) -> Option<SymmetryElementKind> {
         assert_ne!(
             *order,
             ElementOrder::Inf,
             "This method does not work for infinite-order elements."
         );
         let angle = 2.0 * std::f64::consts::PI / order.to_float();
-        let transformed_mol = self.molecule.improper_rotate(angle, axis, kind);
-        transformed_mol == self.molecule
+        let transformed_mol = self
+            .molecule
+            .improper_rotate(angle, axis, &kind.to_tr(false));
+        if transformed_mol == self.molecule {
+            Some(kind.to_tr(false))
+        } else if tr {
+            let tr_transformed_mol = transformed_mol.reverse_time();
+            if tr_transformed_mol == self.molecule {
+                Some(kind.to_tr(true))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 }
 
@@ -203,7 +246,7 @@ impl PreSymmetry {
 pub struct Symmetry {
     /// The determined point group in Schönflies notation.
     #[builder(setter(skip, strip_option), default = "None")]
-    pub point_group: Option<String>,
+    pub group_name: Option<String>,
 
     /// The symmetry elements found.
     ///
@@ -233,42 +276,136 @@ impl Symmetry {
     ///
     /// A builder to construct a new symmetry struct.
     #[must_use]
-    pub fn builder() -> SymmetryBuilder {
+    fn builder() -> SymmetryBuilder {
         SymmetryBuilder::default()
+    }
+
+    /// Construct a new and empty symmetry struct.
+    #[must_use]
+    pub fn new() -> Self {
+        Symmetry::builder()
+            .build()
+            .expect("Unable to construct a `Symmetry` structure.")
     }
 
     /// Performs point-group detection analysis.
     ///
     /// # Arguments
     ///
-    /// * presym - A pre-symmetry-analysis struct containing the molecule
-    /// and its rotational symmetry required for point-group detection.
-    pub fn analyse(&mut self, presym: &PreSymmetry) {
+    /// * `presym` - A pre-symmetry-analysis structure containing the molecule and its rotational
+    /// symmetry required for point-group detection.
+    /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
+    /// symmetry element will only be considered if its non-time-reversed version turns out to be
+    /// not a symmetry element.
+    pub fn analyse(&mut self, presym: &PreSymmetry, tr: bool) {
         log::debug!("Rotational symmetry found: {}", presym.rotational_symmetry);
+
+        if tr {
+            log::debug!("Antiunitary symmetry generated by time reversal will be considered.");
+        };
+
+        // Add the identity, which must always exist.
         let c1 = SymmetryElement::builder()
             .threshold(presym.dist_threshold)
             .proper_order(ORDER_1)
             .proper_power(1)
             .axis(Vector3::new(0.0, 0.0, 1.0))
-            .kind(SymmetryElementKind::Proper)
+            .kind(SymmetryElementKind::Proper(false))
             .build()
             .expect("Unable to construct the identity element.");
-        if let Vacant(proper_elements) = self.elements.entry(ROT) {
-            proper_elements.insert(HashMap::from([(ORDER_1, HashSet::from([c1]))]));
-        } else {
-            self.elements
-                .get_mut(&ROT)
-                .expect("Unable to add proper elements.")
-                .insert(ORDER_1, HashSet::from([c1]));
-        };
+        self.add_proper(ORDER_1, c1.axis, false, presym.dist_threshold, false);
+
+        // Identify all symmetry elements and generators
         match &presym.rotational_symmetry {
-            RotationalSymmetry::Spherical => self.analyse_spherical(presym),
-            RotationalSymmetry::ProlateLinear => self.analyse_linear(presym),
+            RotationalSymmetry::Spherical => self.analyse_spherical(presym, tr),
+            RotationalSymmetry::ProlateLinear => self.analyse_linear(presym, tr),
             RotationalSymmetry::OblatePlanar
             | RotationalSymmetry::OblateNonPlanar
-            | RotationalSymmetry::ProlateNonLinear => self.analyse_symmetric(presym),
+            | RotationalSymmetry::ProlateNonLinear => self.analyse_symmetric(presym, tr),
             RotationalSymmetry::AsymmetricPlanar | RotationalSymmetry::AsymmetricNonPlanar => {
-                self.analyse_asymmetric(presym);
+                self.analyse_asymmetric(presym, tr);
+            }
+        }
+
+        if tr {
+            if self.get_elements(&TRROT).is_none()
+                && self.get_elements(&TRSIG).is_none()
+                && self.get_generators(&TRROT).is_none()
+                && self.get_generators(&TRSIG).is_none()
+            {
+                log::debug!("Antiunitary symmetry requested, but so far only non-time-reversed elements found.");
+                // Time-reversal requested, but the above analysis gives only non-time-reversed
+                // elements, which means the system must also contain time reversal as a symmetry
+                // operation. This implies that the group is a grey group.
+                if presym.molecule == presym.molecule.reverse_time() {
+                    log::debug!("Time reversal is a symmetry element. This is a grey group.");
+                    // Add time-reversed copies of proper elements
+                    self.elements.insert(
+                        TRROT,
+                        self.get_elements(&ROT)
+                            .expect("No proper elements found.")
+                            .iter()
+                            .map(|(order, proper_elements)| {
+                                let tr_proper_elements = proper_elements
+                                    .iter()
+                                    .map(|proper_element| {
+                                        let mut tr_proper_element = proper_element.clone();
+                                        tr_proper_element.kind = proper_element.kind.to_tr(true);
+                                        tr_proper_element
+                                    })
+                                    .collect::<HashSet<_>>();
+                                (*order, tr_proper_elements)
+                            })
+                            .collect::<HashMap<_, _>>(),
+                    );
+                    log::debug!("Time-reversed copies of all proper elements added.");
+
+                    // Add the time-reversal element as a generator
+                    self.add_proper(ORDER_1, c1.axis, true, presym.dist_threshold, true);
+
+                    // Add time-reversed copies of improper elements, if any
+                    if self.get_elements(&SIG).is_some() {
+                        self.elements.insert(
+                            TRSIG,
+                            self.get_elements(&SIG)
+                                .expect("No improper elements found.")
+                                .iter()
+                                .map(|(order, improper_elements)| {
+                                    let tr_improper_elements = improper_elements
+                                        .iter()
+                                        .map(|improper_element| {
+                                            let mut tr_improper_element = improper_element.clone();
+                                            tr_improper_element.kind =
+                                                improper_element.kind.to_tr(true);
+                                            tr_improper_element
+                                        })
+                                        .collect::<HashSet<_>>();
+                                    (*order, tr_improper_elements)
+                                })
+                                .collect::<HashMap<_, _>>(),
+                        );
+                        log::debug!("Time-reversed copies of all improper elements added.");
+                    }
+
+                    // Rename the group to include the antiunitary coset generated by time reversal
+                    let unitary_group = self
+                        .group_name
+                        .as_ref()
+                        .expect("No point groups found.")
+                        .clone();
+                    self.set_group_name(format!("{unitary_group} + θ·{unitary_group}"));
+                } else {
+                    log::debug!(
+                        "Time reversal is not a symmetry element. This is an ordinary group."
+                    );
+                }
+            } else {
+                log::debug!(
+                    "Antiunitary symmetry requested and some non-time-reversed elements found."
+                );
+                log::debug!(
+                    "Time reversal is not a symmetry element. This is a black-and-white group."
+                );
             }
         }
     }
@@ -291,6 +428,7 @@ impl Symmetry {
         axis: Vector3<f64>,
         generator: bool,
         threshold: f64,
+        tr: bool,
     ) -> bool {
         let positive_axis = geometry::get_positive_pole(&axis, threshold).normalize();
         let element = SymmetryElement::builder()
@@ -298,21 +436,25 @@ impl Symmetry {
             .proper_order(order)
             .proper_power(1)
             .axis(positive_axis)
-            .kind(SymmetryElementKind::Proper)
+            .kind(SymmetryElementKind::Proper(tr))
             .generator(generator)
             .build()
             .expect("Unable to construct a proper element.");
         let detailed_symbol = element.get_detailed_symbol();
         let standard_symbol = element.get_standard_symbol();
+        let proper_kind = if tr { TRROT } else { ROT };
         let result = if generator {
-            if let Vacant(proper_generators) = self.generators.entry(ROT) {
+            if let Vacant(proper_generators) = self.generators.entry(proper_kind.clone()) {
                 proper_generators.insert(HashMap::from([(order, HashSet::from([element]))]));
                 true
             } else {
-                let proper_generators = self
-                    .generators
-                    .get_mut(&ROT)
-                    .expect("Proper generators not found.");
+                let proper_generators =
+                    self.generators.get_mut(&proper_kind).unwrap_or_else(|| {
+                        panic!(
+                            "{} generators not found.",
+                            if tr { "Time-reversed proper" } else { "Proper" }
+                        )
+                    });
 
                 if let Vacant(proper_generators_order) = proper_generators.entry(order) {
                     proper_generators_order.insert(HashSet::from([element]));
@@ -320,18 +462,25 @@ impl Symmetry {
                 } else {
                     proper_generators
                         .get_mut(&order)
-                        .unwrap_or_else(|| panic!("Proper generators C{order} not found."))
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Proper generators {}C{order} not found.",
+                                if tr { "θ" } else { "" }
+                            )
+                        })
                         .insert(element)
                 }
             }
-        } else if let Vacant(proper_elements) = self.elements.entry(ROT) {
+        } else if let Vacant(proper_elements) = self.elements.entry(proper_kind.clone()) {
             proper_elements.insert(HashMap::from([(order, HashSet::from([element]))]));
             true
         } else {
-            let proper_elements = self
-                .elements
-                .get_mut(&ROT)
-                .expect("Proper elements not found.");
+            let proper_elements = self.elements.get_mut(&proper_kind).unwrap_or_else(|| {
+                panic!(
+                    "{} elements not found.",
+                    if tr { "Time-reversed proper" } else { "Proper" }
+                )
+            });
 
             if let Vacant(e) = proper_elements.entry(order) {
                 e.insert(HashSet::from([element]));
@@ -339,7 +488,12 @@ impl Symmetry {
             } else {
                 proper_elements
                     .get_mut(&order)
-                    .unwrap_or_else(|| panic!("Proper elements C{order} not found."))
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Proper elements {}C{order} not found.",
+                            if tr { "θ" } else { "" }
+                        )
+                    })
                     .insert(element)
             }
         };
@@ -392,6 +546,7 @@ impl Symmetry {
         kind: SymmetryElementKind,
         sigma: Option<String>,
         threshold: f64,
+        tr: bool,
     ) -> bool {
         let positive_axis = geometry::get_positive_pole(&axis, threshold).normalize();
         let element = if let Some(sigma_str) = sigma {
@@ -401,11 +556,11 @@ impl Symmetry {
                 .proper_order(order)
                 .proper_power(1)
                 .axis(positive_axis)
-                .kind(kind)
+                .kind(kind.to_tr(tr))
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
-                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false);
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane(tr), false);
             if sym_ele.proper_order == ElementOrder::Int(1) {
                 sym_ele.additional_subscript = sigma_str;
             }
@@ -416,53 +571,77 @@ impl Symmetry {
                 .proper_order(order)
                 .proper_power(1)
                 .axis(positive_axis)
-                .kind(kind)
+                .kind(kind.to_tr(tr))
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
-                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane, false)
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane(tr), false)
         };
-        let sig_order = element.proper_order;
+        let order = element.proper_order;
         let detailed_symbol = element.get_detailed_symbol();
         let standard_symbol = element.get_standard_symbol();
-        let is_mirror_plane = element.is_mirror_plane();
-        let is_inversion_centre = element.is_inversion_centre();
+        let is_mirror_plane = element.is_mirror_plane(tr);
+        let is_inversion_centre = element.is_inversion_centre(tr);
+        let improper_kind = if tr { TRSIG } else { SIG };
         let result = if generator {
-            if let Vacant(improper_generators) = self.generators.entry(SIG) {
+            if let Vacant(improper_generators) = self.generators.entry(improper_kind.clone()) {
                 improper_generators.insert(HashMap::from([(order, HashSet::from([element]))]));
                 true
             } else {
-                let improper_generators = self
-                    .generators
-                    .get_mut(&SIG)
-                    .expect("Improper generators not found.");
+                let improper_generators =
+                    self.generators.get_mut(&improper_kind).unwrap_or_else(|| {
+                        panic!(
+                            "{} generators not found.",
+                            if tr {
+                                "Time-reversed improper"
+                            } else {
+                                "Improper"
+                            }
+                        )
+                    });
 
-                if let Vacant(e) = improper_generators.entry(sig_order) {
+                if let Vacant(e) = improper_generators.entry(order) {
                     e.insert(HashSet::from([element]));
                     true
                 } else {
                     improper_generators
-                        .get_mut(&sig_order)
-                        .unwrap_or_else(|| panic!("Improper elements S{sig_order} not found."))
+                        .get_mut(&order)
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Improper generators {}S{order} not found.",
+                                if tr { "θ" } else { "" }
+                            )
+                        })
                         .insert(element)
                 }
             }
-        } else if let Vacant(improper_elements) = self.elements.entry(SIG) {
+        } else if let Vacant(improper_elements) = self.elements.entry(improper_kind.clone()) {
             improper_elements.insert(HashMap::from([(order, HashSet::from([element]))]));
             true
         } else {
-            let improper_elements = self
-                .elements
-                .get_mut(&SIG)
-                .expect("Improper elements not found.");
+            let improper_elements = self.elements.get_mut(&improper_kind).unwrap_or_else(|| {
+                panic!(
+                    "{} elements not found.",
+                    if tr {
+                        "Time-reversed improper"
+                    } else {
+                        "Improper"
+                    }
+                )
+            });
 
-            if let Vacant(e) = improper_elements.entry(sig_order) {
+            if let Vacant(e) = improper_elements.entry(order) {
                 e.insert(HashSet::from([element]));
                 true
             } else {
                 improper_elements
-                    .get_mut(&sig_order)
-                    .unwrap_or_else(|| panic!("Improper elements S{sig_order} not found."))
+                    .get_mut(&order)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Improper elements {}S{order} not found.",
+                            if tr { "θ" } else { "" }
+                        )
+                    })
                     .insert(element)
             }
         };
@@ -505,6 +684,14 @@ impl Symmetry {
             }
         }
         result
+    }
+
+    fn set_group_name(&mut self, name: String) {
+        self.group_name = Some(name);
+        log::debug!(
+            "Symmetry group determined: {}",
+            self.group_name.as_ref().expect("No symmetry groups found.")
+        );
     }
 
     /// Obtains elements of a particular kind.
@@ -575,49 +762,59 @@ impl Symmetry {
         self.generators.get_mut(kind)
     }
 
-    /// Obtains mirror-plane elements by their type (`"h"`, `"v"`, `"d"`, or `""`).
+    /// Obtains mirror-plane elements by their type (`"h"`, `"v"`, `"d"`, or `""`), including both
+    /// time-reversed and non-time-reversed variants.
     ///
     /// # Returns
     ///
     /// A set of the required mirror-plane element type, if exists.
     #[must_use]
     pub fn get_sigma_elements(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
-        let order_1 = &ElementOrder::Int(1);
-        let improper_elements = self
-            .get_elements(&SIG)
-            .expect("No improper elements found.");
-        if improper_elements.contains_key(order_1) {
-            Some(
-                improper_elements[order_1]
-                    .iter()
-                    .filter(|ele| ele.additional_subscript == sigma)
-                    .collect(),
-            )
-        } else {
-            None
-        }
+        self.get_improper(&ORDER_1).map(|sigma_elements| {
+            sigma_elements
+                .iter()
+                .filter_map(|ele| {
+                    if ele.additional_subscript == sigma {
+                        Some(*ele)
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        })
     }
 
-    /// Obtains mirror-plane generators by their type (`"h"`, `"v"`, `"d"`, or `""`).
+    /// Obtains mirror-plane generators by their type (`"h"`, `"v"`, `"d"`, or `""`), including both
+    /// time-reversed and non-time-reversed variants.
     ///
     /// # Returns
     ///
     /// A set of the required mirror-plane generator type, if exists.
     #[must_use]
     pub fn get_sigma_generators(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
-        let order_1 = &ElementOrder::Int(1);
-        let improper_generators = self
-            .get_generators(&SIG)
-            .expect("No improper generators found.");
-        if improper_generators.contains_key(order_1) {
-            Some(
-                improper_generators[order_1]
-                    .iter()
-                    .filter(|ele| ele.additional_subscript == sigma)
-                    .collect(),
-            )
-        } else {
+        let mut sigma_generators: HashSet<&SymmetryElement> = HashSet::new();
+        if let Some(improper_generators) = self.get_generators(&SIG) {
+            if let Some(sigmas) = improper_generators.get(&ORDER_1) {
+                sigma_generators.extend(
+                    sigmas
+                        .iter()
+                        .filter(|ele| ele.additional_subscript == sigma),
+                );
+            }
+        }
+        if let Some(tr_improper_generators) = self.get_generators(&TRSIG) {
+            if let Some(sigmas) = tr_improper_generators.get(&ORDER_1) {
+                sigma_generators.extend(
+                    sigmas
+                        .iter()
+                        .filter(|ele| ele.additional_subscript == sigma),
+                );
+            }
+        }
+        if sigma_generators.is_empty() {
             None
+        } else {
+            Some(sigma_generators)
         }
     }
 
@@ -633,8 +830,137 @@ impl Symmetry {
             .unwrap_or(&HashMap::new())
             .keys()
             .chain(self.get_elements(&ROT).unwrap_or(&HashMap::new()).keys())
+            .chain(
+                self.get_generators(&TRROT)
+                    .unwrap_or(&HashMap::new())
+                    .keys(),
+            )
+            .chain(self.get_elements(&TRROT).unwrap_or(&HashMap::new()).keys())
             .max()
             .expect("No highest proper rotation order could be obtained.")
+    }
+
+    /// Obtains all proper elements of a certain order (both time-reversed and non-time-reversed).
+    ///
+    /// # Arguments
+    ///
+    /// * `order` - The required order of elements.
+    ///
+    /// # Returns
+    ///
+    /// An optional hash set of proper elements of the required order. If no such elements exist,
+    /// `None` will be returned.
+    #[must_use]
+    pub fn get_proper(&self, order: &ElementOrder) -> Option<HashSet<&SymmetryElement>> {
+        let opt_proper_elements = self
+            .get_elements(&ROT)
+            .map(|proper_elements| proper_elements.get(order))
+            .unwrap_or_default();
+        let opt_tr_proper_elements = self
+            .get_elements(&TRROT)
+            .map(|tr_proper_elements| tr_proper_elements.get(order))
+            .unwrap_or_default();
+
+        match (opt_proper_elements, opt_tr_proper_elements) {
+            (None, None) => None,
+            (Some(proper_elements), None) => Some(proper_elements.iter().collect::<HashSet<_>>()),
+            (None, Some(tr_proper_elements)) => {
+                Some(tr_proper_elements.iter().collect::<HashSet<_>>())
+            }
+            (Some(proper_elements), Some(tr_proper_elements)) => Some(
+                proper_elements
+                    .iter()
+                    .chain(tr_proper_elements.iter())
+                    .collect::<HashSet<_>>(),
+            ),
+        }
+    }
+
+    /// Obtains all improper elements of a certain order (both time-reversed and non-time-reversed).
+    ///
+    /// # Arguments
+    ///
+    /// * `order` - The required order of elements.
+    ///
+    /// # Returns
+    ///
+    /// An optional hash set of improper elements of the required order. If no such elements exist,
+    /// `None` will be returned.
+    #[must_use]
+    pub fn get_improper(&self, order: &ElementOrder) -> Option<HashSet<&SymmetryElement>> {
+        let opt_improper_elements = self
+            .get_elements(&SIG)
+            .map(|improper_elements| improper_elements.get(order))
+            .unwrap_or_default();
+        let opt_tr_improper_elements = self
+            .get_elements(&TRSIG)
+            .map(|tr_improper_elements| tr_improper_elements.get(order))
+            .unwrap_or_default();
+
+        match (opt_improper_elements, opt_tr_improper_elements) {
+            (None, None) => None,
+            (Some(improper_elements), None) => {
+                Some(improper_elements.iter().collect::<HashSet<_>>())
+            }
+            (None, Some(tr_improper_elements)) => {
+                Some(tr_improper_elements.iter().collect::<HashSet<_>>())
+            }
+            (Some(improper_elements), Some(tr_improper_elements)) => Some(
+                improper_elements
+                    .iter()
+                    .chain(tr_improper_elements.iter())
+                    .collect::<HashSet<_>>(),
+            ),
+        }
+    }
+
+    /// Obtains a proper principal element, *i.e.* a time-reversed or non-time-reversed proper
+    /// element with the highest order.
+    ///
+    /// If there are several such elements, the element to be returned will be randomly chosen but
+    /// with any non-time-reversed ones prioritised.
+    ///
+    /// # Returns
+    ///
+    /// A proper principal element.
+    ///
+    /// # Panics
+    ///
+    /// Panics if no proper elements or generators can be found.
+    #[must_use]
+    pub fn get_proper_principal_element(&self) -> &SymmetryElement {
+        let max_ord = self.get_max_proper_order();
+        let principal_elements = self.get_proper(&max_ord).unwrap_or_else(|| {
+            let opt_proper_generators = self
+                .get_generators(&ROT)
+                .map(|proper_generators| proper_generators.get(&max_ord))
+                .unwrap_or_default();
+            let opt_tr_proper_generators = self
+                .get_elements(&TRROT)
+                .map(|tr_proper_generators| tr_proper_generators.get(&max_ord))
+                .unwrap_or_default();
+
+            match (opt_proper_generators, opt_tr_proper_generators) {
+                (None, None) => panic!("No proper elements found."),
+                (Some(proper_generators), None) => proper_generators.iter().collect::<HashSet<_>>(),
+                (None, Some(tr_proper_generators)) => {
+                    tr_proper_generators.iter().collect::<HashSet<_>>()
+                }
+                (Some(proper_generators), Some(tr_proper_generators)) => proper_generators
+                    .iter()
+                    .chain(tr_proper_generators.iter())
+                    .collect::<HashSet<_>>(),
+            }
+        });
+        principal_elements
+            .iter()
+            .find(|ele| !ele.contains_time_reversal())
+            .unwrap_or_else(|| {
+                principal_elements
+                    .iter()
+                    .next()
+                    .expect("No proper principal elements found.")
+            })
     }
 
     /// Determines if this group is an infinite group.
@@ -650,9 +976,21 @@ impl Symmetry {
                 .unwrap_or(&HashMap::new())
                 .keys()
                 .chain(self.get_elements(&ROT).unwrap_or(&HashMap::new()).keys())
+                .chain(
+                    self.get_generators(&TRROT)
+                        .unwrap_or(&HashMap::new())
+                        .keys(),
+                )
+                .chain(self.get_elements(&TRROT).unwrap_or(&HashMap::new()).keys())
                 .max()
                 .unwrap_or(&ElementOrder::Int(0))
                 == ElementOrder::Inf
+    }
+}
+
+impl Default for Symmetry {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -666,10 +1004,17 @@ impl Symmetry {
 /// * `asymmetric` - If `true`, the search assumes that the group is one of the
 /// Abelian point groups for which the highest possible rotation order is $`2`$
 /// and there can be at most three $`C_2`$ axes.
+/// * `tr` - A flag indicating if time reversal should also be considered.
 #[allow(clippy::too_many_lines)]
-fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric: bool) {
+fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric: bool, tr: bool) {
+    log::debug!("==============================");
+    log::debug!("Proper rotation search begins.");
+    log::debug!("==============================");
     let mut linear_sea_groups: Vec<&Vec<Atom>> = vec![];
     let mut count_c2: usize = 0;
+    log::debug!("++++++++++++++++++++++++++");
+    log::debug!("SEA group analysis begins.");
+    log::debug!("++++++++++++++++++++++++++");
     for sea_group in &presym.sea_groups {
         if asymmetric && count_c2 == 3 {
             break;
@@ -719,14 +1064,15 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                         divisors::get_divisors(k_sea)
                     };
                     for k_fac in &k_fac_range {
-                        if presym.check_proper(
-                            &ElementOrder::Int(
-                                (*k_fac).try_into().unwrap_or_else(|_| {
+                        if let Some(proper_kind) =
+                            presym.check_proper(
+                                &ElementOrder::Int((*k_fac).try_into().unwrap_or_else(|_| {
                                     panic!("Unable to convert {k_fac} to `u32`.")
-                                }),
-                            ),
-                            &sea_axes[2],
-                        ) {
+                                })),
+                                &sea_axes[2],
+                                tr,
+                            )
+                        {
                             match *k_fac {
                                 2 => {
                                     count_c2 += usize::from(sym.add_proper(
@@ -736,6 +1082,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                         sea_axes[2],
                                         false,
                                         presym.dist_threshold,
+                                        proper_kind.contains_time_reversal(),
                                     ));
                                 }
                                 _ => {
@@ -746,6 +1093,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                         sea_axes[2],
                                         false,
                                         presym.dist_threshold,
+                                        proper_kind.contains_time_reversal(),
                                     );
                                 }
                             }
@@ -777,41 +1125,78 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                             let mut sea_sym = Symmetry::builder()
                                 .build()
                                 .expect("Unable to construct a default `Symmetry` structure.");
+                            log::debug!("-----------------------------------------------");
                             log::debug!("Symmetry analysis for spherical top SEA begins.");
                             log::debug!("-----------------------------------------------");
-                            sea_sym.analyse(&sea_presym);
+                            sea_sym.analyse(&sea_presym, tr);
+                            log::debug!("---------------------------------------------");
                             log::debug!("Symmetry analysis for spherical top SEA ends.");
                             log::debug!("---------------------------------------------");
-                            for (order, proper_elements) in
-                                sea_sym.get_elements(&ROT).unwrap_or(&HashMap::new())
+                            for (order, proper_elements) in sea_sym
+                                .get_elements(&ROT)
+                                .unwrap_or(&HashMap::new())
+                                .iter()
+                                .chain(
+                                    sea_sym
+                                        .get_elements(&TRROT)
+                                        .unwrap_or(&HashMap::new())
+                                        .iter(),
+                                )
                             {
                                 for proper_element in proper_elements {
-                                    if presym.check_proper(order, &proper_element.axis) {
+                                    if let Some(proper_kind) =
+                                        presym.check_proper(order, &proper_element.axis, tr)
+                                    {
                                         sym.add_proper(
                                             *order,
                                             proper_element.axis,
                                             false,
                                             presym.dist_threshold,
+                                            proper_kind.contains_time_reversal(),
                                         );
                                     }
                                 }
                             }
-                            for (order, improper_elements) in
-                                sea_sym.get_elements(&SIG).unwrap_or(&HashMap::new())
-                            {
-                                for improper_element in improper_elements {
-                                    if presym.check_improper(order, &improper_element.axis, &SIG) {
-                                        sym.add_improper(
-                                            *order,
-                                            improper_element.axis,
-                                            false,
-                                            SIG.clone(),
-                                            None,
-                                            presym.dist_threshold,
-                                        );
-                                    }
-                                }
-                            }
+
+                            // BCH Jan 2023: The following shouldn't be here as this function is
+                            // only to locate proper rotations. Including the following results in
+                            // premature additions of mirror planes in
+                            // adamantane_magnetic_field_bw_c3v case that cause the main symmetric
+                            // algorithm to later fail to register these mirror planes.
+                            // for (order, improper_elements) in sea_sym
+                            //     .get_elements(&SIG)
+                            //     .unwrap_or(&HashMap::new())
+                            //     .iter()
+                            //     .chain(
+                            //         sea_sym
+                            //             .get_elements(&TRSIG)
+                            //             .unwrap_or(&HashMap::new())
+                            //             .iter(),
+                            //     )
+                            // {
+                            //     for improper_element in improper_elements {
+                            //         if let Some(improper_kind) = presym.check_improper(
+                            //             order,
+                            //             &improper_element.axis,
+                            //             &SIG,
+                            //             tr,
+                            //         ) {
+                            //             log::debug!(
+                            //                 "Check improper passed for {}.",
+                            //                 improper_element
+                            //             );
+                            //             sym.add_improper(
+                            //                 *order,
+                            //                 improper_element.axis,
+                            //                 false,
+                            //                 SIG.clone(),
+                            //                 None,
+                            //                 presym.dist_threshold,
+                            //                 improper_kind.contains_time_reversal(),
+                            //             );
+                            //         }
+                            //     }
+                            // }
                         } else {
                             // Prolate symmetric top
                             log::debug!("A prolate symmetric top SEA set detected.");
@@ -823,13 +1208,16 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                     ElementOrder::Int((*k_fac).try_into().unwrap_or_else(|_| {
                                         panic!("Unable to convert {k_fac} to u32.")
                                     }));
-                                if presym.check_proper(&k_fac_order, &sea_axes[0]) {
+                                if let Some(proper_kind) =
+                                    presym.check_proper(&k_fac_order, &sea_axes[0], tr)
+                                {
                                     if *k_fac == 2 {
                                         count_c2 += usize::from(sym.add_proper(
                                             k_fac_order,
                                             sea_axes[0],
                                             false,
                                             presym.dist_threshold,
+                                            proper_kind.contains_time_reversal(),
                                         ));
                                     } else {
                                         sym.add_proper(
@@ -837,6 +1225,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                             sea_axes[0],
                                             false,
                                             presym.dist_threshold,
+                                            proper_kind.contains_time_reversal(),
                                         );
                                     }
                                 }
@@ -859,13 +1248,16 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                 ElementOrder::Int((*k_fac).try_into().unwrap_or_else(|_| {
                                     panic!("Unable to convert {k_fac} to u32.")
                                 }));
-                            if presym.check_proper(&k_fac_order, &sea_axes[2]) {
+                            if let Some(proper_kind) =
+                                presym.check_proper(&k_fac_order, &sea_axes[2], tr)
+                            {
                                 if *k_fac == 2 {
                                     count_c2 += usize::from(sym.add_proper(
                                         k_fac_order,
                                         sea_axes[2],
                                         false,
                                         presym.dist_threshold,
+                                        proper_kind.contains_time_reversal(),
                                     ));
                                 } else {
                                     sym.add_proper(
@@ -873,6 +1265,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                         sea_axes[2],
                                         false,
                                         presym.dist_threshold,
+                                        proper_kind.contains_time_reversal(),
                                     );
                                 }
                             }
@@ -881,12 +1274,13 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                         // Asymmetric top
                         log::debug!("An asymmetric top SEA set detected.");
                         for sea_axis in &sea_axes {
-                            if presym.check_proper(&ORDER_2, sea_axis) {
+                            if let Some(proper_kind) = presym.check_proper(&ORDER_2, sea_axis, tr) {
                                 count_c2 += usize::from(sym.add_proper(
                                     ORDER_2,
                                     *sea_axis,
                                     false,
                                     presym.dist_threshold,
+                                    proper_kind.contains_time_reversal(),
                                 ));
                             }
                         }
@@ -904,34 +1298,49 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
             let atom_j_pos = atom2s[1].coordinates;
 
             // Case B: C2 might cross through any two atoms
-            if presym.check_proper(&ORDER_2, &atom_i_pos.coords) {
+            if let Some(proper_kind) = presym.check_proper(&ORDER_2, &atom_i_pos.coords, tr) {
                 count_c2 += usize::from(sym.add_proper(
                     ORDER_2,
                     atom_i_pos.coords,
                     false,
                     presym.dist_threshold,
+                    proper_kind.contains_time_reversal(),
                 ));
             }
 
             // Case A: C2 might cross through the midpoint of two atoms
             let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
-            if midvec.norm() > presym.dist_threshold && presym.check_proper(&ORDER_2, &midvec) {
-                count_c2 +=
-                    usize::from(sym.add_proper(ORDER_2, midvec, false, presym.dist_threshold));
+            let c2_check = presym.check_proper(&ORDER_2, &midvec, tr);
+            if midvec.norm() > presym.dist_threshold && c2_check.is_some() {
+                count_c2 += usize::from(
+                    sym.add_proper(
+                        ORDER_2,
+                        midvec,
+                        false,
+                        presym.dist_threshold,
+                        c2_check
+                            .expect("Expected C2 not found.")
+                            .contains_time_reversal(),
+                    ),
+                );
             } else if let Some(electric_atoms) = &presym.molecule.electric_atoms {
                 let com = presym.molecule.calc_com();
                 let e_vector = electric_atoms[0].coordinates - com;
-                if presym.check_proper(&ORDER_2, &e_vector) {
+                if let Some(proper_kind) = presym.check_proper(&ORDER_2, &e_vector, tr) {
                     count_c2 += usize::from(sym.add_proper(
                         ORDER_2,
                         e_vector,
                         false,
                         presym.dist_threshold,
+                        proper_kind.contains_time_reversal(),
                     ));
                 }
             }
         }
     } // end for sea_group in presym.sea_groups.iter()
+    log::debug!("++++++++++++++++++++++++");
+    log::debug!("SEA group analysis ends.");
+    log::debug!("++++++++++++++++++++++++");
 
     if asymmetric && count_c2 == 3 {
     } else {
@@ -949,12 +1358,21 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                 }
             });
             if let Some(normal) = normal_option {
-                if presym.check_proper(&ORDER_2, &normal) {
-                    sym.add_proper(ORDER_2, normal, false, presym.dist_threshold);
+                if let Some(proper_kind) = presym.check_proper(&ORDER_2, &normal, tr) {
+                    sym.add_proper(
+                        ORDER_2,
+                        normal,
+                        false,
+                        presym.dist_threshold,
+                        proper_kind.contains_time_reversal(),
+                    );
                 }
             }
         }
     }
+    log::debug!("============================");
+    log::debug!("Proper rotation search ends.");
+    log::debug!("============================");
 }
 
 mod symmetry_core_asymmetric;

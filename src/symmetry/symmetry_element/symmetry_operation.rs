@@ -52,12 +52,26 @@ pub trait SpecialSymmetryTransformation {
     /// A flag indicating if this symmetry operation is the identity.
     fn is_identity(&self) -> bool;
 
+    /// Checks if the symmetry operation is a pure time-reversal.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this symmetry operation is a pure time-reversal.
+    fn is_time_reversal(&self) -> bool;
+
     /// Checks if the symmetry operation is an inversion.
     ///
     /// # Returns
     ///
     /// A flag indicating if this symmetry operation is an inversion.
     fn is_inversion(&self) -> bool;
+
+    /// Checks if the symmetry operation is an inversion accompanied by a time reversal.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this symmetry operation is an inversion accompanied by a time reversal.
+    fn is_tr_inversion(&self) -> bool;
 
     /// Checks if the symmetry operation is a binary rotation.
     ///
@@ -66,6 +80,13 @@ pub trait SpecialSymmetryTransformation {
     /// A flag indicating if this symmetry operation is a binary rotation.
     fn is_binary_rotation(&self) -> bool;
 
+    /// Checks if the symmetry operation is a binary rotation accompanied by a time reversal.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this symmetry operation is a binary rotation.
+    fn is_tr_binary_rotation(&self) -> bool;
+
     /// Checks if the symmetry operation is a reflection.
     ///
     /// # Returns
@@ -73,12 +94,12 @@ pub trait SpecialSymmetryTransformation {
     /// A flag indicating if this symmetry operation is a reflection.
     fn is_reflection(&self) -> bool;
 
-    /// Checks if the symmetry operation is a pure time-reversal.
+    /// Checks if the symmetry operation is a reflection.
     ///
     /// # Returns
     ///
-    /// A flag indicating if this symmetry operation is a pure time-reversal.
-    fn is_time_reversal(&self) -> bool;
+    /// A flag indicating if this symmetry operation is a reflection accompanied by a time reversal.
+    fn is_tr_reflection(&self) -> bool;
 }
 
 /// A struct for managing symmetry operations generated from symmetry elements.
@@ -130,19 +151,9 @@ pub struct SymmetryOperation {
     /// of the range.
     #[builder(setter(skip), default = "self.calc_total_proper_fraction()")]
     pub total_proper_fraction: Option<F>,
-
-    /// The power of the antiunitary time-reversal action accompanying this
-    /// unitary operation.
-    #[builder(setter(custom), default = "0")]
-    time_reversal_power: i32,
 }
 
 impl SymmetryOperationBuilder {
-    fn time_reversal_power(&mut self, timerevpow: i32) -> &mut Self {
-        self.time_reversal_power = Some(timerevpow % 2);
-        self
-    }
-
     fn calc_total_proper_angle(&self) -> f64 {
         geometry::normalise_rotation_angle(
             self.generating_element
@@ -206,10 +217,12 @@ impl SymmetryOperation {
     ///
     /// # Arguments
     ///
-    /// * qtn - A quaternion encoding the proper rotation associated with the
+    /// * `qtn` - A quaternion encoding the proper rotation associated with the
     /// generating element of the operation to be constructed.
-    /// * proper - A flag indicating if the operation is proper or improper.
-    /// * thresh - Threshold for comparisons.
+    /// * `proper` - A flag indicating if the operation is proper or improper.
+    /// * `thresh` - Threshold for comparisons.
+    /// * `tr` - A flag indicating if the resulting symmetry operation should be accompanied by a
+    /// time-reversal operator.
     ///
     /// # Returns
     ///
@@ -226,22 +239,18 @@ impl SymmetryOperation {
         proper: bool,
         thresh: f64,
         max_trial_power: u32,
-        time_reversal_power: i32,
+        tr: bool,
     ) -> Self {
         let (scalar_part, vector_part) = qtn;
         assert!(-thresh <= scalar_part && scalar_part <= 1.0 + thresh);
-        let (axis, order, power) = if approx::relative_eq!(
-            scalar_part,
-            1.0,
-            epsilon = thresh,
-            max_relative = thresh
-        ) {
-            // Zero-degree rotation, i.e. identity or inversion
-            (Vector3::new(0.0, 0.0, 1.0), 1u32, 1u32)
-        } else {
-            let positive_normalised_angle = 2.0 * scalar_part.acos(); // in [0, π]
-            let axis = vector_part / (0.5 * positive_normalised_angle).sin();
-            let proper_fraction = geometry::get_proper_fraction(
+        let (axis, order, power) =
+            if approx::relative_eq!(scalar_part, 1.0, epsilon = thresh, max_relative = thresh) {
+                // Zero-degree rotation, i.e. identity or inversion
+                (Vector3::new(0.0, 0.0, 1.0), 1u32, 1u32)
+            } else {
+                let positive_normalised_angle = 2.0 * scalar_part.acos(); // in [0, π]
+                let axis = vector_part / (0.5 * positive_normalised_angle).sin();
+                let proper_fraction = geometry::get_proper_fraction(
                 positive_normalised_angle,
                 thresh,
                 max_trial_power,
@@ -249,21 +258,21 @@ impl SymmetryOperation {
             .unwrap_or_else(|| {
                 panic!("No proper fraction could be found for angle `{positive_normalised_angle}`.")
             });
-            (
-                axis,
-                *proper_fraction.denom().unwrap_or_else(|| {
-                    panic!("Unable to extract the denominator of `{proper_fraction}`.")
-                }),
-                *proper_fraction.numer().unwrap_or_else(|| {
-                    panic!("Unable to extract the numerator of `{proper_fraction}`.")
-                }),
-            )
-        };
+                (
+                    axis,
+                    *proper_fraction.denom().unwrap_or_else(|| {
+                        panic!("Unable to extract the denominator of `{proper_fraction}`.")
+                    }),
+                    *proper_fraction.numer().unwrap_or_else(|| {
+                        panic!("Unable to extract the numerator of `{proper_fraction}`.")
+                    }),
+                )
+            };
 
         let kind = if proper {
-            SymmetryElementKind::Proper
+            SymmetryElementKind::Proper(tr)
         } else {
-            SymmetryElementKind::ImproperInversionCentre
+            SymmetryElementKind::ImproperInversionCentre(tr)
         };
 
         let element = SymmetryElement::builder()
@@ -278,7 +287,6 @@ impl SymmetryOperation {
         SymmetryOperation::builder()
             .generating_element(element)
             .power(1)
-            .time_reversal_power(time_reversal_power)
             .build()
             .expect("Unable to construct a symmetry operation.")
     }
@@ -404,8 +412,10 @@ impl SymmetryOperation {
     #[must_use]
     pub fn calc_quaternion(&self) -> Quaternion {
         let c_self = match self.generating_element.kind {
-            SymmetryElementKind::Proper => self.clone(),
-            _ => self.convert_to_improper_kind(&INV),
+            SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
+                self.clone()
+            }
+            SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
         };
 
         // We only need the absolute value of the angle. Its sign information is
@@ -426,7 +436,9 @@ impl SymmetryOperation {
     ///
     /// # Arguments
     ///
-    /// `improper_kind` - The improper kind to which `self` is to be converted.
+    /// * `improper_kind` - The improper kind to which `self` is to be converted. There is no need to
+    /// make sure the time reversal specification in `improper_kind` matches that of the generating
+    /// element of `self` as the conversion will take care of this.
     ///
     /// # Panics
     ///
@@ -439,7 +451,6 @@ impl SymmetryOperation {
         Self::builder()
             .generating_element(c_element)
             .power(self.power)
-            .time_reversal_power(self.time_reversal_power)
             .build()
             .expect("Unable to construct a symmetry operation.")
     }
@@ -448,23 +459,11 @@ impl SymmetryOperation {
     /// certain improper axes into inversion centres or mirror planes,
     #[must_use]
     pub fn get_abbreviated_symbol(&self) -> String {
-        let timerev = if self.time_reversal_power == 0 {
-            String::new()
-        } else if self.time_reversal_power == 1 {
-            "θ·".to_string()
-        } else {
-            format!("θ^{}·", self.time_reversal_power)
-        };
         if self.power == 1 {
-            format!(
-                "{}{}",
-                timerev,
-                self.generating_element.get_detailed_symbol()
-            )
+            self.generating_element.get_detailed_symbol()
         } else {
             format!(
-                "{}[{}]^{}",
-                timerev,
+                "[{}]^{}",
                 self.generating_element.get_detailed_symbol(),
                 self.power
             )
@@ -491,13 +490,15 @@ impl FiniteOrder for SymmetryOperation {
 }
 
 impl SpecialSymmetryTransformation for SymmetryOperation {
-    /// Checks if the symmetry operation is proper or not.
+    /// Checks if the spatial part of the symmetry operation is proper or not.
     ///
     /// # Returns
     ///
-    /// A flag indicating if the symmetry operation is proper.
+    /// A flag indicating if the spatial part of the symmetry operation is proper.
     fn is_proper(&self) -> bool {
-        self.generating_element.is_proper() || (self.power % 2 == 0)
+        self.generating_element.is_proper(true)
+            || self.generating_element.is_proper(false)
+            || (self.power % 2 == 0)
     }
 
     /// Checks if the symmetry operation is antiunitary or not.
@@ -506,10 +507,10 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A flag indicating if the symmetry oppperation is antiunitary.
     fn is_antiunitary(&self) -> bool {
-        self.time_reversal_power % 2 == 1
+        self.generating_element.contains_time_reversal() && self.power % 2 == 1
     }
 
-    /// Checks if the symmetry operation is the identity.
+    /// Checks if the whole symmetry operation is the identity.
     ///
     /// # Returns
     ///
@@ -536,7 +537,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             }
     }
 
-    /// Checks if the symmetry operation is an inversion.
+    /// Checks if the whole symmetry operation is an inversion.
     ///
     /// # Returns
     ///
@@ -545,7 +546,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
         !self.is_proper()
             && !self.is_antiunitary()
             && match self.generating_element.kind {
-                SymmetryElementKind::ImproperMirrorPlane => {
+                SymmetryElementKind::ImproperMirrorPlane(false) => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
                         self.total_proper_fraction == Some(F::new(1u32, 2u32))
                     } else {
@@ -563,7 +564,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                         )
                     }
                 }
-                SymmetryElementKind::ImproperInversionCentre => {
+                SymmetryElementKind::ImproperInversionCentre(false) => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
                         self.total_proper_fraction == Some(F::from(1u64))
                     } else {
@@ -581,11 +582,60 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                         )
                     }
                 }
-                SymmetryElementKind::Proper => false,
+                _ => false,
             }
     }
 
-    /// Checks if the symmetry operation is a binary rotation.
+    /// Checks if the whole symmetry operation is an inversion accompanied by a time reversal.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this symmetry operation is an inversion accompanied by a time reversal.
+    fn is_tr_inversion(&self) -> bool {
+        !self.is_proper()
+            && self.is_antiunitary()
+            && match self.generating_element.kind {
+                SymmetryElementKind::ImproperMirrorPlane(true) => {
+                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                        self.total_proper_fraction == Some(F::new(1u32, 2u32))
+                    } else {
+                        approx::relative_eq!(
+                            geometry::normalise_rotation_angle(
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
+                                self.generating_element.threshold
+                            ) % (2.0 * std::f64::consts::PI),
+                            std::f64::consts::PI,
+                            max_relative = self.generating_element.threshold,
+                            epsilon = self.generating_element.threshold
+                        )
+                    }
+                }
+                SymmetryElementKind::ImproperInversionCentre(true) => {
+                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                        self.total_proper_fraction == Some(F::from(1u64))
+                    } else {
+                        approx::relative_eq!(
+                            geometry::normalise_rotation_angle(
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
+                                self.generating_element.threshold
+                            ) % (2.0 * std::f64::consts::PI),
+                            0.0,
+                            max_relative = self.generating_element.threshold,
+                            epsilon = self.generating_element.threshold
+                        )
+                    }
+                }
+                _ => false,
+            }
+    }
+
+    /// Checks if the whole symmetry operation is a binary rotation.
     ///
     /// # Returns
     ///
@@ -612,7 +662,34 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             }
     }
 
-    /// Checks if the symmetry operation is a reflection.
+    /// Checks if the whole symmetry operation is a binary rotation accompanied by a time reversal.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this symmetry operation is a binary rotation.
+    fn is_tr_binary_rotation(&self) -> bool {
+        self.is_proper()
+            && self.is_antiunitary()
+            && match self.generating_element.proper_order {
+                ElementOrder::Int(_) => self.total_proper_fraction == Some(F::new(1u32, 2u32)),
+                ElementOrder::Inf => {
+                    approx::relative_eq!(
+                        geometry::normalise_rotation_angle(
+                            self.generating_element
+                                .proper_angle
+                                .expect("No proper angles found for the generating element.")
+                                * (f64::from(self.power)),
+                            self.generating_element.threshold
+                        ) % (2.0 * std::f64::consts::PI),
+                        std::f64::consts::PI,
+                        max_relative = self.generating_element.threshold,
+                        epsilon = self.generating_element.threshold
+                    )
+                }
+            }
+    }
+
+    /// Checks if the whole symmetry operation is a reflection.
     ///
     /// # Returns
     ///
@@ -621,7 +698,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
         !self.is_proper()
             && !self.is_antiunitary()
             && match self.generating_element.kind {
-                SymmetryElementKind::ImproperMirrorPlane => {
+                SymmetryElementKind::ImproperMirrorPlane(false) => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
                         self.total_proper_fraction == Some(F::from(1u64))
                     } else {
@@ -639,7 +716,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                         )
                     }
                 }
-                SymmetryElementKind::ImproperInversionCentre => {
+                SymmetryElementKind::ImproperInversionCentre(false) => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
                         self.total_proper_fraction == Some(F::new(1u32, 2u32))
                     } else {
@@ -657,11 +734,11 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                         )
                     }
                 }
-                SymmetryElementKind::Proper => false,
+                _ => false,
             }
     }
 
-    /// Checks if the symmetry operation is a pure time-reversal.
+    /// Checks if the whole symmetry operation is a pure time-reversal.
     ///
     /// # Returns
     ///
@@ -687,21 +764,73 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                 }
             }
     }
+
+    /// Checks if the whole symmetry operation is a reflection accompanied by a time reversal.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this symmetry operation is a reflection accompanied by a time reversal.
+    fn is_tr_reflection(&self) -> bool {
+        !self.is_proper()
+            && self.is_antiunitary()
+            && match self.generating_element.kind {
+                SymmetryElementKind::ImproperMirrorPlane(true) => {
+                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                        self.total_proper_fraction == Some(F::from(1u64))
+                    } else {
+                        approx::relative_eq!(
+                            geometry::normalise_rotation_angle(
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
+                                self.generating_element.threshold
+                            ) % (2.0 * std::f64::consts::PI),
+                            0.0,
+                            max_relative = self.generating_element.threshold,
+                            epsilon = self.generating_element.threshold
+                        )
+                    }
+                }
+                SymmetryElementKind::ImproperInversionCentre(true) => {
+                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                        self.total_proper_fraction == Some(F::new(1u32, 2u32))
+                    } else {
+                        approx::relative_eq!(
+                            geometry::normalise_rotation_angle(
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
+                                self.generating_element.threshold
+                            ) % (2.0 * std::f64::consts::PI),
+                            std::f64::consts::PI,
+                            max_relative = self.generating_element.threshold,
+                            epsilon = self.generating_element.threshold
+                        )
+                    }
+                }
+                _ => false,
+            }
+    }
 }
 
 impl fmt::Debug for SymmetryOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let timerev = if self.time_reversal_power == 0 {
-            String::new()
-        } else if self.time_reversal_power == 1 {
-            "θ·".to_string()
-        } else {
-            format!("θ^{}·", self.time_reversal_power)
-        };
         if self.power == 1 {
-            write!(f, "{timerev}{:?}", self.generating_element)
+            write!(f, "{:?}", self.generating_element)
         } else {
-            write!(f, "{timerev}[{:?}]^{}", self.generating_element, self.power)
+            write!(f, "[{:?}]^{}", self.generating_element, self.power)
+        }
+    }
+}
+
+impl fmt::Display for SymmetryOperation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.power == 1 {
+            write!(f, "{}", self.generating_element)
+        } else {
+            write!(f, "[{}]^{}", self.generating_element, self.power)
         }
     }
 }
@@ -741,11 +870,18 @@ impl PartialEq for SymmetryOperation {
             return true;
         }
 
+        if self.is_tr_inversion() && other.is_tr_inversion() {
+            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            return true;
+        }
+
         let thresh =
             (self.generating_element.threshold * other.generating_element.threshold).sqrt();
 
         let result = if (self.is_binary_rotation() && other.is_binary_rotation())
             || (self.is_reflection() && other.is_reflection())
+            || (self.is_tr_binary_rotation() && other.is_tr_binary_rotation())
+            || (self.is_tr_reflection() && other.is_tr_reflection())
         {
             approx::relative_eq!(
                 self.calc_pole(),
@@ -805,7 +941,11 @@ impl PartialEq for SymmetryOperation {
         };
 
         if result {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            assert_eq!(
+                misc::calculate_hash(self),
+                misc::calculate_hash(other),
+                "{self} and {other} have unequal hashes."
+            );
         }
         result
     }
@@ -816,12 +956,14 @@ impl Eq for SymmetryOperation {}
 impl Hash for SymmetryOperation {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let c_self = match self.generating_element.kind {
-            SymmetryElementKind::Proper => self.clone(),
-            _ => self.convert_to_improper_kind(&INV),
+            SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
+                self.clone()
+            }
+            SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
         };
-        c_self.is_proper().hash(state);
         c_self.is_antiunitary().hash(state);
-        if c_self.is_identity() || c_self.is_inversion() {
+        c_self.is_proper().hash(state);
+        if c_self.is_identity() || c_self.is_inversion() || c_self.is_time_reversal() || c_self.is_tr_inversion() {
             true.hash(state);
         } else {
             let pole = c_self.calc_pole();
@@ -888,7 +1030,7 @@ impl<'a, 'b> Mul<&'a SymmetryOperation> for &'b SymmetryOperation {
             proper,
             thresh,
             max_trial_power,
-            self.time_reversal_power + rhs.time_reversal_power,
+            self.is_antiunitary() != rhs.is_antiunitary(),
         )
     }
 }
@@ -900,7 +1042,6 @@ impl Pow<i32> for &SymmetryOperation {
         SymmetryOperation::builder()
             .generating_element(self.generating_element.clone())
             .power(self.power * rhs)
-            .time_reversal_power(self.time_reversal_power * rhs)
             .build()
             .expect("Unable to construct a symmetry operation.")
     }

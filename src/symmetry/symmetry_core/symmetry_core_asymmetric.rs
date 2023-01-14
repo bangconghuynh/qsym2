@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
 
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::{ROT, SIG};
+use crate::symmetry::symmetry_element::{SymmetryElement, ROT, SIG, TRROT, TRSIG};
 use crate::symmetry::symmetry_element_order::{ORDER_1, ORDER_2};
 
 use super::{PreSymmetry, Symmetry};
@@ -28,14 +26,17 @@ impl Symmetry {
     ///
     /// # Arguments
     ///
-    /// * `presym` - A pre-symmetry-analysis struct containing information about
-    /// the molecular system.
+    /// * `presym` - A pre-symmetry-analysis structure containing information about the molecular
+    /// system.
+    /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
+    /// symmetry element will only be considered if its non-time-reversed version turns out to be
+    /// not a symmetry element.
     ///
     /// # Panics
     ///
     /// Panics when any inconsistencies are encountered along the point-group detection path.
     #[allow(clippy::too_many_lines)]
-    pub fn analyse_asymmetric(&mut self, presym: &PreSymmetry) {
+    pub fn analyse_asymmetric(&mut self, presym: &PreSymmetry, tr: bool) {
         let (_mois, principal_axes) = presym.molecule.calc_moi();
 
         assert!(matches!(
@@ -43,19 +44,17 @@ impl Symmetry {
             RotationalSymmetry::AsymmetricPlanar | RotationalSymmetry::AsymmetricNonPlanar
         ));
 
-        _search_proper_rotations(presym, self, true);
+        _search_proper_rotations(presym, self, true, tr);
         log::debug!("Proper elements found: {:?}", self.get_elements(&ROT));
+        log::debug!(
+            "Time-reversed proper elements found: {:?}",
+            self.get_elements(&TRROT)
+        );
 
         // Classify into point groups
-        let count_c2 = if self
-            .get_elements(&ROT)
-            .unwrap_or(&HashMap::new())
-            .contains_key(&ORDER_2)
-        {
-            self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2].len()
-        } else {
-            0
-        };
+        let count_c2 = self
+            .get_proper(&ORDER_2)
+            .map_or(0, |proper_elements| proper_elements.len());
         assert!(count_c2 == 0 || count_c2 == 1 || count_c2 == 3);
 
         let max_ord = self.get_max_proper_order();
@@ -66,36 +65,42 @@ impl Symmetry {
             assert_eq!(max_ord, ORDER_2);
 
             // Principal axis, which is C2, is also a generator.
-            #[allow(clippy::needless_collect)]
-            let c2_axes: Vec<_> = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
-                .iter()
-                .map(|ele| ele.axis)
-                .collect();
-            let mut c2_axes_iter = c2_axes.into_iter();
+            // If the group is a black-white magnetic group, then one C2 axis is non-time-reversed,
+            // while the other two are. Hence, one C2 generator is non-time-reversed, and the other
+            // must be. We take care of this by sorting `c2s` to put any non-time-reversed elements
+            // first.
+            let mut c2s = self
+                .get_proper(&ORDER_2)
+                .expect(" No C2 elements found.")
+                .into_iter()
+                .cloned()
+                .collect_vec();
+            c2s.sort_by_key(SymmetryElement::contains_time_reversal);
+            let mut c2s = c2s.into_iter();
+            let c2 = c2s.next().expect(" No C2 elements found.");
             self.add_proper(
                 max_ord,
-                c2_axes_iter.next().expect("No C2 axes found."),
+                c2.axis,
                 true,
                 presym.dist_threshold,
+                c2.contains_time_reversal(),
             );
 
             // One other C2 axis is also a generator.
+            let another_c2 = c2s.next().expect("No more C2s found.");
             self.add_proper(
                 max_ord,
-                c2_axes_iter.next().expect("No other C2 axes found."),
+                another_c2.axis,
                 true,
                 presym.dist_threshold,
+                another_c2.contains_time_reversal(),
             );
 
             let z_vec = Vector3::new(0.0, 0.0, 1.0);
-            if presym.check_improper(&ORDER_2, &z_vec, &SIG) {
+            if let Some(improper_kind) = presym.check_improper(&ORDER_2, &z_vec, &SIG, tr) {
                 // Inversion centre, D2h
                 log::debug!("Located an inversion centre.");
-                self.point_group = Some("D2h".to_owned());
-                log::debug!(
-                    "Point group determined: {}",
-                    self.point_group.as_ref().expect("No point groups found.")
-                );
+                self.set_group_name("D2h".to_owned());
                 self.add_improper(
                     ORDER_2,
                     z_vec,
@@ -103,45 +108,59 @@ impl Symmetry {
                     SIG.clone(),
                     None,
                     presym.dist_threshold,
+                    improper_kind.contains_time_reversal(),
                 );
 
                 // Add remaining mirror planes, each of which is
                 // perpendicular to a C2 axis.
-                let c2_axes: Vec<_> = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_2]
-                    .iter()
-                    .map(|ele| ele.axis)
-                    .collect();
-                for c2_axis in c2_axes {
-                    assert!(presym.check_improper(&ORDER_1, &c2_axis, &SIG));
+                let c2s = self
+                    .get_proper(&ORDER_2)
+                    .expect(" No C2 elements found.")
+                    .into_iter()
+                    .cloned()
+                    .collect_vec();
+                for c2 in &c2s {
+                    let improper_check = presym.check_improper(&ORDER_1, &c2.axis, &SIG, tr);
+                    assert!(improper_check.is_some());
                     self.add_improper(
                         ORDER_1,
-                        c2_axis,
+                        c2.axis,
                         false,
                         SIG.clone(),
                         None,
                         presym.dist_threshold,
+                        improper_check
+                            .unwrap_or_else(|| {
+                                panic!(
+                                    "Expected mirror plane perpendicular to `{}` not found.",
+                                    c2.axis
+                                )
+                            })
+                            .contains_time_reversal(),
                     );
                 }
+                // let sigmas = self.get_sigma_elements("").expect("No σ found.");
+                // let sigma = sigmas.iter().next().expect("No σ found.");
+                let principal_element = self.get_proper_principal_element();
+                let improper_check =
+                    presym.check_improper(&ORDER_1, &principal_element.axis, &SIG, tr);
+                assert!(improper_check.is_some());
                 self.add_improper(
                     ORDER_1,
-                    self.get_sigma_elements("")
-                        .expect("No σ found.")
-                        .iter()
-                        .next()
-                        .expect("No σ found.")
-                        .axis,
+                    principal_element.axis,
                     true,
                     SIG.clone(),
                     None,
                     presym.dist_threshold,
+                    improper_check
+                        .expect(
+                            "Expected mirror plane perpendicular to the principal axis not found.",
+                        )
+                        .contains_time_reversal(),
                 );
             } else {
                 // Chiral, D2
-                self.point_group = Some("D2".to_owned());
-                log::debug!(
-                    "Point group determined: {}",
-                    self.point_group.as_ref().expect("No point groups found.")
-                );
+                self.set_group_name("D2".to_owned());
             }
         } else if count_c2 == 1 {
             // Non-dihedral, either C2, C2v, or C2h
@@ -149,15 +168,18 @@ impl Symmetry {
             assert_eq!(max_ord, ORDER_2);
 
             // Principal axis, which is C2, is also a generator.
-            let c2_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
-                .iter()
-                .next()
-                .expect("No C2 axes found.")
-                .axis;
-            self.add_proper(max_ord, c2_axis, true, presym.dist_threshold);
+            let c2s = self.get_proper(&ORDER_2).expect(" No C2 elements found.");
+            let c2 = c2s.iter().next().expect(" No C2 elements found.");
+            self.add_proper(
+                max_ord,
+                c2.axis,
+                true,
+                presym.dist_threshold,
+                c2.contains_time_reversal(),
+            );
 
             let z_vec = Vector3::new(0.0, 0.0, 1.0);
-            if presym.check_improper(&ORDER_2, &z_vec, &SIG) {
+            if let Some(improper_kind) = presym.check_improper(&ORDER_2, &z_vec, &SIG, tr) {
                 // Inversion centre, C2h
                 log::debug!("Located an inversion centre.");
                 self.add_improper(
@@ -167,54 +189,82 @@ impl Symmetry {
                     SIG.clone(),
                     None,
                     presym.dist_threshold,
+                    improper_kind.contains_time_reversal(),
                 );
-                self.point_group = Some("C2h".to_owned());
-                log::debug!(
-                    "Point group determined: {}",
-                    self.point_group.as_ref().expect("No point groups found.")
-                );
+                self.set_group_name("C2h".to_owned());
 
                 // There is one σh.
-                let c2_axis = self.get_elements(&ROT).unwrap_or(&HashMap::new())[&max_ord]
+                let c2 = (*self
+                    .get_proper(&ORDER_2)
+                    .expect(" No C2 elements found.")
                     .iter()
                     .next()
-                    .expect("No C2 axes found.")
-                    .axis;
-                assert!(presym.check_improper(&ORDER_1, &c2_axis, &SIG));
+                    .expect(" No C2 elements found."))
+                .clone();
+
+                let improper_check = presym.check_improper(&ORDER_1, &c2.axis, &SIG, tr);
+                assert!(improper_check.is_some());
                 self.add_improper(
                     ORDER_1,
-                    c2_axis,
+                    c2.axis,
                     false,
                     SIG.clone(),
                     Some("h".to_owned()),
                     presym.dist_threshold,
+                    improper_check
+                        .as_ref()
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Expected mirror plane perpendicular to {} not found.",
+                                c2.axis
+                            )
+                        })
+                        .contains_time_reversal(),
                 );
                 self.add_improper(
                     ORDER_1,
-                    c2_axis,
+                    c2.axis,
                     true,
                     SIG.clone(),
                     Some("h".to_owned()),
                     presym.dist_threshold,
+                    improper_check
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Expected mirror plane perpendicular to {} not found.",
+                                c2.axis
+                            )
+                        })
+                        .contains_time_reversal(),
                 );
             } else {
                 // No inversion centres.
                 // Locate σv planes
                 let mut count_sigmav = 0;
-                if (matches!(
+                if matches!(
                     presym.rotational_symmetry,
                     RotationalSymmetry::AsymmetricPlanar
-                ) && matches!(presym.molecule.magnetic_atoms, None))
-                {
-                    assert!(presym.check_improper(&ORDER_1, &principal_axes[2], &SIG));
-                    count_sigmav += u32::from(self.add_improper(
-                        ORDER_1,
-                        principal_axes[2],
-                        false,
-                        SIG.clone(),
-                        Some("v".to_owned()),
-                        presym.dist_threshold,
-                    ));
+                ) {
+                    // Planar system. The plane of the system (perpendicular to the highest-MoI
+                    // principal axis) might be a symmetry element: time-reversed in the presence of
+                    // a magnetic field (which must also lie in this plane), or both in the absence
+                    // of a magnetic field.
+                    if let Some(improper_kind) =
+                        presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr)
+                    {
+                        if presym.molecule.magnetic_atoms.is_some() {
+                            assert!(improper_kind.contains_time_reversal());
+                        }
+                        count_sigmav += u32::from(self.add_improper(
+                            ORDER_1,
+                            principal_axes[2],
+                            false,
+                            SIG.clone(),
+                            Some("v".to_owned()),
+                            presym.dist_threshold,
+                            improper_kind.contains_time_reversal(),
+                        ));
+                    }
                 }
 
                 let sea_groups = &presym.sea_groups;
@@ -231,7 +281,9 @@ impl Symmetry {
                         }
                         let normal = (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords)
                             .normalize();
-                        if presym.check_improper(&ORDER_1, &normal, &SIG) {
+                        if let Some(improper_kind) =
+                            presym.check_improper(&ORDER_1, &normal, &SIG, tr)
+                        {
                             count_sigmav += u32::from(self.add_improper(
                                 ORDER_1,
                                 normal,
@@ -239,6 +291,7 @@ impl Symmetry {
                                 SIG.clone(),
                                 Some("v".to_owned()),
                                 presym.dist_threshold,
+                                improper_kind.contains_time_reversal(),
                             ));
                         }
                     }
@@ -246,46 +299,39 @@ impl Symmetry {
 
                 log::debug!("Located {} σv.", count_sigmav);
                 if count_sigmav == 2 {
-                    self.point_group = Some("C2v".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("C2v".to_owned());
 
-                    // In C2v, σv is also a generator.
+                    // In C2v, σv is also a generator. We prioritise the non-time-reversed one as
+                    // the generator.
+                    let mut sigmavs = self
+                        .get_sigma_elements("v")
+                        .expect("No σv found.")
+                        .into_iter()
+                        .cloned()
+                        .collect_vec();
+                    sigmavs.sort_by_key(SymmetryElement::contains_time_reversal);
+                    let sigmav = sigmavs.first().expect("No σv found.");
                     self.add_improper(
                         ORDER_1,
-                        self.get_sigma_elements("v")
-                            .expect("No σv found.")
-                            .iter()
-                            .next()
-                            .expect("No σv found.")
-                            .axis,
+                        sigmav.axis,
                         true,
                         SIG.clone(),
                         Some("v".to_owned()),
                         presym.dist_threshold,
+                        sigmav.contains_time_reversal(),
                     );
                 } else {
                     assert_eq!(count_sigmav, 0);
-                    self.point_group = Some("C2".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("C2".to_owned());
                 }
             }
         } else {
             // No C2 axes, so either C1, Ci, or Cs
             log::debug!("No C2 axes found.");
             let z_vec = Vector3::new(0.0, 0.0, 1.0);
-            if presym.check_improper(&ORDER_2, &z_vec, &SIG) {
+            if let Some(improper_kind) = presym.check_improper(&ORDER_2, &z_vec, &SIG, tr) {
                 log::debug!("Located an inversion centre.");
-                self.point_group = Some("Ci".to_owned());
-                log::debug!(
-                    "Point group determined: {}",
-                    self.point_group.as_ref().expect("No point groups found.")
-                );
+                self.set_group_name("Ci".to_owned());
                 self.add_improper(
                     ORDER_2,
                     z_vec,
@@ -293,6 +339,7 @@ impl Symmetry {
                     SIG.clone(),
                     None,
                     presym.dist_threshold,
+                    improper_kind.contains_time_reversal(),
                 );
                 self.add_improper(
                     ORDER_2,
@@ -301,6 +348,7 @@ impl Symmetry {
                     SIG.clone(),
                     None,
                     presym.dist_threshold,
+                    improper_kind.contains_time_reversal(),
                 );
             } else {
                 log::debug!("No inversion centres found.");
@@ -317,7 +365,9 @@ impl Symmetry {
                     for atom2s in sea_group.iter().combinations(2) {
                         let normal = (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords)
                             .normalize();
-                        if presym.check_improper(&ORDER_1, &normal, &SIG) {
+                        if let Some(improper_kind) =
+                            presym.check_improper(&ORDER_1, &normal, &SIG, tr)
+                        {
                             count_sigma += u32::from(self.add_improper(
                                 ORDER_1,
                                 normal,
@@ -325,6 +375,7 @@ impl Symmetry {
                                 SIG.clone(),
                                 None,
                                 presym.dist_threshold,
+                                improper_kind.contains_time_reversal(),
                             ));
                         }
                     }
@@ -338,9 +389,10 @@ impl Symmetry {
                 {
                     log::debug!("Planar molecule based on MoIs but no σ found from SEA groups.");
                     log::debug!("Locating the planar mirror plane based on MoIs...");
+                    let sigma_check = presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr);
                     assert!(
-                        presym.check_improper(&ORDER_1, &principal_axes[2], &SIG),
-                        "Failed to check reflection symmetry from highest-MoI principal axis."
+                        sigma_check.is_some(),
+                        "Failed to check reflection symmetry perpendicular to the highest-MoI principal axis."
                     );
                     assert!(
                         self.add_improper(
@@ -350,8 +402,13 @@ impl Symmetry {
                             SIG.clone(),
                             None,
                             presym.dist_threshold,
+                            sigma_check
+                                .expect(
+                                    "Expected mirror plane perpendicular to the highest-MoI principal axis not found.",
+                                )
+                                .contains_time_reversal(),
                         ),
-                        "Failed to add mirror plane from highest-MoI principal axis."
+                        "Failed to add mirror plane perpendicular to the highest-MoI principal axis."
                     );
                     log::debug!("Located one planar mirror plane based on MoIs.");
                     count_sigma += 1;
@@ -396,7 +453,12 @@ impl Symmetry {
                         .get_elements_mut(&SIG)
                         .expect("No improper elements found.")
                         .remove(&ORDER_1)
-                        .expect("No σ found.");
+                        .unwrap_or_else(|| {
+                            self.get_elements_mut(&TRSIG)
+                                .expect("No improper elements found.")
+                                .remove(&ORDER_1)
+                                .expect("No σ found.")
+                        });
                     assert_eq!(old_sigmas.len(), 1);
                     let old_sigma = old_sigmas.into_iter().next().expect("No σ found.");
                     self.add_improper(
@@ -406,6 +468,7 @@ impl Symmetry {
                         SIG.clone(),
                         Some("h".to_owned()),
                         presym.dist_threshold,
+                        old_sigma.contains_time_reversal(),
                     );
                     self.add_improper(
                         ORDER_1,
@@ -414,29 +477,21 @@ impl Symmetry {
                         SIG.clone(),
                         Some("h".to_owned()),
                         presym.dist_threshold,
+                        old_sigma.contains_time_reversal(),
                     );
 
-                    self.point_group = Some("Cs".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    self.set_group_name("Cs".to_owned());
                 } else {
-                    self.add_proper(
-                        ORDER_1,
-                        self.get_elements(&ROT).unwrap_or(&HashMap::new())[&ORDER_1]
-                            .iter()
-                            .next()
-                            .expect("No identity found.")
-                            .axis,
-                        true,
-                        presym.dist_threshold,
-                    );
-                    self.point_group = Some("C1".to_owned());
-                    log::debug!(
-                        "Point group determined: {}",
-                        self.point_group.as_ref().expect("No point groups found.")
-                    );
+                    let identity = (*self
+                        .get_proper(&ORDER_1)
+                        .expect("No identity found.")
+                        .iter()
+                        .next()
+                        .expect("No identity found."))
+                    .clone();
+
+                    self.add_proper(ORDER_1, identity.axis, true, presym.dist_threshold, false);
+                    self.set_group_name("C1".to_owned());
                 }
             }
         }

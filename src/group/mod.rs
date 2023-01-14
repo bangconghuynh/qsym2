@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::fmt::Debug;
+use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
 
@@ -27,10 +27,13 @@ use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
 };
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, ROT, SIG};
+use crate::symmetry::symmetry_element::{
+    SymmetryElement, SymmetryOperation, ROT, SIG, TRROT, TRSIG,
+};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 use crate::symmetry::symmetry_symbols::{
-    deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, ClassSymbol,
+    deduce_mulliken_irrep_symbols, deduce_principal_classes, deduce_sigma_symbol, sort_irreps,
+    ClassSymbol,
 };
 
 #[cfg(test)]
@@ -39,9 +42,46 @@ mod group_tests;
 #[cfg(test)]
 mod chartab_construction_tests;
 
+/// An enum to contain information about the type of a group.
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
+enum GroupType {
+    /// Variant for an ordinary group which contains no time-reversed operations.
+    ///
+    /// The associated boolean indicates whether this group is a double group or not.
+    Ordinary(bool),
+
+    /// Variant for a magnetic grey group which contains the time-reversal operation.
+    ///
+    /// The associated boolean indicates whether this group is a double group or not.
+    MagneticGrey(bool),
+
+    /// Variant for a magnetic black and white group which contains time-reversed operations, but
+    /// not the time-reversal operation itself.
+    ///
+    /// The associated boolean indicates whether this group is a double group or not.
+    MagneticBlackWhite(bool),
+}
+
+impl fmt::Display for GroupType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ordinary(true) => write!(f, "Double ordinary group"),
+            Self::Ordinary(false) => write!(f, "Ordinary group"),
+            Self::MagneticGrey(true) => write!(f, "Double magnetic grey group"),
+            Self::MagneticGrey(false) => write!(f, "Magnetic grey group"),
+            Self::MagneticBlackWhite(true) => write!(f, "Double magnetic black-and-white group"),
+            Self::MagneticBlackWhite(false) => write!(f, "Magnetic black-and-white group"),
+        }
+    }
+}
+
+const ORGRP: GroupType = GroupType::Ordinary(false);
+const BWGRP: GroupType = GroupType::MagneticBlackWhite(false);
+const GRGRP: GroupType = GroupType::MagneticGrey(false);
+
 /// A struct for managing abstract groups.
 #[derive(Builder)]
-struct Group<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> {
+struct Group<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> {
     /// A name for the group.
     name: String,
 
@@ -133,7 +173,7 @@ struct Group<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> {
     pub character_table: Option<CharacterTable<T>>,
 }
 
-impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
+impl<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> GroupBuilder<T> {
     fn elements(&mut self, elems: Vec<T>) -> &mut Self {
         self.elements = Some(
             elems
@@ -167,7 +207,7 @@ impl<T: Hash + Eq + Clone + Sync + Debug + FiniteOrder> GroupBuilder<T> {
 
 impl<T> Group<T>
 where
-    T: Hash + Eq + Clone + Sync + Send + Debug + Pow<i32, Output = T> + FiniteOrder<Int = u32>,
+    T: Hash + Eq + Clone + Sync + Send + fmt::Debug + Pow<i32, Output = T> + FiniteOrder<Int = u32>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Returns a builder to construct a new group.
@@ -231,7 +271,7 @@ where
             *k = *self
                 .elements
                 .get(&op_k)
-                .unwrap_or_else(|| panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group.",
+                .unwrap_or_else(|| panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try reducing thresholds.",
                         op_i_ref,
                         op_j_ref,
                         &op_k));
@@ -481,12 +521,35 @@ where
         + Clone
         + Sync
         + Send
-        + Debug
+        + fmt::Debug
         + Pow<i32, Output = T>
         + SpecialSymmetryTransformation
         + FiniteOrder<Int = u32>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
+    /// Checks if this group is unitary, *i.e.* all of its elements are unitary.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this group is unitary.
+    fn is_unitary(&self) -> bool {
+        self.elements.keys().all(|op| !op.is_antiunitary())
+    }
+
+    fn group_type(&self) -> GroupType {
+        if self.is_unitary() {
+            GroupType::Ordinary(false)
+        } else if self
+            .elements
+            .keys()
+            .any(SpecialSymmetryTransformation::is_time_reversal)
+        {
+            GroupType::MagneticGrey(false)
+        } else {
+            GroupType::MagneticBlackWhite(false)
+        }
+    }
+
     /// Constructs the character table for this group using the Burnside--Dixon--Schneider
     /// algorithm.
     ///
@@ -943,6 +1006,10 @@ impl Group<SymmetryOperation> {
             HashMap::new();
         let mut improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
             HashMap::new();
+        let mut tr_proper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+            HashMap::new();
+        let mut tr_improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+            HashMap::new();
         let class_symbols_iter = self
             .conjugacy_classes
             .as_ref()
@@ -989,23 +1056,13 @@ impl Group<SymmetryOperation> {
                     let rep_proper_power = rep_ele.generating_element.proper_power;
                     let rep_power = rep_ele.power;
                     let rep_sub = rep_ele.generating_element.additional_subscript.clone();
-                    let dash = if rep_ele.is_proper() {
-                        if let Some(v) = proper_class_orders.get_mut(&(
-                            rep_proper_order,
-                            rep_proper_power,
-                            rep_power,
-                            rep_sub.clone(),
-                        )) {
-                            *v += 1;
-                            "'".repeat(*v)
-                        } else {
-                            proper_class_orders.insert(
-                                (rep_proper_order, rep_proper_power, rep_power, rep_sub),
-                                0,
-                            );
-                            String::new()
-                        }
-                    } else if let Some(v) = improper_class_orders.get_mut(&(
+                    let class_orders = match (rep_ele.is_antiunitary(), rep_ele.is_proper()) {
+                        (false, true) => &mut proper_class_orders,
+                        (false, false) => &mut improper_class_orders,
+                        (true, true) => &mut tr_proper_class_orders,
+                        (true, false) => &mut tr_improper_class_orders,
+                    };
+                    let dash = if let Some(v) = class_orders.get_mut(&(
                         rep_proper_order,
                         rep_proper_power,
                         rep_power,
@@ -1014,7 +1071,7 @@ impl Group<SymmetryOperation> {
                         *v += 1;
                         "'".repeat(*v)
                     } else {
-                        improper_class_orders
+                        class_orders
                             .insert((rep_proper_order, rep_proper_power, rep_power, rep_sub), 0);
                         String::new()
                     };
@@ -1063,7 +1120,7 @@ fn group_from_molecular_symmetry(
     infinite_order_to_finite: Option<u32>,
 ) -> Group<SymmetryOperation> {
     let group_name = sym
-        .point_group
+        .group_name
         .as_ref()
         .expect("No point groups found.")
         .clone();
@@ -1076,11 +1133,19 @@ fn group_from_molecular_symmetry(
     };
 
     if let Some(finite_order) = handles_infinite_group {
-        if group_name == "O(3)" {
+        if group_name.contains("O(3)") {
+            if !matches!(finite_order, 2 | 4) {
+                log::error!(
+                    "Finite order of {} is not yet supported for {}.",
+                    finite_order,
+                    group_name
+                );
+            }
             assert!(
                 matches!(finite_order, 2 | 4),
-                "Finite order of {} is not yet supported for O(3).",
-                finite_order
+                "Finite order of {} is not yet supported for {}.",
+                finite_order,
+                group_name
             );
         }
     }
@@ -1101,8 +1166,9 @@ fn group_from_molecular_symmetry(
         .build()
         .expect("Unable to construct an identity operation.");
 
-    // Finite proper operations
     let empty_elements: HashMap<ElementOrder, HashSet<SymmetryElement>> = HashMap::new();
+
+    // Finite proper operations
     let mut proper_orders = sym
         .get_elements(&ROT)
         .unwrap_or(&empty_elements)
@@ -1117,7 +1183,7 @@ fn group_from_molecular_symmetry(
             .iter()
             .fold(vec![id_operation], |mut acc, proper_order| {
                 sym.get_elements(&ROT)
-                    .unwrap_or(&HashMap::new())
+                    .unwrap_or(&empty_elements)
                     .get(proper_order)
                     .unwrap_or_else(|| panic!("Proper elements C{proper_order} not found."))
                     .iter()
@@ -1140,7 +1206,7 @@ fn group_from_molecular_symmetry(
     // Finite proper operations from generators
     let proper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
         sym.get_generators(&ROT)
-            .unwrap_or(&HashMap::new())
+            .unwrap_or(&empty_elements)
             .par_iter()
             .fold(std::vec::Vec::new, |mut acc, (order, proper_generators)| {
                 for proper_generator in proper_generators.iter() {
@@ -1178,6 +1244,86 @@ fn group_from_molecular_symmetry(
         vec![]
     };
 
+    // Finite time-reversed proper operations
+    let mut tr_proper_orders = sym
+        .get_elements(&TRROT)
+        .unwrap_or(&empty_elements)
+        .keys()
+        .collect::<Vec<_>>();
+    tr_proper_orders.sort_by(|a, b| {
+        a.partial_cmp(b)
+            .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
+    });
+    let tr_proper_operations = tr_proper_orders
+        .iter()
+        .fold(vec![], |mut acc, tr_proper_order| {
+            sym.get_elements(&TRROT)
+                .unwrap_or(&empty_elements)
+                .get(tr_proper_order)
+                .unwrap_or_else(|| panic!("Proper elements θ·C{tr_proper_order} not found."))
+                .iter()
+                .for_each(|tr_proper_element| {
+                    if let ElementOrder::Int(io) = tr_proper_order {
+                        acc.extend((1..(2 * *io)).step_by(2).map(|power| {
+                            SymmetryOperation::builder()
+                                .generating_element(tr_proper_element.clone())
+                                .power(power.try_into().unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{power}` to `i32`.")
+                                }))
+                                .build()
+                                .expect("Unable to construct a symmetry operation.")
+                        }));
+                    }
+                });
+            acc
+        });
+
+    // Finite time-reversed proper operations from generators
+    let tr_proper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
+        sym.get_generators(&TRROT)
+            .unwrap_or(&empty_elements)
+            .par_iter()
+            .fold(
+                std::vec::Vec::new,
+                |mut acc, (order, tr_proper_generators)| {
+                    for tr_proper_generator in tr_proper_generators.iter() {
+                        let finite_order = match order {
+                            ElementOrder::Int(io) => *io,
+                            ElementOrder::Inf => fin_ord,
+                        };
+                        let finite_tr_proper_element = SymmetryElement::builder()
+                            .threshold(tr_proper_generator.threshold)
+                            .proper_order(ElementOrder::Int(finite_order))
+                            .proper_power(1)
+                            .axis(tr_proper_generator.axis)
+                            .kind(tr_proper_generator.kind.clone())
+                            .additional_superscript(
+                                tr_proper_generator.additional_superscript.clone(),
+                            )
+                            .additional_subscript(tr_proper_generator.additional_subscript.clone())
+                            .build()
+                            .expect("Unable to construct a symmetry element.");
+                        acc.extend((1..finite_order).map(|power| {
+                            SymmetryOperation::builder()
+                                .generating_element(finite_tr_proper_element.clone())
+                                .power(power.try_into().unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{power}` to `i32`.")
+                                }))
+                                .build()
+                                .expect("Unable to construct a symmetry operation.")
+                        }));
+                    }
+                    acc
+                },
+            )
+            .reduce(std::vec::Vec::new, |mut acc, vec| {
+                acc.extend(vec);
+                acc
+            })
+    } else {
+        vec![]
+    };
+
     // Finite improper operations
     let mut improper_orders = sym
         .get_elements(&SIG)
@@ -1192,7 +1338,7 @@ fn group_from_molecular_symmetry(
         .iter()
         .fold(vec![], |mut acc, improper_order| {
             sym.get_elements(&SIG)
-                .unwrap_or(&HashMap::new())
+                .unwrap_or(&empty_elements)
                 .get(improper_order)
                 .unwrap_or_else(|| panic!("Improper elements S{improper_order} not found."))
                 .iter()
@@ -1215,7 +1361,7 @@ fn group_from_molecular_symmetry(
     // Finite improper operations from generators
     let improper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
         sym.get_generators(&SIG)
-            .unwrap_or(&HashMap::new())
+            .unwrap_or(&empty_elements)
             .par_iter()
             .fold(
                 std::vec::Vec::new,
@@ -1258,12 +1404,101 @@ fn group_from_molecular_symmetry(
         vec![]
     };
 
+    // Finite time-reversed improper operations
+    let mut tr_improper_orders = sym
+        .get_elements(&TRSIG)
+        .unwrap_or(&empty_elements)
+        .keys()
+        .collect::<Vec<_>>();
+    tr_improper_orders.sort_by(|a, b| {
+        a.partial_cmp(b)
+            .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
+    });
+    let tr_improper_operations =
+        tr_improper_orders
+            .iter()
+            .fold(vec![], |mut acc, tr_improper_order| {
+                sym.get_elements(&TRSIG)
+                    .unwrap_or(&empty_elements)
+                    .get(tr_improper_order)
+                    .unwrap_or_else(|| {
+                        panic!("Improper elements θ·S{tr_improper_order} not found.")
+                    })
+                    .iter()
+                    .for_each(|tr_improper_element| {
+                        if let ElementOrder::Int(io) = tr_improper_order {
+                            acc.extend((1..(2 * *io)).step_by(2).map(|power| {
+                                SymmetryOperation::builder()
+                                    .generating_element(tr_improper_element.clone())
+                                    .power(power.try_into().unwrap_or_else(|_| {
+                                        panic!("Unable to convert `{power}` to `i32`.")
+                                    }))
+                                    .build()
+                                    .expect("Unable to construct a symmetry operation.")
+                            }));
+                        }
+                    });
+                acc
+            });
+
+    // Finite time-reversed improper operations from generators
+    let tr_improper_operations_from_generators = if let Some(fin_ord) = handles_infinite_group {
+        sym.get_generators(&TRSIG)
+            .unwrap_or(&empty_elements)
+            .par_iter()
+            .fold(
+                std::vec::Vec::new,
+                |mut acc, (order, tr_improper_generators)| {
+                    for tr_improper_generator in tr_improper_generators.iter() {
+                        let finite_order = match order {
+                            ElementOrder::Int(io) => *io,
+                            ElementOrder::Inf => fin_ord,
+                        };
+                        let finite_tr_improper_element = SymmetryElement::builder()
+                            .threshold(tr_improper_generator.threshold)
+                            .proper_order(ElementOrder::Int(finite_order))
+                            .proper_power(1)
+                            .axis(tr_improper_generator.axis)
+                            .kind(tr_improper_generator.kind.clone())
+                            .additional_superscript(
+                                tr_improper_generator.additional_superscript.clone(),
+                            )
+                            .additional_subscript(
+                                tr_improper_generator.additional_subscript.clone(),
+                            )
+                            .build()
+                            .expect("Unable to construct a symmetry element.");
+                        acc.extend((1..(2 * finite_order)).step_by(2).map(|power| {
+                            SymmetryOperation::builder()
+                                .generating_element(finite_tr_improper_element.clone())
+                                .power(power.try_into().unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{power}` to `i32`.")
+                                }))
+                                .build()
+                                .expect("Unable to construct a symmetry operation.")
+                        }));
+                    }
+                    acc
+                },
+            )
+            .reduce(std::vec::Vec::new, |mut acc, vec| {
+                acc.extend(vec);
+                acc
+            })
+    } else {
+        vec![]
+    };
+
     let operations: HashSet<_> = if handles_infinite_group.is_none() {
         proper_operations
             .into_iter()
             .chain(proper_operations_from_generators)
             .chain(improper_operations)
             .chain(improper_operations_from_generators)
+            .chain(tr_proper_operations)
+            .chain(tr_proper_operations_from_generators)
+            .chain(tr_improper_operations)
+            .chain(tr_improper_operations_from_generators)
             .collect()
     } else {
         // Fulfil group closure
@@ -1273,11 +1508,16 @@ fn group_from_molecular_symmetry(
             .chain(proper_operations_from_generators)
             .chain(improper_operations)
             .chain(improper_operations_from_generators)
+            .chain(tr_proper_operations)
+            .chain(tr_proper_operations_from_generators)
+            .chain(tr_improper_operations)
+            .chain(tr_improper_operations_from_generators)
             .collect();
         let mut extra_operations = HashSet::<SymmetryOperation>::new();
         let mut npasses = 0;
         let mut nstable = 0;
 
+        let principal_element = sym.get_proper_principal_element();
         while nstable < 2 || npasses == 0 {
             let n_extra_operations = extra_operations.len();
             existing_operations.extend(extra_operations);
@@ -1305,10 +1545,10 @@ fn group_from_molecular_symmetry(
                 .to_string(),
                 n_extra_operations,
                 {
-                    if n_extra_operations > 1 {
-                        "are"
-                    } else {
+                    if n_extra_operations == 1 {
                         "is"
+                    } else {
+                        "are"
                     }
                 }
                 .to_string(),
@@ -1326,6 +1566,21 @@ fn group_from_molecular_symmetry(
                         None
                     } else if op_k.is_proper() {
                         Some(op_k)
+                    } else if (op_k.is_reflection() || op_k.is_tr_reflection())
+                        && op_k.generating_element.additional_subscript.is_empty()
+                    {
+                        if let Some(sigma_symbol) = deduce_sigma_symbol(
+                            &op_k.generating_element.axis,
+                            principal_element,
+                            op_k.generating_element.threshold,
+                            false,
+                        ) {
+                            let mut op_k_sym = op_k.convert_to_improper_kind(&SIG);
+                            op_k_sym.generating_element.additional_subscript = sigma_symbol;
+                            Some(op_k_sym)
+                        } else {
+                            Some(op_k.convert_to_improper_kind(&SIG))
+                        }
                     } else {
                         Some(op_k.convert_to_improper_kind(&SIG))
                     }
@@ -1350,9 +1605,16 @@ fn group_from_molecular_symmetry(
     sorted_operations.sort_by_key(|op| {
         let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
         (
+            op.is_antiunitary(),
             !op.is_proper(),
-            !(op.is_identity() || op.is_inversion()),
-            op.is_binary_rotation() || op.is_reflection(),
+            !(op.is_identity()
+                || op.is_inversion()
+                || op.is_time_reversal()
+                || op.is_tr_inversion()),
+            op.is_binary_rotation()
+                || op.is_tr_binary_rotation()
+                || op.is_reflection()
+                || op.is_tr_reflection(),
             -(i64::try_from(
                 *op.total_proper_fraction
                     .expect("No total proper fractions found.")
@@ -1374,7 +1636,7 @@ fn group_from_molecular_symmetry(
     let mut group = Group::<SymmetryOperation>::new(group_name.as_str(), sorted_operations);
     if handles_infinite_group.is_some() {
         let finite_group = if group.name.contains('∞') {
-            // # C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d
+            // C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d, or the corresponding grey groups
             if group.name.as_bytes()[0] == b'D' {
                 if matches!(
                     group
@@ -1420,16 +1682,20 @@ fn group_from_molecular_symmetry(
                 }
             }
         } else {
-            // O(3)
+            // O(3) or the corresponding grey group
             match group.order {
                 8 => "D2h".to_string(),
+                16 => "D2h + θ·D2h".to_string(),
                 48 => "Oh".to_string(),
+                96 => "Oh + θ·Oh".to_string(),
                 _ => panic!("Unsupported number of group elements."),
             }
         };
         group.finite_subgroup_name = Some(finite_group);
     }
     group.assign_class_symbols_from_symmetry();
-    group.construct_character_table();
+    if group.is_unitary() {
+        group.construct_character_table();
+    }
     group
 }

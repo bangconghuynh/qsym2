@@ -25,23 +25,80 @@ mod symmetry_element_tests;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SymmetryElementKind {
     /// Proper symmetry element which consists of just a proper rotation axis.
-    Proper,
+    ///
+    /// The associated boolean indicates whether there is a time-reversal operation associated with
+    /// this element.
+    Proper(bool),
 
     /// Improper symmetry element in the mirror-plane convention, which consists
     /// of a proper rotation axis and an orthogonal mirror plane.
-    ImproperMirrorPlane,
+    ///
+    /// The associated boolean indicates whether there is a time-reversal operation associated with
+    /// this element.
+    ImproperMirrorPlane(bool),
 
     /// Improper symmetry element in the inversion-centre convention, which
     /// consists of a proper rotation axis and an inversion centre.
-    ImproperInversionCentre,
+    ///
+    /// The associated boolean indicates whether there is a time-reversal operation associated with
+    /// this element.
+    ImproperInversionCentre(bool),
+}
+
+impl SymmetryElementKind {
+    /// Indicates if a time-reversal operation is associated with this element.
+    #[must_use]
+    pub fn contains_time_reversal(&self) -> bool {
+        match self {
+            Self::Proper(tr)
+            | Self::ImproperMirrorPlane(tr)
+            | Self::ImproperInversionCentre(tr) => *tr,
+        }
+    }
+
+    /// Converts the current kind to the desired time-reversal form.
+    ///
+    /// # Arguments
+    ///
+    /// * `tr` - A flag indicating whether time reversal is included or not.
+    ///
+    /// # Returns
+    ///
+    /// A copy of the current kind with the desired time-reversal flag.
+    #[must_use]
+    pub fn to_tr(&self, tr: bool) -> Self {
+        match self {
+            Self::Proper(_) => Self::Proper(tr),
+            Self::ImproperMirrorPlane(_) => Self::ImproperMirrorPlane(tr),
+            Self::ImproperInversionCentre(_) => Self::ImproperInversionCentre(tr),
+        }
+    }
 }
 
 impl fmt::Display for SymmetryElementKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Proper => write!(f, "Proper"),
-            Self::ImproperMirrorPlane => write!(f, "Improper (mirror-plane convention)"),
-            Self::ImproperInversionCentre => write!(f, "Improper (inversion-centre convention)"),
+            Self::Proper(tr) => {
+                if *tr {
+                    write!(f, "Time-reversed proper")
+                } else {
+                    write!(f, "Proper")
+                }
+            }
+            Self::ImproperMirrorPlane(tr) => {
+                if *tr {
+                    write!(f, "Time-reversed improper (mirror-plane convention)")
+                } else {
+                    write!(f, "Improper (mirror-plane convention)")
+                }
+            }
+            Self::ImproperInversionCentre(tr) => {
+                if *tr {
+                    write!(f, "Time-reversed improper (inversion-centre convention)")
+                } else {
+                    write!(f, "Improper (inversion-centre convention)")
+                }
+            }
         }
     }
 }
@@ -122,7 +179,7 @@ pub struct SymmetryElement {
     pub axis: Vector3<f64>,
 
     /// The kind of the symmetry element.
-    #[builder(default = "SymmetryElementKind::Proper")]
+    #[builder(default = "SymmetryElementKind::Proper(false)")]
     pub kind: SymmetryElementKind,
 
     /// A flag indicating whether the symmetry element is a generator of the
@@ -206,11 +263,11 @@ impl SymmetryElementBuilder {
             .expect("Proper order has not been set.");
         match proper_order {
             ElementOrder::Int(io) => Some(geometry::normalise_rotation_angle(
-                (f64::from(self
-                    .proper_power
-                    .expect("Proper power has not been set.")
-                    .expect("No proper powers found."))
-                    / (f64::from(*io)))
+                (f64::from(
+                    self.proper_power
+                        .expect("Proper power has not been set.")
+                        .expect("No proper powers found."),
+                ) / (f64::from(*io)))
                     * 2.0
                     * std::f64::consts::PI,
                 self.threshold.expect("Threshold value has not been set."),
@@ -255,59 +312,90 @@ impl SymmetryElement {
         SymmetryElementBuilder::default()
     }
 
+    /// Checks if the symmetry element contains a time-reversal operator.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if the symmetry element contains a time-reversal operator.
+    #[must_use]
+    pub fn contains_time_reversal(&self) -> bool {
+        self.kind.contains_time_reversal()
+    }
+
     /// Checks if the symmetry element is proper or not.
+    ///
+    /// # Arguments
+    ///
+    /// * `tr` - A flag indicating if time reversal is to be considered.
     ///
     /// # Returns
     ///
     /// A flag indicating if the symmetry element is proper.
     #[must_use]
-    pub fn is_proper(&self) -> bool {
-        self.kind == SymmetryElementKind::Proper
+    pub fn is_proper(&self, tr: bool) -> bool {
+        self.kind == SymmetryElementKind::Proper(tr)
     }
 
     /// Checks if the symmetry element is an identity element.
+    ///
+    /// # Arguments
+    ///
+    /// * `tr` - A flag indicating if time reversal is to be considered.
     ///
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is an identity element.
     #[must_use]
-    pub fn is_identity(&self) -> bool {
-        self.kind == SymmetryElementKind::Proper && self.proper_fraction == Some(F::from(1))
+    pub fn is_identity(&self, tr: bool) -> bool {
+        self.kind == SymmetryElementKind::Proper(tr) && self.proper_fraction == Some(F::from(1))
     }
 
     /// Checks if the symmetry element is an inversion centre.
+    ///
+    /// # Arguments
+    ///
+    /// * `tr` - A flag indicating if time reversal is to be considered.
     ///
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is an inversion centre.
     #[must_use]
-    pub fn is_inversion_centre(&self) -> bool {
-        (self.kind == SymmetryElementKind::ImproperMirrorPlane
+    pub fn is_inversion_centre(&self, tr: bool) -> bool {
+        (self.kind == SymmetryElementKind::ImproperMirrorPlane(tr)
             && self.proper_fraction == Some(F::new(1u32, 2u32)))
-            || (self.kind == SymmetryElementKind::ImproperInversionCentre
+            || (self.kind == SymmetryElementKind::ImproperInversionCentre(tr)
                 && self.proper_fraction == Some(F::from(1)))
     }
 
     /// Checks if the symmetry element is a binary rotation axis.
     ///
+    /// # Arguments
+    ///
+    /// * `tr` - A flag indicating if time reversal is to be considered.
+    ///
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is a binary rotation axis.
     #[must_use]
-    pub fn is_binary_rotation_axis(&self) -> bool {
-        self.kind == SymmetryElementKind::Proper && self.proper_fraction == Some(F::new(1u32, 2u32))
+    pub fn is_binary_rotation_axis(&self, tr: bool) -> bool {
+        self.kind == SymmetryElementKind::Proper(tr)
+            && self.proper_fraction == Some(F::new(1u32, 2u32))
     }
 
     /// Checks if the symmetry element is a mirror plane.
+    ///
+    /// # Arguments
+    ///
+    /// * `tr` - A flag indicating if time reversal is to be considered.
     ///
     /// # Returns
     ///
     /// A flag indicating if this symmetry element is a mirror plane.
     #[must_use]
-    pub fn is_mirror_plane(&self) -> bool {
-        (matches!(self.kind, SymmetryElementKind::ImproperMirrorPlane)
+    pub fn is_mirror_plane(&self, tr: bool) -> bool {
+        (self.kind == SymmetryElementKind::ImproperMirrorPlane(tr)
             && self.proper_fraction == Some(F::from(1)))
-            || (self.kind == SymmetryElementKind::ImproperInversionCentre
+            || (self.kind == SymmetryElementKind::ImproperInversionCentre(tr)
                 && self.proper_fraction == Some(F::new(1u32, 2u32)))
     }
 
@@ -321,19 +409,23 @@ impl SymmetryElement {
     #[must_use]
     pub fn get_standard_symbol(&self) -> String {
         let main_symbol: String = match self.kind {
-            SymmetryElementKind::Proper => "C".to_owned(),
-            SymmetryElementKind::ImproperMirrorPlane => {
+            SymmetryElementKind::Proper(tr) => {
+                format!("{}C", if tr { "θ·" } else { "" })
+            }
+            SymmetryElementKind::ImproperMirrorPlane(tr) => {
+                let tr_sym = if tr { "θ·" } else { "" };
                 if self.proper_order != ElementOrder::Inf && self.proper_power == Some(1) {
-                    "S".to_owned()
+                    format!("{tr_sym}S")
                 } else {
-                    "σC".to_owned()
+                    format!("{tr_sym}σC")
                 }
             }
-            SymmetryElementKind::ImproperInversionCentre => {
+            SymmetryElementKind::ImproperInversionCentre(tr) => {
+                let tr_sym = if tr { "θ·" } else { "" };
                 if self.proper_order != ElementOrder::Inf && self.proper_power == Some(1) {
-                    "Ṡ".to_owned()
+                    format!("{tr_sym}Ṡ")
                 } else {
-                    "iC".to_owned()
+                    format!("{tr_sym}iC")
                 }
             }
         };
@@ -358,43 +450,54 @@ impl SymmetryElement {
     #[must_use]
     pub fn get_detailed_symbol(&self) -> String {
         let (main_symbol, needs_power) = match self.kind {
-            SymmetryElementKind::Proper => {
-                if self.is_identity() {
-                    ("E".to_owned(), false)
+            SymmetryElementKind::Proper(tr) => {
+                if self.is_identity(tr) {
+                    if tr {
+                        ("θ".to_owned(), false)
+                    } else {
+                        ("E".to_owned(), false)
+                    }
                 } else {
-                    ("C".to_owned(), true)
+                    (format!("{}C", if tr { "θ·" } else { "" }), true)
                 }
             }
-            SymmetryElementKind::ImproperMirrorPlane => {
-                if self.is_mirror_plane() {
-                    ("σ".to_owned(), false)
-                } else if self.is_inversion_centre() {
-                    ("i".to_owned(), false)
+            SymmetryElementKind::ImproperMirrorPlane(tr) => {
+                let tr_sym = if tr { "θ·" } else { "" };
+                if self.is_mirror_plane(tr) {
+                    (format!("{tr_sym}σ"), false)
+                } else if self.is_inversion_centre(tr) {
+                    (format!("{tr_sym}i"), false)
                 } else if self.proper_order == ElementOrder::Inf || self.proper_power == Some(1) {
-                    ("S".to_owned(), false)
+                    (format!("{tr_sym}S"), false)
                 } else {
-                    ("σC".to_owned(), true)
+                    (format!("{tr_sym}σC"), true)
                 }
             }
-            SymmetryElementKind::ImproperInversionCentre => {
-                if self.is_mirror_plane() {
-                    ("σ".to_owned(), false)
-                } else if self.is_inversion_centre() {
-                    ("i".to_owned(), false)
+            SymmetryElementKind::ImproperInversionCentre(tr) => {
+                let tr_sym = if tr { "θ·" } else { "" };
+                if self.is_mirror_plane(tr) {
+                    (format!("{tr_sym}σ"), false)
+                } else if self.is_inversion_centre(tr) {
+                    (format!("{tr_sym}i"), false)
                 } else if self.proper_order == ElementOrder::Inf || self.proper_power == Some(1) {
-                    ("Ṡ".to_owned(), false)
+                    (format!("{tr_sym}Ṡ"), false)
                 } else {
-                    ("iC".to_owned(), true)
+                    (format!("{tr_sym}iC"), true)
                 }
             }
         };
 
-        let order_string: String =
-            if !self.is_identity() && !self.is_inversion_centre() && !self.is_mirror_plane() {
-                format!("{}", self.proper_order)
-            } else {
-                String::new()
-            };
+        let order_string: String = if self.is_identity(false)
+            || self.is_inversion_centre(false)
+            || self.is_mirror_plane(false)
+            || self.is_identity(true)
+            || self.is_inversion_centre(true)
+            || self.is_mirror_plane(true)
+        {
+            String::new()
+        } else {
+            format!("{}", self.proper_order)
+        };
 
         let proper_power = if needs_power {
             match self.proper_order {
@@ -452,7 +555,9 @@ impl SymmetryElement {
     ///
     /// # Arguments
     ///
-    /// * `improper_kind` - Reference to the required improper kind.
+    /// * `improper_kind` - The improper kind to which `self` is to be converted. There is no need
+    /// to make sure the time reversal specification in `improper_kind` matches that of `self` as
+    /// the conversion will take care of this.
     /// * `preserves_power` - Flag indicating if the proper rotation power $`k'`$
     /// should be preserved or should be set to $`1`$.
     ///
@@ -471,16 +576,16 @@ impl SymmetryElement {
         preserves_power: bool,
     ) -> Self {
         assert!(
-            !self.is_proper(),
+            !(self.is_proper(false) || self.is_proper(true)),
             "Only improper elements can be converted."
         );
-        assert_ne!(
-            *improper_kind,
-            SymmetryElementKind::Proper,
+        let improper_kind = improper_kind.to_tr(self.contains_time_reversal());
+        assert!(
+            !matches!(improper_kind, SymmetryElementKind::Proper(_)),
             "`improper_kind` must be one of the improper variants."
         );
 
-        if self.kind == *improper_kind {
+        if self.kind == improper_kind {
             return self.clone();
         }
 
@@ -511,7 +616,7 @@ impl SymmetryElement {
                 .proper_order(dest_order)
                 .proper_power(dest_proper_power)
                 .axis(self.axis)
-                .kind(improper_kind.clone())
+                .kind(improper_kind)
                 .generator(self.generator)
                 .additional_superscript(self.additional_superscript.clone())
                 .additional_subscript(self.additional_subscript.clone())
@@ -525,7 +630,7 @@ impl SymmetryElement {
                         .proper_power(dest_proper_power)
                         .proper_angle(std::f64::consts::PI + ang)
                         .axis(self.axis)
-                        .kind(improper_kind.clone())
+                        .kind(improper_kind)
                         .generator(self.generator)
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())
@@ -537,7 +642,7 @@ impl SymmetryElement {
                         .proper_order(dest_order)
                         .proper_power(dest_proper_power)
                         .axis(self.axis)
-                        .kind(improper_kind.clone())
+                        .kind(improper_kind)
                         .generator(self.generator)
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())
@@ -598,7 +703,11 @@ impl fmt::Display for SymmetryElement {
             }
             ElementOrder::Int(_) => String::new(),
         };
-        if self.is_identity() || self.is_inversion_centre() {
+        if self.is_identity(false)
+            || self.is_inversion_centre(false)
+            || self.is_identity(true)
+            || self.is_inversion_centre(true)
+        {
             write!(f, "{}", self.get_detailed_symbol())
         } else {
             write!(
@@ -643,23 +752,38 @@ impl PartialEq for SymmetryElement {
     /// are all satisfied:
     ///
     /// * they are both proper or improper;
+    /// * they both have the same time reversal properties;
     /// * their axes are either parallel or anti-parallel;
     /// * their proper rotation angles have equal absolute values.
     ///
     /// For improper elements, proper rotation angles are taken in the inversion
     /// centre convention.
     fn eq(&self, other: &Self) -> bool {
-        if self.is_proper() != other.is_proper() {
+        if self.contains_time_reversal() != other.contains_time_reversal() {
             return false;
         }
 
-        if self.is_identity() && other.is_identity() {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+        let tr = self.contains_time_reversal();
+
+        if self.is_proper(tr) != other.is_proper(tr) {
+            return false;
+        }
+
+        if self.is_identity(tr) && other.is_identity(tr) {
+            assert_eq!(
+                misc::calculate_hash(self),
+                misc::calculate_hash(other),
+                "{self} and {other} have unequal hashes."
+            );
             return true;
         }
 
-        if self.is_inversion_centre() && other.is_inversion_centre() {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+        if self.is_inversion_centre(tr) && other.is_inversion_centre(tr) {
+            assert_eq!(
+                misc::calculate_hash(self),
+                misc::calculate_hash(other),
+                "{self} and {other} have unequal hashes."
+            );
             return true;
         }
 
@@ -704,7 +828,11 @@ impl PartialEq for SymmetryElement {
                         == F::from(1u32))
             };
             if result {
-                assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+                assert_eq!(
+                    misc::calculate_hash(self),
+                    misc::calculate_hash(other),
+                    "{self} and {other} have unequal hashes."
+                );
             }
             return result;
         }
@@ -746,7 +874,11 @@ impl PartialEq for SymmetryElement {
                     == F::from(1u64))
         };
         if result {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            assert_eq!(
+                misc::calculate_hash(self),
+                misc::calculate_hash(other),
+                "{self} and {other} have unequal hashes."
+            );
         }
         result
     }
@@ -756,12 +888,14 @@ impl Eq for SymmetryElement {}
 
 impl Hash for SymmetryElement {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.is_proper().hash(state);
-        if self.is_identity() || self.is_inversion_centre() {
+        let tr = self.contains_time_reversal();
+        tr.hash(state);
+        self.is_proper(tr).hash(state);
+        if self.is_identity(tr) || self.is_inversion_centre(tr) {
             true.hash(state);
-        } else if self.kind == SymmetryElementKind::ImproperMirrorPlane {
+        } else if self.kind == SymmetryElementKind::ImproperMirrorPlane(tr) {
             let c_self = self
-                .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre, false);
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(tr), false);
             let pole = geometry::get_positive_pole(&c_self.axis, c_self.threshold);
             pole[0]
                 .round_factor(self.threshold)
@@ -835,6 +969,9 @@ impl Hash for SymmetryElement {
     }
 }
 
-pub const ROT: SymmetryElementKind = SymmetryElementKind::Proper;
-pub const SIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane;
-pub const INV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre;
+pub const ROT: SymmetryElementKind = SymmetryElementKind::Proper(false);
+pub const SIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane(false);
+pub const INV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre(false);
+pub const TRROT: SymmetryElementKind = SymmetryElementKind::Proper(true);
+pub const TRSIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane(true);
+pub const TRINV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre(true);
