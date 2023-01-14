@@ -276,10 +276,12 @@ impl Symmetry {
     ///
     /// A builder to construct a new symmetry struct.
     #[must_use]
-    pub fn builder() -> SymmetryBuilder {
+    fn builder() -> SymmetryBuilder {
         SymmetryBuilder::default()
     }
 
+    /// Construct a new and empty symmetry struct.
+    #[must_use]
     pub fn new() -> Self {
         Symmetry::builder()
             .build()
@@ -352,7 +354,7 @@ impl Symmetry {
                                         tr_proper_element
                                     })
                                     .collect::<HashSet<_>>();
-                                (order.clone(), tr_proper_elements)
+                                (*order, tr_proper_elements)
                             })
                             .collect::<HashMap<_, _>>(),
                     );
@@ -373,11 +375,12 @@ impl Symmetry {
                                         .iter()
                                         .map(|improper_element| {
                                             let mut tr_improper_element = improper_element.clone();
-                                            tr_improper_element.kind = improper_element.kind.to_tr(true);
+                                            tr_improper_element.kind =
+                                                improper_element.kind.to_tr(true);
                                             tr_improper_element
                                         })
                                         .collect::<HashSet<_>>();
-                                    (order.clone(), tr_improper_elements)
+                                    (*order, tr_improper_elements)
                                 })
                                 .collect::<HashMap<_, _>>(),
                         );
@@ -390,14 +393,19 @@ impl Symmetry {
                         .as_ref()
                         .expect("No point groups found.")
                         .clone();
-                    self.set_group_name(format!("{} + θ·{}", unitary_group, unitary_group));
+                    self.set_group_name(format!("{unitary_group} + θ·{unitary_group}"));
                 } else {
-                    log::debug!("Time reversal is not a symmetry element. This is an ordinary group.");
+                    log::debug!(
+                        "Time reversal is not a symmetry element. This is an ordinary group."
+                    );
                 }
             } else {
-                log::debug!("Antiunitary symmetry requested and some non-time-reversed elements found.");
-                assert_ne!(presym.molecule, presym.molecule.reverse_time());
-                log::debug!("Time reversal is not a symmetry element. This is a black-and-white group.");
+                log::debug!(
+                    "Antiunitary symmetry requested and some non-time-reversed elements found."
+                );
+                log::debug!(
+                    "Time reversal is not a symmetry element. This is a black-and-white group."
+                );
             }
         }
     }
@@ -842,23 +850,29 @@ impl Symmetry {
     ///
     /// An optional hash set of proper elements of the required order. If no such elements exist,
     /// `None` will be returned.
+    #[must_use]
     pub fn get_proper(&self, order: &ElementOrder) -> Option<HashSet<&SymmetryElement>> {
         let opt_proper_elements = self
             .get_elements(&ROT)
-            .map(|proper_elements| proper_elements.get(&order))
+            .map(|proper_elements| proper_elements.get(order))
             .unwrap_or_default();
         let opt_tr_proper_elements = self
             .get_elements(&TRROT)
-            .map(|tr_proper_elements| tr_proper_elements.get(&order))
+            .map(|tr_proper_elements| tr_proper_elements.get(order))
             .unwrap_or_default();
 
         match (opt_proper_elements, opt_tr_proper_elements) {
             (None, None) => None,
-            (Some(proper_elements), None) => Some(HashSet::from_iter(proper_elements.iter())),
-            (None, Some(tr_proper_elements)) => Some(HashSet::from_iter(tr_proper_elements.iter())),
-            (Some(proper_elements), Some(tr_proper_elements)) => Some(HashSet::from_iter(
-                proper_elements.iter().chain(tr_proper_elements.iter()),
-            )),
+            (Some(proper_elements), None) => Some(proper_elements.iter().collect::<HashSet<_>>()),
+            (None, Some(tr_proper_elements)) => {
+                Some(tr_proper_elements.iter().collect::<HashSet<_>>())
+            }
+            (Some(proper_elements), Some(tr_proper_elements)) => Some(
+                proper_elements
+                    .iter()
+                    .chain(tr_proper_elements.iter())
+                    .collect::<HashSet<_>>(),
+            ),
         }
     }
 
@@ -872,25 +886,31 @@ impl Symmetry {
     ///
     /// An optional hash set of improper elements of the required order. If no such elements exist,
     /// `None` will be returned.
+    #[must_use]
     pub fn get_improper(&self, order: &ElementOrder) -> Option<HashSet<&SymmetryElement>> {
         let opt_improper_elements = self
             .get_elements(&SIG)
-            .map(|improper_elements| improper_elements.get(&order))
+            .map(|improper_elements| improper_elements.get(order))
             .unwrap_or_default();
         let opt_tr_improper_elements = self
             .get_elements(&TRSIG)
-            .map(|tr_improper_elements| tr_improper_elements.get(&order))
+            .map(|tr_improper_elements| tr_improper_elements.get(order))
             .unwrap_or_default();
 
         match (opt_improper_elements, opt_tr_improper_elements) {
             (None, None) => None,
-            (Some(improper_elements), None) => Some(HashSet::from_iter(improper_elements.iter())),
-            (None, Some(tr_improper_elements)) => {
-                Some(HashSet::from_iter(tr_improper_elements.iter()))
+            (Some(improper_elements), None) => {
+                Some(improper_elements.iter().collect::<HashSet<_>>())
             }
-            (Some(improper_elements), Some(tr_improper_elements)) => Some(HashSet::from_iter(
-                improper_elements.iter().chain(tr_improper_elements.iter()),
-            )),
+            (None, Some(tr_improper_elements)) => {
+                Some(tr_improper_elements.iter().collect::<HashSet<_>>())
+            }
+            (Some(improper_elements), Some(tr_improper_elements)) => Some(
+                improper_elements
+                    .iter()
+                    .chain(tr_improper_elements.iter())
+                    .collect::<HashSet<_>>(),
+            ),
         }
     }
 
@@ -903,6 +923,11 @@ impl Symmetry {
     /// # Returns
     ///
     /// A proper principal element.
+    ///
+    /// # Panics
+    ///
+    /// Panics if no proper elements or generators can be found.
+    #[must_use]
     pub fn get_proper_principal_element(&self) -> &SymmetryElement {
         let max_ord = self.get_max_proper_order();
         let principal_elements = self.get_proper(&max_ord).unwrap_or_else(|| {
@@ -917,13 +942,14 @@ impl Symmetry {
 
             match (opt_proper_generators, opt_tr_proper_generators) {
                 (None, None) => panic!("No proper elements found."),
-                (Some(proper_generators), None) => HashSet::from_iter(proper_generators.iter()),
+                (Some(proper_generators), None) => proper_generators.iter().collect::<HashSet<_>>(),
                 (None, Some(tr_proper_generators)) => {
-                    HashSet::from_iter(tr_proper_generators.iter())
+                    tr_proper_generators.iter().collect::<HashSet<_>>()
                 }
-                (Some(proper_generators), Some(tr_proper_generators)) => {
-                    HashSet::from_iter(proper_generators.iter().chain(tr_proper_generators.iter()))
-                }
+                (Some(proper_generators), Some(tr_proper_generators)) => proper_generators
+                    .iter()
+                    .chain(tr_proper_generators.iter())
+                    .collect::<HashSet<_>>(),
             }
         });
         principal_elements
@@ -959,6 +985,12 @@ impl Symmetry {
                 .max()
                 .unwrap_or(&ElementOrder::Int(0))
                 == ElementOrder::Inf
+    }
+}
+
+impl Default for Symmetry {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

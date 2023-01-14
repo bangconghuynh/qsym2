@@ -4,7 +4,7 @@ use nalgebra::Vector3;
 
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::{ROT, SIG, TRROT, TRSIG};
+use crate::symmetry::symmetry_element::{SymmetryElement, ROT, SIG, TRROT, TRSIG};
 use crate::symmetry::symmetry_element_order::{ORDER_1, ORDER_2};
 
 use super::{PreSymmetry, Symmetry};
@@ -54,8 +54,7 @@ impl Symmetry {
         // Classify into point groups
         let count_c2 = self
             .get_proper(&ORDER_2)
-            .map(|proper_elements| proper_elements.len())
-            .unwrap_or(0);
+            .map_or(0, |proper_elements| proper_elements.len());
         assert!(count_c2 == 0 || count_c2 == 1 || count_c2 == 3);
 
         let max_ord = self.get_max_proper_order();
@@ -76,7 +75,7 @@ impl Symmetry {
                 .into_iter()
                 .cloned()
                 .collect_vec();
-            c2s.sort_by_key(|c2| c2.contains_time_reversal());
+            c2s.sort_by_key(SymmetryElement::contains_time_reversal);
             let mut c2s = c2s.into_iter();
             let c2 = c2s.next().expect(" No C2 elements found.");
             self.add_proper(
@@ -310,8 +309,8 @@ impl Symmetry {
                         .into_iter()
                         .cloned()
                         .collect_vec();
-                    sigmavs.sort_by_key(|sigmav| sigmav.contains_time_reversal());
-                    let sigmav = sigmavs.iter().next().expect("No σv found.");
+                    sigmavs.sort_by_key(SymmetryElement::contains_time_reversal);
+                    let sigmav = sigmavs.first().expect("No σv found.");
                     self.add_improper(
                         ORDER_1,
                         sigmav.axis,

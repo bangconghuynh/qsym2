@@ -698,7 +698,7 @@ fn test_symmetry_group_detection_spherical_vf6_grey_oh() {
 /// Panics when any expected condition is not fulfilled.
 fn verify_td(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some("Td".to_owned()));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(3)].len(),
@@ -744,7 +744,7 @@ fn verify_td(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_td(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some("Td + θ·Td".to_owned()));
     assert_eq!(
         magsym
@@ -1101,7 +1101,7 @@ fn test_symmetry_group_detection_linear_n3_electric_field_grey_cinfv() {
 /// Panics when any expected condition is not fulfilled.
 fn verify_dinfh(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some("D∞h".to_owned()));
     assert_eq!(
         sym.get_generators(&ROT)
@@ -1136,7 +1136,7 @@ fn verify_dinfh(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_dinfh(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, true);
+    sym.analyse(presym, true);
     assert_eq!(sym.group_name, Some("D∞h + θ·D∞h".to_owned()));
     assert_eq!(
         sym.get_generators(&ROT)
@@ -1177,7 +1177,7 @@ fn verify_grey_dinfh(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_bw_dinfh_cinfh(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some("D∞h".to_owned()));
     assert_eq!(
         magsym
@@ -1220,7 +1220,7 @@ fn verify_bw_dinfh_cinfh(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_cinfv(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some("C∞v".to_owned()));
     assert_eq!(
         sym.get_generators(&ROT)
@@ -1249,7 +1249,7 @@ fn verify_cinfv(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_cinfv(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some("C∞v + θ·C∞v".to_owned()));
     assert_eq!(
         magsym
@@ -1287,7 +1287,7 @@ fn verify_grey_cinfv(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_bw_cinfv_cinf(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some("C∞v".to_owned()));
     assert_eq!(
         magsym
@@ -1599,7 +1599,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_half_sandwich_magnetic_fiel
 /// Panics when any expected condition is not fulfilled.
 fn verify_cn(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some(format!("C{n}")));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
@@ -1625,7 +1625,7 @@ fn verify_cn(presym: &PreSymmetry, n: u32) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_cn(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some(format!("C{n} + θ·C{n}")));
     assert_eq!(
         magsym
@@ -1670,7 +1670,7 @@ fn verify_grey_cn(presym: &PreSymmetry, n: u32) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_bw_cnv_cn(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some(format!("C{n}v")));
     assert_eq!(
         magsym
@@ -1949,7 +1949,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_electric
 /// Panics when any expected condition is not fulfilled.
 fn verify_cnv(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some(format!("C{n}v")));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
@@ -1988,7 +1988,7 @@ fn verify_cnv(presym: &PreSymmetry, n: u32) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_cnv(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some(format!("C{n}v + θ·C{n}v")));
     assert_eq!(
         magsym
@@ -2254,7 +2254,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_
 /// Panics when any expected condition is not fulfilled.
 fn verify_cnh(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some(format!("C{n}h")));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
@@ -2307,7 +2307,7 @@ fn verify_cnh(presym: &PreSymmetry, n: u32) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_cnh(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some(format!("C{n}h + θ·C{n}h")));
     assert_eq!(
         magsym
@@ -2420,7 +2420,7 @@ fn verify_grey_cnh(presym: &PreSymmetry, n: u32) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_bw_dnh_cnh(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some(format!("D{n}h")));
     if n == 2 {
         assert_eq!(
@@ -2700,7 +2700,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_twisted_sandwich_grey_dn() 
 /// Panics when any expected condition is not fulfilled.
 fn verify_dn(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some(format!("D{n}")));
     if n == 2 {
         assert_eq!(
@@ -2757,7 +2757,7 @@ fn verify_dn(presym: &PreSymmetry, n: u32) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_dn(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some(format!("D{n} + θ·D{n}")));
     if n == 2 {
         assert_eq!(
@@ -3055,7 +3055,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_eclipsed_sandwich_grey_dnh(
 /// Panics when any expected condition is not fulfilled.
 fn verify_dnh(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some(format!("D{n}h")));
 
     if n == 2 {
@@ -3147,7 +3147,7 @@ fn verify_dnh(presym: &PreSymmetry, n: u32) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_dnh(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some(format!("D{n}h + θ·D{n}h")));
 
     if n == 2 {
@@ -3635,7 +3635,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_grey_dnd
 /// Panics when any expected condition is not fulfilled.
 fn verify_dnd(presym: &PreSymmetry, n: u32) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some(format!("D{n}d")));
     if n == 2 {
         assert_eq!(
@@ -3731,7 +3731,7 @@ fn verify_dnd(presym: &PreSymmetry, n: u32) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_dnd(presym: &PreSymmetry, n: u32) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some(format!("D{n}d + θ·D{n}d")));
     if n == 2 {
         assert_eq!(
@@ -4331,7 +4331,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic
 /// Panics when any expected condition is not fulfilled.
 fn verify_s2n(presym: &PreSymmetry, n: u32, tr: bool) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, tr);
+    sym.analyse(presym, tr);
     assert_eq!(sym.group_name, Some(format!("S{}", 2 * n)));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ElementOrder::Int(n)].len(),
@@ -5772,7 +5772,7 @@ fn test_symmetry_group_detection_asymmetric_atom_magnetic_electric_field_bw_c2v_
 /// Panics when any expected condition is not fulfilled.
 fn verify_cs(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some("Cs".to_owned()));
     assert_eq!(
         sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_1].len(),
@@ -5800,7 +5800,7 @@ fn verify_cs(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_cs(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some("Cs + θ·Cs".to_owned()));
     assert_eq!(
         magsym
@@ -5854,7 +5854,7 @@ fn verify_grey_cs(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_bw_c2v_cs(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some("C2v".to_owned()));
     assert_eq!(
         magsym
@@ -6352,7 +6352,7 @@ fn test_symmetry_group_detection_symmetric_c60_magnetic_field_ordinary_ci() {
 /// Panics when any expected condition is not fulfilled.
 fn verify_ci(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some("Ci".to_owned()));
     assert_eq!(
         sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
@@ -6378,7 +6378,7 @@ fn verify_ci(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_ordinary_ci(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, true);
+    sym.analyse(presym, true);
     assert_eq!(sym.group_name, Some("Ci".to_owned()));
     assert_eq!(
         sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
@@ -6403,7 +6403,7 @@ fn verify_ordinary_ci(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_ci(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some("Ci + θ·Ci".to_owned()));
     assert_eq!(
         magsym
@@ -6616,7 +6616,7 @@ fn test_symmetry_group_detection_symmetric_c60_electric_field_grey_c1() {
 /// Panics when any expected condition is not fulfilled.
 fn verify_c1(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(presym, false);
     assert_eq!(sym.group_name, Some("C1".to_owned()));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_1].len(),
@@ -6642,7 +6642,7 @@ fn verify_c1(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_ordinary_c1(presym: &PreSymmetry) {
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, true);
+    sym.analyse(presym, true);
     assert_eq!(sym.group_name, Some("C1".to_owned()));
     assert_eq!(
         sym.get_elements(&ROT).expect("No proper elements found.")[&ORDER_1].len(),
@@ -6667,7 +6667,7 @@ fn verify_ordinary_c1(presym: &PreSymmetry) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_c1(presym: &PreSymmetry) {
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(presym, true);
     assert_eq!(magsym.group_name, Some("C1 + θ·C1".to_owned()));
     assert_eq!(
         magsym

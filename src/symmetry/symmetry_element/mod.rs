@@ -47,14 +47,25 @@ pub enum SymmetryElementKind {
 
 impl SymmetryElementKind {
     /// Indicates if a time-reversal operation is associated with this element.
+    #[must_use]
     pub fn contains_time_reversal(&self) -> bool {
         match self {
-            Self::Proper(tr) => *tr,
-            Self::ImproperMirrorPlane(tr) => *tr,
-            Self::ImproperInversionCentre(tr) => *tr,
+            Self::Proper(tr)
+            | Self::ImproperMirrorPlane(tr)
+            | Self::ImproperInversionCentre(tr) => *tr,
         }
     }
 
+    /// Converts the current kind to the desired time-reversal form.
+    ///
+    /// # Arguments
+    ///
+    /// * `tr` - A flag indicating whether time reversal is included or not.
+    ///
+    /// # Returns
+    ///
+    /// A copy of the current kind with the desired time-reversal flag.
+    #[must_use]
     pub fn to_tr(&self, tr: bool) -> Self {
         match self {
             Self::Proper(_) => Self::Proper(tr),
@@ -476,16 +487,16 @@ impl SymmetryElement {
             }
         };
 
-        let order_string: String = if !(self.is_identity(false)
+        let order_string: String = if self.is_identity(false)
             || self.is_inversion_centre(false)
             || self.is_mirror_plane(false)
             || self.is_identity(true)
             || self.is_inversion_centre(true)
-            || self.is_mirror_plane(true))
+            || self.is_mirror_plane(true)
         {
-            format!("{}", self.proper_order)
-        } else {
             String::new()
+        } else {
+            format!("{}", self.proper_order)
         };
 
         let proper_power = if needs_power {

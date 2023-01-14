@@ -539,7 +539,11 @@ where
     fn group_type(&self) -> GroupType {
         if self.is_unitary() {
             GroupType::Ordinary(false)
-        } else if self.elements.keys().any(|op| op.is_time_reversal()) {
+        } else if self
+            .elements
+            .keys()
+            .any(SpecialSymmetryTransformation::is_time_reversal)
+        {
             GroupType::MagneticGrey(false)
         } else {
             GroupType::MagneticBlackWhite(false)
@@ -1603,7 +1607,10 @@ fn group_from_molecular_symmetry(
         (
             op.is_antiunitary(),
             !op.is_proper(),
-            !(op.is_identity() || op.is_inversion() || op.is_time_reversal() || op.is_tr_inversion()),
+            !(op.is_identity()
+                || op.is_inversion()
+                || op.is_time_reversal()
+                || op.is_tr_inversion()),
             op.is_binary_rotation()
                 || op.is_tr_binary_rotation()
                 || op.is_reflection()

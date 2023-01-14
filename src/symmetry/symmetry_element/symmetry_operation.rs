@@ -447,7 +447,7 @@ impl SymmetryOperation {
     pub fn convert_to_improper_kind(&self, improper_kind: &SymmetryElementKind) -> Self {
         let c_element = self
             .generating_element
-            .convert_to_improper_kind(&improper_kind, true);
+            .convert_to_improper_kind(improper_kind, true);
         Self::builder()
             .generating_element(c_element)
             .power(self.power)
@@ -460,7 +460,7 @@ impl SymmetryOperation {
     #[must_use]
     pub fn get_abbreviated_symbol(&self) -> String {
         if self.power == 1 {
-            format!("{}", self.generating_element.get_detailed_symbol())
+            self.generating_element.get_detailed_symbol()
         } else {
             format!(
                 "[{}]^{}",

@@ -141,7 +141,7 @@ fn test_character_table_construction(
         .molecule(mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
+    let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
     let chartab = group.character_table.as_ref().unwrap();
@@ -162,7 +162,7 @@ fn test_character_table_construction_from_infinite_group(
         .molecule(mol, true)
         .build()
         .unwrap();
-    let mut sym = Symmetry::builder().build().unwrap();
+    let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, Some(finite_order));
     let chartab = group.character_table.as_ref().unwrap();
@@ -1386,7 +1386,7 @@ fn test_character_table_construction_symmetric_arbitrary_half_sandwich_magnetic_
             .map(|(i, irrep)| {
                 (
                     (irrep, &cn),
-                    Character::new(&[(UnityRoot::new(i as u32, n as u32), 1)]),
+                    Character::new(&[(UnityRoot::new(i as u32, n), 1)]),
                 )
             })
             .collect();

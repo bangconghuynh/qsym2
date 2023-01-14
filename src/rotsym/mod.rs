@@ -75,7 +75,7 @@ pub fn calc_rotational_symmetry(
             .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
     });
     log::debug!("Moments of inertia:");
-    for component in moi.iter() {
+    for component in &moi {
         log::debug!("  {component:+.14}");
     }
     if approx::relative_eq!(*moi[0], *moi[1], epsilon = thresh, max_relative = thresh) {
