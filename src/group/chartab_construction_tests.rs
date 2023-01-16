@@ -148,6 +148,26 @@ fn test_character_table_construction(
     test_character_table_validity(chartab, expected_irreps, expected_chars_option);
 }
 
+fn test_character_table_construction_magnetic(
+    mol: &Molecule,
+    thresh: f64,
+    expected_irreps: &[MullikenIrrepSymbol],
+    expected_chars_option: Option<
+        HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,
+    >,
+) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    let group = group_from_molecular_symmetry(&magsym, None);
+    let chartab = group.character_table.as_ref().unwrap();
+    test_character_table_validity(chartab, expected_irreps, expected_chars_option);
+}
+
 fn test_character_table_construction_from_infinite_group(
     mol: &Molecule,
     finite_order: u32,
@@ -165,6 +185,27 @@ fn test_character_table_construction_from_infinite_group(
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, Some(finite_order));
+    let chartab = group.character_table.as_ref().unwrap();
+    test_character_table_validity(chartab, expected_irreps, expected_chars_option);
+}
+
+fn test_character_table_construction_from_infinite_magnetic_group(
+    mol: &Molecule,
+    finite_order: u32,
+    thresh: f64,
+    expected_irreps: &[MullikenIrrepSymbol],
+    expected_chars_option: Option<
+        HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,
+    >,
+) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    let group = group_from_molecular_symmetry(&magsym, Some(finite_order));
     let chartab = group.character_table.as_ref().unwrap();
     test_character_table_validity(chartab, expected_irreps, expected_chars_option);
 }

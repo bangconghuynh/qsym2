@@ -10,17 +10,17 @@ use counter::Counter;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use ndarray::{Array2, ArrayView2, Axis};
 use nalgebra::Vector3;
+use ndarray::{Array2, ArrayView2, Axis};
 use phf::phf_map;
 use regex::Regex;
 
 use crate::chartab::character::Character;
 use crate::chartab::unityroot::UnityRoot;
-use crate::symmetry::symmetry_element::SymmetryElement;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
 };
+use crate::symmetry::symmetry_element::SymmetryElement;
 use crate::symmetry::symmetry_element_order::ORDER_1;
 
 // =========
@@ -849,11 +849,14 @@ pub fn sort_irreps<R: Clone>(
 
 /// Determines the principal classes given a list of class symbols and any forcing conditions.
 ///
+/// By default, the principal classes are those with the highest order, regardless of whether they
+/// are proper or improper, unitary or antiunitary.
+///
 /// # Arguments
 ///
 /// * `class_symbols` - An indexmap of class symbols and their corresponding indices.
 /// * `force_proper_principal` - A flag indicating if the principal classes are forced to be
-/// proper.
+/// proper and unitary.
 /// * `force_principal` - An option containing specific classes that are forced to be principal.
 ///
 /// # Returns
@@ -879,13 +882,14 @@ where
     let principal_classes = force_principal.map_or_else(|| {
         // sorted_class_symbols contains class symbols sorted in the order:
         // - decreasing operation order
+        // - unitary operations, then antiunitary operations
         // - proper operations, then improper operations in each operation order
         let mut sorted_class_symbols = class_symbols
             .clone()
             .sorted_by(|cc1, _, cc2, _| {
                 PartialOrd::partial_cmp(
-                    &(cc1.order(), cc1.is_proper()),
-                    &(cc2.order(), cc2.is_proper()),
+                    &(cc1.order(), !cc1.is_antiunitary(), cc1.is_proper()),
+                    &(cc2.order(), !cc2.is_antiunitary(), cc2.is_proper()),
                 )
                 .expect("Unable to sort class symbols.")
             })
@@ -894,8 +898,8 @@ where
             // Larger order always prioritised, regardless of proper or improper,
             // unless force_proper_principal is set, in which case
             sorted_class_symbols
-                .find(|(cc, _)| cc.is_proper())
-                .expect("`Unable to find proper classes.`")
+                .find(|(cc, _)| cc.is_proper() && !cc.is_antiunitary())
+                .expect("`Unable to find unitary proper classes.`")
         } else {
             // No force_proper_principal, so proper prioritised, which has been ensured by the sort
             // in the construction of `sorted_class_symbols`.
@@ -904,11 +908,14 @@ where
                 .expect("Unexpected empty `sorted_class_symbols`.")
         };
 
-        // Now find all principal classes with the same order and parity as `principal_rep`.
+        // Now find all principal classes with the same order, parity, and unitarity as
+        // `principal_rep`.
         class_symbols
             .keys()
             .filter(|cc| {
-                cc.is_proper() == principal_rep.is_proper() && cc.order() == principal_rep.order()
+                cc.is_antiunitary() == principal_rep.is_antiunitary()
+                && cc.is_proper() == principal_rep.is_proper()
+                && cc.order() == principal_rep.order()
             })
             .cloned()
             .collect::<Vec<_>>()
@@ -944,7 +951,7 @@ where
     principal_classes
 }
 
-/// Deduces irreducible representation symboles based on Mulliken's convention.
+/// Deduces irreducible representation symbols based on Mulliken's convention.
 ///
 /// # Arguments
 ///
@@ -952,9 +959,7 @@ where
 /// each column is for one conjugacy class and each row one irrep.
 /// * `class_symbols` - An index map containing the conjugacy class symbols for the columns of
 /// `char_arr`. The keys are the symbols and the values are the column indices.
-/// * `force_proper_principal` - Flag indicating if the principal-axis classes must be proper.
-/// * `force_principal` - The class symbol to be used as the principal-axis class
-/// (`force_proper_principal` must be `False` if this is used).
+/// * `principal_classes` - The principal classes to be used for irrep symbol deduction.
 ///
 /// # Returns
 ///
@@ -980,6 +985,8 @@ where
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
     let s_cc: ClassSymbol<R> =
         ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
+    let t_cc: ClassSymbol<R> =
+        ClassSymbol::new("1||θ||", None).expect("Unable to construct class symbol `1||θ||`.");
 
     // Inversion parity?
     let i_parity = class_symbols.contains_key(&i_cc);
@@ -995,6 +1002,13 @@ where
             "Horizontal mirror plane found (but no inversion centre). This will be used for '/'' ordering."
         );
     }
+
+    // Time-reversal?
+    let t_parity = class_symbols.contains_key(&t_cc);
+    if t_parity {
+        log::debug!("Time reversal found. This will be used for magnetic ordering.");
+    }
+
 
     let e2p1 = UnityRoot::new(1u32, 2u32);
     let e2p2 = UnityRoot::new(2u32, 2u32);
@@ -1110,10 +1124,45 @@ where
             ("", "")
         };
 
-        MullikenIrrepSymbol::new(format!("||{main}|^({mir})_({inv})|").as_str())
+
+        let trev = if t_parity {
+            // Determine time-reversal symmetry
+            let char_trev = irrep[
+                *class_symbols.get(&t_cc).unwrap_or_else(|| {
+                    panic!("Class `{}` not found.", &t_cc)
+                })
+            ].clone();
+            let char_trev_c = char_trev.complex_value();
+            assert!(
+                approx::relative_eq!(
+                    char_trev_c.im,
+                    0.0,
+                    epsilon = char_trev.threshold,
+                    max_relative = char_trev.threshold
+                ) && approx::relative_eq!(
+                    char_trev_c.re.round(),
+                    char_trev_c.re,
+                    epsilon = char_trev.threshold,
+                    max_relative = char_trev.threshold
+                ),
+            );
+
+            #[allow(clippy::cast_possible_truncation)]
+            let char_trev_c = char_trev_c.re.round() as i32;
+            match char_trev_c.cmp(&0) {
+                Ordering::Greater => "",
+                Ordering::Less => "m",
+                Ordering::Equal => panic!("Time-reversal character must not be zero."),
+            }
+        } else {
+            ""
+        };
+
+        MullikenIrrepSymbol::new(format!("|^({trev})|{main}|^({mir})_({inv})|").as_str())
             .unwrap_or_else(|_| {
                 panic!(
-                    "Unable to construct symmetry symbol `||{}|^({})_({})|`.",
+                    "Unable to construct symmetry symbol `|^({})|{}|^({})_({})|`.",
+                    trev,
                     main,
                     mir,
                     inv
@@ -1135,7 +1184,8 @@ where
                     .map(|i| {
                         MullikenIrrepSymbol::new(
                             format!(
-                                "||{}|^({})_({}{})|",
+                                "|^({})|{}|^({})_({}{})|",
+                                raw_irrep.presuper(),
                                 raw_irrep.main(),
                                 raw_irrep.postsuper(),
                                 i + 1,
@@ -1145,7 +1195,8 @@ where
                         )
                         .unwrap_or_else(|_| {
                             panic!(
-                                "Unable to construct symmetry symbol `||{}|^({})_({}{})|`.",
+                                "Unable to construct symmetry symbol `|^({})|{}|^({})_({}{})|`.",
+                                raw_irrep.presuper(),
                                 raw_irrep.main(),
                                 raw_irrep.postsuper(),
                                 i + 1,
