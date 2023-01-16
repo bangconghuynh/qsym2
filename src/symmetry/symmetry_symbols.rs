@@ -894,13 +894,14 @@ pub fn sort_irreps<R: Clone>(
 /// * both `force_proper_principal` and `force_principal` are specified;
 /// * classes specified in `force_principal` cannot be found in `class_symbols`;
 /// * no principal classes can be found.
-pub fn deduce_principal_classes<R>(
+pub fn deduce_principal_classes<R, P>(
     class_symbols: &IndexMap<ClassSymbol<R>, usize>,
-    force_proper_principal: bool,
+    force_principal_predicate: Option<P>,
     force_principal: Option<ClassSymbol<R>>,
 ) -> Vec<ClassSymbol<R>>
 where
     R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
+    P: Copy + Fn(&ClassSymbol<R>) -> bool,
 {
     log::debug!("Determining principal classes...");
     let principal_classes = force_principal.map_or_else(|| {
@@ -918,12 +919,12 @@ where
                 .expect("Unable to sort class symbols.")
             })
             .rev();
-        let (principal_rep, _) = if force_proper_principal {
+        let (principal_rep, _) = if let Some(predicate) = force_principal_predicate {
             // Larger order always prioritised, regardless of proper or improper,
             // unless force_proper_principal is set, in which case
             sorted_class_symbols
-                .find(|(cc, _)| cc.is_proper() && !cc.is_antiunitary())
-                .expect("`Unable to find unitary proper classes.`")
+                .find(|(cc, _)| predicate(cc))
+                .expect("`Unable to find classes fulfilling the specified predicate.`")
         } else {
             // No force_proper_principal, so proper prioritised, which has been ensured by the sort
             // in the construction of `sorted_class_symbols`.
@@ -945,8 +946,8 @@ where
             .collect::<Vec<_>>()
     }, |principal_cc| {
         assert!(
-            !force_proper_principal,
-            "`force_proper_principal` and `force_principal` cannot be both provided."
+            force_principal_predicate.is_none(),
+            "`force_principal_predicate` and `force_principal` cannot be both provided."
         );
         assert!(
             class_symbols.contains_key(&principal_cc),

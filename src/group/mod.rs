@@ -881,19 +881,6 @@ where
             .expect("Unable to construct a class symbol from `1||i||`.");
         let s_cc = ClassSymbol::new("1||σh||", None)
             .expect("Unable to construct a class symbol from `1||σh||`.");
-        let mut force_proper_principal = if class_symbols.contains_key(&i_cc) {
-            log::debug!(
-                "Inversion centre exists. Principal-axis classes will be forced to be proper."
-            );
-            true
-        } else if class_symbols.contains_key(&s_cc) {
-            log::debug!(
-                "Horizontal mirror plane exists. Principal-axis classes will be forced to be proper."
-            );
-            true
-        } else {
-            false
-        };
 
         let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(self.name.as_str())
             || FORCED_PRINCIPAL_GROUPS.contains(
@@ -902,7 +889,6 @@ where
                     .unwrap_or(&String::new())
                     .as_str(),
             ) {
-            force_proper_principal = false;
             let c3_cc: ClassSymbol<T> = ClassSymbol::new("8||C3||", None)
                 .expect("Unable to construct a class symbol from `8||C3||`.");
             log::debug!(
@@ -915,8 +901,37 @@ where
             None
         };
 
-        let principal_classes =
-            deduce_principal_classes(class_symbols, force_proper_principal, force_principal);
+        let principal_classes = if force_principal.is_some() {
+            deduce_principal_classes(
+                class_symbols,
+                None::<fn(&ClassSymbol<T>) -> bool>,
+                force_principal,
+            )
+        } else if class_symbols.contains_key(&i_cc) {
+            log::debug!(
+                "Inversion centre exists. Principal-axis classes will be forced to be proper."
+            );
+            deduce_principal_classes(
+                class_symbols,
+                Some(|cc: &ClassSymbol<T>| cc.is_proper() && !cc.is_antiunitary()),
+                None,
+            )
+        } else if class_symbols.contains_key(&s_cc) {
+            log::debug!(
+                "Horizontal mirror plane exists. Principal-axis classes will be forced to be proper."
+            );
+            deduce_principal_classes(
+                class_symbols,
+                Some(|cc: &ClassSymbol<T>| cc.is_proper() && !cc.is_antiunitary()),
+                None,
+            )
+        } else {
+            deduce_principal_classes(
+                class_symbols,
+                None::<fn(&ClassSymbol<T>) -> bool>,
+                None,
+            )
+        };
 
         let char_arr = sort_irreps(&char_arr.view(), class_symbols, &principal_classes);
 
