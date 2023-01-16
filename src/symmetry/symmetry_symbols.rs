@@ -12,7 +12,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use nalgebra::Vector3;
 use ndarray::{Array2, ArrayView2, Axis};
-use phf::phf_map;
+use phf::{phf_map, phf_set};
 use regex::Regex;
 
 use crate::chartab::character::Character;
@@ -62,6 +62,15 @@ pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
     1i8 => "r",
     0i8 => "c",
     -1i8 => "q",
+};
+
+pub static FORCED_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
+    "O",
+    "Oh",
+    "Td",
+    "O + θ·O",
+    "Oh + θ·Oh",
+    "Td + θ·Td",
 };
 
 // ======
@@ -774,7 +783,10 @@ impl<R: Clone> fmt::Display for ClassSymbol<R> {
 /// Reorder the rows so that the characters are in increasing order as we
 /// go down the table, with the first column being used as the primary sort
 /// order, then the second column, and so on, with the exceptions of some
-/// special columns.
+/// special columns, if available. These are:
+///
+/// * time-reversal class, $`\theta`$,
+/// * inversion class, $`i`$, or horizonal mirror plane $`\sigma_h`$ if $`i`$ not available.
 ///
 /// # Arguments
 ///
@@ -802,15 +814,27 @@ pub fn sort_irreps<R: Clone>(
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
     let class_s =
         ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
+    let class_t =
+        ClassSymbol::new("1||θ||", None).expect("Unable to construct class symbol `1||θ||`.");
+
     let mut leading_classes: IndexSet<ClassSymbol<R>> = IndexSet::new();
 
+    // Highest priority: time-reversal
+    if class_symbols.contains_key(&class_t) {
+        leading_classes.insert(class_t);
+    }
+
+    // Second highest priority: inversion, or horizontal mirror plane if inversion not available
     if class_symbols.contains_key(&class_i) {
         leading_classes.insert(class_i);
     } else if class_symbols.contains_key(&class_s) {
         leading_classes.insert(class_s);
     };
 
+    // Third highest priority: identity
     leading_classes.insert(class_e);
+
+    // Fourth highest priority: principal classes, if not yet encountered
     leading_classes.extend(principal_classes.iter().cloned());
 
     log::debug!("Irreducible representation sort order:");
@@ -856,7 +880,7 @@ pub fn sort_irreps<R: Clone>(
 ///
 /// * `class_symbols` - An indexmap of class symbols and their corresponding indices.
 /// * `force_proper_principal` - A flag indicating if the principal classes are forced to be
-/// proper and unitary.
+/// proper.
 /// * `force_principal` - An option containing specific classes that are forced to be principal.
 ///
 /// # Returns
@@ -1008,7 +1032,6 @@ where
     if t_parity {
         log::debug!("Time reversal found. This will be used for magnetic ordering.");
     }
-
 
     let e2p1 = UnityRoot::new(1u32, 2u32);
     let e2p2 = UnityRoot::new(2u32, 2u32);
