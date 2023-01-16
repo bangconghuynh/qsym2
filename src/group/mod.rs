@@ -7,7 +7,7 @@ use approx;
 use log;
 
 use derive_builder::Builder;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use ndarray::{array, s, Array1, Array2, Array3, Axis, Zip};
 use num::{integer::lcm, Complex};
@@ -33,7 +33,7 @@ use crate::symmetry::symmetry_element::{
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, deduce_sigma_symbol, sort_irreps,
-    ClassSymbol,
+    ClassSymbol, FORCED_PRINCIPAL_GROUPS,
 };
 
 #[cfg(test)]
@@ -895,13 +895,12 @@ where
             false
         };
 
-        let force_principal = if matches!(self.name.as_str(), "O" | "Oh" | "Td")
-            || matches!(
+        let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(self.name.as_str())
+            || FORCED_PRINCIPAL_GROUPS.contains(
                 self.finite_subgroup_name
                     .as_ref()
                     .unwrap_or(&String::new())
                     .as_str(),
-                "O" | "Oh" | "Td"
             ) {
             force_proper_principal = false;
             let c3_cc: ClassSymbol<T> = ClassSymbol::new("8||C3||", None)
@@ -1166,7 +1165,7 @@ fn group_from_molecular_symmetry(
         .build()
         .expect("Unable to construct an identity operation.");
 
-    let empty_elements: HashMap<ElementOrder, HashSet<SymmetryElement>> = HashMap::new();
+    let empty_elements: HashMap<ElementOrder, IndexSet<SymmetryElement>> = HashMap::new();
 
     // Finite proper operations
     let mut proper_orders = sym
@@ -1489,7 +1488,7 @@ fn group_from_molecular_symmetry(
         vec![]
     };
 
-    let operations: HashSet<_> = if handles_infinite_group.is_none() {
+    let operations: IndexSet<_> = if handles_infinite_group.is_none() {
         proper_operations
             .into_iter()
             .chain(proper_operations_from_generators)
@@ -1503,7 +1502,7 @@ fn group_from_molecular_symmetry(
     } else {
         // Fulfil group closure
         log::debug!("Fulfilling closure for a finite subgroup of an infinite group...");
-        let mut existing_operations: HashSet<_> = proper_operations
+        let mut existing_operations: IndexSet<_> = proper_operations
             .into_iter()
             .chain(proper_operations_from_generators)
             .chain(improper_operations)
@@ -1694,8 +1693,6 @@ fn group_from_molecular_symmetry(
         group.finite_subgroup_name = Some(finite_group);
     }
     group.assign_class_symbols_from_symmetry();
-    if group.is_unitary() {
-        group.construct_character_table();
-    }
+    group.construct_character_table();
     group
 }

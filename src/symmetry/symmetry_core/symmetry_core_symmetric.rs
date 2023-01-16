@@ -1,8 +1,10 @@
+use std::collections::{HashMap, HashSet};
+
 use approx;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
-use std::collections::{HashMap, HashSet};
 
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
@@ -131,7 +133,7 @@ impl Symmetry {
                     c2_ele.axis.dot(&principal_element.axis).abs() < presym.dist_threshold
                 })
                 .expect("No C2 axes perpendicular to the principal axis found."))
-                .clone();
+            .clone();
             self.add_proper(
                 ORDER_2,
                 perp_c2_element.axis,
@@ -253,13 +255,13 @@ impl Symmetry {
                     .get_elements(&ROT)
                     .unwrap_or(&HashMap::new())
                     .get(&ORDER_2)
-                    .unwrap_or(&HashSet::new())
+                    .unwrap_or(&IndexSet::new())
                     .iter()
                     .chain(
                         self.get_elements(&TRROT)
                             .unwrap_or(&HashMap::new())
                             .get(&ORDER_2)
-                            .unwrap_or(&HashSet::new()),
+                            .unwrap_or(&IndexSet::new()),
                     )
                     .combinations(2)
                     .fold(vec![], |mut acc, c2_elements| {
