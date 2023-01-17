@@ -925,6 +925,15 @@ where
                 Some(|cc: &ClassSymbol<T>| cc.is_proper() && !cc.is_antiunitary()),
                 None,
             )
+        } else if !self.is_unitary() {
+            log::debug!(
+                "Antiunitary elements exist. Principal-axis classes will be forced to be unitary."
+            );
+            deduce_principal_classes(
+                class_symbols,
+                Some(|cc: &ClassSymbol<T>| !cc.is_antiunitary()),
+                None,
+            )
         } else {
             deduce_principal_classes(
                 class_symbols,

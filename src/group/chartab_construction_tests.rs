@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use approx;
-
 use itertools::Itertools;
 use nalgebra::Vector3;
 use num::Complex;
@@ -29,7 +28,7 @@ fn test_character_table_validity(
         HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,
     >,
 ) {
-    // println!("{:?}", chartab);
+    println!("{}", chartab);
 
     let order: usize = chartab
         .classes
@@ -1874,79 +1873,82 @@ fn test_character_table_construction_linear_atom_electric_field_cinfv() {
     }
 }
 
-// #[test]
-// fn test_character_table_construction_linear_atom_electric_field_grey_cinfv() {
-//     /* The expected number of classes is deduced from the irrep structures of
-//      * the Cnv groups.
-//      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
-//      * When n is odd, the irreps are A1, A2, Ek where k = 1, ..., n//2.
-//      */
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
-//     let thresh = 1e-7;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
-//     for n in 4usize..=20usize {
-//         let expected_irreps = if n % 2 == 0 {
-//             let mut irreps = vec![
-//                 MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
-//                 MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
-//                 MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
-//                 MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
-//             ];
-//             if n > 4 {
-//                 irreps.extend(
-//                     (1..n.div_euclid(2))
-//                         .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
-//                 );
-//             } else {
-//                 irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
-//             }
-//             let m_irreps = irreps.iter().map(|irrep| {
-//                 MullikenIrrepSymbol::new(&format!(
-//                         "|^(m)|{}|_({})|",
-//                         irrep.main(),
-//                         irrep.postsub()
-//                 ))
-//                     .unwrap()
-//             }).collect_vec();
-//             irreps.extend(m_irreps);
-//             irreps
-//         } else {
-//             let mut irreps = vec![
-//                 MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
-//                 MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
-//             ];
-//             if n > 3 {
-//                 irreps.extend(
-//                     (1..=n.div_euclid(2))
-//                         .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
-//                 );
-//             } else {
-//                 irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
-//             };
-//             let m_irreps = irreps.iter().map(|irrep| {
-//                 MullikenIrrepSymbol::new(&format!(
-//                         "|^(m)|{}|_({})|",
-//                         irrep.main(),
-//                         irrep.postsub()
-//                 ))
-//                     .unwrap()
-//             }).collect_vec();
-//             irreps.extend(m_irreps);
-//             irreps
-//         };
-//         for irrep in &expected_irreps {
-//             println!("Ir: {}", irrep);
-//         };
-//         test_character_table_construction_from_infinite_magnetic_group(
-//             &mol,
-//             n as u32,
-//             thresh,
-//             &expected_irreps,
-//             None,
-//         );
-//     }
-// }
+#[test]
+fn test_character_table_construction_linear_atom_electric_field_grey_cinfv() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Cnv groups.
+     * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1, A2, Ek where k = 1, ..., n//2.
+     */
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
+    for n in 2usize..=20usize {
+        let expected_irreps = if n % 2 == 0 {
+            let mut irreps = vec![
+                MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+                MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+                MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+                MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+            ];
+            if n == 4 {
+                irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
+            } else {
+                irreps.extend(
+                    (1..n.div_euclid(2))
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                );
+            }
+            let m_irreps = irreps
+                .iter()
+                .map(|irrep| {
+                    MullikenIrrepSymbol::new(&format!(
+                        "|^(m)|{}|_({})|",
+                        irrep.main(),
+                        irrep.postsub()
+                    ))
+                    .unwrap()
+                })
+                .collect_vec();
+            irreps.extend(m_irreps);
+            irreps
+        } else {
+            let mut irreps = vec![
+                MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+                MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+            ];
+            if n == 3 {
+                irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
+            } else {
+                irreps.extend(
+                    (1..=n.div_euclid(2))
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                );
+            };
+            let m_irreps = irreps
+                .iter()
+                .map(|irrep| {
+                    MullikenIrrepSymbol::new(&format!(
+                        "|^(m)|{}|_({})|",
+                        irrep.main(),
+                        irrep.postsub()
+                    ))
+                    .unwrap()
+                })
+                .collect_vec();
+            irreps.extend(m_irreps);
+            irreps
+        };
+        test_character_table_construction_from_infinite_magnetic_group(
+            &mol,
+            n as u32,
+            thresh,
+            &expected_irreps,
+            None,
+        );
+    }
+}
 
 #[test]
 fn test_character_table_construction_linear_c2h2_dinfh() {
