@@ -424,12 +424,6 @@ fn test_abstract_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_o
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     let group = group_from_molecular_symmetry(&magsym, None);
-    for op in group.elements.keys() {
-        println!("{}", op);
-    }
-    for cc in group.conjugacy_class_symbols.as_ref().unwrap().iter() {
-        println!("CC: {}", cc.0);
-    }
     let classes = group
         .conjugacy_class_symbols
         .as_ref()

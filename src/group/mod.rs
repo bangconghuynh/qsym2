@@ -1670,15 +1670,29 @@ fn group_from_molecular_symmetry(
                         .expect("The last character in the group name cannot be retrieved."),
                     b'h' | b'd'
                 ) {
-                    assert_eq!(group.order % 4, 0);
-                    group
-                        .name
-                        .replace('∞', format!("{}", group.order / 4).as_str())
+                    if group.name.contains('θ') {
+                        assert_eq!(group.order % 8, 0);
+                        group
+                            .name
+                            .replace('∞', format!("{}", group.order / 8).as_str())
+                    } else {
+                        assert_eq!(group.order % 4, 0);
+                        group
+                            .name
+                            .replace('∞', format!("{}", group.order / 4).as_str())
+                    }
                 } else {
-                    assert_eq!(group.order % 2, 0);
-                    group
-                        .name
-                        .replace('∞', format!("{}", group.order / 2).as_str())
+                    if group.name.contains('θ') {
+                        assert_eq!(group.order % 4, 0);
+                        group
+                            .name
+                            .replace('∞', format!("{}", group.order / 4).as_str())
+                    } else {
+                        assert_eq!(group.order % 2, 0);
+                        group
+                            .name
+                            .replace('∞', format!("{}", group.order / 2).as_str())
+                    }
                 }
             } else {
                 assert!(matches!(group.name.as_bytes()[0], b'C' | b'S'));
@@ -1691,11 +1705,21 @@ fn group_from_molecular_symmetry(
                         .expect("The last character in the group name cannot be retrieved."),
                     b'h' | b'v'
                 ) {
-                    assert_eq!(group.order % 2, 0);
+                    if group.name.contains('θ') {
+                        assert_eq!(group.order % 4, 0);
+                    } else {
+                        assert_eq!(group.order % 2, 0);
+                    }
                     if group.order > 2 {
-                        group
-                            .name
-                            .replace('∞', format!("{}", group.order / 2).as_str())
+                        if group.name.contains('θ') {
+                            group
+                                .name
+                                .replace('∞', format!("{}", group.order / 4).as_str())
+                        } else {
+                            group
+                                .name
+                                .replace('∞', format!("{}", group.order / 2).as_str())
+                        }
                     } else {
                         assert_eq!(group.name.as_bytes()[0], b'C');
                         "Cs".to_string()
