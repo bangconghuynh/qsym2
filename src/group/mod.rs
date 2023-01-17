@@ -260,6 +260,9 @@ where
     fn construct_cayley_table(&mut self) {
         log::debug!("Constructing Cayley table in parallel...");
         let mut ctb = Array2::<usize>::zeros((self.order, self.order));
+        for (t, op) in self.elements.keys().enumerate() {
+            println!("Op {t}: {op:?}");
+        }
         Zip::indexed(&mut ctb).par_for_each(|(i, j), k| {
             let (op_i_ref, _) = self.elements
                 .get_index(i)
@@ -271,7 +274,7 @@ where
             *k = *self
                 .elements
                 .get(&op_k)
-                .unwrap_or_else(|| panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try reducing thresholds.",
+                .unwrap_or_else(|| panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try changing thresholds.",
                         op_i_ref,
                         op_j_ref,
                         &op_k));
