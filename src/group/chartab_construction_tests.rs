@@ -5722,6 +5722,84 @@ fn test_character_table_construction_symmetric_c6ph6_d6() {
 }
 
 #[test]
+fn test_character_table_construction_symmetric_c6ph6_grey_d6() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c6ph6.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(2)|").unwrap(),
+    ];
+    let tc6 = ClassSymbol::<SymmetryOperation>::new("2||θ·C6||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &tc6),
+            Character::new(&[(UnityRoot::new(1, 6), 1), (UnityRoot::new(5, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &tc6),
+            Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &tc6),
+            Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &tc6),
+            Character::new(&[(UnityRoot::new(1, 6), 1), (UnityRoot::new(5, 6), 1)]),
+        ),
+    ]);
+    test_character_table_construction_magnetic(
+        &mol,
+        thresh,
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
+#[test]
 fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_dn() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dn groups.
@@ -5738,13 +5816,13 @@ fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_dn() {
                 MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
                 MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
             ];
-            if n > 4 {
+            if n == 4 {
+                irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
+            } else {
                 irreps.extend(
                     (1..n.div_euclid(2))
                         .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
                 );
-            } else {
-                irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
             }
             irreps
         } else {
@@ -5752,17 +5830,78 @@ fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_dn() {
                 MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
                 MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
             ];
-            if n > 3 {
+            if n == 3 {
+                irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
+            } else {
                 irreps.extend(
                     (1..=n.div_euclid(2))
                         .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
                 );
-            } else {
-                irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
             };
             irreps
         };
         test_character_table_construction(&mol, thresh, &expected_irreps, None);
+    }
+}
+
+#[test]
+fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_grey_dn() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Dn groups.
+     * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1, A2, Ek where k = 1, ..., n//2.
+     */
+    let thresh = 1e-7;
+    for n in 3..=20 {
+        let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.1);
+        let expected_irreps = if n % 2 == 0 {
+            let mut irreps = vec![
+                MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+                MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+                MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+                MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+            ];
+            if n == 4 {
+                irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
+            } else {
+                irreps.extend(
+                    (1..n.div_euclid(2))
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                );
+            }
+            let m_irreps = irreps
+                .iter()
+                .map(|irrep| {
+                    MullikenIrrepSymbol::new(&format!("|^(m)|{}|_({})|", irrep.main(), irrep.postsub()))
+                        .unwrap()
+                })
+                .collect_vec();
+            irreps.extend(m_irreps);
+            irreps
+        } else {
+            let mut irreps = vec![
+                MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+                MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+            ];
+            if n == 3 {
+                irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
+            } else {
+                irreps.extend(
+                    (1..=n.div_euclid(2))
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                );
+            };
+            let m_irreps = irreps
+                .iter()
+                .map(|irrep| {
+                    MullikenIrrepSymbol::new(&format!("|^(m)|{}|_({})|", irrep.main(), irrep.postsub()))
+                        .unwrap()
+                })
+                .collect_vec();
+            irreps.extend(m_irreps);
+            irreps
+        };
+        test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
     }
 }
 

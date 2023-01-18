@@ -260,9 +260,6 @@ where
     fn construct_cayley_table(&mut self) {
         log::debug!("Constructing Cayley table in parallel...");
         let mut ctb = Array2::<usize>::zeros((self.order, self.order));
-        for (t, op) in self.elements.keys().enumerate() {
-            println!("Op {t}: {op:?}");
-        }
         Zip::indexed(&mut ctb).par_for_each(|(i, j), k| {
             let (op_i_ref, _) = self.elements
                 .get_index(i)
