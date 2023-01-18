@@ -11163,11 +11163,12 @@ fn test_character_table_construction_asymmetric_water_magnetic_field_cs() {
 
 #[test]
 fn test_character_table_construction_asymmetric_water_magnetic_field_bw_c2v_cs() {
+    env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    // verify_bw_c2v_c2(&mol, thresh);
+    verify_bw_c2v_c2(&mol, thresh);
 }
 
 #[test]
