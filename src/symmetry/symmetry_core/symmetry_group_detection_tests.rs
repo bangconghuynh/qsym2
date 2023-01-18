@@ -4662,7 +4662,7 @@ fn test_symmetry_group_detection_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2
 
 #[test]
 fn test_symmetry_group_detection_asymmetric_azulene_magnetic_field_c2() {
-    env_logger::init();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
