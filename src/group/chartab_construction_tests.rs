@@ -5872,8 +5872,12 @@ fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_grey_d
             let m_irreps = irreps
                 .iter()
                 .map(|irrep| {
-                    MullikenIrrepSymbol::new(&format!("|^(m)|{}|_({})|", irrep.main(), irrep.postsub()))
-                        .unwrap()
+                    MullikenIrrepSymbol::new(&format!(
+                        "|^(m)|{}|_({})|",
+                        irrep.main(),
+                        irrep.postsub()
+                    ))
+                    .unwrap()
                 })
                 .collect_vec();
             irreps.extend(m_irreps);
@@ -5894,8 +5898,12 @@ fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_grey_d
             let m_irreps = irreps
                 .iter()
                 .map(|irrep| {
-                    MullikenIrrepSymbol::new(&format!("|^(m)|{}|_({})|", irrep.main(), irrep.postsub()))
-                        .unwrap()
+                    MullikenIrrepSymbol::new(&format!(
+                        "|^(m)|{}|_({})|",
+                        irrep.main(),
+                        irrep.postsub()
+                    ))
+                    .unwrap()
                 })
                 .collect_vec();
             irreps.extend(m_irreps);
@@ -5950,6 +5958,85 @@ fn test_character_table_construction_symmetric_bf3_d3h() {
         ),
     ]);
     test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
+
+#[test]
+fn test_character_table_construction_symmetric_bf3_grey_d3h() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|^(')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^(')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^('')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^('')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|^(')|").unwrap(),
+        MullikenIrrepSymbol::new("||E|^('')|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|^(')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|^(')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|^('')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|^('')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|^(')|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|^('')|").unwrap(),
+    ];
+    let tc3 = ClassSymbol::<SymmetryOperation>::new("2||θ·C3||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &tc3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &tc3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &tc3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &tc3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &tc3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &tc3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &tc3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &tc3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &tc3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &tc3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &tc3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &tc3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+    ]);
+    test_character_table_construction_magnetic(
+        &mol,
+        thresh,
+        &expected_irreps,
+        Some(expected_chars),
+    );
 }
 
 #[test]
@@ -6016,6 +6103,124 @@ fn test_character_table_construction_symmetric_xef4_d4h() {
 }
 
 #[test]
+fn test_character_table_construction_symmetric_xef4_grey_d4h() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(u)|").unwrap(),
+    ];
+    let tc4 = ClassSymbol::<SymmetryOperation>::new("2||θ·C4||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &tc4),
+            Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &tc4),
+            Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[18], &tc4),
+            Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[15], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[16], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[17], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[19], &tc4),
+            Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
+        ),
+    ]);
+    test_character_table_construction_magnetic(
+        &mol,
+        thresh,
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
+#[test]
 fn test_character_table_construction_symmetric_h8_d4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
@@ -6079,6 +6284,124 @@ fn test_character_table_construction_symmetric_h8_d4h() {
 }
 
 #[test]
+fn test_character_table_construction_symmetric_h8_grey_d4h() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(u)|").unwrap(),
+    ];
+    let tc4 = ClassSymbol::<SymmetryOperation>::new("2||θ·C4||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &tc4),
+            Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &tc4),
+            Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[18], &tc4),
+            Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[15], &tc4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[16], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[17], &tc4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[19], &tc4),
+            Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
+        ),
+    ]);
+    test_character_table_construction_magnetic(
+        &mol,
+        thresh,
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
+#[test]
 fn test_character_table_construction_symmetric_eclipsed_ferrocene_d5h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-6;
@@ -6129,6 +6452,104 @@ fn test_character_table_construction_symmetric_eclipsed_ferrocene_d5h() {
         ),
     ]);
     test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
+
+#[test]
+fn test_character_table_construction_symmetric_eclipsed_ferrocene_grey_d5h() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|^(')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^(')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^('')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^('')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|^(')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|^(')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|^('')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|^('')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|^(')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|^(')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|^('')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|^('')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|^(')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|^(')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|^('')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|^('')_(2)|").unwrap(),
+    ];
+    let tc5 = ClassSymbol::<SymmetryOperation>::new("2||θ·C5||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &tc5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &tc5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &tc5),
+            Character::new(&[(UnityRoot::new(1, 5), 1), (UnityRoot::new(4, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &tc5),
+            Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &tc5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &tc5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &tc5),
+            Character::new(&[(UnityRoot::new(1, 5), 1), (UnityRoot::new(4, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &tc5),
+            Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &tc5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &tc5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &tc5),
+            Character::new(&[(UnityRoot::new(3, 10), 1), (UnityRoot::new(7, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &tc5),
+            Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &tc5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &tc5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &tc5),
+            Character::new(&[(UnityRoot::new(3, 10), 1), (UnityRoot::new(7, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[15], &tc5),
+            Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
+        ),
+    ]);
+    test_character_table_construction_magnetic(
+        &mol,
+        thresh,
+        &expected_irreps,
+        Some(expected_chars),
+    );
 }
 
 #[test]
@@ -6202,6 +6623,144 @@ fn test_character_table_construction_symmetric_benzene_d6h() {
         ),
     ]);
     test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
+
+#[test]
+fn test_character_table_construction_symmetric_benzene_grey_d6h() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(2u)|").unwrap(),
+    ];
+    let tc6 = ClassSymbol::<SymmetryOperation>::new("2||θ·C6||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &tc6),
+            Character::new(&[(UnityRoot::new(1, 6), 1), (UnityRoot::new(5, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &tc6),
+            Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &tc6),
+            Character::new(&[(UnityRoot::new(1, 6), 1), (UnityRoot::new(5, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &tc6),
+            Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[15], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[20], &tc6),
+            Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[21], &tc6),
+            Character::new(&[(UnityRoot::new(1, 6), 1), (UnityRoot::new(5, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[16], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[17], &tc6),
+            Character::new(&[(UnityRoot::new(3, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[18], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[19], &tc6),
+            Character::new(&[(UnityRoot::new(0, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[22], &tc6),
+            Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
+        ),
+        (
+            (&expected_irreps[23], &tc6),
+            Character::new(&[(UnityRoot::new(1, 6), 1), (UnityRoot::new(5, 6), 1)]),
+        ),
+    ]);
+    test_character_table_construction_magnetic(
+        &mol,
+        thresh,
+        &expected_irreps,
+        Some(expected_chars),
+    );
 }
 
 #[test]
@@ -6286,6 +6845,163 @@ fn test_character_table_construction_symmetric_8_eclipsed_sandwich_d8h() {
     test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
+#[test]
+fn test_character_table_construction_symmetric_8_eclipsed_sandwich_grey_d8h() {
+    let thresh = 1e-7;
+    let mol = template_molecules::gen_arbitrary_eclipsed_sandwich(8);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(3g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(3u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(3g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(3u)|").unwrap(),
+    ];
+    let tc8 = ClassSymbol::<SymmetryOperation>::new("2||θ·C8||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &tc8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &tc8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &tc8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &tc8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &tc8),
+            Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &tc8),
+            Character::new(&[(UnityRoot::new(2, 8), 1), (UnityRoot::new(6, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &tc8),
+            Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &tc8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &tc8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &tc8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &tc8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &tc8),
+            Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &tc8),
+            Character::new(&[(UnityRoot::new(2, 8), 1), (UnityRoot::new(6, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &tc8),
+            Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &tc8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[15], &tc8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[16], &tc8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[17], &tc8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[22], &tc8),
+            Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[23], &tc8),
+            Character::new(&[(UnityRoot::new(2, 8), 1), (UnityRoot::new(6, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[24], &tc8),
+            Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[18], &tc8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[19], &tc8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[20], &tc8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[21], &tc8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[25], &tc8),
+            Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[26], &tc8),
+            Character::new(&[(UnityRoot::new(2, 8), 1), (UnityRoot::new(6, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[27], &tc8),
+            Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
+        ),
+    ]);
+    test_character_table_construction_magnetic(
+        &mol,
+        thresh,
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
 // #[test]
 // fn test_character_table_construction_symmetric_h100_d100h() {
 //     env_logger::init();
@@ -6345,6 +7061,95 @@ fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_dnh()
             irreps_ddd
         };
         test_character_table_construction(&mol, thresh, &expected_irreps, None);
+    }
+}
+
+#[test]
+fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_grey_dnh() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Dnh groups.
+     * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
+     * where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1('/''), A2('/''), Ek('/'')
+     * where k = 1, ..., n//2.
+     */
+    let thresh = 1e-7;
+    for n in 3..=20 {
+        let mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
+        let expected_irreps = if n % 2 == 0 {
+            let mut irreps = vec![
+                MullikenIrrepSymbol::new(&format!("||A|_(1g)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||A|_(2g)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||B|_(1g)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||B|_(2g)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||A|_(1u)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||A|_(2u)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||B|_(1u)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||B|_(2u)|")).unwrap(),
+            ];
+            if n == 4 {
+                irreps.push(MullikenIrrepSymbol::new(&format!("||E|_(g)|")).unwrap());
+                irreps.push(MullikenIrrepSymbol::new(&format!("||E|_(u)|")).unwrap());
+            } else {
+                irreps.extend(
+                    (1..n.div_euclid(2))
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k}g)|")).unwrap()),
+                );
+                irreps.extend(
+                    (1..n.div_euclid(2))
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k}u)|")).unwrap()),
+                );
+            }
+            let m_irreps = irreps
+                .iter()
+                .map(|irrep| {
+                    MullikenIrrepSymbol::new(&format!(
+                        "|^(m)|{}|^({})_({})|",
+                        irrep.main(),
+                        irrep.postsuper(),
+                        irrep.postsub()
+                    ))
+                    .unwrap()
+                })
+                .collect_vec();
+            irreps.extend(m_irreps);
+            irreps
+        } else {
+            let mut irreps = vec![
+                MullikenIrrepSymbol::new(&format!("||A|^(')_(1)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||A|^(')_(2)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||A|^('')_(1)|")).unwrap(),
+                MullikenIrrepSymbol::new(&format!("||A|^('')_(2)|")).unwrap(),
+            ];
+            if n == 3 {
+                irreps.push(MullikenIrrepSymbol::new(&format!("||E|^(')|")).unwrap());
+                irreps.push(MullikenIrrepSymbol::new(&format!("||E|^('')|")).unwrap());
+            } else {
+                irreps.extend(
+                    (1..=n.div_euclid(2))
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|^(')_({k})|")).unwrap()),
+                );
+                irreps.extend(
+                    (1..=n.div_euclid(2))
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|^('')_({k})|")).unwrap()),
+                );
+            };
+            let m_irreps = irreps
+                .iter()
+                .map(|irrep| {
+                    MullikenIrrepSymbol::new(&format!(
+                        "|^(m)|{}|^({})_({})|",
+                        irrep.main(),
+                        irrep.postsuper(),
+                        irrep.postsub()
+                    ))
+                    .unwrap()
+                })
+                .collect_vec();
+            irreps.extend(m_irreps);
+            irreps
+        };
+        test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
     }
 }
 
