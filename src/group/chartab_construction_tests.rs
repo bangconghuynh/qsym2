@@ -28,7 +28,7 @@ fn test_character_table_validity(
         HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,
     >,
 ) {
-    dbg!(chartab);
+    // dbg!(chartab);
 
     let order: usize = chartab
         .classes
@@ -12134,6 +12134,7 @@ fn verify_grey_d2h(mol: &Molecule, thresh: f64) {
         Some(expected_chars),
     );
 }
+
 /***
 Ci
 ***/
@@ -12142,22 +12143,15 @@ fn test_character_table_construction_asymmetric_meso_tartaricacid_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    let expected_irreps = vec![
-        MullikenIrrepSymbol::new("||A|_(g)|").unwrap(),
-        MullikenIrrepSymbol::new("||A|_(u)|").unwrap(),
-    ];
-    let i = ClassSymbol::<SymmetryOperation>::new("1||i||", None).unwrap();
-    let expected_chars = HashMap::from([
-        (
-            (&expected_irreps[0], &i),
-            Character::new(&[(UnityRoot::new(0, 2), 1)]),
-        ),
-        (
-            (&expected_irreps[1], &i),
-            Character::new(&[(UnityRoot::new(1, 2), 1)]),
-        ),
-    ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    verify_ci(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_meso_tartaricacid_grey_ci() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    verify_grey_ci(&mol, thresh);
 }
 
 #[test]
@@ -12165,22 +12159,15 @@ fn test_character_table_construction_asymmetric_dibromodimethylcyclohexane_ci() 
     let path: String = format!("{}{}", ROOT, "/tests/xyz/dibromodimethylcyclohexane.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    let expected_irreps = vec![
-        MullikenIrrepSymbol::new("||A|_(g)|").unwrap(),
-        MullikenIrrepSymbol::new("||A|_(u)|").unwrap(),
-    ];
-    let i = ClassSymbol::<SymmetryOperation>::new("1||i||", None).unwrap();
-    let expected_chars = HashMap::from([
-        (
-            (&expected_irreps[0], &i),
-            Character::new(&[(UnityRoot::new(0, 2), 1)]),
-        ),
-        (
-            (&expected_irreps[1], &i),
-            Character::new(&[(UnityRoot::new(1, 2), 1)]),
-        ),
-    ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    verify_ci(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_dibromodimethylcyclohexane_grey_ci() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/dibromodimethylcyclohexane.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    verify_grey_ci(&mol, thresh);
 }
 
 #[test]
@@ -12189,27 +12176,12 @@ fn test_character_table_construction_asymmetric_h2o2_magnetic_field_ci() {
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
-    let expected_irreps = vec![
-        MullikenIrrepSymbol::new("||A|_(g)|").unwrap(),
-        MullikenIrrepSymbol::new("||A|_(u)|").unwrap(),
-    ];
-    let i = ClassSymbol::<SymmetryOperation>::new("1||i||", None).unwrap();
-    let expected_chars = HashMap::from([
-        (
-            (&expected_irreps[0], &i),
-            Character::new(&[(UnityRoot::new(0, 2), 1)]),
-        ),
-        (
-            (&expected_irreps[1], &i),
-            Character::new(&[(UnityRoot::new(1, 2), 1)]),
-        ),
-    ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    verify_ci(&mol, thresh);
 }
 
 #[test]
 fn test_character_table_construction_asymmetric_h2o2_magnetic_field_bw_c2h_ci() {
-    env_logger::init();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2_yz.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -12253,6 +12225,29 @@ fn test_character_table_construction_symmetric_xef4_magnetic_field_ci() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -2.0)));
+    verify_ci(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_c2h2_magnetic_field_ci() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
+    verify_ci(&mol, thresh);
+}
+
+/// Verifies the validity of the computed $`\mathcal{C}_{i}`$ character table of irreps.
+///
+/// # Arguments
+///
+/// * `mol` - A reference to a [`Molecule`] structure.
+/// * `thresh` - A threshold for symmetry detection.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
+fn verify_ci(mol: &Molecule, thresh: f64) {
     let expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(g)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(u)|").unwrap(),
@@ -12271,28 +12266,49 @@ fn test_character_table_construction_symmetric_xef4_magnetic_field_ci() {
     test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
-#[test]
-fn test_character_table_construction_asymmetric_c2h2_magnetic_field_ci() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
-    let thresh = 1e-6;
-    let mut mol = Molecule::from_xyz(&path, thresh);
-    mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
+/// Verifies the validity of the computed $`\mathcal{C}_{i} + \theta\mathcal{C}_{i}`$ character
+/// table of irreps.
+///
+/// # Arguments
+///
+/// * `mol` - A reference to a [`Molecule`] structure.
+/// * `thresh` - A threshold for symmetry detection.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
+fn verify_grey_ci(mol: &Molecule, thresh: f64) {
     let expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(g)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(u)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(g)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(u)|").unwrap(),
     ];
-    let i = ClassSymbol::<SymmetryOperation>::new("1||i||", None).unwrap();
+    let ti = ClassSymbol::<SymmetryOperation>::new("1||θ·i||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (&expected_irreps[0], &i),
+            (&expected_irreps[0], &ti),
             Character::new(&[(UnityRoot::new(0, 2), 1)]),
         ),
         (
-            (&expected_irreps[1], &i),
+            (&expected_irreps[1], &ti),
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
+        (
+            (&expected_irreps[2], &ti),
+            Character::new(&[(UnityRoot::new(1, 2), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &ti),
+            Character::new(&[(UnityRoot::new(0, 2), 1)]),
+        ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction_magnetic(
+        &mol,
+        thresh,
+        &expected_irreps,
+        Some(expected_chars),
+    );
 }
 
 /***
@@ -12303,13 +12319,15 @@ fn test_character_table_construction_asymmetric_butan1ol_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    let expected_irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
-    let e = ClassSymbol::<SymmetryOperation>::new("1||E||", None).unwrap();
-    let expected_chars = HashMap::from([(
-        (&expected_irreps[0], &e),
-        Character::new(&[(UnityRoot::new(0, 1), 1)]),
-    )]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    verify_c1(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_butan1ol_grey_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    verify_grey_c1(&mol, thresh);
 }
 
 #[test]
@@ -12317,13 +12335,15 @@ fn test_character_table_construction_asymmetric_subst_5m_ring_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/subst-5m-ring.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    let expected_irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
-    let e = ClassSymbol::<SymmetryOperation>::new("1||E||", None).unwrap();
-    let expected_chars = HashMap::from([(
-        (&expected_irreps[0], &e),
-        Character::new(&[(UnityRoot::new(0, 1), 1)]),
-    )]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    verify_c1(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_subst_5m_ring_grey_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/subst-5m-ring.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    verify_grey_c1(&mol, thresh);
 }
 
 #[test]
@@ -12332,6 +12352,20 @@ fn test_character_table_construction_asymmetric_bf3_magnetic_field_c1() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
+    verify_c1(&mol, thresh);
+}
+
+/// Verifies the validity of the computed $`\mathcal{C}_{1}`$ character table of irreps.
+///
+/// # Arguments
+///
+/// * `mol` - A reference to a [`Molecule`] structure.
+/// * `thresh` - A threshold for symmetry detection.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
+fn verify_c1(mol: &Molecule, thresh: f64) {
     let expected_irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
     let e = ClassSymbol::<SymmetryOperation>::new("1||E||", None).unwrap();
     let expected_chars = HashMap::from([(
@@ -12339,4 +12373,39 @@ fn test_character_table_construction_asymmetric_bf3_magnetic_field_c1() {
         Character::new(&[(UnityRoot::new(0, 1), 1)]),
     )]);
     test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
+
+/// Verifies the validity of the computed $`\mathcal{C}_{1} + \theta\mathcal{C}_{1}`$ character
+/// table of irreps.
+///
+/// # Arguments
+///
+/// * `mol` - A reference to a [`Molecule`] structure.
+/// * `thresh` - A threshold for symmetry detection.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
+fn verify_grey_c1(mol: &Molecule, thresh: f64) {
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A||").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A||").unwrap(),
+    ];
+    let t = ClassSymbol::<SymmetryOperation>::new("1||θ||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &t),
+            Character::new(&[(UnityRoot::new(0, 1), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &t),
+            Character::new(&[(UnityRoot::new(1, 2), 1)]),
+        ),
+    ]);
+    test_character_table_construction_magnetic(
+        &mol,
+        thresh,
+        &expected_irreps,
+        Some(expected_chars),
+    );
 }
