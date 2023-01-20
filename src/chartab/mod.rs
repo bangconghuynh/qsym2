@@ -16,6 +16,7 @@ pub mod modular_linalg;
 pub mod reducedint;
 pub mod unityroot;
 
+/// A trait to contain essential methods for a character table.
 pub trait CharacterTable<RowSymbol, ColSymbol>
 where
     RowSymbol: MathematicalSymbol,
@@ -38,8 +39,7 @@ where
     /// Panics if the specified `irrep` or `class` cannot be found.
     fn get_character(&self, irrep: &RowSymbol, class: &ColSymbol) -> &Character;
 
-    /// Retrieves the characters of all conjugacy classes in a particular irreducible
-    /// representation.
+    /// Retrieves the characters of all columns in a particular row.
     ///
     /// # Arguments
     ///
@@ -48,10 +48,9 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_irrep(&self, irrep: &RowSymbol) -> ArrayView1<Character>;
+    fn get_row(&self, row: &RowSymbol) -> ArrayView1<Character>;
 
-    /// Retrieves the characters of all irreducible representations in a particular conjugacy
-    /// class.
+    /// Retrieves the characters of all rows in a particular column.
     ///
     /// # Arguments
     ///
@@ -60,7 +59,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_class(&self, class: &ColSymbol) -> ArrayView1<Character>;
+    fn get_col(&self, col: &ColSymbol) -> ArrayView1<Character>;
 
     /// Prints a nicely formatted character table.
     ///
@@ -82,6 +81,10 @@ where
         numerical: Option<usize>,
     ) -> fmt::Result;
 }
+
+// =================
+// RepCharacterTable
+// =================
 
 /// A struct to manage character tables.
 #[derive(Builder, Clone)]
@@ -190,6 +193,38 @@ impl<R: Clone> RepCharacterTable<R> {
             .build()
             .expect("Unable to construct a character table.")
     }
+
+    /// Retrieves the characters of all conjugacy classes in a particular irreducible
+    /// representation.
+    ///
+    /// This is an alias for [`Self::get_row`].
+    ///
+    /// # Arguments
+    ///
+    /// * `irrep` - A Mulliken irreducible representation symbol.
+    ///
+    /// # Returns
+    ///
+    /// The required characters.
+    fn get_irrep(&self, irrep: &MullikenIrrepSymbol) -> ArrayView1<Character> {
+        self.get_row(irrep)
+    }
+
+    /// Retrieves the characters of all irreducible representations in a particular conjugacy
+    /// class.
+    ///
+    /// This is an alias for [`Self::get_col`].
+    ///
+    /// # Arguments
+    ///
+    /// * `class` - A conjugacy class symbol.
+    ///
+    /// # Returns
+    ///
+    /// The required characters.
+    fn get_class(&self, class: &ClassSymbol<R>) -> ArrayView1<Character> {
+        self.get_col(class)
+    }
 }
 
 impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharacterTable<R> {
@@ -230,11 +265,11 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
     /// # Returns
     ///
     /// The required characters.
-    fn get_irrep(&self, irrep: &MullikenIrrepSymbol) -> ArrayView1<Character> {
+    fn get_row(&self, row: &MullikenIrrepSymbol) -> ArrayView1<Character> {
         let row = self
             .irreps
-            .get(irrep)
-            .unwrap_or_else(|| panic!("Irrep {irrep} not found."));
+            .get(row)
+            .unwrap_or_else(|| panic!("Irrep {row} not found."));
         self.characters.row(*row)
     }
 
@@ -248,11 +283,11 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
     /// # Returns
     ///
     /// The required characters.
-    fn get_class(&self, class: &ClassSymbol<R>) -> ArrayView1<Character> {
+    fn get_col(&self, col: &ClassSymbol<R>) -> ArrayView1<Character> {
         let col = self
             .classes
-            .get(class)
-            .unwrap_or_else(|| panic!("Conjugacy class {class} not found."));
+            .get(col)
+            .unwrap_or_else(|| panic!("Conjugacy class {col} not found."));
         self.characters.column(*col)
     }
 
@@ -433,3 +468,7 @@ impl<R: Clone> fmt::Debug for RepCharacterTable<R> {
         self.write_nice_table(f, true, None)
     }
 }
+
+// ===================
+// CorepCharacterTable
+// ===================
