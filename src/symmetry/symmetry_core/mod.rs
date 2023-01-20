@@ -768,7 +768,8 @@ impl Symmetry {
     ///
     /// # Returns
     ///
-    /// A set of the required mirror-plane element type, if exists.
+    /// An option containing the set of the required mirror-plane element type, if exists. If not,
+    /// then `None` is returned.
     #[must_use]
     pub fn get_sigma_elements(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         self.get_improper(&ORDER_1).map(|sigma_elements| {
@@ -781,8 +782,9 @@ impl Symmetry {
                         None
                     }
                 })
-                .collect()
+                .collect::<HashSet<_>>()
         })
+        .filter(|sigma_elements| !sigma_elements.is_empty())
     }
 
     /// Obtains mirror-plane generators by their type (`"h"`, `"v"`, `"d"`, or `""`), including both

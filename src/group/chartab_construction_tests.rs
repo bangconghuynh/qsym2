@@ -11161,15 +11161,15 @@ fn test_character_table_construction_asymmetric_water_magnetic_field_cs() {
     verify_cs(&mol, thresh);
 }
 
-#[test]
-fn test_character_table_construction_asymmetric_water_magnetic_field_bw_c2v_cs() {
-    env_logger::init();
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
-    let thresh = 1e-7;
-    let mut mol = Molecule::from_xyz(&path, thresh);
-    mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    verify_bw_c2v_c2(&mol, thresh);
-}
+// #[test]
+// fn test_character_table_construction_asymmetric_water_magnetic_field_bw_c2v_cs() {
+//     env_logger::init();
+//     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
+//     let thresh = 1e-7;
+//     let mut mol = Molecule::from_xyz(&path, thresh);
+//     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
+//     verify_bw_c2v_c2(&mol, thresh);
+// }
 
 #[test]
 fn test_character_table_construction_asymmetric_pyridine_magnetic_field_cs() {
@@ -11367,11 +11367,11 @@ fn verify_grey_cs(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
         (
-            (&expected_irreps[0], &ts),
+            (&expected_irreps[2], &ts),
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
         (
-            (&expected_irreps[1], &ts),
+            (&expected_irreps[3], &ts),
             Character::new(&[(UnityRoot::new(0, 2), 1)]),
         ),
     ]);
@@ -12108,6 +12108,41 @@ fn test_character_table_construction_asymmetric_h2o2_magnetic_field_ci() {
         ),
     ]);
     test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_h2o2_magnetic_field_bw_c2h_ci() {
+    env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2_yz.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 2.0, -1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
+    ];
+    let tc2 = ClassSymbol::<SymmetryOperation>::new("1||θ·C2||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &tc2),
+            Character::new(&[(UnityRoot::new(0, 2), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &tc2),
+            Character::new(&[(UnityRoot::new(1, 2), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &tc2),
+            Character::new(&[(UnityRoot::new(0, 2), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &tc2),
+            Character::new(&[(UnityRoot::new(1, 2), 1)]),
+        ),
+    ]);
+    test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]

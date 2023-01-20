@@ -927,7 +927,7 @@ where
             )
         } else if !self.is_unitary() {
             log::debug!(
-                "Antiunitary elements exist. Principal-axis classes will be forced to be unitary."
+                "Antiunitary elements exist without any inversion centres or horizonal mirror planes. Principal-axis classes will be forced to be unitary."
             );
             deduce_principal_classes(
                 class_symbols,
@@ -935,11 +935,7 @@ where
                 None,
             )
         } else {
-            deduce_principal_classes(
-                class_symbols,
-                None::<fn(&ClassSymbol<T>) -> bool>,
-                None,
-            )
+            deduce_principal_classes(class_symbols, None::<fn(&ClassSymbol<T>) -> bool>, None)
         };
 
         let char_arr = sort_irreps(&char_arr.view(), class_symbols, &principal_classes);

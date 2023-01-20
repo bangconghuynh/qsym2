@@ -466,8 +466,29 @@ impl Symmetry {
 
             if count_sigma == max_ord_u32 {
                 if max_ord_u32 > 1 {
-                    // Cnv (n > 2)
+                    let principal_element = self.get_proper_principal_element();
+                    // Cnv
                     log::debug!("Found {} σv planes.", count_sigma);
+                    if max_ord_u32 == 2 && principal_element.contains_time_reversal() {
+                        // C2v, but with θ·C2
+                        log::debug!("The C2 axis is actually θ·C2. The non-time-reversed σv will be reassigned as σh.");
+                        let old_sigmas = self.get_elements_mut(&SIG)
+                            .expect("No improper elements found.")
+                            .remove(&ORDER_1)
+                            .expect("No σv found.");
+                        let old_sigma = old_sigmas.iter()
+                            .next()
+                            .expect("No σv found.");
+                        self.add_improper(
+                            ORDER_1,
+                            old_sigma.axis,
+                            false,
+                            SIG.clone(),
+                            Some("h".to_owned()),
+                            presym.dist_threshold,
+                            old_sigma.contains_time_reversal(),
+                        );
+                    }
                     self.set_group_name(format!("C{max_ord}v"));
                     let principal_element = self.get_proper_principal_element();
                     self.add_proper(
@@ -478,24 +499,32 @@ impl Symmetry {
                         principal_element.contains_time_reversal(),
                     );
 
-                    // One of the σv's is also a generator. We prioritise the non-time-reversed one
+                    // One of the σ's is also a generator. We prioritise the non-time-reversed one
                     // as the generator.
-                    let mut sigmavs = self
+                    let mut sigmas = self
                         .get_sigma_elements("v")
-                        .expect("No σv found.")
+                        .unwrap_or_else(|| {
+                            log::debug!("No σv found. Searching for σh instead.");
+                            self.get_sigma_elements("h").expect("No σh found either.")
+                        })
                         .into_iter()
+                        .chain(self
+                            .get_sigma_elements("h")
+                            .unwrap_or_default()
+                            .into_iter()
+                        )
                         .cloned()
                         .collect_vec();
-                    sigmavs.sort_by_key(SymmetryElement::contains_time_reversal);
-                    let sigmav = sigmavs.first().expect("No σv found.");
+                    sigmas.sort_by_key(SymmetryElement::contains_time_reversal);
+                    let sigma = sigmas.first().expect("No σv or σh found.");
                     self.add_improper(
                         ORDER_1,
-                        sigmav.axis,
+                        sigma.axis,
                         true,
                         SIG.clone(),
-                        Some("v".to_owned()),
+                        Some(sigma.additional_subscript.clone()),
                         presym.dist_threshold,
-                        sigmav.contains_time_reversal(),
+                        sigma.contains_time_reversal(),
                     );
                 } else {
                     // Cs
