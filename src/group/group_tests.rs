@@ -6180,7 +6180,7 @@ fn test_abstract_group_asymmetric_i4_biphenyl_grey_d2_class_order() {
 }
 
 #[test]
-fn test_abstrainto_ct_group_asymmetric_twistane_d2() {
+fn test_abstract_group_asymmetric_twistane_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/twistane.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
