@@ -86,7 +86,7 @@ where
 // RepCharacterTable
 // =================
 
-/// A struct to manage character tables.
+/// A struct to manage character tables of irreducible representations.
 #[derive(Builder, Clone)]
 pub struct RepCharacterTable<R: Clone> {
     /// The name given to the character table.
@@ -472,3 +472,17 @@ impl<R: Clone> fmt::Debug for RepCharacterTable<R> {
 // ===================
 // CorepCharacterTable
 // ===================
+
+/// A struct to manage character tables of irreducible corepresentations of magnetic groups.
+#[derive(Builder, Clone)]
+pub struct CorepCharacterTable<R: Clone> {
+    /// The name given to the character table.
+    name: String,
+
+    /// The character table of the irreducible representations of the halving unitary subgroup that
+    /// induce the irreducible corepresentations of the current magnetic group.
+    unitary_character_table: RepCharacterTable<R>,
+
+    /// The intertwining numbers of the irreducible corepresentations.
+    intertwining_numbers: IndexMap<MullikenIrrepSymbol, i8>,
+}
