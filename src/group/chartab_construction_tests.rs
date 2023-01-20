@@ -10682,27 +10682,27 @@ fn verify_bw_c2v_c2(mol: &Molecule, thresh: f64) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_bw_c2v_cs(mol: &Molecule, thresh: f64) {
     let expected_irreps = vec![
-        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^(')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^(')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^('')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^('')_(2)|").unwrap(),
     ];
-    let sigmav = ClassSymbol::<SymmetryOperation>::new("1||σv||", None).unwrap();
+    let tc2 = ClassSymbol::<SymmetryOperation>::new("1||θ·C2||", None).unwrap();
     let expected_chars = HashMap::from([
         (
-            (&expected_irreps[0], &sigmav),
+            (&expected_irreps[0], &tc2),
             Character::new(&[(UnityRoot::new(0, 2), 1)]),
         ),
         (
-            (&expected_irreps[1], &sigmav),
-            Character::new(&[(UnityRoot::new(0, 2), 1)]),
-        ),
-        (
-            (&expected_irreps[2], &sigmav),
+            (&expected_irreps[1], &tc2),
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
         (
-            (&expected_irreps[3], &sigmav),
+            (&expected_irreps[2], &tc2),
+            Character::new(&[(UnityRoot::new(0, 2), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &tc2),
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
@@ -11161,15 +11161,15 @@ fn test_character_table_construction_asymmetric_water_magnetic_field_cs() {
     verify_cs(&mol, thresh);
 }
 
-// #[test]
-// fn test_character_table_construction_asymmetric_water_magnetic_field_bw_c2v_cs() {
-//     env_logger::init();
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
-//     let thresh = 1e-7;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-//     verify_bw_c2v_c2(&mol, thresh);
-// }
+#[test]
+fn test_character_table_construction_asymmetric_water_magnetic_field_bw_c2v_cs() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
+    verify_bw_c2v_cs(&mol, thresh);
+}
 
 #[test]
 fn test_character_table_construction_asymmetric_pyridine_magnetic_field_cs() {
@@ -11178,6 +11178,15 @@ fn test_character_table_construction_asymmetric_pyridine_magnetic_field_cs() {
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     verify_cs(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_pyridine_magnetic_field_bw_c2v_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
+    verify_bw_c2v_cs(&mol, thresh);
 }
 
 #[test]
@@ -11190,12 +11199,30 @@ fn test_character_table_construction_asymmetric_cyclobutene_magnetic_field_cs() 
 }
 
 #[test]
+fn test_character_table_construction_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.1, 0.0)));
+    verify_bw_c2v_cs(&mol, thresh);
+}
+
+#[test]
 fn test_character_table_construction_asymmetric_azulene_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     verify_cs(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_azulene_magnetic_field_bw_c2v_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.1, 0.0)));
+    verify_bw_c2v_cs(&mol, thresh);
 }
 
 #[test]
@@ -11208,12 +11235,30 @@ fn test_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_cs(
 }
 
 #[test]
+fn test_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
+    verify_bw_c2v_cs(&mol, thresh);
+}
+
+#[test]
 fn test_character_table_construction_asymmetric_cuneane_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));
     verify_cs(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_cuneane_magnetic_field_bw_c2v_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));
+    verify_bw_c2v_cs(&mol, thresh);
 }
 
 #[test]
@@ -11226,12 +11271,30 @@ fn test_character_table_construction_asymmetric_water_electric_field_cs() {
 }
 
 #[test]
+fn test_character_table_construction_asymmetric_water_electric_field_grey_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
+    verify_grey_cs(&mol, thresh);
+}
+
+#[test]
 fn test_character_table_construction_asymmetric_pyridine_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     verify_cs(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_pyridine_electric_field_grey_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 0.2)));
+    verify_grey_cs(&mol, thresh);
 }
 
 #[test]
@@ -11244,12 +11307,30 @@ fn test_character_table_construction_asymmetric_cyclobutene_electric_field_cs() 
 }
 
 #[test]
+fn test_character_table_construction_asymmetric_cyclobutene_electric_field_grey_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
+    verify_grey_cs(&mol, thresh);
+}
+
+#[test]
 fn test_character_table_construction_asymmetric_azulene_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     verify_cs(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_azulene_electric_field_grey_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
+    verify_grey_cs(&mol, thresh);
 }
 
 #[test]
@@ -11262,6 +11343,15 @@ fn test_character_table_construction_asymmetric_cis_cocl2h4o2_electric_field_cs(
 }
 
 #[test]
+fn test_character_table_construction_asymmetric_cis_cocl2h4o2_electric_field_grey_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 0.2)));
+    verify_grey_cs(&mol, thresh);
+}
+
+#[test]
 fn test_character_table_construction_asymmetric_cuneane_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
@@ -11271,12 +11361,30 @@ fn test_character_table_construction_asymmetric_cuneane_electric_field_cs() {
 }
 
 #[test]
+fn test_character_table_construction_asymmetric_cuneane_electric_field_grey_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.5, 0.0)));
+    verify_grey_cs(&mol, thresh);
+}
+
+#[test]
 fn test_character_table_construction_asymmetric_bf3_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));
     verify_cs(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_bf3_magnetic_field_bw_c2v_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));
+    verify_bw_c2v_cs(&mol, thresh);
 }
 
 /// This is a special case: Cs point group in a symmetric top.
@@ -11289,6 +11397,15 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_cs() {
     verify_cs(&mol, thresh);
 }
 
+#[test]
+fn test_character_table_construction_symmetric_ch4_magnetic_field_bw_c2v_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.0)));
+    verify_bw_c2v_cs(&mol, thresh);
+}
+
 /// This is another special case: Cs point group in a symmetric top.
 #[test]
 fn test_character_table_construction_symmetric_ch4_electric_field_cs() {
@@ -11299,6 +11416,16 @@ fn test_character_table_construction_symmetric_ch4_electric_field_cs() {
     verify_cs(&mol, thresh);
 }
 
+/// This is another special case: Cs point group in a symmetric top.
+#[test]
+fn test_character_table_construction_symmetric_ch4_electric_field_grey_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.0)));
+    verify_grey_cs(&mol, thresh);
+}
+
 #[test]
 fn test_character_table_construction_asymmetric_atom_magnetic_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
@@ -11307,6 +11434,16 @@ fn test_character_table_construction_asymmetric_atom_magnetic_electric_field_cs(
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     verify_cs(&mol, thresh);
+}
+
+#[test]
+fn test_character_table_construction_asymmetric_atom_magnetic_electric_field_bw_c2v_cs() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
+    verify_bw_c2v_cs(&mol, thresh);
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{s}`$ character table of irreps.
