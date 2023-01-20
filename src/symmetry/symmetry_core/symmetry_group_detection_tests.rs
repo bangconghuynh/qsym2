@@ -5483,7 +5483,7 @@ fn test_symmetry_group_detection_asymmetric_cuneane_magnetic_field_cs() {
 
 #[test]
 fn test_symmetry_group_detection_asymmetric_cuneane_magnetic_field_bw_c2v_cs() {
-    // env_logger::init();
+    env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));

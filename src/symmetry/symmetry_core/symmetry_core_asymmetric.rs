@@ -315,7 +315,7 @@ impl Symmetry {
                 }
 
                 log::debug!(
-                    "Located {} σ ({} σv and {} σh)).",
+                    "Located {} σ ({} σv and {} σh).",
                     count_sigma,
                     self.get_sigma_elements("v")
                         .map_or(0, |sigmavs| sigmavs.len()),
