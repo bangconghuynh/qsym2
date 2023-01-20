@@ -944,7 +944,7 @@ impl PartialEq for SymmetryOperation {
             assert_eq!(
                 misc::calculate_hash(self),
                 misc::calculate_hash(other),
-                "{self} and {other} have unequal hashes."
+                "{self} and {other} have unequal hashes.",
             );
         }
         result
@@ -963,7 +963,11 @@ impl Hash for SymmetryOperation {
         };
         c_self.is_antiunitary().hash(state);
         c_self.is_proper().hash(state);
-        if c_self.is_identity() || c_self.is_inversion() || c_self.is_time_reversal() || c_self.is_tr_inversion() {
+        if c_self.is_identity()
+            || c_self.is_inversion()
+            || c_self.is_time_reversal()
+            || c_self.is_tr_inversion()
+        {
             true.hash(state);
         } else {
             let pole = c_self.calc_pole();
@@ -980,7 +984,11 @@ impl Hash for SymmetryOperation {
                 .integer_decode()
                 .hash(state);
 
-            if !c_self.is_binary_rotation() && !c_self.is_reflection() {
+            if !c_self.is_binary_rotation()
+                && !c_self.is_reflection()
+                && !c_self.is_tr_binary_rotation()
+                && !c_self.is_tr_reflection()
+            {
                 if let Some(frac) = c_self.total_proper_fraction {
                     // frac lies in (0, 1/2) ∪ (1/2, 1).
                     // 1/2 and 1 are excluded because this is not an identity,

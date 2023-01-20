@@ -5,6 +5,7 @@ use derive_builder::Builder;
 use itertools::Itertools;
 use log;
 use nalgebra::{Point3, Vector3};
+use indexmap::IndexSet;
 
 use crate::aux::atom::Atom;
 use crate::aux::geometry::{self, Transform};
@@ -256,7 +257,7 @@ pub struct Symmetry {
     ///
     /// Note that for improper elements, the mirror-plane convention is preferred.
     #[builder(setter(skip), default = "HashMap::new()")]
-    pub elements: HashMap<SymmetryElementKind, HashMap<ElementOrder, HashSet<SymmetryElement>>>,
+    pub elements: HashMap<SymmetryElementKind, HashMap<ElementOrder, IndexSet<SymmetryElement>>>,
 
     /// The symmetry generators found.
     ///
@@ -266,7 +267,7 @@ pub struct Symmetry {
     ///
     /// Note that for improper generatrors, the mirror-plane convention is preferred.
     #[builder(setter(skip), default = "HashMap::new()")]
-    pub generators: HashMap<SymmetryElementKind, HashMap<ElementOrder, HashSet<SymmetryElement>>>,
+    pub generators: HashMap<SymmetryElementKind, HashMap<ElementOrder, IndexSet<SymmetryElement>>>,
 }
 
 impl Symmetry {
@@ -353,7 +354,7 @@ impl Symmetry {
                                         tr_proper_element.kind = proper_element.kind.to_tr(true);
                                         tr_proper_element
                                     })
-                                    .collect::<HashSet<_>>();
+                                    .collect::<IndexSet<_>>();
                                 (*order, tr_proper_elements)
                             })
                             .collect::<HashMap<_, _>>(),
@@ -379,7 +380,7 @@ impl Symmetry {
                                                 improper_element.kind.to_tr(true);
                                             tr_improper_element
                                         })
-                                        .collect::<HashSet<_>>();
+                                        .collect::<IndexSet<_>>();
                                     (*order, tr_improper_elements)
                                 })
                                 .collect::<HashMap<_, _>>(),
@@ -445,7 +446,7 @@ impl Symmetry {
         let proper_kind = if tr { TRROT } else { ROT };
         let result = if generator {
             if let Vacant(proper_generators) = self.generators.entry(proper_kind.clone()) {
-                proper_generators.insert(HashMap::from([(order, HashSet::from([element]))]));
+                proper_generators.insert(HashMap::from([(order, IndexSet::from([element]))]));
                 true
             } else {
                 let proper_generators =
@@ -457,7 +458,7 @@ impl Symmetry {
                     });
 
                 if let Vacant(proper_generators_order) = proper_generators.entry(order) {
-                    proper_generators_order.insert(HashSet::from([element]));
+                    proper_generators_order.insert(IndexSet::from([element]));
                     true
                 } else {
                     proper_generators
@@ -472,7 +473,7 @@ impl Symmetry {
                 }
             }
         } else if let Vacant(proper_elements) = self.elements.entry(proper_kind.clone()) {
-            proper_elements.insert(HashMap::from([(order, HashSet::from([element]))]));
+            proper_elements.insert(HashMap::from([(order, IndexSet::from([element]))]));
             true
         } else {
             let proper_elements = self.elements.get_mut(&proper_kind).unwrap_or_else(|| {
@@ -483,7 +484,7 @@ impl Symmetry {
             });
 
             if let Vacant(e) = proper_elements.entry(order) {
-                e.insert(HashSet::from([element]));
+                e.insert(IndexSet::from([element]));
                 true
             } else {
                 proper_elements
@@ -585,7 +586,7 @@ impl Symmetry {
         let improper_kind = if tr { TRSIG } else { SIG };
         let result = if generator {
             if let Vacant(improper_generators) = self.generators.entry(improper_kind.clone()) {
-                improper_generators.insert(HashMap::from([(order, HashSet::from([element]))]));
+                improper_generators.insert(HashMap::from([(order, IndexSet::from([element]))]));
                 true
             } else {
                 let improper_generators =
@@ -601,7 +602,7 @@ impl Symmetry {
                     });
 
                 if let Vacant(e) = improper_generators.entry(order) {
-                    e.insert(HashSet::from([element]));
+                    e.insert(IndexSet::from([element]));
                     true
                 } else {
                     improper_generators
@@ -616,7 +617,7 @@ impl Symmetry {
                 }
             }
         } else if let Vacant(improper_elements) = self.elements.entry(improper_kind.clone()) {
-            improper_elements.insert(HashMap::from([(order, HashSet::from([element]))]));
+            improper_elements.insert(HashMap::from([(order, IndexSet::from([element]))]));
             true
         } else {
             let improper_elements = self.elements.get_mut(&improper_kind).unwrap_or_else(|| {
@@ -631,7 +632,7 @@ impl Symmetry {
             });
 
             if let Vacant(e) = improper_elements.entry(order) {
-                e.insert(HashSet::from([element]));
+                e.insert(IndexSet::from([element]));
                 true
             } else {
                 improper_elements
@@ -707,7 +708,7 @@ impl Symmetry {
     pub fn get_elements(
         &self,
         kind: &SymmetryElementKind,
-    ) -> Option<&HashMap<ElementOrder, HashSet<SymmetryElement>>> {
+    ) -> Option<&HashMap<ElementOrder, IndexSet<SymmetryElement>>> {
         self.elements.get(kind)
     }
 
@@ -724,7 +725,7 @@ impl Symmetry {
     pub fn get_elements_mut(
         &mut self,
         kind: &SymmetryElementKind,
-    ) -> Option<&mut HashMap<ElementOrder, HashSet<SymmetryElement>>> {
+    ) -> Option<&mut HashMap<ElementOrder, IndexSet<SymmetryElement>>> {
         self.elements.get_mut(kind)
     }
 
@@ -741,7 +742,7 @@ impl Symmetry {
     pub fn get_generators(
         &self,
         kind: &SymmetryElementKind,
-    ) -> Option<&HashMap<ElementOrder, HashSet<SymmetryElement>>> {
+    ) -> Option<&HashMap<ElementOrder, IndexSet<SymmetryElement>>> {
         self.generators.get(kind)
     }
 
@@ -758,7 +759,7 @@ impl Symmetry {
     pub fn get_generators_mut(
         &mut self,
         kind: &SymmetryElementKind,
-    ) -> Option<&mut HashMap<ElementOrder, HashSet<SymmetryElement>>> {
+    ) -> Option<&mut HashMap<ElementOrder, IndexSet<SymmetryElement>>> {
         self.generators.get_mut(kind)
     }
 
@@ -767,7 +768,8 @@ impl Symmetry {
     ///
     /// # Returns
     ///
-    /// A set of the required mirror-plane element type, if exists.
+    /// An option containing the set of the required mirror-plane element type, if exists. If not,
+    /// then `None` is returned.
     #[must_use]
     pub fn get_sigma_elements(&self, sigma: &str) -> Option<HashSet<&SymmetryElement>> {
         self.get_improper(&ORDER_1).map(|sigma_elements| {
@@ -780,8 +782,9 @@ impl Symmetry {
                         None
                     }
                 })
-                .collect()
+                .collect::<HashSet<_>>()
         })
+        .filter(|sigma_elements| !sigma_elements.is_empty())
     }
 
     /// Obtains mirror-plane generators by their type (`"h"`, `"v"`, `"d"`, or `""`), including both

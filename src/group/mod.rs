@@ -7,7 +7,7 @@ use approx;
 use log;
 
 use derive_builder::Builder;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use ndarray::{array, s, Array1, Array2, Array3, Axis, Zip};
 use num::{integer::lcm, Complex};
@@ -33,7 +33,7 @@ use crate::symmetry::symmetry_element::{
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, deduce_sigma_symbol, sort_irreps,
-    ClassSymbol,
+    ClassSymbol, FORCED_PRINCIPAL_GROUPS,
 };
 
 #[cfg(test)]
@@ -271,7 +271,7 @@ where
             *k = *self
                 .elements
                 .get(&op_k)
-                .unwrap_or_else(|| panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try reducing thresholds.",
+                .unwrap_or_else(|| panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try changing thresholds.",
                         op_i_ref,
                         op_j_ref,
                         &op_k));
@@ -881,29 +881,14 @@ where
             .expect("Unable to construct a class symbol from `1||i||`.");
         let s_cc = ClassSymbol::new("1||σh||", None)
             .expect("Unable to construct a class symbol from `1||σh||`.");
-        let mut force_proper_principal = if class_symbols.contains_key(&i_cc) {
-            log::debug!(
-                "Inversion centre exists. Principal-axis classes will be forced to be proper."
-            );
-            true
-        } else if class_symbols.contains_key(&s_cc) {
-            log::debug!(
-                "Horizontal mirror plane exists. Principal-axis classes will be forced to be proper."
-            );
-            true
-        } else {
-            false
-        };
 
-        let force_principal = if matches!(self.name.as_str(), "O" | "Oh" | "Td")
-            || matches!(
+        let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(self.name.as_str())
+            || FORCED_PRINCIPAL_GROUPS.contains(
                 self.finite_subgroup_name
                     .as_ref()
                     .unwrap_or(&String::new())
                     .as_str(),
-                "O" | "Oh" | "Td"
             ) {
-            force_proper_principal = false;
             let c3_cc: ClassSymbol<T> = ClassSymbol::new("8||C3||", None)
                 .expect("Unable to construct a class symbol from `8||C3||`.");
             log::debug!(
@@ -916,8 +901,42 @@ where
             None
         };
 
-        let principal_classes =
-            deduce_principal_classes(class_symbols, force_proper_principal, force_principal);
+        let principal_classes = if force_principal.is_some() {
+            deduce_principal_classes(
+                class_symbols,
+                None::<fn(&ClassSymbol<T>) -> bool>,
+                force_principal,
+            )
+        } else if class_symbols.contains_key(&i_cc) {
+            log::debug!(
+                "Inversion centre exists. Principal-axis classes will be forced to be proper."
+            );
+            deduce_principal_classes(
+                class_symbols,
+                Some(|cc: &ClassSymbol<T>| cc.is_proper() && !cc.is_antiunitary()),
+                None,
+            )
+        } else if class_symbols.contains_key(&s_cc) {
+            log::debug!(
+                "Horizontal mirror plane exists. Principal-axis classes will be forced to be proper."
+            );
+            deduce_principal_classes(
+                class_symbols,
+                Some(|cc: &ClassSymbol<T>| cc.is_proper() && !cc.is_antiunitary()),
+                None,
+            )
+        } else if !self.is_unitary() {
+            log::debug!(
+                "Antiunitary elements exist without any inversion centres or horizonal mirror planes. Principal-axis classes will be forced to be unitary."
+            );
+            deduce_principal_classes(
+                class_symbols,
+                Some(|cc: &ClassSymbol<T>| !cc.is_antiunitary()),
+                None,
+            )
+        } else {
+            deduce_principal_classes(class_symbols, None::<fn(&ClassSymbol<T>) -> bool>, None)
+        };
 
         let char_arr = sort_irreps(&char_arr.view(), class_symbols, &principal_classes);
 
@@ -1166,7 +1185,7 @@ fn group_from_molecular_symmetry(
         .build()
         .expect("Unable to construct an identity operation.");
 
-    let empty_elements: HashMap<ElementOrder, HashSet<SymmetryElement>> = HashMap::new();
+    let empty_elements: HashMap<ElementOrder, IndexSet<SymmetryElement>> = HashMap::new();
 
     // Finite proper operations
     let mut proper_orders = sym
@@ -1489,7 +1508,7 @@ fn group_from_molecular_symmetry(
         vec![]
     };
 
-    let operations: HashSet<_> = if handles_infinite_group.is_none() {
+    let operations: IndexSet<_> = if handles_infinite_group.is_none() {
         proper_operations
             .into_iter()
             .chain(proper_operations_from_generators)
@@ -1503,7 +1522,7 @@ fn group_from_molecular_symmetry(
     } else {
         // Fulfil group closure
         log::debug!("Fulfilling closure for a finite subgroup of an infinite group...");
-        let mut existing_operations: HashSet<_> = proper_operations
+        let mut existing_operations: IndexSet<_> = proper_operations
             .into_iter()
             .chain(proper_operations_from_generators)
             .chain(improper_operations)
@@ -1647,15 +1666,29 @@ fn group_from_molecular_symmetry(
                         .expect("The last character in the group name cannot be retrieved."),
                     b'h' | b'd'
                 ) {
-                    assert_eq!(group.order % 4, 0);
-                    group
-                        .name
-                        .replace('∞', format!("{}", group.order / 4).as_str())
+                    if group.name.contains('θ') {
+                        assert_eq!(group.order % 8, 0);
+                        group
+                            .name
+                            .replace('∞', format!("{}", group.order / 8).as_str())
+                    } else {
+                        assert_eq!(group.order % 4, 0);
+                        group
+                            .name
+                            .replace('∞', format!("{}", group.order / 4).as_str())
+                    }
                 } else {
-                    assert_eq!(group.order % 2, 0);
-                    group
-                        .name
-                        .replace('∞', format!("{}", group.order / 2).as_str())
+                    if group.name.contains('θ') {
+                        assert_eq!(group.order % 4, 0);
+                        group
+                            .name
+                            .replace('∞', format!("{}", group.order / 4).as_str())
+                    } else {
+                        assert_eq!(group.order % 2, 0);
+                        group
+                            .name
+                            .replace('∞', format!("{}", group.order / 2).as_str())
+                    }
                 }
             } else {
                 assert!(matches!(group.name.as_bytes()[0], b'C' | b'S'));
@@ -1668,11 +1701,21 @@ fn group_from_molecular_symmetry(
                         .expect("The last character in the group name cannot be retrieved."),
                     b'h' | b'v'
                 ) {
-                    assert_eq!(group.order % 2, 0);
+                    if group.name.contains('θ') {
+                        assert_eq!(group.order % 4, 0);
+                    } else {
+                        assert_eq!(group.order % 2, 0);
+                    }
                     if group.order > 2 {
-                        group
-                            .name
-                            .replace('∞', format!("{}", group.order / 2).as_str())
+                        if group.name.contains('θ') {
+                            group
+                                .name
+                                .replace('∞', format!("{}", group.order / 4).as_str())
+                        } else {
+                            group
+                                .name
+                                .replace('∞', format!("{}", group.order / 2).as_str())
+                        }
                     } else {
                         assert_eq!(group.name.as_bytes()[0], b'C');
                         "Cs".to_string()
@@ -1694,8 +1737,6 @@ fn group_from_molecular_symmetry(
         group.finite_subgroup_name = Some(finite_group);
     }
     group.assign_class_symbols_from_symmetry();
-    if group.is_unitary() {
-        group.construct_character_table();
-    }
+    group.construct_character_table();
     group
 }

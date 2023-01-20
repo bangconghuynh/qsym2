@@ -10,17 +10,17 @@ use counter::Counter;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
-use ndarray::{Array2, ArrayView2, Axis};
 use nalgebra::Vector3;
-use phf::phf_map;
+use ndarray::{Array2, ArrayView2, Axis};
+use phf::{phf_map, phf_set};
 use regex::Regex;
 
 use crate::chartab::character::Character;
 use crate::chartab::unityroot::UnityRoot;
-use crate::symmetry::symmetry_element::SymmetryElement;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
 };
+use crate::symmetry::symmetry_element::SymmetryElement;
 use crate::symmetry::symmetry_element_order::ORDER_1;
 
 // =========
@@ -62,6 +62,15 @@ pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
     1i8 => "r",
     0i8 => "c",
     -1i8 => "q",
+};
+
+pub static FORCED_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
+    "O",
+    "Oh",
+    "Td",
+    "O + θ·O",
+    "Oh + θ·Oh",
+    "Td + θ·Td",
 };
 
 // ======
@@ -774,7 +783,10 @@ impl<R: Clone> fmt::Display for ClassSymbol<R> {
 /// Reorder the rows so that the characters are in increasing order as we
 /// go down the table, with the first column being used as the primary sort
 /// order, then the second column, and so on, with the exceptions of some
-/// special columns.
+/// special columns, if available. These are:
+///
+/// * time-reversal class, $`\theta`$,
+/// * inversion class, $`i`$, or horizonal mirror plane $`\sigma_h`$ if $`i`$ not available.
 ///
 /// # Arguments
 ///
@@ -802,15 +814,27 @@ pub fn sort_irreps<R: Clone>(
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
     let class_s =
         ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
+    let class_t =
+        ClassSymbol::new("1||θ||", None).expect("Unable to construct class symbol `1||θ||`.");
+
     let mut leading_classes: IndexSet<ClassSymbol<R>> = IndexSet::new();
 
+    // Highest priority: time-reversal
+    if class_symbols.contains_key(&class_t) {
+        leading_classes.insert(class_t);
+    }
+
+    // Second highest priority: inversion, or horizontal mirror plane if inversion not available
     if class_symbols.contains_key(&class_i) {
         leading_classes.insert(class_i);
     } else if class_symbols.contains_key(&class_s) {
         leading_classes.insert(class_s);
     };
 
+    // Third highest priority: identity
     leading_classes.insert(class_e);
+
+    // Fourth highest priority: principal classes, if not yet encountered
     leading_classes.extend(principal_classes.iter().cloned());
 
     log::debug!("Irreducible representation sort order:");
@@ -849,6 +873,9 @@ pub fn sort_irreps<R: Clone>(
 
 /// Determines the principal classes given a list of class symbols and any forcing conditions.
 ///
+/// By default, the principal classes are those with the highest order, regardless of whether they
+/// are proper or improper, unitary or antiunitary.
+///
 /// # Arguments
 ///
 /// * `class_symbols` - An indexmap of class symbols and their corresponding indices.
@@ -867,35 +894,37 @@ pub fn sort_irreps<R: Clone>(
 /// * both `force_proper_principal` and `force_principal` are specified;
 /// * classes specified in `force_principal` cannot be found in `class_symbols`;
 /// * no principal classes can be found.
-pub fn deduce_principal_classes<R>(
+pub fn deduce_principal_classes<R, P>(
     class_symbols: &IndexMap<ClassSymbol<R>, usize>,
-    force_proper_principal: bool,
+    force_principal_predicate: Option<P>,
     force_principal: Option<ClassSymbol<R>>,
 ) -> Vec<ClassSymbol<R>>
 where
     R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
+    P: Copy + Fn(&ClassSymbol<R>) -> bool,
 {
     log::debug!("Determining principal classes...");
     let principal_classes = force_principal.map_or_else(|| {
         // sorted_class_symbols contains class symbols sorted in the order:
         // - decreasing operation order
+        // - unitary operations, then antiunitary operations
         // - proper operations, then improper operations in each operation order
         let mut sorted_class_symbols = class_symbols
             .clone()
             .sorted_by(|cc1, _, cc2, _| {
                 PartialOrd::partial_cmp(
-                    &(cc1.order(), cc1.is_proper()),
-                    &(cc2.order(), cc2.is_proper()),
+                    &(cc1.order(), !cc1.is_antiunitary(), cc1.is_proper()),
+                    &(cc2.order(), !cc2.is_antiunitary(), cc2.is_proper()),
                 )
                 .expect("Unable to sort class symbols.")
             })
             .rev();
-        let (principal_rep, _) = if force_proper_principal {
+        let (principal_rep, _) = if let Some(predicate) = force_principal_predicate {
             // Larger order always prioritised, regardless of proper or improper,
             // unless force_proper_principal is set, in which case
             sorted_class_symbols
-                .find(|(cc, _)| cc.is_proper())
-                .expect("`Unable to find proper classes.`")
+                .find(|(cc, _)| predicate(cc))
+                .expect("`Unable to find classes fulfilling the specified predicate.`")
         } else {
             // No force_proper_principal, so proper prioritised, which has been ensured by the sort
             // in the construction of `sorted_class_symbols`.
@@ -904,18 +933,21 @@ where
                 .expect("Unexpected empty `sorted_class_symbols`.")
         };
 
-        // Now find all principal classes with the same order and parity as `principal_rep`.
+        // Now find all principal classes with the same order, parity, and unitarity as
+        // `principal_rep`.
         class_symbols
             .keys()
             .filter(|cc| {
-                cc.is_proper() == principal_rep.is_proper() && cc.order() == principal_rep.order()
+                cc.is_antiunitary() == principal_rep.is_antiunitary()
+                && cc.is_proper() == principal_rep.is_proper()
+                && cc.order() == principal_rep.order()
             })
             .cloned()
             .collect::<Vec<_>>()
     }, |principal_cc| {
         assert!(
-            !force_proper_principal,
-            "`force_proper_principal` and `force_principal` cannot be both provided."
+            force_principal_predicate.is_none(),
+            "`force_principal_predicate` and `force_principal` cannot be both provided."
         );
         assert!(
             class_symbols.contains_key(&principal_cc),
@@ -944,7 +976,7 @@ where
     principal_classes
 }
 
-/// Deduces irreducible representation symboles based on Mulliken's convention.
+/// Deduces irreducible representation symbols based on Mulliken's convention.
 ///
 /// # Arguments
 ///
@@ -952,9 +984,7 @@ where
 /// each column is for one conjugacy class and each row one irrep.
 /// * `class_symbols` - An index map containing the conjugacy class symbols for the columns of
 /// `char_arr`. The keys are the symbols and the values are the column indices.
-/// * `force_proper_principal` - Flag indicating if the principal-axis classes must be proper.
-/// * `force_principal` - The class symbol to be used as the principal-axis class
-/// (`force_proper_principal` must be `False` if this is used).
+/// * `principal_classes` - The principal classes to be used for irrep symbol deduction.
 ///
 /// # Returns
 ///
@@ -980,6 +1010,8 @@ where
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
     let s_cc: ClassSymbol<R> =
         ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
+    let t_cc: ClassSymbol<R> =
+        ClassSymbol::new("1||θ||", None).expect("Unable to construct class symbol `1||θ||`.");
 
     // Inversion parity?
     let i_parity = class_symbols.contains_key(&i_cc);
@@ -994,6 +1026,12 @@ where
         log::debug!(
             "Horizontal mirror plane found (but no inversion centre). This will be used for '/'' ordering."
         );
+    }
+
+    // Time-reversal?
+    let t_parity = class_symbols.contains_key(&t_cc);
+    if t_parity {
+        log::debug!("Time reversal found. This will be used for magnetic ordering.");
     }
 
     let e2p1 = UnityRoot::new(1u32, 2u32);
@@ -1110,10 +1148,45 @@ where
             ("", "")
         };
 
-        MullikenIrrepSymbol::new(format!("||{main}|^({mir})_({inv})|").as_str())
+
+        let trev = if t_parity {
+            // Determine time-reversal symmetry
+            let char_trev = irrep[
+                *class_symbols.get(&t_cc).unwrap_or_else(|| {
+                    panic!("Class `{}` not found.", &t_cc)
+                })
+            ].clone();
+            let char_trev_c = char_trev.complex_value();
+            assert!(
+                approx::relative_eq!(
+                    char_trev_c.im,
+                    0.0,
+                    epsilon = char_trev.threshold,
+                    max_relative = char_trev.threshold
+                ) && approx::relative_eq!(
+                    char_trev_c.re.round(),
+                    char_trev_c.re,
+                    epsilon = char_trev.threshold,
+                    max_relative = char_trev.threshold
+                ),
+            );
+
+            #[allow(clippy::cast_possible_truncation)]
+            let char_trev_c = char_trev_c.re.round() as i32;
+            match char_trev_c.cmp(&0) {
+                Ordering::Greater => "",
+                Ordering::Less => "m",
+                Ordering::Equal => panic!("Time-reversal character must not be zero."),
+            }
+        } else {
+            ""
+        };
+
+        MullikenIrrepSymbol::new(format!("|^({trev})|{main}|^({mir})_({inv})|").as_str())
             .unwrap_or_else(|_| {
                 panic!(
-                    "Unable to construct symmetry symbol `||{}|^({})_({})|`.",
+                    "Unable to construct symmetry symbol `|^({})|{}|^({})_({})|`.",
+                    trev,
                     main,
                     mir,
                     inv
@@ -1135,7 +1208,8 @@ where
                     .map(|i| {
                         MullikenIrrepSymbol::new(
                             format!(
-                                "||{}|^({})_({}{})|",
+                                "|^({})|{}|^({})_({}{})|",
+                                raw_irrep.presuper(),
                                 raw_irrep.main(),
                                 raw_irrep.postsuper(),
                                 i + 1,
@@ -1145,7 +1219,8 @@ where
                         )
                         .unwrap_or_else(|_| {
                             panic!(
-                                "Unable to construct symmetry symbol `||{}|^({})_({}{})|`.",
+                                "Unable to construct symmetry symbol `|^({})|{}|^({})_({}{})|`.",
+                                raw_irrep.presuper(),
                                 raw_irrep.main(),
                                 raw_irrep.postsuper(),
                                 i + 1,

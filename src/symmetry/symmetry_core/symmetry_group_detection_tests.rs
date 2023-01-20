@@ -4662,7 +4662,7 @@ fn test_symmetry_group_detection_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2
 
 #[test]
 fn test_symmetry_group_detection_asymmetric_azulene_magnetic_field_c2() {
-    env_logger::init();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
@@ -5877,7 +5877,8 @@ fn verify_bw_c2v_cs(presym: &PreSymmetry) {
             .len() as u32,
         1
     );
-    assert_eq!(magsym.get_sigma_elements("v").unwrap().len() as u32, 2);
+    assert_eq!(magsym.get_sigma_elements("h").unwrap().len() as u32, 1);
+    assert_eq!(magsym.get_sigma_elements("v").unwrap().len() as u32, 1);
 
     assert!(magsym.get_generators(&ROT).is_none());
     assert_eq!(
@@ -5895,7 +5896,7 @@ fn verify_bw_c2v_cs(presym: &PreSymmetry) {
         1
     );
     assert!(magsym.get_generators(&TRSIG).is_none());
-    assert_eq!(magsym.get_sigma_generators("v").unwrap().len(), 1);
+    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
 }
 
 /*
@@ -6193,6 +6194,20 @@ fn test_symmetry_group_detection_asymmetric_h2o2_magnetic_field_ordinary_ci() {
 }
 
 #[test]
+fn test_symmetry_group_detection_asymmetric_h2o2_magnetic_field_bw_c2h_ci() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2_yz.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 2.0, -1.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    verify_bw_c2h_ci(&presym);
+}
+
+#[test]
 fn test_symmetry_group_detection_symmetric_xef4_magnetic_field_ci() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
@@ -6387,6 +6402,46 @@ fn verify_ordinary_ci(presym: &PreSymmetry) {
     assert_eq!(
         sym.get_generators(&SIG)
             .expect("No improper generators found.")[&ORDER_2]
+            .len(),
+        1
+    );
+}
+
+/// Verifies the validity of the deduced $`\mathcal{C}_{2h}(\mathcal{C}_{i})`$ group with time
+/// reversal considered.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
+fn verify_bw_c2h_ci(presym: &PreSymmetry) {
+    let mut sym = Symmetry::new();
+    sym.analyse(presym, true);
+    assert_eq!(sym.group_name, Some("C2h".to_owned()));
+    assert_eq!(
+        sym.get_elements(&TRROT).expect("No time-reversed proper elements found.")[&ORDER_2].len(),
+        1
+    );
+    assert_eq!(
+        sym.get_elements(&SIG).expect("No improper elements found.")[&ORDER_2].len(),
+        1
+    );
+    assert_eq!(
+        sym.get_elements(&TRSIG).expect("No time-reversed improper elements found.")[&ORDER_1].len(),
+        1
+    );
+    assert_eq!(
+        sym.get_generators(&TRROT)
+            .expect("No time-reversed proper generators found.")[&ORDER_2]
+            .len(),
+        1
+    );
+    assert_eq!(
+        sym.get_generators(&TRSIG)
+            .expect("No time-reversed improper generators found.")[&ORDER_1]
             .len(),
         1
     );

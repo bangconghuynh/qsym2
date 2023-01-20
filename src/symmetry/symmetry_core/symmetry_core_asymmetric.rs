@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
@@ -169,7 +171,7 @@ impl Symmetry {
 
             // Principal axis, which is C2, is also a generator.
             let c2s = self.get_proper(&ORDER_2).expect(" No C2 elements found.");
-            let c2 = c2s.iter().next().expect(" No C2 elements found.");
+            let c2 = (*c2s.iter().next().expect(" No C2 elements found.")).clone();
             self.add_proper(
                 max_ord,
                 c2.axis,
@@ -239,8 +241,8 @@ impl Symmetry {
                 );
             } else {
                 // No inversion centres.
-                // Locate σv planes
-                let mut count_sigmav = 0;
+                // Locate σ planes
+                let mut count_sigma = 0;
                 if matches!(
                     presym.rotational_symmetry,
                     RotationalSymmetry::AsymmetricPlanar
@@ -255,7 +257,7 @@ impl Symmetry {
                         if presym.molecule.magnetic_atoms.is_some() {
                             assert!(improper_kind.contains_time_reversal());
                         }
-                        count_sigmav += u32::from(self.add_improper(
+                        count_sigma += u32::from(self.add_improper(
                             ORDER_1,
                             principal_axes[2],
                             false,
@@ -269,14 +271,14 @@ impl Symmetry {
 
                 let sea_groups = &presym.sea_groups;
                 for sea_group in sea_groups.iter() {
-                    if count_sigmav == 2 {
+                    if count_sigma == 2 {
                         break;
                     }
                     if sea_group.len() < 2 {
                         continue;
                     }
                     for atom2s in sea_group.iter().combinations(2) {
-                        if count_sigmav == 2 {
+                        if count_sigma == 2 {
                             break;
                         }
                         let normal = (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords)
@@ -284,44 +286,70 @@ impl Symmetry {
                         if let Some(improper_kind) =
                             presym.check_improper(&ORDER_1, &normal, &SIG, tr)
                         {
-                            count_sigmav += u32::from(self.add_improper(
-                                ORDER_1,
-                                normal,
-                                false,
-                                SIG.clone(),
-                                Some("v".to_owned()),
-                                presym.dist_threshold,
-                                improper_kind.contains_time_reversal(),
-                            ));
+                            if c2.contains_time_reversal()
+                                && !improper_kind.contains_time_reversal()
+                            {
+                                log::debug!("The C2 axis is actually θ·C2. The non-time-reversed σv will be assigned as σh.");
+                                count_sigma += u32::from(self.add_improper(
+                                    ORDER_1,
+                                    normal,
+                                    false,
+                                    SIG.clone(),
+                                    Some("h".to_owned()),
+                                    presym.dist_threshold,
+                                    improper_kind.contains_time_reversal(),
+                                ));
+                            } else {
+                                count_sigma += u32::from(self.add_improper(
+                                    ORDER_1,
+                                    normal,
+                                    false,
+                                    SIG.clone(),
+                                    Some("v".to_owned()),
+                                    presym.dist_threshold,
+                                    improper_kind.contains_time_reversal(),
+                                ));
+                            }
                         }
                     }
                 }
 
-                log::debug!("Located {} σv.", count_sigmav);
-                if count_sigmav == 2 {
+                log::debug!(
+                    "Located {} σ ({} σv and {} σh).",
+                    count_sigma,
+                    self.get_sigma_elements("v")
+                        .map_or(0, |sigmavs| sigmavs.len()),
+                    self.get_sigma_elements("h")
+                        .map_or(0, |sigmavs| sigmavs.len()),
+                );
+                if count_sigma == 2 {
                     self.set_group_name("C2v".to_owned());
 
-                    // In C2v, σv is also a generator. We prioritise the non-time-reversed one as
-                    // the generator.
-                    let mut sigmavs = self
+                    // In C2v, one of the σ's is also a generator. We prioritise the
+                    // non-time-reversed one as the generator.
+                    let mut sigmas = self
                         .get_sigma_elements("v")
-                        .expect("No σv found.")
+                        .unwrap_or_else(|| {
+                            log::debug!("No σv found. Searching for σh instead.");
+                            self.get_sigma_elements("h").expect("No σh found either.")
+                        })
                         .into_iter()
+                        .chain(self.get_sigma_elements("h").unwrap_or_default().into_iter())
                         .cloned()
                         .collect_vec();
-                    sigmavs.sort_by_key(SymmetryElement::contains_time_reversal);
-                    let sigmav = sigmavs.first().expect("No σv found.");
+                    sigmas.sort_by_key(SymmetryElement::contains_time_reversal);
+                    let sigma = sigmas.first().expect("No σv or σh found.");
                     self.add_improper(
                         ORDER_1,
-                        sigmav.axis,
+                        sigma.axis,
                         true,
                         SIG.clone(),
-                        Some("v".to_owned()),
+                        Some(sigma.additional_subscript.clone()),
                         presym.dist_threshold,
-                        sigmav.contains_time_reversal(),
+                        sigma.contains_time_reversal(),
                     );
                 } else {
-                    assert_eq!(count_sigmav, 0);
+                    assert_eq!(count_sigma, 0);
                     self.set_group_name("C2".to_owned());
                 }
             }
