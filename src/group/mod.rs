@@ -22,7 +22,7 @@ use crate::chartab::character::Character;
 use crate::chartab::modular_linalg::{modular_eig, split_space, weighted_hermitian_inprod};
 use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
-use crate::chartab::CharacterTable;
+use crate::chartab::RepCharacterTable;
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
@@ -170,7 +170,7 @@ struct Group<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> {
 
     /// The character table for this group.
     #[builder(setter(skip), default = "None")]
-    pub character_table: Option<CharacterTable<T>>,
+    pub character_table: Option<RepCharacterTable<T>>,
 }
 
 impl<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> GroupBuilder<T> {
@@ -1002,7 +1002,7 @@ where
         } else {
             self.name.clone()
         };
-        self.character_table = Some(CharacterTable::new(
+        self.character_table = Some(RepCharacterTable::new(
             chartab_name.as_str(),
             &ordered_irreps,
             &class_symbols.keys().cloned().collect::<Vec<_>>(),

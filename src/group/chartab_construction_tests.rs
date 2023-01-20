@@ -9,7 +9,7 @@ use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
 use crate::chartab::character::Character;
 use crate::chartab::unityroot::UnityRoot;
-use crate::chartab::CharacterTable;
+use crate::chartab::{CharacterTable, RepCharacterTable};
 use crate::group::group_from_molecular_symmetry;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::SymmetryOperation;
@@ -22,7 +22,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 // ================================================================
 
 fn test_character_table_validity(
-    chartab: &CharacterTable<SymmetryOperation>,
+    chartab: &RepCharacterTable<SymmetryOperation>,
     expected_irreps: &[MullikenIrrepSymbol],
     expected_chars_option: Option<
         HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,

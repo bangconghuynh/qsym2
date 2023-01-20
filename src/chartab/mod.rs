@@ -16,9 +16,76 @@ pub mod modular_linalg;
 pub mod reducedint;
 pub mod unityroot;
 
+pub trait CharacterTable<RowSymbol, ColSymbol>
+where
+    RowSymbol: MathematicalSymbol,
+    ColSymbol: MathematicalSymbol,
+{
+    /// Retrieves the character of a particular irreducible representation in a particular
+    /// conjugacy class.
+    ///
+    /// # Arguments
+    ///
+    /// * `irrep` - A Mulliken irreducible representation symbol.
+    /// * `class` - A conjugacy class symbol.
+    ///
+    /// # Returns
+    ///
+    /// The required character.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the specified `irrep` or `class` cannot be found.
+    fn get_character(&self, irrep: &RowSymbol, class: &ColSymbol) -> &Character;
+
+    /// Retrieves the characters of all conjugacy classes in a particular irreducible
+    /// representation.
+    ///
+    /// # Arguments
+    ///
+    /// * `irrep` - A Mulliken irreducible representation symbol.
+    ///
+    /// # Returns
+    ///
+    /// The required characters.
+    fn get_irrep(&self, irrep: &RowSymbol) -> ArrayView1<Character>;
+
+    /// Retrieves the characters of all irreducible representations in a particular conjugacy
+    /// class.
+    ///
+    /// # Arguments
+    ///
+    /// * `class` - A conjugacy class symbol.
+    ///
+    /// # Returns
+    ///
+    /// The required characters.
+    fn get_class(&self, class: &ColSymbol) -> ArrayView1<Character>;
+
+    /// Prints a nicely formatted character table.
+    ///
+    /// # Arguments
+    ///
+    /// * `compact` - Flag indicating if the columns are compact with unequal widths or expanded
+    /// with all equal widths.
+    /// * `numerical` - An option containing a non-negative integer specifying the number of decimal
+    /// places for the numerical forms of the characters. If `None`, the characters will be shown
+    /// as exact algebraic forms.
+    ///
+    /// # Returns
+    ///
+    /// A formatted string containing the character table in a printable form.
+    fn write_nice_table(
+        &self,
+        f: &mut fmt::Formatter,
+        compact: bool,
+        numerical: Option<usize>,
+    ) -> fmt::Result;
+}
+
 /// A struct to manage character tables.
 #[derive(Builder, Clone)]
-pub struct CharacterTable<R: Clone> {
+pub struct RepCharacterTable<R: Clone> {
     /// The name given to the character table.
     name: String,
 
@@ -43,7 +110,7 @@ pub struct CharacterTable<R: Clone> {
     order: usize,
 }
 
-impl<R: Clone> CharacterTableBuilder<R> {
+impl<R: Clone> RepCharacterTableBuilder<R> {
     fn order(&self) -> usize {
         self.classes
             .as_ref()
@@ -58,9 +125,9 @@ impl<R: Clone> CharacterTableBuilder<R> {
     }
 }
 
-impl<R: Clone> CharacterTable<R> {
-    fn builder() -> CharacterTableBuilder<R> {
-        CharacterTableBuilder::default()
+impl<R: Clone> RepCharacterTable<R> {
+    fn builder() -> RepCharacterTableBuilder<R> {
+        RepCharacterTableBuilder::default()
     }
 
     /// Constructs a new character table.
@@ -123,7 +190,9 @@ impl<R: Clone> CharacterTable<R> {
             .build()
             .expect("Unable to construct a character table.")
     }
+}
 
+impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharacterTable<R> {
     /// Retrieves the character of a particular irreducible representation in a particular
     /// conjugacy class.
     ///
@@ -139,7 +208,7 @@ impl<R: Clone> CharacterTable<R> {
     /// # Panics
     ///
     /// Panics if the specified `irrep` or `class` cannot be found.
-    pub fn get_character(&self, irrep: &MullikenIrrepSymbol, class: &ClassSymbol<R>) -> &Character {
+    fn get_character(&self, irrep: &MullikenIrrepSymbol, class: &ClassSymbol<R>) -> &Character {
         let row = self
             .irreps
             .get(irrep)
@@ -210,7 +279,7 @@ impl<R: Clone> CharacterTable<R> {
     ///
     /// Errors upon encountering any issue formatting the character table.
     #[allow(clippy::too_many_lines)]
-    pub fn write_nice_table(
+    fn write_nice_table(
         &self,
         f: &mut fmt::Formatter,
         compact: bool,
@@ -350,7 +419,7 @@ impl<R: Clone> CharacterTable<R> {
 // -------
 // Display
 // -------
-impl<R: Clone> fmt::Display for CharacterTable<R> {
+impl<R: Clone> fmt::Display for RepCharacterTable<R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, Some(3))
     }
@@ -359,7 +428,7 @@ impl<R: Clone> fmt::Display for CharacterTable<R> {
 // -----
 // Debug
 // -----
-impl<R: Clone> fmt::Debug for CharacterTable<R> {
+impl<R: Clone> fmt::Debug for RepCharacterTable<R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, None)
     }
