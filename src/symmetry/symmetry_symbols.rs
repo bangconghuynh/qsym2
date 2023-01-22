@@ -80,25 +80,25 @@ pub static FORCED_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
 /// A trait for general mathematical symbols.
 pub trait MathematicalSymbol: Clone + Hash + Eq {
     /// The main part of the symbol.
-    fn main(&self) -> &str;
+    fn main(&self) -> String;
 
     /// The pre-superscript part of the symbol.
-    fn presuper(&self) -> &str;
+    fn presuper(&self) -> String;
 
     /// The pre-subscript part of the symbol.
-    fn presub(&self) -> &str;
+    fn presub(&self) -> String;
 
     /// The post-superscript part of the symbol.
-    fn postsuper(&self) -> &str;
+    fn postsuper(&self) -> String;
 
     /// The post-subscript part of the symbol.
-    fn postsub(&self) -> &str;
+    fn postsub(&self) -> String;
 
     /// The prefactor part of the symbol.
-    fn prefactor(&self) -> &str;
+    fn prefactor(&self) -> String;
 
     /// The postfactor part of the symbol.
-    fn postfactor(&self) -> &str;
+    fn postfactor(&self) -> String;
 
     /// The multiplicity of the symbol.
     fn multiplicity(&self) -> Option<usize>;
@@ -176,32 +176,32 @@ impl GenericSymbol {
 // ------------------
 
 impl MathematicalSymbol for GenericSymbol {
-    fn main(&self) -> &str {
-        &self.main
+    fn main(&self) -> String {
+        self.main.to_owned()
     }
 
-    fn presuper(&self) -> &str {
-        &self.presuper
+    fn presuper(&self) -> String {
+        self.presuper.to_owned()
     }
 
-    fn presub(&self) -> &str {
-        &self.presub
+    fn presub(&self) -> String {
+        self.presub.to_owned()
     }
 
-    fn postsuper(&self) -> &str {
-        &self.postsuper
+    fn postsuper(&self) -> String {
+        self.postsuper.to_owned()
     }
 
-    fn postsub(&self) -> &str {
-        &self.postsub
+    fn postsub(&self) -> String {
+        self.postsub.to_owned()
     }
 
-    fn prefactor(&self) -> &str {
-        &self.prefactor
+    fn prefactor(&self) -> String {
+        self.prefactor.to_owned()
     }
 
-    fn postfactor(&self) -> &str {
-        &self.postfactor
+    fn postfactor(&self) -> String {
+        self.postfactor.to_owned()
     }
 
     fn multiplicity(&self) -> Option<usize> {
@@ -386,51 +386,51 @@ impl MullikenIrrepSymbol {
     /// # Errors
     ///
     /// Errors when the string cannot be parsed as a generic symbol.
-    pub fn new(symstr: &str) -> Result<Self, GenericSymbolParsingError> {
+    pub fn new(symstr: &str) -> Result<Self, MullikenIrrepSymbolBuilderError> {
         Self::from_str(symstr)
     }
 }
 
 impl MathematicalSymbol for MullikenIrrepSymbol {
     /// The main part of the symbol, which primarily denotes the dimensionality of the irrep space.
-    fn main(&self) -> &str {
+    fn main(&self) -> String {
         self.generic_symbol.main()
     }
 
     /// The pre-superscript part of the symbol, which can be used to denote antiunitary symmetries
     /// or spin multiplicities.
-    fn presuper(&self) -> &str {
+    fn presuper(&self) -> String {
         self.generic_symbol.presuper()
     }
 
-    fn presub(&self) -> &str {
+    fn presub(&self) -> String {
         self.generic_symbol.presub()
     }
 
     /// The post-superscript part of the symbol, which denotes reflection parity.
-    fn postsuper(&self) -> &str {
+    fn postsuper(&self) -> String {
         self.generic_symbol.postsuper()
     }
 
     /// The post-subscript part of the symbol, which denotes inversion parity when available and
     /// which disambiguates similar irreps.
-    fn postsub(&self) -> &str {
+    fn postsub(&self) -> String {
         self.generic_symbol.postsub()
     }
 
     /// The prefactor part of the symbol, which is always `"1"` implicitly because of irreducibility.
-    fn prefactor(&self) -> &str {
-        ""
+    fn prefactor(&self) -> String {
+        String::new()
     }
 
     /// The postfactor part of the symbol, which is always empty.
-    fn postfactor(&self) -> &str {
-        ""
+    fn postfactor(&self) -> String {
+        String::new()
     }
 
     /// The dimensionality of the irreducible representation.
     fn multiplicity(&self) -> Option<usize> {
-        if let Some(&mult) = MULLIKEN_IRREP_DEGENERACIES.get(self.main()) {
+        if let Some(&mult) = MULLIKEN_IRREP_DEGENERACIES.get(&self.main()) {
             Some(
                 mult.try_into()
                     .unwrap_or_else(|_| panic!("Unable to convert {mult} to `usize`.")),
@@ -442,7 +442,7 @@ impl MathematicalSymbol for MullikenIrrepSymbol {
 }
 
 impl FromStr for MullikenIrrepSymbol {
-    type Err = GenericSymbolParsingError;
+    type Err = MullikenIrrepSymbolBuilderError;
 
     /// Parses a string representing a Mulliken irrep symbol.
     ///
@@ -469,18 +469,16 @@ impl FromStr for MullikenIrrepSymbol {
     ///
     /// Errors when the string cannot be parsed as a generic symbol.
     fn from_str(symstr: &str) -> Result<Self, Self::Err> {
-        let generic_symbol = GenericSymbol::from_str(symstr)?;
-        Ok(Self::builder()
-            .generic_symbol(generic_symbol)
-            .build()
-            .unwrap_or_else(|_| panic!("Unable to construct a Mulliken symbol from `{symstr}`.")))
+        let generic_symbol = GenericSymbol::from_str(symstr)
+            .unwrap_or_else(|_| panic!("Unable to parse {symstr} as a generic symbol."));
+        Self::builder().generic_symbol(generic_symbol).build()
     }
 }
 
 impl LinearSpaceSymbol for MullikenIrrepSymbol {
     fn dimensionality(&self) -> u64 {
         *MULLIKEN_IRREP_DEGENERACIES
-            .get(self.main())
+            .get(&self.main())
             .unwrap_or_else(|| {
                 panic!(
                     "Unknown dimensionality for Mulliken symbol {}.",
@@ -496,6 +494,171 @@ impl LinearSpaceSymbol for MullikenIrrepSymbol {
 impl fmt::Display for MullikenIrrepSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
+    }
+}
+
+// ---------------------
+// MullikenIrcorepSymbol
+// ---------------------
+
+/// A struct to handle Mulliken irreducible corepresentation symbols.
+#[derive(Builder, Debug, Clone, PartialEq, Eq)]
+pub struct MullikenIrcorepSymbol {
+    inducing_irreps: IndexSet<MullikenIrrepSymbol>,
+}
+
+impl MullikenIrcorepSymbol {
+    fn builder() -> MullikenIrcorepSymbolBuilder {
+        MullikenIrcorepSymbolBuilder::default()
+    }
+
+    /// Parses a string representing a Mulliken irrep symbol.
+    ///
+    /// Some permissible Mulliken irrep symbols:
+    ///
+    /// ```text
+    /// "T"
+    /// "||T|_(2g)|"
+    /// "|^(3)|T|_(2g)|"
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a Mulliken symbol.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string cannot be parsed as a generic symbol.
+    pub fn new(symstr: &str) -> Result<Self, MullikenIrcorepSymbolBuilderError> {
+        Self::from_str(symstr)
+    }
+}
+
+impl MathematicalSymbol for MullikenIrcorepSymbol {
+    /// The main part of the symbol.
+    fn main(&self) -> String {
+        format!(
+            "D({})",
+            self.inducing_irreps
+                .iter()
+                .map(|irrep| irrep.to_string())
+                .join(" ⊕ ")
+        )
+    }
+
+    /// The pre-superscript part of the symbol, which is always empty.
+    fn presuper(&self) -> String {
+        String::new()
+    }
+
+    fn presub(&self) -> String {
+        String::new()
+    }
+
+    /// The post-superscript part of the symbol, which is always empty.
+    fn postsuper(&self) -> String {
+        String::new()
+    }
+
+    /// The post-subscript part of the symbol, which is always empty.
+    fn postsub(&self) -> String {
+        String::new()
+    }
+
+    /// The prefactor part of the symbol, which is always `"1"` implicitly because of irreducibility.
+    fn prefactor(&self) -> String {
+        "1".to_string()
+    }
+
+    /// The postfactor part of the symbol, which is always empty.
+    fn postfactor(&self) -> String {
+        String::new()
+    }
+
+    /// The dimensionality of the irreducible corepresentation.
+    fn multiplicity(&self) -> Option<usize> {
+        Some(
+            self.inducing_irreps
+            .iter()
+            .map(|irrep_mult| {
+                irrep_mult
+                    .multiplicity()
+                    .expect("One of the inducing irreducible representations has an undefined multiplicity.")
+            })
+            .sum()
+        )
+    }
+}
+
+impl FromStr for MullikenIrcorepSymbol {
+    type Err = MullikenIrcorepSymbolBuilderError;
+
+    /// Parses a string representing a Mulliken ircorep symbol. A valid string representing a
+    /// Mulliken ircorep symbol is one consisting of one or more Mulliken irrep symbol strings,
+    /// separated by a `+` character.
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a Mulliken ircorep symbol.
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] wrapping the constructed Mulliken ircorep symbol.
+    ///
+    /// # Panics
+    ///
+    /// Panics when unable to construct a Mulliken ircorep symbol from the specified string.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string cannot be parsed.
+    fn from_str(symstr: &str) -> Result<Self, Self::Err> {
+        let irreps = symstr
+            .split("+")
+            .map(|irrep_str| {
+                MullikenIrrepSymbol::from_str(irrep_str.trim()).unwrap_or_else(|_| {
+                    panic!("Unable to parse {irrep_str} as a Mulliken irrep symbol.")
+                })
+            })
+            .collect::<IndexSet<_>>();
+        MullikenIrcorepSymbol::builder()
+            .inducing_irreps(irreps)
+            .build()
+    }
+}
+
+impl LinearSpaceSymbol for MullikenIrcorepSymbol {
+    fn dimensionality(&self) -> u64 {
+        self.inducing_irreps
+        .iter()
+        .map(|irrep_mult| {
+            irrep_mult
+                .multiplicity()
+                .expect("One of the inducing irreducible representations has an undefined multiplicity.")
+        })
+        .sum::<usize>()
+        .try_into()
+        .expect("Cannot convert the dimensionality of this ircorep symbol into u64.")
+    }
+}
+
+// -------
+// Display
+// -------
+impl fmt::Display for MullikenIrcorepSymbol {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "D({})", self.main())
+    }
+}
+
+// ----
+// Hash
+// ----
+impl Hash for MullikenIrcorepSymbol {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for irrep in self.inducing_irreps.iter() {
+            irrep.hash(state);
+        }
     }
 }
 
@@ -535,38 +698,38 @@ impl<R: Clone> ClassSymbol<R> {
 
 impl<R: Clone> MathematicalSymbol for ClassSymbol<R> {
     /// The main part of the symbol, which denotes the representative symmetry operation.
-    fn main(&self) -> &str {
+    fn main(&self) -> String {
         self.generic_symbol.main()
     }
 
     /// The pre-superscript part of the symbol, which is empty.
-    fn presuper(&self) -> &str {
-        ""
+    fn presuper(&self) -> String {
+        String::new()
     }
 
     /// The pre-subscript part of the symbol, which is empty.
-    fn presub(&self) -> &str {
-        ""
+    fn presub(&self) -> String {
+        String::new()
     }
 
     /// The post-superscript part of the symbol, which is empty.
-    fn postsuper(&self) -> &str {
-        ""
+    fn postsuper(&self) -> String {
+        String::new()
     }
 
     /// The post-subscript part of the symbol, which is empty.
-    fn postsub(&self) -> &str {
-        ""
+    fn postsub(&self) -> String {
+        String::new()
     }
 
     /// The prefactor part of the symbol, which denotes the size of the class.
-    fn prefactor(&self) -> &str {
+    fn prefactor(&self) -> String {
         self.generic_symbol.prefactor()
     }
 
     /// The postfactor part of the symbol, which is empty.
-    fn postfactor(&self) -> &str {
-        ""
+    fn postfactor(&self) -> String {
+        String::new()
     }
 
     /// This is a synonym for the size of the conjugacy class.
