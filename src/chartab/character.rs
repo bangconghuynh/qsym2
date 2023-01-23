@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::ops::Add;
 
 use approx;
 use derive_builder::Builder;
@@ -285,6 +286,14 @@ impl Character {
             }
         }
     }
+
+    pub fn simplify(&self) -> Self {
+        let mut urs = self.terms.keys();
+        let mut reduced_terms = IndexSet::<(UnityRoot, usize)>::new();
+        while !urs.is_empty() {
+        }
+    }
+
 }
 
 impl PartialEq for Character {
@@ -396,5 +405,44 @@ impl Hash for Character {
             })
             .collect::<Vec<_>>();
         terms_vec.hash(state);
+    }
+}
+
+// ---
+// Add
+// ---
+impl Add<&'_ Character> for &Character {
+    type Output = Character;
+
+    fn add(self, rhs: &Character) -> Self::Output {
+        let mut sum = self.clone();
+        for (ur, mult) in rhs.terms.iter() {
+            *sum.terms.entry(ur.to_owned()).or_default() += mult;
+        }
+        sum
+    }
+}
+
+impl Add<&'_ Character> for Character {
+    type Output = Character;
+
+    fn add(self, rhs: &Self) -> Self::Output {
+        &self + rhs
+    }
+}
+
+impl Add<Character> for &Character {
+    type Output = Character;
+
+    fn add(self, rhs: Character) -> Self::Output {
+        self + &rhs
+    }
+}
+
+impl Add<Character> for Character {
+    type Output = Character;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        &self + &rhs
     }
 }
