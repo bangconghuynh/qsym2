@@ -1,4 +1,4 @@
-use num_traits::Pow;
+use num_traits::{Pow, Zero};
 
 use crate::chartab::character::Character;
 use crate::chartab::unityroot::UnityRoot;
@@ -302,4 +302,98 @@ fn test_character_simplify() {
     assert!(!c5s.terms.contains_key(&e6p5));
     assert!(c5s.terms.contains_key(&e3p2));
     assert!(c5s.terms.contains_key(&e6p4));
+}
+
+#[test]
+fn test_character_algebra() {
+    let e3 = UnityRoot::new(1u32, 3u32);
+    let e3p0 = e3.pow(0);
+    let e3p1 = e3.pow(1);
+    let e3p2 = e3.pow(2);
+
+    let e6 = UnityRoot::new(1u32, 6u32);
+    let e6p0 = e6.pow(0);
+    let e6p1 = e6.pow(1);
+    let e6p2 = e6.pow(2);
+    let e6p3 = e6.pow(3);
+    let e6p4 = e6.pow(4);
+    let e6p5 = e6.pow(5);
+
+    // ---
+    // Add
+    // ---
+    let c1 = Character::new(&[
+        (e3p1.clone(), 1usize),
+        (e3p2.clone(), 1usize),
+    ]);
+    let c2 = Character::new(&[
+        (e6p2.clone(), 1usize),
+        (e6p3.clone(), 2usize),
+    ]);
+    let c3 = &c1 + &c2;
+    let c3_ref = Character::new(&[
+        (e3p1.clone(), 2usize),
+        (e3p2.clone(), 1usize),
+        (e6p3.clone(), 2usize),
+    ]);
+    assert_eq!(c3, c3_ref);
+
+    let c4 = Character::new(&[(e6p0.clone(), 1usize)]);
+    let c5 = &c1 + &c4;
+    assert!(c5.is_zero());
+    let c6 = (&c5 + &c2).simplify();
+    assert!(!c6.is_zero());
+    assert_eq!(c6, c2);
+
+    // ---
+    // Neg
+    // ---
+    let nc1 = Character::new(&[
+        (e6p1.clone(), 1usize),
+        (e6p5.clone(), 1usize),
+    ]);
+    assert_eq!(-&c1, nc1);
+
+    let c7 = Character::new(&[
+        (e3p0.clone(), 2usize),
+        (e6p3.clone(), 1usize),
+    ]);
+    let nc7 = Character::new(&[
+        (e3p0.clone(), 1usize),
+        (e6p3.clone(), 2usize),
+    ]);
+    let nc7s = nc7.simplify();
+    assert_eq!(-&c7, nc7);
+    assert_eq!(-&c7, nc7s);
+
+    let c8 = Character::new(&[
+        (e6p4.clone(), 6usize),
+    ]);
+    assert!((&c8 + (-&c8)).is_zero());
+
+    // ---
+    // Sub
+    // ---
+    assert!((&c8 - &c8).is_zero());
+
+    let c9 = &c1 - &c2;
+    let c9_ref = Character::new(&[
+        (e6p0.clone(), 2usize),
+        (e3p2.clone(), 1usize),
+    ]);
+    assert_eq!(c9, c9_ref);
+
+    let c10 = &c1 - &c4;
+    let c10_ref = Character::new(&[
+        (e3p1.clone(), 2usize),
+        (e3p2.clone(), 2usize),
+    ]);
+    assert_eq!(c10, c10_ref);
+
+    let c11 = &c4 - &c1;
+    let c11_ref = Character::new(&[
+        (e6p5.clone(), 2usize),
+        (e6p1.clone(), 2usize),
+    ]);
+    assert_eq!(c11, c11_ref);
 }

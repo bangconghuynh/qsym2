@@ -852,6 +852,10 @@ where
                                 )
                             })
                             .collect();
+                        // We do not wish to simplify the character here, even if it can be
+                        // simplified (e.g. (E8)^2 + (E8)^6 can be simplified to 0). This is so
+                        // that the full unity-root-term-structure can be used in the ordering of
+                        // irreps.
                         Character::new(&char_ij_terms)
                     })
                     .collect();

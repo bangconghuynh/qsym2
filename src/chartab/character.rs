@@ -1,13 +1,13 @@
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::ops::Add;
+use std::ops::{Add, Neg, Sub};
 
 use approx;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use num::Complex;
-use num_traits::ToPrimitive;
+use num_traits::{ToPrimitive, Zero};
 
 use crate::aux::misc::HashableFloat;
 use crate::chartab::unityroot::UnityRoot;
@@ -314,8 +314,7 @@ impl Character {
             let nur_option = urs
                 .iter()
                 .find(|&test_ur| {
-                    test_ur.fraction == ur.fraction + f12
-                        || test_ur.fraction == ur.fraction - f12
+                    test_ur.fraction == ur.fraction + f12 || test_ur.fraction == ur.fraction - f12
                 })
                 .map(|nur| *nur);
             if let Some(nur) = nur_option {
@@ -461,6 +460,19 @@ impl Hash for Character {
     }
 }
 
+// ----
+// Zero
+// ----
+impl Zero for Character {
+    fn zero() -> Self {
+        Self::new(&[])
+    }
+
+    fn is_zero(&self) -> bool {
+        *self == Self::zero()
+    }
+}
+
 // ---
 // Add
 // ---
@@ -497,5 +509,71 @@ impl Add<Character> for Character {
 
     fn add(self, rhs: Self) -> Self::Output {
         &self + &rhs
+    }
+}
+
+// ---
+// Neg
+// ---
+impl Neg for &Character {
+    type Output = Character;
+
+    fn neg(self) -> Self::Output {
+        let f12 = F::new(1u32, 2u32);
+        let terms: IndexMap<_, _> = self
+            .terms
+            .iter()
+            .map(|(ur, mult)| {
+                let mut nur = ur.clone();
+                nur.fraction = (nur.fraction + f12).fract();
+                (nur, *mult)
+            })
+            .collect();
+        let mut nchar = self.clone();
+        nchar.terms = terms;
+        nchar
+    }
+}
+
+impl Neg for Character {
+    type Output = Character;
+
+    fn neg(self) -> Self::Output {
+        -&self
+    }
+}
+
+// ---
+// Sub
+// ---
+impl Sub<&'_ Character> for &Character {
+    type Output = Character;
+
+    fn sub(self, rhs: &Character) -> Self::Output {
+        self + (-rhs)
+    }
+}
+
+impl Sub<&'_ Character> for Character {
+    type Output = Character;
+
+    fn sub(self, rhs: &Self) -> Self::Output {
+        &self + (-rhs)
+    }
+}
+
+impl Sub<Character> for &Character {
+    type Output = Character;
+
+    fn sub(self, rhs: Character) -> Self::Output {
+        self + (-&rhs)
+    }
+}
+
+impl Sub<Character> for Character {
+    type Output = Character;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        &self + (-&rhs)
     }
 }
