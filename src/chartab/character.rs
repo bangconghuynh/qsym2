@@ -5,12 +5,14 @@ use std::ops::Add;
 
 use approx;
 use derive_builder::Builder;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use num::Complex;
 use num_traits::ToPrimitive;
 
 use crate::aux::misc::HashableFloat;
 use crate::chartab::unityroot::UnityRoot;
+
+type F = fraction::GenericFraction<u32>;
 
 #[cfg(test)]
 #[path = "character_tests.rs"]
@@ -33,7 +35,13 @@ pub struct Character {
 
 impl CharacterBuilder {
     fn terms(&mut self, ts: &[(UnityRoot, usize)]) -> &mut Self {
-        self.terms = Some(ts.iter().cloned().collect());
+        let mut terms = IndexMap::<UnityRoot, usize>::new();
+        // This ensures that if there are two identical unity roots in ts, their multiplicities are
+        // accumulated.
+        for (ur, mult) in ts.iter() {
+            *terms.entry(ur.to_owned()).or_default() += mult;
+        }
+        self.terms = Some(terms);
         self
     }
 
@@ -287,13 +295,58 @@ impl Character {
         }
     }
 
+    /// Gets the simplified form for this character.
+    ///
+    /// The simplified form gathers terms whose unity roots differ from each other by a factor of
+    /// $`-1`$.
+    ///
+    /// # Returns
+    ///
+    /// The simplified form of the character.
     pub fn simplify(&self) -> Self {
-        let mut urs = self.terms.keys();
-        let mut reduced_terms = IndexSet::<(UnityRoot, usize)>::new();
+        let mut urs: IndexSet<_> = self.terms.keys().rev().collect();
+        let mut simplified_terms = Vec::<(UnityRoot, usize)>::with_capacity(urs.len());
+        let f12 = F::new(1u32, 2u32);
         while !urs.is_empty() {
+            let ur = urs
+                .pop()
+                .expect("Unable to retrieve an unexamined unity root.");
+            let nur_option = urs
+                .iter()
+                .find(|&test_ur| {
+                    test_ur.fraction == ur.fraction + f12
+                        || test_ur.fraction == ur.fraction - f12
+                })
+                .map(|nur| *nur);
+            if let Some(nur) = nur_option {
+                assert!(urs.remove(nur));
+                let ur_mult = self
+                    .terms
+                    .get(ur)
+                    .unwrap_or_else(|| panic!("Unable to retrieve the multiplicity of {ur}."));
+                let nur_mult = self
+                    .terms
+                    .get(nur)
+                    .unwrap_or_else(|| panic!("Unable to retrieve the multiplicity of {nur}."));
+                match ur_mult.cmp(nur_mult) {
+                    Ordering::Less => simplified_terms.push((nur.to_owned(), nur_mult - ur_mult)),
+                    Ordering::Greater => simplified_terms.push((ur.to_owned(), ur_mult - nur_mult)),
+                    Ordering::Equal => (),
+                };
+            } else {
+                let ur_mult = self
+                    .terms
+                    .get(ur)
+                    .unwrap_or_else(|| panic!("Unable to retrieve the multiplicity of {ur}."));
+                simplified_terms.push((ur.to_owned(), *ur_mult));
+            }
         }
+        Character::builder()
+            .terms(&simplified_terms)
+            .threshold(self.threshold)
+            .build()
+            .expect("Unable to construct a simplified character.")
     }
-
 }
 
 impl PartialEq for Character {

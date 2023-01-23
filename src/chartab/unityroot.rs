@@ -21,7 +21,7 @@ pub struct UnityRoot {
     /// The fraction $`k/n \in [0, 1)`$ of the unity root, represented exactly
     /// for hashing and comparison purposes.
     #[builder(setter(custom))]
-    fraction: F,
+    pub fraction: F,
 }
 
 impl UnityRootBuilder {
