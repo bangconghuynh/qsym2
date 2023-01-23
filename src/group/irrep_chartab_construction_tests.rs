@@ -21,7 +21,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 // Character table for abstract group from molecular symmetry tests
 // ================================================================
 
-fn test_character_table_validity(
+fn test_irrep_character_table_validity(
     chartab: &RepCharacterTable<SymmetryOperation>,
     expected_irreps: &[MullikenIrrepSymbol],
     expected_chars_option: Option<
@@ -127,7 +127,7 @@ fn test_character_table_validity(
     }
 }
 
-fn test_character_table_construction(
+fn test_irrep_character_table_construction(
     mol: &Molecule,
     thresh: f64,
     expected_irreps: &[MullikenIrrepSymbol],
@@ -143,11 +143,11 @@ fn test_character_table_construction(
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, None);
-    let chartab = group.character_table.as_ref().unwrap();
-    test_character_table_validity(chartab, expected_irreps, expected_chars_option);
+    let chartab = group.irrep_character_table.as_ref().unwrap();
+    test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
 }
 
-fn test_character_table_construction_magnetic(
+fn test_irrep_character_table_construction_magnetic(
     mol: &Molecule,
     thresh: f64,
     expected_irreps: &[MullikenIrrepSymbol],
@@ -163,11 +163,11 @@ fn test_character_table_construction_magnetic(
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     let group = group_from_molecular_symmetry(&magsym, None);
-    let chartab = group.character_table.as_ref().unwrap();
-    test_character_table_validity(chartab, expected_irreps, expected_chars_option);
+    let chartab = group.irrep_character_table.as_ref().unwrap();
+    test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
 }
 
-fn test_character_table_construction_from_infinite_group(
+fn test_irrep_character_table_construction_from_infinite_group(
     mol: &Molecule,
     finite_order: u32,
     thresh: f64,
@@ -184,11 +184,11 @@ fn test_character_table_construction_from_infinite_group(
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, Some(finite_order));
-    let chartab = group.character_table.as_ref().unwrap();
-    test_character_table_validity(chartab, expected_irreps, expected_chars_option);
+    let chartab = group.irrep_character_table.as_ref().unwrap();
+    test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
 }
 
-fn test_character_table_construction_from_infinite_magnetic_group(
+fn test_irrep_character_table_construction_from_infinite_magnetic_group(
     mol: &Molecule,
     finite_order: u32,
     thresh: f64,
@@ -205,15 +205,15 @@ fn test_character_table_construction_from_infinite_magnetic_group(
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     let group = group_from_molecular_symmetry(&magsym, Some(finite_order));
-    let chartab = group.character_table.as_ref().unwrap();
-    test_character_table_validity(chartab, expected_irreps, expected_chars_option);
+    let chartab = group.irrep_character_table.as_ref().unwrap();
+    test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
 }
 
 /********
 Spherical
 ********/
 #[test]
-fn test_character_table_construction_spherical_atom_o3() {
+fn test_irrep_character_table_construction_spherical_atom_o3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -296,7 +296,7 @@ fn test_character_table_construction_spherical_atom_o3() {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_from_infinite_group(
+    test_irrep_character_table_construction_from_infinite_group(
         &mol,
         2,
         thresh,
@@ -375,7 +375,7 @@ fn test_character_table_construction_spherical_atom_o3() {
             ]),
         ),
     ]);
-    test_character_table_construction_from_infinite_group(
+    test_irrep_character_table_construction_from_infinite_group(
         &mol,
         4,
         thresh,
@@ -385,7 +385,7 @@ fn test_character_table_construction_spherical_atom_o3() {
 }
 
 #[test]
-fn test_character_table_construction_spherical_atom_grey_o3() {
+fn test_irrep_character_table_construction_spherical_atom_grey_o3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -540,7 +540,7 @@ fn test_character_table_construction_spherical_atom_grey_o3() {
             Character::new(&[(UnityRoot::new(0, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_from_infinite_magnetic_group(
+    test_irrep_character_table_construction_from_infinite_magnetic_group(
         &mol,
         2,
         thresh,
@@ -685,7 +685,7 @@ fn test_character_table_construction_spherical_atom_grey_o3() {
             ]),
         ),
     ]);
-    test_character_table_construction_from_infinite_magnetic_group(
+    test_irrep_character_table_construction_from_infinite_magnetic_group(
         &mol,
         4,
         thresh,
@@ -695,7 +695,7 @@ fn test_character_table_construction_spherical_atom_grey_o3() {
 }
 
 #[test]
-fn test_character_table_construction_spherical_c60_ih() {
+fn test_irrep_character_table_construction_spherical_c60_ih() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -770,11 +770,11 @@ fn test_character_table_construction_spherical_c60_ih() {
             Character::new(&[(UnityRoot::new(0, 10), 1), (UnityRoot::new(5, 10), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_spherical_c60_grey_ih() {
+fn test_irrep_character_table_construction_spherical_c60_grey_ih() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -915,7 +915,7 @@ fn test_character_table_construction_spherical_c60_grey_ih() {
             Character::new(&[(UnityRoot::new(0, 10), 1), (UnityRoot::new(5, 10), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -924,7 +924,7 @@ fn test_character_table_construction_spherical_c60_grey_ih() {
 }
 
 #[test]
-fn test_character_table_construction_spherical_ch4_td() {
+fn test_irrep_character_table_construction_spherical_ch4_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -966,11 +966,11 @@ fn test_character_table_construction_spherical_ch4_td() {
             ]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_spherical_ch4_grey_td() {
+fn test_irrep_character_table_construction_spherical_ch4_grey_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1045,7 +1045,7 @@ fn test_character_table_construction_spherical_ch4_grey_td() {
             ]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -1054,7 +1054,7 @@ fn test_character_table_construction_spherical_ch4_grey_td() {
 }
 
 #[test]
-fn test_character_table_construction_spherical_adamantane_td() {
+fn test_irrep_character_table_construction_spherical_adamantane_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1096,11 +1096,11 @@ fn test_character_table_construction_spherical_adamantane_td() {
             ]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_spherical_adamantane_grey_td() {
+fn test_irrep_character_table_construction_spherical_adamantane_grey_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1175,7 +1175,7 @@ fn test_character_table_construction_spherical_adamantane_grey_td() {
             ]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -1184,7 +1184,7 @@ fn test_character_table_construction_spherical_adamantane_grey_td() {
 }
 
 #[test]
-fn test_character_table_construction_spherical_c165_diamond_nanoparticle_td() {
+fn test_irrep_character_table_construction_spherical_c165_diamond_nanoparticle_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c165.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1226,11 +1226,11 @@ fn test_character_table_construction_spherical_c165_diamond_nanoparticle_td() {
             ]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_spherical_c165_diamond_nanoparticle_grey_td() {
+fn test_irrep_character_table_construction_spherical_c165_diamond_nanoparticle_grey_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c165.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1305,7 +1305,7 @@ fn test_character_table_construction_spherical_c165_diamond_nanoparticle_grey_td
             ]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -1314,7 +1314,7 @@ fn test_character_table_construction_spherical_c165_diamond_nanoparticle_grey_td
 }
 
 #[test]
-fn test_character_table_construction_spherical_vh2o6_th() {
+fn test_irrep_character_table_construction_spherical_vh2o6_th() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1371,11 +1371,11 @@ fn test_character_table_construction_spherical_vh2o6_th() {
             ]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_spherical_vh2o6_grey_th() {
+fn test_irrep_character_table_construction_spherical_vh2o6_grey_th() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1480,7 +1480,7 @@ fn test_character_table_construction_spherical_vh2o6_grey_th() {
             ]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -1489,7 +1489,7 @@ fn test_character_table_construction_spherical_vh2o6_grey_th() {
 }
 
 #[test]
-fn test_character_table_construction_spherical_vf6_oh() {
+fn test_irrep_character_table_construction_spherical_vf6_oh() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
@@ -1565,11 +1565,11 @@ fn test_character_table_construction_spherical_vf6_oh() {
             ]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_spherical_vf6_grey_oh() {
+fn test_irrep_character_table_construction_spherical_vf6_grey_oh() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
@@ -1711,7 +1711,7 @@ fn test_character_table_construction_spherical_vf6_grey_oh() {
             ]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -1723,7 +1723,7 @@ fn test_character_table_construction_spherical_vf6_grey_oh() {
 Linear
 *****/
 #[test]
-fn test_character_table_construction_linear_atom_magnetic_field_cinfh() {
+fn test_irrep_character_table_construction_linear_atom_magnetic_field_cinfh() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
@@ -1733,7 +1733,7 @@ fn test_character_table_construction_linear_atom_magnetic_field_cinfh() {
 }
 
 #[test]
-fn test_character_table_construction_linear_atom_magnetic_field_bw_dinfh_cinfh() {
+fn test_irrep_character_table_construction_linear_atom_magnetic_field_bw_dinfh_cinfh() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
@@ -1743,7 +1743,7 @@ fn test_character_table_construction_linear_atom_magnetic_field_bw_dinfh_cinfh()
 }
 
 #[test]
-fn test_character_table_construction_linear_atom_electric_field_cinfv() {
+fn test_irrep_character_table_construction_linear_atom_electric_field_cinfv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -1757,7 +1757,7 @@ fn test_character_table_construction_linear_atom_electric_field_cinfv() {
 }
 
 #[test]
-fn test_character_table_construction_linear_atom_electric_field_grey_cinfv() {
+fn test_irrep_character_table_construction_linear_atom_electric_field_grey_cinfv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -1771,7 +1771,7 @@ fn test_character_table_construction_linear_atom_electric_field_grey_cinfv() {
 }
 
 #[test]
-fn test_character_table_construction_linear_c2h2_dinfh() {
+fn test_irrep_character_table_construction_linear_c2h2_dinfh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -1786,7 +1786,7 @@ fn test_character_table_construction_linear_c2h2_dinfh() {
 }
 
 #[test]
-fn test_character_table_construction_linear_c2h2_grey_dinfh() {
+fn test_irrep_character_table_construction_linear_c2h2_grey_dinfh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -1801,7 +1801,7 @@ fn test_character_table_construction_linear_c2h2_grey_dinfh() {
 }
 
 #[test]
-fn test_character_table_construction_linear_c2h2_magnetic_field_cinfh() {
+fn test_irrep_character_table_construction_linear_c2h2_magnetic_field_cinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1811,7 +1811,7 @@ fn test_character_table_construction_linear_c2h2_magnetic_field_cinfh() {
 }
 
 #[test]
-fn test_character_table_construction_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
+fn test_irrep_character_table_construction_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1821,7 +1821,7 @@ fn test_character_table_construction_linear_c2h2_magnetic_field_bw_dinfh_cinfh()
 }
 
 #[test]
-fn test_character_table_construction_linear_c2h2_electric_field_cinfv() {
+fn test_irrep_character_table_construction_linear_c2h2_electric_field_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1832,7 +1832,7 @@ fn test_character_table_construction_linear_c2h2_electric_field_cinfv() {
 }
 
 #[test]
-fn test_character_table_construction_linear_c2h2_electric_field_grey_cinfv() {
+fn test_irrep_character_table_construction_linear_c2h2_electric_field_grey_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1843,7 +1843,7 @@ fn test_character_table_construction_linear_c2h2_electric_field_grey_cinfv() {
 }
 
 #[test]
-fn test_character_table_construction_linear_n3_cinfv() {
+fn test_irrep_character_table_construction_linear_n3_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1851,7 +1851,7 @@ fn test_character_table_construction_linear_n3_cinfv() {
 }
 
 #[test]
-fn test_character_table_construction_linear_n3_grey_cinfv() {
+fn test_irrep_character_table_construction_linear_n3_grey_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1859,7 +1859,7 @@ fn test_character_table_construction_linear_n3_grey_cinfv() {
 }
 
 #[test]
-fn test_character_table_construction_linear_n3_magnetic_field_cinf() {
+fn test_irrep_character_table_construction_linear_n3_magnetic_field_cinf() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1870,7 +1870,7 @@ fn test_character_table_construction_linear_n3_magnetic_field_cinf() {
 }
 
 #[test]
-fn test_character_table_construction_linear_n3_magnetic_field_bw_cinfv_cinf() {
+fn test_irrep_character_table_construction_linear_n3_magnetic_field_bw_cinfv_cinf() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1881,7 +1881,7 @@ fn test_character_table_construction_linear_n3_magnetic_field_bw_cinfv_cinf() {
 }
 
 #[test]
-fn test_character_table_construction_linear_n3_electric_field_cinfv() {
+fn test_irrep_character_table_construction_linear_n3_electric_field_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1892,7 +1892,7 @@ fn test_character_table_construction_linear_n3_electric_field_cinfv() {
 }
 
 #[test]
-fn test_character_table_construction_linear_n3_electric_field_grey_cinfv() {
+fn test_irrep_character_table_construction_linear_n3_electric_field_grey_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1979,7 +1979,7 @@ fn verify_bw_cinfv_cinf(mol: &Molecule, thresh: f64) {
             };
             irreps
         };
-        test_character_table_construction_from_infinite_magnetic_group(
+        test_irrep_character_table_construction_from_infinite_magnetic_group(
             &mol,
             n as u32,
             thresh,
@@ -2028,7 +2028,7 @@ fn verify_cinfh(mol: &Molecule, thresh: f64) {
             (m.div_euclid(2)..(m - 1))
                 .map(|k| MullikenIrrepSymbol::new(&format!("||Γ|_({}u)|", k)).unwrap()),
         );
-        test_character_table_construction_from_infinite_group(
+        test_irrep_character_table_construction_from_infinite_group(
             &mol,
             n as u32,
             thresh,
@@ -2086,7 +2086,7 @@ fn verify_bw_dinfh_cinfh(mol: &Molecule, thresh: f64) {
         } else {
             expected_irreps.push(MullikenIrrepSymbol::new("||E|_(u)|").unwrap());
         }
-        test_character_table_construction_from_infinite_magnetic_group(
+        test_irrep_character_table_construction_from_infinite_magnetic_group(
             &mol,
             n as u32,
             thresh,
@@ -2134,7 +2134,7 @@ fn verify_dinfh(mol: &Molecule, thresh: f64) {
             }
             expected_irreps.extend(irreps)
         }
-        test_character_table_construction_from_infinite_group(
+        test_irrep_character_table_construction_from_infinite_group(
             &mol,
             n as u32,
             thresh,
@@ -2195,7 +2195,7 @@ fn verify_grey_dinfh(mol: &Molecule, thresh: f64) {
             })
             .collect_vec();
         expected_irreps.extend(m_irreps);
-        test_character_table_construction_from_infinite_magnetic_group(
+        test_irrep_character_table_construction_from_infinite_magnetic_group(
             &mol,
             n as u32,
             thresh,
@@ -2235,7 +2235,7 @@ fn verify_cinf(mol: &Molecule, thresh: f64) {
             );
             irreps
         };
-        test_character_table_construction_from_infinite_group(
+        test_irrep_character_table_construction_from_infinite_group(
             &mol,
             n as u32,
             thresh,
@@ -2254,7 +2254,7 @@ Cn
 */
 
 #[test]
-fn test_character_table_construction_symmetric_ch4_magnetic_field_c3() {
+fn test_irrep_character_table_construction_symmetric_ch4_magnetic_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2279,11 +2279,11 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_c3() {
             Character::new(&[(UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_ch4_magnetic_field_bw_c3v_c3() {
+fn test_irrep_character_table_construction_symmetric_ch4_magnetic_field_bw_c3v_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2308,7 +2308,7 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_bw_c3v_c3() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -2317,7 +2317,7 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_bw_c3v_c3() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_adamantane_magnetic_field_c3() {
+fn test_irrep_character_table_construction_symmetric_adamantane_magnetic_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2342,11 +2342,11 @@ fn test_character_table_construction_symmetric_adamantane_magnetic_field_c3() {
             Character::new(&[(UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_adamantane_magnetic_field_bw_c3v_c3() {
+fn test_irrep_character_table_construction_symmetric_adamantane_magnetic_field_bw_c3v_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2371,7 +2371,7 @@ fn test_character_table_construction_symmetric_adamantane_magnetic_field_bw_c3v_
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -2380,7 +2380,7 @@ fn test_character_table_construction_symmetric_adamantane_magnetic_field_bw_c3v_
 }
 
 #[test]
-fn test_character_table_construction_symmetric_vh2o6_electric_field_c3() {
+fn test_irrep_character_table_construction_symmetric_vh2o6_electric_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2405,11 +2405,11 @@ fn test_character_table_construction_symmetric_vh2o6_electric_field_c3() {
             Character::new(&[(UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_vh2o6_electric_field_grey_c3() {
+fn test_irrep_character_table_construction_symmetric_vh2o6_electric_field_grey_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2449,7 +2449,7 @@ fn test_character_table_construction_symmetric_vh2o6_electric_field_grey_c3() {
             Character::new(&[(UnityRoot::new(1, 6), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -2458,7 +2458,7 @@ fn test_character_table_construction_symmetric_vh2o6_electric_field_grey_c3() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_65coronane_electric_field_c3() {
+fn test_irrep_character_table_construction_symmetric_65coronane_electric_field_c3() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
@@ -2484,11 +2484,11 @@ fn test_character_table_construction_symmetric_65coronane_electric_field_c3() {
             Character::new(&[(UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_65coronane_electric_field_grey_c3() {
+fn test_irrep_character_table_construction_symmetric_65coronane_electric_field_grey_c3() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
@@ -2529,7 +2529,7 @@ fn test_character_table_construction_symmetric_65coronane_electric_field_grey_c3
             Character::new(&[(UnityRoot::new(1, 6), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -2538,7 +2538,7 @@ fn test_character_table_construction_symmetric_65coronane_electric_field_grey_c3
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_twisted_magnetic_field_c4() {
+fn test_irrep_character_table_construction_symmetric_h8_twisted_magnetic_field_c4() {
     // env_logger::init();
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
@@ -2568,11 +2568,11 @@ fn test_character_table_construction_symmetric_h8_twisted_magnetic_field_c4() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_twisted_magnetic_field_bw_c4v_c4() {
+fn test_irrep_character_table_construction_symmetric_h8_twisted_magnetic_field_bw_c4v_c4() {
     // env_logger::init();
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
@@ -2607,7 +2607,7 @@ fn test_character_table_construction_symmetric_h8_twisted_magnetic_field_bw_c4v_
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -2616,7 +2616,7 @@ fn test_character_table_construction_symmetric_h8_twisted_magnetic_field_bw_c4v_
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_twisted_electric_field_c4() {
+fn test_irrep_character_table_construction_symmetric_h8_twisted_electric_field_c4() {
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -0.1)));
@@ -2645,11 +2645,11 @@ fn test_character_table_construction_symmetric_h8_twisted_electric_field_c4() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_twisted_electric_field_grey_c4() {
+fn test_irrep_character_table_construction_symmetric_h8_twisted_electric_field_grey_c4() {
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -0.1)));
@@ -2698,7 +2698,7 @@ fn test_character_table_construction_symmetric_h8_twisted_electric_field_grey_c4
             Character::new(&[(UnityRoot::new(1, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -2707,7 +2707,7 @@ fn test_character_table_construction_symmetric_h8_twisted_electric_field_grey_c4
 }
 
 #[test]
-fn test_character_table_construction_symmetric_cpnico_magnetic_field_c5() {
+fn test_irrep_character_table_construction_symmetric_cpnico_magnetic_field_c5() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-7;
@@ -2743,11 +2743,11 @@ fn test_character_table_construction_symmetric_cpnico_magnetic_field_c5() {
             Character::new(&[(UnityRoot::new(4, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_cpnico_magnetic_field_bw_c5v_c5() {
+fn test_irrep_character_table_construction_symmetric_cpnico_magnetic_field_bw_c5v_c5() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-6;
@@ -2778,7 +2778,7 @@ fn test_character_table_construction_symmetric_cpnico_magnetic_field_bw_c5v_c5()
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -2787,7 +2787,7 @@ fn test_character_table_construction_symmetric_cpnico_magnetic_field_bw_c5v_c5()
 }
 
 #[test]
-fn test_character_table_construction_symmetric_b7_magnetic_field_c6() {
+fn test_irrep_character_table_construction_symmetric_b7_magnetic_field_c6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2827,11 +2827,11 @@ fn test_character_table_construction_symmetric_b7_magnetic_field_c6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_b7_magnetic_field_bw_c6v_c6() {
+fn test_irrep_character_table_construction_symmetric_b7_magnetic_field_bw_c6v_c6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2871,7 +2871,7 @@ fn test_character_table_construction_symmetric_b7_magnetic_field_bw_c6v_c6() {
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -2880,7 +2880,7 @@ fn test_character_table_construction_symmetric_b7_magnetic_field_bw_c6v_c6() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
     let thresh = 1e-7;
     for n in 3..=32 {
         let mut mol = template_molecules::gen_arbitrary_half_sandwich(n);
@@ -2890,7 +2890,7 @@ fn test_character_table_construction_symmetric_arbitrary_half_sandwich_magnetic_
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_half_sandwich_magnetic_field_bw_cnv_cn() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_half_sandwich_magnetic_field_bw_cnv_cn() {
     let thresh = 1e-7;
     for n in 3..=32 {
         let mut mol = template_molecules::gen_arbitrary_half_sandwich(n);
@@ -2938,7 +2938,7 @@ fn verify_cn(mol: &Molecule, thresh: f64, n: u32) {
             )
         })
         .collect();
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{nv}(\mathcal{C}_{n})`$ character table of
@@ -2985,14 +2985,14 @@ fn verify_bw_cnv_cn(mol: &Molecule, thresh: f64, n: u32) {
         };
         irreps
     };
-    test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+    test_irrep_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
 }
 
 /*
 Cnv
 */
 #[test]
-fn test_character_table_construction_symmetric_nh3_c3v() {
+fn test_irrep_character_table_construction_symmetric_nh3_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3016,11 +3016,11 @@ fn test_character_table_construction_symmetric_nh3_c3v() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_nh3_grey_c3v() {
+fn test_irrep_character_table_construction_symmetric_nh3_grey_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3059,7 +3059,7 @@ fn test_character_table_construction_symmetric_nh3_grey_c3v() {
             Character::new(&[(UnityRoot::new(0, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -3068,7 +3068,7 @@ fn test_character_table_construction_symmetric_nh3_grey_c3v() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_bf3_electric_field_c3v() {
+fn test_irrep_character_table_construction_symmetric_bf3_electric_field_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -3093,11 +3093,11 @@ fn test_character_table_construction_symmetric_bf3_electric_field_c3v() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_bf3_electric_field_grey_c3v() {
+fn test_irrep_character_table_construction_symmetric_bf3_electric_field_grey_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -3137,7 +3137,7 @@ fn test_character_table_construction_symmetric_bf3_electric_field_grey_c3v() {
             Character::new(&[(UnityRoot::new(0, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -3146,7 +3146,7 @@ fn test_character_table_construction_symmetric_bf3_electric_field_grey_c3v() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_adamantane_electric_field_c3v() {
+fn test_irrep_character_table_construction_symmetric_adamantane_electric_field_c3v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
@@ -3172,11 +3172,11 @@ fn test_character_table_construction_symmetric_adamantane_electric_field_c3v() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_adamantane_electric_field_grey_c3v() {
+fn test_irrep_character_table_construction_symmetric_adamantane_electric_field_grey_c3v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
@@ -3217,7 +3217,7 @@ fn test_character_table_construction_symmetric_adamantane_electric_field_grey_c3
             Character::new(&[(UnityRoot::new(0, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -3226,7 +3226,7 @@ fn test_character_table_construction_symmetric_adamantane_electric_field_grey_c3
 }
 
 #[test]
-fn test_character_table_construction_symmetric_ch4_electric_field_c3v() {
+fn test_irrep_character_table_construction_symmetric_ch4_electric_field_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -3251,11 +3251,11 @@ fn test_character_table_construction_symmetric_ch4_electric_field_c3v() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_ch4_electric_field_grey_c3v() {
+fn test_irrep_character_table_construction_symmetric_ch4_electric_field_grey_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -3295,7 +3295,7 @@ fn test_character_table_construction_symmetric_ch4_electric_field_grey_c3v() {
             Character::new(&[(UnityRoot::new(0, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -3304,7 +3304,7 @@ fn test_character_table_construction_symmetric_ch4_electric_field_grey_c3v() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_vf6_electric_field_c3v() {
+fn test_irrep_character_table_construction_symmetric_vf6_electric_field_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -3329,11 +3329,11 @@ fn test_character_table_construction_symmetric_vf6_electric_field_c3v() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_vf6_electric_field_grey_c3v() {
+fn test_irrep_character_table_construction_symmetric_vf6_electric_field_grey_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -3373,7 +3373,7 @@ fn test_character_table_construction_symmetric_vf6_electric_field_grey_c3v() {
             Character::new(&[(UnityRoot::new(0, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -3382,7 +3382,7 @@ fn test_character_table_construction_symmetric_vf6_electric_field_grey_c3v() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_sf5cl_c4v() {
+fn test_irrep_character_table_construction_symmetric_sf5cl_c4v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
     let thresh = 1e-7;
@@ -3417,11 +3417,11 @@ fn test_character_table_construction_symmetric_sf5cl_c4v() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_sf5cl_grey_c4v() {
+fn test_irrep_character_table_construction_symmetric_sf5cl_grey_c4v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
     let thresh = 1e-7;
@@ -3481,7 +3481,7 @@ fn test_character_table_construction_symmetric_sf5cl_grey_c4v() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -3490,7 +3490,7 @@ fn test_character_table_construction_symmetric_sf5cl_grey_c4v() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_electric_field_c4v() {
+fn test_irrep_character_table_construction_symmetric_h8_electric_field_c4v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
@@ -3526,11 +3526,11 @@ fn test_character_table_construction_symmetric_h8_electric_field_c4v() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_electric_field_grey_c4v() {
+fn test_irrep_character_table_construction_symmetric_h8_electric_field_grey_c4v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
@@ -3591,7 +3591,7 @@ fn test_character_table_construction_symmetric_h8_electric_field_grey_c4v() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -3600,7 +3600,7 @@ fn test_character_table_construction_symmetric_h8_electric_field_grey_c4v() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_vf6_electric_field_c4v() {
+fn test_irrep_character_table_construction_symmetric_vf6_electric_field_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -3635,11 +3635,11 @@ fn test_character_table_construction_symmetric_vf6_electric_field_c4v() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_vf6_electric_field_grey_c4v() {
+fn test_irrep_character_table_construction_symmetric_vf6_electric_field_grey_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -3699,7 +3699,7 @@ fn test_character_table_construction_symmetric_vf6_electric_field_grey_c4v() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -3708,7 +3708,7 @@ fn test_character_table_construction_symmetric_vf6_electric_field_grey_c4v() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_antiprism_pb10_electric_field_c4v() {
+fn test_irrep_character_table_construction_symmetric_antiprism_pb10_electric_field_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -3743,11 +3743,11 @@ fn test_character_table_construction_symmetric_antiprism_pb10_electric_field_c4v
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_antiprism_pb10_electric_field_grey_c4v() {
+fn test_irrep_character_table_construction_symmetric_antiprism_pb10_electric_field_grey_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -3807,7 +3807,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_electric_field_gre
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -3816,7 +3816,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_electric_field_gre
 }
 
 #[test]
-fn test_character_table_construction_symmetric_cpnico_c5v() {
+fn test_irrep_character_table_construction_symmetric_cpnico_c5v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-6;
@@ -3846,11 +3846,11 @@ fn test_character_table_construction_symmetric_cpnico_c5v() {
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_cpnico_grey_c5v() {
+fn test_irrep_character_table_construction_symmetric_cpnico_grey_c5v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-6;
@@ -3900,7 +3900,7 @@ fn test_character_table_construction_symmetric_cpnico_grey_c5v() {
             Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -3909,7 +3909,7 @@ fn test_character_table_construction_symmetric_cpnico_grey_c5v() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_staggered_ferrocene_electric_field_c5v() {
+fn test_irrep_character_table_construction_symmetric_staggered_ferrocene_electric_field_c5v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
@@ -3940,11 +3940,11 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_electric_fiel
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_staggered_ferrocene_electric_field_grey_c5v() {
+fn test_irrep_character_table_construction_symmetric_staggered_ferrocene_electric_field_grey_c5v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
@@ -3995,7 +3995,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_electric_fiel
             Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -4004,7 +4004,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_electric_fiel
 }
 
 #[test]
-fn test_character_table_construction_symmetric_c60_electric_field_c5v() {
+fn test_irrep_character_table_construction_symmetric_c60_electric_field_c5v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4034,11 +4034,11 @@ fn test_character_table_construction_symmetric_c60_electric_field_c5v() {
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_c60_electric_field_grey_c5v() {
+fn test_irrep_character_table_construction_symmetric_c60_electric_field_grey_c5v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4088,7 +4088,7 @@ fn test_character_table_construction_symmetric_c60_electric_field_grey_c5v() {
             Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -4097,7 +4097,7 @@ fn test_character_table_construction_symmetric_c60_electric_field_grey_c5v() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_b7_c6v() {
+fn test_irrep_character_table_construction_symmetric_b7_c6v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4136,11 +4136,11 @@ fn test_character_table_construction_symmetric_b7_c6v() {
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_b7_grey_c6v() {
+fn test_irrep_character_table_construction_symmetric_b7_grey_c6v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4209,7 +4209,7 @@ fn test_character_table_construction_symmetric_b7_grey_c6v() {
             Character::new(&[(UnityRoot::new(1, 6), 1), (UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -4218,7 +4218,7 @@ fn test_character_table_construction_symmetric_b7_grey_c6v() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_au26_electric_field_c6v() {
+fn test_irrep_character_table_construction_symmetric_au26_electric_field_c6v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4258,11 +4258,11 @@ fn test_character_table_construction_symmetric_au26_electric_field_c6v() {
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_benzene_electric_field_c6v() {
+fn test_irrep_character_table_construction_symmetric_benzene_electric_field_c6v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
@@ -4303,11 +4303,11 @@ fn test_character_table_construction_symmetric_benzene_electric_field_c6v() {
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_au26_electric_field_grey_c6v() {
+fn test_irrep_character_table_construction_symmetric_au26_electric_field_grey_c6v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4377,7 +4377,7 @@ fn test_character_table_construction_symmetric_au26_electric_field_grey_c6v() {
             Character::new(&[(UnityRoot::new(1, 6), 1), (UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -4386,7 +4386,7 @@ fn test_character_table_construction_symmetric_au26_electric_field_grey_c6v() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_half_sandwich_cnv() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_half_sandwich_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -4400,7 +4400,7 @@ fn test_character_table_construction_symmetric_arbitrary_half_sandwich_cnv() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_half_sandwich_grey_cnv() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_half_sandwich_grey_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -4456,7 +4456,7 @@ fn verify_cnv(mol: &Molecule, thresh: f64, n: usize) {
         };
         irreps
     };
-    test_character_table_construction_from_infinite_group(
+    test_irrep_character_table_construction_from_infinite_group(
         &mol,
         n as u32,
         thresh,
@@ -4525,7 +4525,7 @@ fn verify_grey_cnv(mol: &Molecule, thresh: f64, n: usize) {
         irreps.extend(m_irreps);
         irreps
     };
-    test_character_table_construction_from_infinite_magnetic_group(
+    test_irrep_character_table_construction_from_infinite_magnetic_group(
         mol,
         n as u32,
         thresh,
@@ -4538,7 +4538,7 @@ fn verify_grey_cnv(mol: &Molecule, thresh: f64, n: usize) {
 Cnh
 */
 #[test]
-fn test_character_table_construction_symmetric_bf3_magnetic_field_c3h() {
+fn test_irrep_character_table_construction_symmetric_bf3_magnetic_field_c3h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4578,11 +4578,11 @@ fn test_character_table_construction_symmetric_bf3_magnetic_field_c3h() {
             Character::new(&[(UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
+fn test_irrep_character_table_construction_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4622,7 +4622,7 @@ fn test_character_table_construction_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -4631,7 +4631,7 @@ fn test_character_table_construction_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_xef4_magnetic_field_c4h() {
+fn test_irrep_character_table_construction_symmetric_xef4_magnetic_field_c4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4681,11 +4681,11 @@ fn test_character_table_construction_symmetric_xef4_magnetic_field_c4h() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_xef4_magnetic_field_bw_d4h_c4h() {
+fn test_irrep_character_table_construction_symmetric_xef4_magnetic_field_bw_d4h_c4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4745,7 +4745,7 @@ fn test_character_table_construction_symmetric_xef4_magnetic_field_bw_d4h_c4h() 
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -4754,7 +4754,7 @@ fn test_character_table_construction_symmetric_xef4_magnetic_field_bw_d4h_c4h() 
 }
 
 #[test]
-fn test_character_table_construction_symmetric_vf6_magnetic_field_c4h() {
+fn test_irrep_character_table_construction_symmetric_vf6_magnetic_field_c4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4804,11 +4804,11 @@ fn test_character_table_construction_symmetric_vf6_magnetic_field_c4h() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
+fn test_irrep_character_table_construction_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4868,7 +4868,7 @@ fn test_character_table_construction_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -4877,7 +4877,7 @@ fn test_character_table_construction_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_magnetic_field_c4h() {
+fn test_irrep_character_table_construction_symmetric_h8_magnetic_field_c4h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
@@ -4928,11 +4928,11 @@ fn test_character_table_construction_symmetric_h8_magnetic_field_c4h() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_magnetic_field_bw_d4h_c4h() {
+fn test_irrep_character_table_construction_symmetric_h8_magnetic_field_bw_d4h_c4h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
@@ -4993,7 +4993,7 @@ fn test_character_table_construction_symmetric_h8_magnetic_field_bw_d4h_c4h() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -5002,7 +5002,7 @@ fn test_character_table_construction_symmetric_h8_magnetic_field_bw_d4h_c4h() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_eclipsed_ferrocene_magnetic_field_c5h() {
+fn test_irrep_character_table_construction_symmetric_eclipsed_ferrocene_magnetic_field_c5h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5062,11 +5062,11 @@ fn test_character_table_construction_symmetric_eclipsed_ferrocene_magnetic_field
             Character::new(&[(UnityRoot::new(4, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h_c5h() {
+fn test_irrep_character_table_construction_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h_c5h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5116,7 +5116,7 @@ fn test_character_table_construction_symmetric_eclipsed_ferrocene_magnetic_field
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -5125,7 +5125,7 @@ fn test_character_table_construction_symmetric_eclipsed_ferrocene_magnetic_field
 }
 
 #[test]
-fn test_character_table_construction_symmetric_benzene_magnetic_field_c6h() {
+fn test_irrep_character_table_construction_symmetric_benzene_magnetic_field_c6h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
@@ -5196,11 +5196,11 @@ fn test_character_table_construction_symmetric_benzene_magnetic_field_c6h() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_benzene_magnetic_field_bw_d6h_c6h() {
+fn test_irrep_character_table_construction_symmetric_benzene_magnetic_field_bw_d6h_c6h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5270,7 +5270,7 @@ fn test_character_table_construction_symmetric_benzene_magnetic_field_bw_d6h_c6h
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -5279,7 +5279,7 @@ fn test_character_table_construction_symmetric_benzene_magnetic_field_bw_d6h_c6h
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
     // env_logger::init();
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
@@ -5290,7 +5290,7 @@ fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_magne
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_bw_dnh_cnh(
+fn test_irrep_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_bw_dnh_cnh(
 ) {
     // env_logger::init();
     for n in 3..=20 {
@@ -5346,7 +5346,7 @@ fn verify_cnh(mol: &Molecule, thresh: f64, n: usize) {
         );
         irreps
     };
-    test_character_table_construction(&mol, thresh, &expected_irreps, None);
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, None);
 }
 
 /// Verifies the validity of the computed $`\mathcal{D}_{nh}(\mathcal{C}_{nh})`$ character table of
@@ -5400,14 +5400,14 @@ fn verify_bw_dnh_cnh(mol: &Molecule, thresh: f64, n: usize) {
             }
             irreps_ddd
         };
-    test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+    test_irrep_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
 }
 
 /*
 Dn
 */
 #[test]
-fn test_character_table_construction_symmetric_triphenyl_radical_d3() {
+fn test_irrep_character_table_construction_symmetric_triphenyl_radical_d3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/triphenylradical.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5431,11 +5431,11 @@ fn test_character_table_construction_symmetric_triphenyl_radical_d3() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_triphenyl_radical_grey_d3() {
+fn test_irrep_character_table_construction_symmetric_triphenyl_radical_grey_d3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/triphenylradical.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5474,7 +5474,7 @@ fn test_character_table_construction_symmetric_triphenyl_radical_grey_d3() {
             Character::new(&[(UnityRoot::new(0, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -5483,7 +5483,7 @@ fn test_character_table_construction_symmetric_triphenyl_radical_grey_d3() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_twisted_d4() {
+fn test_irrep_character_table_construction_symmetric_h8_twisted_d4() {
     let thresh = 1e-7;
     let mol = template_molecules::gen_twisted_h8(0.1);
     let expected_irreps = vec![
@@ -5516,11 +5516,11 @@ fn test_character_table_construction_symmetric_h8_twisted_d4() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_twisted_grey_d4() {
+fn test_irrep_character_table_construction_symmetric_h8_twisted_grey_d4() {
     let thresh = 1e-7;
     let mol = template_molecules::gen_twisted_h8(0.1);
     let expected_irreps = vec![
@@ -5578,7 +5578,7 @@ fn test_character_table_construction_symmetric_h8_twisted_grey_d4() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -5587,7 +5587,7 @@ fn test_character_table_construction_symmetric_h8_twisted_grey_d4() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_c5ph5_d5() {
+fn test_irrep_character_table_construction_symmetric_c5ph5_d5() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c5ph5.xyz");
     let thresh = 1e-7;
@@ -5617,11 +5617,11 @@ fn test_character_table_construction_symmetric_c5ph5_d5() {
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_c5ph5_grey_d5() {
+fn test_irrep_character_table_construction_symmetric_c5ph5_grey_d5() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c5ph5.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5670,7 +5670,7 @@ fn test_character_table_construction_symmetric_c5ph5_grey_d5() {
             Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -5679,7 +5679,7 @@ fn test_character_table_construction_symmetric_c5ph5_grey_d5() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_c6ph6_d6() {
+fn test_irrep_character_table_construction_symmetric_c6ph6_d6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6ph6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5718,11 +5718,11 @@ fn test_character_table_construction_symmetric_c6ph6_d6() {
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_c6ph6_grey_d6() {
+fn test_irrep_character_table_construction_symmetric_c6ph6_grey_d6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6ph6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5791,7 +5791,7 @@ fn test_character_table_construction_symmetric_c6ph6_grey_d6() {
             Character::new(&[(UnityRoot::new(1, 6), 1), (UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -5800,7 +5800,7 @@ fn test_character_table_construction_symmetric_c6ph6_grey_d6() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_dn() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_twisted_sandwich_dn() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dn groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -5840,12 +5840,12 @@ fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_dn() {
             };
             irreps
         };
-        test_character_table_construction(&mol, thresh, &expected_irreps, None);
+        test_irrep_character_table_construction(&mol, thresh, &expected_irreps, None);
     }
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_grey_dn() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_twisted_sandwich_grey_dn() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dn groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -5909,7 +5909,7 @@ fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_grey_d
             irreps.extend(m_irreps);
             irreps
         };
-        test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+        test_irrep_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
     }
 }
 
@@ -5917,7 +5917,7 @@ fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_grey_d
 Dnh
 */
 #[test]
-fn test_character_table_construction_symmetric_bf3_d3h() {
+fn test_irrep_character_table_construction_symmetric_bf3_d3h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
@@ -5957,11 +5957,11 @@ fn test_character_table_construction_symmetric_bf3_d3h() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_bf3_grey_d3h() {
+fn test_irrep_character_table_construction_symmetric_bf3_grey_d3h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
@@ -6031,7 +6031,7 @@ fn test_character_table_construction_symmetric_bf3_grey_d3h() {
             Character::new(&[(UnityRoot::new(0, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -6040,7 +6040,7 @@ fn test_character_table_construction_symmetric_bf3_grey_d3h() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_xef4_d4h() {
+fn test_irrep_character_table_construction_symmetric_xef4_d4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6099,11 +6099,11 @@ fn test_character_table_construction_symmetric_xef4_d4h() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_xef4_grey_d4h() {
+fn test_irrep_character_table_construction_symmetric_xef4_grey_d4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6212,7 +6212,7 @@ fn test_character_table_construction_symmetric_xef4_grey_d4h() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -6221,7 +6221,7 @@ fn test_character_table_construction_symmetric_xef4_grey_d4h() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_d4h() {
+fn test_irrep_character_table_construction_symmetric_h8_d4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6280,11 +6280,11 @@ fn test_character_table_construction_symmetric_h8_d4h() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_grey_d4h() {
+fn test_irrep_character_table_construction_symmetric_h8_grey_d4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6393,7 +6393,7 @@ fn test_character_table_construction_symmetric_h8_grey_d4h() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -6402,7 +6402,7 @@ fn test_character_table_construction_symmetric_h8_grey_d4h() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_eclipsed_ferrocene_d5h() {
+fn test_irrep_character_table_construction_symmetric_eclipsed_ferrocene_d5h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6451,11 +6451,11 @@ fn test_character_table_construction_symmetric_eclipsed_ferrocene_d5h() {
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_eclipsed_ferrocene_grey_d5h() {
+fn test_irrep_character_table_construction_symmetric_eclipsed_ferrocene_grey_d5h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6544,7 +6544,7 @@ fn test_character_table_construction_symmetric_eclipsed_ferrocene_grey_d5h() {
             Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -6553,7 +6553,7 @@ fn test_character_table_construction_symmetric_eclipsed_ferrocene_grey_d5h() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_benzene_d6h() {
+fn test_irrep_character_table_construction_symmetric_benzene_d6h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6622,11 +6622,11 @@ fn test_character_table_construction_symmetric_benzene_d6h() {
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_benzene_grey_d6h() {
+fn test_irrep_character_table_construction_symmetric_benzene_grey_d6h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6755,7 +6755,7 @@ fn test_character_table_construction_symmetric_benzene_grey_d6h() {
             Character::new(&[(UnityRoot::new(1, 6), 1), (UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -6764,7 +6764,7 @@ fn test_character_table_construction_symmetric_benzene_grey_d6h() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_8_eclipsed_sandwich_d8h() {
+fn test_irrep_character_table_construction_symmetric_8_eclipsed_sandwich_d8h() {
     let thresh = 1e-7;
     let mol = template_molecules::gen_arbitrary_eclipsed_sandwich(8);
     let expected_irreps = vec![
@@ -6842,11 +6842,11 @@ fn test_character_table_construction_symmetric_8_eclipsed_sandwich_d8h() {
             Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_8_eclipsed_sandwich_grey_d8h() {
+fn test_irrep_character_table_construction_symmetric_8_eclipsed_sandwich_grey_d8h() {
     let thresh = 1e-7;
     let mol = template_molecules::gen_arbitrary_eclipsed_sandwich(8);
     let expected_irreps = vec![
@@ -6994,7 +6994,7 @@ fn test_character_table_construction_symmetric_8_eclipsed_sandwich_grey_d8h() {
             Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -7003,16 +7003,16 @@ fn test_character_table_construction_symmetric_8_eclipsed_sandwich_grey_d8h() {
 }
 
 // #[test]
-// fn test_character_table_construction_symmetric_h100_d100h() {
+// fn test_irrep_character_table_construction_symmetric_h100_d100h() {
 //     env_logger::init();
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
 //     let thresh = 1e-6;
 //     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction(&mol, thresh);
+//     test_irrep_character_table_construction(&mol, thresh);
 // }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_dnh() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_dnh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -7060,12 +7060,12 @@ fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_dnh()
             }
             irreps_ddd
         };
-        test_character_table_construction(&mol, thresh, &expected_irreps, None);
+        test_irrep_character_table_construction(&mol, thresh, &expected_irreps, None);
     }
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_grey_dnh() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_grey_dnh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -7149,7 +7149,7 @@ fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_grey_
             irreps.extend(m_irreps);
             irreps
         };
-        test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+        test_irrep_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
     }
 }
 
@@ -7157,7 +7157,7 @@ fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_grey_
 Dnd
 */
 #[test]
-fn test_character_table_construction_symmetric_b2cl4_d2d() {
+fn test_irrep_character_table_construction_symmetric_b2cl4_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -7191,11 +7191,11 @@ fn test_character_table_construction_symmetric_b2cl4_d2d() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_b2cl4_grey_d2d() {
+fn test_irrep_character_table_construction_symmetric_b2cl4_grey_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -7254,7 +7254,7 @@ fn test_character_table_construction_symmetric_b2cl4_grey_d2d() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -7263,7 +7263,7 @@ fn test_character_table_construction_symmetric_b2cl4_grey_d2d() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_s4n4_d2d() {
+fn test_irrep_character_table_construction_symmetric_s4n4_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s4n4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -7297,11 +7297,11 @@ fn test_character_table_construction_symmetric_s4n4_d2d() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_pbet4_d2d() {
+fn test_irrep_character_table_construction_symmetric_pbet4_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pbet4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -7335,11 +7335,11 @@ fn test_character_table_construction_symmetric_pbet4_d2d() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_s4n4_grey_d2d() {
+fn test_irrep_character_table_construction_symmetric_s4n4_grey_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s4n4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -7398,7 +7398,7 @@ fn test_character_table_construction_symmetric_s4n4_grey_d2d() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -7407,7 +7407,7 @@ fn test_character_table_construction_symmetric_s4n4_grey_d2d() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_allene_d2d() {
+fn test_irrep_character_table_construction_symmetric_allene_d2d() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/allene.xyz");
     let thresh = 1e-7;
@@ -7442,11 +7442,11 @@ fn test_character_table_construction_symmetric_allene_d2d() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_allene_grey_d2d() {
+fn test_irrep_character_table_construction_symmetric_allene_grey_d2d() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/allene.xyz");
     let thresh = 1e-7;
@@ -7506,7 +7506,7 @@ fn test_character_table_construction_symmetric_allene_grey_d2d() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -7515,7 +7515,7 @@ fn test_character_table_construction_symmetric_allene_grey_d2d() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_staggered_c2h6_d3d() {
+fn test_irrep_character_table_construction_symmetric_staggered_c2h6_d3d() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-6;
@@ -7555,11 +7555,11 @@ fn test_character_table_construction_symmetric_staggered_c2h6_d3d() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_cyclohexane_chair_d3d() {
+fn test_irrep_character_table_construction_symmetric_cyclohexane_chair_d3d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexane_chair.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -7598,11 +7598,11 @@ fn test_character_table_construction_symmetric_cyclohexane_chair_d3d() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_cyclohexane_chair_grey_d3d() {
+fn test_irrep_character_table_construction_symmetric_cyclohexane_chair_grey_d3d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexane_chair.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -7671,7 +7671,7 @@ fn test_character_table_construction_symmetric_cyclohexane_chair_grey_d3d() {
             Character::new(&[(UnityRoot::new(0, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -7680,7 +7680,7 @@ fn test_character_table_construction_symmetric_cyclohexane_chair_grey_d3d() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_s8_d4d() {
+fn test_irrep_character_table_construction_symmetric_s8_d4d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -7724,11 +7724,11 @@ fn test_character_table_construction_symmetric_s8_d4d() {
             Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_s8_grey_d4d() {
+fn test_irrep_character_table_construction_symmetric_s8_grey_d4d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -7807,7 +7807,7 @@ fn test_character_table_construction_symmetric_s8_grey_d4d() {
             Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -7816,7 +7816,7 @@ fn test_character_table_construction_symmetric_s8_grey_d4d() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_antiprism_h8_d4d() {
+fn test_irrep_character_table_construction_symmetric_antiprism_h8_d4d() {
     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
     let thresh = 1e-7;
     let expected_irreps = vec![
@@ -7859,11 +7859,11 @@ fn test_character_table_construction_symmetric_antiprism_h8_d4d() {
             Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_antiprism_h8_grey_d4d() {
+fn test_irrep_character_table_construction_symmetric_antiprism_h8_grey_d4d() {
     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
     let thresh = 1e-7;
     let expected_irreps = vec![
@@ -7941,7 +7941,7 @@ fn test_character_table_construction_symmetric_antiprism_h8_grey_d4d() {
             Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -7950,7 +7950,7 @@ fn test_character_table_construction_symmetric_antiprism_h8_grey_d4d() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_antiprism_pb10_d4d() {
+fn test_irrep_character_table_construction_symmetric_antiprism_pb10_d4d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -7994,11 +7994,11 @@ fn test_character_table_construction_symmetric_antiprism_pb10_d4d() {
             Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_antiprism_pb10_grey_d4d() {
+fn test_irrep_character_table_construction_symmetric_antiprism_pb10_grey_d4d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -8077,7 +8077,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_grey_d4d() {
             Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -8086,7 +8086,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_grey_d4d() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_staggered_ferrocene_d5d() {
+fn test_irrep_character_table_construction_symmetric_staggered_ferrocene_d5d() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
@@ -8136,11 +8136,11 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_d5d() {
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_staggered_ferrocene_grey_d5d() {
+fn test_irrep_character_table_construction_symmetric_staggered_ferrocene_grey_d5d() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
@@ -8230,7 +8230,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_grey_d5d() {
             Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -8239,7 +8239,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_grey_d5d() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_au26_d6d() {
+fn test_irrep_character_table_construction_symmetric_au26_d6d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -8293,11 +8293,11 @@ fn test_character_table_construction_symmetric_au26_d6d() {
             Character::new(&[(UnityRoot::new(5, 12), 1), (UnityRoot::new(7, 12), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_au26_grey_d6d() {
+fn test_irrep_character_table_construction_symmetric_au26_grey_d6d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -8396,7 +8396,7 @@ fn test_character_table_construction_symmetric_au26_grey_d6d() {
             Character::new(&[(UnityRoot::new(1, 12), 1), (UnityRoot::new(11, 12), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -8405,7 +8405,7 @@ fn test_character_table_construction_symmetric_au26_grey_d6d() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_dnd() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_staggered_sandwich_dnd() {
     let thresh = 1e-7;
     for n in 3..=20 {
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
@@ -8444,12 +8444,12 @@ fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_dnd(
             };
             irreps
         };
-        test_character_table_construction(&mol, thresh, &expected_irreps, None);
+        test_irrep_character_table_construction(&mol, thresh, &expected_irreps, None);
     }
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_grey_dnd() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_staggered_sandwich_grey_dnd() {
     let thresh = 1e-7;
     for n in 3..=20 {
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
@@ -8518,7 +8518,7 @@ fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_grey
             irreps.extend(m_irreps);
             irreps
         };
-        test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+        test_irrep_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
     }
 }
 
@@ -8526,7 +8526,7 @@ fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_grey
 S2n
 */
 #[test]
-fn test_character_table_construction_symmetric_b2cl4_magnetic_field_s4() {
+fn test_irrep_character_table_construction_symmetric_b2cl4_magnetic_field_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -8556,11 +8556,11 @@ fn test_character_table_construction_symmetric_b2cl4_magnetic_field_s4() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_b2cl4_magnetic_field_bw_d2d_s4() {
+fn test_irrep_character_table_construction_symmetric_b2cl4_magnetic_field_bw_d2d_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -8595,7 +8595,7 @@ fn test_character_table_construction_symmetric_b2cl4_magnetic_field_bw_d2d_s4() 
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -8604,7 +8604,7 @@ fn test_character_table_construction_symmetric_b2cl4_magnetic_field_bw_d2d_s4() 
 }
 
 #[test]
-fn test_character_table_construction_symmetric_adamantane_magnetic_field_s4() {
+fn test_irrep_character_table_construction_symmetric_adamantane_magnetic_field_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -8634,11 +8634,11 @@ fn test_character_table_construction_symmetric_adamantane_magnetic_field_s4() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_adamantane_magnetic_field_bw_d2d_s4() {
+fn test_irrep_character_table_construction_symmetric_adamantane_magnetic_field_bw_d2d_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -8673,7 +8673,7 @@ fn test_character_table_construction_symmetric_adamantane_magnetic_field_bw_d2d_
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -8682,7 +8682,7 @@ fn test_character_table_construction_symmetric_adamantane_magnetic_field_bw_d2d_
 }
 
 #[test]
-fn test_character_table_construction_symmetric_ch4_magnetic_field_s4() {
+fn test_irrep_character_table_construction_symmetric_ch4_magnetic_field_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -8712,11 +8712,11 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_s4() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_ch4_magnetic_field_bw_d2d_s4() {
+fn test_irrep_character_table_construction_symmetric_ch4_magnetic_field_bw_d2d_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -8751,7 +8751,7 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_bw_d2d_s4() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -8760,7 +8760,7 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_bw_d2d_s4() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_65coronane_s6() {
+fn test_irrep_character_table_construction_symmetric_65coronane_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -8824,11 +8824,11 @@ fn test_character_table_construction_symmetric_65coronane_s6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_65coronane_grey_s6() {
+fn test_irrep_character_table_construction_symmetric_65coronane_grey_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -8946,7 +8946,7 @@ fn test_character_table_construction_symmetric_65coronane_grey_s6() {
             Character::new(&[(UnityRoot::new(1, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -8955,7 +8955,7 @@ fn test_character_table_construction_symmetric_65coronane_grey_s6() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_65coronane_magnetic_field_s6() {
+fn test_irrep_character_table_construction_symmetric_65coronane_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9020,11 +9020,11 @@ fn test_character_table_construction_symmetric_65coronane_magnetic_field_s6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_staggered_c2h6_magnetic_field_s6() {
+fn test_irrep_character_table_construction_symmetric_staggered_c2h6_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9089,11 +9089,11 @@ fn test_character_table_construction_symmetric_staggered_c2h6_magnetic_field_s6(
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_staggered_c2h6_magnetic_field_bw_d3d_s6() {
+fn test_irrep_character_table_construction_symmetric_staggered_c2h6_magnetic_field_bw_d3d_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9133,7 +9133,7 @@ fn test_character_table_construction_symmetric_staggered_c2h6_magnetic_field_bw_
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -9142,7 +9142,7 @@ fn test_character_table_construction_symmetric_staggered_c2h6_magnetic_field_bw_
 }
 
 #[test]
-fn test_character_table_construction_symmetric_c60_magnetic_field_s6() {
+fn test_irrep_character_table_construction_symmetric_c60_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9211,11 +9211,11 @@ fn test_character_table_construction_symmetric_c60_magnetic_field_s6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_c60_magnetic_field_bw_d3d_s6() {
+fn test_irrep_character_table_construction_symmetric_c60_magnetic_field_bw_d3d_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9259,7 +9259,7 @@ fn test_character_table_construction_symmetric_c60_magnetic_field_bw_d3d_s6() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -9268,7 +9268,7 @@ fn test_character_table_construction_symmetric_c60_magnetic_field_bw_d3d_s6() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_vh2o6_magnetic_field_s6() {
+fn test_irrep_character_table_construction_symmetric_vh2o6_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9333,11 +9333,11 @@ fn test_character_table_construction_symmetric_vh2o6_magnetic_field_s6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_vf6_magnetic_field_s6() {
+fn test_irrep_character_table_construction_symmetric_vf6_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9402,11 +9402,11 @@ fn test_character_table_construction_symmetric_vf6_magnetic_field_s6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_vf6_magnetic_field_bw_d3d_s6() {
+fn test_irrep_character_table_construction_symmetric_vf6_magnetic_field_bw_d3d_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9446,7 +9446,7 @@ fn test_character_table_construction_symmetric_vf6_magnetic_field_bw_d3d_s6() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -9455,7 +9455,7 @@ fn test_character_table_construction_symmetric_vf6_magnetic_field_bw_d3d_s6() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_s8_magnetic_field_s8() {
+fn test_irrep_character_table_construction_symmetric_s8_magnetic_field_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9505,11 +9505,11 @@ fn test_character_table_construction_symmetric_s8_magnetic_field_s8() {
             Character::new(&[(UnityRoot::new(7, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_s8_magnetic_field_bw_d4d_s8() {
+fn test_irrep_character_table_construction_symmetric_s8_magnetic_field_bw_d4d_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9554,7 +9554,7 @@ fn test_character_table_construction_symmetric_s8_magnetic_field_bw_d4d_s8() {
             Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -9563,7 +9563,7 @@ fn test_character_table_construction_symmetric_s8_magnetic_field_bw_d4d_s8() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_antiprism_pb10_magnetic_field_s8() {
+fn test_irrep_character_table_construction_symmetric_antiprism_pb10_magnetic_field_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9613,11 +9613,11 @@ fn test_character_table_construction_symmetric_antiprism_pb10_magnetic_field_s8(
             Character::new(&[(UnityRoot::new(7, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8() {
+fn test_irrep_character_table_construction_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9662,7 +9662,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_magnetic_field_bw_
             Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -9671,7 +9671,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_magnetic_field_bw_
 }
 
 #[test]
-fn test_character_table_construction_symmetric_staggered_ferrocene_magnetic_field_s10() {
+fn test_irrep_character_table_construction_symmetric_staggered_ferrocene_magnetic_field_s10() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9772,11 +9772,11 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_magnetic_fiel
             Character::new(&[(UnityRoot::new(9, 10), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10() {
+fn test_irrep_character_table_construction_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9826,7 +9826,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_magnetic_fiel
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -9835,7 +9835,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_magnetic_fiel
 }
 
 #[test]
-fn test_character_table_construction_symmetric_c60_magnetic_field_s10() {
+fn test_irrep_character_table_construction_symmetric_c60_magnetic_field_s10() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9936,11 +9936,11 @@ fn test_character_table_construction_symmetric_c60_magnetic_field_s10() {
             Character::new(&[(UnityRoot::new(9, 10), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_c60_magnetic_field_bw_d5d_s10() {
+fn test_irrep_character_table_construction_symmetric_c60_magnetic_field_bw_d5d_s10() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -9990,7 +9990,7 @@ fn test_character_table_construction_symmetric_c60_magnetic_field_bw_d5d_s10() {
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -9999,7 +9999,7 @@ fn test_character_table_construction_symmetric_c60_magnetic_field_bw_d5d_s10() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_au26_magnetic_field_s12() {
+fn test_irrep_character_table_construction_symmetric_au26_magnetic_field_s12() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10069,11 +10069,11 @@ fn test_character_table_construction_symmetric_au26_magnetic_field_s12() {
             Character::new(&[(UnityRoot::new(11, 12), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_au26_magnetic_field_bw_d6d_s12() {
+fn test_irrep_character_table_construction_symmetric_au26_magnetic_field_bw_d6d_s12() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10128,7 +10128,7 @@ fn test_character_table_construction_symmetric_au26_magnetic_field_bw_d6d_s12() 
             Character::new(&[(UnityRoot::new(5, 12), 1), (UnityRoot::new(7, 12), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -10137,7 +10137,7 @@ fn test_character_table_construction_symmetric_au26_magnetic_field_bw_d6d_s12() 
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
+fn test_irrep_character_table_construction_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
     let thresh = 1e-7;
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
@@ -10168,12 +10168,12 @@ fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_magn
             );
             irreps
         };
-        test_character_table_construction(&mol, thresh, &expected_irreps, None);
+        test_irrep_character_table_construction(&mol, thresh, &expected_irreps, None);
     }
 }
 
 #[test]
-fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd_s2n(
+fn test_irrep_character_table_construction_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd_s2n(
 ) {
     let thresh = 1e-7;
     for n in 3..=20 {
@@ -10214,7 +10214,7 @@ fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_magn
             };
             irreps
         };
-        test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+        test_irrep_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
     }
 }
 
@@ -10225,7 +10225,7 @@ Asymmetric
 C2
 */
 #[test]
-fn test_character_table_construction_asymmetric_spiroketal_c2() {
+fn test_irrep_character_table_construction_asymmetric_spiroketal_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/spiroketal.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10233,7 +10233,7 @@ fn test_character_table_construction_asymmetric_spiroketal_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_spiroketal_grey_c2() {
+fn test_irrep_character_table_construction_asymmetric_spiroketal_grey_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/spiroketal.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10241,7 +10241,7 @@ fn test_character_table_construction_asymmetric_spiroketal_grey_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cyclohexene_c2() {
+fn test_irrep_character_table_construction_asymmetric_cyclohexene_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10249,7 +10249,7 @@ fn test_character_table_construction_asymmetric_cyclohexene_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cyclohexene_grey_c2() {
+fn test_irrep_character_table_construction_asymmetric_cyclohexene_grey_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10257,7 +10257,7 @@ fn test_character_table_construction_asymmetric_cyclohexene_grey_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_thf_c2() {
+fn test_irrep_character_table_construction_asymmetric_thf_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/thf.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10265,7 +10265,7 @@ fn test_character_table_construction_asymmetric_thf_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_thf_grey_c2() {
+fn test_irrep_character_table_construction_asymmetric_thf_grey_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/thf.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10273,7 +10273,7 @@ fn test_character_table_construction_asymmetric_thf_grey_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_tartaricacid_c2() {
+fn test_irrep_character_table_construction_asymmetric_tartaricacid_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/tartaricacid.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10281,7 +10281,7 @@ fn test_character_table_construction_asymmetric_tartaricacid_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_tartaricacid_grey_c2() {
+fn test_irrep_character_table_construction_asymmetric_tartaricacid_grey_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/tartaricacid.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10289,7 +10289,7 @@ fn test_character_table_construction_asymmetric_tartaricacid_grey_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_f2allene_c2() {
+fn test_irrep_character_table_construction_asymmetric_f2allene_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/f2allene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10297,7 +10297,7 @@ fn test_character_table_construction_asymmetric_f2allene_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_f2allene_grey_c2() {
+fn test_irrep_character_table_construction_asymmetric_f2allene_grey_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/f2allene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10305,7 +10305,7 @@ fn test_character_table_construction_asymmetric_f2allene_grey_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_water_magnetic_field_c2() {
+fn test_irrep_character_table_construction_asymmetric_water_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10314,7 +10314,7 @@ fn test_character_table_construction_asymmetric_water_magnetic_field_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_water_magnetic_field_bw_c2v_c2() {
+fn test_irrep_character_table_construction_asymmetric_water_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10323,7 +10323,7 @@ fn test_character_table_construction_asymmetric_water_magnetic_field_bw_c2v_c2()
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyridine_magnetic_field_c2() {
+fn test_irrep_character_table_construction_asymmetric_pyridine_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10332,7 +10332,7 @@ fn test_character_table_construction_asymmetric_pyridine_magnetic_field_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyridine_magnetic_field_bw_c2v_c2() {
+fn test_irrep_character_table_construction_asymmetric_pyridine_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10341,7 +10341,7 @@ fn test_character_table_construction_asymmetric_pyridine_magnetic_field_bw_c2v_c
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cyclobutene_magnetic_field_c2() {
+fn test_irrep_character_table_construction_asymmetric_cyclobutene_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10350,7 +10350,7 @@ fn test_character_table_construction_asymmetric_cyclobutene_magnetic_field_c2() 
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2() {
+fn test_irrep_character_table_construction_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10359,7 +10359,7 @@ fn test_character_table_construction_asymmetric_cyclobutene_magnetic_field_bw_c2
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_azulene_magnetic_field_c2() {
+fn test_irrep_character_table_construction_asymmetric_azulene_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10368,7 +10368,7 @@ fn test_character_table_construction_asymmetric_azulene_magnetic_field_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_azulene_magnetic_field_bw_c2v_c2() {
+fn test_irrep_character_table_construction_asymmetric_azulene_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10377,7 +10377,7 @@ fn test_character_table_construction_asymmetric_azulene_magnetic_field_bw_c2v_c2
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_c2() {
+fn test_irrep_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10386,7 +10386,7 @@ fn test_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_c2(
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2() {
+fn test_irrep_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10395,7 +10395,7 @@ fn test_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_bw_
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cuneane_magnetic_field_c2() {
+fn test_irrep_character_table_construction_asymmetric_cuneane_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10404,7 +10404,7 @@ fn test_character_table_construction_asymmetric_cuneane_magnetic_field_c2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cuneane_magnetic_field_bw_c2v_c2() {
+fn test_irrep_character_table_construction_asymmetric_cuneane_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10438,7 +10438,7 @@ fn verify_c2(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{2} + \theta\mathcal{C}_{2}`$ character
@@ -10478,7 +10478,7 @@ fn verify_grey_c2(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(0, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -10490,7 +10490,7 @@ fn verify_grey_c2(mol: &Molecule, thresh: f64) {
 C2v
 ***/
 #[test]
-fn test_character_table_construction_asymmetric_water_c2v() {
+fn test_irrep_character_table_construction_asymmetric_water_c2v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
@@ -10499,7 +10499,7 @@ fn test_character_table_construction_asymmetric_water_c2v() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_water_grey_c2v() {
+fn test_irrep_character_table_construction_asymmetric_water_grey_c2v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
@@ -10508,7 +10508,7 @@ fn test_character_table_construction_asymmetric_water_grey_c2v() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyridine_c2v() {
+fn test_irrep_character_table_construction_asymmetric_pyridine_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10516,7 +10516,7 @@ fn test_character_table_construction_asymmetric_pyridine_c2v() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyridine_grey_c2v() {
+fn test_irrep_character_table_construction_asymmetric_pyridine_grey_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10524,7 +10524,7 @@ fn test_character_table_construction_asymmetric_pyridine_grey_c2v() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cyclobutene_c2v() {
+fn test_irrep_character_table_construction_asymmetric_cyclobutene_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10532,7 +10532,7 @@ fn test_character_table_construction_asymmetric_cyclobutene_c2v() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cyclobutene_grey_c2v() {
+fn test_irrep_character_table_construction_asymmetric_cyclobutene_grey_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10540,7 +10540,7 @@ fn test_character_table_construction_asymmetric_cyclobutene_grey_c2v() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_azulene_c2v() {
+fn test_irrep_character_table_construction_asymmetric_azulene_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10548,7 +10548,7 @@ fn test_character_table_construction_asymmetric_azulene_c2v() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_azulene_grey_c2v() {
+fn test_irrep_character_table_construction_asymmetric_azulene_grey_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10556,7 +10556,7 @@ fn test_character_table_construction_asymmetric_azulene_grey_c2v() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cuneane_c2v() {
+fn test_irrep_character_table_construction_asymmetric_cuneane_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10564,7 +10564,7 @@ fn test_character_table_construction_asymmetric_cuneane_c2v() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cuneane_grey_c2v() {
+fn test_irrep_character_table_construction_asymmetric_cuneane_grey_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10572,7 +10572,7 @@ fn test_character_table_construction_asymmetric_cuneane_grey_c2v() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_bf3_electric_field_c2v() {
+fn test_irrep_character_table_construction_asymmetric_bf3_electric_field_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10581,7 +10581,7 @@ fn test_character_table_construction_asymmetric_bf3_electric_field_c2v() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_bf3_electric_field_grey_c2v() {
+fn test_irrep_character_table_construction_asymmetric_bf3_electric_field_grey_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10626,7 +10626,7 @@ fn verify_c2v(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{2v}(\mathcal{C}_{2})`$ character table of irreps.
@@ -10666,7 +10666,7 @@ fn verify_bw_c2v_c2(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -10711,7 +10711,7 @@ fn verify_bw_c2v_cs(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -10776,7 +10776,7 @@ fn verify_grey_c2v(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(0, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -10788,7 +10788,7 @@ fn verify_grey_c2v(mol: &Molecule, thresh: f64) {
 C2h
 ***/
 #[test]
-fn test_character_table_construction_asymmetric_h2o2_c2h() {
+fn test_irrep_character_table_construction_asymmetric_h2o2_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10796,7 +10796,7 @@ fn test_character_table_construction_asymmetric_h2o2_c2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_h2o2_grey_c2h() {
+fn test_irrep_character_table_construction_asymmetric_h2o2_grey_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10804,7 +10804,7 @@ fn test_character_table_construction_asymmetric_h2o2_grey_c2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_zethrene_c2h() {
+fn test_irrep_character_table_construction_asymmetric_zethrene_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/zethrene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10812,7 +10812,7 @@ fn test_character_table_construction_asymmetric_zethrene_c2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_zethrene_grey_c2h() {
+fn test_irrep_character_table_construction_asymmetric_zethrene_grey_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/zethrene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10820,7 +10820,7 @@ fn test_character_table_construction_asymmetric_zethrene_grey_c2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_distorted_vf6_magnetic_field_c2h() {
+fn test_irrep_character_table_construction_asymmetric_distorted_vf6_magnetic_field_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10829,7 +10829,7 @@ fn test_character_table_construction_asymmetric_distorted_vf6_magnetic_field_c2h
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h() {
+fn test_irrep_character_table_construction_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10838,7 +10838,7 @@ fn test_character_table_construction_asymmetric_distorted_vf6_magnetic_field_bw_
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_b2h6_magnetic_field_c2h() {
+fn test_irrep_character_table_construction_asymmetric_b2h6_magnetic_field_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10847,7 +10847,7 @@ fn test_character_table_construction_asymmetric_b2h6_magnetic_field_c2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_b2h6_magnetic_field_bw_d2h_c2h() {
+fn test_irrep_character_table_construction_asymmetric_b2h6_magnetic_field_bw_d2h_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10856,7 +10856,7 @@ fn test_character_table_construction_asymmetric_b2h6_magnetic_field_bw_d2h_c2h()
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_naphthalene_magnetic_field_c2h() {
+fn test_irrep_character_table_construction_asymmetric_naphthalene_magnetic_field_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10865,7 +10865,7 @@ fn test_character_table_construction_asymmetric_naphthalene_magnetic_field_c2h()
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_naphthalene_magnetic_field_bw_d2h_c2h() {
+fn test_irrep_character_table_construction_asymmetric_naphthalene_magnetic_field_bw_d2h_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10874,7 +10874,7 @@ fn test_character_table_construction_asymmetric_naphthalene_magnetic_field_bw_d2
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyrene_magnetic_field_c2h() {
+fn test_irrep_character_table_construction_asymmetric_pyrene_magnetic_field_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10883,7 +10883,7 @@ fn test_character_table_construction_asymmetric_pyrene_magnetic_field_c2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyrene_magnetic_field_bw_d2h_c2h() {
+fn test_irrep_character_table_construction_asymmetric_pyrene_magnetic_field_bw_d2h_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10892,7 +10892,7 @@ fn test_character_table_construction_asymmetric_pyrene_magnetic_field_bw_d2h_c2h
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_c6o6_magnetic_field_c2h() {
+fn test_irrep_character_table_construction_asymmetric_c6o6_magnetic_field_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10901,7 +10901,7 @@ fn test_character_table_construction_asymmetric_c6o6_magnetic_field_c2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_c6o6_magnetic_field_bw_d2h_c2h() {
+fn test_irrep_character_table_construction_asymmetric_c6o6_magnetic_field_bw_d2h_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10945,7 +10945,7 @@ fn verify_c2h(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{2h} + \theta\mathcal{C}_{2h}`$ character
@@ -11005,7 +11005,7 @@ fn verify_grey_c2h(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(0, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -11017,7 +11017,7 @@ fn verify_grey_c2h(mol: &Molecule, thresh: f64) {
 Cs
 */
 #[test]
-fn test_character_table_construction_asymmetric_propene_cs() {
+fn test_irrep_character_table_construction_asymmetric_propene_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
     let thresh = 1e-7;
@@ -11026,7 +11026,7 @@ fn test_character_table_construction_asymmetric_propene_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_propene_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_propene_grey_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
     let thresh = 1e-7;
@@ -11035,7 +11035,7 @@ fn test_character_table_construction_asymmetric_propene_grey_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_socl2_cs() {
+fn test_irrep_character_table_construction_asymmetric_socl2_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/socl2.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11043,7 +11043,7 @@ fn test_character_table_construction_asymmetric_socl2_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_socl2_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_socl2_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/socl2.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11051,7 +11051,7 @@ fn test_character_table_construction_asymmetric_socl2_grey_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_hocl_cs() {
+fn test_irrep_character_table_construction_asymmetric_hocl_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/hocl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11059,7 +11059,7 @@ fn test_character_table_construction_asymmetric_hocl_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_hocl_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_hocl_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/hocl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11067,7 +11067,7 @@ fn test_character_table_construction_asymmetric_hocl_grey_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_hocn_cs() {
+fn test_irrep_character_table_construction_asymmetric_hocn_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/hocn.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11075,7 +11075,7 @@ fn test_character_table_construction_asymmetric_hocn_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_hocn_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_hocn_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/hocn.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11083,7 +11083,7 @@ fn test_character_table_construction_asymmetric_hocn_grey_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_nh2f_cs() {
+fn test_irrep_character_table_construction_asymmetric_nh2f_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh2f.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11091,7 +11091,7 @@ fn test_character_table_construction_asymmetric_nh2f_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_nh2f_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_nh2f_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh2f.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11099,7 +11099,7 @@ fn test_character_table_construction_asymmetric_nh2f_grey_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_phenol_cs() {
+fn test_irrep_character_table_construction_asymmetric_phenol_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/phenol.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11107,7 +11107,7 @@ fn test_character_table_construction_asymmetric_phenol_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_phenol_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_phenol_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/phenol.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11115,7 +11115,7 @@ fn test_character_table_construction_asymmetric_phenol_grey_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_f_pyrrole_cs() {
+fn test_irrep_character_table_construction_asymmetric_f_pyrrole_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/f-pyrrole.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11123,7 +11123,7 @@ fn test_character_table_construction_asymmetric_f_pyrrole_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_f_pyrrole_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_f_pyrrole_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/f-pyrrole.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11131,7 +11131,7 @@ fn test_character_table_construction_asymmetric_f_pyrrole_grey_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_n2o_cs() {
+fn test_irrep_character_table_construction_asymmetric_n2o_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n2o.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11139,7 +11139,7 @@ fn test_character_table_construction_asymmetric_n2o_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_n2o_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_n2o_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n2o.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11147,7 +11147,7 @@ fn test_character_table_construction_asymmetric_n2o_grey_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_fclbenzene_cs() {
+fn test_irrep_character_table_construction_asymmetric_fclbenzene_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/fclbenzene.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11155,7 +11155,7 @@ fn test_character_table_construction_asymmetric_fclbenzene_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_fclbenzene_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_fclbenzene_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/fclbenzene.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11163,7 +11163,7 @@ fn test_character_table_construction_asymmetric_fclbenzene_grey_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_water_magnetic_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_water_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11172,7 +11172,7 @@ fn test_character_table_construction_asymmetric_water_magnetic_field_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_water_magnetic_field_bw_c2v_cs() {
+fn test_irrep_character_table_construction_asymmetric_water_magnetic_field_bw_c2v_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
@@ -11182,7 +11182,7 @@ fn test_character_table_construction_asymmetric_water_magnetic_field_bw_c2v_cs()
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyridine_magnetic_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_pyridine_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11191,7 +11191,7 @@ fn test_character_table_construction_asymmetric_pyridine_magnetic_field_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyridine_magnetic_field_bw_c2v_cs() {
+fn test_irrep_character_table_construction_asymmetric_pyridine_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11200,7 +11200,7 @@ fn test_character_table_construction_asymmetric_pyridine_magnetic_field_bw_c2v_c
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cyclobutene_magnetic_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_cyclobutene_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11209,7 +11209,7 @@ fn test_character_table_construction_asymmetric_cyclobutene_magnetic_field_cs() 
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs() {
+fn test_irrep_character_table_construction_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11218,7 +11218,7 @@ fn test_character_table_construction_asymmetric_cyclobutene_magnetic_field_bw_c2
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_azulene_magnetic_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_azulene_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11227,7 +11227,7 @@ fn test_character_table_construction_asymmetric_azulene_magnetic_field_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_azulene_magnetic_field_bw_c2v_cs() {
+fn test_irrep_character_table_construction_asymmetric_azulene_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11236,7 +11236,7 @@ fn test_character_table_construction_asymmetric_azulene_magnetic_field_bw_c2v_cs
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11245,7 +11245,7 @@ fn test_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_cs(
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_cs() {
+fn test_irrep_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11254,7 +11254,7 @@ fn test_character_table_construction_asymmetric_cis_cocl2h4o2_magnetic_field_bw_
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cuneane_magnetic_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_cuneane_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11263,7 +11263,7 @@ fn test_character_table_construction_asymmetric_cuneane_magnetic_field_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cuneane_magnetic_field_bw_c2v_cs() {
+fn test_irrep_character_table_construction_asymmetric_cuneane_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11272,7 +11272,7 @@ fn test_character_table_construction_asymmetric_cuneane_magnetic_field_bw_c2v_cs
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_water_electric_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_water_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11281,7 +11281,7 @@ fn test_character_table_construction_asymmetric_water_electric_field_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_water_electric_field_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_water_electric_field_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11290,7 +11290,7 @@ fn test_character_table_construction_asymmetric_water_electric_field_grey_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyridine_electric_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_pyridine_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11299,7 +11299,7 @@ fn test_character_table_construction_asymmetric_pyridine_electric_field_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyridine_electric_field_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_pyridine_electric_field_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11308,7 +11308,7 @@ fn test_character_table_construction_asymmetric_pyridine_electric_field_grey_cs(
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cyclobutene_electric_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_cyclobutene_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11317,7 +11317,7 @@ fn test_character_table_construction_asymmetric_cyclobutene_electric_field_cs() 
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cyclobutene_electric_field_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_cyclobutene_electric_field_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11326,7 +11326,7 @@ fn test_character_table_construction_asymmetric_cyclobutene_electric_field_grey_
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_azulene_electric_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_azulene_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11335,7 +11335,7 @@ fn test_character_table_construction_asymmetric_azulene_electric_field_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_azulene_electric_field_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_azulene_electric_field_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11344,7 +11344,7 @@ fn test_character_table_construction_asymmetric_azulene_electric_field_grey_cs()
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cis_cocl2h4o2_electric_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_cis_cocl2h4o2_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11353,7 +11353,7 @@ fn test_character_table_construction_asymmetric_cis_cocl2h4o2_electric_field_cs(
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cis_cocl2h4o2_electric_field_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_cis_cocl2h4o2_electric_field_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11362,7 +11362,7 @@ fn test_character_table_construction_asymmetric_cis_cocl2h4o2_electric_field_gre
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cuneane_electric_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_cuneane_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11371,7 +11371,7 @@ fn test_character_table_construction_asymmetric_cuneane_electric_field_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_cuneane_electric_field_grey_cs() {
+fn test_irrep_character_table_construction_asymmetric_cuneane_electric_field_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11380,7 +11380,7 @@ fn test_character_table_construction_asymmetric_cuneane_electric_field_grey_cs()
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_bf3_magnetic_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_bf3_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11389,7 +11389,7 @@ fn test_character_table_construction_asymmetric_bf3_magnetic_field_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_bf3_magnetic_field_bw_c2v_cs() {
+fn test_irrep_character_table_construction_asymmetric_bf3_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11399,7 +11399,7 @@ fn test_character_table_construction_asymmetric_bf3_magnetic_field_bw_c2v_cs() {
 
 /// This is a special case: Cs point group in a symmetric top.
 #[test]
-fn test_character_table_construction_symmetric_ch4_magnetic_field_cs() {
+fn test_irrep_character_table_construction_symmetric_ch4_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11408,7 +11408,7 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_cs() {
 }
 
 #[test]
-fn test_character_table_construction_symmetric_ch4_magnetic_field_bw_c2v_cs() {
+fn test_irrep_character_table_construction_symmetric_ch4_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11418,7 +11418,7 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_bw_c2v_cs() {
 
 /// This is another special case: Cs point group in a symmetric top.
 #[test]
-fn test_character_table_construction_symmetric_ch4_electric_field_cs() {
+fn test_irrep_character_table_construction_symmetric_ch4_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11428,7 +11428,7 @@ fn test_character_table_construction_symmetric_ch4_electric_field_cs() {
 
 /// This is another special case: Cs point group in a symmetric top.
 #[test]
-fn test_character_table_construction_symmetric_ch4_electric_field_grey_cs() {
+fn test_irrep_character_table_construction_symmetric_ch4_electric_field_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11437,7 +11437,7 @@ fn test_character_table_construction_symmetric_ch4_electric_field_grey_cs() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_atom_magnetic_electric_field_cs() {
+fn test_irrep_character_table_construction_asymmetric_atom_magnetic_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11447,7 +11447,7 @@ fn test_character_table_construction_asymmetric_atom_magnetic_electric_field_cs(
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_atom_magnetic_electric_field_bw_c2v_cs() {
+fn test_irrep_character_table_construction_asymmetric_atom_magnetic_electric_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -11482,7 +11482,7 @@ fn verify_cs(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{s} + \theta\mathcal{C}_{s}`$ character
@@ -11522,7 +11522,7 @@ fn verify_grey_cs(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(0, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -11534,7 +11534,7 @@ fn verify_grey_cs(mol: &Molecule, thresh: f64) {
 D2
 */
 #[test]
-fn test_character_table_construction_asymmetric_i4_biphenyl_d2() {
+fn test_irrep_character_table_construction_asymmetric_i4_biphenyl_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11542,7 +11542,7 @@ fn test_character_table_construction_asymmetric_i4_biphenyl_d2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_i4_biphenyl_grey_d2() {
+fn test_irrep_character_table_construction_asymmetric_i4_biphenyl_grey_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11550,7 +11550,7 @@ fn test_character_table_construction_asymmetric_i4_biphenyl_grey_d2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_twistane_d2() {
+fn test_irrep_character_table_construction_asymmetric_twistane_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/twistane.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11558,7 +11558,7 @@ fn test_character_table_construction_asymmetric_twistane_d2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_twistane_grey_d2() {
+fn test_irrep_character_table_construction_asymmetric_twistane_grey_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/twistane.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11566,7 +11566,7 @@ fn test_character_table_construction_asymmetric_twistane_grey_d2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_22_paracyclophane_d2() {
+fn test_irrep_character_table_construction_asymmetric_22_paracyclophane_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/paracyclophane22.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11574,7 +11574,7 @@ fn test_character_table_construction_asymmetric_22_paracyclophane_d2() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_22_paracyclophane_grey_d2() {
+fn test_irrep_character_table_construction_asymmetric_22_paracyclophane_grey_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/paracyclophane22.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11634,7 +11634,7 @@ fn verify_d2(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{D}_{2} + \theta\mathcal{D}_{2}`$ character
@@ -11727,7 +11727,7 @@ fn verify_grey_d2(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(0, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -11739,7 +11739,7 @@ fn verify_grey_d2(mol: &Molecule, thresh: f64) {
 D2h
 ***/
 #[test]
-fn test_character_table_construction_asymmetric_b2h6_d2h() {
+fn test_irrep_character_table_construction_asymmetric_b2h6_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11747,7 +11747,7 @@ fn test_character_table_construction_asymmetric_b2h6_d2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_b2h6_grey_d2h() {
+fn test_irrep_character_table_construction_asymmetric_b2h6_grey_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11755,7 +11755,7 @@ fn test_character_table_construction_asymmetric_b2h6_grey_d2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_naphthalene_d2h() {
+fn test_irrep_character_table_construction_asymmetric_naphthalene_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11763,7 +11763,7 @@ fn test_character_table_construction_asymmetric_naphthalene_d2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_naphthalene_grey_d2h() {
+fn test_irrep_character_table_construction_asymmetric_naphthalene_grey_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11771,7 +11771,7 @@ fn test_character_table_construction_asymmetric_naphthalene_grey_d2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyrene_d2h() {
+fn test_irrep_character_table_construction_asymmetric_pyrene_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11779,7 +11779,7 @@ fn test_character_table_construction_asymmetric_pyrene_d2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_pyrene_grey_d2h() {
+fn test_irrep_character_table_construction_asymmetric_pyrene_grey_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11787,7 +11787,7 @@ fn test_character_table_construction_asymmetric_pyrene_grey_d2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_c6o6_d2h() {
+fn test_irrep_character_table_construction_asymmetric_c6o6_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11795,7 +11795,7 @@ fn test_character_table_construction_asymmetric_c6o6_d2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_c6o6_grey_d2h() {
+fn test_irrep_character_table_construction_asymmetric_c6o6_grey_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11803,7 +11803,7 @@ fn test_character_table_construction_asymmetric_c6o6_grey_d2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_distorted_vf6_d2h() {
+fn test_irrep_character_table_construction_asymmetric_distorted_vf6_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11811,7 +11811,7 @@ fn test_character_table_construction_asymmetric_distorted_vf6_d2h() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_distorted_vf6_grey_d2h() {
+fn test_irrep_character_table_construction_asymmetric_distorted_vf6_grey_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -11876,7 +11876,7 @@ fn verify_d2h(mol: &Molecule, thresh: f64, magnetic: bool) {
                 Character::new(&[(UnityRoot::new(1, 2), 1)]),
             ),
         ]);
-        test_character_table_construction_magnetic(
+        test_irrep_character_table_construction_magnetic(
             &mol,
             thresh,
             &expected_irreps,
@@ -11961,7 +11961,7 @@ fn verify_d2h(mol: &Molecule, thresh: f64, magnetic: bool) {
                 Character::new(&[(UnityRoot::new(1, 2), 1)]),
             ),
         ]);
-        test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+        test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
     }
 }
 
@@ -12127,7 +12127,7 @@ fn verify_grey_d2h(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(0, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -12139,7 +12139,7 @@ fn verify_grey_d2h(mol: &Molecule, thresh: f64) {
 Ci
 ***/
 #[test]
-fn test_character_table_construction_asymmetric_meso_tartaricacid_ci() {
+fn test_irrep_character_table_construction_asymmetric_meso_tartaricacid_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -12147,7 +12147,7 @@ fn test_character_table_construction_asymmetric_meso_tartaricacid_ci() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_meso_tartaricacid_grey_ci() {
+fn test_irrep_character_table_construction_asymmetric_meso_tartaricacid_grey_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -12155,7 +12155,7 @@ fn test_character_table_construction_asymmetric_meso_tartaricacid_grey_ci() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_dibromodimethylcyclohexane_ci() {
+fn test_irrep_character_table_construction_asymmetric_dibromodimethylcyclohexane_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/dibromodimethylcyclohexane.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -12163,7 +12163,7 @@ fn test_character_table_construction_asymmetric_dibromodimethylcyclohexane_ci() 
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_dibromodimethylcyclohexane_grey_ci() {
+fn test_irrep_character_table_construction_asymmetric_dibromodimethylcyclohexane_grey_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/dibromodimethylcyclohexane.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -12171,7 +12171,7 @@ fn test_character_table_construction_asymmetric_dibromodimethylcyclohexane_grey_
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_h2o2_magnetic_field_ci() {
+fn test_irrep_character_table_construction_asymmetric_h2o2_magnetic_field_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -12180,7 +12180,7 @@ fn test_character_table_construction_asymmetric_h2o2_magnetic_field_ci() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_h2o2_magnetic_field_bw_c2h_ci() {
+fn test_irrep_character_table_construction_asymmetric_h2o2_magnetic_field_bw_c2h_ci() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2_yz.xyz");
     let thresh = 1e-6;
@@ -12211,7 +12211,7 @@ fn test_character_table_construction_asymmetric_h2o2_magnetic_field_bw_c2h_ci() 
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -12220,7 +12220,7 @@ fn test_character_table_construction_asymmetric_h2o2_magnetic_field_bw_c2h_ci() 
 }
 
 #[test]
-fn test_character_table_construction_symmetric_xef4_magnetic_field_ci() {
+fn test_irrep_character_table_construction_symmetric_xef4_magnetic_field_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -12229,7 +12229,7 @@ fn test_character_table_construction_symmetric_xef4_magnetic_field_ci() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_c2h2_magnetic_field_ci() {
+fn test_irrep_character_table_construction_asymmetric_c2h2_magnetic_field_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -12263,7 +12263,7 @@ fn verify_ci(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{i} + \theta\mathcal{C}_{i}`$ character
@@ -12303,7 +12303,7 @@ fn verify_grey_ci(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(0, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,
@@ -12315,7 +12315,7 @@ fn verify_grey_ci(mol: &Molecule, thresh: f64) {
 C1
 ***/
 #[test]
-fn test_character_table_construction_asymmetric_butan1ol_c1() {
+fn test_irrep_character_table_construction_asymmetric_butan1ol_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -12323,7 +12323,7 @@ fn test_character_table_construction_asymmetric_butan1ol_c1() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_butan1ol_grey_c1() {
+fn test_irrep_character_table_construction_asymmetric_butan1ol_grey_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -12331,7 +12331,7 @@ fn test_character_table_construction_asymmetric_butan1ol_grey_c1() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_subst_5m_ring_c1() {
+fn test_irrep_character_table_construction_asymmetric_subst_5m_ring_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/subst-5m-ring.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -12339,7 +12339,7 @@ fn test_character_table_construction_asymmetric_subst_5m_ring_c1() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_subst_5m_ring_grey_c1() {
+fn test_irrep_character_table_construction_asymmetric_subst_5m_ring_grey_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/subst-5m-ring.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -12347,7 +12347,7 @@ fn test_character_table_construction_asymmetric_subst_5m_ring_grey_c1() {
 }
 
 #[test]
-fn test_character_table_construction_asymmetric_bf3_magnetic_field_c1() {
+fn test_irrep_character_table_construction_asymmetric_bf3_magnetic_field_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -12372,7 +12372,7 @@ fn verify_c1(mol: &Molecule, thresh: f64) {
         (&expected_irreps[0], &e),
         Character::new(&[(UnityRoot::new(0, 1), 1)]),
     )]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_irrep_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{1} + \theta\mathcal{C}_{1}`$ character
@@ -12402,7 +12402,7 @@ fn verify_grey_c1(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction_magnetic(
+    test_irrep_character_table_construction_magnetic(
         &mol,
         thresh,
         &expected_irreps,

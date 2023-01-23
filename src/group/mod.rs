@@ -22,7 +22,7 @@ use crate::chartab::character::Character;
 use crate::chartab::modular_linalg::{modular_eig, split_space, weighted_hermitian_inprod};
 use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
-use crate::chartab::RepCharacterTable;
+use crate::chartab::{CorepCharacterTable, RepCharacterTable};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
@@ -40,7 +40,7 @@ use crate::symmetry::symmetry_symbols::{
 mod group_tests;
 
 #[cfg(test)]
-mod chartab_construction_tests;
+mod irrep_chartab_construction_tests;
 
 /// An enum to contain information about the type of a group.
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
@@ -168,9 +168,13 @@ struct Group<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> {
     #[builder(setter(skip), default = "None")]
     class_matrix: Option<Array3<usize>>,
 
-    /// The character table for this group.
+    /// The character table for the irreducible representations of this group.
     #[builder(setter(skip), default = "None")]
-    pub character_table: Option<RepCharacterTable<T>>,
+    pub irrep_character_table: Option<RepCharacterTable<T>>,
+
+    /// The character table for the irreducible corepresentations of this group, if any.
+    #[builder(setter(skip), default = "None")]
+    pub ircorep_character_table: Option<CorepCharacterTable<T>>,
 }
 
 impl<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> GroupBuilder<T> {
@@ -550,7 +554,7 @@ where
         }
     }
 
-    /// Constructs the character table for this group using the Burnside--Dixon--Schneider
+    /// Constructs the irrep character table for this group using the Burnside--Dixon--Schneider
     /// algorithm.
     ///
     /// This method sets the [`Self::class_matrix`] field.
@@ -564,7 +568,7 @@ where
     ///
     /// Panics if the Frobenius--Schur indicator takes on unexpected values.
     #[allow(clippy::too_many_lines)]
-    fn construct_character_table(&mut self) {
+    fn construct_irrep_character_table(&mut self) {
         // Variable definitions
         // --------------------
         // m: LCM of the orders of the elements in the group (i.e. the group
@@ -1006,7 +1010,7 @@ where
         } else {
             self.name.clone()
         };
-        self.character_table = Some(RepCharacterTable::new(
+        self.irrep_character_table = Some(RepCharacterTable::new(
             chartab_name.as_str(),
             &ordered_irreps,
             &class_symbols.keys().cloned().collect::<Vec<_>>(),
@@ -1014,6 +1018,48 @@ where
             char_arr,
             &frobenius_schur_indicators,
         ));
+    }
+
+    /// Constructs the ircorep character table for this group.
+    fn construct_ircorep_character_table(&mut self, unitary_chartab: RepCharacterTable<T>) {
+        if self.is_unitary() {
+            // No antiunitary operations exist in this group. There is nothing to do.
+            return;
+        }
+
+        let ctb = self.cayley_table.as_ref().expect("Cayley table not found.");
+        let e2c = self
+            .element_to_conjugacy_classes
+            .as_ref()
+            .expect("Element to class mapping not found.");
+        let ccsyms = self
+            .conjugacy_class_symbols
+            .as_ref()
+            .expect("No conjugacy class symbols found.");
+
+        let mut remaining_irreps = unitary_chartab.irreps.clone();
+        remaining_irreps.reverse();
+        while !remaining_irreps.is_empty() {
+            let (irrep, irrep_index) = remaining_irreps
+                .pop()
+                .expect("Unable to retrieve an unexamined irrep.");
+            let intertwining_number = self
+                .elements
+                .iter()
+                .filter(|(op, _)| op.is_antiunitary())
+                .map(|(a, a_idx)| {
+                    let a2_idx = ctb[(*a_idx, *a_idx)];
+                    let a2_class = self
+                        .conjugacy_class_symbols
+                        .as_ref()
+                        .expect()
+                        .get_index(*e2c.get(a2_idx).unwrap_or_else(|| {
+                            panic!("Conjugacy class of element index {a2_idx} not found.")
+                        }))
+                        .unwrap()
+                        .0;
+                });
+        }
     }
 }
 
@@ -1741,6 +1787,6 @@ fn group_from_molecular_symmetry(
         group.finite_subgroup_name = Some(finite_group);
     }
     group.assign_class_symbols_from_symmetry();
-    group.construct_character_table();
+    group.construct_irrep_character_table();
     group
 }

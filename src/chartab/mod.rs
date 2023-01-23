@@ -5,6 +5,7 @@ use std::iter;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use ndarray::{Array2, ArrayView1};
+use num_traits::Zero;
 
 use crate::chartab::character::Character;
 use crate::symmetry::symmetry_symbols::{
@@ -62,6 +63,13 @@ where
     /// The required characters.
     fn get_col(&self, col: &ColSymbol) -> ArrayView1<Character>;
 
+    /// Gets the order of the group.
+    ///
+    /// # Returns
+    ///
+    /// The group order.
+    fn get_order(&self) -> usize;
+
     /// Prints a nicely formatted character table.
     ///
     /// # Arguments
@@ -108,25 +116,6 @@ pub struct RepCharacterTable<R: Clone> {
 
     /// The Frobenius--Schur indicators for the irreducible representations in this group.
     frobenius_schurs: IndexMap<MullikenIrrepSymbol, i8>,
-
-    /// The order of the group.
-    #[builder(setter(skip), default = "self.order()")]
-    order: usize,
-}
-
-impl<R: Clone> RepCharacterTableBuilder<R> {
-    fn order(&self) -> usize {
-        self.classes
-            .as_ref()
-            .expect("Conjugacy classes not found.")
-            .keys()
-            .map(|cc| {
-                cc.multiplicity().unwrap_or_else(|| {
-                    panic!("Unable to find the multiplicity for conjugacy class `{cc}`.")
-                })
-            })
-            .sum()
-    }
 }
 
 impl<R: Clone> RepCharacterTable<R> {
@@ -134,7 +123,7 @@ impl<R: Clone> RepCharacterTable<R> {
         RepCharacterTableBuilder::default()
     }
 
-    /// Constructs a new character table.
+    /// Constructs a new character table of irreducible representations.
     ///
     /// # Arguments
     ///
@@ -290,6 +279,22 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
             .get(col)
             .unwrap_or_else(|| panic!("Conjugacy class {col} not found."));
         self.characters.column(*col)
+    }
+
+    /// Gets the order of the group.
+    ///
+    /// # Returns
+    ///
+    /// The group order.
+    fn get_order(&self) -> usize {
+        self.classes
+            .keys()
+            .map(|cc| {
+                cc.multiplicity().unwrap_or_else(|| {
+                    panic!("Unable to find the multiplicity for conjugacy class `{cc}`.")
+                })
+            })
+            .sum()
     }
 
     /// Prints a nicely formatted character table.
@@ -484,235 +489,317 @@ pub struct CorepCharacterTable<R: Clone> {
     /// induce the irreducible corepresentations of the current magnetic group.
     unitary_character_table: RepCharacterTable<R>,
 
-    /// The irreducible corepresentations of the group. Each ircorep symbol contains the Mulliken
-    /// symbols of its inducing irreps.
-    ircoreps: IndexSet<MullikenIrcorepSymbol>,
+    /// The irreducible corepresentations of the group and their row indices in the character
+    /// table.
+    pub ircoreps: IndexMap<MullikenIrcorepSymbol, usize>,
+
+    /// The conjugacy classes of the group and their column indices in the character table.
+    #[builder(setter(skip), default = "self.classes()")]
+    pub classes: IndexMap<ClassSymbol<R>, usize>,
+
+    /// The characters of the irreducible corepresentations in this group.
+    pub characters: Array2<Character>,
 
     /// The intertwining numbers of the irreducible corepresentations.
     intertwining_numbers: IndexMap<MullikenIrcorepSymbol, i8>,
 }
 
-//impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>> for CorepCharacterTable<R> {
-//    /// Retrieves the character of a particular irreducible corepresentation in a particular
-//    /// unitary conjugacy class.
-//    ///
-//    /// # Arguments
-//    ///
-//    /// * `ircorep` - A Mulliken irreducible representation symbol.
-//    /// * `class` - A unitary conjugacy class symbol.
-//    ///
-//    /// # Returns
-//    ///
-//    /// The required character.
-//    ///
-//    /// # Panics
-//    ///
-//    /// Panics if the specified `ircorep` or `class` cannot be found.
-//    fn get_character(&self, ircorep: &MullikenIrcorepSymbol, class: &ClassSymbol<R>) -> &Character {
-//        let rows = ircorepself
-//            .irreps
-//            .get(irrep)
-//            .unwrap_or_else(|| panic!("Irrep {irrep} not found."));
-//        let col = self
-//            .unitary_character_table
-//            .classes
-//            .get(class)
-//            .unwrap_or_else(|| panic!("Conjugacy class {class} not found."));
-//        // &self.characters[(*row, *col)]
-//    }
+impl<R: Clone> CorepCharacterTableBuilder<R> {
+    fn classes(&self) -> IndexMap<ClassSymbol<R>, usize> {
+        self.unitary_character_table
+            .as_ref()
+            .expect("Unitary character table has not been set.")
+            .classes
+            .clone()
+    }
+}
 
-//    /// Retrieves the characters of all conjugacy classes in a particular irreducible
-//    /// representation.
-//    ///
-//    /// # Arguments
-//    ///
-//    /// * `irrep` - A Mulliken irreducible representation symbol.
-//    ///
-//    /// # Returns
-//    ///
-//    /// The required characters.
-//    fn get_row(&self, row: &MullikenIrrepSymbol) -> ArrayView1<Character> {
-//        let row = self
-//            .irreps
-//            .get(row)
-//            .unwrap_or_else(|| panic!("Irrep {row} not found."));
-//        self.characters.row(*row)
-//    }
+impl<R: Clone> CorepCharacterTable<R> {
+    fn builder() -> CorepCharacterTableBuilder<R> {
+        CorepCharacterTableBuilder::default()
+    }
 
-//    /// Retrieves the characters of all irreducible representations in a particular conjugacy
-//    /// class.
-//    ///
-//    /// # Arguments
-//    ///
-//    /// * `class` - A conjugacy class symbol.
-//    ///
-//    /// # Returns
-//    ///
-//    /// The required characters.
-//    fn get_col(&self, col: &ClassSymbol<R>) -> ArrayView1<Character> {
-//        let col = self
-//            .classes
-//            .get(col)
-//            .unwrap_or_else(|| panic!("Conjugacy class {col} not found."));
-//        self.characters.column(*col)
-//    }
+    /// Constructs a new character table of irreducible corepresentations.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - A name given to the character table.
+    /// * `unitary_chartab` - The character table of irreducible representations of the unitary
+    /// halving subgroup, which will be owned by this [`CorepCharacterTable`].
+    /// * `ircoreps` - A slice of Mulliken irreducible corepresentation symbols in the right order.
+    /// * `char_arr` - A two-dimensional array of characters,
+    /// * `intertwining_numbers` - A slice of the intertwining numbers of the irreducible
+    /// corepresentations in the right order.
+    ///
+    /// # Returns
+    ///
+    /// A character table.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the character table cannot be constructed.
+    pub fn new(
+        name: &str,
+        unitary_chartab: RepCharacterTable<R>,
+        ircoreps: &[MullikenIrcorepSymbol],
+        char_arr: Array2<Character>,
+        intertwining_numbers: &[i8],
+    ) -> Self {
+        assert_eq!(ircoreps.len(), char_arr.dim().0);
+        assert_eq!(intertwining_numbers.len(), char_arr.dim().0);
+        assert_eq!(char_arr.dim().0, char_arr.dim().1);
 
-//    /// Prints a nicely formatted character table.
-//    ///
-//    /// # Arguments
-//    ///
-//    /// * `compact` - Flag indicating if the columns are compact with unequal widths or expanded
-//    /// with all equal widths.
-//    /// * `numerical` - An option containing a non-negative integer specifying the number of decimal
-//    /// places for the numerical forms of the characters. If `None`, the characters will be shown
-//    /// as exact algebraic forms.
-//    ///
-//    /// # Returns
-//    ///
-//    /// A formatted string containing the character table in a printable form.
-//    ///
-//    /// # Panics
-//    ///
-//    /// Panics upon encountering any missing information required for a complete print-out of the
-//    /// character table.
-//    ///
-//    /// # Errors
-//    ///
-//    /// Errors upon encountering any issue formatting the character table.
-//    #[allow(clippy::too_many_lines)]
-//    fn write_nice_table(
-//        &self,
-//        f: &mut fmt::Formatter,
-//        compact: bool,
-//        numerical: Option<usize>,
-//    ) -> fmt::Result {
-//        let group_order: usize = self
-//            .classes
-//            .keys()
-//            .map(|cc| {
-//                cc.multiplicity().unwrap_or_else(|| {
-//                    panic!("Unable to find the multiplicity for conjugacy class `{cc}`.")
-//                })
-//            })
-//            .sum();
+        let ircoreps_indexmap: IndexMap<MullikenIrcorepSymbol, usize> = ircoreps
+            .iter()
+            .cloned()
+            .enumerate()
+            .map(|(i, ircorep)| (ircorep, i))
+            .collect();
 
-//        let name = format!("{} ({group_order})", self.name);
-//        let chars_str = self.characters.map(|character| {
-//            if let Some(precision) = numerical {
-//                let real_only = self.characters.iter().all(|character| {
-//                    approx::relative_eq!(
-//                        character.complex_value().im,
-//                        0.0,
-//                        epsilon = character.threshold,
-//                        max_relative = character.threshold
-//                    )
-//                });
-//                character.get_numerical(real_only, precision)
-//            } else {
-//                character.to_string()
-//            }
-//        });
-//        let irreps_str: Vec<_> = self
-//            .irreps
-//            .keys()
-//            .map(std::string::ToString::to_string)
-//            .collect();
-//        let ccs_str: Vec<_> = self
-//            .classes
-//            .keys()
-//            .map(|cc| {
-//                if self.principal_classes.contains(cc) {
-//                    format!("◈{cc}")
-//                } else {
-//                    cc.to_string()
-//                }
-//            })
-//            .collect();
+        let intertwining_numbers_indexmap = iter::zip(ircoreps, intertwining_numbers)
+            .map(|(ircorep, &ini)| (ircorep.clone(), ini))
+            .collect::<IndexMap<_, _>>();
 
-//        let first_width = max(
-//            irreps_str
-//                .iter()
-//                .map(|irrep_str| irrep_str.chars().count())
-//                .max()
-//                .expect("Unable to find the maximum length for the irrep symbols."),
-//            name.chars().count(),
-//        ) + 1;
+        Self::builder()
+            .name(name.to_string())
+            .unitary_character_table(unitary_chartab)
+            .ircoreps(ircoreps_indexmap)
+            .characters(char_arr)
+            .intertwining_numbers(intertwining_numbers_indexmap)
+            .build()
+            .expect("Unable to construct a character table.")
+    }
 
-//        let digit_widths: Vec<_> = if compact {
-//            iter::zip(chars_str.columns(), &ccs_str)
-//                .map(|(chars_col_str, cc_str)| {
-//                    let char_width = chars_col_str
-//                        .iter()
-//                        .map(|c| c.chars().count())
-//                        .max()
-//                        .expect("Unable to find the maximum length for the characters.");
-//                    let cc_width = cc_str.chars().count();
-//                    max(char_width, cc_width) + 1
-//                })
-//                .collect()
-//        } else {
-//            let char_width = chars_str
-//                .iter()
-//                .map(|c| c.chars().count())
-//                .max()
-//                .expect("Unable to find the maximum length for the characters.");
-//            let cc_width = ccs_str
-//                .iter()
-//                .map(|cc| cc.chars().count())
-//                .max()
-//                .expect("Unable to find the maximum length for the conjugacy class symbols.");
-//            let fixed_width = max(char_width, cc_width) + 1;
-//            iter::repeat(fixed_width).take(ccs_str.len()).collect()
-//        };
+}
 
-//        // Table heading
-//        let mut heading = format!(" {name:^first_width$} ┆ FS ║");
-//        ccs_str.iter().enumerate().for_each(|(i, cc)| {
-//            heading.push_str(&format!("{cc:>width$} │", width = digit_widths[i]));
-//        });
-//        heading.pop();
-//        let tab_width = heading.chars().count();
-//        heading = format!(
-//            "{}\n{}\n{}\n",
-//            "━".repeat(tab_width),
-//            heading,
-//            "┈".repeat(tab_width),
-//        );
-//        write!(f, "{heading}")?;
+impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
+    for CorepCharacterTable<R>
+{
+    /// Retrieves the character of a particular irreducible corepresentation in a particular
+    /// unitary conjugacy class.
+    ///
+    /// # Arguments
+    ///
+    /// * `ircorep` - A Mulliken irreducible representation symbol.
+    /// * `class` - A unitary conjugacy class symbol.
+    ///
+    /// # Returns
+    ///
+    /// The required character.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the specified `ircorep` or `class` cannot be found.
+    fn get_character(&self, ircorep: &MullikenIrcorepSymbol, class: &ClassSymbol<R>) -> &Character {
+        let row = self
+            .ircoreps
+            .get(ircorep)
+            .unwrap_or_else(|| panic!("Ircorep {ircorep} not found."));
+        let col = self
+            .classes
+            .get(class)
+            .unwrap_or_else(|| panic!("Conjugacy class {class} not found."));
+        &self.characters[(*row, *col)]
+    }
 
-//        // Table body
-//        let rows =
-//            iter::zip(self.irreps.keys(), irreps_str)
-//                .enumerate()
-//                .map(|(i, (irrep, irrep_str))| {
-//                    let fs = FROBENIUS_SCHUR_SYMBOLS
-//                        .get(self.frobenius_schurs.get(irrep).unwrap_or_else(|| {
-//                            panic!(
-//                            "Unable to obtain the Frobenius--Schur indicator for irrep `{irrep}`."
-//                        )
-//                        }))
-//                        .expect("Unknown Frobenius--Schur symbol.");
-//                    let mut line = format!(" {irrep_str:<first_width$} ┆ {fs:>2} ║");
+    /// Retrieves the characters of all conjugacy classes in a particular irreducible
+    /// corepresentation.
+    ///
+    /// # Arguments
+    ///
+    /// * `ircorep` - A Mulliken irreducible corepresentation symbol.
+    ///
+    /// # Returns
+    ///
+    /// The required characters.
+    fn get_row(&self, row: &MullikenIrcorepSymbol) -> ArrayView1<Character> {
+        let row = self
+            .ircoreps
+            .get(row)
+            .unwrap_or_else(|| panic!("Ircorep {row} not found."));
+        self.characters.row(*row)
+    }
 
-//                    let line_chars: String = itertools::Itertools::intersperse(
-//                        ccs_str.iter().enumerate().map(|(j, _)| {
-//                            format!("{:>width$}", chars_str[[i, j]], width = digit_widths[j])
-//                        }),
-//                        " │".to_string(),
-//                    )
-//                    .collect();
+    /// Retrieves the characters of all irreducible corepresentations in a particular conjugacy
+    /// class.
+    ///
+    /// # Arguments
+    ///
+    /// * `class` - A conjugacy class symbol.
+    ///
+    /// # Returns
+    ///
+    /// The required characters.
+    fn get_col(&self, col: &ClassSymbol<R>) -> ArrayView1<Character> {
+        let col = self
+            .classes
+            .get(col)
+            .unwrap_or_else(|| panic!("Conjugacy class {col} not found."));
+        self.characters.column(*col)
+    }
 
-//                    line.push_str(&line_chars);
-//                    line
-//                });
+    /// Gets the order of the group.
+    ///
+    /// # Returns
+    ///
+    /// The group order.
+    fn get_order(&self) -> usize {
+        2 * self.unitary_character_table.get_order()
+    }
 
-//        write!(
-//            f,
-//            "{}",
-//            &itertools::Itertools::intersperse(rows, "\n".to_string()).collect::<String>(),
-//        )?;
 
-//        // Table bottom
-//        write!(f, "\n{}\n", &"━".repeat(tab_width))
-//    }
-//}
+    /// Prints a nicely formatted character table.
+    ///
+    /// # Arguments
+    ///
+    /// * `compact` - Flag indicating if the columns are compact with unequal widths or expanded
+    /// with all equal widths.
+    /// * `numerical` - An option containing a non-negative integer specifying the number of decimal
+    /// places for the numerical forms of the characters. If `None`, the characters will be shown
+    /// as exact algebraic forms.
+    ///
+    /// # Returns
+    ///
+    /// A formatted string containing the character table in a printable form.
+    ///
+    /// # Panics
+    ///
+    /// Panics upon encountering any missing information required for a complete print-out of the
+    /// character table.
+    ///
+    /// # Errors
+    ///
+    /// Errors upon encountering any issue formatting the character table.
+    #[allow(clippy::too_many_lines)]
+    fn write_nice_table(
+        &self,
+        f: &mut fmt::Formatter,
+        compact: bool,
+        numerical: Option<usize>,
+    ) -> fmt::Result {
+        let group_order: usize = self
+            .classes
+            .keys()
+            .map(|cc| {
+                cc.multiplicity().unwrap_or_else(|| {
+                    panic!("Unable to find the multiplicity for conjugacy class `{cc}`.")
+                })
+            })
+            .sum();
+
+        let name = format!("{} ({group_order})", self.name);
+        let chars_str = self.characters.map(|character| {
+            if let Some(precision) = numerical {
+                let real_only = self.characters.iter().all(|character| {
+                    approx::relative_eq!(
+                        character.complex_value().im,
+                        0.0,
+                        epsilon = character.threshold,
+                        max_relative = character.threshold
+                    )
+                });
+                character.get_numerical(real_only, precision)
+            } else {
+                character.to_string()
+            }
+        });
+        let ircoreps_str: Vec<_> = self
+            .ircoreps
+            .keys()
+            .map(std::string::ToString::to_string)
+            .collect();
+        let ccs_str: Vec<_> = self
+            .classes
+            .keys()
+            .map(|cc| {
+                if self.unitary_character_table.principal_classes.contains(cc) {
+                    format!("◈{cc}")
+                } else {
+                    cc.to_string()
+                }
+            })
+            .collect();
+
+        let first_width = max(
+            ircoreps_str
+                .iter()
+                .map(|ircorep_str| ircorep_str.chars().count())
+                .max()
+                .expect("Unable to find the maximum length for the ircorep symbols."),
+            name.chars().count(),
+        ) + 1;
+
+        let digit_widths: Vec<_> = if compact {
+            iter::zip(chars_str.columns(), &ccs_str)
+                .map(|(chars_col_str, cc_str)| {
+                    let char_width = chars_col_str
+                        .iter()
+                        .map(|c| c.chars().count())
+                        .max()
+                        .expect("Unable to find the maximum length for the characters.");
+                    let cc_width = cc_str.chars().count();
+                    max(char_width, cc_width) + 1
+                })
+                .collect()
+        } else {
+            let char_width = chars_str
+                .iter()
+                .map(|c| c.chars().count())
+                .max()
+                .expect("Unable to find the maximum length for the characters.");
+            let cc_width = ccs_str
+                .iter()
+                .map(|cc| cc.chars().count())
+                .max()
+                .expect("Unable to find the maximum length for the conjugacy class symbols.");
+            let fixed_width = max(char_width, cc_width) + 1;
+            iter::repeat(fixed_width).take(ccs_str.len()).collect()
+        };
+
+        // Table heading
+        let mut heading = format!(" {name:^first_width$} ┆ IN ║");
+        ccs_str.iter().enumerate().for_each(|(i, cc)| {
+            heading.push_str(&format!("{cc:>width$} │", width = digit_widths[i]));
+        });
+        heading.pop();
+        let tab_width = heading.chars().count();
+        heading = format!(
+            "{}\n{}\n{}\n",
+            "━".repeat(tab_width),
+            heading,
+            "┈".repeat(tab_width),
+        );
+        write!(f, "{heading}")?;
+
+        // Table body
+        let rows = iter::zip(self.ircoreps.keys(), ircoreps_str).enumerate().map(
+            |(i, (ircorep, ircorep_str))| {
+                let intertwining_number =
+                    self.intertwining_numbers.get(ircorep).unwrap_or_else(|| {
+                        panic!("Unable to obtain the intertwining_number for ircorep `{ircorep}`.")
+                    });
+                let mut line = format!(" {ircorep_str:<first_width$} ┆ {intertwining_number:>2} ║");
+
+                let line_chars: String = itertools::Itertools::intersperse(
+                    ccs_str.iter().enumerate().map(|(j, _)| {
+                        format!("{:>width$}", chars_str[[i, j]], width = digit_widths[j])
+                    }),
+                    " │".to_string(),
+                )
+                .collect();
+
+                line.push_str(&line_chars);
+                line
+            },
+        );
+
+        write!(
+            f,
+            "{}",
+            &itertools::Itertools::intersperse(rows, "\n".to_string()).collect::<String>(),
+        )?;
+
+        // Table bottom
+        write!(f, "\n{}\n", &"━".repeat(tab_width))
+    }
+}

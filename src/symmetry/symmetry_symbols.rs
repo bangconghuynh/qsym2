@@ -536,6 +536,16 @@ impl MullikenIrcorepSymbol {
     pub fn new(symstr: &str) -> Result<Self, MullikenIrcorepSymbolBuilderError> {
         Self::from_str(symstr)
     }
+
+    /// Returns an iterator containing sorted references to the symbols of the inducing irreps.
+    pub fn sorted_inducing_irreps(&self) -> std::vec::IntoIter<&MullikenIrrepSymbol> {
+        self.inducing_irreps
+            .iter()
+            .sorted_by(|a, b| {
+                a.partial_cmp(b)
+                    .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
+            })
+    }
 }
 
 impl MathematicalSymbol for MullikenIrcorepSymbol {
@@ -543,12 +553,7 @@ impl MathematicalSymbol for MullikenIrcorepSymbol {
     fn main(&self) -> String {
         format!(
             "D({})",
-            self.inducing_irreps
-                .iter()
-                .sorted_by(|a, b| {
-                    a.partial_cmp(b)
-                        .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
-                })
+            self.sorted_inducing_irreps()
                 .map(|irrep| irrep.to_string())
                 .join(" ⊕ ")
         )
@@ -664,10 +669,7 @@ impl fmt::Display for MullikenIrcorepSymbol {
 // ----
 impl Hash for MullikenIrcorepSymbol {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        for irrep in self.inducing_irreps.iter().sorted_by(|a, b| {
-            a.partial_cmp(b)
-                .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
-        }) {
+        for irrep in self.sorted_inducing_irreps() {
             irrep.hash(state);
         }
     }
