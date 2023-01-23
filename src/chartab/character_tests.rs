@@ -392,8 +392,11 @@ fn test_character_algebra() {
 
     let c11 = &c4 - &c1;
     let c11_ref = Character::new(&[
-        (e6p5.clone(), 2usize),
-        (e6p1.clone(), 2usize),
+        (e6p0.clone(), 1usize),
+        (e6p1.clone(), 1usize),
+        (e6p5.clone(), 1usize),
     ]);
     assert_eq!(c11, c11_ref);
+    assert_eq!(c11, -c10_ref);
+    assert!((c10 + c11).is_zero());
 }
