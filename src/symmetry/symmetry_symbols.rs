@@ -23,6 +23,10 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
 use crate::symmetry::symmetry_element::SymmetryElement;
 use crate::symmetry::symmetry_element_order::ORDER_1;
 
+#[cfg(test)]
+#[path = "symmetry_symbols_tests.rs"]
+mod symmetry_symbols_tests;
+
 // =========
 // Constants
 // =========
@@ -135,7 +139,7 @@ trait CollectionSymbol: MathematicalSymbol {
 /// \ ^{\textrm{postsuper}}_{\textrm{postsub}}
 /// \ \textrm{postfactor}.
 /// ```
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
 pub struct GenericSymbol {
     /// The main part of the symbol.
     main: String,
@@ -358,7 +362,7 @@ impl fmt::Display for GenericSymbolParsingError {
 // -------------------
 
 /// A struct to handle Mulliken irreducible representation symbols.
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
 pub struct MullikenIrrepSymbol {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
@@ -504,7 +508,7 @@ impl fmt::Display for MullikenIrrepSymbol {
 /// A struct to handle Mulliken irreducible corepresentation symbols.
 #[derive(Builder, Debug, Clone, PartialEq, Eq)]
 pub struct MullikenIrcorepSymbol {
-    inducing_irreps: IndexSet<MullikenIrrepSymbol>,
+    inducing_irreps: HashSet<MullikenIrrepSymbol>,
 }
 
 impl MullikenIrcorepSymbol {
@@ -541,6 +545,10 @@ impl MathematicalSymbol for MullikenIrcorepSymbol {
             "D({})",
             self.inducing_irreps
                 .iter()
+                .sorted_by(|a, b| {
+                    a.partial_cmp(b)
+                        .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
+                })
                 .map(|irrep| irrep.to_string())
                 .join(" ⊕ ")
         )
@@ -620,7 +628,7 @@ impl FromStr for MullikenIrcorepSymbol {
                     panic!("Unable to parse {irrep_str} as a Mulliken irrep symbol.")
                 })
             })
-            .collect::<IndexSet<_>>();
+            .collect::<HashSet<_>>();
         MullikenIrcorepSymbol::builder()
             .inducing_irreps(irreps)
             .build()
@@ -647,7 +655,7 @@ impl LinearSpaceSymbol for MullikenIrcorepSymbol {
 // -------
 impl fmt::Display for MullikenIrcorepSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "D({})", self.main())
+        write!(f, "{}", self.main())
     }
 }
 
@@ -656,7 +664,10 @@ impl fmt::Display for MullikenIrcorepSymbol {
 // ----
 impl Hash for MullikenIrcorepSymbol {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        for irrep in self.inducing_irreps.iter() {
+        for irrep in self.inducing_irreps.iter().sorted_by(|a, b| {
+            a.partial_cmp(b)
+                .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
+        }) {
             irrep.hash(state);
         }
     }

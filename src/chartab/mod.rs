@@ -484,18 +484,22 @@ pub struct CorepCharacterTable<R: Clone> {
     /// induce the irreducible corepresentations of the current magnetic group.
     unitary_character_table: RepCharacterTable<R>,
 
+    /// The irreducible corepresentations of the group. Each ircorep symbol contains the Mulliken
+    /// symbols of its inducing irreps.
+    ircoreps: IndexSet<MullikenIrcorepSymbol>,
+
     /// The intertwining numbers of the irreducible corepresentations.
-    intertwining_numbers: IndexMap<MullikenIrrepSymbol, i8>,
+    intertwining_numbers: IndexMap<MullikenIrcorepSymbol, i8>,
 }
 
 //impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>> for CorepCharacterTable<R> {
 //    /// Retrieves the character of a particular irreducible corepresentation in a particular
-//    /// conjugacy class.
+//    /// unitary conjugacy class.
 //    ///
 //    /// # Arguments
 //    ///
-//    /// * `irrep` - A Mulliken irreducible representation symbol.
-//    /// * `class` - A conjugacy class symbol.
+//    /// * `ircorep` - A Mulliken irreducible representation symbol.
+//    /// * `class` - A unitary conjugacy class symbol.
 //    ///
 //    /// # Returns
 //    ///
@@ -503,17 +507,18 @@ pub struct CorepCharacterTable<R: Clone> {
 //    ///
 //    /// # Panics
 //    ///
-//    /// Panics if the specified `irrep` or `class` cannot be found.
-//    fn get_character(&self, irrep: &MullikenIrcorepSymbol, class: &ClassSymbol<R>) -> &Character {
-//        let row = self
+//    /// Panics if the specified `ircorep` or `class` cannot be found.
+//    fn get_character(&self, ircorep: &MullikenIrcorepSymbol, class: &ClassSymbol<R>) -> &Character {
+//        let rows = ircorepself
 //            .irreps
 //            .get(irrep)
 //            .unwrap_or_else(|| panic!("Irrep {irrep} not found."));
 //        let col = self
+//            .unitary_character_table
 //            .classes
 //            .get(class)
 //            .unwrap_or_else(|| panic!("Conjugacy class {class} not found."));
-//        &self.characters[(*row, *col)]
+//        // &self.characters[(*row, *col)]
 //    }
 
 //    /// Retrieves the characters of all conjugacy classes in a particular irreducible
