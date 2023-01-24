@@ -10,7 +10,7 @@ use crate::aux::template_molecules;
 use crate::chartab::character::Character;
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::{CharacterTable, RepCharacterTable};
-use crate::group::group_from_molecular_symmetry;
+use crate::group::symmetry_group::group_from_molecular_symmetry;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_symbols::{ClassSymbol, MathematicalSymbol, MullikenIrrepSymbol};
@@ -163,6 +163,7 @@ fn test_irrep_character_table_construction_magnetic(
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     let group = group_from_molecular_symmetry(&magsym, None);
+    println!("{:?}", group.ircorep_character_table.unwrap());
     let chartab = group.irrep_character_table.as_ref().unwrap();
     test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
 }
@@ -12408,4 +12409,43 @@ fn verify_grey_c1(mol: &Molecule, thresh: f64) {
         &expected_irreps,
         Some(expected_chars),
     );
+}
+
+/////////////
+
+use crate::aux::atom::{Atom, AtomKind};
+use nalgebra::Point3;
+#[test]
+fn test_irrep_character_table_construction_strange() {
+    env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.magnetic_atoms = Some(vec![
+        Atom::new_special(AtomKind::Magnetic(true), Point3::new(1.3578799, -1.3578799, 1.0), thresh)
+            .expect("Unable to construct a special magnetic atom."),
+        Atom::new_special(AtomKind::Magnetic(false), Point3::new(1.3578799, -1.3578799, -1.0), thresh)
+            .expect("Unable to construct a special magnetic atom."),
+        Atom::new_special(AtomKind::Magnetic(true), Point3::new(-1.3578799, 1.3578799, 1.0), thresh)
+            .expect("Unable to construct a special magnetic atom."),
+        Atom::new_special(AtomKind::Magnetic(false), Point3::new(-1.3578799, 1.3578799, -1.0), thresh)
+            .expect("Unable to construct a special magnetic atom."),
+        Atom::new_special(AtomKind::Magnetic(false), Point3::new(-1.3578799, -1.3578799, 1.0), thresh)
+            .expect("Unable to construct a special magnetic atom."),
+        Atom::new_special(AtomKind::Magnetic(true), Point3::new(-1.3578799, -1.3578799, -1.0), thresh)
+            .expect("Unable to construct a special magnetic atom."),
+        Atom::new_special(AtomKind::Magnetic(false), Point3::new(1.3578799, 1.3578799, 1.0), thresh)
+            .expect("Unable to construct a special magnetic atom."),
+        Atom::new_special(AtomKind::Magnetic(true), Point3::new(1.3578799, 1.3578799, -1.0), thresh)
+            .expect("Unable to construct a special magnetic atom."),
+    ]);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    let group = group_from_molecular_symmetry(&magsym, None);
+    println!("{:?}", group.ircorep_character_table.unwrap());
 }

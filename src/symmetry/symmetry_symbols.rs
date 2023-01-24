@@ -557,7 +557,7 @@ impl MathematicalSymbol for MullikenIrcorepSymbol {
     /// The main part of the symbol.
     fn main(&self) -> String {
         format!(
-            "D({})",
+            "D[{}]",
             self.sorted_inducing_irreps()
                 .map(|irrep| irrep.to_string())
                 .join(" ⊕ ")

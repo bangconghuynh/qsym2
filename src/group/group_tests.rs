@@ -8,10 +8,11 @@ use num_traits::Pow;
 
 use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
-use crate::group::{group_from_molecular_symmetry, Group, GroupType, BWGRP, GRGRP, ORGRP};
+use crate::group::{Group, GroupType, BWGRP, GRGRP, ORGRP};
+use crate::group::symmetry_group::group_from_molecular_symmetry;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
-use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, ROT};
+use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");

@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::ops::{Add, Neg, Sub};
+use std::ops::{Add, Neg, Sub, Mul, MulAssign};
 
 use approx;
 use derive_builder::Builder;
@@ -346,6 +346,29 @@ impl Character {
             .build()
             .expect("Unable to construct a simplified character.")
     }
+
+    /// The complex conjugate of this character.
+    ///
+    /// # Returns
+    ///
+    /// The complex conjugate of this character.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the complex conjugate cannot be found.
+    pub fn complex_conjugate(&self) -> Self {
+        Self::builder()
+            .terms(
+                &self
+                    .terms
+                    .iter()
+                    .map(|(ur, mult)| (ur.complex_conjugate(), *mult))
+                    .collect::<Vec<_>>(),
+            )
+            .threshold(self.threshold)
+            .build()
+            .unwrap_or_else(|_| panic!("Unable to construct the complex conjugate of `{self}`."))
+    }
 }
 
 impl PartialEq for Character {
@@ -575,5 +598,37 @@ impl Sub<Character> for Character {
 
     fn sub(self, rhs: Self) -> Self::Output {
         &self + (-&rhs)
+    }
+}
+
+// ---------
+// MulAssign
+// ---------
+impl MulAssign<usize> for Character {
+    fn mul_assign(&mut self, rhs: usize) {
+        self.terms.iter_mut().for_each(|(_, mult)| {
+            *mult *= rhs;
+        })
+    }
+}
+
+// ---
+// Mul
+// ---
+impl Mul<usize> for &Character {
+    type Output = Character;
+
+    fn mul(self, rhs: usize) -> Self::Output {
+        let mut prod = self.clone();
+        prod *= rhs;
+        prod
+    }
+}
+
+impl Mul<usize> for Character {
+    type Output = Character;
+
+    fn mul(self, rhs: usize) -> Self::Output {
+        &self * rhs
     }
 }

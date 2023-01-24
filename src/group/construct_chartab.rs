@@ -1,0 +1,683 @@
+use std::collections::HashSet;
+use std::fmt;
+use std::hash::Hash;
+use std::ops::Mul;
+
+use approx;
+use ndarray::{array, s, Array1, Array2, Zip};
+use num::{integer::lcm, Complex};
+use num_modular::{ModularInteger, MontgomeryInt};
+use num_traits::{Inv, Pow, ToPrimitive, Zero};
+use primes::is_prime;
+use rayon::prelude::*;
+
+use super::Group;
+use crate::chartab::character::Character;
+use crate::chartab::modular_linalg::{modular_eig, split_space, weighted_hermitian_inprod};
+use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
+use crate::chartab::unityroot::UnityRoot;
+use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
+use crate::symmetry::symmetry_element::symmetry_operation::{
+    FiniteOrder, SpecialSymmetryTransformation,
+};
+use crate::symmetry::symmetry_symbols::{
+    deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, ClassSymbol,
+    MathematicalSymbol, MullikenIrcorepSymbol, FORCED_PRINCIPAL_GROUPS,
+};
+
+impl<T> Group<T>
+where
+    T: Hash
+        + Eq
+        + Clone
+        + Sync
+        + Send
+        + fmt::Debug
+        + Pow<i32, Output = T>
+        + SpecialSymmetryTransformation
+        + FiniteOrder<Int = u32>,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+{
+    /// Constructs the irrep character table for this group using the Burnside--Dixon--Schneider
+    /// algorithm.
+    ///
+    /// This method sets the [`Self::class_matrix`] field.
+    ///
+    /// # References
+    ///
+    /// * J. D. Dixon, Numer. Math., 1967, 10, 446–450.
+    /// * L. C. Grove, Groups and Characters, John Wiley & Sons, Inc., 1997.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the Frobenius--Schur indicator takes on unexpected values.
+    #[allow(clippy::too_many_lines)]
+    pub fn construct_irrep_character_table(&mut self) {
+        // Variable definitions
+        // --------------------
+        // m: LCM of the orders of the elements in the group (i.e. the group
+        //    exponent)
+        // p: A prime greater than 2*sqrt(|G|) and m | (p - 1), which is
+        //    guaranteed to exist by Dirichlet's theorem. p is guaranteed to be
+        //    odd.
+        // z: An integer having multiplicative order m when viewed as an
+        //    element of Z*p, i.e. z^m ≡ 1 (mod p) but z^n !≡ 1 (mod p) for all
+        //    0 <= n < m.
+
+        // Identify a suitable finite field
+        let m = self
+            .elements
+            .keys()
+            .map(FiniteOrder::order)
+            .reduce(lcm)
+            .expect("Unable to find the LCM for the orders of the elements in this group.");
+        let zeta = UnityRoot::new(1, m);
+        log::debug!("Found group exponent m = {}.", m);
+        log::debug!("Chosen primitive unity root ζ = {}.", zeta);
+
+        let rf64 = (2.0
+            * self
+                .order
+                .to_f64()
+                .unwrap_or_else(|| panic!("Unable to convert `{}` to `f64`.", self.order))
+                .sqrt()
+            / (f64::from(m)))
+        .round();
+        assert!(rf64.is_sign_positive());
+        assert!(rf64 <= f64::from(u32::MAX));
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+        let mut r = rf64 as u32;
+        if r == 0 {
+            r = 1;
+        };
+        let mut p = r * m + 1;
+        while !is_prime(u64::from(p)) {
+            log::debug!("Trying {}: not prime.", p);
+            r += 1;
+            p = r * m + 1;
+        }
+        log::debug!("Found r = {}.", r);
+        log::debug!("Found prime number p = r * m + 1 = {}.", p);
+        log::debug!("All arithmetic will now be carried out in GF({}).", p);
+
+        let modp = MontgomeryInt::<u32>::new(1, &p).linalg();
+        // p is prime, so there is guaranteed a z < p such that z^m ≡ 1 (mod p).
+        let mut i = 1u32;
+        while modp.convert(i).multiplicative_order().unwrap_or_else(|| {
+            panic!(
+                "Unable to find multiplicative order for `{}`",
+                modp.convert(i)
+            )
+        }) != m
+            && i < p
+        {
+            i += 1;
+        }
+        let z = modp.convert(i);
+        assert_eq!(
+            z.multiplicative_order()
+                .unwrap_or_else(|| panic!("Unable to find multiplicative order for `{z}`.")),
+            m
+        );
+        log::debug!("Found integer z = {} with multiplicative order {}.", z, m);
+
+        // Diagonalise class matrices
+        let class_sizes: Vec<_> = self
+            .conjugacy_classes
+            .as_ref()
+            .expect("Conjugacy classes not found.")
+            .iter()
+            .map(HashSet::len)
+            .collect();
+        let inverse_conjugacy_classes = self.inverse_conjugacy_classes.as_ref();
+        let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u32>>> = vec![];
+
+        if self.class_number.expect("Class number not found.") == 1 {
+            eigvecs_1d.push(array![modp.convert(1)]);
+        } else {
+            let mut degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> = vec![];
+            let nmat = self
+                .class_matrix
+                .as_ref()
+                .expect("Class matrix not found.")
+                .map(|&i| {
+                    modp.convert(
+                        u32::try_from(i)
+                            .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
+                    )
+                });
+            log::debug!("Considering class matrix N1...");
+            let nmat_1 = nmat.slice(s![1, .., ..]).to_owned();
+            let eigs_1 = modular_eig(&nmat_1);
+            eigvecs_1d.extend(eigs_1.iter().filter_map(|(_, eigvecs)| {
+                if eigvecs.len() == 1 {
+                    Some(eigvecs[0].clone())
+                } else {
+                    None
+                }
+            }));
+            degenerate_subspaces.extend(
+                eigs_1
+                    .iter()
+                    .filter_map(|(_, eigvecs)| {
+                        if eigvecs.len() > 1 {
+                            Some(eigvecs)
+                        } else {
+                            None
+                        }
+                    })
+                    .cloned(),
+            );
+
+            let mut r = 1;
+            while !degenerate_subspaces.is_empty() {
+                assert!(
+                    r < (self.class_number.expect("Class number not found.") - 1),
+                    "Class matrices exhausted before degenerate subspaces are fully resolved."
+                );
+
+                r += 1;
+                log::debug!(
+                    "Number of 1-D eigenvectors found: {} / {}.",
+                    eigvecs_1d.len(),
+                    self.class_number.expect("Class number not found.")
+                );
+                log::debug!(
+                    "Number of degenerate subspaces found: {}.",
+                    degenerate_subspaces.len(),
+                );
+
+                log::debug!("Considering class matrix N{}...", r);
+                let nmat_r = nmat.slice(s![r, .., ..]).to_owned();
+
+                let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> =
+                    vec![];
+                while !degenerate_subspaces.is_empty() {
+                    let subspace = degenerate_subspaces
+                        .pop()
+                        .expect("Unexpected empty `degenerate_subspaces`.");
+                    if let Ok(subsubspaces) =
+                        split_space(&nmat_r, &subspace, &class_sizes, inverse_conjugacy_classes)
+                    {
+                        eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
+                            if subsubspace.len() == 1 {
+                                Some(subsubspace[0].clone())
+                            } else {
+                                None
+                            }
+                        }));
+                        remaining_degenerate_subspaces.extend(
+                            subsubspaces
+                                .iter()
+                                .filter(|subsubspace| subsubspace.len() > 1)
+                                .cloned(),
+                        );
+                    } else {
+                        log::debug!(
+                            "Class matrix N{} failed to split degenerate subspace {}.",
+                            r,
+                            degenerate_subspaces.len()
+                        );
+                        log::debug!("Stashing this subspace for the next class matrices...");
+                        remaining_degenerate_subspaces.push(subspace);
+                    }
+                }
+                degenerate_subspaces = remaining_degenerate_subspaces;
+            }
+        }
+
+        assert_eq!(
+            eigvecs_1d.len(),
+            self.class_number.expect("Class number not found.")
+        );
+        log::debug!(
+            "Successfully found {} / {} one-dimensional eigenvectors for the class matrices.",
+            eigvecs_1d.len(),
+            self.class_number.expect("Class number not found.")
+        );
+        for (i, vec) in eigvecs_1d.iter().enumerate() {
+            log::debug!("Eigenvector {}: {}", i, vec);
+        }
+
+        // Lift characters back to the complex field
+        log::debug!(
+            "Lifting characters from GF({}) back to the complex field...",
+            p
+        );
+        let class_transversal = self
+            .conjugacy_class_transversal
+            .as_ref()
+            .expect("Conjugacy class transversals not found.");
+
+        let chars: Vec<_> = eigvecs_1d
+            .par_iter()
+            .flat_map(|vec_i| {
+                let mut dim2_mod_p = weighted_hermitian_inprod(
+                    (vec_i, vec_i),
+                    &class_sizes,
+                    inverse_conjugacy_classes,
+                )
+                .inv()
+                .residue();
+                while !approx::relative_eq!(
+                    f64::from(dim2_mod_p).sqrt().round(),
+                    f64::from(dim2_mod_p).sqrt()
+                ) {
+                    dim2_mod_p += p;
+                }
+
+                let dim_if64 = f64::from(dim2_mod_p).sqrt().round();
+                assert!(dim_if64.is_sign_positive());
+                assert!(dim_if64 <= f64::from(u32::MAX));
+                #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+                let dim_i = dim_if64 as u32;
+
+                let tchar_i =
+                    Zip::from(vec_i)
+                        .and(class_sizes.as_slice())
+                        .par_map_collect(|&v, &k| {
+                            v * dim_i
+                                / modp.convert(u32::try_from(k).unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{k}` to `u32`.")
+                                }))
+                        });
+                let char_i: Vec<_> = class_transversal
+                    .par_iter()
+                    .map(|x_idx| {
+                        let x = self
+                            .elements
+                            .get_index(*x_idx)
+                            .unwrap_or_else(|| {
+                                panic!("Element with index {x_idx} cannot be retrieved.")
+                            })
+                            .0;
+                        let k = x.order();
+                        let xi = zeta.clone().pow(
+                            i32::try_from(m.checked_div_euclid(k).unwrap_or_else(|| {
+                                panic!("`{m}` cannot be Euclid-divided by `{k}`.")
+                            }))
+                            .unwrap_or_else(|_| {
+                                panic!(
+                                    "The Euclid division `{m} / {k}` cannot be converted to `i32`."
+                                )
+                            }),
+                        );
+                        let char_ij_terms: Vec<_> = (0..k)
+                            .into_par_iter()
+                            .map(|s| {
+                                let mu_s = (0..k).fold(modp.convert(0), |acc, l| {
+                                    let x_l =
+                                        x.clone().pow(i32::try_from(l).unwrap_or_else(|_| {
+                                            panic!("Unable to convert `{l}` to `i32`.")
+                                        }));
+                                    let x_l_idx = *self
+                                        .elements
+                                        .get(&x_l)
+                                        .unwrap_or_else(|| panic!("Element {x_l:?} not found."));
+                                    let x_l_class_idx =
+                                        self.element_to_conjugacy_classes.as_ref().expect(
+                                            "No element-to-conjugacy-class mappings found.",
+                                        )[x_l_idx];
+                                    let tchar_i_x_l = tchar_i[x_l_class_idx];
+                                    acc + tchar_i_x_l
+                                        * z.pow(
+                                            s * l
+                                                * m.checked_div_euclid(k).unwrap_or_else(|| {
+                                                    panic!(
+                                                        "`{m}` cannot be Euclid-divided by `{k}`."
+                                                    )
+                                                }),
+                                        )
+                                        .inv()
+                                }) / k;
+                                (
+                                    xi.pow(i32::try_from(s).unwrap_or_else(|_| {
+                                        panic!("Unable to convert `{s}` to `i32`.")
+                                    })),
+                                    usize::try_from(mu_s.residue()).unwrap_or_else(|_| {
+                                        panic!("Unable to convert `{}` to `usize`.", mu_s.residue())
+                                    }),
+                                )
+                            })
+                            .collect();
+                        // We do not wish to simplify the character here, even if it can be
+                        // simplified (e.g. (E8)^2 + (E8)^6 can be simplified to 0). This is so
+                        // that the full unity-root-term-structure can be used in the ordering of
+                        // irreps.
+                        Character::new(&char_ij_terms)
+                    })
+                    .collect();
+                char_i
+            })
+            .collect();
+
+        let char_arr = Array2::from_shape_vec(
+            (
+                self.class_number.expect("Class number not found."),
+                self.class_number.expect("Class number not found."),
+            ),
+            chars,
+        )
+        .expect("Unable to construct the two-dimensional table of characters.");
+        log::debug!(
+            "Lifting characters from GF({}) back to the complex field... Done.",
+            p
+        );
+
+        let class_symbols = self
+            .conjugacy_class_symbols
+            .as_ref()
+            .expect("No conjugacy class symbols found.");
+
+        let i_cc = ClassSymbol::new("1||i||", None)
+            .expect("Unable to construct a class symbol from `1||i||`.");
+        let s_cc = ClassSymbol::new("1||σh||", None)
+            .expect("Unable to construct a class symbol from `1||σh||`.");
+
+        let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(self.name.as_str())
+            || FORCED_PRINCIPAL_GROUPS.contains(
+                self.finite_subgroup_name
+                    .as_ref()
+                    .unwrap_or(&String::new())
+                    .as_str(),
+            ) {
+            let c3_cc: ClassSymbol<T> = ClassSymbol::new("8||C3||", None)
+                .expect("Unable to construct a class symbol from `8||C3||`.");
+            log::debug!(
+                "Group is {}. Principal-axis classes will be forced to be {}. This is to obtain non-standard Mulliken symbols that are in line with conventions in the literature.",
+                self.name,
+                c3_cc
+            );
+            Some(c3_cc)
+        } else {
+            None
+        };
+
+        let principal_classes = if force_principal.is_some() {
+            deduce_principal_classes(
+                class_symbols,
+                None::<fn(&ClassSymbol<T>) -> bool>,
+                force_principal,
+            )
+        } else if class_symbols.contains_key(&i_cc) {
+            log::debug!(
+                "Inversion centre exists. Principal-axis classes will be forced to be proper."
+            );
+            deduce_principal_classes(
+                class_symbols,
+                Some(|cc: &ClassSymbol<T>| cc.is_proper() && !cc.is_antiunitary()),
+                None,
+            )
+        } else if class_symbols.contains_key(&s_cc) {
+            log::debug!(
+                "Horizontal mirror plane exists. Principal-axis classes will be forced to be proper."
+            );
+            deduce_principal_classes(
+                class_symbols,
+                Some(|cc: &ClassSymbol<T>| cc.is_proper() && !cc.is_antiunitary()),
+                None,
+            )
+        } else if !self.is_unitary() {
+            log::debug!(
+                "Antiunitary elements exist without any inversion centres or horizonal mirror planes. Principal-axis classes will be forced to be unitary."
+            );
+            deduce_principal_classes(
+                class_symbols,
+                Some(|cc: &ClassSymbol<T>| !cc.is_antiunitary()),
+                None,
+            )
+        } else {
+            deduce_principal_classes(class_symbols, None::<fn(&ClassSymbol<T>) -> bool>, None)
+        };
+
+        let char_arr = sort_irreps(&char_arr.view(), class_symbols, &principal_classes);
+
+        let ordered_irreps =
+            deduce_mulliken_irrep_symbols(&char_arr.view(), class_symbols, &principal_classes);
+
+        let frobenius_schur_indicators: Vec<_> = ordered_irreps
+            .iter()
+            .enumerate()
+            .map(|(irrep_i, _)| {
+                let indicator: Complex<f64> =
+                    self.elements
+                        .keys()
+                        .fold(Complex::new(0.0f64, 0.0f64), |acc, ele| {
+                            let ele_2_idx =
+                                self.elements.get(&ele.clone().pow(2)).unwrap_or_else(|| {
+                                    panic!("Element {:?} not found.", &ele.clone().pow(2))
+                                });
+                            let class_2_j = self
+                                .element_to_conjugacy_classes
+                                .as_ref()
+                                .expect("Conjugacy classes not found.")[*ele_2_idx];
+                            acc + char_arr[[irrep_i, class_2_j]].complex_value()
+                        })
+                        / self.order.to_f64().unwrap_or_else(|| {
+                            panic!("Unable to convert `{}` to `f64`.", self.order)
+                        });
+                approx::assert_relative_eq!(
+                    indicator.im,
+                    0.0,
+                    epsilon = 1e-14,
+                    max_relative = 1e-14
+                );
+                approx::assert_relative_eq!(
+                    indicator.re,
+                    indicator.re.round(),
+                    epsilon = 1e-14,
+                    max_relative = 1e-14
+                );
+                assert!(
+                    approx::relative_eq!(indicator.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
+                        || approx::relative_eq!(
+                            indicator.re,
+                            0.0,
+                            epsilon = 1e-14,
+                            max_relative = 1e-14
+                        )
+                        || approx::relative_eq!(
+                            indicator.re,
+                            -1.0,
+                            epsilon = 1e-14,
+                            max_relative = 1e-14
+                        )
+                );
+                #[allow(clippy::cast_possible_truncation)]
+                let indicator_i8 = indicator.re.round() as i8;
+                indicator_i8
+            })
+            .collect();
+
+        let chartab_name = if let Some(finite_name) = self.finite_subgroup_name.as_ref() {
+            format!("{} > {finite_name}", self.name)
+        } else {
+            self.name.clone()
+        };
+        self.irrep_character_table = Some(RepCharacterTable::new(
+            chartab_name.as_str(),
+            &ordered_irreps,
+            &class_symbols.keys().cloned().collect::<Vec<_>>(),
+            &principal_classes,
+            char_arr,
+            &frobenius_schur_indicators,
+        ));
+    }
+
+    /// Constructs the ircorep character table for this group.
+    pub fn construct_ircorep_character_table(&mut self, unitary_subgroup: Group<T>) {
+        if self.is_unitary() {
+            // No antiunitary operations exist in this group. There is nothing to do.
+            return;
+        }
+
+        assert_eq!(self.order % 2, 0);
+        let unitary_order: i32 = self
+            .order
+            .div_euclid(2)
+            .try_into()
+            .expect("Unable to convert the unitary group order to i32.");
+        let unitary_chartab = unitary_subgroup
+            .irrep_character_table
+            .expect("No irrep character tables found for the unitary subgroup.");
+        let ctb = self.cayley_table.as_ref().expect("Cayley table not found.");
+        let e2c = self
+            .element_to_conjugacy_classes
+            .as_ref()
+            .expect("Element to class mapping not found.");
+        let ccsyms = self
+            .conjugacy_class_symbols
+            .as_ref()
+            .expect("No conjugacy class symbols found.");
+        let (_, a0_idx) = self
+            .elements
+            .iter()
+            .find(|(op, _)| op.is_antiunitary())
+            .expect("No antiunitary elements found.");
+
+        let mut remaining_irreps = unitary_chartab.irreps.clone();
+        remaining_irreps.reverse();
+
+        let mut ircoreps_ins: Vec<(MullikenIrcorepSymbol, i8)> = Vec::new();
+        while !remaining_irreps.is_empty() {
+            let (irrep, _) = remaining_irreps
+                .pop()
+                .expect("Unable to retrieve an unexamined irrep.");
+            let char_sum = self
+                .elements
+                .iter()
+                .filter(|(op, _)| op.is_antiunitary())
+                .fold(Character::zero(), |acc, (_, a_idx)| {
+                    let a2_idx = ctb[(*a_idx, *a_idx)];
+                    let (a2_class, _) = ccsyms
+                        .get_index(*e2c.get(a2_idx).unwrap_or_else(|| {
+                            panic!("Conjugacy class of element index {a2_idx} not found.")
+                        }))
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Unable to obtain the conjugacy class symbol for element {a2_idx}."
+                            )
+                        });
+                    acc + unitary_chartab.get_character(&irrep, a2_class)
+                        * a2_class.multiplicity().expect("Class size not found.")
+                })
+                .simplify();
+            let char_sum_c128 = char_sum.complex_value();
+            approx::assert_relative_eq!(
+                char_sum_c128.im,
+                0.0,
+                max_relative = char_sum.threshold,
+                epsilon = char_sum.threshold
+            );
+            approx::assert_relative_eq!(
+                char_sum_c128.re,
+                char_sum_c128.re.round(),
+                max_relative = char_sum.threshold,
+                epsilon = char_sum.threshold
+            );
+            let char_sum_i32: i32 = char_sum_c128
+                .re
+                .to_i32()
+                .unwrap_or_else(|| panic!("Unable to convert `{:+.7e}` to i32.", char_sum_c128.re));
+            let (intertwining_number, ircorep) = if char_sum_i32 == unitary_order {
+                // Irreducible corepresentation type a
+                // Δ(u) is equivalent to Δ*[a^(-1)ua].
+                // Δ(u) is contained once in the induced irreducible corepresentation.
+                (1, MullikenIrcorepSymbol::from_irreps(&[irrep]))
+            } else if char_sum_i32 == -unitary_order {
+                // Irreducible corepresentation type b
+                // Δ(u) is equivalent to Δ*[a^(-1)ua].
+                // Δ(u) is contained twice in the induced irreducible corepresentation.
+                (4, MullikenIrcorepSymbol::from_irreps(&[irrep]))
+            } else if char_sum_i32 == 0 {
+                // Irreducible corepresentation type c
+                // Δ(u) is inequivalent to Δ*[a^(-1)ua].
+                // Δ(u) and Δ*[a^(-1)ua] are contained the induced irreducible corepresentation.
+                dbg!(&unitary_chartab);
+                let irrep_conj_chars: Vec<Character> = unitary_chartab.classes.iter().map(|(cc, cc_idx)| {
+                    // for avail_cc in ccsyms.keys() {
+                    //     println!("Existing: {avail_cc}");
+                    // }
+                    // println!("Checking {cc}...");
+                    let u_idx = self
+                        .elements
+                        .get(
+                            unitary_subgroup
+                                .elements
+                                .get_index(
+                                    *(unitary_subgroup.conjugacy_classes.as_ref().unwrap()[*cc_idx].iter().next().unwrap())).unwrap().0
+                        )
+                        .unwrap();
+                    // let u_idx = self
+                    //     .conjugacy_classes
+                    //     .as_ref()
+                    //     .expect("Conjugacy classes not yet determined.")[*ccsyms
+                    //     .get(cc)
+                    //     .unwrap_or_else(|| panic!("Conjugacy class {cc} not found."))]
+                    // .iter()
+                    // .next()
+                    // .expect("No elements found in the required conjugacy class.");
+                    let ua0_idx = ctb[(*u_idx, *a0_idx)];
+                    let ctb_a0x = ctb.slice(s![*a0_idx, ..]);
+                    let a0invua0_idx = ctb_a0x.iter().position(|&x| x == ua0_idx).unwrap_or_else(|| {
+                        panic!("No element `{ua0_idx}` can be found in row `{a0_idx}` of Cayley table.")
+                    });
+                    let a0invua0_unitary_class = unitary_subgroup.conjugacy_class_symbols.as_ref().unwrap().get_index(
+                        unitary_subgroup.element_to_conjugacy_classes.as_ref().unwrap()[
+                            *unitary_subgroup.elements.get(self.elements.get_index(a0invua0_idx).unwrap().0).unwrap()
+                        ]
+                    ).unwrap().0;
+                    unitary_chartab.get_character(&irrep, a0invua0_unitary_class).complex_conjugate()
+                }).collect();
+                let (conj_irrep, _) = unitary_chartab
+                    .irreps
+                    .iter()
+                    .find(|(_, &irrep_idx)| {
+                        unitary_chartab.characters.row(irrep_idx).to_vec() == irrep_conj_chars
+                    })
+                    .expect("No conjugate irrep found.");
+                assert!(remaining_irreps.remove(conj_irrep).is_some());
+                (
+                    2,
+                    MullikenIrcorepSymbol::from_irreps(&[irrep, conj_irrep.to_owned()]),
+                )
+            } else {
+                panic!("Unexpected `char_sum`: {char_sum_i32}. This can only be ±{unitary_order} or 0.")
+            };
+            ircoreps_ins.push((ircorep, intertwining_number));
+        }
+
+        let mut char_arr: Array2<Character> =
+            Array2::zeros((ircoreps_ins.len(), unitary_chartab.classes.len()));
+        for (i, (ircorep, intertwining_number)) in ircoreps_ins.iter().enumerate() {
+            for (cc, &cc_idx) in unitary_chartab.classes.iter() {
+                char_arr[(i, cc_idx)] = ircorep
+                    .sorted_inducing_irreps()
+                    .fold(Character::zero(), |acc, irrep| {
+                        acc + unitary_chartab.get_character(irrep, cc)
+                    });
+                if *intertwining_number == 4 {
+                    // Irreducible corepresentation type b
+                    // The inducing irrep appears twice.
+                    char_arr[(i, cc_idx)] *= 2;
+                }
+            }
+        }
+
+        let (ircoreps, ins): (Vec<MullikenIrcorepSymbol>, Vec<i8>) =
+            ircoreps_ins.into_iter().unzip();
+
+        let chartab_name = if let Some(finite_name) = self.finite_subgroup_name.as_ref() {
+            format!("{} > {finite_name}", self.name)
+        } else {
+            self.name.clone()
+        };
+        self.ircorep_character_table = Some(CorepCharacterTable::new(
+            chartab_name.as_str(),
+            unitary_chartab,
+            &ircoreps,
+            char_arr,
+            &ins,
+        ));
+    }
+}

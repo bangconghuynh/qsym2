@@ -5,7 +5,6 @@ use std::iter;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use ndarray::{Array2, ArrayView1};
-use num_traits::Zero;
 
 use crate::chartab::character::Character;
 use crate::symmetry::symmetry_symbols::{
@@ -547,7 +546,6 @@ impl<R: Clone> CorepCharacterTable<R> {
     ) -> Self {
         assert_eq!(ircoreps.len(), char_arr.dim().0);
         assert_eq!(intertwining_numbers.len(), char_arr.dim().0);
-        assert_eq!(char_arr.dim().0, char_arr.dim().1);
 
         let ircoreps_indexmap: IndexMap<MullikenIrcorepSymbol, usize> = ircoreps
             .iter()
@@ -803,3 +801,22 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
         write!(f, "\n{}\n", &"━".repeat(tab_width))
     }
 }
+
+// -------
+// Display
+// -------
+impl<R: Clone> fmt::Display for CorepCharacterTable<R> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.write_nice_table(f, true, Some(3))
+    }
+}
+
+// -----
+// Debug
+// -----
+impl<R: Clone> fmt::Debug for CorepCharacterTable<R> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.write_nice_table(f, true, None)
+    }
+}
+

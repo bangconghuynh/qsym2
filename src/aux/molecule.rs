@@ -28,7 +28,8 @@ pub struct Molecule {
     pub electric_atoms: Option<[Atom; 1]>,
 
     /// Optional special atoms to represent the magnetic field applied to this molecule.
-    pub magnetic_atoms: Option<[Atom; 2]>,
+    // pub magnetic_atoms: Option<[Atom; 2]>,
+    pub magnetic_atoms: Option<Vec<Atom>>,
 
     /// A threshold for approximate equality comparisons.
     pub threshold: f64,
@@ -117,11 +118,11 @@ impl Molecule {
             .filter(|atom| matches!(atom.kind, AtomKind::Magnetic(_)))
             .cloned()
             .collect();
-        assert!(magnetic_atoms_vec.len() == 2 || magnetic_atoms_vec.is_empty());
-        let magnetic_atoms = if magnetic_atoms_vec.len() == 2 {
-            Some([magnetic_atoms_vec[0].clone(), magnetic_atoms_vec[1].clone()])
-        } else {
+        assert_eq!(magnetic_atoms_vec.len() % 2, 0);
+        let magnetic_atoms = if magnetic_atoms_vec.is_empty() {
             None
+        } else {
+            Some(magnetic_atoms_vec)
         };
 
         let electric_atoms_vec: Vec<Atom> = all_atoms
@@ -406,7 +407,7 @@ impl Molecule {
                     }
                 };
                 let b_vec_norm = b_vec.normalize() * ave_mag * 0.5;
-                self.magnetic_atoms = Some([
+                self.magnetic_atoms = Some(vec![
                     Atom::new_special(AtomKind::Magnetic(true), com + b_vec_norm, self.threshold)
                         .expect("Unable to construct a special magnetic atom."),
                     Atom::new_special(AtomKind::Magnetic(false), com - b_vec_norm, self.threshold)
