@@ -4,6 +4,7 @@ use std::hash::Hash;
 use std::ops::Mul;
 
 use approx;
+use log;
 use ndarray::{array, s, Array1, Array2, Zip};
 use num::{integer::lcm, Complex};
 use num_modular::{ModularInteger, MontgomeryInt};
@@ -63,6 +64,10 @@ where
         // z: An integer having multiplicative order m when viewed as an
         //    element of Z*p, i.e. z^m ≡ 1 (mod p) but z^n !≡ 1 (mod p) for all
         //    0 <= n < m.
+
+        log::debug!("=============================================");
+        log::debug!("Construction of irrep character table begins.");
+        log::debug!("=============================================");
 
         // Identify a suitable finite field
         let m = self
@@ -502,6 +507,10 @@ where
             char_arr,
             &frobenius_schur_indicators,
         ));
+
+        log::debug!("===========================================");
+        log::debug!("Construction of irrep character table ends.");
+        log::debug!("===========================================");
     }
 
     /// Constructs the ircorep character table for this group.
@@ -510,6 +519,10 @@ where
             // No antiunitary operations exist in this group. There is nothing to do.
             return;
         }
+
+        log::debug!("===============================================");
+        log::debug!("Construction of ircorep character table begins.");
+        log::debug!("===============================================");
 
         assert_eq!(self.order % 2, 0);
         let unitary_order: i32 = self
@@ -521,16 +534,27 @@ where
             .irrep_character_table
             .expect("No irrep character tables found for the unitary subgroup.");
 
-        let mag_ctb = self.cayley_table.as_ref().expect("Cayley table not found for the magnetic group.");
+        let mag_ctb = self
+            .cayley_table
+            .as_ref()
+            .expect("Cayley table not found for the magnetic group.");
         let mag_e2c = self
             .element_to_conjugacy_classes
             .as_ref()
             .expect("Element to class mapping not found for the magnetic group.");
+        let uni_e2c = unitary_subgroup
+            .element_to_conjugacy_classes
+            .as_ref()
+            .expect("Element to class mapping not found for the unitary subgroup.");
         let mag_ccsyms = self
             .conjugacy_class_symbols
             .as_ref()
             .expect("No conjugacy class symbols found for the magnetic group.");
-        let (_, a0_idx) = self
+        let uni_ccsyms = unitary_subgroup
+            .conjugacy_class_symbols
+            .as_ref()
+            .expect("No conjugacy class symbols found for the unitary subgroup.");
+        let (_, a0_mag_idx) = self
             .elements
             .iter()
             .find(|(op, _)| op.is_antiunitary())
@@ -540,10 +564,8 @@ where
         remaining_irreps.reverse();
 
         let mut ircoreps_ins: Vec<(MullikenIrcorepSymbol, i8)> = Vec::new();
-        while !remaining_irreps.is_empty() {
-            let (irrep, _) = remaining_irreps
-                .pop()
-                .expect("Unable to retrieve an unexamined irrep.");
+        while let Some((irrep, _)) = remaining_irreps.pop() {
+            log::debug!("Considering irrep {irrep} of the unitary subgroup...");
             let char_sum = self
                 .elements
                 .iter()
@@ -563,6 +585,7 @@ where
                         * a2_class.multiplicity().expect("Class size not found.")
                 })
                 .simplify();
+            log::debug!("  Dimmock--Wheeler indicator for {irrep}: {char_sum}");
             let char_sum_c128 = char_sum.complex_value();
             approx::assert_relative_eq!(
                 char_sum_c128.im,
@@ -580,50 +603,61 @@ where
                 .re
                 .to_i32()
                 .unwrap_or_else(|| panic!("Unable to convert `{:+.7e}` to i32.", char_sum_c128.re));
+
             let (intertwining_number, ircorep) = if char_sum_i32 == unitary_order {
                 // Irreducible corepresentation type a
                 // Δ(u) is equivalent to Δ*[a^(-1)ua].
                 // Δ(u) is contained once in the induced irreducible corepresentation.
+                log::debug!(
+                    "  Ircorep induced by {irrep} is of type a with intertwining number 1."
+                );
                 (1, MullikenIrcorepSymbol::from_irreps(&[irrep]))
             } else if char_sum_i32 == -unitary_order {
                 // Irreducible corepresentation type b
                 // Δ(u) is equivalent to Δ*[a^(-1)ua].
                 // Δ(u) is contained twice in the induced irreducible corepresentation.
+                log::debug!(
+                    "  Ircorep induced by {irrep} is of type b with intertwining number 4."
+                );
                 (4, MullikenIrcorepSymbol::from_irreps(&[irrep]))
             } else if char_sum_i32 == 0 {
                 // Irreducible corepresentation type c
                 // Δ(u) is inequivalent to Δ*[a^(-1)ua].
                 // Δ(u) and Δ*[a^(-1)ua] are contained the induced irreducible corepresentation.
-                dbg!(&unitary_chartab);
                 let irrep_conj_chars: Vec<Character> = unitary_chartab.classes.iter().map(|(cc, cc_idx)| {
-                    let u_idx = self
+                    let u_unitary_idx = unitary_subgroup.conjugacy_classes
+                        .as_ref()
+                        .expect("Conjugacy classes for the unitary subgroup not found.")[*cc_idx]
+                        .iter()
+                        .next()
+                        .unwrap_or_else(|| panic!("No unitary elements found for conjugacy class `{cc}`."));
+                    let (u, _) = unitary_subgroup
                         .elements
-                        .get(
-                            unitary_subgroup
-                                .elements
-                                .get_index(
-                                    *(unitary_subgroup.conjugacy_classes.as_ref().unwrap()[*cc_idx].iter().next().unwrap())).unwrap().0
-                        )
-                        .unwrap();
-                    // let u_idx = self
-                    //     .conjugacy_classes
-                    //     .as_ref()
-                    //     .expect("Conjugacy classes not yet determined.")[*ccsyms
-                    //     .get(cc)
-                    //     .unwrap_or_else(|| panic!("Conjugacy class {cc} not found."))]
-                    // .iter()
-                    // .next()
-                    // .expect("No elements found in the required conjugacy class.");
-                    let ua0_idx = ctb[(*u_idx, *a0_idx)];
-                    let ctb_a0x = ctb.slice(s![*a0_idx, ..]);
-                    let a0invua0_idx = ctb_a0x.iter().position(|&x| x == ua0_idx).unwrap_or_else(|| {
-                        panic!("No element `{ua0_idx}` can be found in row `{a0_idx}` of Cayley table.")
+                        .get_index(*u_unitary_idx)
+                        .unwrap_or_else(|| panic!("Unitary element with index `{u_unitary_idx}` cannot be retrieved."));
+                    let u_mag_idx = self
+                        .elements
+                        .get(u)
+                        .unwrap_or_else(|| panic!("Unable to retrieve the index of unitary element `{u:?}` in the magnetic group."));
+                    let ua0_mag_idx = mag_ctb[(*u_mag_idx, *a0_mag_idx)];
+                    let mag_ctb_a0x = mag_ctb.slice(s![*a0_mag_idx, ..]);
+                    let a0invua0_mag_idx = mag_ctb_a0x.iter().position(|&x| x == ua0_mag_idx).unwrap_or_else(|| {
+                        panic!("No element `{ua0_mag_idx}` can be found in row `{a0_mag_idx}` of the magnetic group Cayley table.")
                     });
-                    let a0invua0_unitary_class = unitary_subgroup.conjugacy_class_symbols.as_ref().unwrap().get_index(
-                        unitary_subgroup.element_to_conjugacy_classes.as_ref().unwrap()[
-                            *unitary_subgroup.elements.get(self.elements.get_index(a0invua0_idx).unwrap().0).unwrap()
-                        ]
-                    ).unwrap().0;
+                    let (a0invua0, _) = self
+                        .elements
+                        .get_index(a0invua0_mag_idx)
+                        .unwrap_or_else(|| {
+                            panic!("Unable to retrieve element with index `{a0invua0_mag_idx}` in the magnetic group.")
+                        });
+                    let a0invua0_unitary_idx = unitary_subgroup.elements
+                        .get(a0invua0)
+                        .unwrap_or_else(|| {
+                            panic!("Unable to retrieve the index of element `{a0invua0:?}` in the unitary group.")
+                        });
+                    let (a0invua0_unitary_class, _) = uni_ccsyms
+                        .get_index(uni_e2c[*a0invua0_unitary_idx])
+                        .unwrap_or_else(|| panic!("Unable to retrieve the class for `{a0invua0:?}` in the unitary group."));
                     unitary_chartab.get_character(&irrep, a0invua0_unitary_class).complex_conjugate()
                 }).collect();
                 let (conj_irrep, _) = unitary_chartab
@@ -632,13 +666,17 @@ where
                     .find(|(_, &irrep_idx)| {
                         unitary_chartab.characters.row(irrep_idx).to_vec() == irrep_conj_chars
                     })
-                    .expect("No conjugate irrep found.");
+                    .unwrap_or_else(|| panic!("Conjugate irrep for {irrep} not found."));
                 assert!(remaining_irreps.remove(conj_irrep).is_some());
+
+                log::debug!("  The Wigner-conjugate irrep of {irrep} is {conj_irrep}.");
+                log::debug!("  Ircorep induced by {irrep} and {conj_irrep} is of type c with intertwining number 2.");
                 (
                     2,
                     MullikenIrcorepSymbol::from_irreps(&[irrep, conj_irrep.to_owned()]),
                 )
             } else {
+                log::error!("Unexpected `char_sum`: {char_sum_i32}. This can only be ±{unitary_order} or 0.");
                 panic!("Unexpected `char_sum`: {char_sum_i32}. This can only be ±{unitary_order} or 0.")
             };
             ircoreps_ins.push((ircorep, intertwining_number));
@@ -676,5 +714,9 @@ where
             char_arr,
             &ins,
         ));
+
+        log::debug!("=============================================");
+        log::debug!("Construction of ircorep character table ends.");
+        log::debug!("=============================================");
     }
 }

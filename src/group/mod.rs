@@ -3,11 +3,10 @@ use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
 
-use log;
-
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use log;
 use ndarray::{s, Array2, Array3, Axis, Zip};
 use num_traits::Pow;
 
