@@ -537,14 +537,19 @@ impl MullikenIrcorepSymbol {
         Self::from_str(symstr)
     }
 
+    pub fn from_irreps(irreps: &[MullikenIrrepSymbol]) -> Self {
+        Self::builder()
+            .inducing_irreps(irreps.iter().cloned().collect::<HashSet<_>>())
+            .build()
+            .expect("Unable to construct a Mulliken ircorep symbol from a slice of irrep symbols.")
+    }
+
     /// Returns an iterator containing sorted references to the symbols of the inducing irreps.
     pub fn sorted_inducing_irreps(&self) -> std::vec::IntoIter<&MullikenIrrepSymbol> {
-        self.inducing_irreps
-            .iter()
-            .sorted_by(|a, b| {
-                a.partial_cmp(b)
-                    .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
-            })
+        self.inducing_irreps.iter().sorted_by(|a, b| {
+            a.partial_cmp(b)
+                .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
+        })
     }
 }
 

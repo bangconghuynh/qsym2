@@ -12,7 +12,7 @@ use itertools::Itertools;
 use ndarray::{array, s, Array1, Array2, Array3, Axis, Zip};
 use num::{integer::lcm, Complex};
 use num_modular::{ModularInteger, MontgomeryInt};
-use num_traits::{Inv, Pow, ToPrimitive};
+use num_traits::{Inv, Pow, ToPrimitive, Zero};
 use ordered_float::OrderedFloat;
 use primes::is_prime;
 use rayon::iter::ParallelBridge;
@@ -22,6 +22,7 @@ use crate::chartab::character::Character;
 use crate::chartab::modular_linalg::{modular_eig, split_space, weighted_hermitian_inprod};
 use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
+use crate::chartab::CharacterTable;
 use crate::chartab::{CorepCharacterTable, RepCharacterTable};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
@@ -33,7 +34,7 @@ use crate::symmetry::symmetry_element::{
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, deduce_sigma_symbol, sort_irreps,
-    ClassSymbol, FORCED_PRINCIPAL_GROUPS,
+    MullikenIrcorepSymbol, ClassSymbol, FORCED_PRINCIPAL_GROUPS,
 };
 
 #[cfg(test)]
@@ -1027,6 +1028,12 @@ where
             return;
         }
 
+        assert_eq!(self.order % 2, 0);
+        let unitary_order: i32 = self
+            .order
+            .div_euclid(2)
+            .try_into()
+            .expect("Unable to convert the unitary group order to i32.");
         let ctb = self.cayley_table.as_ref().expect("Cayley table not found.");
         let e2c = self
             .element_to_conjugacy_classes
@@ -1036,29 +1043,72 @@ where
             .conjugacy_class_symbols
             .as_ref()
             .expect("No conjugacy class symbols found.");
+        let a0 = self
+            .elements
+            .iter()
+            .find(|(op, _)| op.is_antiunitary())
+            .expect("No antiunitary elements found.");
 
         let mut remaining_irreps = unitary_chartab.irreps.clone();
         remaining_irreps.reverse();
         while !remaining_irreps.is_empty() {
-            let (irrep, irrep_index) = remaining_irreps
+            let (irrep, _) = remaining_irreps
                 .pop()
                 .expect("Unable to retrieve an unexamined irrep.");
-            let intertwining_number = self
+            let char_sum = self
                 .elements
                 .iter()
                 .filter(|(op, _)| op.is_antiunitary())
-                .map(|(a, a_idx)| {
+                .fold(Character::zero(), |acc, (_, a_idx)| {
                     let a2_idx = ctb[(*a_idx, *a_idx)];
-                    let a2_class = self
-                        .conjugacy_class_symbols
-                        .as_ref()
-                        .expect()
+                    let (a2_class, _) = ccsyms
                         .get_index(*e2c.get(a2_idx).unwrap_or_else(|| {
                             panic!("Conjugacy class of element index {a2_idx} not found.")
                         }))
-                        .unwrap()
-                        .0;
-                });
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Unable to obtain the conjugacy class symbol for element {a2_idx}."
+                            )
+                        });
+                    acc + unitary_chartab.get_character(&irrep, a2_class)
+                })
+                .simplify();
+            let char_sum_c128 = char_sum.complex_value();
+            approx::assert_relative_eq!(
+                char_sum_c128.im,
+                0.0,
+                max_relative = char_sum.threshold,
+                epsilon = char_sum.threshold
+            );
+            approx::assert_relative_eq!(
+                char_sum_c128.re,
+                char_sum_c128.re.round(),
+                max_relative = char_sum.threshold,
+                epsilon = char_sum.threshold
+            );
+            let char_sum_i32: i32 = char_sum_c128
+                .re
+                .to_i32()
+                .unwrap_or_else(|| panic!("Unable to convert `{:+.7e}` to i32.", char_sum_c128.re));
+            let (intertwining_number, ircorep) = if char_sum_i32 == unitary_order {
+                // Irreducible corepresentation type a
+                // Δ(u) is equivalent to Δ*[a^(-1)ua].
+                // Δ(u) is contained once in the induced irreducible corepresentation.
+
+                (1, MullikenIrcorepSymbol::from_irreps(&[irrep]))
+            } else if char_sum_i32 == -unitary_order {
+                // Irreducible corepresentation type b
+                // Δ(u) is equivalent to Δ*[a^(-1)ua].
+                // Δ(u) is contained twice in the induced irreducible corepresentation.
+                (4, MullikenIrcorepSymbol::from_irreps(&[irrep]))
+            } else if char_sum_i32 == 0 {
+                // Irreducible corepresentation type c
+                // Δ(u) is inequivalent to Δ*[a^(-1)ua].
+                // Δ(u) and Δ*[a^(-1)ua] are contained the induced irreducible corepresentation.
+                (2, MullikenIrcorepSymbol::from_irreps(&[irrep]))
+            } else {
+                panic!("Unexpected `char_sum`: {char_sum_i32}.")
+            };
         }
     }
 }
