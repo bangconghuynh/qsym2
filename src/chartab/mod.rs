@@ -675,7 +675,7 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
         compact: bool,
         numerical: Option<usize>,
     ) -> fmt::Result {
-        let group_order: usize = self
+        let unitary_group_order: usize = self
             .classes
             .keys()
             .map(|cc| {
@@ -685,7 +685,7 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
             })
             .sum();
 
-        let name = format!("{} ({group_order})", self.name);
+        let name = format!("{} ({})", self.name, 2 * unitary_group_order);
         let chars_str = self.characters.map(|character| {
             if let Some(precision) = numerical {
                 let real_only = self.characters.iter().all(|character| {

@@ -520,20 +520,21 @@ where
         let unitary_chartab = unitary_subgroup
             .irrep_character_table
             .expect("No irrep character tables found for the unitary subgroup.");
-        let ctb = self.cayley_table.as_ref().expect("Cayley table not found.");
-        let e2c = self
+
+        let mag_ctb = self.cayley_table.as_ref().expect("Cayley table not found for the magnetic group.");
+        let mag_e2c = self
             .element_to_conjugacy_classes
             .as_ref()
-            .expect("Element to class mapping not found.");
-        let ccsyms = self
+            .expect("Element to class mapping not found for the magnetic group.");
+        let mag_ccsyms = self
             .conjugacy_class_symbols
             .as_ref()
-            .expect("No conjugacy class symbols found.");
+            .expect("No conjugacy class symbols found for the magnetic group.");
         let (_, a0_idx) = self
             .elements
             .iter()
             .find(|(op, _)| op.is_antiunitary())
-            .expect("No antiunitary elements found.");
+            .expect("No antiunitary elements found in the magnetic group.");
 
         let mut remaining_irreps = unitary_chartab.irreps.clone();
         remaining_irreps.reverse();
@@ -548,9 +549,9 @@ where
                 .iter()
                 .filter(|(op, _)| op.is_antiunitary())
                 .fold(Character::zero(), |acc, (_, a_idx)| {
-                    let a2_idx = ctb[(*a_idx, *a_idx)];
-                    let (a2_class, _) = ccsyms
-                        .get_index(*e2c.get(a2_idx).unwrap_or_else(|| {
+                    let a2_idx = mag_ctb[(*a_idx, *a_idx)];
+                    let (a2_class, _) = mag_ccsyms
+                        .get_index(*mag_e2c.get(a2_idx).unwrap_or_else(|| {
                             panic!("Conjugacy class of element index {a2_idx} not found.")
                         }))
                         .unwrap_or_else(|| {
@@ -595,10 +596,6 @@ where
                 // Δ(u) and Δ*[a^(-1)ua] are contained the induced irreducible corepresentation.
                 dbg!(&unitary_chartab);
                 let irrep_conj_chars: Vec<Character> = unitary_chartab.classes.iter().map(|(cc, cc_idx)| {
-                    // for avail_cc in ccsyms.keys() {
-                    //     println!("Existing: {avail_cc}");
-                    // }
-                    // println!("Checking {cc}...");
                     let u_idx = self
                         .elements
                         .get(
