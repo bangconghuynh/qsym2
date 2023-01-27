@@ -7072,14 +7072,27 @@ fn test_character_table_construction_symmetric_8_eclipsed_sandwich_grey_d8h() {
     );
 }
 
-// #[test]
-// fn test_character_table_construction_symmetric_h100_d100h() {
-//     env_logger::init();
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
-//     let thresh = 1e-6;
-//     let mol = Molecule::from_xyz(&path, thresh);
-//     test_character_table_construction(&mol, thresh);
-// }
+#[test]
+fn test_character_table_construction_symmetric_h100_d100h() {
+    env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    let uni_group = group_from_molecular_symmetry(&sym, None);
+    let irrep_chartab = uni_group
+        .irrep_character_table
+        .as_ref()
+        .expect("No irrep character table found.");
+    println!("Irreps of unitary subgroup");
+    println!("{:?}", irrep_chartab);
+}
 
 #[test]
 fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_dnh() {
