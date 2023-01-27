@@ -145,8 +145,8 @@ impl Symmetry {
             if let Some(improper_kind) =
                 presym.check_improper(&ORDER_1, &principal_element.axis, &SIG, tr)
             {
-                // Dnh (n > 2)
-                assert!(max_ord > ORDER_2);
+                // Dnh (n >= 2)
+                assert!(max_ord >= ORDER_2);
                 log::debug!("Located σh.");
                 self.set_group_name(format!("D{max_ord}h"));
                 self.add_improper(
