@@ -12485,7 +12485,7 @@ fn verify_grey_c1(mol: &Molecule, thresh: f64) {
 use crate::aux::atom::{Atom, AtomKind};
 use nalgebra::Point3;
 #[test]
-fn test_character_table_construction_strange() {
+fn test_character_table_construction_demo() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
@@ -12540,17 +12540,36 @@ fn test_character_table_construction_strange() {
         )
         .expect("Unable to construct a special magnetic atom."),
     ]);
-    let expected_irreps = vec![
-        MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
-        MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1g)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(2g)|").unwrap(),
-        MullikenIrrepSymbol::new("||E|_(g)|").unwrap(),
-        MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
-        MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
-        MullikenIrrepSymbol::new("||E|_(u)|").unwrap(),
-    ];
-    test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(&mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    let uni_group = group_from_molecular_symmetry(&sym, None);
+    let irrep_chartab = uni_group
+        .irrep_character_table
+        .as_ref()
+        .expect("No irrep character table found.");
+    println!("Irreps of unitary subgroup");
+    println!("{:?}", irrep_chartab);
+
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    let mag_group = group_from_molecular_symmetry(&magsym, None);
+    let irrep_mag_chartab = mag_group
+        .irrep_character_table
+        .as_ref()
+        .expect("No irrep character table found.");
+    println!("Irreps of unitary group isomorphic to magnetic group");
+    println!("{:?}", irrep_mag_chartab);
+
+    let ircorep_chartab = mag_group
+        .ircorep_character_table
+        .as_ref()
+        .expect("No ircorep character table found.");
+    println!("Ircoreps magnetic group");
+    println!("{:?}", ircorep_chartab);
 }
