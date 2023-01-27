@@ -563,7 +563,7 @@ where
         let mut remaining_irreps = unitary_chartab.irreps.clone();
         remaining_irreps.reverse();
 
-        let mut ircoreps_ins: Vec<(MullikenIrcorepSymbol, i8)> = Vec::new();
+        let mut ircoreps_ins: Vec<(MullikenIrcorepSymbol, u8)> = Vec::new();
         while let Some((irrep, _)) = remaining_irreps.pop() {
             log::debug!("Considering irrep {irrep} of the unitary subgroup...");
             let char_sum = self
@@ -582,7 +582,6 @@ where
                             )
                         });
                     acc + unitary_chartab.get_character(&irrep, a2_class)
-                        * a2_class.multiplicity().expect("Class size not found.")
                 })
                 .simplify();
             log::debug!("  Dimmock--Wheeler indicator for {irrep}: {char_sum}");
@@ -590,36 +589,52 @@ where
             approx::assert_relative_eq!(
                 char_sum_c128.im,
                 0.0,
-                max_relative = char_sum.threshold,
+                max_relative = char_sum.threshold
+                    * unitary_order
+                        .to_f64()
+                        .expect("Unable to convert the unitary order to `f64`.")
+                        .sqrt(),
                 epsilon = char_sum.threshold
+                    * unitary_order
+                        .to_f64()
+                        .expect("Unable to convert the unitary order to `f64`.")
+                        .sqrt()
             );
             approx::assert_relative_eq!(
                 char_sum_c128.re,
                 char_sum_c128.re.round(),
-                max_relative = char_sum.threshold,
+                max_relative = char_sum.threshold
+                    * unitary_order
+                        .to_f64()
+                        .expect("Unable to convert the unitary order to `f64`.")
+                        .sqrt(),
                 epsilon = char_sum.threshold
+                    * unitary_order
+                        .to_f64()
+                        .expect("Unable to convert the unitary order to `f64`.")
+                        .sqrt(),
             );
-            let char_sum_i32: i32 = char_sum_c128
-                .re
-                .to_i32()
-                .unwrap_or_else(|| panic!("Unable to convert `{:+.7e}` to i32.", char_sum_c128.re));
+            let char_sum_i32: i32 =
+                char_sum_c128.re.round().to_i32().unwrap_or_else(|| {
+                    panic!("Unable to convert `{:+.7e}` to i32.", char_sum_c128.re)
+                });
 
             let (intertwining_number, ircorep) = if char_sum_i32 == unitary_order {
                 // Irreducible corepresentation type a
                 // Δ(u) is equivalent to Δ*[a^(-1)ua].
                 // Δ(u) is contained once in the induced irreducible corepresentation.
                 log::debug!(
-                    "  Ircorep induced by {irrep} is of type a with intertwining number 1."
+                    "  Ircorep induced by {irrep} is of type (a) with intertwining number 1."
                 );
-                (1, MullikenIrcorepSymbol::from_irreps(&[irrep]))
+                (1u8, MullikenIrcorepSymbol::from_irreps(&[irrep]))
             } else if char_sum_i32 == -unitary_order {
                 // Irreducible corepresentation type b
                 // Δ(u) is equivalent to Δ*[a^(-1)ua].
                 // Δ(u) is contained twice in the induced irreducible corepresentation.
                 log::debug!(
-                    "  Ircorep induced by {irrep} is of type b with intertwining number 4."
+                    "  Ircorep induced by {irrep} is of type (b) with intertwining number 4."
                 );
-                (4, MullikenIrcorepSymbol::from_irreps(&[irrep]))
+                (4u8, MullikenIrcorepSymbol::from_irreps(&[irrep]))
             } else if char_sum_i32 == 0 {
                 // Irreducible corepresentation type c
                 // Δ(u) is inequivalent to Δ*[a^(-1)ua].
@@ -670,9 +685,9 @@ where
                 assert!(remaining_irreps.remove(conj_irrep).is_some());
 
                 log::debug!("  The Wigner-conjugate irrep of {irrep} is {conj_irrep}.");
-                log::debug!("  Ircorep induced by {irrep} and {conj_irrep} is of type c with intertwining number 2.");
+                log::debug!("  Ircorep induced by {irrep} and {conj_irrep} is of type (c) with intertwining number 2.");
                 (
-                    2,
+                    2u8,
                     MullikenIrcorepSymbol::from_irreps(&[irrep, conj_irrep.to_owned()]),
                 )
             } else {
@@ -699,7 +714,7 @@ where
             }
         }
 
-        let (ircoreps, ins): (Vec<MullikenIrcorepSymbol>, Vec<i8>) =
+        let (ircoreps, ins): (Vec<MullikenIrcorepSymbol>, Vec<u8>) =
             ircoreps_ins.into_iter().unzip();
 
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name.as_ref() {

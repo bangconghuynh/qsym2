@@ -109,7 +109,7 @@ pub trait MathematicalSymbol: Clone + Hash + Eq {
 }
 
 /// A trait for symbols describing linear spaces.
-trait LinearSpaceSymbol: MathematicalSymbol {
+pub trait LinearSpaceSymbol: MathematicalSymbol {
     /// The dimensionality of the linear space.
     fn dimensionality(&self) -> u64;
 }

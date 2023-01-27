@@ -486,7 +486,7 @@ pub struct CorepCharacterTable<R: Clone> {
 
     /// The character table of the irreducible representations of the halving unitary subgroup that
     /// induce the irreducible corepresentations of the current magnetic group.
-    unitary_character_table: RepCharacterTable<R>,
+    pub unitary_character_table: RepCharacterTable<R>,
 
     /// The irreducible corepresentations of the group and their row indices in the character
     /// table.
@@ -500,7 +500,7 @@ pub struct CorepCharacterTable<R: Clone> {
     pub characters: Array2<Character>,
 
     /// The intertwining numbers of the irreducible corepresentations.
-    intertwining_numbers: IndexMap<MullikenIrcorepSymbol, i8>,
+    pub intertwining_numbers: IndexMap<MullikenIrcorepSymbol, u8>,
 }
 
 impl<R: Clone> CorepCharacterTableBuilder<R> {
@@ -542,7 +542,7 @@ impl<R: Clone> CorepCharacterTable<R> {
         unitary_chartab: RepCharacterTable<R>,
         ircoreps: &[MullikenIrcorepSymbol],
         char_arr: Array2<Character>,
-        intertwining_numbers: &[i8],
+        intertwining_numbers: &[u8],
     ) -> Self {
         assert_eq!(ircoreps.len(), char_arr.dim().0);
         assert_eq!(intertwining_numbers.len(), char_arr.dim().0);
