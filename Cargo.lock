@@ -644,6 +644,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-ord"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16a6c39ec030a7ce61cd85d89b55af632047da38a294b38c2dda41e49c81715b"
+
+[[package]]
 name = "num-rational"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -861,6 +867,7 @@ dependencies = [
  "ndarray",
  "num 0.4.0",
  "num-modular",
+ "num-ord",
  "num-traits",
  "ordered-float",
  "periodic_table",

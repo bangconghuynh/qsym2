@@ -995,6 +995,8 @@ pub fn sort_irreps<R: Clone>(
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
     let class_s =
         ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
+    let class_ts =
+        ClassSymbol::new("1||θ·σh||", None).expect("Unable to construct class symbol `1||θ·σh||`.");
     let class_t =
         ClassSymbol::new("1||θ||", None).expect("Unable to construct class symbol `1||θ||`.");
 
@@ -1005,11 +1007,14 @@ pub fn sort_irreps<R: Clone>(
         leading_classes.insert(class_t);
     }
 
-    // Second highest priority: inversion, or horizontal mirror plane if inversion not available
+    // Second highest priority: inversion, or horizontal mirror plane if inversion not available,
+    // or time-reversed horizontal mirror plane if non-time-reversed version not available.
     if class_symbols.contains_key(&class_i) {
         leading_classes.insert(class_i);
     } else if class_symbols.contains_key(&class_s) {
         leading_classes.insert(class_s);
+    } else if class_symbols.contains_key(&class_ts) {
+        leading_classes.insert(class_ts);
     };
 
     // Third highest priority: identity
@@ -1191,6 +1196,8 @@ where
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
     let s_cc: ClassSymbol<R> =
         ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
+    let ts_cc: ClassSymbol<R> =
+        ClassSymbol::new("1||θ·σh||", None).expect("Unable to construct class symbol `1||θ·σh||`.");
     let t_cc: ClassSymbol<R> =
         ClassSymbol::new("1||θ||", None).expect("Unable to construct class symbol `1||θ||`.");
 
@@ -1200,12 +1207,19 @@ where
     // Reflection parity?
     let s_parity = class_symbols.contains_key(&s_cc);
 
+    // Time-reversed reflection parity?
+    let ts_parity = class_symbols.contains_key(&ts_cc);
+
     // i_parity takes priority.
     if i_parity {
         log::debug!("Inversion centre found. This will be used for g/u ordering.");
     } else if s_parity {
         log::debug!(
             "Horizontal mirror plane found (but no inversion centre). This will be used for '/'' ordering."
+        );
+    } else if ts_parity {
+        log::debug!(
+            "Time-reversed horizontal mirror plane found (but no inversion centre). This will be used for '/'' ordering."
         );
     }
 
@@ -1296,12 +1310,18 @@ where
                 Ordering::Less => ("u", ""),
                 Ordering::Equal => panic!("Inversion character must not be zero."),
             }
-        } else if s_parity {
+        } else if s_parity || ts_parity {
             // Determine reflection symmetry
             let char_ref = irrep[
-                *class_symbols.get(&s_cc).unwrap_or_else(|| {
-                    panic!("Class `{}` not found.", &s_cc)
-                })
+                *class_symbols
+                    .get(&s_cc)
+                    .unwrap_or_else(|| {
+                        class_symbols
+                            .get(&ts_cc)
+                            .unwrap_or_else(|| {
+                                panic!("Neither `{}` nor `{}` found.", &s_cc, &ts_cc)
+                                })
+                    })
             ].clone();
             let char_ref_c = char_ref.complex_value();
             assert!(

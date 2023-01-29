@@ -20,7 +20,7 @@ use crate::symmetry::symmetry_symbols::ClassSymbol;
 mod group_tests;
 
 #[cfg(test)]
-mod irrep_chartab_construction_tests;
+mod chartab_construction_tests;
 
 /// An enum to contain information about the type of a group.
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]

@@ -685,7 +685,7 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
             })
             .sum();
 
-        let name = format!("{} ({})", self.name, 2 * unitary_group_order);
+        let name = format!("m-{} ({})", self.name, 2 * unitary_group_order);
         let chars_str = self.characters.map(|character| {
             if let Some(precision) = numerical {
                 let real_only = self.characters.iter().all(|character| {

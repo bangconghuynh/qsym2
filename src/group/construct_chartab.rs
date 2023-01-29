@@ -8,6 +8,7 @@ use log;
 use ndarray::{array, s, Array1, Array2, Zip};
 use num::{integer::lcm, Complex};
 use num_modular::{ModularInteger, MontgomeryInt};
+use num_ord::NumOrd;
 use num_traits::{Inv, Pow, ToPrimitive, Zero};
 use primes::is_prime;
 use rayon::prelude::*;
@@ -23,7 +24,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
 };
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, ClassSymbol,
-    MathematicalSymbol, MullikenIrcorepSymbol, FORCED_PRINCIPAL_GROUPS,
+    MullikenIrcorepSymbol, FORCED_PRINCIPAL_GROUPS,
 };
 
 impl<T> Group<T>
@@ -378,6 +379,8 @@ where
             .expect("Unable to construct a class symbol from `1||i||`.");
         let s_cc = ClassSymbol::new("1||σh||", None)
             .expect("Unable to construct a class symbol from `1||σh||`.");
+        let ts_cc = ClassSymbol::new("1||θ·σh||", None)
+            .expect("Unable to construct class symbol `1||θ·σh||`.");
 
         let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(self.name.as_str())
             || FORCED_PRINCIPAL_GROUPS.contains(
@@ -416,6 +419,15 @@ where
         } else if class_symbols.contains_key(&s_cc) {
             log::debug!(
                 "Horizontal mirror plane exists. Principal-axis classes will be forced to be proper."
+            );
+            deduce_principal_classes(
+                class_symbols,
+                Some(|cc: &ClassSymbol<T>| cc.is_proper() && !cc.is_antiunitary()),
+                None,
+            )
+        } else if class_symbols.contains_key(&ts_cc) {
+            log::debug!(
+                "Time-reversed horizontal mirror plane exists. Principal-axis classes will be forced to be proper."
             );
             deduce_principal_classes(
                 class_symbols,
@@ -529,7 +541,7 @@ where
             .order
             .div_euclid(2)
             .try_into()
-            .expect("Unable to convert the unitary group order to i32.");
+            .expect("Unable to convert the unitary group order to `i32`.");
         let unitary_chartab = unitary_subgroup
             .irrep_character_table
             .expect("No irrep character tables found for the unitary subgroup.");
@@ -586,20 +598,7 @@ where
                 .simplify();
             log::debug!("  Dimmock--Wheeler indicator for {irrep}: {char_sum}");
             let char_sum_c128 = char_sum.complex_value();
-            approx::assert_relative_eq!(
-                char_sum_c128.im,
-                0.0,
-                max_relative = char_sum.threshold
-                    * unitary_order
-                        .to_f64()
-                        .expect("Unable to convert the unitary order to `f64`.")
-                        .sqrt(),
-                epsilon = char_sum.threshold
-                    * unitary_order
-                        .to_f64()
-                        .expect("Unable to convert the unitary order to `f64`.")
-                        .sqrt()
-            );
+            assert_eq!(NumOrd(char_sum_c128.im), NumOrd(0i8));
             approx::assert_relative_eq!(
                 char_sum_c128.re,
                 char_sum_c128.re.round(),
@@ -614,12 +613,10 @@ where
                         .expect("Unable to convert the unitary order to `f64`.")
                         .sqrt(),
             );
-            let char_sum_i32: i32 =
-                char_sum_c128.re.round().to_i32().unwrap_or_else(|| {
-                    panic!("Unable to convert `{:+.7e}` to i32.", char_sum_c128.re)
-                });
+            let char_sum = char_sum_c128.re.round();
 
-            let (intertwining_number, ircorep) = if char_sum_i32 == unitary_order {
+            // let (intertwining_number, ircorep) = if char_sum_i32 == unitary_order {
+            let (intertwining_number, ircorep) = if NumOrd(char_sum) == NumOrd(unitary_order) {
                 // Irreducible corepresentation type a
                 // Δ(u) is equivalent to Δ*[a^(-1)ua].
                 // Δ(u) is contained once in the induced irreducible corepresentation.
@@ -627,7 +624,8 @@ where
                     "  Ircorep induced by {irrep} is of type (a) with intertwining number 1."
                 );
                 (1u8, MullikenIrcorepSymbol::from_irreps(&[irrep]))
-            } else if char_sum_i32 == -unitary_order {
+            // } else if char_sum_i32 == -unitary_order {
+            } else if NumOrd(char_sum) == NumOrd(-unitary_order) {
                 // Irreducible corepresentation type b
                 // Δ(u) is equivalent to Δ*[a^(-1)ua].
                 // Δ(u) is contained twice in the induced irreducible corepresentation.
@@ -635,7 +633,8 @@ where
                     "  Ircorep induced by {irrep} is of type (b) with intertwining number 4."
                 );
                 (4u8, MullikenIrcorepSymbol::from_irreps(&[irrep]))
-            } else if char_sum_i32 == 0 {
+            // } else if char_sum_i32 == 0 {
+            } else if NumOrd(char_sum) == NumOrd(0i8) {
                 // Irreducible corepresentation type c
                 // Δ(u) is inequivalent to Δ*[a^(-1)ua].
                 // Δ(u) and Δ*[a^(-1)ua] are contained the induced irreducible corepresentation.
@@ -691,8 +690,10 @@ where
                     MullikenIrcorepSymbol::from_irreps(&[irrep, conj_irrep.to_owned()]),
                 )
             } else {
-                log::error!("Unexpected `char_sum`: {char_sum_i32}. This can only be ±{unitary_order} or 0.");
-                panic!("Unexpected `char_sum`: {char_sum_i32}. This can only be ±{unitary_order} or 0.")
+                log::error!(
+                    "Unexpected `char_sum`: {char_sum}. This can only be ±{unitary_order} or 0."
+                );
+                panic!("Unexpected `char_sum`: {char_sum}. This can only be ±{unitary_order} or 0.")
             };
             ircoreps_ins.push((ircorep, intertwining_number));
         }
