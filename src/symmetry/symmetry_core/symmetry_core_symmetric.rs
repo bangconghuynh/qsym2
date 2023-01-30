@@ -443,6 +443,7 @@ impl Symmetry {
                     let principal_element = self.get_proper_principal_element();
                     let normal =
                         (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords).normalize();
+                    log::debug!("Checking: {}, {}, {normal}", atom2s[0], atom2s[1]);
                     if let Some(improper_kind) = presym.check_improper(&ORDER_1, &normal, &SIG, tr)
                     {
                         let sigma_symbol = deduce_sigma_symbol(
@@ -461,6 +462,33 @@ impl Symmetry {
                             improper_kind.contains_time_reversal(),
                         ));
                     }
+                }
+            }
+
+            if matches!(
+                presym.rotational_symmetry,
+                RotationalSymmetry::OblatePlanar
+            ) {
+                // Planar system. The plane of the system (perpendicular to the highest-MoI
+                // principal axis) might be a symmetry element: time-reversed in the presence of
+                // a magnetic field (which must also lie in this plane), or both in the absence
+                // of a magnetic field.
+                let (_, principal_axes) = presym.molecule.calc_moi();
+                if let Some(improper_kind) =
+                    presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr)
+                {
+                    if presym.molecule.magnetic_atoms.is_some() {
+                        assert!(improper_kind.contains_time_reversal());
+                    }
+                    count_sigma += u32::from(self.add_improper(
+                        ORDER_1,
+                        principal_axes[2],
+                        false,
+                        SIG.clone(),
+                        Some("v".to_owned()),
+                        presym.dist_threshold,
+                        improper_kind.contains_time_reversal(),
+                    ));
                 }
             }
 
