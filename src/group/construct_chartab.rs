@@ -598,7 +598,20 @@ where
                 .simplify();
             log::debug!("  Dimmock--Wheeler indicator for {irrep}: {char_sum}");
             let char_sum_c128 = char_sum.complex_value();
-            assert_eq!(NumOrd(char_sum_c128.im), NumOrd(0i8));
+            approx::assert_relative_eq!(
+                char_sum_c128.im,
+                0.0,
+                max_relative = char_sum.threshold
+                    * unitary_order
+                        .to_f64()
+                        .expect("Unable to convert the unitary order to `f64`.")
+                        .sqrt(),
+                epsilon = char_sum.threshold
+                    * unitary_order
+                        .to_f64()
+                        .expect("Unable to convert the unitary order to `f64`.")
+                        .sqrt(),
+            );
             approx::assert_relative_eq!(
                 char_sum_c128.re,
                 char_sum_c128.re.round(),
@@ -615,7 +628,6 @@ where
             );
             let char_sum = char_sum_c128.re.round();
 
-            // let (intertwining_number, ircorep) = if char_sum_i32 == unitary_order {
             let (intertwining_number, ircorep) = if NumOrd(char_sum) == NumOrd(unitary_order) {
                 // Irreducible corepresentation type a
                 // Δ(u) is equivalent to Δ*[a^(-1)ua].
@@ -623,8 +635,7 @@ where
                 log::debug!(
                     "  Ircorep induced by {irrep} is of type (a) with intertwining number 1."
                 );
-                (1u8, MullikenIrcorepSymbol::from_irreps(&[irrep]))
-            // } else if char_sum_i32 == -unitary_order {
+                (1u8, MullikenIrcorepSymbol::from_irreps(&[(irrep, 1)]))
             } else if NumOrd(char_sum) == NumOrd(-unitary_order) {
                 // Irreducible corepresentation type b
                 // Δ(u) is equivalent to Δ*[a^(-1)ua].
@@ -632,8 +643,7 @@ where
                 log::debug!(
                     "  Ircorep induced by {irrep} is of type (b) with intertwining number 4."
                 );
-                (4u8, MullikenIrcorepSymbol::from_irreps(&[irrep]))
-            // } else if char_sum_i32 == 0 {
+                (4u8, MullikenIrcorepSymbol::from_irreps(&[(irrep, 2)]))
             } else if NumOrd(char_sum) == NumOrd(0i8) {
                 // Irreducible corepresentation type c
                 // Δ(u) is inequivalent to Δ*[a^(-1)ua].
@@ -687,7 +697,7 @@ where
                 log::debug!("  Ircorep induced by {irrep} and {conj_irrep} is of type (c) with intertwining number 2.");
                 (
                     2u8,
-                    MullikenIrcorepSymbol::from_irreps(&[irrep, conj_irrep.to_owned()]),
+                    MullikenIrcorepSymbol::from_irreps(&[(irrep, 1), (conj_irrep.to_owned(), 1)]),
                 )
             } else {
                 log::error!(
@@ -704,7 +714,7 @@ where
             for (cc, &cc_idx) in unitary_chartab.classes.iter() {
                 char_arr[(i, cc_idx)] = ircorep
                     .sorted_inducing_irreps()
-                    .fold(Character::zero(), |acc, irrep| {
+                    .fold(Character::zero(), |acc, (irrep, _)| {
                         acc + unitary_chartab.get_character(irrep, cc)
                     });
                 if *intertwining_number == 4 {

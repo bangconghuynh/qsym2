@@ -163,7 +163,7 @@ fn test_ircorep_character_table_algebraic_validity(
             .all(|(_, &intertwining_number)| intertwining_number == 1));
         assert_eq!(chartab.characters.nrows(), chartab.characters.ncols());
     } else {
-        assert!(chartab.characters.nrows() < chartab.characters.ncols());
+        assert!(chartab.characters.nrows() <= chartab.characters.ncols());
     }
 
     // Sum of squared dimensions
@@ -186,6 +186,7 @@ fn test_ircorep_character_table_algebraic_validity(
 fn test_character_table_construction(
     mol: &Molecule,
     thresh: f64,
+    expected_name: &str,
     expected_irreps: &[MullikenIrrepSymbol],
     expected_chars_option: Option<
         HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,
@@ -203,13 +204,15 @@ fn test_character_table_construction(
         .irrep_character_table
         .as_ref()
         .expect("No irrep character table found.");
-    println!("{chartab}");
+    println!("{chartab:?}");
+    assert_eq!(chartab.name, expected_name);
     test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
 }
 
 fn test_character_table_construction_magnetic(
     mol: &Molecule,
     thresh: f64,
+    expected_name: &str,
     expected_irreps: &[MullikenIrrepSymbol],
     expected_chars_option: Option<
         HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,
@@ -227,14 +230,16 @@ fn test_character_table_construction_magnetic(
         .irrep_character_table
         .as_ref()
         .expect("No irrep character table found.");
-    println!("{:?}", irrep_chartab);
+    println!("{irrep_chartab:?}");
+    assert_eq!(irrep_chartab.name, expected_name);
     test_irrep_character_table_validity(irrep_chartab, expected_irreps, expected_chars_option);
 
     let ircorep_chartab = group
         .ircorep_character_table
         .as_ref()
         .expect("No ircorep character table found.");
-    println!("{:?}", ircorep_chartab);
+    println!("{ircorep_chartab:?}");
+    assert_eq!(ircorep_chartab.name, expected_name);
     test_ircorep_character_table_algebraic_validity(ircorep_chartab, &group);
 }
 
@@ -242,6 +247,7 @@ fn test_character_table_construction_from_infinite_group(
     mol: &Molecule,
     finite_order: u32,
     thresh: f64,
+    expected_name: &str,
     expected_irreps: &[MullikenIrrepSymbol],
     expected_chars_option: Option<
         HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,
@@ -256,6 +262,7 @@ fn test_character_table_construction_from_infinite_group(
     sym.analyse(&presym, false);
     let group = group_from_molecular_symmetry(&sym, Some(finite_order));
     let chartab = group.irrep_character_table.as_ref().unwrap();
+    assert_eq!(chartab.name, expected_name);
     test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
 }
 
@@ -263,6 +270,7 @@ fn test_character_table_construction_from_infinite_magnetic_group(
     mol: &Molecule,
     finite_order: u32,
     thresh: f64,
+    expected_name: &str,
     expected_irreps: &[MullikenIrrepSymbol],
     expected_chars_option: Option<
         HashMap<(&MullikenIrrepSymbol, &ClassSymbol<SymmetryOperation>), Character>,
@@ -276,8 +284,20 @@ fn test_character_table_construction_from_infinite_magnetic_group(
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     let group = group_from_molecular_symmetry(&magsym, Some(finite_order));
-    let chartab = group.irrep_character_table.as_ref().unwrap();
-    test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
+    let irrep_chartab = group
+        .irrep_character_table
+        .as_ref()
+        .expect("No irrep character table found.");
+    assert_eq!(irrep_chartab.name, expected_name);
+    test_irrep_character_table_validity(irrep_chartab, expected_irreps, expected_chars_option);
+
+    let ircorep_chartab = group
+        .ircorep_character_table
+        .as_ref()
+        .expect("No ircorep character table found.");
+    println!("{:?}", ircorep_chartab);
+    assert_eq!(ircorep_chartab.name, expected_name);
+    test_ircorep_character_table_algebraic_validity(ircorep_chartab, &group);
 }
 
 /********
@@ -371,6 +391,7 @@ fn test_character_table_construction_spherical_atom_o3() {
         &mol,
         2,
         thresh,
+        "O(3) > D2h",
         &d2h_expected_irreps,
         Some(d2h_expected_chars),
     );
@@ -450,6 +471,7 @@ fn test_character_table_construction_spherical_atom_o3() {
         &mol,
         4,
         thresh,
+        "O(3) > Oh",
         &oh_expected_irreps,
         Some(oh_expected_chars),
     );
@@ -615,6 +637,7 @@ fn test_character_table_construction_spherical_atom_grey_o3() {
         &mol,
         2,
         thresh,
+        "O(3) + θ·O(3) > D2h + θ·D2h",
         &grey_d2h_expected_irreps,
         Some(grey_d2h_expected_chars),
     );
@@ -760,6 +783,7 @@ fn test_character_table_construction_spherical_atom_grey_o3() {
         &mol,
         4,
         thresh,
+        "O(3) + θ·O(3) > Oh + θ·Oh",
         &grey_oh_expected_irreps,
         Some(grey_oh_expected_chars),
     );
@@ -841,7 +865,7 @@ fn test_character_table_construction_spherical_c60_ih() {
             Character::new(&[(UnityRoot::new(0, 10), 1), (UnityRoot::new(5, 10), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "Ih", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -989,6 +1013,7 @@ fn test_character_table_construction_spherical_c60_grey_ih() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "Ih + θ·Ih",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -1037,7 +1062,7 @@ fn test_character_table_construction_spherical_ch4_td() {
             ]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "Td", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1119,6 +1144,7 @@ fn test_character_table_construction_spherical_ch4_grey_td() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "Td + θ·Td",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -1167,7 +1193,7 @@ fn test_character_table_construction_spherical_adamantane_td() {
             ]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "Td", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1249,6 +1275,7 @@ fn test_character_table_construction_spherical_adamantane_grey_td() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "Td + θ·Td",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -1297,7 +1324,7 @@ fn test_character_table_construction_spherical_c165_diamond_nanoparticle_td() {
             ]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "Td", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1379,6 +1406,7 @@ fn test_character_table_construction_spherical_c165_diamond_nanoparticle_grey_td
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "Td + θ·Td",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -1442,7 +1470,7 @@ fn test_character_table_construction_spherical_vh2o6_th() {
             ]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "Th", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1554,6 +1582,7 @@ fn test_character_table_construction_spherical_vh2o6_grey_th() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "Th + θ·Th",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -1636,7 +1665,7 @@ fn test_character_table_construction_spherical_vf6_oh() {
             ]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "Oh", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -1785,6 +1814,7 @@ fn test_character_table_construction_spherical_vf6_grey_oh() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "Oh + θ·Oh",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -1985,7 +2015,7 @@ fn test_character_table_construction_linear_n3_electric_field_grey_cinfv() {
 /// Panics when any expected condition is not fulfilled.
 fn verify_cinfv(mol: &Molecule, thresh: f64) {
     for n in 3usize..=20usize {
-        verify_cnv(mol, thresh, n);
+        verify_cnv_from_cinfv(mol, thresh, n);
     }
 }
 
@@ -2002,7 +2032,7 @@ fn verify_cinfv(mol: &Molecule, thresh: f64) {
 /// Panics when any expected condition is not fulfilled.
 fn verify_grey_cinfv(mol: &Molecule, thresh: f64) {
     for n in 2usize..=20usize {
-        verify_grey_cnv(mol, thresh, n);
+        verify_grey_cnv_from_grey_cinfv(mol, thresh, n);
     }
 }
 
@@ -2054,6 +2084,7 @@ fn verify_bw_cinfv_cinf(mol: &Molecule, thresh: f64) {
             &mol,
             n as u32,
             thresh,
+            format!("C∞v > C{n}v").as_str(),
             &expected_irreps,
             None,
         );
@@ -2103,6 +2134,7 @@ fn verify_cinfh(mol: &Molecule, thresh: f64) {
             &mol,
             n as u32,
             thresh,
+            format!("C∞h > C{m}h").as_str(),
             &expected_irreps,
             None,
         );
@@ -2161,6 +2193,7 @@ fn verify_bw_dinfh_cinfh(mol: &Molecule, thresh: f64) {
             &mol,
             n as u32,
             thresh,
+            format!("D∞h > D{m}h").as_str(),
             &expected_irreps,
             None,
         );
@@ -2209,6 +2242,7 @@ fn verify_dinfh(mol: &Molecule, thresh: f64) {
             &mol,
             n as u32,
             thresh,
+            format!("D∞h > D{m}h").as_str(),
             &expected_irreps,
             None,
         );
@@ -2270,6 +2304,7 @@ fn verify_grey_dinfh(mol: &Molecule, thresh: f64) {
             &mol,
             n as u32,
             thresh,
+            format!("D∞h + θ·D∞h > D{m}h + θ·D{m}h").as_str(),
             &expected_irreps,
             None,
         );
@@ -2310,6 +2345,7 @@ fn verify_cinf(mol: &Molecule, thresh: f64) {
             &mol,
             n as u32,
             thresh,
+            format!("C∞ > C{n}").as_str(),
             &expected_irreps,
             None,
         );
@@ -2350,7 +2386,7 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_c3() {
             Character::new(&[(UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C3", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -2382,6 +2418,7 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_bw_c3v_c3() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C3v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -2413,7 +2450,7 @@ fn test_character_table_construction_symmetric_adamantane_magnetic_field_c3() {
             Character::new(&[(UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C3", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -2445,6 +2482,7 @@ fn test_character_table_construction_symmetric_adamantane_magnetic_field_bw_c3v_
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C3v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -2476,7 +2514,7 @@ fn test_character_table_construction_symmetric_vh2o6_electric_field_c3() {
             Character::new(&[(UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C3", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -2523,6 +2561,7 @@ fn test_character_table_construction_symmetric_vh2o6_electric_field_grey_c3() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C3 + θ·C3",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -2555,7 +2594,7 @@ fn test_character_table_construction_symmetric_65coronane_electric_field_c3() {
             Character::new(&[(UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C3", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -2603,6 +2642,7 @@ fn test_character_table_construction_symmetric_65coronane_electric_field_grey_c3
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C3 + θ·C3",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -2639,11 +2679,11 @@ fn test_character_table_construction_symmetric_h8_twisted_magnetic_field_c4() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C4", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_twisted_magnetic_field_bw_c4v_c4() {
+fn test_character_table_construction_symmetric_h8_twisted_magnetic_field_bw_d4_c4() {
     // env_logger::init();
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
@@ -2681,6 +2721,7 @@ fn test_character_table_construction_symmetric_h8_twisted_magnetic_field_bw_c4v_
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -2716,7 +2757,7 @@ fn test_character_table_construction_symmetric_h8_twisted_electric_field_c4() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C4", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -2772,6 +2813,7 @@ fn test_character_table_construction_symmetric_h8_twisted_electric_field_grey_c4
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C4 + θ·C4",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -2814,7 +2856,7 @@ fn test_character_table_construction_symmetric_cpnico_magnetic_field_c5() {
             Character::new(&[(UnityRoot::new(4, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C5", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -2852,6 +2894,7 @@ fn test_character_table_construction_symmetric_cpnico_magnetic_field_bw_c5v_c5()
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C5v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -2898,7 +2941,7 @@ fn test_character_table_construction_symmetric_b7_magnetic_field_c6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C6", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -2945,6 +2988,7 @@ fn test_character_table_construction_symmetric_b7_magnetic_field_bw_c6v_c6() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C6v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -3009,7 +3053,13 @@ fn verify_cn(mol: &Molecule, thresh: f64, n: u32) {
             )
         })
         .collect();
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(
+        &mol,
+        thresh,
+        format!("C{n}").as_str(),
+        &expected_irreps,
+        Some(expected_chars),
+    );
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{nv}(\mathcal{C}_{n})`$ character table of
@@ -3056,7 +3106,13 @@ fn verify_bw_cnv_cn(mol: &Molecule, thresh: f64, n: u32) {
         };
         irreps
     };
-    test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+    test_character_table_construction_magnetic(
+        &mol,
+        thresh,
+        format!("C{n}v").as_str(),
+        &expected_irreps,
+        None,
+    );
 }
 
 /*
@@ -3087,7 +3143,7 @@ fn test_character_table_construction_symmetric_nh3_c3v() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C3v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -3133,6 +3189,7 @@ fn test_character_table_construction_symmetric_nh3_grey_c3v() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C3v + θ·C3v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -3164,7 +3221,7 @@ fn test_character_table_construction_symmetric_bf3_electric_field_c3v() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C3v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -3211,6 +3268,7 @@ fn test_character_table_construction_symmetric_bf3_electric_field_grey_c3v() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C3v + θ·C3v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -3243,7 +3301,7 @@ fn test_character_table_construction_symmetric_adamantane_electric_field_c3v() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C3v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -3291,6 +3349,7 @@ fn test_character_table_construction_symmetric_adamantane_electric_field_grey_c3
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C3v + θ·C3v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -3322,7 +3381,7 @@ fn test_character_table_construction_symmetric_ch4_electric_field_c3v() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C3v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -3369,6 +3428,7 @@ fn test_character_table_construction_symmetric_ch4_electric_field_grey_c3v() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C3v + θ·C3v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -3400,7 +3460,7 @@ fn test_character_table_construction_symmetric_vf6_electric_field_c3v() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C3v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -3447,6 +3507,7 @@ fn test_character_table_construction_symmetric_vf6_electric_field_grey_c3v() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C3v + θ·C3v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -3488,7 +3549,7 @@ fn test_character_table_construction_symmetric_sf5cl_c4v() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C4v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -3555,6 +3616,7 @@ fn test_character_table_construction_symmetric_sf5cl_grey_c4v() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C4v + θ·C4v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -3597,7 +3659,7 @@ fn test_character_table_construction_symmetric_h8_electric_field_c4v() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C4v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -3665,6 +3727,7 @@ fn test_character_table_construction_symmetric_h8_electric_field_grey_c4v() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C4v + θ·C4v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -3706,7 +3769,7 @@ fn test_character_table_construction_symmetric_vf6_electric_field_c4v() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C4v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -3773,6 +3836,7 @@ fn test_character_table_construction_symmetric_vf6_electric_field_grey_c4v() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C4v + θ·C4v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -3814,7 +3878,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_electric_field_c4v
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C4v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -3881,6 +3945,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_electric_field_gre
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C4v + θ·C4v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -3917,7 +3982,7 @@ fn test_character_table_construction_symmetric_cpnico_c5v() {
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C5v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -3974,6 +4039,7 @@ fn test_character_table_construction_symmetric_cpnico_grey_c5v() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C5v + θ·C5v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -4011,7 +4077,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_electric_fiel
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C5v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -4069,6 +4135,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_electric_fiel
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C5v + θ·C5v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -4105,7 +4172,7 @@ fn test_character_table_construction_symmetric_c60_electric_field_c5v() {
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C5v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -4162,6 +4229,7 @@ fn test_character_table_construction_symmetric_c60_electric_field_grey_c5v() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C5v + θ·C5v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -4207,7 +4275,7 @@ fn test_character_table_construction_symmetric_b7_c6v() {
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C6v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -4284,6 +4352,7 @@ fn test_character_table_construction_symmetric_b7_grey_c6v() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C6v + θ·C6v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -4330,7 +4399,7 @@ fn test_character_table_construction_symmetric_au26_electric_field_c6v() {
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C6v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -4375,7 +4444,7 @@ fn test_character_table_construction_symmetric_benzene_electric_field_c6v() {
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C6v", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -4452,6 +4521,7 @@ fn test_character_table_construction_symmetric_au26_electric_field_grey_c6v() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C6v + θ·C6v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -4528,10 +4598,64 @@ fn verify_cnv(mol: &Molecule, thresh: f64, n: usize) {
         };
         irreps
     };
+    test_character_table_construction(
+        &mol,
+        thresh,
+        format!("C{n}v").as_str(),
+        &expected_irreps,
+        None,
+    );
+}
+
+/// Verifies the validity of the computed $`\mathcal{C}_{nv}`$ character table of irreps as a
+/// subgroup of $`\mathcal{C}_{\infty v}`$.
+///
+/// # Arguments
+///
+/// * `mol` - A reference to a [`Molecule`] structure.
+/// * `thresh` - A threshold for symmetry detection.
+/// * `n` - The value of $`n`$.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
+fn verify_cnv_from_cinfv(mol: &Molecule, thresh: f64, n: usize) {
+    let expected_irreps = if n % 2 == 0 {
+        let mut irreps = vec![
+            MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+            MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+            MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+            MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        ];
+        if n == 4 {
+            irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
+        } else {
+            irreps.extend(
+                (1..n.div_euclid(2))
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+            );
+        }
+        irreps
+    } else {
+        let mut irreps = vec![
+            MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+            MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        ];
+        if n == 3 {
+            irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
+        } else {
+            irreps.extend(
+                (1..=n.div_euclid(2))
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+            );
+        };
+        irreps
+    };
     test_character_table_construction_from_infinite_group(
         &mol,
         n as u32,
         thresh,
+        format!("C∞v > C{n}v").as_str(),
         &expected_irreps,
         None,
     );
@@ -4597,10 +4721,80 @@ fn verify_grey_cnv(mol: &Molecule, thresh: f64, n: usize) {
         irreps.extend(m_irreps);
         irreps
     };
+    test_character_table_construction_magnetic(
+        mol,
+        thresh,
+        format!("C{n}v + θ·C{n}v").as_str(),
+        &expected_irreps,
+        None,
+    );
+}
+
+/// Verifies the validity of the computed $`\mathcal{C}_{\infty v} + \theta\mathcal{C}_{\infty v}`$
+/// character table of irreps.
+///
+/// # Arguments
+///
+/// * `mol` - A reference to a [`Molecule`] structure.
+/// * `thresh` - A threshold for symmetry detection.
+/// * `n` - The value of $`n`$.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
+fn verify_grey_cnv_from_grey_cinfv(mol: &Molecule, thresh: f64, n: usize) {
+    let expected_irreps = if n % 2 == 0 {
+        let mut irreps = vec![
+            MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+            MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+            MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+            MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        ];
+        if n == 4 {
+            irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
+        } else {
+            irreps.extend(
+                (1..n.div_euclid(2))
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+            );
+        }
+        let m_irreps = irreps
+            .iter()
+            .map(|irrep| {
+                MullikenIrrepSymbol::new(&format!("|^(m)|{}|_({})|", irrep.main(), irrep.postsub()))
+                    .unwrap()
+            })
+            .collect_vec();
+        irreps.extend(m_irreps);
+        irreps
+    } else {
+        let mut irreps = vec![
+            MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+            MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        ];
+        if n == 3 {
+            irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
+        } else {
+            irreps.extend(
+                (1..=n.div_euclid(2))
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+            );
+        };
+        let m_irreps = irreps
+            .iter()
+            .map(|irrep| {
+                MullikenIrrepSymbol::new(&format!("|^(m)|{}|_({})|", irrep.main(), irrep.postsub()))
+                    .unwrap()
+            })
+            .collect_vec();
+        irreps.extend(m_irreps);
+        irreps
+    };
     test_character_table_construction_from_infinite_magnetic_group(
         mol,
         n as u32,
         thresh,
+        format!("C∞v + θ·C∞v > C{n}v + θ·C{n}v").as_str(),
         &expected_irreps,
         None,
     );
@@ -4650,7 +4844,7 @@ fn test_character_table_construction_symmetric_bf3_magnetic_field_c3h() {
             Character::new(&[(UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C3h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -4697,6 +4891,7 @@ fn test_character_table_construction_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D3h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -4753,7 +4948,7 @@ fn test_character_table_construction_symmetric_xef4_magnetic_field_c4h() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C4h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -4820,6 +5015,7 @@ fn test_character_table_construction_symmetric_xef4_magnetic_field_bw_d4h_c4h() 
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -4876,7 +5072,7 @@ fn test_character_table_construction_symmetric_vf6_magnetic_field_c4h() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C4h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -4943,6 +5139,7 @@ fn test_character_table_construction_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -5000,7 +5197,7 @@ fn test_character_table_construction_symmetric_h8_magnetic_field_c4h() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C4h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -5068,6 +5265,7 @@ fn test_character_table_construction_symmetric_h8_magnetic_field_bw_d4h_c4h() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -5134,7 +5332,7 @@ fn test_character_table_construction_symmetric_eclipsed_ferrocene_magnetic_field
             Character::new(&[(UnityRoot::new(4, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C5h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -5191,6 +5389,7 @@ fn test_character_table_construction_symmetric_eclipsed_ferrocene_magnetic_field
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D5h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -5268,7 +5467,7 @@ fn test_character_table_construction_symmetric_benzene_magnetic_field_c6h() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C6h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -5345,6 +5544,7 @@ fn test_character_table_construction_symmetric_benzene_magnetic_field_bw_d6h_c6h
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D6h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -5418,7 +5618,13 @@ fn verify_cnh(mol: &Molecule, thresh: f64, n: usize) {
         );
         irreps
     };
-    test_character_table_construction(&mol, thresh, &expected_irreps, None);
+    test_character_table_construction(
+        &mol,
+        thresh,
+        format!("C{n}h").as_str(),
+        &expected_irreps,
+        None,
+    );
 }
 
 /// Verifies the validity of the computed $`\mathcal{D}_{nh}(\mathcal{C}_{nh})`$ character table of
@@ -5472,7 +5678,13 @@ fn verify_bw_dnh_cnh(mol: &Molecule, thresh: f64, n: usize) {
             }
             irreps_ddd
         };
-    test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+    test_character_table_construction_magnetic(
+        &mol,
+        thresh,
+        format!("D{n}h").as_str(),
+        &expected_irreps,
+        None,
+    );
 }
 
 /*
@@ -5503,7 +5715,7 @@ fn test_character_table_construction_symmetric_triphenyl_radical_d3() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D3", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -5549,6 +5761,7 @@ fn test_character_table_construction_symmetric_triphenyl_radical_grey_d3() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D3 + θ·D3",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -5588,7 +5801,7 @@ fn test_character_table_construction_symmetric_h8_twisted_d4() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D4", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -5653,6 +5866,7 @@ fn test_character_table_construction_symmetric_h8_twisted_grey_d4() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4 + θ·D4",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -5689,7 +5903,7 @@ fn test_character_table_construction_symmetric_c5ph5_d5() {
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D5", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -5745,6 +5959,7 @@ fn test_character_table_construction_symmetric_c5ph5_grey_d5() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D5 + θ·D5",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -5790,7 +6005,7 @@ fn test_character_table_construction_symmetric_c6ph6_d6() {
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D6", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -5866,6 +6081,7 @@ fn test_character_table_construction_symmetric_c6ph6_grey_d6() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D6 + θ·D6",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -5912,7 +6128,13 @@ fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_dn() {
             };
             irreps
         };
-        test_character_table_construction(&mol, thresh, &expected_irreps, None);
+        test_character_table_construction(
+            &mol,
+            thresh,
+            format!("D{n}").as_str(),
+            &expected_irreps,
+            None,
+        );
     }
 }
 
@@ -5981,7 +6203,13 @@ fn test_character_table_construction_symmetric_arbitrary_twisted_sandwich_grey_d
             irreps.extend(m_irreps);
             irreps
         };
-        test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+        test_character_table_construction_magnetic(
+            &mol,
+            thresh,
+            format!("D{n} + θ·D{n}").as_str(),
+            &expected_irreps,
+            None,
+        );
     }
 }
 
@@ -6029,7 +6257,7 @@ fn test_character_table_construction_symmetric_bf3_d3h() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D3h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -6106,6 +6334,7 @@ fn test_character_table_construction_symmetric_bf3_grey_d3h() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D3h + θ·D3h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -6171,7 +6400,7 @@ fn test_character_table_construction_symmetric_xef4_d4h() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D4h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -6287,6 +6516,7 @@ fn test_character_table_construction_symmetric_xef4_grey_d4h() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4h + θ·D4h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -6352,7 +6582,7 @@ fn test_character_table_construction_symmetric_h8_d4h() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D4h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -6468,6 +6698,7 @@ fn test_character_table_construction_symmetric_h8_grey_d4h() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4h + θ·D4h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -6523,7 +6754,7 @@ fn test_character_table_construction_symmetric_eclipsed_ferrocene_d5h() {
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D5h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -6619,6 +6850,7 @@ fn test_character_table_construction_symmetric_eclipsed_ferrocene_grey_d5h() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D5h + θ·D5h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -6694,7 +6926,7 @@ fn test_character_table_construction_symmetric_benzene_d6h() {
             Character::new(&[(UnityRoot::new(2, 6), 1), (UnityRoot::new(4, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D6h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -6830,6 +7062,7 @@ fn test_character_table_construction_symmetric_benzene_grey_d6h() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D6h + θ·D6h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -6914,7 +7147,7 @@ fn test_character_table_construction_symmetric_8_eclipsed_sandwich_d8h() {
             Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D8h", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -7069,32 +7302,33 @@ fn test_character_table_construction_symmetric_8_eclipsed_sandwich_grey_d8h() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D8h + θ·D8h",
         &expected_irreps,
         Some(expected_chars),
     );
 }
 
-#[test]
-fn test_character_table_construction_symmetric_h100_d100h() {
-    env_logger::init();
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
-    let thresh = 1e-6;
-    let mol = Molecule::from_xyz(&path, thresh);
-    let presym = PreSymmetry::builder()
-        .moi_threshold(thresh)
-        .molecule(&mol, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    let uni_group = group_from_molecular_symmetry(&sym, None);
-    let irrep_chartab = uni_group
-        .irrep_character_table
-        .as_ref()
-        .expect("No irrep character table found.");
-    println!("Irreps of unitary subgroup");
-    println!("{:?}", irrep_chartab);
-}
+// #[test]
+// fn test_character_table_construction_symmetric_h100_d100h() {
+//     env_logger::init();
+//     let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
+//     let thresh = 1e-6;
+//     let mol = Molecule::from_xyz(&path, thresh);
+//     let presym = PreSymmetry::builder()
+//         .moi_threshold(thresh)
+//         .molecule(&mol, true)
+//         .build()
+//         .unwrap();
+//     let mut sym = Symmetry::new();
+//     sym.analyse(&presym, false);
+//     let uni_group = group_from_molecular_symmetry(&sym, None);
+//     let irrep_chartab = uni_group
+//         .irrep_character_table
+//         .as_ref()
+//         .expect("No irrep character table found.");
+//     println!("Irreps of unitary subgroup");
+//     println!("{:?}", irrep_chartab);
+// }
 
 #[test]
 fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_dnh() {
@@ -7145,7 +7379,13 @@ fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_dnh()
             }
             irreps_ddd
         };
-        test_character_table_construction(&mol, thresh, &expected_irreps, None);
+        test_character_table_construction(
+            &mol,
+            thresh,
+            format!("D{n}h").as_str(),
+            &expected_irreps,
+            None,
+        );
     }
 }
 
@@ -7234,7 +7474,13 @@ fn test_character_table_construction_symmetric_arbitrary_eclipsed_sandwich_grey_
             irreps.extend(m_irreps);
             irreps
         };
-        test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+        test_character_table_construction_magnetic(
+            &mol,
+            thresh,
+            format!("D{n}h + θ·D{n}h").as_str(),
+            &expected_irreps,
+            None,
+        );
     }
 }
 
@@ -7276,7 +7522,7 @@ fn test_character_table_construction_symmetric_b2cl4_d2d() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D2d", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -7342,6 +7588,7 @@ fn test_character_table_construction_symmetric_b2cl4_grey_d2d() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D2d + θ·D2d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -7382,7 +7629,7 @@ fn test_character_table_construction_symmetric_s4n4_d2d() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D2d", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -7420,7 +7667,7 @@ fn test_character_table_construction_symmetric_pbet4_d2d() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D2d", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -7486,6 +7733,7 @@ fn test_character_table_construction_symmetric_s4n4_grey_d2d() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D2d + θ·D2d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -7527,7 +7775,7 @@ fn test_character_table_construction_symmetric_allene_d2d() {
             Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D2d", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -7594,6 +7842,7 @@ fn test_character_table_construction_symmetric_allene_grey_d2d() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D2d + θ·D2d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -7640,7 +7889,7 @@ fn test_character_table_construction_symmetric_staggered_c2h6_d3d() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D3d", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -7683,7 +7932,7 @@ fn test_character_table_construction_symmetric_cyclohexane_chair_d3d() {
             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D3d", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -7759,6 +8008,7 @@ fn test_character_table_construction_symmetric_cyclohexane_chair_grey_d3d() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D3d + θ·D3d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -7809,7 +8059,7 @@ fn test_character_table_construction_symmetric_s8_d4d() {
             Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D4d", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -7895,6 +8145,7 @@ fn test_character_table_construction_symmetric_s8_grey_d4d() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4d + θ·D4d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -7944,7 +8195,7 @@ fn test_character_table_construction_symmetric_antiprism_h8_d4d() {
             Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D4d", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -8029,6 +8280,7 @@ fn test_character_table_construction_symmetric_antiprism_h8_grey_d4d() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4d + θ·D4d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -8079,7 +8331,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_d4d() {
             Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D4d", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -8165,6 +8417,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_grey_d4d() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4d + θ·D4d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -8221,7 +8474,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_d5d() {
             Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D5d", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -8318,6 +8571,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_grey_d5d() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D5d + θ·D5d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -8378,7 +8632,7 @@ fn test_character_table_construction_symmetric_au26_d6d() {
             Character::new(&[(UnityRoot::new(5, 12), 1), (UnityRoot::new(7, 12), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D6d", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -8484,6 +8738,7 @@ fn test_character_table_construction_symmetric_au26_grey_d6d() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D6d + θ·D6d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -8529,7 +8784,13 @@ fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_dnd(
             };
             irreps
         };
-        test_character_table_construction(&mol, thresh, &expected_irreps, None);
+        test_character_table_construction(
+            &mol,
+            thresh,
+            format!("D{n}d").as_str(),
+            &expected_irreps,
+            None,
+        );
     }
 }
 
@@ -8603,7 +8864,13 @@ fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_grey
             irreps.extend(m_irreps);
             irreps
         };
-        test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+        test_character_table_construction_magnetic(
+            &mol,
+            thresh,
+            format!("D{n}d + θ·D{n}d").as_str(),
+            &expected_irreps,
+            None,
+        );
     }
 }
 
@@ -8641,7 +8908,7 @@ fn test_character_table_construction_symmetric_b2cl4_magnetic_field_s4() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S4", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -8683,6 +8950,7 @@ fn test_character_table_construction_symmetric_b2cl4_magnetic_field_bw_d2d_s4() 
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D2d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -8719,7 +8987,7 @@ fn test_character_table_construction_symmetric_adamantane_magnetic_field_s4() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S4", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -8761,6 +9029,7 @@ fn test_character_table_construction_symmetric_adamantane_magnetic_field_bw_d2d_
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D2d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -8797,7 +9066,7 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_s4() {
             Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S4", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -8839,6 +9108,7 @@ fn test_character_table_construction_symmetric_ch4_magnetic_field_bw_d2d_s4() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D2d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -8909,7 +9179,7 @@ fn test_character_table_construction_symmetric_65coronane_s6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S6", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -9034,6 +9304,7 @@ fn test_character_table_construction_symmetric_65coronane_grey_s6() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "S6 + θ·S6",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -9105,7 +9376,7 @@ fn test_character_table_construction_symmetric_65coronane_magnetic_field_s6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S6", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -9174,7 +9445,7 @@ fn test_character_table_construction_symmetric_staggered_c2h6_magnetic_field_s6(
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S6", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -9221,6 +9492,7 @@ fn test_character_table_construction_symmetric_staggered_c2h6_magnetic_field_bw_
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D3d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -9296,7 +9568,7 @@ fn test_character_table_construction_symmetric_c60_magnetic_field_s6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S6", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -9347,6 +9619,7 @@ fn test_character_table_construction_symmetric_c60_magnetic_field_bw_d3d_s6() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D3d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -9418,7 +9691,7 @@ fn test_character_table_construction_symmetric_vh2o6_magnetic_field_s6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S6", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -9487,7 +9760,7 @@ fn test_character_table_construction_symmetric_vf6_magnetic_field_s6() {
             Character::new(&[(UnityRoot::new(5, 6), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S6", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -9534,6 +9807,7 @@ fn test_character_table_construction_symmetric_vf6_magnetic_field_bw_d3d_s6() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D3d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -9590,7 +9864,7 @@ fn test_character_table_construction_symmetric_s8_magnetic_field_s8() {
             Character::new(&[(UnityRoot::new(7, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S8", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -9642,6 +9916,7 @@ fn test_character_table_construction_symmetric_s8_magnetic_field_bw_d4d_s8() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -9698,7 +9973,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_magnetic_field_s8(
             Character::new(&[(UnityRoot::new(7, 8), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S8", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -9750,6 +10025,7 @@ fn test_character_table_construction_symmetric_antiprism_pb10_magnetic_field_bw_
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D4d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -9857,7 +10133,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_magnetic_fiel
             Character::new(&[(UnityRoot::new(9, 10), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S10", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -9914,6 +10190,7 @@ fn test_character_table_construction_symmetric_staggered_ferrocene_magnetic_fiel
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D5d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -10021,7 +10298,7 @@ fn test_character_table_construction_symmetric_c60_magnetic_field_s10() {
             Character::new(&[(UnityRoot::new(9, 10), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S10", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -10078,6 +10355,7 @@ fn test_character_table_construction_symmetric_c60_magnetic_field_bw_d5d_s10() {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D5d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -10154,7 +10432,7 @@ fn test_character_table_construction_symmetric_au26_magnetic_field_s12() {
             Character::new(&[(UnityRoot::new(11, 12), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "S12", &expected_irreps, Some(expected_chars));
 }
 
 #[test]
@@ -10216,6 +10494,7 @@ fn test_character_table_construction_symmetric_au26_magnetic_field_bw_d6d_s12() 
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D6d",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -10253,7 +10532,13 @@ fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_magn
             );
             irreps
         };
-        test_character_table_construction(&mol, thresh, &expected_irreps, None);
+        test_character_table_construction(
+            &mol,
+            thresh,
+            format!("S{}", 2 * n).as_str(),
+            &expected_irreps,
+            None,
+        );
     }
 }
 
@@ -10299,7 +10584,13 @@ fn test_character_table_construction_symmetric_arbitrary_staggered_sandwich_magn
             };
             irreps
         };
-        test_character_table_construction_magnetic(&mol, thresh, &expected_irreps, None);
+        test_character_table_construction_magnetic(
+            &mol,
+            thresh,
+            format!("D{n}d").as_str(),
+            &expected_irreps,
+            None,
+        );
     }
 }
 
@@ -10523,7 +10814,7 @@ fn verify_c2(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C2", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{2} + \theta\mathcal{C}_{2}`$ character
@@ -10566,6 +10857,7 @@ fn verify_grey_c2(mol: &Molecule, thresh: f64) {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C2 + θ·C2",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -10711,7 +11003,7 @@ fn verify_c2v(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C2v", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{2v}(\mathcal{C}_{2})`$ character table of irreps.
@@ -10754,6 +11046,7 @@ fn verify_bw_c2v_c2(mol: &Molecule, thresh: f64) {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C2v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -10799,6 +11092,7 @@ fn verify_bw_c2v_cs(mol: &Molecule, thresh: f64) {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C2v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -10864,6 +11158,7 @@ fn verify_grey_c2v(mol: &Molecule, thresh: f64) {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C2v + θ·C2v",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -11030,7 +11325,7 @@ fn verify_c2h(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C2h", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{2h} + \theta\mathcal{C}_{2h}`$ character
@@ -11093,6 +11388,7 @@ fn verify_grey_c2h(mol: &Molecule, thresh: f64) {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C2h + θ·C2h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -11567,7 +11863,7 @@ fn verify_cs(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "Cs", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{s} + \theta\mathcal{C}_{s}`$ character
@@ -11610,6 +11906,7 @@ fn verify_grey_cs(mol: &Molecule, thresh: f64) {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "Cs + θ·Cs",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -11719,7 +12016,7 @@ fn verify_d2(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "D2", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{D}_{2} + \theta\mathcal{D}_{2}`$ character
@@ -11815,6 +12112,7 @@ fn verify_grey_d2(mol: &Molecule, thresh: f64) {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D2 + θ·D2",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -11964,6 +12262,7 @@ fn verify_d2h(mol: &Molecule, thresh: f64, magnetic: bool) {
         test_character_table_construction_magnetic(
             &mol,
             thresh,
+            "D2h",
             &expected_irreps,
             Some(expected_chars),
         );
@@ -12046,7 +12345,13 @@ fn verify_d2h(mol: &Molecule, thresh: f64, magnetic: bool) {
                 Character::new(&[(UnityRoot::new(1, 2), 1)]),
             ),
         ]);
-        test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+        test_character_table_construction(
+            &mol,
+            thresh,
+            "D2h",
+            &expected_irreps,
+            Some(expected_chars),
+        );
     }
 }
 
@@ -12215,6 +12520,7 @@ fn verify_grey_d2h(mol: &Molecule, thresh: f64) {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "D2h + θ·D2h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -12299,6 +12605,7 @@ fn test_character_table_construction_asymmetric_h2o2_magnetic_field_bw_c2h_ci() 
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C2h",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -12348,7 +12655,7 @@ fn verify_ci(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "Ci", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{i} + \theta\mathcal{C}_{i}`$ character
@@ -12391,6 +12698,7 @@ fn verify_grey_ci(mol: &Molecule, thresh: f64) {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "Ci + θ·Ci",
         &expected_irreps,
         Some(expected_chars),
     );
@@ -12457,7 +12765,7 @@ fn verify_c1(mol: &Molecule, thresh: f64) {
         (&expected_irreps[0], &e),
         Character::new(&[(UnityRoot::new(0, 1), 1)]),
     )]);
-    test_character_table_construction(&mol, thresh, &expected_irreps, Some(expected_chars));
+    test_character_table_construction(&mol, thresh, "C1", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{1} + \theta\mathcal{C}_{1}`$ character
@@ -12490,6 +12798,7 @@ fn verify_grey_c1(mol: &Molecule, thresh: f64) {
     test_character_table_construction_magnetic(
         &mol,
         thresh,
+        "C1 + θ·C1",
         &expected_irreps,
         Some(expected_chars),
     );

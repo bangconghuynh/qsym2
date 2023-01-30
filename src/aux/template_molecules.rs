@@ -21,7 +21,7 @@ pub fn gen_twisted_h8(theta: f64) -> Molecule {
             atomic_number: *atomic_number,
             atomic_symbol: "H".to_owned(),
             atomic_mass: *atomic_mass,
-            coordinates: Point3::new(1.0, 1.0, 0.0),
+            coordinates: Point3::new(1.0, 0.0, 0.0),
             threshold: 1e-7
         },
         Atom {
@@ -29,7 +29,7 @@ pub fn gen_twisted_h8(theta: f64) -> Molecule {
             atomic_number: *atomic_number,
             atomic_symbol: "H".to_owned(),
             atomic_mass: *atomic_mass,
-            coordinates: Point3::new(1.0, 0.0, 0.0),
+            coordinates: Point3::new(1.0, 1.0, 0.0),
             threshold: 1e-7
         },
         Atom {
@@ -58,8 +58,8 @@ pub fn gen_twisted_h8(theta: f64) -> Molecule {
             atomic_symbol: "H".to_owned(),
             atomic_mass: *atomic_mass,
             coordinates: Point3::new(
-                1.0/(2.0_f64.sqrt()) * (1.0 * std::f64::consts::FRAC_PI_4 + theta).cos() + 0.5,
-                1.0/(2.0_f64.sqrt()) * (1.0 * std::f64::consts::FRAC_PI_4 + theta).sin() + 0.5,
+                1.0/(2.0_f64.sqrt()) * (7.0 * std::f64::consts::FRAC_PI_4 + theta).cos() + 0.5,
+                1.0/(2.0_f64.sqrt()) * (7.0 * std::f64::consts::FRAC_PI_4 + theta).sin() + 0.5,
                 2.0
             ),
             threshold: 1e-7
@@ -70,8 +70,8 @@ pub fn gen_twisted_h8(theta: f64) -> Molecule {
             atomic_symbol: "H".to_owned(),
             atomic_mass: *atomic_mass,
             coordinates: Point3::new(
-                1.0/(2.0_f64.sqrt()) * (7.0 * std::f64::consts::FRAC_PI_4 + theta).cos() + 0.5,
-                1.0/(2.0_f64.sqrt()) * (7.0 * std::f64::consts::FRAC_PI_4 + theta).sin() + 0.5,
+                1.0/(2.0_f64.sqrt()) * (1.0 * std::f64::consts::FRAC_PI_4 + theta).cos() + 0.5,
+                1.0/(2.0_f64.sqrt()) * (1.0 * std::f64::consts::FRAC_PI_4 + theta).sin() + 0.5,
                 2.0
             ),
             threshold: 1e-7

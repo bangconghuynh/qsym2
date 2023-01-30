@@ -508,7 +508,7 @@ impl fmt::Display for MullikenIrrepSymbol {
 /// A struct to handle Mulliken irreducible corepresentation symbols.
 #[derive(Builder, Debug, Clone, PartialEq, Eq)]
 pub struct MullikenIrcorepSymbol {
-    inducing_irreps: HashSet<MullikenIrrepSymbol>,
+    inducing_irreps: HashMap<MullikenIrrepSymbol, usize>,
 }
 
 impl MullikenIrcorepSymbol {
@@ -537,16 +537,16 @@ impl MullikenIrcorepSymbol {
         Self::from_str(symstr)
     }
 
-    pub fn from_irreps(irreps: &[MullikenIrrepSymbol]) -> Self {
+    pub fn from_irreps(irreps: &[(MullikenIrrepSymbol, usize)]) -> Self {
         Self::builder()
-            .inducing_irreps(irreps.iter().cloned().collect::<HashSet<_>>())
+            .inducing_irreps(irreps.iter().cloned().collect::<HashMap<_, _>>())
             .build()
             .expect("Unable to construct a Mulliken ircorep symbol from a slice of irrep symbols.")
     }
 
     /// Returns an iterator containing sorted references to the symbols of the inducing irreps.
-    pub fn sorted_inducing_irreps(&self) -> std::vec::IntoIter<&MullikenIrrepSymbol> {
-        self.inducing_irreps.iter().sorted_by(|a, b| {
+    pub fn sorted_inducing_irreps(&self) -> std::vec::IntoIter<(&MullikenIrrepSymbol, &usize)> {
+        self.inducing_irreps.iter().sorted_by(|(a, _), (b, _)| {
             a.partial_cmp(b)
                 .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
         })
@@ -559,7 +559,14 @@ impl MathematicalSymbol for MullikenIrcorepSymbol {
         format!(
             "D[{}]",
             self.sorted_inducing_irreps()
-                .map(|irrep| irrep.to_string())
+                .map(|(irrep, mult)| format!(
+                    "{}{irrep}",
+                    if *mult > 1 {
+                        mult.to_string()
+                    } else {
+                        String::new()
+                    }
+                ))
                 .join(" ⊕ ")
         )
     }
@@ -598,10 +605,11 @@ impl MathematicalSymbol for MullikenIrcorepSymbol {
         Some(
             self.inducing_irreps
             .iter()
-            .map(|irrep_mult| {
-                irrep_mult
+            .map(|(irrep, mult)| {
+                irrep
                     .multiplicity()
                     .expect("One of the inducing irreducible representations has an undefined multiplicity.")
+                * mult
             })
             .sum()
         )
@@ -631,14 +639,24 @@ impl FromStr for MullikenIrcorepSymbol {
     ///
     /// Errors when the string cannot be parsed.
     fn from_str(symstr: &str) -> Result<Self, Self::Err> {
+        let re = Regex::new(r"(\d?)(.*)").expect("Regex pattern invalid.");
         let irreps = symstr
             .split("+")
             .map(|irrep_str| {
-                MullikenIrrepSymbol::from_str(irrep_str.trim()).unwrap_or_else(|_| {
-                    panic!("Unable to parse {irrep_str} as a Mulliken irrep symbol.")
-                })
+                let cap = re
+                    .captures(irrep_str.trim())
+                    .unwrap_or_else(|| panic!("{irrep_str} does not fit the expected pattern."));
+                let mult = str::parse::<usize>(&cap[0])
+                    .unwrap_or_else(|_| panic!("{} is not a positive integer.", &cap[0]));
+                let irrep = &cap[1];
+                (
+                    MullikenIrrepSymbol::from_str(irrep).unwrap_or_else(|_| {
+                        panic!("Unable to parse {irrep} as a Mulliken irrep symbol.")
+                    }),
+                    mult,
+                )
             })
-            .collect::<HashSet<_>>();
+            .collect::<HashMap<_, _>>();
         MullikenIrcorepSymbol::builder()
             .inducing_irreps(irreps)
             .build()
@@ -647,16 +665,16 @@ impl FromStr for MullikenIrcorepSymbol {
 
 impl LinearSpaceSymbol for MullikenIrcorepSymbol {
     fn dimensionality(&self) -> u64 {
-        self.inducing_irreps
+        let dim: usize = self.inducing_irreps
         .iter()
-        .map(|irrep_mult| {
-            irrep_mult
+        .map(|(irrep, mult)| {
+            irrep
                 .multiplicity()
                 .expect("One of the inducing irreducible representations has an undefined multiplicity.")
-        })
-        .sum::<usize>()
-        .try_into()
-        .expect("Cannot convert the dimensionality of this ircorep symbol into u64.")
+            * mult
+        }).sum();
+        TryInto::<u64>::try_into(dim)
+            .expect("Cannot convert the dimensionality of this ircorep symbol into `u64`.")
     }
 }
 
@@ -993,6 +1011,8 @@ pub fn sort_irreps<R: Clone>(
         ClassSymbol::new("1||E||", None).expect("Unable to construct class symbol `1||E||`.");
     let class_i =
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
+    let class_ti =
+        ClassSymbol::new("1||θ·i||", None).expect("Unable to construct class symbol `1||θ·i||`.");
     let class_s =
         ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
     let class_ts =
@@ -1011,6 +1031,8 @@ pub fn sort_irreps<R: Clone>(
     // or time-reversed horizontal mirror plane if non-time-reversed version not available.
     if class_symbols.contains_key(&class_i) {
         leading_classes.insert(class_i);
+    } else if class_symbols.contains_key(&class_ti) {
+        leading_classes.insert(class_ti);
     } else if class_symbols.contains_key(&class_s) {
         leading_classes.insert(class_s);
     } else if class_symbols.contains_key(&class_ts) {
@@ -1194,6 +1216,8 @@ where
         ClassSymbol::new("1||E||", None).expect("Unable to construct class symbol `1||E||`.");
     let i_cc: ClassSymbol<R> =
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
+    let ti_cc: ClassSymbol<R> =
+        ClassSymbol::new("1||θ·i||", None).expect("Unable to construct class symbol `1||θ·i||`.");
     let s_cc: ClassSymbol<R> =
         ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
     let ts_cc: ClassSymbol<R> =
@@ -1204,6 +1228,9 @@ where
     // Inversion parity?
     let i_parity = class_symbols.contains_key(&i_cc);
 
+    // Time-reversed inversion parity?
+    let ti_parity = class_symbols.contains_key(&ti_cc);
+
     // Reflection parity?
     let s_parity = class_symbols.contains_key(&s_cc);
 
@@ -1213,6 +1240,10 @@ where
     // i_parity takes priority.
     if i_parity {
         log::debug!("Inversion centre found. This will be used for g/u ordering.");
+    } else if ti_parity {
+        log::debug!(
+            "Time-reversed inversion centre found (but no inversion centre). This will be used for g/u ordering."
+        );
     } else if s_parity {
         log::debug!(
             "Horizontal mirror plane found (but no inversion centre). This will be used for '/'' ordering."
@@ -1280,13 +1311,19 @@ where
             }
         };
 
-        let (inv, mir) = if i_parity {
+        let (inv, mir) = if i_parity || ti_parity {
             // Determine inversion symmetry
             // Inversion symmetry trumps reflection symmetry.
             let char_inv = irrep[
-                *class_symbols.get(&i_cc).unwrap_or_else(|| {
-                    panic!("Class `{}` not found.", &i_cc)
-                })
+                *class_symbols
+                    .get(&i_cc)
+                    .unwrap_or_else(|| {
+                        class_symbols
+                            .get(&ti_cc)
+                            .unwrap_or_else(|| {
+                                panic!("Neither `{}` nor `{}` found.", &i_cc, &ti_cc)
+                            })
+                    })
             ].clone();
             let char_inv_c = char_inv.complex_value();
             assert!(

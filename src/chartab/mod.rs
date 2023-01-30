@@ -98,7 +98,7 @@ where
 #[derive(Builder, Clone)]
 pub struct RepCharacterTable<R: Clone> {
     /// The name given to the character table.
-    name: String,
+    pub name: String,
 
     /// The irreducible representations of the group and their row indices in the character
     /// table.
@@ -482,7 +482,7 @@ impl<R: Clone> fmt::Debug for RepCharacterTable<R> {
 #[derive(Builder, Clone)]
 pub struct CorepCharacterTable<R: Clone> {
     /// The name given to the character table.
-    name: String,
+    pub name: String,
 
     /// The character table of the irreducible representations of the halving unitary subgroup that
     /// induce the irreducible corepresentations of the current magnetic group.
@@ -685,7 +685,7 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
             })
             .sum();
 
-        let name = format!("m-{} ({})", self.name, 2 * unitary_group_order);
+        let name = format!("m {} ({})", self.name, 2 * unitary_group_order);
         let chars_str = self.characters.map(|character| {
             if let Some(precision) = numerical {
                 let real_only = self.characters.iter().all(|character| {
