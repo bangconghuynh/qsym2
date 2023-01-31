@@ -5,7 +5,7 @@ use itertools::Itertools;
 use ordered_float::OrderedFloat;
 use rayon::prelude::*;
 
-use super::Group;
+use super::{GroupStructure, UnitaryGroup, GroupType};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::{
@@ -14,13 +14,28 @@ use crate::symmetry::symmetry_element::{
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1};
 use crate::symmetry::symmetry_symbols::{deduce_sigma_symbol, ClassSymbol};
 
-impl Group<SymmetryOperation> {
-    /// Assigns class symbols to the conjugacy classes.
-    ///
-    /// This method sets the [`Self::conjugacy_class_symbols`] field.
-    #[allow(clippy::too_many_lines)]
-    fn assign_class_symbols_from_symmetry(&mut self) {
-        // Assign class symbols
+trait SymmetryGroup: GroupStructure<Element = SymmetryOperation> {
+    /// Returns `true` if all elements in this group are unitary.
+    fn all_unitary(&self) -> bool {
+        self.elements().keys().all(|op| !op.is_antiunitary())
+    }
+
+    fn group_type(&self) -> GroupType {
+        if self.all_unitary() {
+            GroupType::Ordinary(false)
+        } else if self
+            .elements()
+            .keys()
+            .any(SpecialSymmetryTransformation::is_time_reversal)
+        {
+            GroupType::MagneticGrey(false)
+        } else {
+            GroupType::MagneticBlackWhite(false)
+        }
+    }
+
+    #[must_use]
+    fn compute_class_symbols_from_symmetry(&self) -> IndexMap<ClassSymbol<Self::Element>, usize> {
         log::debug!("Assigning class symbols from symmetry operations...");
         let mut proper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
             HashMap::new();
@@ -30,97 +45,206 @@ impl Group<SymmetryOperation> {
             HashMap::new();
         let mut tr_improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
             HashMap::new();
-        let class_symbols_iter = self
-            .conjugacy_classes
-            .as_ref()
-            .expect("Conjugacy classes not found.")
-            .iter()
-            .enumerate()
-            .map(|(i, class_element_indices)| {
-                let rep_ele_index = *class_element_indices
-                    .iter()
-                    .min_by_key(|&&j| {
-                        let op = self
-                            .elements
-                            .get_index(j)
-                            .unwrap_or_else(|| {
-                                panic!("Element with index {j} cannot be retrieved.")
-                            })
-                            .0;
-                        (op.power, op.generating_element.proper_power)
-                    })
-                    .expect("Unable to obtain a representative element index.");
-                let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap_or_else(|| {
-                    panic!("Unable to retrieve group element with index `{rep_ele_index}`.")
-                });
-                if rep_ele.is_identity() {
-                    (
-                        ClassSymbol::new("1||E||", Some(rep_ele.clone()))
-                            .expect("Unable to construct a class symbol from `1||E||`."),
-                        i,
-                    )
-                } else if rep_ele.is_inversion() {
-                    (
-                        ClassSymbol::new("1||i||", Some(rep_ele.clone()))
-                            .expect("Unable to construct a class symbol from `1||i||`."),
-                        i,
-                    )
-                } else if rep_ele.is_time_reversal() {
-                    (
-                        ClassSymbol::new("1||θ||", Some(rep_ele.clone()))
-                            .expect("Unable to construct a class symbol from `1||θ||`."),
-                        i,
-                    )
-                } else {
-                    let rep_proper_order = rep_ele.generating_element.proper_order;
-                    let rep_proper_power = rep_ele.generating_element.proper_power;
-                    let rep_power = rep_ele.power;
-                    let rep_sub = rep_ele.generating_element.additional_subscript.clone();
-                    let class_orders = match (rep_ele.is_antiunitary(), rep_ele.is_proper()) {
-                        (false, true) => &mut proper_class_orders,
-                        (false, false) => &mut improper_class_orders,
-                        (true, true) => &mut tr_proper_class_orders,
-                        (true, false) => &mut tr_improper_class_orders,
-                    };
-                    let dash = if let Some(v) = class_orders.get_mut(&(
-                        rep_proper_order,
-                        rep_proper_power,
-                        rep_power,
-                        rep_sub.clone(),
-                    )) {
-                        *v += 1;
-                        "'".repeat(*v)
-                    } else {
-                        class_orders
-                            .insert((rep_proper_order, rep_proper_power, rep_power, rep_sub), 0);
-                        String::new()
-                    };
-                    let size = class_element_indices.len();
-                    (
-                        ClassSymbol::new(
-                            format!(
-                                "{}||{}|^({})|",
-                                size,
-                                rep_ele.get_abbreviated_symbol(),
-                                dash
-                            )
-                            .as_str(),
-                            Some(rep_ele.clone()),
+        let class_symbols_iter =
+            self.conjugacy_classes()
+                .iter()
+                .enumerate()
+                .map(|(i, class_element_indices)| {
+                    let rep_ele_index = *class_element_indices
+                        .iter()
+                        .min_by_key(|&&j| {
+                            let op = self
+                                .elements()
+                                .get_index(j)
+                                .unwrap_or_else(|| {
+                                    panic!("Element with index {j} cannot be retrieved.")
+                                })
+                                .0;
+                            (op.power, op.generating_element.proper_power)
+                        })
+                        .expect("Unable to obtain a representative element index.");
+                    let (rep_ele, _) =
+                        self.elements().get_index(rep_ele_index).unwrap_or_else(|| {
+                            panic!("Unable to retrieve group element with index `{rep_ele_index}`.")
+                        });
+                    if rep_ele.is_identity() {
+                        (
+                            ClassSymbol::new("1||E||", Some(rep_ele.clone()))
+                                .expect("Unable to construct a class symbol from `1||E||`."),
+                            i,
                         )
-                        .unwrap_or_else(|_| {
-                            panic!(
+                    } else if rep_ele.is_inversion() {
+                        (
+                            ClassSymbol::new("1||i||", Some(rep_ele.clone()))
+                                .expect("Unable to construct a class symbol from `1||i||`."),
+                            i,
+                        )
+                    } else if rep_ele.is_time_reversal() {
+                        (
+                            ClassSymbol::new("1||θ||", Some(rep_ele.clone()))
+                                .expect("Unable to construct a class symbol from `1||θ||`."),
+                            i,
+                        )
+                    } else {
+                        let rep_proper_order = rep_ele.generating_element.proper_order;
+                        let rep_proper_power = rep_ele.generating_element.proper_power;
+                        let rep_power = rep_ele.power;
+                        let rep_sub = rep_ele.generating_element.additional_subscript.clone();
+                        let class_orders = match (rep_ele.is_antiunitary(), rep_ele.is_proper()) {
+                            (false, true) => &mut proper_class_orders,
+                            (false, false) => &mut improper_class_orders,
+                            (true, true) => &mut tr_proper_class_orders,
+                            (true, false) => &mut tr_improper_class_orders,
+                        };
+                        let dash = if let Some(v) = class_orders.get_mut(&(
+                            rep_proper_order,
+                            rep_proper_power,
+                            rep_power,
+                            rep_sub.clone(),
+                        )) {
+                            *v += 1;
+                            "'".repeat(*v)
+                        } else {
+                            class_orders.insert(
+                                (rep_proper_order, rep_proper_power, rep_power, rep_sub),
+                                0,
+                            );
+                            String::new()
+                        };
+                        let size = class_element_indices.len();
+                        (
+                            ClassSymbol::new(
+                                format!(
+                                    "{}||{}|^({})|",
+                                    size,
+                                    rep_ele.get_abbreviated_symbol(),
+                                    dash
+                                )
+                                .as_str(),
+                                Some(rep_ele.clone()),
+                            )
+                            .unwrap_or_else(|_| {
+                                panic!(
                                 "Unable to construct a class symbol from `{size}||{}|^({dash})|`",
                                 rep_ele.get_abbreviated_symbol()
                             )
-                        }),
-                        i,
-                    )
-                }
-            });
-        self.conjugacy_class_symbols = Some(class_symbols_iter.collect::<IndexMap<_, _>>());
+                            }),
+                            i,
+                        )
+                    }
+                });
         log::debug!("Assigning class symbols from symmetry operations... Done.");
+        class_symbols_iter.collect::<IndexMap<_, _>>()
     }
 }
+
+impl SymmetryGroup for UnitaryGroup<SymmetryOperation> {}
+
+//impl UnitaryGroup<SymmetryOperation> {
+//    /// Assigns class symbols to the conjugacy classes.
+//    ///
+//    /// This method sets the [`Self::conjugacy_class_symbols`] field.
+//    #[allow(clippy::too_many_lines)]
+//    fn assign_class_symbols_from_symmetry(&mut self) {
+//        // Assign class symbols
+//        log::debug!("Assigning class symbols from symmetry operations...");
+//        let mut proper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+//            HashMap::new();
+//        let mut improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+//            HashMap::new();
+//        let mut tr_proper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+//            HashMap::new();
+//        let mut tr_improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+//            HashMap::new();
+//        let class_symbols_iter = self
+//            .conjugacy_classes()
+//            .iter()
+//            .enumerate()
+//            .map(|(i, class_element_indices)| {
+//                let rep_ele_index = *class_element_indices
+//                    .iter()
+//                    .min_by_key(|&&j| {
+//                        let op = self
+//                            .elements
+//                            .get_index(j)
+//                            .unwrap_or_else(|| {
+//                                panic!("Element with index {j} cannot be retrieved.")
+//                            })
+//                            .0;
+//                        (op.power, op.generating_element.proper_power)
+//                    })
+//                    .expect("Unable to obtain a representative element index.");
+//                let (rep_ele, _) = self.elements.get_index(rep_ele_index).unwrap_or_else(|| {
+//                    panic!("Unable to retrieve group element with index `{rep_ele_index}`.")
+//                });
+//                if rep_ele.is_identity() {
+//                    (
+//                        ClassSymbol::new("1||E||", Some(rep_ele.clone()))
+//                            .expect("Unable to construct a class symbol from `1||E||`."),
+//                        i,
+//                    )
+//                } else if rep_ele.is_inversion() {
+//                    (
+//                        ClassSymbol::new("1||i||", Some(rep_ele.clone()))
+//                            .expect("Unable to construct a class symbol from `1||i||`."),
+//                        i,
+//                    )
+//                } else if rep_ele.is_time_reversal() {
+//                    (
+//                        ClassSymbol::new("1||θ||", Some(rep_ele.clone()))
+//                            .expect("Unable to construct a class symbol from `1||θ||`."),
+//                        i,
+//                    )
+//                } else {
+//                    let rep_proper_order = rep_ele.generating_element.proper_order;
+//                    let rep_proper_power = rep_ele.generating_element.proper_power;
+//                    let rep_power = rep_ele.power;
+//                    let rep_sub = rep_ele.generating_element.additional_subscript.clone();
+//                    let class_orders = match (rep_ele.is_antiunitary(), rep_ele.is_proper()) {
+//                        (false, true) => &mut proper_class_orders,
+//                        (false, false) => &mut improper_class_orders,
+//                        (true, true) => &mut tr_proper_class_orders,
+//                        (true, false) => &mut tr_improper_class_orders,
+//                    };
+//                    let dash = if let Some(v) = class_orders.get_mut(&(
+//                        rep_proper_order,
+//                        rep_proper_power,
+//                        rep_power,
+//                        rep_sub.clone(),
+//                    )) {
+//                        *v += 1;
+//                        "'".repeat(*v)
+//                    } else {
+//                        class_orders
+//                            .insert((rep_proper_order, rep_proper_power, rep_power, rep_sub), 0);
+//                        String::new()
+//                    };
+//                    let size = class_element_indices.len();
+//                    (
+//                        ClassSymbol::new(
+//                            format!(
+//                                "{}||{}|^({})|",
+//                                size,
+//                                rep_ele.get_abbreviated_symbol(),
+//                                dash
+//                            )
+//                            .as_str(),
+//                            Some(rep_ele.clone()),
+//                        )
+//                        .unwrap_or_else(|_| {
+//                            panic!(
+//                                "Unable to construct a class symbol from `{size}||{}|^({dash})|`",
+//                                rep_ele.get_abbreviated_symbol()
+//                            )
+//                        }),
+//                        i,
+//                    )
+//                }
+//            });
+//        self.conjugacy_class_symbols = Some(class_symbols_iter.collect::<IndexMap<_, _>>());
+//        log::debug!("Assigning class symbols from symmetry operations... Done.");
+//    }
+//}
 
 /// Constructs a group from molecular symmetry *elements* (not operations).
 ///
@@ -138,7 +262,7 @@ impl Group<SymmetryOperation> {
 pub fn group_from_molecular_symmetry(
     sym: &Symmetry,
     infinite_order_to_finite: Option<u32>,
-) -> Group<SymmetryOperation> {
+) -> impl GroupStructure<Element = SymmetryOperation> {
     let group_name = sym
         .group_name
         .as_ref()
@@ -653,81 +777,83 @@ pub fn group_from_molecular_symmetry(
         )
     });
 
-    let mut group = Group::<SymmetryOperation>::new(group_name.as_str(), sorted_operations);
+    let mut group = UnitaryGroup::<SymmetryOperation>::new(group_name.as_str(), sorted_operations);
     if handles_infinite_group.is_some() {
-        let finite_group = if group.name.contains('∞') {
+        let finite_group = if group.name().contains('∞') {
             // C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d, or the corresponding grey groups
-            if group.name.as_bytes()[0] == b'D' {
+            if group.name().as_bytes()[0] == b'D' {
                 if matches!(
                     group
-                        .name
+                        .name()
                         .as_bytes()
                         .iter()
                         .last()
                         .expect("The last character in the group name cannot be retrieved."),
                     b'h' | b'd'
                 ) {
-                    if group.name.contains('θ') {
-                        assert_eq!(group.order % 8, 0);
+                    if group.name().contains('θ') {
+                        assert_eq!(group.order() % 8, 0);
                         group
-                            .name
-                            .replace('∞', format!("{}", group.order / 8).as_str())
+                            .name()
+                            .replace('∞', format!("{}", group.order() / 8).as_str())
                     } else {
-                        assert_eq!(group.order % 4, 0);
+                        assert_eq!(group.order() % 4, 0);
                         group
-                            .name
-                            .replace('∞', format!("{}", group.order / 4).as_str())
+                            .name()
+                            .replace('∞', format!("{}", group.order() / 4).as_str())
                     }
                 } else {
-                    if group.name.contains('θ') {
-                        assert_eq!(group.order % 4, 0);
+                    if group.name().contains('θ') {
+                        assert_eq!(group.order() % 4, 0);
                         group
-                            .name
-                            .replace('∞', format!("{}", group.order / 4).as_str())
+                            .name()
+                            .replace('∞', format!("{}", group.order() / 4).as_str())
                     } else {
-                        assert_eq!(group.order % 2, 0);
+                        assert_eq!(group.order() % 2, 0);
                         group
-                            .name
-                            .replace('∞', format!("{}", group.order / 2).as_str())
+                            .name()
+                            .replace('∞', format!("{}", group.order() / 2).as_str())
                     }
                 }
             } else {
-                assert!(matches!(group.name.as_bytes()[0], b'C' | b'S'));
+                assert!(matches!(group.name().as_bytes()[0], b'C' | b'S'));
                 if matches!(
                     group
-                        .name
+                        .name()
                         .as_bytes()
                         .iter()
                         .last()
                         .expect("The last character in the group name cannot be retrieved."),
                     b'h' | b'v'
                 ) {
-                    if group.name.contains('θ') {
-                        assert_eq!(group.order % 4, 0);
+                    if group.name().contains('θ') {
+                        assert_eq!(group.order() % 4, 0);
                     } else {
-                        assert_eq!(group.order % 2, 0);
+                        assert_eq!(group.order() % 2, 0);
                     }
-                    if group.order > 2 {
-                        if group.name.contains('θ') {
+                    if group.order() > 2 {
+                        if group.name().contains('θ') {
                             group
-                                .name
-                                .replace('∞', format!("{}", group.order / 4).as_str())
+                                .name()
+                                .replace('∞', format!("{}", group.order() / 4).as_str())
                         } else {
                             group
-                                .name
-                                .replace('∞', format!("{}", group.order / 2).as_str())
+                                .name()
+                                .replace('∞', format!("{}", group.order() / 2).as_str())
                         }
                     } else {
-                        assert_eq!(group.name.as_bytes()[0], b'C');
+                        assert_eq!(group.name().as_bytes()[0], b'C');
                         "Cs".to_string()
                     }
                 } else {
-                    group.name.replace('∞', format!("{}", group.order).as_str())
+                    group
+                        .name()
+                        .replace('∞', format!("{}", group.order()).as_str())
                 }
             }
         } else {
             // O(3) or the corresponding grey group
-            match group.order {
+            match group.order() {
                 8 => "D2h".to_string(),
                 16 => "D2h + θ·D2h".to_string(),
                 48 => "Oh".to_string(),
@@ -737,32 +863,32 @@ pub fn group_from_molecular_symmetry(
         };
         group.finite_subgroup_name = Some(finite_group);
     }
-    group.assign_class_symbols_from_symmetry();
+    group.abstract_group.conjugacy_class_symbols = Some(group.compute_class_symbols_from_symmetry());
     group.construct_irrep_character_table();
-    if !group.is_unitary() {
-        let unitary_elements = group
-            .elements
-            .iter()
-            .filter_map(|(op, _)| {
-                if !op.is_antiunitary() {
-                    Some(op.clone())
-                } else {
-                    None
-                }
-            })
-            .collect_vec();
-        // let mut group = Group::<SymmetryOperation>::new(group_name.as_str(), sorted_operations);
-        let mut unitary_subgroup = Group::<SymmetryOperation>::new(
-            format!("U({})", group.name).as_str(),
-            unitary_elements,
-        );
-        unitary_subgroup.finite_subgroup_name = group
-            .finite_subgroup_name
-            .as_ref()
-            .map(|finite_group| format!("U({finite_group})"));
-        unitary_subgroup.assign_class_symbols_from_symmetry();
-        unitary_subgroup.construct_irrep_character_table();
-        group.construct_ircorep_character_table(unitary_subgroup);
-    }
+    // if !group.is_unitary() {
+    //     let unitary_elements = group
+    //         .elements
+    //         .iter()
+    //         .filter_map(|(op, _)| {
+    //             if !op.is_antiunitary() {
+    //                 Some(op.clone())
+    //             } else {
+    //                 None
+    //             }
+    //         })
+    //         .collect_vec();
+    //     // let mut group = Group::<SymmetryOperation>::new(group_name.as_str(), sorted_operations);
+    //     let mut unitary_subgroup = UnitaryGroup::<SymmetryOperation>::new(
+    //         format!("U({})", group.name).as_str(),
+    //         unitary_elements,
+    //     );
+    //     unitary_subgroup.finite_subgroup_name = group
+    //         .finite_subgroup_name
+    //         .as_ref()
+    //         .map(|finite_group| format!("U({finite_group})"));
+    //     unitary_subgroup.assign_class_symbols_from_symmetry();
+    //     unitary_subgroup.construct_irrep_character_table();
+    //     group.construct_ircorep_character_table(unitary_subgroup);
+    // }
     group
 }
