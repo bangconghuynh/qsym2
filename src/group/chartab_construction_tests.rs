@@ -12805,5 +12805,5 @@ fn verify_grey_c1(mol: &Molecule, thresh: f64) {
 }
 
 #[cfg(test)]
-#[path = "magnetic_chartab_construction_tests.rs"]
-mod magnetic_chartab_construction_tests;
+#[path = "nonuniform_magnetic_chartab_construction_tests.rs"]
+mod nonuniform_magnetic_chartab_construction_tests;

@@ -482,7 +482,7 @@ impl Symmetry {
                         principal_axes[2],
                         false,
                         SIG.clone(),
-                        Some("v".to_owned()),
+                        Some("h".to_owned()),
                         presym.dist_threshold,
                         improper_kind.contains_time_reversal(),
                     ));

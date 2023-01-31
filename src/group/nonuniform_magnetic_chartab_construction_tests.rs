@@ -9,9 +9,6 @@ use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
-/*
-Dnh
-*/
 #[test]
 fn test_character_table_construction_symmetric_h8_twisted_alt_magnetic_field_bw_c4_c2() {
     // env_logger::init();
@@ -51,13 +48,20 @@ fn test_character_table_construction_symmetric_h8_twisted_alt_magnetic_field_bw_
         .flatten()
         .collect();
     mol.magnetic_atoms = Some(magnetic_atoms);
+
     let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A||").unwrap(),
+        MullikenIrrepSymbol::new("||B||").unwrap(),
+    ];
+    test_character_table_construction(&mol, thresh, "C2", &expected_irreps, None);
+
+    let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
     ];
-    test_character_table_construction_magnetic(&mol, thresh, "C4", &expected_irreps, None);
+    test_character_table_construction_magnetic(&mol, thresh, "C4", &mag_expected_irreps, None);
 }
 
 #[test]
@@ -79,7 +83,8 @@ fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_s4_c2(
                         atom.coordinates
                             + Rotation3::new(
                                 Vector3::z()
-                                    * (std::f64::consts::FRAC_PI_2 * direction_id.to_f64().unwrap()),
+                                    * (std::f64::consts::FRAC_PI_2
+                                        * direction_id.to_f64().unwrap()),
                             ) * (0.1 * Vector3::x()),
                         thresh,
                     )
@@ -89,7 +94,8 @@ fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_s4_c2(
                         atom.coordinates
                             - Rotation3::new(
                                 Vector3::z()
-                                    * (std::f64::consts::FRAC_PI_2 * direction_id.to_f64().unwrap()),
+                                    * (std::f64::consts::FRAC_PI_2
+                                        * direction_id.to_f64().unwrap()),
                             ) * (0.1 * Vector3::x()),
                         thresh,
                     )
@@ -113,7 +119,7 @@ fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_s4_c2(
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
     ];
     test_character_table_construction_magnetic(&mol, thresh, "S4", &mag_expected_irreps, None);
 }
@@ -142,7 +148,15 @@ fn test_character_table_construction_symmetric_bf3_rad_magnetic_field_bw_d3h_d3(
         .flatten()
         .collect();
     mol.magnetic_atoms = Some(magnetic_atoms);
+
     let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+    ];
+    test_character_table_construction(&mol, thresh, "D3", &expected_irreps, None);
+
+    let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|^(')_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||A|^(')_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E|^(')|").unwrap(),
@@ -150,7 +164,69 @@ fn test_character_table_construction_symmetric_bf3_rad_magnetic_field_bw_d3h_d3(
         MullikenIrrepSymbol::new("||A|^('')_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E|^('')|").unwrap(),
     ];
-    test_character_table_construction_magnetic(&mol, thresh, "D3h", &expected_irreps, None);
+    test_character_table_construction_magnetic(&mol, thresh, "D3h", &mag_expected_irreps, None);
+}
+
+#[test]
+fn test_character_table_construction_symmetric_tan_rad_magnetic_field_bw_c3h_c3() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    let magnetic_atoms: Vec<Atom> = mol
+        .atoms
+        .iter()
+        .enumerate()
+        .filter_map(|(i, atom)| {
+            if atom.atomic_symbol == "F" {
+                Some([
+                    Atom::new_special(
+                        AtomKind::Magnetic(true),
+                        atom.coordinates
+                            + Rotation3::new(
+                                Vector3::z()
+                                    * (2.0 * std::f64::consts::FRAC_PI_3
+                                        * (i % 3).to_f64().unwrap()),
+                            ) * (0.1 * Vector3::new(0.0, 1.0, 0.0)),
+                        thresh,
+                    )
+                    .expect("Unable to construct a special magnetic atom."),
+                    Atom::new_special(
+                        AtomKind::Magnetic(false),
+                        atom.coordinates
+                            - Rotation3::new(
+                                Vector3::z()
+                                    * (2.0 * std::f64::consts::FRAC_PI_3
+                                        * (i % 3).to_f64().unwrap()),
+                            ) * (0.1 * Vector3::new(0.0, 1.0, 0.0)),
+                        thresh,
+                    )
+                    .expect("Unable to construct a special magnetic atom."),
+                ])
+            } else {
+                None
+            }
+        })
+        .flatten()
+        .collect();
+    mol.magnetic_atoms = Some(magnetic_atoms);
+
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A||").unwrap(),
+        MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
+    ];
+    test_character_table_construction(&mol, thresh, "C3", &expected_irreps, None);
+
+    let mag_expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|^(')|").unwrap(),
+        MullikenIrrepSymbol::new("||Γ|^(')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||Γ|^(')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^('')|").unwrap(),
+        MullikenIrrepSymbol::new("||Γ|^('')_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||Γ|^('')_(2)|").unwrap(),
+    ];
+    test_character_table_construction_magnetic(&mol, thresh, "C3h", &mag_expected_irreps, None);
 }
 
 #[test]
@@ -202,10 +278,18 @@ fn test_character_table_construction_symmetric_xef4_rad_magnetic_field_bw_c4v_c2
         .filter_map(|(i, atom)| {
             if atom.atomic_symbol == "F" {
                 Some([
-                    Atom::new_special(AtomKind::Magnetic(i % 2 == 0), 1.1 * atom.coordinates + 0.1 * Vector3::z(), thresh)
-                        .expect("Unable to construct a special magnetic atom."),
-                    Atom::new_special(AtomKind::Magnetic(i % 2 != 0), 0.9 * atom.coordinates - 0.1 * Vector3::z(), thresh)
-                        .expect("Unable to construct a special magnetic atom."),
+                    Atom::new_special(
+                        AtomKind::Magnetic(i % 2 == 0),
+                        1.1 * atom.coordinates + 0.1 * Vector3::z(),
+                        thresh,
+                    )
+                    .expect("Unable to construct a special magnetic atom."),
+                    Atom::new_special(
+                        AtomKind::Magnetic(i % 2 != 0),
+                        0.9 * atom.coordinates - 0.1 * Vector3::z(),
+                        thresh,
+                    )
+                    .expect("Unable to construct a special magnetic atom."),
                 ])
             } else {
                 None
@@ -415,14 +499,14 @@ fn test_character_table_construction_symmetric_xef4_alt_x_magnetic_field_bw_c4h_
     test_character_table_construction(&mol, thresh, "S4", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
-        MullikenIrrepSymbol::new("||A|_(g)|").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|_(1g)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(g)|").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|_(2g)|").unwrap(),
-        MullikenIrrepSymbol::new("||A|_(u)|").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|_(1u)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(u)|").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
     ];
     test_character_table_construction_magnetic(&mol, thresh, "C4h", &mag_expected_irreps, None);
 }
