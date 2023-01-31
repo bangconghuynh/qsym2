@@ -22,6 +22,8 @@ mod group_tests;
 #[cfg(test)]
 mod chartab_construction_tests;
 
+mod class;
+
 /// An enum to contain information about the type of a group.
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 enum GroupType {
