@@ -1005,6 +1005,25 @@ impl Symmetry {
             None
         };
 
+        if let Some(finite_order) = handles_infinite_group {
+            let group_name = self.group_name.as_ref().expect("Group name not found.");
+            if group_name.contains("O(3)") {
+                if !matches!(finite_order, 2 | 4) {
+                    log::error!(
+                        "Finite order of {} is not yet supported for {}.",
+                        finite_order,
+                        group_name
+                    );
+                }
+                assert!(
+                    matches!(finite_order, 2 | 4),
+                    "Finite order of {} is not yet supported for {}.",
+                    finite_order,
+                    group_name
+                );
+            }
+        }
+
         let id_element = self
             .get_elements(&ROT)
             .unwrap_or(&HashMap::new())

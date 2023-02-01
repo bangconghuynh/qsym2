@@ -62,6 +62,8 @@ const GRGRP: GroupType = GroupType::MagneticGrey(false);
 /// A struct for managing abstract groups.
 #[derive(Builder, Clone)]
 pub struct Group<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> {
+    name: String,
+
     /// An ordered hash table containing the elements of the group. Each key is a group element,
     /// and the associated value is its index.
     #[builder(setter(custom))]
@@ -117,15 +119,17 @@ where
     ///
     /// A group with its Cayley table constructed and conjugacy classes determined.
     fn new(name: &str, elements: Vec<T>) -> Self {
-        Self::builder()
+        let mut group = Self::builder()
+            .name(name.to_string())
             .elements(elements)
             .build()
-            .expect("Unable to construct a group.")
+            .expect("Unable to construct a group.");
+        group.compute_cayley_table();
+        group
     }
 
     /// Constructs the Cayley table for the group.
-    #[must_use]
-    fn compute_cayley_table(&self) -> Array2<usize> {
+    fn compute_cayley_table(&mut self) {
         log::debug!("Constructing Cayley table in parallel...");
         let mut ctb = Array2::<usize>::zeros((self.order(), self.order()));
         Zip::indexed(&mut ctb).par_for_each(|(i, j), k| {
@@ -143,8 +147,8 @@ where
                         op_j_ref,
                         &op_k));
         });
+        self.cayley_table = Some(ctb);
         log::debug!("Constructing Cayley table in parallel... Done.");
-        ctb
     }
 }
 
@@ -185,7 +189,7 @@ where T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     type GroupElement = T;
 
     fn name(&self) -> &str {
-        "G"
+        &self.name
     }
 
     fn abstract_group(&self) -> &Self {
@@ -261,10 +265,7 @@ where
     ///
     /// A group with its Cayley table constructed and conjugacy classes determined.
     fn new(name: &str, elements: Vec<T>) -> Self {
-        let abstract_group = Group::<T>::builder()
-            .elements(elements)
-            .build()
-            .expect("Unable to construct a group.");
+        let abstract_group = Group::<T>::new(name, elements);
         let mut unitary_group = UnitaryRepresentedGroup::<T>::builder()
             .name(name.to_string())
             .abstract_group(abstract_group)
@@ -357,10 +358,7 @@ where
     ///
     /// A group with its Cayley table constructed and conjugacy classes determined.
     fn new(name: &str, elements: Vec<T>) -> Self {
-        let abstract_group = Group::<T>::builder()
-            .elements(elements)
-            .build()
-            .expect("Unable to construct a group.");
+        let abstract_group = Group::<T>::new(name, elements);
         let mut magnetic_group = MagneticRepresentedGroup::<T>::builder()
             .name(name.to_string())
             .abstract_group(abstract_group)

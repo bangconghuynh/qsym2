@@ -53,7 +53,7 @@ fn test_character_table_construction_symmetric_h8_twisted_alt_magnetic_field_bw_
         MullikenIrrepSymbol::new("||A||").unwrap(),
         MullikenIrrepSymbol::new("||B||").unwrap(),
     ];
-    test_character_table_construction(&mol, thresh, "C2", &expected_irreps, None);
+    test_character_table_construction_ordinary_group(&mol, thresh, "C2", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
@@ -61,7 +61,13 @@ fn test_character_table_construction_symmetric_h8_twisted_alt_magnetic_field_bw_
         MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
     ];
-    test_character_table_construction_magnetic(&mol, thresh, "C4", &mag_expected_irreps, None);
+    test_character_table_construction_magnetic_group(
+        &mol,
+        thresh,
+        "C4",
+        &mag_expected_irreps,
+        None,
+    );
 }
 
 #[test]
@@ -113,7 +119,7 @@ fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_s4_c2(
         MullikenIrrepSymbol::new("||A||").unwrap(),
         MullikenIrrepSymbol::new("||B||").unwrap(),
     ];
-    test_character_table_construction(&mol, thresh, "C2", &expected_irreps, None);
+    test_character_table_construction_ordinary_group(&mol, thresh, "C2", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
@@ -121,7 +127,13 @@ fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_s4_c2(
         MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
     ];
-    test_character_table_construction_magnetic(&mol, thresh, "S4", &mag_expected_irreps, None);
+    test_character_table_construction_magnetic_group(
+        &mol,
+        thresh,
+        "S4",
+        &mag_expected_irreps,
+        None,
+    );
 }
 
 #[test]
@@ -154,7 +166,7 @@ fn test_character_table_construction_symmetric_bf3_rad_magnetic_field_bw_d3h_d3(
         MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E||").unwrap(),
     ];
-    test_character_table_construction(&mol, thresh, "D3", &expected_irreps, None);
+    test_character_table_construction_ordinary_group(&mol, thresh, "D3", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|^(')_(1)|").unwrap(),
@@ -164,7 +176,13 @@ fn test_character_table_construction_symmetric_bf3_rad_magnetic_field_bw_d3h_d3(
         MullikenIrrepSymbol::new("||A|^('')_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E|^('')|").unwrap(),
     ];
-    test_character_table_construction_magnetic(&mol, thresh, "D3h", &mag_expected_irreps, None);
+    test_character_table_construction_magnetic_group(
+        &mol,
+        thresh,
+        "D3h",
+        &mag_expected_irreps,
+        None,
+    );
 }
 
 #[test]
@@ -185,7 +203,8 @@ fn test_character_table_construction_symmetric_tan_rad_magnetic_field_bw_c3h_c3(
                         atom.coordinates
                             + Rotation3::new(
                                 Vector3::z()
-                                    * (2.0 * std::f64::consts::FRAC_PI_3
+                                    * (2.0
+                                        * std::f64::consts::FRAC_PI_3
                                         * (i % 3).to_f64().unwrap()),
                             ) * (0.1 * Vector3::new(0.0, 1.0, 0.0)),
                         thresh,
@@ -196,7 +215,8 @@ fn test_character_table_construction_symmetric_tan_rad_magnetic_field_bw_c3h_c3(
                         atom.coordinates
                             - Rotation3::new(
                                 Vector3::z()
-                                    * (2.0 * std::f64::consts::FRAC_PI_3
+                                    * (2.0
+                                        * std::f64::consts::FRAC_PI_3
                                         * (i % 3).to_f64().unwrap()),
                             ) * (0.1 * Vector3::new(0.0, 1.0, 0.0)),
                         thresh,
@@ -216,7 +236,7 @@ fn test_character_table_construction_symmetric_tan_rad_magnetic_field_bw_c3h_c3(
         MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
     ];
-    test_character_table_construction(&mol, thresh, "C3", &expected_irreps, None);
+    test_character_table_construction_ordinary_group(&mol, thresh, "C3", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|^(')|").unwrap(),
@@ -226,7 +246,13 @@ fn test_character_table_construction_symmetric_tan_rad_magnetic_field_bw_c3h_c3(
         MullikenIrrepSymbol::new("||Γ|^('')_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||Γ|^('')_(2)|").unwrap(),
     ];
-    test_character_table_construction_magnetic(&mol, thresh, "C3h", &mag_expected_irreps, None);
+    test_character_table_construction_magnetic_group(
+        &mol,
+        thresh,
+        "C3h",
+        &mag_expected_irreps,
+        None,
+    );
 }
 
 #[test]
@@ -305,7 +331,7 @@ fn test_character_table_construction_symmetric_xef4_rad_magnetic_field_bw_c4v_c2
         MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
     ];
-    test_character_table_construction(&mol, thresh, "C2v", &expected_irreps, None);
+    test_character_table_construction_ordinary_group(&mol, thresh, "C2v", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
@@ -314,7 +340,13 @@ fn test_character_table_construction_symmetric_xef4_rad_magnetic_field_bw_c4v_c2
         MullikenIrrepSymbol::new("||A|_(4)|").unwrap(),
         MullikenIrrepSymbol::new("||E||").unwrap(),
     ];
-    test_character_table_construction_magnetic(&mol, thresh, "C4v", &mag_expected_irreps, None);
+    test_character_table_construction_magnetic_group(
+        &mol,
+        thresh,
+        "C4v",
+        &mag_expected_irreps,
+        None,
+    );
 }
 
 #[test]
@@ -361,7 +393,7 @@ fn test_character_table_construction_symmetric_xef4_alt_z_magnetic_field_bw_d4h_
         MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(3u)|").unwrap(),
     ];
-    test_character_table_construction(&mol, thresh, "D2h", &expected_irreps, None);
+    test_character_table_construction_ordinary_group(&mol, thresh, "D2h", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
@@ -375,7 +407,13 @@ fn test_character_table_construction_symmetric_xef4_alt_z_magnetic_field_bw_d4h_
         MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
         MullikenIrrepSymbol::new("||E|_(u)|").unwrap(),
     ];
-    test_character_table_construction_magnetic(&mol, thresh, "D4h", &mag_expected_irreps, None);
+    test_character_table_construction_magnetic_group(
+        &mol,
+        thresh,
+        "D4h",
+        &mag_expected_irreps,
+        None,
+    );
 }
 
 #[test]
@@ -429,7 +467,7 @@ fn test_character_table_construction_symmetric_xef4_alt_xy_magnetic_field_bw_d4h
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E||").unwrap(),
     ];
-    test_character_table_construction(&mol, thresh, "D2d", &expected_irreps, None);
+    test_character_table_construction_ordinary_group(&mol, thresh, "D2d", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
@@ -443,7 +481,13 @@ fn test_character_table_construction_symmetric_xef4_alt_xy_magnetic_field_bw_d4h
         MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
         MullikenIrrepSymbol::new("||E|_(u)|").unwrap(),
     ];
-    test_character_table_construction_magnetic(&mol, thresh, "D4h", &mag_expected_irreps, None);
+    test_character_table_construction_magnetic_group(
+        &mol,
+        thresh,
+        "D4h",
+        &mag_expected_irreps,
+        None,
+    );
 }
 
 #[test]
@@ -496,7 +540,7 @@ fn test_character_table_construction_symmetric_xef4_alt_x_magnetic_field_bw_c4h_
         MullikenIrrepSymbol::new("||B||").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
     ];
-    test_character_table_construction(&mol, thresh, "S4", &expected_irreps, None);
+    test_character_table_construction_ordinary_group(&mol, thresh, "S4", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
@@ -508,7 +552,13 @@ fn test_character_table_construction_symmetric_xef4_alt_x_magnetic_field_bw_c4h_
         MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
     ];
-    test_character_table_construction_magnetic(&mol, thresh, "C4h", &mag_expected_irreps, None);
+    test_character_table_construction_magnetic_group(
+        &mol,
+        thresh,
+        "C4h",
+        &mag_expected_irreps,
+        None,
+    );
 }
 
 #[test]
@@ -556,7 +606,7 @@ fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_c4h_c2
         MullikenIrrepSymbol::new("||A|_(u)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(u)|").unwrap(),
     ];
-    test_character_table_construction(&mol, thresh, "C2h", &expected_irreps, None);
+    test_character_table_construction_ordinary_group(&mol, thresh, "C2h", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
@@ -568,5 +618,11 @@ fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_c4h_c2
         MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
     ];
-    test_character_table_construction_magnetic(&mol, thresh, "C4h", &mag_expected_irreps, None);
+    test_character_table_construction_magnetic_group(
+        &mol,
+        thresh,
+        "C4h",
+        &mag_expected_irreps,
+        None,
+    );
 }

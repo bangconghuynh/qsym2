@@ -28,7 +28,7 @@ use crate::symmetry::symmetry_symbols::{
     MathematicalSymbol, MullikenIrcorepSymbol, MullikenIrrepSymbol, FORCED_PRINCIPAL_GROUPS,
 };
 
-trait CharacterProperties<R, C>
+pub trait CharacterProperties<R, C>
 where
     R: MathematicalSymbol,
     C: MathematicalSymbol,
