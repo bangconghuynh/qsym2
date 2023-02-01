@@ -88,6 +88,8 @@ where
         compact: bool,
         numerical: Option<usize>,
     ) -> fmt::Result;
+
+    fn principal_classes(&self) -> &IndexSet<ColSymbol>;
 }
 
 // =================
@@ -454,6 +456,10 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
         // Table bottom
         write!(f, "\n{}\n", &"━".repeat(tab_width))
     }
+
+    fn principal_classes(&self) -> &IndexSet<ClassSymbol<R>> {
+        &self.principal_classes
+    }
 }
 
 // -------
@@ -493,24 +499,16 @@ pub struct CorepCharacterTable<R: Clone> {
     pub ircoreps: IndexMap<MullikenIrcorepSymbol, usize>,
 
     /// The conjugacy classes of the group and their column indices in the character table.
-    #[builder(setter(skip), default = "self.classes()")]
     pub classes: IndexMap<ClassSymbol<R>, usize>,
+
+    /// The principal conjugacy classes of the group.
+    principal_classes: IndexSet<ClassSymbol<R>>,
 
     /// The characters of the irreducible corepresentations in this group.
     pub characters: Array2<Character>,
 
     /// The intertwining numbers of the irreducible corepresentations.
     pub intertwining_numbers: IndexMap<MullikenIrcorepSymbol, u8>,
-}
-
-impl<R: Clone> CorepCharacterTableBuilder<R> {
-    fn classes(&self) -> IndexMap<ClassSymbol<R>, usize> {
-        self.unitary_character_table
-            .as_ref()
-            .expect("Unitary character table has not been set.")
-            .classes
-            .clone()
-    }
 }
 
 impl<R: Clone> CorepCharacterTable<R> {
@@ -541,6 +539,8 @@ impl<R: Clone> CorepCharacterTable<R> {
         name: &str,
         unitary_chartab: RepCharacterTable<R>,
         ircoreps: &[MullikenIrcorepSymbol],
+        classes: &[ClassSymbol<R>],
+        principal_classes: &[ClassSymbol<R>],
         char_arr: Array2<Character>,
         intertwining_numbers: &[u8],
     ) -> Self {
@@ -554,6 +554,16 @@ impl<R: Clone> CorepCharacterTable<R> {
             .map(|(i, ircorep)| (ircorep, i))
             .collect();
 
+        let classes_indexmap: IndexMap<ClassSymbol<R>, usize> = classes
+            .iter()
+            .cloned()
+            .enumerate()
+            .map(|(i, class)| (class, i))
+            .collect();
+
+        let principal_classes_indexset: IndexSet<ClassSymbol<R>> =
+            principal_classes.iter().cloned().collect();
+
         let intertwining_numbers_indexmap = iter::zip(ircoreps, intertwining_numbers)
             .map(|(ircorep, &ini)| (ircorep.clone(), ini))
             .collect::<IndexMap<_, _>>();
@@ -562,6 +572,8 @@ impl<R: Clone> CorepCharacterTable<R> {
             .name(name.to_string())
             .unitary_character_table(unitary_chartab)
             .ircoreps(ircoreps_indexmap)
+            .classes(classes_indexmap)
+            .principal_classes(principal_classes_indexset)
             .characters(char_arr)
             .intertwining_numbers(intertwining_numbers_indexmap)
             .build()
@@ -710,7 +722,7 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
             .classes
             .keys()
             .map(|cc| {
-                if self.unitary_character_table.principal_classes.contains(cc) {
+                if self.principal_classes.contains(cc) {
                     format!("◈{cc}")
                 } else {
                     cc.to_string()
@@ -799,6 +811,10 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
 
         // Table bottom
         write!(f, "\n{}\n", &"━".repeat(tab_width))
+    }
+
+    fn principal_classes(&self) -> &IndexSet<ClassSymbol<R>> {
+        &self.principal_classes
     }
 }
 

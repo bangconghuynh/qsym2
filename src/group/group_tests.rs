@@ -8,17 +8,20 @@ use num_traits::Pow;
 
 use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
-use crate::group::{Group, GroupType, BWGRP, GRGRP, ORGRP};
-use crate::group::symmetry_group::group_from_molecular_symmetry;
+use crate::group::class::ClassProperties;
+use crate::group::symmetry_group::SymmetryGroupProperties;
+use crate::group::{
+    Group, GroupProperties, GroupType, UnitaryRepresentedGroup, MagneticRepresentedGroup, BWGRP, GRGRP, ORGRP,
+};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, ROT};
-use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element_order::ElementOrder;
+use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
-fn test_abstract_group_creation() {
+fn test_group_abstract_creation() {
     // =============
     // Cyclic groups
     // =============
@@ -38,7 +41,7 @@ fn test_abstract_group_creation() {
         .unwrap();
 
     let group_c5 = Group::<SymmetryOperation>::new("C5", (0..5).map(|k| (&c5).pow(k)).collect());
-    let mut elements = group_c5.elements.keys();
+    let mut elements = group_c5.elements().keys();
     for i in 0..5 {
         let op = elements.next().unwrap();
         assert_eq!(*op, (&c5).pow(i));
@@ -62,7 +65,7 @@ fn test_abstract_group_creation() {
 
     let group_c29 =
         Group::<SymmetryOperation>::new("C29", (0..29).map(|k| (&c29).pow(k)).collect());
-    let mut elements = group_c29.elements.keys();
+    let mut elements = group_c29.elements().keys();
     for i in 0..29 {
         let op = elements.next().unwrap();
         assert_eq!(*op, (&c29).pow(i));
@@ -71,7 +74,7 @@ fn test_abstract_group_creation() {
 }
 
 #[test]
-fn test_abstract_group_from_molecular_symmetry() {
+fn test_group_unitary_from_molecular_symmetry() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
@@ -81,14 +84,14 @@ fn test_abstract_group_from_molecular_symmetry() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    let group = group_from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     assert_eq!(group.name, "C3v".to_string());
-    assert_eq!(group.order, 6);
-    assert_eq!(group.class_number, Some(3));
+    assert_eq!(group.order(), 6);
+    assert_eq!(group.class_number(), 3);
 }
 
 #[test]
-fn test_abstract_group_element_to_conjugacy_class() {
+fn test_group_abstract_element_to_conjugacy_class() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -99,24 +102,20 @@ fn test_abstract_group_element_to_conjugacy_class() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    let group = group_from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     assert_eq!(group.name, "C5v".to_string());
-    assert_eq!(group.order, 10);
-    assert_eq!(group.class_number, Some(4));
+    assert_eq!(group.order(), 10);
+    assert_eq!(group.class_number(), 4);
 
-    let conjugacy_classes = group.conjugacy_classes.unwrap();
-    for (element_i, class_i) in group
-        .element_to_conjugacy_classes
-        .unwrap()
-        .iter()
-        .enumerate()
-    {
-        assert!(conjugacy_classes[*class_i].contains(&group.elements[element_i]));
+    let conjugacy_classes = group.conjugacy_classes();
+    for (element_i, class_i) in group.element_to_conjugacy_classes().iter().enumerate() {
+        assert!(class_i.is_some());
+        assert!(conjugacy_classes[class_i.unwrap()].contains(&group.elements()[element_i]));
     }
 }
 
 #[test]
-fn test_abstract_group_element_sort() {
+fn test_group_abstract_element_sort() {
     // H2O in yz-plane, with C2 axis along z - C2v
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water_z.xyz");
     let thresh = 1e-7;
@@ -128,10 +127,10 @@ fn test_abstract_group_element_sort() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    let group = group_from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
         group
-            .elements
+            .elements()
             .get_index(2)
             .unwrap()
             .0
@@ -141,7 +140,7 @@ fn test_abstract_group_element_sort() {
     );
     approx::assert_relative_eq!(
         group
-            .elements
+            .elements()
             .get_index(3)
             .unwrap()
             .0
@@ -161,10 +160,10 @@ fn test_abstract_group_element_sort() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    let group = group_from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
         group
-            .elements
+            .elements()
             .get_index(1)
             .unwrap()
             .0
@@ -174,7 +173,7 @@ fn test_abstract_group_element_sort() {
     );
     approx::assert_relative_eq!(
         group
-            .elements
+            .elements()
             .get_index(2)
             .unwrap()
             .0
@@ -184,7 +183,7 @@ fn test_abstract_group_element_sort() {
     );
     approx::assert_relative_eq!(
         group
-            .elements
+            .elements()
             .get_index(3)
             .unwrap()
             .0
@@ -192,10 +191,10 @@ fn test_abstract_group_element_sort() {
             .axis,
         Vector3::new(1.0, 0.0, 0.0)
     );
-    assert!(group.elements.get_index(4).unwrap().0.is_inversion());
+    assert!(group.elements().get_index(4).unwrap().0.is_inversion());
     approx::assert_relative_eq!(
         group
-            .elements
+            .elements()
             .get_index(5)
             .unwrap()
             .0
@@ -205,7 +204,7 @@ fn test_abstract_group_element_sort() {
     );
     approx::assert_relative_eq!(
         group
-            .elements
+            .elements()
             .get_index(6)
             .unwrap()
             .0
@@ -215,7 +214,7 @@ fn test_abstract_group_element_sort() {
     );
     approx::assert_relative_eq!(
         group
-            .elements
+            .elements()
             .get_index(7)
             .unwrap()
             .0
@@ -226,7 +225,7 @@ fn test_abstract_group_element_sort() {
 }
 
 #[test]
-fn test_abstract_group_class_matrices() {
+fn test_group_abstract_class_matrices() {
     // H2O in yz-plane, with C2 axis along z - C2v
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-7;
@@ -238,8 +237,8 @@ fn test_abstract_group_class_matrices() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    let group = group_from_molecular_symmetry(&sym, None);
-    let nmat_rst = group.class_matrix.unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let nmat_rst = group.class_matrix();
     let mut nmat_srt = nmat_rst.clone();
     nmat_srt.swap_axes(0, 1);
     assert_eq!(nmat_rst, nmat_srt);
@@ -250,35 +249,31 @@ fn test_abstract_group_class_matrices() {
 // ============================================
 
 fn verify_abstract_group(
-    group: &Group<SymmetryOperation>,
+    group: &impl ClassProperties<ClassElement = SymmetryOperation>,
     name: &str,
     order: usize,
     class_number: usize,
     abelian: bool,
 ) {
-    assert_eq!(group.name, name.to_string());
-    assert_eq!(group.order, order);
-    assert_eq!(group.class_number, Some(class_number));
+    assert_eq!(group.name(), name);
+    assert_eq!(group.order(), order);
+    assert_eq!(group.class_number(), class_number);
     assert_eq!(group.is_abelian(), abelian);
 
     // Test element to conjugacy class
-    let conjugacy_classes = group.conjugacy_classes.as_ref().unwrap();
+    let conjugacy_classes = group.conjugacy_classes();
     for (element_i, class_i) in group
-        .element_to_conjugacy_classes
-        .as_ref()
-        .unwrap()
+        .element_to_conjugacy_classes()
         .iter()
         .enumerate()
     {
-        assert!(conjugacy_classes[*class_i].contains(&group.elements[element_i]));
+        assert!(conjugacy_classes[class_i.unwrap()].contains(&group.elements()[element_i]));
     }
 
     // Test inverse conjugacy classes
-    let ctb = group.cayley_table.as_ref().unwrap();
+    let ctb = group.cayley_table();
     for (class_i, inv_class_i) in group
-        .inverse_conjugacy_classes
-        .as_ref()
-        .unwrap()
+        .inverse_conjugacy_classes()
         .iter()
         .enumerate()
     {
@@ -294,13 +289,13 @@ fn verify_abstract_group(
     }
 
     // Test class matrix symmetry w.r.t. the first two indices
-    let nmat_rst = group.class_matrix.as_ref().unwrap();
+    let nmat_rst = group.class_matrix();
     let mut nmat_srt = nmat_rst.clone();
     nmat_srt.swap_axes(0, 1);
     assert_eq!(nmat_rst, nmat_srt);
 }
 
-fn test_abstract_group(
+fn test_unitary_represented_ordinary_group(
     mol: &Molecule,
     thresh: f64,
     name: &str,
@@ -315,12 +310,12 @@ fn test_abstract_group(
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    let group = group_from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     assert_eq!(group.group_type(), ORGRP);
     verify_abstract_group(&group, name, order, class_number, abelian);
 }
 
-fn test_abstract_magnetic_group(
+fn test_unitary_represented_magnetic_group(
     mol: &Molecule,
     thresh: f64,
     name: &str,
@@ -336,12 +331,33 @@ fn test_abstract_magnetic_group(
         .unwrap();
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
-    let group = group_from_molecular_symmetry(&magsym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
     assert_eq!(group.group_type(), mag_group_type);
     verify_abstract_group(&group, name, order, class_number, abelian);
 }
 
-fn test_abstract_group_from_infinite_group(
+fn test_magnetic_represented_magnetic_group(
+    mol: &Molecule,
+    thresh: f64,
+    name: &str,
+    order: usize,
+    class_number: usize,
+    abelian: bool,
+    mag_group_type: GroupType,
+) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
+    assert_eq!(group.group_type(), mag_group_type);
+    verify_abstract_group(&group, name, order, class_number, abelian);
+}
+
+fn test_unitary_represented_subgroup_from_infinite_group(
     mol: &Molecule,
     finite_order: u32,
     thresh: f64,
@@ -358,11 +374,11 @@ fn test_abstract_group_from_infinite_group(
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    let group = group_from_molecular_symmetry(&sym, Some(finite_order));
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(finite_order));
     verify_abstract_group(&group, name, order, class_number, abelian);
 }
 
-fn test_abstract_magnetic_group_from_infinite_group(
+fn test_magnetic_represented_group_from_infinite_group(
     mol: &Molecule,
     finite_order: u32,
     thresh: f64,
@@ -380,15 +396,15 @@ fn test_abstract_magnetic_group_from_infinite_group(
         .unwrap();
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
-    let group = group_from_molecular_symmetry(&magsym, Some(finite_order));
+    let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order));
     assert_eq!(
         group
-            .elements
+            .elements()
             .keys()
             .filter(|op| op.is_antiunitary())
             .count(),
         group
-            .elements
+            .elements()
             .keys()
             .filter(|op| !op.is_antiunitary())
             .count(),
@@ -397,7 +413,7 @@ fn test_abstract_magnetic_group_from_infinite_group(
     verify_abstract_group(&group, name, order, class_number, abelian);
 }
 
-fn test_abstract_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
+fn test_group_abstract_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
         .molecule(mol, true)
@@ -440,28 +456,28 @@ Spherical
 ********/
 
 #[test]
-fn test_abstract_group_spherical_atom_o3() {
+fn test_group_abstract_spherical_atom_o3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
 
-    test_abstract_group_from_infinite_group(&mol, 2, thresh, "O(3)", "D2h", 8, 8, true);
+    test_group_abstract_from_infinite_group(&mol, 2, thresh, "O(3)", "D2h", 8, 8, true);
 
-    test_abstract_group_from_infinite_group(&mol, 4, thresh, "O(3)", "Oh", 48, 10, false);
+    test_group_abstract_from_infinite_group(&mol, 4, thresh, "O(3)", "Oh", 48, 10, false);
 
     let result = panic::catch_unwind(|| {
-        test_abstract_group_from_infinite_group(&mol, 5, thresh, "?", "?", 48, 10, false);
+        test_group_abstract_from_infinite_group(&mol, 5, thresh, "?", "?", 48, 10, false);
     });
     assert!(result.is_err());
 
     let result = panic::catch_unwind(|| {
-        test_abstract_group_from_infinite_group(&mol, 3, thresh, "?", "?", 48, 10, false);
+        test_group_abstract_from_infinite_group(&mol, 3, thresh, "?", "?", 48, 10, false);
     });
     assert!(result.is_err());
 }
 
 #[test]
-fn test_abstract_group_spherical_atom_grey_o3() {
+fn test_group_abstract_spherical_atom_grey_o3() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
@@ -507,19 +523,19 @@ fn test_abstract_group_spherical_atom_grey_o3() {
 }
 
 #[test]
-fn test_abstract_group_spherical_c60_ih() {
+fn test_group_abstract_spherical_c60_ih() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Ih", 120, 10, false);
+    test_group_abstract(&mol, thresh, "Ih", 120, 10, false);
 }
 
 #[test]
-fn test_abstract_group_spherical_c60_ih_class_order() {
+fn test_group_abstract_spherical_c60_ih_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -538,7 +554,7 @@ fn test_abstract_group_spherical_c60_ih_class_order() {
 }
 
 #[test]
-fn test_abstract_group_spherical_c60_grey_ih() {
+fn test_group_abstract_spherical_c60_grey_ih() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -546,7 +562,7 @@ fn test_abstract_group_spherical_c60_grey_ih() {
 }
 
 #[test]
-fn test_abstract_group_spherical_c60_grey_ih_class_order() {
+fn test_group_abstract_spherical_c60_grey_ih_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -579,23 +595,23 @@ fn test_abstract_group_spherical_c60_grey_ih_class_order() {
 }
 
 #[test]
-fn test_abstract_group_spherical_ch4_td() {
+fn test_group_abstract_spherical_ch4_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Td", 24, 5, false);
+    test_group_abstract(&mol, thresh, "Td", 24, 5, false);
 }
 
 #[test]
-fn test_abstract_group_spherical_ch4_td_class_order() {
+fn test_group_abstract_spherical_ch4_td_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "8|C3|", "3|C2|", "6|S4|", "6|σd|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "8|C3|", "3|C2|", "6|S4|", "6|σd|"]);
 }
 
 #[test]
-fn test_abstract_group_spherical_ch4_grey_td() {
+fn test_group_abstract_spherical_ch4_grey_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -603,7 +619,7 @@ fn test_abstract_group_spherical_ch4_grey_td() {
 }
 
 #[test]
-fn test_abstract_group_spherical_ch4_grey_td_class_order() {
+fn test_group_abstract_spherical_ch4_grey_td_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -626,15 +642,15 @@ fn test_abstract_group_spherical_ch4_grey_td_class_order() {
 }
 
 #[test]
-fn test_abstract_group_spherical_adamantane_td() {
+fn test_group_abstract_spherical_adamantane_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Td", 24, 5, false);
+    test_group_abstract(&mol, thresh, "Td", 24, 5, false);
 }
 
 #[test]
-fn test_abstract_group_spherical_adamantane_td_class_order() {
+fn test_group_abstract_spherical_adamantane_td_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -657,7 +673,7 @@ fn test_abstract_group_spherical_adamantane_td_class_order() {
 }
 
 #[test]
-fn test_abstract_group_spherical_adamantane_grey_td() {
+fn test_group_abstract_spherical_adamantane_grey_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -665,7 +681,7 @@ fn test_abstract_group_spherical_adamantane_grey_td() {
 }
 
 #[test]
-fn test_abstract_group_spherical_adamantane_grey_td_class_order() {
+fn test_group_abstract_spherical_adamantane_grey_td_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -688,23 +704,23 @@ fn test_abstract_group_spherical_adamantane_grey_td_class_order() {
 }
 
 #[test]
-fn test_abstract_group_spherical_c165_diamond_nanoparticle_td() {
+fn test_group_abstract_spherical_c165_diamond_nanoparticle_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c165.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Td", 24, 5, false);
+    test_group_abstract(&mol, thresh, "Td", 24, 5, false);
 }
 
 #[test]
-fn test_abstract_group_spherical_c165_diamond_nanoparticle_td_class_order() {
+fn test_group_abstract_spherical_c165_diamond_nanoparticle_td_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c165.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "8|C3|", "3|C2|", "6|S4|", "6|σd|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "8|C3|", "3|C2|", "6|S4|", "6|σd|"]);
 }
 
 #[test]
-fn test_abstract_group_spherical_c165_diamond_nanoparticle_grey_td() {
+fn test_group_abstract_spherical_c165_diamond_nanoparticle_grey_td() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c165.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -712,7 +728,7 @@ fn test_abstract_group_spherical_c165_diamond_nanoparticle_grey_td() {
 }
 
 #[test]
-fn test_abstract_group_spherical_c165_diamond_nanoparticle_grey_td_class_order() {
+fn test_group_abstract_spherical_c165_diamond_nanoparticle_grey_td_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c165.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -735,19 +751,19 @@ fn test_abstract_group_spherical_c165_diamond_nanoparticle_grey_td_class_order()
 }
 
 #[test]
-fn test_abstract_group_spherical_vh2o6_th() {
+fn test_group_abstract_spherical_vh2o6_th() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Th", 24, 8, false);
+    test_group_abstract(&mol, thresh, "Th", 24, 8, false);
 }
 
 #[test]
-fn test_abstract_group_spherical_vh2o6_th_class_order() {
+fn test_group_abstract_spherical_vh2o6_th_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -764,7 +780,7 @@ fn test_abstract_group_spherical_vh2o6_th_class_order() {
 }
 
 #[test]
-fn test_abstract_group_spherical_vh2o6_grey_th() {
+fn test_group_abstract_spherical_vh2o6_grey_th() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -772,7 +788,7 @@ fn test_abstract_group_spherical_vh2o6_grey_th() {
 }
 
 #[test]
-fn test_abstract_group_spherical_vh2o6_grey_th_class_order() {
+fn test_group_abstract_spherical_vh2o6_grey_th_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -801,19 +817,19 @@ fn test_abstract_group_spherical_vh2o6_grey_th_class_order() {
 }
 
 #[test]
-fn test_abstract_group_spherical_vf6_oh() {
+fn test_group_abstract_spherical_vf6_oh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Oh", 48, 10, false);
+    test_group_abstract(&mol, thresh, "Oh", 48, 10, false);
 }
 
 #[test]
-fn test_abstract_group_spherical_vf6_oh_class_order() {
+fn test_group_abstract_spherical_vf6_oh_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -832,7 +848,7 @@ fn test_abstract_group_spherical_vf6_oh_class_order() {
 }
 
 #[test]
-fn test_abstract_group_spherical_vf6_grey_oh() {
+fn test_group_abstract_spherical_vf6_grey_oh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -840,7 +856,7 @@ fn test_abstract_group_spherical_vf6_grey_oh() {
 }
 
 #[test]
-fn test_abstract_group_spherical_vf6_grey_oh_class_order() {
+fn test_group_abstract_spherical_vf6_grey_oh_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -877,7 +893,7 @@ Linear
 *****/
 
 #[test]
-fn test_abstract_group_linear_atom_magnetic_field_cinfh() {
+fn test_group_abstract_linear_atom_magnetic_field_cinfh() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
@@ -885,7 +901,7 @@ fn test_abstract_group_linear_atom_magnetic_field_cinfh() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
     for n in 2usize..=20usize {
         if n % 2 == 0 {
-            test_abstract_group_from_infinite_group(
+            test_group_abstract_from_infinite_group(
                 &mol,
                 n as u32,
                 thresh,
@@ -896,7 +912,7 @@ fn test_abstract_group_linear_atom_magnetic_field_cinfh() {
                 true,
             );
         } else {
-            test_abstract_group_from_infinite_group(
+            test_group_abstract_from_infinite_group(
                 &mol,
                 n as u32,
                 thresh,
@@ -911,7 +927,7 @@ fn test_abstract_group_linear_atom_magnetic_field_cinfh() {
 }
 
 #[test]
-fn test_abstract_group_linear_atom_magnetic_field_bw_dinfh_cinfh() {
+fn test_group_abstract_linear_atom_magnetic_field_bw_dinfh_cinfh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -954,7 +970,7 @@ fn test_abstract_group_linear_atom_magnetic_field_bw_dinfh_cinfh() {
 }
 
 #[test]
-fn test_abstract_group_linear_atom_electric_field_cinfv() {
+fn test_group_abstract_linear_atom_electric_field_cinfv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -965,7 +981,7 @@ fn test_abstract_group_linear_atom_electric_field_cinfv() {
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
     for n in 3usize..=20usize {
-        test_abstract_group_from_infinite_group(
+        test_group_abstract_from_infinite_group(
             &mol,
             n as u32,
             thresh,
@@ -991,7 +1007,7 @@ fn test_abstract_group_linear_atom_electric_field_cinfv() {
 }
 
 #[test]
-fn test_abstract_group_linear_c2h2_dinfh() {
+fn test_group_abstract_linear_c2h2_dinfh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -1004,7 +1020,7 @@ fn test_abstract_group_linear_c2h2_dinfh() {
     let mol = Molecule::from_xyz(&path, thresh);
     for n in 3usize..=20usize {
         if n % 2 == 0 {
-            test_abstract_group_from_infinite_group(
+            test_group_abstract_from_infinite_group(
                 &mol,
                 n as u32,
                 thresh,
@@ -1015,7 +1031,7 @@ fn test_abstract_group_linear_c2h2_dinfh() {
                 false,
             );
         } else {
-            test_abstract_group_from_infinite_group(
+            test_group_abstract_from_infinite_group(
                 &mol,
                 n as u32,
                 thresh,
@@ -1030,7 +1046,7 @@ fn test_abstract_group_linear_c2h2_dinfh() {
 }
 
 #[test]
-fn test_abstract_group_linear_c2h2_grey_dinfh() {
+fn test_group_abstract_linear_c2h2_grey_dinfh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -1071,7 +1087,7 @@ fn test_abstract_group_linear_c2h2_grey_dinfh() {
 }
 
 #[test]
-fn test_abstract_group_linear_c2h2_magnetic_field_cinfh() {
+fn test_group_abstract_linear_c2h2_magnetic_field_cinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1079,7 +1095,7 @@ fn test_abstract_group_linear_c2h2_magnetic_field_cinfh() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     for n in 2usize..=20usize {
         if n % 2 == 0 {
-            test_abstract_group_from_infinite_group(
+            test_group_abstract_from_infinite_group(
                 &mol,
                 n as u32,
                 thresh,
@@ -1090,7 +1106,7 @@ fn test_abstract_group_linear_c2h2_magnetic_field_cinfh() {
                 true,
             );
         } else {
-            test_abstract_group_from_infinite_group(
+            test_group_abstract_from_infinite_group(
                 &mol,
                 n as u32,
                 thresh,
@@ -1105,7 +1121,7 @@ fn test_abstract_group_linear_c2h2_magnetic_field_cinfh() {
 }
 
 #[test]
-fn test_abstract_group_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
+fn test_group_abstract_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -1148,7 +1164,7 @@ fn test_abstract_group_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
 }
 
 #[test]
-fn test_abstract_group_linear_c2h2_electric_field_cinfv() {
+fn test_group_abstract_linear_c2h2_electric_field_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1156,7 +1172,7 @@ fn test_abstract_group_linear_c2h2_electric_field_cinfv() {
     // Parallel field
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     for n in 3usize..=20usize {
-        test_abstract_group_from_infinite_group(
+        test_group_abstract_from_infinite_group(
             &mol,
             n as u32,
             thresh,
@@ -1182,7 +1198,7 @@ fn test_abstract_group_linear_c2h2_electric_field_cinfv() {
 }
 
 #[test]
-fn test_abstract_group_linear_c2h2_electric_field_grey_cinfv() {
+fn test_group_abstract_linear_c2h2_electric_field_grey_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1217,12 +1233,12 @@ fn test_abstract_group_linear_c2h2_electric_field_grey_cinfv() {
 }
 
 #[test]
-fn test_abstract_group_linear_n3_cinfv() {
+fn test_group_abstract_linear_n3_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
     for n in 3usize..=20usize {
-        test_abstract_group_from_infinite_group(
+        test_group_abstract_from_infinite_group(
             &mol,
             n as u32,
             thresh,
@@ -1248,7 +1264,7 @@ fn test_abstract_group_linear_n3_cinfv() {
 }
 
 #[test]
-fn test_abstract_group_linear_n3_grey_cinfv() {
+fn test_group_abstract_linear_n3_grey_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1280,7 +1296,7 @@ fn test_abstract_group_linear_n3_grey_cinfv() {
 }
 
 #[test]
-fn test_abstract_group_linear_n3_magnetic_field_cinf() {
+fn test_group_abstract_linear_n3_magnetic_field_cinf() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1288,7 +1304,7 @@ fn test_abstract_group_linear_n3_magnetic_field_cinf() {
     // Parallel field
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     for n in 2usize..=20usize {
-        test_abstract_group_from_infinite_group(
+        test_group_abstract_from_infinite_group(
             &mol,
             n as u32,
             thresh,
@@ -1302,7 +1318,7 @@ fn test_abstract_group_linear_n3_magnetic_field_cinf() {
 }
 
 #[test]
-fn test_abstract_group_linear_n3_magnetic_field_bw_cinfv_cinf() {
+fn test_group_abstract_linear_n3_magnetic_field_bw_cinfv_cinf() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1337,7 +1353,7 @@ fn test_abstract_group_linear_n3_magnetic_field_bw_cinfv_cinf() {
 }
 
 #[test]
-fn test_abstract_group_linear_n3_electric_field_cinfv() {
+fn test_group_abstract_linear_n3_electric_field_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1345,7 +1361,7 @@ fn test_abstract_group_linear_n3_electric_field_cinfv() {
     // Parallel field
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     for n in 3usize..=20usize {
-        test_abstract_group_from_infinite_group(
+        test_group_abstract_from_infinite_group(
             &mol,
             n as u32,
             thresh,
@@ -1371,7 +1387,7 @@ fn test_abstract_group_linear_n3_electric_field_cinfv() {
 }
 
 #[test]
-fn test_abstract_group_linear_n3_electric_field_grey_cinfv() {
+fn test_group_abstract_linear_n3_electric_field_grey_cinfv() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1414,25 +1430,25 @@ Cn
 */
 
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_c3() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C3", 3, 3, true);
+    test_group_abstract(&mol, thresh, "C3", 3, 3, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_c3_class_order() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_c3_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_bw_c3v_c3() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_bw_c3v_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1441,7 +1457,7 @@ fn test_abstract_group_symmetric_ch4_magnetic_field_bw_c3v_c3() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_bw_c3v_c3_class_order() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_bw_c3v_c3_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1450,25 +1466,25 @@ fn test_abstract_group_symmetric_ch4_magnetic_field_bw_c3v_c3_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_magnetic_field_c3() {
+fn test_group_abstract_symmetric_adamantane_magnetic_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.1)));
-    test_abstract_group(&mol, thresh, "C3", 3, 3, true);
+    test_group_abstract(&mol, thresh, "C3", 3, 3, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_magnetic_field_c3_class_order() {
+fn test_group_abstract_symmetric_adamantane_magnetic_field_c3_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.1)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_magnetic_field_bw_c3v_c3() {
+fn test_group_abstract_symmetric_adamantane_magnetic_field_bw_c3v_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1477,7 +1493,7 @@ fn test_abstract_group_symmetric_adamantane_magnetic_field_bw_c3v_c3() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_magnetic_field_bw_c3v_c3_class_order() {
+fn test_group_abstract_symmetric_adamantane_magnetic_field_bw_c3v_c3_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1486,25 +1502,25 @@ fn test_abstract_group_symmetric_adamantane_magnetic_field_bw_c3v_c3_class_order
 }
 
 #[test]
-fn test_abstract_group_symmetric_vh2o6_electric_field_c3() {
+fn test_group_abstract_symmetric_vh2o6_electric_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(-0.2, -0.2, -0.2)));
-    test_abstract_group(&mol, thresh, "C3", 3, 3, true);
+    test_group_abstract(&mol, thresh, "C3", 3, 3, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_vh2o6_electric_field_c3_class_order() {
+fn test_group_abstract_symmetric_vh2o6_electric_field_c3_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(-0.2, -0.2, -0.2)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_vh2o6_electric_field_grey_c3() {
+fn test_group_abstract_symmetric_vh2o6_electric_field_grey_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1513,7 +1529,7 @@ fn test_abstract_group_symmetric_vh2o6_electric_field_grey_c3() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vh2o6_electric_field_grey_c3_class_order() {
+fn test_group_abstract_symmetric_vh2o6_electric_field_grey_c3_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1526,25 +1542,25 @@ fn test_abstract_group_symmetric_vh2o6_electric_field_grey_c3_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_65coronane_electric_field_c3() {
+fn test_group_abstract_symmetric_65coronane_electric_field_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -1.0)));
-    test_abstract_group(&mol, thresh, "C3", 3, 3, true);
+    test_group_abstract(&mol, thresh, "C3", 3, 3, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_65coronane_electric_field_c3_class_order() {
+fn test_group_abstract_symmetric_65coronane_electric_field_c3_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -1.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_65coronane_electric_field_grey_c3() {
+fn test_group_abstract_symmetric_65coronane_electric_field_grey_c3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1553,7 +1569,7 @@ fn test_abstract_group_symmetric_65coronane_electric_field_grey_c3() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_65coronane_electric_field_grey_c3_class_order() {
+fn test_group_abstract_symmetric_65coronane_electric_field_grey_c3_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1566,24 +1582,24 @@ fn test_abstract_group_symmetric_65coronane_electric_field_grey_c3_class_order()
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_magnetic_field_c4() {
+fn test_group_abstract_symmetric_h8_twisted_magnetic_field_c4() {
     // env_logger::init();
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
-    test_abstract_group(&mol, thresh, "C4", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C4", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_magnetic_field_c4_class_order() {
+fn test_group_abstract_symmetric_h8_twisted_magnetic_field_c4_class_order() {
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C4|", "|[C4]^3|", "|C2|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C4|", "|[C4]^3|", "|C2|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_magnetic_field_bw_d4_c4() {
+fn test_group_abstract_symmetric_h8_twisted_magnetic_field_bw_d4_c4() {
     // env_logger::init();
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
@@ -1592,7 +1608,7 @@ fn test_abstract_group_symmetric_h8_twisted_magnetic_field_bw_d4_c4() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_magnetic_field_bw_d4_c4_class_order() {
+fn test_group_abstract_symmetric_h8_twisted_magnetic_field_bw_d4_c4_class_order() {
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
@@ -1604,23 +1620,23 @@ fn test_abstract_group_symmetric_h8_twisted_magnetic_field_bw_d4_c4_class_order(
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_electric_field_c4() {
+fn test_group_abstract_symmetric_h8_twisted_electric_field_c4() {
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -0.1)));
-    test_abstract_group(&mol, thresh, "C4", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C4", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_electric_field_c4_class_order() {
+fn test_group_abstract_symmetric_h8_twisted_electric_field_c4_class_order() {
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -0.1)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C4|", "|[C4]^3|", "|C2|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C4|", "|[C4]^3|", "|C2|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_electric_field_grey_c4() {
+fn test_group_abstract_symmetric_h8_twisted_electric_field_grey_c4() {
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -0.1)));
@@ -1628,7 +1644,7 @@ fn test_abstract_group_symmetric_h8_twisted_electric_field_grey_c4() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_electric_field_grey_c4_class_order() {
+fn test_group_abstract_symmetric_h8_twisted_electric_field_grey_c4_class_order() {
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -0.1)));
@@ -1649,22 +1665,22 @@ fn test_abstract_group_symmetric_h8_twisted_electric_field_grey_c4_class_order()
 }
 
 #[test]
-fn test_abstract_group_symmetric_cpnico_magnetic_field_c5() {
+fn test_group_abstract_symmetric_cpnico_magnetic_field_c5() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -0.2)));
-    test_abstract_group(&mol, thresh, "C5", 5, 5, true);
+    test_group_abstract(&mol, thresh, "C5", 5, 5, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_cpnico_magnetic_field_c5_class_order() {
+fn test_group_abstract_symmetric_cpnico_magnetic_field_c5_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -0.2)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C5|", "|[C5]^2|", "|[C5]^3|", "|[C5]^4|"],
@@ -1672,7 +1688,7 @@ fn test_abstract_group_symmetric_cpnico_magnetic_field_c5_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_cpnico_magnetic_field_bw_c5v_c5() {
+fn test_group_abstract_symmetric_cpnico_magnetic_field_bw_c5v_c5() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-6;
@@ -1682,7 +1698,7 @@ fn test_abstract_group_symmetric_cpnico_magnetic_field_bw_c5v_c5() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_cpnico_magnetic_field_bw_c5v_c5_class_order() {
+fn test_group_abstract_symmetric_cpnico_magnetic_field_bw_c5v_c5_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1695,22 +1711,22 @@ fn test_abstract_group_symmetric_cpnico_magnetic_field_bw_c5v_c5_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_b7_magnetic_field_c6() {
+fn test_group_abstract_symmetric_b7_magnetic_field_c6() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
-    test_abstract_group(&mol, thresh, "C6", 6, 6, true);
+    test_group_abstract(&mol, thresh, "C6", 6, 6, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_b7_magnetic_field_c6_class_order() {
+fn test_group_abstract_symmetric_b7_magnetic_field_c6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C6|", "|[C6]^5|", "|C3|", "|[C3]^2|", "|C2|"],
@@ -1718,7 +1734,7 @@ fn test_abstract_group_symmetric_b7_magnetic_field_c6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_b7_magnetic_field_bw_c6v_c6() {
+fn test_group_abstract_symmetric_b7_magnetic_field_bw_c6v_c6() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
@@ -1728,7 +1744,7 @@ fn test_abstract_group_symmetric_b7_magnetic_field_bw_c6v_c6() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_b7_magnetic_field_bw_c6v_c6_class_order() {
+fn test_group_abstract_symmetric_b7_magnetic_field_bw_c6v_c6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1741,12 +1757,12 @@ fn test_abstract_group_symmetric_b7_magnetic_field_bw_c6v_c6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
+fn test_group_abstract_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
     let thresh = 1e-7;
     for n in 3..=32 {
         let mut mol = template_molecules::gen_arbitrary_half_sandwich(n);
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
-        test_abstract_group(
+        test_group_abstract(
             &mol,
             thresh,
             format!("C{}", n).as_str(),
@@ -1758,7 +1774,7 @@ fn test_abstract_group_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_half_sandwich_magnetic_field_bw_cnv_cn() {
+fn test_group_abstract_symmetric_arbitrary_half_sandwich_magnetic_field_bw_cnv_cn() {
     let thresh = 1e-7;
     for n in 3..=32 {
         let mut mol = template_molecules::gen_arbitrary_half_sandwich(n);
@@ -1792,23 +1808,23 @@ Cnv
 */
 
 #[test]
-fn test_abstract_group_symmetric_nh3_c3v() {
+fn test_group_abstract_symmetric_nh3_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C3v", 6, 3, false);
+    test_group_abstract(&mol, thresh, "C3v", 6, 3, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_nh3_c3v_class_order() {
+fn test_group_abstract_symmetric_nh3_c3v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_nh3_grey_c3v() {
+fn test_group_abstract_symmetric_nh3_grey_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1816,7 +1832,7 @@ fn test_abstract_group_symmetric_nh3_grey_c3v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_nh3_grey_c3v_class_order() {
+fn test_group_abstract_symmetric_nh3_grey_c3v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1828,25 +1844,25 @@ fn test_abstract_group_symmetric_nh3_grey_c3v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_bf3_electric_field_c3v() {
+fn test_group_abstract_symmetric_bf3_electric_field_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C3v", 6, 3, false);
+    test_group_abstract(&mol, thresh, "C3v", 6, 3, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_bf3_electric_field_c3v_class_order() {
+fn test_group_abstract_symmetric_bf3_electric_field_c3v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_bf3_electric_field_grey_c3v() {
+fn test_group_abstract_symmetric_bf3_electric_field_grey_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1855,7 +1871,7 @@ fn test_abstract_group_symmetric_bf3_electric_field_grey_c3v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_bf3_electric_field_grey_c3v_class_order() {
+fn test_group_abstract_symmetric_bf3_electric_field_grey_c3v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1868,26 +1884,26 @@ fn test_abstract_group_symmetric_bf3_electric_field_grey_c3v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_electric_field_c3v() {
+fn test_group_abstract_symmetric_adamantane_electric_field_c3v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.1)));
-    test_abstract_group(&mol, thresh, "C3v", 6, 3, false);
+    test_group_abstract(&mol, thresh, "C3v", 6, 3, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_electric_field_c3v_class_order() {
+fn test_group_abstract_symmetric_adamantane_electric_field_c3v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.1)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_electric_field_grey_c3v() {
+fn test_group_abstract_symmetric_adamantane_electric_field_grey_c3v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
@@ -1897,7 +1913,7 @@ fn test_abstract_group_symmetric_adamantane_electric_field_grey_c3v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_electric_field_grey_c3v_class_order() {
+fn test_group_abstract_symmetric_adamantane_electric_field_grey_c3v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1910,25 +1926,25 @@ fn test_abstract_group_symmetric_adamantane_electric_field_grey_c3v_class_order(
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_electric_field_c3v() {
+fn test_group_abstract_symmetric_ch4_electric_field_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C3v", 6, 3, false);
+    test_group_abstract(&mol, thresh, "C3v", 6, 3, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_electric_field_c3v_class_order() {
+fn test_group_abstract_symmetric_ch4_electric_field_c3v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_electric_field_grey_c3v() {
+fn test_group_abstract_symmetric_ch4_electric_field_grey_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1937,7 +1953,7 @@ fn test_abstract_group_symmetric_ch4_electric_field_grey_c3v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_electric_field_grey_c3v_class_order() {
+fn test_group_abstract_symmetric_ch4_electric_field_grey_c3v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1950,25 +1966,25 @@ fn test_abstract_group_symmetric_ch4_electric_field_grey_c3v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_electric_field_c3v() {
+fn test_group_abstract_symmetric_vf6_electric_field_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 1.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C3v", 6, 3, false);
+    test_group_abstract(&mol, thresh, "C3v", 6, 3, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_electric_field_c3v_class_order() {
+fn test_group_abstract_symmetric_vf6_electric_field_c3v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 1.0, 1.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "2|C3|", "3|σv|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_electric_field_grey_c3v() {
+fn test_group_abstract_symmetric_vf6_electric_field_grey_c3v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1977,7 +1993,7 @@ fn test_abstract_group_symmetric_vf6_electric_field_grey_c3v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_electric_field_grey_c3v_class_order() {
+fn test_group_abstract_symmetric_vf6_electric_field_grey_c3v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1990,19 +2006,19 @@ fn test_abstract_group_symmetric_vf6_electric_field_grey_c3v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_sf5cl_c4v() {
+fn test_group_abstract_symmetric_sf5cl_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C4v", 8, 5, false);
+    test_group_abstract(&mol, thresh, "C4v", 8, 5, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_sf5cl_c4v_class_order() {
+fn test_group_abstract_symmetric_sf5cl_c4v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C4|", "|C2|", "2|σv|", "2|σv|^(')"],
@@ -2010,7 +2026,7 @@ fn test_abstract_group_symmetric_sf5cl_c4v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_sf5cl_grey_c4v() {
+fn test_group_abstract_symmetric_sf5cl_grey_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -2018,7 +2034,7 @@ fn test_abstract_group_symmetric_sf5cl_grey_c4v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_sf5cl_grey_c4v_class_order() {
+fn test_group_abstract_symmetric_sf5cl_grey_c4v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -2041,22 +2057,22 @@ fn test_abstract_group_symmetric_sf5cl_grey_c4v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_electric_field_c4v() {
+fn test_group_abstract_symmetric_h8_electric_field_c4v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(0.2 * Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C4v", 8, 5, false);
+    test_group_abstract(&mol, thresh, "C4v", 8, 5, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_electric_field_c4v_class_order() {
+fn test_group_abstract_symmetric_h8_electric_field_c4v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(0.2 * Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C4|", "|C2|", "2|σv|", "2|σv|^(')"],
@@ -2064,7 +2080,7 @@ fn test_abstract_group_symmetric_h8_electric_field_c4v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_electric_field_grey_c4v() {
+fn test_group_abstract_symmetric_h8_electric_field_grey_c4v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
@@ -2074,7 +2090,7 @@ fn test_abstract_group_symmetric_h8_electric_field_grey_c4v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_electric_field_grey_c4v_class_order() {
+fn test_group_abstract_symmetric_h8_electric_field_grey_c4v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2098,21 +2114,21 @@ fn test_abstract_group_symmetric_h8_electric_field_grey_c4v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_electric_field_c4v() {
+fn test_group_abstract_symmetric_vf6_electric_field_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 0.0, 0.0)));
-    test_abstract_group(&mol, thresh, "C4v", 8, 5, false);
+    test_group_abstract(&mol, thresh, "C4v", 8, 5, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_electric_field_c4v_class_order() {
+fn test_group_abstract_symmetric_vf6_electric_field_c4v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 0.0, 0.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C4|", "|C2|", "2|σv|", "2|σv|^(')"],
@@ -2120,7 +2136,7 @@ fn test_abstract_group_symmetric_vf6_electric_field_c4v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_electric_field_grey_c4v() {
+fn test_group_abstract_symmetric_vf6_electric_field_grey_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2129,7 +2145,7 @@ fn test_abstract_group_symmetric_vf6_electric_field_grey_c4v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_electric_field_grey_c4v_class_order() {
+fn test_group_abstract_symmetric_vf6_electric_field_grey_c4v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2153,21 +2169,21 @@ fn test_abstract_group_symmetric_vf6_electric_field_grey_c4v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_electric_field_c4v() {
+fn test_group_abstract_symmetric_antiprism_pb10_electric_field_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C4v", 8, 5, false);
+    test_group_abstract(&mol, thresh, "C4v", 8, 5, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_electric_field_c4v_class_order() {
+fn test_group_abstract_symmetric_antiprism_pb10_electric_field_c4v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C4|", "|C2|", "2|σv|", "2|σv|^(')"],
@@ -2175,16 +2191,16 @@ fn test_abstract_group_symmetric_antiprism_pb10_electric_field_c4v_class_order()
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_electric_field_grey_c4v() {
+fn test_group_abstract_symmetric_antiprism_pb10_electric_field_grey_c4v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C4v", 8, 5, false);
+    test_group_abstract(&mol, thresh, "C4v", 8, 5, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_electric_field_grey_c4v_class_order() {
+fn test_group_abstract_symmetric_antiprism_pb10_electric_field_grey_c4v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2208,24 +2224,24 @@ fn test_abstract_group_symmetric_antiprism_pb10_electric_field_grey_c4v_class_or
 }
 
 #[test]
-fn test_abstract_group_symmetric_cpnico_c5v() {
+fn test_group_abstract_symmetric_cpnico_c5v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C5v", 10, 4, false);
+    test_group_abstract(&mol, thresh, "C5v", 10, 4, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_cpnico_c5v_class_order() {
+fn test_group_abstract_symmetric_cpnico_c5v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|σv|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|σv|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_cpnico_grey_c5v() {
+fn test_group_abstract_symmetric_cpnico_grey_c5v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-6;
@@ -2234,7 +2250,7 @@ fn test_abstract_group_symmetric_cpnico_grey_c5v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_cpnico_grey_c5v_class_order() {
+fn test_group_abstract_symmetric_cpnico_grey_c5v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -2255,26 +2271,26 @@ fn test_abstract_group_symmetric_cpnico_grey_c5v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_electric_field_c5v() {
+fn test_group_abstract_symmetric_staggered_ferrocene_electric_field_c5v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C5v", 10, 4, false);
+    test_group_abstract(&mol, thresh, "C5v", 10, 4, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_electric_field_c5v_class_order() {
+fn test_group_abstract_symmetric_staggered_ferrocene_electric_field_c5v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|σv|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|σv|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_electric_field_grey_c5v() {
+fn test_group_abstract_symmetric_staggered_ferrocene_electric_field_grey_c5v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
@@ -2284,7 +2300,7 @@ fn test_abstract_group_symmetric_staggered_ferrocene_electric_field_grey_c5v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_electric_field_grey_c5v_class_order() {
+fn test_group_abstract_symmetric_staggered_ferrocene_electric_field_grey_c5v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2306,25 +2322,25 @@ fn test_abstract_group_symmetric_staggered_ferrocene_electric_field_grey_c5v_cla
 }
 
 #[test]
-fn test_abstract_group_symmetric_c60_electric_field_c5v() {
+fn test_group_abstract_symmetric_c60_electric_field_c5v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C5v", 10, 4, false);
+    test_group_abstract(&mol, thresh, "C5v", 10, 4, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_c60_electric_field_c5v_class_order() {
+fn test_group_abstract_symmetric_c60_electric_field_c5v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|σv|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|σv|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_c60_electric_field_grey_c5v() {
+fn test_group_abstract_symmetric_c60_electric_field_grey_c5v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2333,7 +2349,7 @@ fn test_abstract_group_symmetric_c60_electric_field_grey_c5v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_c60_electric_field_grey_c5v_class_order() {
+fn test_group_abstract_symmetric_c60_electric_field_grey_c5v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2355,19 +2371,19 @@ fn test_abstract_group_symmetric_c60_electric_field_grey_c5v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_b7_c6v() {
+fn test_group_abstract_symmetric_b7_c6v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C6v", 12, 6, false);
+    test_group_abstract(&mol, thresh, "C6v", 12, 6, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_b7_c6v_class_order() {
+fn test_group_abstract_symmetric_b7_c6v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C6|", "2|C3|", "|C2|", "3|σv|", "3|σv|^(')"],
@@ -2375,7 +2391,7 @@ fn test_abstract_group_symmetric_b7_c6v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_b7_grey_c6v() {
+fn test_group_abstract_symmetric_b7_grey_c6v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -2383,7 +2399,7 @@ fn test_abstract_group_symmetric_b7_grey_c6v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_b7_grey_c6v_class_order() {
+fn test_group_abstract_symmetric_b7_grey_c6v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b7.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -2408,21 +2424,21 @@ fn test_abstract_group_symmetric_b7_grey_c6v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_electric_field_c6v() {
+fn test_group_abstract_symmetric_au26_electric_field_c6v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C6v", 12, 6, false);
+    test_group_abstract(&mol, thresh, "C6v", 12, 6, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_electric_field_c6v_class_order() {
+fn test_group_abstract_symmetric_au26_electric_field_c6v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C6|", "2|C3|", "|C2|", "3|σv|", "3|σv|^(')"],
@@ -2430,7 +2446,7 @@ fn test_abstract_group_symmetric_au26_electric_field_c6v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_electric_field_grey_c6v() {
+fn test_group_abstract_symmetric_au26_electric_field_grey_c6v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2439,7 +2455,7 @@ fn test_abstract_group_symmetric_au26_electric_field_grey_c6v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_electric_field_grey_c6v_class_order() {
+fn test_group_abstract_symmetric_au26_electric_field_grey_c6v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2465,22 +2481,22 @@ fn test_abstract_group_symmetric_au26_electric_field_grey_c6v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_electric_field_c6v() {
+fn test_group_abstract_symmetric_benzene_electric_field_c6v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    test_abstract_group(&mol, thresh, "C6v", 12, 6, false);
+    test_group_abstract(&mol, thresh, "C6v", 12, 6, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_electric_field_c6v_class_order() {
+fn test_group_abstract_symmetric_benzene_electric_field_c6v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C6|", "2|C3|", "|C2|", "3|σv|", "3|σv|^(')"],
@@ -2488,7 +2504,7 @@ fn test_abstract_group_symmetric_benzene_electric_field_c6v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_electric_field_grey_c6v() {
+fn test_group_abstract_symmetric_benzene_electric_field_grey_c6v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
@@ -2498,7 +2514,7 @@ fn test_abstract_group_symmetric_benzene_electric_field_grey_c6v() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_electric_field_grey_c6v_class_order() {
+fn test_group_abstract_symmetric_benzene_electric_field_grey_c6v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2524,7 +2540,7 @@ fn test_abstract_group_symmetric_benzene_electric_field_grey_c6v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_half_sandwich_cnv() {
+fn test_group_abstract_symmetric_arbitrary_half_sandwich_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -2533,7 +2549,7 @@ fn test_abstract_group_symmetric_arbitrary_half_sandwich_cnv() {
     for n in 3..=32 {
         let mol = template_molecules::gen_arbitrary_half_sandwich(n);
         let thresh = 1e-7;
-        test_abstract_group(
+        test_group_abstract(
             &mol,
             thresh,
             format!("C{}v", n).as_str(),
@@ -2557,7 +2573,7 @@ fn test_abstract_group_symmetric_arbitrary_half_sandwich_cnv() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_half_sandwich_grey_cnv() {
+fn test_group_abstract_symmetric_arbitrary_half_sandwich_grey_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -2591,7 +2607,7 @@ fn test_abstract_group_symmetric_arbitrary_half_sandwich_grey_cnv() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_staggered_sandwich_electric_field_cnv() {
+fn test_group_abstract_symmetric_arbitrary_staggered_sandwich_electric_field_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -2601,7 +2617,7 @@ fn test_abstract_group_symmetric_arbitrary_staggered_sandwich_electric_field_cnv
         let mut mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
         mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
         let thresh = 1e-7;
-        test_abstract_group(
+        test_group_abstract(
             &mol,
             thresh,
             format!("C{}v", n).as_str(),
@@ -2625,7 +2641,7 @@ fn test_abstract_group_symmetric_arbitrary_staggered_sandwich_electric_field_cnv
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_staggered_sandwich_electric_field_grey_cnv() {
+fn test_group_abstract_symmetric_arbitrary_staggered_sandwich_electric_field_grey_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -2664,21 +2680,21 @@ Cnh
 */
 
 #[test]
-fn test_abstract_group_symmetric_bf3_magnetic_field_c3h() {
+fn test_group_abstract_symmetric_bf3_magnetic_field_c3h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C3h", 6, 6, true);
+    test_group_abstract(&mol, thresh, "C3h", 6, 6, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_bf3_magnetic_field_c3h_class_order() {
+fn test_group_abstract_symmetric_bf3_magnetic_field_c3h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C3|", "|[C3]^2|", "|S3|", "|[S3]^5|", "|σh|"],
@@ -2686,7 +2702,7 @@ fn test_abstract_group_symmetric_bf3_magnetic_field_c3h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
+fn test_group_abstract_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2695,7 +2711,7 @@ fn test_abstract_group_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_bf3_magnetic_field_bw_d3h_c3h_class_order() {
+fn test_group_abstract_symmetric_bf3_magnetic_field_bw_d3h_c3h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2708,21 +2724,21 @@ fn test_abstract_group_symmetric_bf3_magnetic_field_bw_d3h_c3h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_xef4_magnetic_field_c4h() {
+fn test_group_abstract_symmetric_xef4_magnetic_field_c4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
-    test_abstract_group(&mol, thresh, "C4h", 8, 8, true);
+    test_group_abstract(&mol, thresh, "C4h", 8, 8, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_xef4_magnetic_field_c4h_class_order() {
+fn test_group_abstract_symmetric_xef4_magnetic_field_c4h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -2732,7 +2748,7 @@ fn test_abstract_group_symmetric_xef4_magnetic_field_c4h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_xef4_magnetic_field_bw_d4h_c4h() {
+fn test_group_abstract_symmetric_xef4_magnetic_field_bw_d4h_c4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2741,7 +2757,7 @@ fn test_abstract_group_symmetric_xef4_magnetic_field_bw_d4h_c4h() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_xef4_magnetic_field_bw_d4h_c4h_class_order() {
+fn test_group_abstract_symmetric_xef4_magnetic_field_bw_d4h_c4h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2765,21 +2781,21 @@ fn test_abstract_group_symmetric_xef4_magnetic_field_bw_d4h_c4h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_magnetic_field_c4h() {
+fn test_group_abstract_symmetric_vf6_magnetic_field_c4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C4h", 8, 8, true);
+    test_group_abstract(&mol, thresh, "C4h", 8, 8, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_magnetic_field_c4h_class_order() {
+fn test_group_abstract_symmetric_vf6_magnetic_field_c4h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -2789,7 +2805,7 @@ fn test_abstract_group_symmetric_vf6_magnetic_field_c4h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
+fn test_group_abstract_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2798,7 +2814,7 @@ fn test_abstract_group_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_magnetic_field_bw_d4h_c4h_class_order() {
+fn test_group_abstract_symmetric_vf6_magnetic_field_bw_d4h_c4h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2822,22 +2838,22 @@ fn test_abstract_group_symmetric_vf6_magnetic_field_bw_d4h_c4h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_magnetic_field_c4h() {
+fn test_group_abstract_symmetric_h8_magnetic_field_c4h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(0.2 * Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C4h", 8, 8, true);
+    test_group_abstract(&mol, thresh, "C4h", 8, 8, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_magnetic_field_c4h_class_order() {
+fn test_group_abstract_symmetric_h8_magnetic_field_c4h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, 1e-7);
     mol.set_magnetic_field(Some(0.2 * Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -2847,7 +2863,7 @@ fn test_abstract_group_symmetric_h8_magnetic_field_c4h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_magnetic_field_bw_d4h_c4h() {
+fn test_group_abstract_symmetric_h8_magnetic_field_bw_d4h_c4h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
@@ -2857,7 +2873,7 @@ fn test_abstract_group_symmetric_h8_magnetic_field_bw_d4h_c4h() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_magnetic_field_bw_d4h_c4h_class_order() {
+fn test_group_abstract_symmetric_h8_magnetic_field_bw_d4h_c4h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, 1e-7);
@@ -2881,21 +2897,21 @@ fn test_abstract_group_symmetric_h8_magnetic_field_bw_d4h_c4h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_eclipsed_ferrocene_magnetic_field_c5h() {
+fn test_group_abstract_symmetric_eclipsed_ferrocene_magnetic_field_c5h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
-    test_abstract_group(&mol, thresh, "C5h", 10, 10, true);
+    test_group_abstract(&mol, thresh, "C5h", 10, 10, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_eclipsed_ferrocene_magnetic_field_c5h_class_order() {
+fn test_group_abstract_symmetric_eclipsed_ferrocene_magnetic_field_c5h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -2906,7 +2922,7 @@ fn test_abstract_group_symmetric_eclipsed_ferrocene_magnetic_field_c5h_class_ord
 }
 
 #[test]
-fn test_abstract_group_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h_c5h() {
+fn test_group_abstract_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h_c5h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2915,7 +2931,7 @@ fn test_abstract_group_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h_c5h() 
 }
 
 #[test]
-fn test_abstract_group_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h_c5h_class_order() {
+fn test_group_abstract_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h_c5h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2937,22 +2953,22 @@ fn test_abstract_group_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h_c5h_cl
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_magnetic_field_c6h() {
+fn test_group_abstract_symmetric_benzene_magnetic_field_c6h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    test_abstract_group(&mol, thresh, "C6h", 12, 12, true);
+    test_group_abstract(&mol, thresh, "C6h", 12, 12, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_magnetic_field_c6h_class_order() {
+fn test_group_abstract_symmetric_benzene_magnetic_field_c6h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -2963,7 +2979,7 @@ fn test_abstract_group_symmetric_benzene_magnetic_field_c6h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_magnetic_field_bw_d6h_c6h() {
+fn test_group_abstract_symmetric_benzene_magnetic_field_bw_d6h_c6h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
@@ -2973,7 +2989,7 @@ fn test_abstract_group_symmetric_benzene_magnetic_field_bw_d6h_c6h() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_magnetic_field_bw_d6h_c6h_class_order() {
+fn test_group_abstract_symmetric_benzene_magnetic_field_bw_d6h_c6h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -2999,13 +3015,13 @@ fn test_abstract_group_symmetric_benzene_magnetic_field_bw_d6h_c6h_class_order()
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
+fn test_group_abstract_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
     // env_logger::init();
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
         let thresh = 1e-7;
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
-        test_abstract_group(
+        test_group_abstract(
             &mol,
             thresh,
             format!("C{}h", n).as_str(),
@@ -3017,7 +3033,7 @@ fn test_abstract_group_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh(
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_bw_dnh_cnh() {
+fn test_group_abstract_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_bw_dnh_cnh() {
     // env_logger::init();
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
@@ -3052,23 +3068,23 @@ Dn
 */
 
 #[test]
-fn test_abstract_group_symmetric_triphenyl_radical_d3() {
+fn test_group_abstract_symmetric_triphenyl_radical_d3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/triphenylradical.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D3", 6, 3, false);
+    test_group_abstract(&mol, thresh, "D3", 6, 3, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_triphenyl_radical_d3_class_order() {
+fn test_group_abstract_symmetric_triphenyl_radical_d3_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/triphenylradical.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "2|C3|", "3|C2|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "2|C3|", "3|C2|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_triphenyl_radical_grey_d3() {
+fn test_group_abstract_symmetric_triphenyl_radical_grey_d3() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/triphenylradical.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3076,7 +3092,7 @@ fn test_abstract_group_symmetric_triphenyl_radical_grey_d3() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_triphenyl_radical_grey_d3_class_order() {
+fn test_group_abstract_symmetric_triphenyl_radical_grey_d3_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/triphenylradical.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3088,17 +3104,17 @@ fn test_abstract_group_symmetric_triphenyl_radical_grey_d3_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_d4() {
+fn test_group_abstract_symmetric_h8_twisted_d4() {
     let thresh = 1e-7;
     let mol = template_molecules::gen_twisted_h8(0.1);
-    test_abstract_group(&mol, thresh, "D4", 8, 5, false);
+    test_group_abstract(&mol, thresh, "D4", 8, 5, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_d4_class_order() {
+fn test_group_abstract_symmetric_h8_twisted_d4_class_order() {
     let thresh = 1e-7;
     let mol = template_molecules::gen_twisted_h8(0.1);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C4|", "|C2|", "2|C2|^(')", "2|C2|^('')"],
@@ -3106,14 +3122,14 @@ fn test_abstract_group_symmetric_h8_twisted_d4_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_grey_d4() {
+fn test_group_abstract_symmetric_h8_twisted_grey_d4() {
     let thresh = 1e-7;
     let mol = template_molecules::gen_twisted_h8(0.1);
     test_abstract_magnetic_group(&mol, thresh, "D4 + θ·D4", 16, 10, false, GRGRP);
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_twisted_grey_d4_class_order() {
+fn test_group_abstract_symmetric_h8_twisted_grey_d4_class_order() {
     let thresh = 1e-7;
     let mol = template_molecules::gen_twisted_h8(0.1);
     test_abstract_magnetic_group_class_order(
@@ -3135,23 +3151,23 @@ fn test_abstract_group_symmetric_h8_twisted_grey_d4_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_c5ph5_d5() {
+fn test_group_abstract_symmetric_c5ph5_d5() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c5ph5.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D5", 10, 4, false);
+    test_group_abstract(&mol, thresh, "D5", 10, 4, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_c5ph5_d5_class_order() {
+fn test_group_abstract_symmetric_c5ph5_d5_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c5ph5.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|C2|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|C2|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_c5ph5_grey_d5() {
+fn test_group_abstract_symmetric_c5ph5_grey_d5() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c5ph5.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3159,7 +3175,7 @@ fn test_abstract_group_symmetric_c5ph5_grey_d5() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_c5ph5_grey_d5_class_order() {
+fn test_group_abstract_symmetric_c5ph5_grey_d5_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c5ph5.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3180,19 +3196,19 @@ fn test_abstract_group_symmetric_c5ph5_grey_d5_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_c6ph6_d6() {
+fn test_group_abstract_symmetric_c6ph6_d6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6ph6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D6", 12, 6, false);
+    test_group_abstract(&mol, thresh, "D6", 12, 6, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_c6ph6_d6_class_order() {
+fn test_group_abstract_symmetric_c6ph6_d6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6ph6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C6|", "2|C3|", "|C2|", "3|C2|^(')", "3|C2|^('')"],
@@ -3200,7 +3216,7 @@ fn test_abstract_group_symmetric_c6ph6_d6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_c6ph6_grey_d6() {
+fn test_group_abstract_symmetric_c6ph6_grey_d6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6ph6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3208,7 +3224,7 @@ fn test_abstract_group_symmetric_c6ph6_grey_d6() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_c6ph6_grey_d6_class_order() {
+fn test_group_abstract_symmetric_c6ph6_grey_d6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6ph6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3233,7 +3249,7 @@ fn test_abstract_group_symmetric_c6ph6_grey_d6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_twisted_sandwich_dn() {
+fn test_group_abstract_symmetric_arbitrary_twisted_sandwich_dn() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dn groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -3242,7 +3258,7 @@ fn test_abstract_group_symmetric_arbitrary_twisted_sandwich_dn() {
     let thresh = 1e-7;
     for n in 3..=20 {
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.1);
-        test_abstract_group(
+        test_group_abstract(
             &mol,
             thresh,
             format!("D{}", n).as_str(),
@@ -3266,7 +3282,7 @@ fn test_abstract_group_symmetric_arbitrary_twisted_sandwich_dn() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_twisted_sandwich_grey_dn() {
+fn test_group_abstract_symmetric_arbitrary_twisted_sandwich_grey_dn() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dn groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -3304,19 +3320,19 @@ Dnh
 */
 
 #[test]
-fn test_abstract_group_symmetric_bf3_d3h() {
+fn test_group_abstract_symmetric_bf3_d3h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D3h", 12, 6, false);
+    test_group_abstract(&mol, thresh, "D3h", 12, 6, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_bf3_d3h_class_order() {
+fn test_group_abstract_symmetric_bf3_d3h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C3|", "3|C2|", "2|S3|", "|σh|", "3|σv|"],
@@ -3324,7 +3340,7 @@ fn test_abstract_group_symmetric_bf3_d3h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_bf3_grey_d3h() {
+fn test_group_abstract_symmetric_bf3_grey_d3h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3332,7 +3348,7 @@ fn test_abstract_group_symmetric_bf3_grey_d3h() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_bf3_grey_d3h_class_order() {
+fn test_group_abstract_symmetric_bf3_grey_d3h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3357,19 +3373,19 @@ fn test_abstract_group_symmetric_bf3_grey_d3h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_xef4_d4h() {
+fn test_group_abstract_symmetric_xef4_d4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D4h", 16, 10, false);
+    test_group_abstract(&mol, thresh, "D4h", 16, 10, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_xef4_d4h_class_order() {
+fn test_group_abstract_symmetric_xef4_d4h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -3388,7 +3404,7 @@ fn test_abstract_group_symmetric_xef4_d4h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_xef4_grey_d4h() {
+fn test_group_abstract_symmetric_xef4_grey_d4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3396,7 +3412,7 @@ fn test_abstract_group_symmetric_xef4_grey_d4h() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_xef4_grey_d4h_class_order() {
+fn test_group_abstract_symmetric_xef4_grey_d4h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3429,19 +3445,19 @@ fn test_abstract_group_symmetric_xef4_grey_d4h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_d4h() {
+fn test_group_abstract_symmetric_h8_d4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D4h", 16, 10, false);
+    test_group_abstract(&mol, thresh, "D4h", 16, 10, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_d4h_class_order() {
+fn test_group_abstract_symmetric_h8_d4h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -3460,7 +3476,7 @@ fn test_abstract_group_symmetric_h8_d4h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_grey_d4h() {
+fn test_group_abstract_symmetric_h8_grey_d4h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3468,7 +3484,7 @@ fn test_abstract_group_symmetric_h8_grey_d4h() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_h8_grey_d4h_class_order() {
+fn test_group_abstract_symmetric_h8_grey_d4h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3501,19 +3517,19 @@ fn test_abstract_group_symmetric_h8_grey_d4h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_eclipsed_ferrocene_d5h() {
+fn test_group_abstract_symmetric_eclipsed_ferrocene_d5h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D5h", 20, 8, false);
+    test_group_abstract(&mol, thresh, "D5h", 20, 8, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_eclipsed_ferrocene_d5h_class_order() {
+fn test_group_abstract_symmetric_eclipsed_ferrocene_d5h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -3530,7 +3546,7 @@ fn test_abstract_group_symmetric_eclipsed_ferrocene_d5h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_eclipsed_ferrocene_grey_d5h() {
+fn test_group_abstract_symmetric_eclipsed_ferrocene_grey_d5h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3538,7 +3554,7 @@ fn test_abstract_group_symmetric_eclipsed_ferrocene_grey_d5h() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_eclipsed_ferrocene_grey_d5h_class_order() {
+fn test_group_abstract_symmetric_eclipsed_ferrocene_grey_d5h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3567,22 +3583,22 @@ fn test_abstract_group_symmetric_eclipsed_ferrocene_grey_d5h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_d6h() {
+fn test_group_abstract_symmetric_benzene_d6h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D6h", 24, 12, false);
+    test_group_abstract(&mol, thresh, "D6h", 24, 12, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_d6h_class_order() {
+fn test_group_abstract_symmetric_benzene_d6h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
     // The benzene molecule is in the yz-plane. Ordering of the symmetry elements based on their
     // closeness to principal axes means that the class ordering will appear different from that
     // found in standard character tables.
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -3603,7 +3619,7 @@ fn test_abstract_group_symmetric_benzene_d6h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_grey_d6h() {
+fn test_group_abstract_symmetric_benzene_grey_d6h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3611,7 +3627,7 @@ fn test_abstract_group_symmetric_benzene_grey_d6h() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_benzene_grey_d6h_class_order() {
+fn test_group_abstract_symmetric_benzene_grey_d6h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3651,15 +3667,15 @@ fn test_abstract_group_symmetric_benzene_grey_d6h_class_order() {
 }
 
 // #[test]
-// fn test_abstract_group_symmetric_h100_d100h() {
+// fn test_group_abstract_symmetric_h100_d100h() {
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
 //     let thresh = 1e-6;
 //     let mol = Molecule::from_xyz(&path, thresh);
-//     test_abstract_group(&mol, thresh, "D100h", 400, 106, false);
+//     test_group_abstract(&mol, thresh, "D100h", 400, 106, false);
 // }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_eclipsed_sandwich_dnh() {
+fn test_group_abstract_symmetric_arbitrary_eclipsed_sandwich_dnh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -3670,7 +3686,7 @@ fn test_abstract_group_symmetric_arbitrary_eclipsed_sandwich_dnh() {
     let thresh = 1e-7;
     for n in 3..=20 {
         let mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
-        test_abstract_group(
+        test_group_abstract(
             &mol,
             thresh,
             format!("D{}h", n).as_str(),
@@ -3694,7 +3710,7 @@ fn test_abstract_group_symmetric_arbitrary_eclipsed_sandwich_dnh() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_eclipsed_sandwich_grey_dnh() {
+fn test_group_abstract_symmetric_arbitrary_eclipsed_sandwich_grey_dnh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -3734,19 +3750,19 @@ Dnd
 */
 
 #[test]
-fn test_abstract_group_symmetric_b2cl4_d2d() {
+fn test_group_abstract_symmetric_b2cl4_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2d", 8, 5, false);
+    test_group_abstract(&mol, thresh, "D2d", 8, 5, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_b2cl4_d2d_class_order() {
+fn test_group_abstract_symmetric_b2cl4_d2d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C2|", "2|C2|^(')", "2|S4|", "2|σd|"],
@@ -3754,7 +3770,7 @@ fn test_abstract_group_symmetric_b2cl4_d2d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_b2cl4_grey_d2d() {
+fn test_group_abstract_symmetric_b2cl4_grey_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3762,7 +3778,7 @@ fn test_abstract_group_symmetric_b2cl4_grey_d2d() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_b2cl4_grey_d2d_class_order() {
+fn test_group_abstract_symmetric_b2cl4_grey_d2d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3785,19 +3801,19 @@ fn test_abstract_group_symmetric_b2cl4_grey_d2d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_s4n4_d2d() {
+fn test_group_abstract_symmetric_s4n4_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s4n4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2d", 8, 5, false);
+    test_group_abstract(&mol, thresh, "D2d", 8, 5, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_s4n4_d2d_class_order() {
+fn test_group_abstract_symmetric_s4n4_d2d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s4n4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C2|", "2|C2|^(')", "2|S4|", "2|σd|"],
@@ -3805,7 +3821,7 @@ fn test_abstract_group_symmetric_s4n4_d2d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_s4n4_grey_d2d() {
+fn test_group_abstract_symmetric_s4n4_grey_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s4n4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3813,7 +3829,7 @@ fn test_abstract_group_symmetric_s4n4_grey_d2d() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_s4n4_grey_d2d_class_order() {
+fn test_group_abstract_symmetric_s4n4_grey_d2d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s4n4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3836,19 +3852,19 @@ fn test_abstract_group_symmetric_s4n4_grey_d2d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_pbet4_d2d() {
+fn test_group_abstract_symmetric_pbet4_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pbet4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2d", 8, 5, false);
+    test_group_abstract(&mol, thresh, "D2d", 8, 5, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_pbet4_d2d_class_order() {
+fn test_group_abstract_symmetric_pbet4_d2d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pbet4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C2|", "2|C2|^(')", "2|S4|", "2|σd|"],
@@ -3856,7 +3872,7 @@ fn test_abstract_group_symmetric_pbet4_d2d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_pbet4_grey_d2d() {
+fn test_group_abstract_symmetric_pbet4_grey_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pbet4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3864,7 +3880,7 @@ fn test_abstract_group_symmetric_pbet4_grey_d2d() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_pbet4_grey_d2d_class_order() {
+fn test_group_abstract_symmetric_pbet4_grey_d2d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pbet4.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3887,19 +3903,19 @@ fn test_abstract_group_symmetric_pbet4_grey_d2d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_allene_d2d() {
+fn test_group_abstract_symmetric_allene_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/allene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2d", 8, 5, false);
+    test_group_abstract(&mol, thresh, "D2d", 8, 5, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_allene_d2d_class_order() {
+fn test_group_abstract_symmetric_allene_d2d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/allene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C2|", "2|C2|^(')", "2|S4|", "2|σd|"],
@@ -3907,7 +3923,7 @@ fn test_abstract_group_symmetric_allene_d2d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_allene_grey_d2d() {
+fn test_group_abstract_symmetric_allene_grey_d2d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/allene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3915,7 +3931,7 @@ fn test_abstract_group_symmetric_allene_grey_d2d() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_allene_grey_d2d_class_order() {
+fn test_group_abstract_symmetric_allene_grey_d2d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/allene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3938,19 +3954,19 @@ fn test_abstract_group_symmetric_allene_grey_d2d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_c2h6_d3d() {
+fn test_group_abstract_symmetric_staggered_c2h6_d3d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D3d", 12, 6, false);
+    test_group_abstract(&mol, thresh, "D3d", 12, 6, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_c2h6_d3d_class_order() {
+fn test_group_abstract_symmetric_staggered_c2h6_d3d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C3|", "3|C2|", "|i|", "2|S6|", "3|σd|"],
@@ -3958,7 +3974,7 @@ fn test_abstract_group_symmetric_staggered_c2h6_d3d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_c2h6_grey_d3d() {
+fn test_group_abstract_symmetric_staggered_c2h6_grey_d3d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3966,7 +3982,7 @@ fn test_abstract_group_symmetric_staggered_c2h6_grey_d3d() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_c2h6_grey_d3d_class_order() {
+fn test_group_abstract_symmetric_staggered_c2h6_grey_d3d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -3991,19 +4007,19 @@ fn test_abstract_group_symmetric_staggered_c2h6_grey_d3d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_cyclohexane_chair_d3d() {
+fn test_group_abstract_symmetric_cyclohexane_chair_d3d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexane_chair.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D3d", 12, 6, false);
+    test_group_abstract(&mol, thresh, "D3d", 12, 6, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_cyclohexane_chair_d3d_class_order() {
+fn test_group_abstract_symmetric_cyclohexane_chair_d3d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexane_chair.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "2|C3|", "3|C2|", "|i|", "2|S6|", "3|σd|"],
@@ -4011,7 +4027,7 @@ fn test_abstract_group_symmetric_cyclohexane_chair_d3d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_cyclohexane_chair_grey_d3d() {
+fn test_group_abstract_symmetric_cyclohexane_chair_grey_d3d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexane_chair.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4019,7 +4035,7 @@ fn test_abstract_group_symmetric_cyclohexane_chair_grey_d3d() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_cyclohexane_chair_grey_d3d_class_order() {
+fn test_group_abstract_symmetric_cyclohexane_chair_grey_d3d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexane_chair.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4044,19 +4060,19 @@ fn test_abstract_group_symmetric_cyclohexane_chair_grey_d3d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_s8_d4d() {
+fn test_group_abstract_symmetric_s8_d4d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D4d", 16, 7, false);
+    test_group_abstract(&mol, thresh, "D4d", 16, 7, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_s8_d4d_class_order() {
+fn test_group_abstract_symmetric_s8_d4d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -4072,7 +4088,7 @@ fn test_abstract_group_symmetric_s8_d4d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_s8_grey_d4d() {
+fn test_group_abstract_symmetric_s8_grey_d4d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4080,7 +4096,7 @@ fn test_abstract_group_symmetric_s8_grey_d4d() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_s8_grey_d4d_class_order() {
+fn test_group_abstract_symmetric_s8_grey_d4d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4107,17 +4123,17 @@ fn test_abstract_group_symmetric_s8_grey_d4d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_h8_d4d() {
+fn test_group_abstract_symmetric_antiprism_h8_d4d() {
     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
     let thresh = 1e-7;
-    test_abstract_group(&mol, thresh, "D4d", 16, 7, false);
+    test_group_abstract(&mol, thresh, "D4d", 16, 7, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_h8_d4d_class_order() {
+fn test_group_abstract_symmetric_antiprism_h8_d4d_class_order() {
     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
     let thresh = 1e-7;
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -4133,14 +4149,14 @@ fn test_abstract_group_symmetric_antiprism_h8_d4d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_h8_grey_d4d() {
+fn test_group_abstract_symmetric_antiprism_h8_grey_d4d() {
     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
     let thresh = 1e-7;
     test_abstract_magnetic_group(&mol, thresh, "D4d + θ·D4d", 32, 14, false, GRGRP);
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_h8_grey_d4d_class_order() {
+fn test_group_abstract_symmetric_antiprism_h8_grey_d4d_class_order() {
     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
     let thresh = 1e-7;
     test_abstract_magnetic_group_class_order(
@@ -4166,19 +4182,19 @@ fn test_abstract_group_symmetric_antiprism_h8_grey_d4d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_d4d() {
+fn test_group_abstract_symmetric_antiprism_pb10_d4d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D4d", 16, 7, false);
+    test_group_abstract(&mol, thresh, "D4d", 16, 7, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_d4d_class_order() {
+fn test_group_abstract_symmetric_antiprism_pb10_d4d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -4194,7 +4210,7 @@ fn test_abstract_group_symmetric_antiprism_pb10_d4d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_grey_d4d() {
+fn test_group_abstract_symmetric_antiprism_pb10_grey_d4d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4202,7 +4218,7 @@ fn test_abstract_group_symmetric_antiprism_pb10_grey_d4d() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_grey_d4d_class_order() {
+fn test_group_abstract_symmetric_antiprism_pb10_grey_d4d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4229,20 +4245,20 @@ fn test_abstract_group_symmetric_antiprism_pb10_grey_d4d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_d5d() {
+fn test_group_abstract_symmetric_staggered_ferrocene_d5d() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D5d", 20, 8, false);
+    test_group_abstract(&mol, thresh, "D5d", 20, 8, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_d5d_class_order() {
+fn test_group_abstract_symmetric_staggered_ferrocene_d5d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -4259,7 +4275,7 @@ fn test_abstract_group_symmetric_staggered_ferrocene_d5d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_grey_d5d() {
+fn test_group_abstract_symmetric_staggered_ferrocene_grey_d5d() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
@@ -4268,7 +4284,7 @@ fn test_abstract_group_symmetric_staggered_ferrocene_grey_d5d() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_grey_d5d_class_order() {
+fn test_group_abstract_symmetric_staggered_ferrocene_grey_d5d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4297,19 +4313,19 @@ fn test_abstract_group_symmetric_staggered_ferrocene_grey_d5d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_d6d() {
+fn test_group_abstract_symmetric_au26_d6d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D6d", 24, 9, false);
+    test_group_abstract(&mol, thresh, "D6d", 24, 9, false);
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_d6d_class_order() {
+fn test_group_abstract_symmetric_au26_d6d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -4327,7 +4343,7 @@ fn test_abstract_group_symmetric_au26_d6d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_grey_d6d() {
+fn test_group_abstract_symmetric_au26_grey_d6d() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4335,7 +4351,7 @@ fn test_abstract_group_symmetric_au26_grey_d6d() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_grey_d6d_class_order() {
+fn test_group_abstract_symmetric_au26_grey_d6d_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4366,11 +4382,11 @@ fn test_abstract_group_symmetric_au26_grey_d6d_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_staggered_sandwich_dnd() {
+fn test_group_abstract_symmetric_arbitrary_staggered_sandwich_dnd() {
     let thresh = 1e-7;
     for n in 3..=20 {
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
-        test_abstract_group(
+        test_group_abstract(
             &mol,
             thresh,
             format!("D{}d", n).as_str(),
@@ -4382,7 +4398,7 @@ fn test_abstract_group_symmetric_arbitrary_staggered_sandwich_dnd() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_staggered_sandwich_grey_dnd() {
+fn test_group_abstract_symmetric_arbitrary_staggered_sandwich_grey_dnd() {
     let thresh = 1e-7;
     for n in 3..=20 {
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
@@ -4403,25 +4419,25 @@ S2n
 */
 
 #[test]
-fn test_abstract_group_symmetric_b2cl4_magnetic_field_s4() {
+fn test_group_abstract_symmetric_b2cl4_magnetic_field_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "S4", 4, 4, true);
+    test_group_abstract(&mol, thresh, "S4", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_b2cl4_magnetic_field_s4_class_order() {
+fn test_group_abstract_symmetric_b2cl4_magnetic_field_s4_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|[S4]^3|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|[S4]^3|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_b2cl4_magnetic_field_bw_d2d_s4() {
+fn test_group_abstract_symmetric_b2cl4_magnetic_field_bw_d2d_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4430,7 +4446,7 @@ fn test_abstract_group_symmetric_b2cl4_magnetic_field_bw_d2d_s4() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_b2cl4_magnetic_field_bw_d2d_s4_class_order() {
+fn test_group_abstract_symmetric_b2cl4_magnetic_field_bw_d2d_s4_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4443,25 +4459,25 @@ fn test_abstract_group_symmetric_b2cl4_magnetic_field_bw_d2d_s4_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_magnetic_field_s4() {
+fn test_group_abstract_symmetric_adamantane_magnetic_field_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(-0.1, 0.0, 0.0)));
-    test_abstract_group(&mol, thresh, "S4", 4, 4, true);
+    test_group_abstract(&mol, thresh, "S4", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_magnetic_field_s4_class_order() {
+fn test_group_abstract_symmetric_adamantane_magnetic_field_s4_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(-0.1, 0.0, 0.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|[S4]^3|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|[S4]^3|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_magnetic_field_bw_d2d_s4() {
+fn test_group_abstract_symmetric_adamantane_magnetic_field_bw_d2d_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4470,7 +4486,7 @@ fn test_abstract_group_symmetric_adamantane_magnetic_field_bw_d2d_s4() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_adamantane_magnetic_field_bw_d2d_s4_class_order() {
+fn test_group_abstract_symmetric_adamantane_magnetic_field_bw_d2d_s4_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/adamantane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4483,25 +4499,25 @@ fn test_abstract_group_symmetric_adamantane_magnetic_field_bw_d2d_s4_class_order
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_s4() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "S4", 4, 4, true);
+    test_group_abstract(&mol, thresh, "S4", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_s4_class_order() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_s4_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|[S4]^3|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|[S4]^3|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_bw_d2d_s4() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_bw_d2d_s4() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4510,7 +4526,7 @@ fn test_abstract_group_symmetric_ch4_magnetic_field_bw_d2d_s4() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_bw_d2d_s4_class_order() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_bw_d2d_s4_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4523,19 +4539,19 @@ fn test_abstract_group_symmetric_ch4_magnetic_field_bw_d2d_s4_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_65coronane_s6() {
+fn test_group_abstract_symmetric_65coronane_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "S6", 6, 6, true);
+    test_group_abstract(&mol, thresh, "S6", 6, 6, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_65coronane_s6_class_order() {
+fn test_group_abstract_symmetric_65coronane_s6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
@@ -4543,7 +4559,7 @@ fn test_abstract_group_symmetric_65coronane_s6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_65coronane_grey_s6() {
+fn test_group_abstract_symmetric_65coronane_grey_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4551,7 +4567,7 @@ fn test_abstract_group_symmetric_65coronane_grey_s6() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_65coronane_grey_s6_class_order() {
+fn test_group_abstract_symmetric_65coronane_grey_s6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4576,21 +4592,21 @@ fn test_abstract_group_symmetric_65coronane_grey_s6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_65coronane_magnetic_field_s6() {
+fn test_group_abstract_symmetric_65coronane_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
-    test_abstract_group(&mol, thresh, "S6", 6, 6, true);
+    test_group_abstract(&mol, thresh, "S6", 6, 6, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_65coronane_magnetic_field_s6_class_order() {
+fn test_group_abstract_symmetric_65coronane_magnetic_field_s6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/coronane65.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
@@ -4598,21 +4614,21 @@ fn test_abstract_group_symmetric_65coronane_magnetic_field_s6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_c2h6_magnetic_field_s6() {
+fn test_group_abstract_symmetric_staggered_c2h6_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "S6", 6, 6, true);
+    test_group_abstract(&mol, thresh, "S6", 6, 6, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_c2h6_magnetic_field_s6_class_order() {
+fn test_group_abstract_symmetric_staggered_c2h6_magnetic_field_s6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
@@ -4620,7 +4636,7 @@ fn test_abstract_group_symmetric_staggered_c2h6_magnetic_field_s6_class_order() 
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_c2h6_magnetic_field_bw_d3d_s6() {
+fn test_group_abstract_symmetric_staggered_c2h6_magnetic_field_bw_d3d_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4629,7 +4645,7 @@ fn test_abstract_group_symmetric_staggered_c2h6_magnetic_field_bw_d3d_s6() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_c2h6_magnetic_field_bw_d3d_s6_class_order() {
+fn test_group_abstract_symmetric_staggered_c2h6_magnetic_field_bw_d3d_s6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4642,7 +4658,7 @@ fn test_abstract_group_symmetric_staggered_c2h6_magnetic_field_bw_d3d_s6_class_o
 }
 
 #[test]
-fn test_abstract_group_symmetric_c60_magnetic_field_s6() {
+fn test_group_abstract_symmetric_c60_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4651,11 +4667,11 @@ fn test_abstract_group_symmetric_c60_magnetic_field_s6() {
         -0.1875926572335,
         0.7946543988441,
     )));
-    test_abstract_group(&mol, thresh, "S6", 6, 6, true);
+    test_group_abstract(&mol, thresh, "S6", 6, 6, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_c60_magnetic_field_s6_class_order() {
+fn test_group_abstract_symmetric_c60_magnetic_field_s6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4664,7 +4680,7 @@ fn test_abstract_group_symmetric_c60_magnetic_field_s6_class_order() {
         -0.1875926572335,
         0.7946543988441,
     )));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
@@ -4672,7 +4688,7 @@ fn test_abstract_group_symmetric_c60_magnetic_field_s6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_c60_magnetic_field_bw_d3d_s6() {
+fn test_group_abstract_symmetric_c60_magnetic_field_bw_d3d_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4685,7 +4701,7 @@ fn test_abstract_group_symmetric_c60_magnetic_field_bw_d3d_s6() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_c60_magnetic_field_bw_d3d_s6_class_order() {
+fn test_group_abstract_symmetric_c60_magnetic_field_bw_d3d_s6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4702,21 +4718,21 @@ fn test_abstract_group_symmetric_c60_magnetic_field_bw_d3d_s6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vh2o6_magnetic_field_s6() {
+fn test_group_abstract_symmetric_vh2o6_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(-0.2, 0.2, 0.2)));
-    test_abstract_group(&mol, thresh, "S6", 6, 6, true);
+    test_group_abstract(&mol, thresh, "S6", 6, 6, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_vh2o6_magnetic_field_s6_class_order() {
+fn test_group_abstract_symmetric_vh2o6_magnetic_field_s6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(-0.2, 0.2, 0.2)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
@@ -4724,21 +4740,21 @@ fn test_abstract_group_symmetric_vh2o6_magnetic_field_s6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_magnetic_field_s6() {
+fn test_group_abstract_symmetric_vf6_magnetic_field_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    test_abstract_group(&mol, thresh, "S6", 6, 6, true);
+    test_group_abstract(&mol, thresh, "S6", 6, 6, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_magnetic_field_s6_class_order() {
+fn test_group_abstract_symmetric_vf6_magnetic_field_s6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
@@ -4746,7 +4762,7 @@ fn test_abstract_group_symmetric_vf6_magnetic_field_s6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_magnetic_field_bw_d3d_s6() {
+fn test_group_abstract_symmetric_vf6_magnetic_field_bw_d3d_s6() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4755,7 +4771,7 @@ fn test_abstract_group_symmetric_vf6_magnetic_field_bw_d3d_s6() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_vf6_magnetic_field_bw_d3d_s6_class_order() {
+fn test_group_abstract_symmetric_vf6_magnetic_field_bw_d3d_s6_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4768,21 +4784,21 @@ fn test_abstract_group_symmetric_vf6_magnetic_field_bw_d3d_s6_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_s8_magnetic_field_s8() {
+fn test_group_abstract_symmetric_s8_magnetic_field_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "S8", 8, 8, true);
+    test_group_abstract(&mol, thresh, "S8", 8, 8, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_s8_magnetic_field_s8_class_order() {
+fn test_group_abstract_symmetric_s8_magnetic_field_s8_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -4792,7 +4808,7 @@ fn test_abstract_group_symmetric_s8_magnetic_field_s8_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_s8_magnetic_field_bw_d4d_s8() {
+fn test_group_abstract_symmetric_s8_magnetic_field_bw_d4d_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4801,7 +4817,7 @@ fn test_abstract_group_symmetric_s8_magnetic_field_bw_d4d_s8() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_s8_magnetic_field_bw_d4d_s8_class_order() {
+fn test_group_abstract_symmetric_s8_magnetic_field_bw_d4d_s8_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/s8.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4822,21 +4838,21 @@ fn test_abstract_group_symmetric_s8_magnetic_field_bw_d4d_s8_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_magnetic_field_s8() {
+fn test_group_abstract_symmetric_antiprism_pb10_magnetic_field_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "S8", 8, 8, true);
+    test_group_abstract(&mol, thresh, "S8", 8, 8, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_magnetic_field_s8_class_order() {
+fn test_group_abstract_symmetric_antiprism_pb10_magnetic_field_s8_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -4846,7 +4862,7 @@ fn test_abstract_group_symmetric_antiprism_pb10_magnetic_field_s8_class_order() 
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8() {
+fn test_group_abstract_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4855,7 +4871,7 @@ fn test_abstract_group_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8_class_order() {
+fn test_group_abstract_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4876,21 +4892,21 @@ fn test_abstract_group_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8_class_o
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_magnetic_field_s10() {
+fn test_group_abstract_symmetric_staggered_ferrocene_magnetic_field_s10() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "S10", 10, 10, true);
+    test_group_abstract(&mol, thresh, "S10", 10, 10, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_magnetic_field_s10_class_order() {
+fn test_group_abstract_symmetric_staggered_ferrocene_magnetic_field_s10_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -4909,7 +4925,7 @@ fn test_abstract_group_symmetric_staggered_ferrocene_magnetic_field_s10_class_or
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10() {
+fn test_group_abstract_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4918,7 +4934,7 @@ fn test_abstract_group_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10()
 }
 
 #[test]
-fn test_abstract_group_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10_class_order() {
+fn test_group_abstract_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -4940,21 +4956,21 @@ fn test_abstract_group_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10_c
 }
 
 #[test]
-fn test_abstract_group_symmetric_c60_magnetic_field_s10() {
+fn test_group_abstract_symmetric_c60_magnetic_field_s10() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "S10", 10, 10, true);
+    test_group_abstract(&mol, thresh, "S10", 10, 10, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_c60_magnetic_field_s10_class_order() {
+fn test_group_abstract_symmetric_c60_magnetic_field_s10_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-5;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -4973,21 +4989,21 @@ fn test_abstract_group_symmetric_c60_magnetic_field_s10_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_magnetic_field_s12() {
+fn test_group_abstract_symmetric_au26_magnetic_field_s12() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "S12", 12, 12, true);
+    test_group_abstract(&mol, thresh, "S12", 12, 12, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_magnetic_field_s12_class_order() {
+fn test_group_abstract_symmetric_au26_magnetic_field_s12_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -5008,7 +5024,7 @@ fn test_abstract_group_symmetric_au26_magnetic_field_s12_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_magnetic_field_bw_d6d_s12() {
+fn test_group_abstract_symmetric_au26_magnetic_field_bw_d6d_s12() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5017,7 +5033,7 @@ fn test_abstract_group_symmetric_au26_magnetic_field_bw_d6d_s12() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_au26_magnetic_field_bw_d6d_s12_class_order() {
+fn test_group_abstract_symmetric_au26_magnetic_field_bw_d6d_s12_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5040,12 +5056,12 @@ fn test_abstract_group_symmetric_au26_magnetic_field_bw_d6d_s12_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
+fn test_group_abstract_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
     let thresh = 1e-7;
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-        test_abstract_group(
+        test_group_abstract(
             &mol,
             thresh,
             format!("S{}", 2 * n).as_str(),
@@ -5057,7 +5073,7 @@ fn test_abstract_group_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n
 }
 
 #[test]
-fn test_abstract_group_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd_s2n() {
+fn test_group_abstract_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd_s2n() {
     let thresh = 1e-7;
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
@@ -5083,23 +5099,23 @@ C2
 */
 
 #[test]
-fn test_abstract_group_asymmetric_spiroketal_c2() {
+fn test_group_abstract_asymmetric_spiroketal_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/spiroketal.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2", 2, 2, true);
+    test_group_abstract(&mol, thresh, "C2", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_spiroketal_c2_class_order() {
+fn test_group_abstract_asymmetric_spiroketal_c2_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/spiroketal.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C2|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C2|"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_spiroketal_grey_c2() {
+fn test_group_abstract_asymmetric_spiroketal_grey_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/spiroketal.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5107,7 +5123,7 @@ fn test_abstract_group_asymmetric_spiroketal_grey_c2() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_spiroketal_grey_c2_class_order() {
+fn test_group_abstract_asymmetric_spiroketal_grey_c2_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/spiroketal.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5115,48 +5131,48 @@ fn test_abstract_group_asymmetric_spiroketal_grey_c2_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cyclohexene_c2() {
+fn test_group_abstract_asymmetric_cyclohexene_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclohexene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2", 2, 2, true);
+    test_group_abstract(&mol, thresh, "C2", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_thf_c2() {
+fn test_group_abstract_asymmetric_thf_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/thf.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2", 2, 2, true);
+    test_group_abstract(&mol, thresh, "C2", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_tartaricacid_c2() {
+fn test_group_abstract_asymmetric_tartaricacid_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/tartaricacid.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2", 2, 2, true);
+    test_group_abstract(&mol, thresh, "C2", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_f2allene_c2() {
+fn test_group_abstract_asymmetric_f2allene_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/f2allene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2", 2, 2, true);
+    test_group_abstract(&mol, thresh, "C2", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_water_magnetic_field_c2() {
+fn test_group_abstract_asymmetric_water_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 1.0, 0.0)));
-    test_abstract_group(&mol, thresh, "C2", 2, 2, true);
+    test_group_abstract(&mol, thresh, "C2", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_water_magnetic_field_bw_c2v_c2() {
+fn test_group_abstract_asymmetric_water_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5165,7 +5181,7 @@ fn test_abstract_group_asymmetric_water_magnetic_field_bw_c2v_c2() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_water_magnetic_field_bw_c2v_c2_class_order() {
+fn test_group_abstract_asymmetric_water_magnetic_field_bw_c2v_c2_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5178,16 +5194,16 @@ fn test_abstract_group_asymmetric_water_magnetic_field_bw_c2v_c2_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyridine_magnetic_field_c2() {
+fn test_group_abstract_asymmetric_pyridine_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.2, 0.0)));
-    test_abstract_group(&mol, thresh, "C2", 2, 2, true);
+    test_group_abstract(&mol, thresh, "C2", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyridine_magnetic_field_bw_c2v_c2() {
+fn test_group_abstract_asymmetric_pyridine_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5196,7 +5212,7 @@ fn test_abstract_group_asymmetric_pyridine_magnetic_field_bw_c2v_c2() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyridine_magnetic_field_bw_c2v_c2_class_order() {
+fn test_group_abstract_asymmetric_pyridine_magnetic_field_bw_c2v_c2_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5209,16 +5225,16 @@ fn test_abstract_group_asymmetric_pyridine_magnetic_field_bw_c2v_c2_class_order(
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cyclobutene_magnetic_field_c2() {
+fn test_group_abstract_asymmetric_cyclobutene_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.2, 0.0, 0.0)));
-    test_abstract_group(&mol, thresh, "C2", 2, 2, true);
+    test_group_abstract(&mol, thresh, "C2", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2() {
+fn test_group_abstract_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5227,7 +5243,7 @@ fn test_abstract_group_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2_class_order() {
+fn test_group_abstract_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5240,16 +5256,16 @@ fn test_abstract_group_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2_class_ord
 }
 
 #[test]
-fn test_abstract_group_asymmetric_azulene_magnetic_field_c2() {
+fn test_group_abstract_asymmetric_azulene_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
-    test_abstract_group(&mol, thresh, "C2", 2, 2, true);
+    test_group_abstract(&mol, thresh, "C2", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_azulene_magnetic_field_bw_c2v_c2() {
+fn test_group_abstract_asymmetric_azulene_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5258,7 +5274,7 @@ fn test_abstract_group_asymmetric_azulene_magnetic_field_bw_c2v_c2() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_azulene_magnetic_field_bw_c2v_c2_class_order() {
+fn test_group_abstract_asymmetric_azulene_magnetic_field_bw_c2v_c2_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5271,16 +5287,16 @@ fn test_abstract_group_asymmetric_azulene_magnetic_field_bw_c2v_c2_class_order()
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cis_cocl2h4o2_magnetic_field_c2() {
+fn test_group_abstract_asymmetric_cis_cocl2h4o2_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.2, 0.0)));
-    test_abstract_group(&mol, thresh, "C2", 2, 2, true);
+    test_group_abstract(&mol, thresh, "C2", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2() {
+fn test_group_abstract_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5289,7 +5305,7 @@ fn test_abstract_group_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2_class_order() {
+fn test_group_abstract_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5302,16 +5318,16 @@ fn test_abstract_group_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2_class_o
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cuneane_magnetic_field_c2() {
+fn test_group_abstract_asymmetric_cuneane_magnetic_field_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
-    test_abstract_group(&mol, thresh, "C2", 2, 2, true);
+    test_group_abstract(&mol, thresh, "C2", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cuneane_magnetic_field_bw_c2v_c2() {
+fn test_group_abstract_asymmetric_cuneane_magnetic_field_bw_c2v_c2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5320,7 +5336,7 @@ fn test_abstract_group_asymmetric_cuneane_magnetic_field_bw_c2v_c2() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cuneane_magnetic_field_bw_c2v_c2_class_order() {
+fn test_group_abstract_asymmetric_cuneane_magnetic_field_bw_c2v_c2_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5337,23 +5353,23 @@ C2v
 ***/
 
 #[test]
-fn test_abstract_group_asymmetric_water_c2v() {
+fn test_group_abstract_asymmetric_water_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2v", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2v", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_water_c2v_class_order() {
+fn test_group_abstract_asymmetric_water_c2v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C2|", "|σv|", "|σv|^(')"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C2|", "|σv|", "|σv|^(')"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_water_grey_c2v() {
+fn test_group_abstract_asymmetric_water_grey_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5361,7 +5377,7 @@ fn test_abstract_group_asymmetric_water_grey_c2v() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_water_grey_c2v_class_order() {
+fn test_group_abstract_asymmetric_water_grey_c2v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5382,23 +5398,23 @@ fn test_abstract_group_asymmetric_water_grey_c2v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyridine_c2v() {
+fn test_group_abstract_asymmetric_pyridine_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2v", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2v", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyridine_c2v_class_order() {
+fn test_group_abstract_asymmetric_pyridine_c2v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C2|", "|σv|", "|σv|^(')"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C2|", "|σv|", "|σv|^(')"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyridine_grey_c2v() {
+fn test_group_abstract_asymmetric_pyridine_grey_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5406,7 +5422,7 @@ fn test_abstract_group_asymmetric_pyridine_grey_c2v() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyridine_grey_c2v_class_order() {
+fn test_group_abstract_asymmetric_pyridine_grey_c2v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5427,40 +5443,40 @@ fn test_abstract_group_asymmetric_pyridine_grey_c2v_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cyclobutene_c2v() {
+fn test_group_abstract_asymmetric_cyclobutene_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2v", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2v", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_azulene_c2v() {
+fn test_group_abstract_asymmetric_azulene_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2v", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2v", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cuneane_c2v() {
+fn test_group_abstract_asymmetric_cuneane_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2v", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2v", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_bf3_electric_field_c2v() {
+fn test_group_abstract_asymmetric_bf3_electric_field_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.2, 0.0, 0.0)));
-    test_abstract_group(&mol, thresh, "C2v", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2v", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_bf3_electric_field_grey_c2v() {
+fn test_group_abstract_asymmetric_bf3_electric_field_grey_c2v() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5473,23 +5489,23 @@ C2h
 ***/
 
 #[test]
-fn test_abstract_group_asymmetric_h2o2_c2h() {
+fn test_group_abstract_asymmetric_h2o2_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2h", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2h", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_h2o2_c2h_class_order() {
+fn test_group_abstract_asymmetric_h2o2_c2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C2|", "|i|", "|σh|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C2|", "|i|", "|σh|"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_h2o2_grey_c2h() {
+fn test_group_abstract_asymmetric_h2o2_grey_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5497,7 +5513,7 @@ fn test_abstract_group_asymmetric_h2o2_grey_c2h() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_h2o2_grey_c2h_class_order() {
+fn test_group_abstract_asymmetric_h2o2_grey_c2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5518,23 +5534,23 @@ fn test_abstract_group_asymmetric_h2o2_grey_c2h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_zethrene_c2h() {
+fn test_group_abstract_asymmetric_zethrene_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/zethrene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C2h", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2h", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_zethrene_c2h_class_order() {
+fn test_group_abstract_asymmetric_zethrene_c2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/zethrene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C2|", "|i|", "|σh|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C2|", "|i|", "|σh|"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_zethrene_grey_c2h() {
+fn test_group_abstract_asymmetric_zethrene_grey_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/zethrene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5542,7 +5558,7 @@ fn test_abstract_group_asymmetric_zethrene_grey_c2h() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_zethrene_grey_c2h_class_order() {
+fn test_group_abstract_asymmetric_zethrene_grey_c2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/zethrene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5563,16 +5579,16 @@ fn test_abstract_group_asymmetric_zethrene_grey_c2h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_distorted_vf6_magnetic_field_c2h() {
+fn test_group_abstract_asymmetric_distorted_vf6_magnetic_field_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    test_abstract_group(&mol, thresh, "C2h", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2h", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h() {
+fn test_group_abstract_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5581,7 +5597,7 @@ fn test_abstract_group_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h_class_order() {
+fn test_group_abstract_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5603,16 +5619,16 @@ fn test_abstract_group_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h_class_
 }
 
 #[test]
-fn test_abstract_group_asymmetric_b2h6_magnetic_field_c2h() {
+fn test_group_abstract_asymmetric_b2h6_magnetic_field_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    test_abstract_group(&mol, thresh, "C2h", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2h", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_b2h6_magnetic_field_bw_d2h_c2h() {
+fn test_group_abstract_asymmetric_b2h6_magnetic_field_bw_d2h_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5621,7 +5637,7 @@ fn test_abstract_group_asymmetric_b2h6_magnetic_field_bw_d2h_c2h() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_b2h6_magnetic_field_bw_d2h_c2h_class_order() {
+fn test_group_abstract_asymmetric_b2h6_magnetic_field_bw_d2h_c2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5643,25 +5659,25 @@ fn test_abstract_group_asymmetric_b2h6_magnetic_field_bw_d2h_c2h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_naphthalene_magnetic_field_c2h() {
+fn test_group_abstract_asymmetric_naphthalene_magnetic_field_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 1.0, 0.0)));
-    test_abstract_group(&mol, thresh, "C2h", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2h", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyrene_magnetic_field_c2h() {
+fn test_group_abstract_asymmetric_pyrene_magnetic_field_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C2h", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2h", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyrene_magnetic_field_bw_d2h_c2h() {
+fn test_group_abstract_asymmetric_pyrene_magnetic_field_bw_d2h_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5670,7 +5686,7 @@ fn test_abstract_group_asymmetric_pyrene_magnetic_field_bw_d2h_c2h() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyrene_magnetic_field_bw_d2h_c2h_class_order() {
+fn test_group_abstract_asymmetric_pyrene_magnetic_field_bw_d2h_c2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5692,16 +5708,16 @@ fn test_abstract_group_asymmetric_pyrene_magnetic_field_bw_d2h_c2h_class_order()
 }
 
 #[test]
-fn test_abstract_group_asymmetric_c6o6_magnetic_field_c2h() {
+fn test_group_abstract_asymmetric_c6o6_magnetic_field_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C2h", 4, 4, true);
+    test_group_abstract(&mol, thresh, "C2h", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_c6o6_magnetic_field_bw_d2h_c2h() {
+fn test_group_abstract_asymmetric_c6o6_magnetic_field_bw_d2h_c2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5710,7 +5726,7 @@ fn test_abstract_group_asymmetric_c6o6_magnetic_field_bw_d2h_c2h() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_c6o6_magnetic_field_bw_d2h_c2h_class_order() {
+fn test_group_abstract_asymmetric_c6o6_magnetic_field_bw_d2h_c2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5736,23 +5752,23 @@ Cs
 */
 
 #[test]
-fn test_abstract_group_asymmetric_propene_cs() {
+fn test_group_abstract_asymmetric_propene_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_propene_cs_class_order() {
+fn test_group_abstract_asymmetric_propene_cs_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|σh|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|σh|"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_propene_grey_cs() {
+fn test_group_abstract_asymmetric_propene_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5760,7 +5776,7 @@ fn test_abstract_group_asymmetric_propene_grey_cs() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_propene_grey_cs_class_order() {
+fn test_group_abstract_asymmetric_propene_grey_cs_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5768,23 +5784,23 @@ fn test_abstract_group_asymmetric_propene_grey_cs_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_socl2_cs() {
+fn test_group_abstract_asymmetric_socl2_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/socl2.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_socl2_cs_class_order() {
+fn test_group_abstract_asymmetric_socl2_cs_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/socl2.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|σh|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|σh|"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_socl2_grey_cs() {
+fn test_group_abstract_asymmetric_socl2_grey_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/socl2.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5792,7 +5808,7 @@ fn test_abstract_group_asymmetric_socl2_grey_cs() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_socl2_grey_cs_class_order() {
+fn test_group_abstract_asymmetric_socl2_grey_cs_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/socl2.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -5800,81 +5816,81 @@ fn test_abstract_group_asymmetric_socl2_grey_cs_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_hocl_cs() {
+fn test_group_abstract_asymmetric_hocl_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/hocl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_hocn_cs() {
+fn test_group_abstract_asymmetric_hocn_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/hocn.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_nh2f_cs() {
+fn test_group_abstract_asymmetric_nh2f_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh2f.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_phenol_cs() {
+fn test_group_abstract_asymmetric_phenol_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/phenol.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_f_pyrrole_cs() {
+fn test_group_abstract_asymmetric_f_pyrrole_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/f-pyrrole.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_n2o_cs() {
+fn test_group_abstract_asymmetric_n2o_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n2o.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_fclbenzene_cs() {
+fn test_group_abstract_asymmetric_fclbenzene_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/fclbenzene.xyz");
     let thresh = 1e-5;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_water_magnetic_field_cs() {
+fn test_group_abstract_asymmetric_water_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_water_magnetic_field_cs_class_order() {
+fn test_group_abstract_asymmetric_water_magnetic_field_cs_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|σh|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|σh|"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_water_magnetic_field_bw_c2v_cs() {
+fn test_group_abstract_asymmetric_water_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5883,7 +5899,7 @@ fn test_abstract_group_asymmetric_water_magnetic_field_bw_c2v_cs() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_water_magnetic_field_bw_c2v_cs_class_order() {
+fn test_group_abstract_asymmetric_water_magnetic_field_bw_c2v_cs_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5892,16 +5908,16 @@ fn test_abstract_group_asymmetric_water_magnetic_field_bw_c2v_cs_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyridine_magnetic_field_cs() {
+fn test_group_abstract_asymmetric_pyridine_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyridine_magnetic_field_bw_c2v_cs() {
+fn test_group_abstract_asymmetric_pyridine_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5910,7 +5926,7 @@ fn test_abstract_group_asymmetric_pyridine_magnetic_field_bw_c2v_cs() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyridine_magnetic_field_bw_c2v_cs_class_order() {
+fn test_group_abstract_asymmetric_pyridine_magnetic_field_bw_c2v_cs_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5919,16 +5935,16 @@ fn test_abstract_group_asymmetric_pyridine_magnetic_field_bw_c2v_cs_class_order(
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cyclobutene_magnetic_field_cs() {
+fn test_group_abstract_asymmetric_cyclobutene_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.1, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs() {
+fn test_group_abstract_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5937,7 +5953,7 @@ fn test_abstract_group_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs_class_order() {
+fn test_group_abstract_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5946,16 +5962,16 @@ fn test_abstract_group_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs_class_ord
 }
 
 #[test]
-fn test_abstract_group_asymmetric_azulene_magnetic_field_cs() {
+fn test_group_abstract_asymmetric_azulene_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.1, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_azulene_magnetic_field_bw_c2v_cs() {
+fn test_group_abstract_asymmetric_azulene_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -5964,7 +5980,7 @@ fn test_abstract_group_asymmetric_azulene_magnetic_field_bw_c2v_cs() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_azulene_magnetic_field_bw_c2v_cs_class_order() {
+fn test_group_abstract_asymmetric_azulene_magnetic_field_bw_c2v_cs_class_order() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
@@ -5974,25 +5990,25 @@ fn test_abstract_group_asymmetric_azulene_magnetic_field_bw_c2v_cs_class_order()
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cis_cocl2h4o2_magnetic_field_cs() {
+fn test_group_abstract_asymmetric_cis_cocl2h4o2_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cuneane_magnetic_field_cs() {
+fn test_group_abstract_asymmetric_cuneane_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cuneane_magnetic_field_bw_c2v_cs() {
+fn test_group_abstract_asymmetric_cuneane_magnetic_field_bw_c2v_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -6001,7 +6017,7 @@ fn test_abstract_group_asymmetric_cuneane_magnetic_field_bw_c2v_cs() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cuneane_magnetic_field_bw_c2v_cs_class_order() {
+fn test_group_abstract_asymmetric_cuneane_magnetic_field_bw_c2v_cs_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -6010,89 +6026,89 @@ fn test_abstract_group_asymmetric_cuneane_magnetic_field_bw_c2v_cs_class_order()
 }
 
 #[test]
-fn test_abstract_group_asymmetric_water_electric_field_cs() {
+fn test_group_abstract_asymmetric_water_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyridine_electric_field_cs() {
+fn test_group_abstract_asymmetric_pyridine_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 0.2)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cyclobutene_electric_field_cs() {
+fn test_group_abstract_asymmetric_cyclobutene_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cyclobutene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_azulene_electric_field_cs() {
+fn test_group_abstract_asymmetric_azulene_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/azulene.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cis_cocl2h4o2_electric_field_cs() {
+fn test_group_abstract_asymmetric_cis_cocl2h4o2_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 0.2)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_cuneane_electric_field_cs() {
+fn test_group_abstract_asymmetric_cuneane_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cuneane.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.5, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_bf3_magnetic_field_cs() {
+fn test_group_abstract_asymmetric_bf3_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 /// This is a special case: Cs point group in a symmetric top.
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_cs() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_cs_class_order() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_cs_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|σh|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|σh|"]);
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_bw_c2v_cs() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_bw_c2v_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-7;
@@ -6102,7 +6118,7 @@ fn test_abstract_group_symmetric_ch4_magnetic_field_bw_c2v_cs() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_bw_c2v_cs_class_order() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_bw_c2v_cs_class_order() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
@@ -6113,22 +6129,22 @@ fn test_abstract_group_symmetric_ch4_magnetic_field_bw_c2v_cs_class_order() {
 
 /// This is another special case: Cs point group in a symmetric top.
 #[test]
-fn test_abstract_group_symmetric_ch4_electric_field_cs() {
+fn test_group_abstract_symmetric_ch4_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_atom_magnetic_electric_field_cs() {
+fn test_group_abstract_asymmetric_atom_magnetic_electric_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
-    test_abstract_group(&mol, thresh, "Cs", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Cs", 2, 2, true);
 }
 
 /*
@@ -6136,23 +6152,23 @@ D2
 */
 
 #[test]
-fn test_abstract_group_asymmetric_i4_biphenyl_d2() {
+fn test_group_abstract_asymmetric_i4_biphenyl_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2", 4, 4, true);
+    test_group_abstract(&mol, thresh, "D2", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_i4_biphenyl_d2_class_order() {
+fn test_group_abstract_asymmetric_i4_biphenyl_d2_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|C2|", "|C2|^(')", "|C2|^('')"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|C2|", "|C2|^(')", "|C2|^('')"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_i4_biphenyl_grey_d2() {
+fn test_group_abstract_asymmetric_i4_biphenyl_grey_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6160,7 +6176,7 @@ fn test_abstract_group_asymmetric_i4_biphenyl_grey_d2() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_i4_biphenyl_grey_d2_class_order() {
+fn test_group_abstract_asymmetric_i4_biphenyl_grey_d2_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6181,19 +6197,19 @@ fn test_abstract_group_asymmetric_i4_biphenyl_grey_d2_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_twistane_d2() {
+fn test_group_abstract_asymmetric_twistane_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/twistane.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2", 4, 4, true);
+    test_group_abstract(&mol, thresh, "D2", 4, 4, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_22_paracyclophane_d2() {
+fn test_group_abstract_asymmetric_22_paracyclophane_d2() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/paracyclophane22.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2", 4, 4, true);
+    test_group_abstract(&mol, thresh, "D2", 4, 4, true);
 }
 
 /***
@@ -6201,19 +6217,19 @@ D2h
 ***/
 
 #[test]
-fn test_abstract_group_asymmetric_b2h6_d2h() {
+fn test_group_abstract_asymmetric_b2h6_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2h", 8, 8, true);
+    test_group_abstract(&mol, thresh, "D2h", 8, 8, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_b2h6_d2h_class_order() {
+fn test_group_abstract_asymmetric_b2h6_d2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -6230,7 +6246,7 @@ fn test_abstract_group_asymmetric_b2h6_d2h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_b2h6_grey_d2h() {
+fn test_group_abstract_asymmetric_b2h6_grey_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6238,7 +6254,7 @@ fn test_abstract_group_asymmetric_b2h6_grey_d2h() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_b2h6_grey_d2h_class_order() {
+fn test_group_abstract_asymmetric_b2h6_grey_d2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6267,19 +6283,19 @@ fn test_abstract_group_asymmetric_b2h6_grey_d2h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_naphthalene_d2h() {
+fn test_group_abstract_asymmetric_naphthalene_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2h", 8, 8, true);
+    test_group_abstract(&mol, thresh, "D2h", 8, 8, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_naphthalene_d2h_class_order() {
+fn test_group_abstract_asymmetric_naphthalene_d2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -6296,7 +6312,7 @@ fn test_abstract_group_asymmetric_naphthalene_d2h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_naphthalene_grey_d2h() {
+fn test_group_abstract_asymmetric_naphthalene_grey_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6304,7 +6320,7 @@ fn test_abstract_group_asymmetric_naphthalene_grey_d2h() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_naphthalene_grey_d2h_class_order() {
+fn test_group_abstract_asymmetric_naphthalene_grey_d2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/naphthalene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6333,19 +6349,19 @@ fn test_abstract_group_asymmetric_naphthalene_grey_d2h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyrene_d2h() {
+fn test_group_abstract_asymmetric_pyrene_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2h", 8, 8, true);
+    test_group_abstract(&mol, thresh, "D2h", 8, 8, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyrene_d2h_class_order() {
+fn test_group_abstract_asymmetric_pyrene_d2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(
+    test_group_abstract_class_order(
         &mol,
         thresh,
         &[
@@ -6362,7 +6378,7 @@ fn test_abstract_group_asymmetric_pyrene_d2h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyrene_grey_d2h() {
+fn test_group_abstract_asymmetric_pyrene_grey_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6370,7 +6386,7 @@ fn test_abstract_group_asymmetric_pyrene_grey_d2h() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_pyrene_grey_d2h_class_order() {
+fn test_group_abstract_asymmetric_pyrene_grey_d2h_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6399,19 +6415,19 @@ fn test_abstract_group_asymmetric_pyrene_grey_d2h_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_c6o6_d2h() {
+fn test_group_abstract_asymmetric_c6o6_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c6o6.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2h", 8, 8, true);
+    test_group_abstract(&mol, thresh, "D2h", 8, 8, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_distorted_vf6_d2h() {
+fn test_group_abstract_asymmetric_distorted_vf6_d2h() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "D2h", 8, 8, true);
+    test_group_abstract(&mol, thresh, "D2h", 8, 8, true);
 }
 
 /***
@@ -6419,23 +6435,23 @@ Ci
 ***/
 
 #[test]
-fn test_abstract_group_asymmetric_meso_tartaricacid_ci() {
+fn test_group_abstract_asymmetric_meso_tartaricacid_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Ci", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Ci", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_meso_tartaricacid_ci_class_order() {
+fn test_group_abstract_asymmetric_meso_tartaricacid_ci_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|i|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|i|"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_meso_tartaricacid_grey_ci() {
+fn test_group_abstract_asymmetric_meso_tartaricacid_grey_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6443,7 +6459,7 @@ fn test_abstract_group_asymmetric_meso_tartaricacid_grey_ci() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_meso_tartaricacid_grey_ci_class_order() {
+fn test_group_abstract_asymmetric_meso_tartaricacid_grey_ci_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6451,33 +6467,33 @@ fn test_abstract_group_asymmetric_meso_tartaricacid_grey_ci_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_dibromodimethylcyclohexane_ci() {
+fn test_group_abstract_asymmetric_dibromodimethylcyclohexane_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/dibromodimethylcyclohexane.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "Ci", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Ci", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_h2o2_magnetic_field_ci() {
+fn test_group_abstract_asymmetric_h2o2_magnetic_field_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
-    test_abstract_group(&mol, thresh, "Ci", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Ci", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_h2o2_magnetic_field_ci_class_order() {
+fn test_group_abstract_asymmetric_h2o2_magnetic_field_ci_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
-    test_abstract_group_class_order(&mol, thresh, &["|E|", "|i|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|", "|i|"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_h2o2_magnetic_field_bw_c2h_ci() {
+fn test_group_abstract_asymmetric_h2o2_magnetic_field_bw_c2h_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2_yz.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -6486,7 +6502,7 @@ fn test_abstract_group_asymmetric_h2o2_magnetic_field_bw_c2h_ci() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_h2o2_magnetic_field_bw_c2h_ci_class_order() {
+fn test_group_abstract_asymmetric_h2o2_magnetic_field_bw_c2h_ci_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2_yz.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -6495,41 +6511,41 @@ fn test_abstract_group_asymmetric_h2o2_magnetic_field_bw_c2h_ci_class_order() {
 }
 
 #[test]
-fn test_abstract_group_symmetric_xef4_magnetic_field_ci() {
+fn test_group_abstract_symmetric_xef4_magnetic_field_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -2.0)));
-    test_abstract_group(&mol, thresh, "Ci", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Ci", 2, 2, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_c2h2_magnetic_field_ci() {
+fn test_group_abstract_asymmetric_c2h2_magnetic_field_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
-    test_abstract_group(&mol, thresh, "Ci", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Ci", 2, 2, true);
 }
 
 /// This is a special case: Ci from S2 via symmetric top.
 #[test]
-fn test_abstract_group_symmetric_vf6_magnetic_field_ci() {
+fn test_group_abstract_symmetric_vf6_magnetic_field_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
-    test_abstract_group(&mol, thresh, "Ci", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Ci", 2, 2, true);
 }
 
 /// This is a special case: Ci from S2 via symmetric top.
 #[test]
-fn test_abstract_group_symmetric_c60_magnetic_field_ci() {
+fn test_group_abstract_symmetric_c60_magnetic_field_ci() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
-    test_abstract_group(&mol, thresh, "Ci", 2, 2, true);
+    test_group_abstract(&mol, thresh, "Ci", 2, 2, true);
 }
 
 /***
@@ -6537,23 +6553,23 @@ C1
 ***/
 
 #[test]
-fn test_abstract_group_asymmetric_butan1ol_c1() {
+fn test_group_abstract_asymmetric_butan1ol_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C1", 1, 1, true);
+    test_group_abstract(&mol, thresh, "C1", 1, 1, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_butan1ol_c1_class_order() {
+fn test_group_abstract_asymmetric_butan1ol_c1_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group_class_order(&mol, thresh, &["|E|"]);
+    test_group_abstract_class_order(&mol, thresh, &["|E|"]);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_butan1ol_grey_c1() {
+fn test_group_abstract_asymmetric_butan1ol_grey_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6561,7 +6577,7 @@ fn test_abstract_group_asymmetric_butan1ol_grey_c1() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_butan1ol_grey_c1_class_order() {
+fn test_group_abstract_asymmetric_butan1ol_grey_c1_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -6569,48 +6585,48 @@ fn test_abstract_group_asymmetric_butan1ol_grey_c1_class_order() {
 }
 
 #[test]
-fn test_abstract_group_asymmetric_subst_5m_ring_c1() {
+fn test_group_abstract_asymmetric_subst_5m_ring_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/subst-5m-ring.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_abstract_group(&mol, thresh, "C1", 1, 1, true);
+    test_group_abstract(&mol, thresh, "C1", 1, 1, true);
 }
 
 #[test]
-fn test_abstract_group_asymmetric_bf3_magnetic_field_c1() {
+fn test_group_abstract_asymmetric_bf3_magnetic_field_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
-    test_abstract_group(&mol, thresh, "C1", 1, 1, true);
+    test_group_abstract(&mol, thresh, "C1", 1, 1, true);
 }
 
 /// This is a special case: C1 via symmetric top.
 #[test]
-fn test_abstract_group_symmetric_ch4_magnetic_field_c1() {
+fn test_group_abstract_symmetric_ch4_magnetic_field_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -3.0, 2.0)));
-    test_abstract_group(&mol, thresh, "C1", 1, 1, true);
+    test_group_abstract(&mol, thresh, "C1", 1, 1, true);
 }
 
 /// This is a special case: C1 via symmetric top.
 #[test]
-fn test_abstract_group_symmetric_vf6_electric_field_c1() {
+fn test_group_abstract_symmetric_vf6_electric_field_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
-    test_abstract_group(&mol, thresh, "C1", 1, 1, true);
+    test_group_abstract(&mol, thresh, "C1", 1, 1, true);
 }
 
 /// This is a special case: C1 via symmetric top.
 #[test]
-fn test_abstract_group_symmetric_c60_electric_field_c1() {
+fn test_group_abstract_symmetric_c60_electric_field_c1() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
-    test_abstract_group(&mol, thresh, "C1", 1, 1, true);
+    test_group_abstract(&mol, thresh, "C1", 1, 1, true);
 }

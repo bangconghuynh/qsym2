@@ -115,7 +115,7 @@ pub trait LinearSpaceSymbol: MathematicalSymbol {
 }
 
 /// A trait for symbols describing collections of objects.
-trait CollectionSymbol: MathematicalSymbol {
+pub trait CollectionSymbol: MathematicalSymbol {
     /// The size of the collection.
     fn size(&self) -> usize;
 }
@@ -729,6 +729,10 @@ impl<R: Clone> Hash for ClassSymbol<R> {
 impl<R: Clone> ClassSymbol<R> {
     fn builder() -> ClassSymbolBuilder<R> {
         ClassSymbolBuilder::default()
+    }
+
+    pub fn representative(&self) -> Option<R> {
+        self.representative.clone()
     }
 }
 
