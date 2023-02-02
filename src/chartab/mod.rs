@@ -18,7 +18,7 @@ pub mod reducedint;
 pub mod unityroot;
 
 /// A trait to contain essential methods for a character table.
-pub trait CharacterTable<RowSymbol, ColSymbol>
+pub trait CharacterTable<RowSymbol, ColSymbol>: Clone
 where
     RowSymbol: MathematicalSymbol,
     ColSymbol: MathematicalSymbol,
@@ -61,6 +61,12 @@ where
     ///
     /// The required characters.
     fn get_col(&self, col: &ColSymbol) -> ArrayView1<Character>;
+
+    fn get_all_rows(&self) -> IndexSet<RowSymbol>;
+
+    fn get_all_cols(&self) -> IndexSet<ColSymbol>;
+
+    fn array(&self) -> &Array2<Character>;
 
     /// Gets the order of the group.
     ///
@@ -282,6 +288,18 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
         self.characters.column(*col)
     }
 
+    fn get_all_rows(&self) -> IndexSet<MullikenIrrepSymbol> {
+        self.irreps.keys().cloned().collect::<IndexSet<_>>()
+    }
+
+    fn get_all_cols(&self) -> IndexSet<ClassSymbol<R>> {
+        self.classes.keys().cloned().collect::<IndexSet<_>>()
+    }
+
+    fn array(&self) -> &Array2<Character> {
+        &self.characters
+    }
+
     /// Gets the order of the group.
     ///
     /// # Returns
@@ -486,13 +504,17 @@ impl<R: Clone> fmt::Debug for RepCharacterTable<R> {
 
 /// A struct to manage character tables of irreducible corepresentations of magnetic groups.
 #[derive(Builder, Clone)]
-pub struct CorepCharacterTable<R: Clone> {
+pub struct CorepCharacterTable<R, U>
+where
+    R: Clone,
+    U: CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>>,
+{
     /// The name given to the character table.
     pub name: String,
 
     /// The character table of the irreducible representations of the halving unitary subgroup that
     /// induce the irreducible corepresentations of the current magnetic group.
-    pub unitary_character_table: RepCharacterTable<R>,
+    pub unitary_character_table: U,
 
     /// The irreducible corepresentations of the group and their row indices in the character
     /// table.
@@ -511,8 +533,12 @@ pub struct CorepCharacterTable<R: Clone> {
     pub intertwining_numbers: IndexMap<MullikenIrcorepSymbol, u8>,
 }
 
-impl<R: Clone> CorepCharacterTable<R> {
-    fn builder() -> CorepCharacterTableBuilder<R> {
+impl<R, U> CorepCharacterTable<R, U>
+where
+    R: Clone,
+    U: CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>>,
+{
+    fn builder() -> CorepCharacterTableBuilder<R, U> {
         CorepCharacterTableBuilder::default()
     }
 
@@ -537,7 +563,8 @@ impl<R: Clone> CorepCharacterTable<R> {
     /// Panics if the character table cannot be constructed.
     pub fn new(
         name: &str,
-        unitary_chartab: RepCharacterTable<R>,
+        // unitary_chartab: RepCharacterTable<R>,
+        unitary_chartab: U,
         ircoreps: &[MullikenIrcorepSymbol],
         classes: &[ClassSymbol<R>],
         principal_classes: &[ClassSymbol<R>],
@@ -579,11 +606,12 @@ impl<R: Clone> CorepCharacterTable<R> {
             .build()
             .expect("Unable to construct a character table.")
     }
-
 }
 
-impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
-    for CorepCharacterTable<R>
+impl<R, U> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>> for CorepCharacterTable<R, U>
+where
+    R: Clone,
+    U: CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>>,
 {
     /// Retrieves the character of a particular irreducible corepresentation in a particular
     /// unitary conjugacy class.
@@ -648,6 +676,18 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
         self.characters.column(*col)
     }
 
+    fn get_all_rows(&self) -> IndexSet<MullikenIrcorepSymbol> {
+        self.ircoreps.keys().cloned().collect::<IndexSet<_>>()
+    }
+
+    fn get_all_cols(&self) -> IndexSet<ClassSymbol<R>> {
+        self.classes.keys().cloned().collect::<IndexSet<_>>()
+    }
+
+    fn array(&self) -> &Array2<Character> {
+        &self.characters
+    }
+
     /// Gets the order of the group.
     ///
     /// # Returns
@@ -656,7 +696,6 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
     fn get_order(&self) -> usize {
         2 * self.unitary_character_table.get_order()
     }
-
 
     /// Prints a nicely formatted character table.
     ///
@@ -782,8 +821,9 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
         write!(f, "{heading}")?;
 
         // Table body
-        let rows = iter::zip(self.ircoreps.keys(), ircoreps_str).enumerate().map(
-            |(i, (ircorep, ircorep_str))| {
+        let rows = iter::zip(self.ircoreps.keys(), ircoreps_str)
+            .enumerate()
+            .map(|(i, (ircorep, ircorep_str))| {
                 let intertwining_number =
                     self.intertwining_numbers.get(ircorep).unwrap_or_else(|| {
                         panic!("Unable to obtain the intertwining_number for ircorep `{ircorep}`.")
@@ -800,8 +840,7 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
 
                 line.push_str(&line_chars);
                 line
-            },
-        );
+            });
 
         write!(
             f,
@@ -821,7 +860,11 @@ impl<R: Clone> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>>
 // -------
 // Display
 // -------
-impl<R: Clone> fmt::Display for CorepCharacterTable<R> {
+impl<R, U> fmt::Display for CorepCharacterTable<R, U>
+where
+    R: Clone,
+    U: CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>>,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, Some(3))
     }
@@ -830,9 +873,12 @@ impl<R: Clone> fmt::Display for CorepCharacterTable<R> {
 // -----
 // Debug
 // -----
-impl<R: Clone> fmt::Debug for CorepCharacterTable<R> {
+impl<R, U> fmt::Debug for CorepCharacterTable<R, U>
+where
+    R: Clone,
+    U: CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>>,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, None)
     }
 }
-

@@ -130,8 +130,12 @@ fn test_irrep_character_table_validity(
 }
 
 fn test_ircorep_character_table_algebraic_validity(
-    chartab: &CorepCharacterTable<SymmetryOperation>,
-    group: &MagneticRepresentedGroup<SymmetryOperation>,
+    chartab: &CorepCharacterTable<SymmetryOperation, RepCharacterTable<SymmetryOperation>>,
+    group: &MagneticRepresentedGroup<
+        SymmetryOperation,
+        UnitaryRepresentedGroup<SymmetryOperation>,
+        RepCharacterTable<SymmetryOperation>,
+    >,
 ) {
     // Theorem 7.5, Newmarch, J. D. Some character theory for groups of linear and antilinear
     // operators. J. Math. Phys. 24, 742–756 (1983).
@@ -220,11 +224,11 @@ fn test_character_table_construction_magnetic_group(
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
 
-    // let unitary_group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
-    // let irrep_chartab = unitary_group.character_table();
-    // println!("{irrep_chartab:?}");
-    // assert_eq!(irrep_chartab.name, expected_name);
-    // test_irrep_character_table_validity(irrep_chartab, expected_irreps, expected_chars_option);
+    let unitary_group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
+    let irrep_chartab = unitary_group.character_table();
+    println!("{irrep_chartab:?}");
+    assert_eq!(irrep_chartab.name, expected_name);
+    test_irrep_character_table_validity(irrep_chartab, expected_irreps, expected_chars_option);
 
     let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
     let ircorep_chartab = magnetic_group.character_table();

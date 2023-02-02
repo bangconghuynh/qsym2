@@ -7,9 +7,10 @@ use indexmap::IndexMap;
 use log;
 use ndarray::{Array2, Zip};
 
-use crate::chartab::{CorepCharacterTable, RepCharacterTable};
+use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
 use crate::group::class::{ClassProperties, ClassStructure};
 use crate::symmetry::symmetry_element::symmetry_operation::FiniteOrder;
+use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
 
 #[cfg(test)]
 mod group_tests;
@@ -117,8 +118,8 @@ where
     ///
     /// # Arguments
     ///
-    /// * name - A name to be given to the abstract group.
-    /// * elements - A vector of *all* group elements.
+    /// * `name` - A name to be given to the abstract group.
+    /// * `elements` - A vector of *all* group elements.
     ///
     /// # Returns
     ///
@@ -161,7 +162,7 @@ pub trait GroupProperties
 where
     Self::GroupElement:
         Mul<Output = Self::GroupElement> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
-    for<'a, 'b> &'b Self::GroupElement: Mul<&'a Self::GroupElement, Output = Self::GroupElement>,
+    // for<'a, 'b> &'b Self::GroupElement: Mul<&'a Self::GroupElement, Output = Self::GroupElement>,
 {
     /// The type of the elements in the group.
     type GroupElement;
@@ -291,8 +292,8 @@ where
     ///
     /// # Arguments
     ///
-    /// * name - A name to be given to the unitary-represented group.
-    /// * elements - A vector of *all* group elements.
+    /// * `name` - A name to be given to the unitary-represented group.
+    /// * `elements` - A vector of *all* group elements.
     ///
     /// # Returns
     ///
@@ -328,9 +329,11 @@ where
 
 /// A structure for managing groups with magnetic corepresentations.
 #[derive(Clone, Builder)]
-struct MagneticRepresentedGroup<T>
+struct MagneticRepresentedGroup<T, U, UC>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    U: Clone + GroupProperties<GroupElement = T>,
+    UC: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>
 {
     /// A name for the magnetic-represented group.
     name: String,
@@ -345,7 +348,7 @@ where
 
     /// The subgroup consisting of unitary-represented elements in the full group.
     #[builder(setter(custom))]
-    unitary_subgroup: UnitaryRepresentedGroup<T>,
+    unitary_subgroup: U,
 
     /// The class structure of this magnetic-represented group that is induced by the following
     /// equivalence relation:
@@ -355,19 +358,22 @@ where
     ///     g^{-1} a^{-1},
     /// ```
     ///
-    /// where $`u`$ is unitary-represented and $`a`$ is antiunitary-represented.
+    /// where $`u`$ is unitary-represented (*i.e.* $`u`$ is in [`Self::unitary_subgroup`]) and
+    /// $`a`$ is antiunitary-represented (*i.e.* $`a`$ is not in [`Self::unitary_subgroup`]).
     #[builder(setter(skip), default = "None")]
     class_structure: Option<ClassStructure<T>>,
 
     /// The character table for the irreducible corepresentations of this group.
     #[builder(setter(skip), default = "None")]
-    pub ircorep_character_table: Option<CorepCharacterTable<T>>,
+    pub ircorep_character_table: Option<CorepCharacterTable<T, UC>>,
 }
 
-impl<T> MagneticRepresentedGroupBuilder<T>
+impl<T, U, UC> MagneticRepresentedGroupBuilder<T, U, UC>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    U: Clone + GroupProperties<GroupElement = T>,
+    UC: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>
 {
     fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
         if name_opt.is_some() {
@@ -387,14 +393,8 @@ where
         }
         self
     }
-}
 
-impl<T> MagneticRepresentedGroupBuilder<T>
-where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
-    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-{
-    fn unitary_subgroup(&mut self, uni_subgrp: UnitaryRepresentedGroup<T>) -> &mut Self {
+    fn unitary_subgroup(&mut self, uni_subgrp: U) -> &mut Self {
         assert!(uni_subgrp.elements().iter().all(|(op, _)| self
             .abstract_group
             .as_ref()
@@ -406,33 +406,37 @@ where
     }
 }
 
-impl<T> MagneticRepresentedGroup<T>
+impl<T, U, UC> MagneticRepresentedGroup<T, U, UC>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    U: Clone + GroupProperties<GroupElement = T>,
+    UC: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>
 {
     /// Returns a builder to construct a new magnetic-represented group.
     ///
     /// # Returns
     ///
     /// A builder to construct a new magnetic-represented group.
-    fn builder() -> MagneticRepresentedGroupBuilder<T> {
-        MagneticRepresentedGroupBuilder::<T>::default()
+    fn builder() -> MagneticRepresentedGroupBuilder<T, U, UC> {
+        MagneticRepresentedGroupBuilder::<T, U, UC>::default()
     }
 
-    /// Constructs a magnetic-represented group from its elements.
+    /// Constructs a magnetic-represented group from its elements and the unitary subgroup.
     ///
     /// # Arguments
     ///
-    /// * name - A name to be given to the group.
-    /// * elements - A vector of *all* group elements.
+    /// * `name` - A name to be given to the magnetic-reprented group.
+    /// * `elements` - A vector of *all* group elements.
+    /// * `unitary_subgroup` - The unitary subgroup of the magnetic-represented group.
     ///
     /// # Returns
     ///
-    /// A group with its Cayley table constructed and conjugacy classes determined.
-    fn new(name: &str, elements: Vec<T>, unitary_subgroup: UnitaryRepresentedGroup<T>) -> Self {
+    /// A magnetic-represented group with its Cayley table constructed and conjugacy classes
+    /// determined.
+    fn new(name: &str, elements: Vec<T>, unitary_subgroup: U) -> Self {
         let abstract_group = Group::<T>::new(name, elements);
-        let mut magnetic_group = MagneticRepresentedGroup::<T>::builder()
+        let mut magnetic_group = MagneticRepresentedGroup::<T, U, UC>::builder()
             .name(name.to_string())
             .abstract_group(abstract_group)
             .unitary_subgroup(unitary_subgroup)
@@ -451,10 +455,12 @@ where
     }
 }
 
-impl<T> GroupProperties for MagneticRepresentedGroup<T>
+impl<T, U, UC> GroupProperties for MagneticRepresentedGroup<T, U, UC>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    U: Clone + GroupProperties<GroupElement = T>,
+    UC: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>
 {
     type GroupElement = T;
 

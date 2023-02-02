@@ -32,7 +32,7 @@ pub trait CharacterProperties<R, C>
 where
     R: MathematicalSymbol,
     C: MathematicalSymbol,
-    Self::CharTab: CharacterTable<R, C>,
+    Self::CharTab: Clone + CharacterTable<R, C>,
 {
     type CharTab;
 
@@ -521,7 +521,8 @@ where
     }
 }
 
-impl<T> CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<T>> for MagneticRepresentedGroup<T>
+impl<T, U> CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<T>>
+    for MagneticRepresentedGroup<T, U, U::CharTab>
 where
     T: Mul<Output = T>
         + Hash
@@ -533,10 +534,13 @@ where
         + Pow<i32, Output = T>
         + SpecialSymmetryTransformation,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-    // impl CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<SymmetryOperation>>
-    //     for MagneticRepresentedGroup<SymmetryOperation>
+    U: Clone
+        + GroupProperties<GroupElement = T>
+        + ClassProperties<ClassElement = T>
+        + CharacterProperties<MullikenIrrepSymbol, ClassSymbol<T>>,
+    U::CharTab: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>
 {
-    type CharTab = CorepCharacterTable<T>;
+    type CharTab = CorepCharacterTable<T, U::CharTab>;
 
     fn character_table(&self) -> &Self::CharTab {
         self.ircorep_character_table
@@ -577,11 +581,11 @@ where
             .find(|(op, _)| op.is_antiunitary())
             .expect("No antiunitary elements found in the magnetic group.");
 
-        let mut remaining_irreps = unitary_chartab.irreps.clone();
+        let mut remaining_irreps = unitary_chartab.get_all_rows().clone();
         remaining_irreps.reverse();
 
         let mut ircoreps_ins: Vec<(MullikenIrcorepSymbol, u8)> = Vec::new();
-        while let Some((irrep, _)) = remaining_irreps.pop() {
+        while let Some(irrep) = remaining_irreps.pop() {
             log::debug!("Considering irrep {irrep} of the unitary subgroup...");
             let char_sum = self
                 .elements()
@@ -657,8 +661,8 @@ where
                 // Irreducible corepresentation type c
                 // Δ(u) is inequivalent to Δ*[a^(-1)ua].
                 // Δ(u) and Δ*[a^(-1)ua] are contained the induced irreducible corepresentation.
-                let irrep_conj_chars: Vec<Character> = unitary_chartab.classes.iter().map(|(cc, cc_idx)| {
-                    let u_unitary_idx = self.unitary_subgroup.conjugacy_classes()[*cc_idx]
+                let irrep_conj_chars: Vec<Character> = unitary_chartab.get_all_cols().iter().enumerate().map(|(cc_idx, cc)| {
+                    let u_unitary_idx = self.unitary_subgroup.conjugacy_classes()[cc_idx]
                         .iter()
                         .next()
                         .unwrap_or_else(|| panic!("No unitary elements found for conjugacy class `{cc}`."));
@@ -693,14 +697,15 @@ where
                         .unwrap_or_else(|| panic!("Unable to retrieve the class for `{a0invua0:?}` in the unitary subgroup."));
                     unitary_chartab.get_character(&irrep, a0invua0_unitary_class).complex_conjugate()
                 }).collect();
-                let (conj_irrep, _) = unitary_chartab
-                    .irreps
+                let all_irreps = unitary_chartab.get_all_rows();
+                let (_, conj_irrep) = all_irreps
                     .iter()
-                    .find(|(_, &irrep_idx)| {
-                        unitary_chartab.characters.row(irrep_idx).to_vec() == irrep_conj_chars
+                    .enumerate()
+                    .find(|(irrep_idx, _)| {
+                        unitary_chartab.array().row(*irrep_idx).to_vec() == irrep_conj_chars
                     })
                     .unwrap_or_else(|| panic!("Conjugate irrep for {irrep} not found."));
-                assert!(remaining_irreps.remove(conj_irrep).is_some());
+                assert!(remaining_irreps.remove(conj_irrep));
 
                 log::debug!("  The Wigner-conjugate irrep of {irrep} is {conj_irrep}.");
                 log::debug!("  Ircorep induced by {irrep} and {conj_irrep} is of type (c) with intertwining number 2.");

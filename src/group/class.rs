@@ -9,7 +9,8 @@ use itertools::Itertools;
 use ndarray::{s, Array2, Array3, Axis};
 
 use crate::symmetry::symmetry_element::symmetry_operation::FiniteOrder;
-use crate::symmetry::symmetry_symbols::ClassSymbol;
+use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
+use crate::chartab::CharacterTable;
 
 use super::{Group, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 
@@ -419,10 +420,12 @@ where
     }
 }
 
-impl<T> ClassProperties for MagneticRepresentedGroup<T>
+impl<T, U, UC> ClassProperties for MagneticRepresentedGroup<T, U, UC>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    U: Clone + GroupProperties<GroupElement = T>,
+    UC: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>
 {
     type ClassElement = T;
 
