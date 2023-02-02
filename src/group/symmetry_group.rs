@@ -4,6 +4,7 @@ use indexmap::IndexMap;
 
 use super::{GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::group::class::ClassProperties;
+use crate::group::construct_chartab::CharacterProperties;
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::SymmetryOperation;
@@ -25,7 +26,89 @@ pub trait SymmetryGroupProperties: ClassProperties<ClassElement = SymmetryOperat
     /// A finite abstract group struct.
     fn from_molecular_symmetry(sym: &Symmetry, infinite_order_to_finite: Option<u32>) -> Self;
 
-    fn set_finite_group_name(&mut self);
+    fn finite_group_name(&mut self) -> String {
+        let finite_group = if self.name().contains('∞') {
+            // C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d, or the corresponding grey groups
+            if self.name().as_bytes()[0] == b'D' {
+                if matches!(
+                    self.name()
+                        .as_bytes()
+                        .iter()
+                        .last()
+                        .expect("The last character in the group name cannot be retrieved."),
+                    b'h' | b'd'
+                ) {
+                    if self.name().contains('θ') {
+                        assert_eq!(self.abstract_group().order() % 8, 0);
+                        self.name()
+                            .replace('∞', format!("{}", self.abstract_group().order() / 8).as_str())
+                    } else {
+                        assert_eq!(self.abstract_group().order() % 4, 0);
+                        self.name()
+                            .replace('∞', format!("{}", self.abstract_group().order() / 4).as_str())
+                    }
+                } else {
+                    if self.name().contains('θ') {
+                        assert_eq!(self.abstract_group().order() % 4, 0);
+                        self.name()
+                            .replace('∞', format!("{}", self.abstract_group().order() / 4).as_str())
+                    } else {
+                        assert_eq!(self.abstract_group().order() % 2, 0);
+                        self.name()
+                            .replace('∞', format!("{}", self.abstract_group().order() / 2).as_str())
+                    }
+                }
+            } else {
+                assert!(matches!(self.name().as_bytes()[0], b'C' | b'S'));
+                if matches!(
+                    self.name()
+                        .as_bytes()
+                        .iter()
+                        .last()
+                        .expect("The last character in the group name cannot be retrieved."),
+                    b'h' | b'v'
+                ) {
+                    if self.name().contains('θ') {
+                        assert_eq!(self.abstract_group().order() % 4, 0);
+                    } else {
+                        assert_eq!(self.abstract_group().order() % 2, 0);
+                    }
+                    if self.abstract_group().order() > 2 {
+                        if self.name().contains('θ') {
+                            self.name().replace(
+                                '∞',
+                                format!("{}", self.abstract_group().order() / 4).as_str(),
+                            )
+                        } else {
+                            self.name().replace(
+                                '∞',
+                                format!("{}", self.abstract_group().order() / 2).as_str(),
+                            )
+                        }
+                    } else {
+                        assert_eq!(self.name().as_bytes()[0], b'C');
+                        "Cs".to_string()
+                    }
+                } else {
+                    self.name()
+                        .replace('∞', format!("{}", self.abstract_group().order()).as_str())
+                }
+            }
+        } else if self.name().contains("O(3)") {
+            // O(3) or the corresponding grey group
+            match self.abstract_group().order() {
+                8 => "D2h".to_string(),
+                16 => "D2h + θ·D2h".to_string(),
+                48 => "Oh".to_string(),
+                96 => "Oh + θ·Oh".to_string(),
+                _ => panic!("Unsupported number of group elements for a finite group of O(3)."),
+            }
+        } else {
+            // This is already a finite group.
+            self.name().to_string()
+        };
+        finite_group
+    }
 
     /// Returns `true` if all elements in this group are unitary.
     fn all_unitary(&self) -> bool {
@@ -179,94 +262,11 @@ impl SymmetryGroupProperties for UnitaryRepresentedGroup<SymmetryOperation> {
 
         let mut group = Self::new(group_name.as_str(), sorted_operations);
         if handles_infinite_group.is_some() {
-            group.set_finite_group_name();
+            group.finite_subgroup_name = Some(group.finite_group_name());
         }
         group.set_class_symbols_from_symmetry();
+        group.construct_character_table();
         group
-    }
-
-    fn set_finite_group_name(&mut self) {
-        let finite_group = if self.name.contains('∞') {
-            // C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d, or the corresponding grey groups
-            if self.name.as_bytes()[0] == b'D' {
-                if matches!(
-                    self.name
-                        .as_bytes()
-                        .iter()
-                        .last()
-                        .expect("The last character in the group name cannot be retrieved."),
-                    b'h' | b'd'
-                ) {
-                    if self.name.contains('θ') {
-                        assert_eq!(self.abstract_group.order() % 8, 0);
-                        self.name
-                            .replace('∞', format!("{}", self.abstract_group.order() / 8).as_str())
-                    } else {
-                        assert_eq!(self.abstract_group.order() % 4, 0);
-                        self.name
-                            .replace('∞', format!("{}", self.abstract_group.order() / 4).as_str())
-                    }
-                } else {
-                    if self.name.contains('θ') {
-                        assert_eq!(self.abstract_group.order() % 4, 0);
-                        self.name
-                            .replace('∞', format!("{}", self.abstract_group.order() / 4).as_str())
-                    } else {
-                        assert_eq!(self.abstract_group.order() % 2, 0);
-                        self.name
-                            .replace('∞', format!("{}", self.abstract_group.order() / 2).as_str())
-                    }
-                }
-            } else {
-                assert!(matches!(self.name.as_bytes()[0], b'C' | b'S'));
-                if matches!(
-                    self.name
-                        .as_bytes()
-                        .iter()
-                        .last()
-                        .expect("The last character in the group name cannot be retrieved."),
-                    b'h' | b'v'
-                ) {
-                    if self.name.contains('θ') {
-                        assert_eq!(self.abstract_group.order() % 4, 0);
-                    } else {
-                        assert_eq!(self.abstract_group.order() % 2, 0);
-                    }
-                    if self.abstract_group.order() > 2 {
-                        if self.name.contains('θ') {
-                            self.name.replace(
-                                '∞',
-                                format!("{}", self.abstract_group.order() / 4).as_str(),
-                            )
-                        } else {
-                            self.name.replace(
-                                '∞',
-                                format!("{}", self.abstract_group.order() / 2).as_str(),
-                            )
-                        }
-                    } else {
-                        assert_eq!(self.name.as_bytes()[0], b'C');
-                        "Cs".to_string()
-                    }
-                } else {
-                    self.name
-                        .replace('∞', format!("{}", self.abstract_group.order()).as_str())
-                }
-            }
-        } else if self.name.contains("O(3)") {
-            // O(3) or the corresponding grey group
-            match self.abstract_group.order() {
-                8 => "D2h".to_string(),
-                16 => "D2h + θ·D2h".to_string(),
-                48 => "Oh".to_string(),
-                96 => "Oh + θ·Oh".to_string(),
-                _ => panic!("Unsupported number of group elements for a finite group of O(3)."),
-            }
-        } else {
-            // This is already a finite group.
-            self.name.clone()
-        };
-        self.finite_subgroup_name = Some(finite_group);
     }
 }
 
@@ -302,120 +302,10 @@ impl SymmetryGroupProperties for MagneticRepresentedGroup<SymmetryOperation> {
 
         let mut group = Self::new(group_name.as_str(), sorted_operations);
         if handles_infinite_group.is_some() {
-            group.set_finite_group_name();
+            group.finite_subgroup_name = Some(group.finite_group_name());
         }
         group.set_class_symbols_from_symmetry();
+        group.construct_character_table();
         group
-
-        // group.construct_irrep_character_table();
-        // if !group.is_unitary() {
-        //     let unitary_elements = group
-        //         .elements
-        //         .iter()
-        //         .filter_map(|(op, _)| {
-        //             if !op.is_antiunitary() {
-        //                 Some(op.clone())
-        //             } else {
-        //                 None
-        //             }
-        //         })
-        //         .collect_vec();
-        //     // let mut group = Group::<SymmetryOperation>::new(group_name.as_str(), sorted_operations);
-        //     let mut unitary_subgroup = UnitaryRepresentedGroup::<SymmetryOperation>::new(
-        //         format!("U({})", group.name).as_str(),
-        //         unitary_elements,
-        //     );
-        //     unitary_subgroup.finite_subgroup_name = group
-        //         .finite_subgroup_name
-        //         .as_ref()
-        //         .map(|finite_group| format!("U({finite_group})"));
-        //     unitary_subgroup.assign_class_symbols_from_symmetry();
-        //     unitary_subgroup.construct_irrep_character_table();
-        //     group.construct_ircorep_character_table(unitary_subgroup);
-        // }
-    }
-
-    fn set_finite_group_name(&mut self) {
-        let finite_group = if self.name.contains('∞') {
-            // C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d, or the corresponding grey groups
-            if self.name.as_bytes()[0] == b'D' {
-                if matches!(
-                    self.name
-                        .as_bytes()
-                        .iter()
-                        .last()
-                        .expect("The last character in the group name cannot be retrieved."),
-                    b'h' | b'd'
-                ) {
-                    if self.name.contains('θ') {
-                        assert_eq!(self.abstract_group.order() % 8, 0);
-                        self.name
-                            .replace('∞', format!("{}", self.abstract_group.order() / 8).as_str())
-                    } else {
-                        assert_eq!(self.abstract_group.order() % 4, 0);
-                        self.name
-                            .replace('∞', format!("{}", self.abstract_group.order() / 4).as_str())
-                    }
-                } else {
-                    if self.name.contains('θ') {
-                        assert_eq!(self.abstract_group.order() % 4, 0);
-                        self.name
-                            .replace('∞', format!("{}", self.abstract_group.order() / 4).as_str())
-                    } else {
-                        assert_eq!(self.abstract_group.order() % 2, 0);
-                        self.name
-                            .replace('∞', format!("{}", self.abstract_group.order() / 2).as_str())
-                    }
-                }
-            } else {
-                assert!(matches!(self.name.as_bytes()[0], b'C' | b'S'));
-                if matches!(
-                    self.name
-                        .as_bytes()
-                        .iter()
-                        .last()
-                        .expect("The last character in the group name cannot be retrieved."),
-                    b'h' | b'v'
-                ) {
-                    if self.name.contains('θ') {
-                        assert_eq!(self.abstract_group.order() % 4, 0);
-                    } else {
-                        assert_eq!(self.abstract_group.order() % 2, 0);
-                    }
-                    if self.abstract_group.order() > 2 {
-                        if self.name.contains('θ') {
-                            self.name.replace(
-                                '∞',
-                                format!("{}", self.abstract_group.order() / 4).as_str(),
-                            )
-                        } else {
-                            self.name.replace(
-                                '∞',
-                                format!("{}", self.abstract_group.order() / 2).as_str(),
-                            )
-                        }
-                    } else {
-                        assert_eq!(self.name.as_bytes()[0], b'C');
-                        "Cs".to_string()
-                    }
-                } else {
-                    self.name
-                        .replace('∞', format!("{}", self.abstract_group.order()).as_str())
-                }
-            }
-        } else if self.name.contains("O(3)") {
-            // O(3) or the corresponding grey group
-            match self.abstract_group.order() {
-                8 => "D2h".to_string(),
-                16 => "D2h + θ·D2h".to_string(),
-                48 => "Oh".to_string(),
-                96 => "Oh + θ·Oh".to_string(),
-                _ => panic!("Unsupported number of group elements for a finite group of O(3)."),
-            }
-        } else {
-            // This is already a finite group.
-            self.name.clone()
-        };
-        self.finite_subgroup_name = Some(finite_group);
     }
 }

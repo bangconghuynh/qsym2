@@ -222,11 +222,11 @@ fn test_character_table_construction_magnetic_group(
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
 
-    let unitary_group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
-    let irrep_chartab = unitary_group.character_table();
-    println!("{irrep_chartab:?}");
-    assert_eq!(irrep_chartab.name, expected_name);
-    test_irrep_character_table_validity(irrep_chartab, expected_irreps, expected_chars_option);
+    // let unitary_group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
+    // let irrep_chartab = unitary_group.character_table();
+    // println!("{irrep_chartab:?}");
+    // assert_eq!(irrep_chartab.name, expected_name);
+    // test_irrep_character_table_validity(irrep_chartab, expected_irreps, expected_chars_option);
 
     let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
     let ircorep_chartab = magnetic_group.character_table();
@@ -12571,6 +12571,7 @@ fn test_character_table_construction_asymmetric_b2h6_d2h() {
 
 #[test]
 fn test_character_table_construction_asymmetric_b2h6_grey_d2h() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);

@@ -20,8 +20,9 @@ use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
+use crate::group::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    FiniteOrder, SpecialSymmetryTransformation,
+    FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, ClassSymbol,
@@ -521,20 +522,22 @@ where
     }
 }
 
-impl<T> CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<T>> for MagneticRepresentedGroup<T>
-where
-    T: Hash
-        + Eq
-        + Clone
-        + Sync
-        + Send
-        + fmt::Debug
-        + Pow<i32, Output = T>
-        + SpecialSymmetryTransformation
-        + FiniteOrder<Int = u32>,
-    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+// impl<T> CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<T>> for MagneticRepresentedGroup<T>
+// where
+//     T: Hash
+//         + Eq
+//         + Clone
+//         + Sync
+//         + Send
+//         + fmt::Debug
+//         + Pow<i32, Output = T>
+//         + SpecialSymmetryTransformation
+//         + FiniteOrder<Int = u32>,
+//     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+impl CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<SymmetryOperation>>
+    for MagneticRepresentedGroup<SymmetryOperation>
 {
-    type CharTab = CorepCharacterTable<T>;
+    type CharTab = CorepCharacterTable<SymmetryOperation>;
 
     fn character_table(&self) -> &Self::CharTab {
         self.ircorep_character_table
@@ -548,6 +551,7 @@ where
         log::debug!("Construction of ircorep character table begins.");
         log::debug!("===============================================");
 
+        log::debug!("Constructing the unitary subgroup...");
         let unitary_elements = self
             .elements()
             .iter()
@@ -560,13 +564,19 @@ where
             })
             .collect::<Vec<_>>();
         let mut unitary_subgroup =
-            UnitaryRepresentedGroup::<T>::new(self.name.as_str(), unitary_elements);
+            UnitaryRepresentedGroup::<SymmetryOperation>::new(self.name.as_str(), unitary_elements);
         unitary_subgroup.finite_subgroup_name = self
             .finite_subgroup_name
             .as_ref()
             .map(|finite_group| format!("U({finite_group})"));
+        unitary_subgroup.set_class_symbols_from_symmetry();
+        unitary_subgroup.construct_character_table();
+        log::debug!("Constructing the unitary subgroup... Done.");
 
         if unitary_subgroup.order() == self.order() {
+            log::debug!(
+                "The unitary subgroup order and the full group order are both {}. This is not a magnetic group.", self.order()
+            );
             // This is not a magnetic group. There is nothing to do.
             return;
         }
@@ -581,7 +591,6 @@ where
         let unitary_chartab = unitary_subgroup.character_table();
 
         let mag_ctb = self.cayley_table();
-        let mag_e2c = self.element_to_conjugacy_classes();
         let uni_e2c = unitary_subgroup.element_to_conjugacy_classes();
         let mag_ccsyms = self.conjugacy_class_symbols();
         let uni_ccsyms = unitary_subgroup.conjugacy_class_symbols();
@@ -601,20 +610,22 @@ where
                 .elements()
                 .iter()
                 .filter(|(op, _)| op.is_antiunitary())
-                .fold(Character::zero(), |acc, (_, a_idx)| {
-                    let a2_idx = mag_ctb[(*a_idx, *a_idx)];
-                    let (a2_class, _) = mag_ccsyms
-                        .get_index(mag_e2c.get(a2_idx).unwrap_or_else(|| {
-                            panic!("Conjugacy class of element index `{a2_idx}` not found.")
-                        }).unwrap_or_else(|| {
-                            panic!("Element index `{a2_idx}` does not have a conjugacy class, probably because it is antiunitary.")
-                        }))
-                        .unwrap_or_else(|| {
-                            panic!(
-                                "Unable to obtain the conjugacy class symbol for element {a2_idx}."
-                            )
-                        });
-                    acc + unitary_chartab.get_character(&irrep, a2_class)
+                .fold(Character::zero(), |acc, (_, a_mag_idx)| {
+                    let a2_mag_idx = mag_ctb[(*a_mag_idx, *a_mag_idx)];
+                    let (a2, _) = self.elements().get_index(a2_mag_idx).unwrap_or_else(|| {
+                        panic!("Element index `{a2_mag_idx}` not found in the magnetic group.")
+                    });
+                    let a2_uni_idx = *unitary_subgroup.elements().get(a2).unwrap_or_else(|| {
+                        panic!("Element `{a2:?}` not found in the unitary subgroup.")
+                    });
+                    let (a2_uni_class, _) = uni_ccsyms.get_index(
+                        uni_e2c[a2_uni_idx].unwrap_or_else(|| {
+                            panic!("Conjugacy class for `{a2:?}` not found in the unitary subgroup.")
+                        })
+                    ).unwrap_or_else(|| {
+                            panic!("Conjugacy class symbol for `{a2:?}` not found in the unitary subgroup.")
+                    });
+                    acc + unitary_chartab.get_character(&irrep, a2_uni_class)
                 })
                 .simplify();
             log::debug!("  Dimmock--Wheeler indicator for {irrep}: {char_sum}");
@@ -738,13 +749,15 @@ where
                         "No representative element found for magnetic conjugacy class {mag_cc}."
                     );
                 });
-                let mag_cc_uni_idx = *unitary_subgroup.elements().get(&mag_cc_rep).unwrap_or_else(
-                    || {
-                        panic!(
+                let mag_cc_uni_idx =
+                    *unitary_subgroup
+                        .elements()
+                        .get(&mag_cc_rep)
+                        .unwrap_or_else(|| {
+                            panic!(
                             "Index for element {mag_cc_rep:?} not found in the unitary subgroup."
                         );
-                    },
-                );
+                        });
                 let (uni_cc, _) = uni_ccsyms.get_index(
                     uni_e2c[mag_cc_uni_idx].unwrap_or_else(|| {
                         panic!("Unable to find the conjugacy class of element {mag_cc_rep:?} in the unitary subgroup.");
