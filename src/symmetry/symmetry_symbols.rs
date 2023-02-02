@@ -1011,8 +1011,6 @@ pub fn sort_irreps<R: Clone>(
     principal_classes: &[ClassSymbol<R>],
 ) -> Array2<Character> {
     log::debug!("Sorting irreducible representations...");
-    // let class_e =
-    //     ClassSymbol::new("1||E||", None).expect("Unable to construct class symbol `1||E||`.");
     let class_e = class_symbols.first().expect("No class symbols found.").0.clone();
     let class_i =
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
@@ -1217,8 +1215,6 @@ where
 {
     log::debug!("Generating Mulliken irreducible representation symbols...");
 
-    // let e_cc: ClassSymbol<R> =
-    //     ClassSymbol::new("1||E||", None).expect("Unable to construct class symbol `1||E||`.");
     let e_cc = class_symbols.first().expect("No class symbols found.").0.clone();
     let i_cc: ClassSymbol<R> =
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");

@@ -330,7 +330,7 @@ impl SymmetryGroupProperties for MagneticRepresentedGroup<SymmetryOperation> {
         let mut group = Self::new(
             group_name.as_str(),
             sorted_operations,
-            Some(unitary_subgroup),
+            unitary_subgroup,
         );
         if handles_infinite_group.is_some() {
             group.finite_subgroup_name = Some(group.finite_group_name());

@@ -8,9 +8,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use ndarray::{s, Array2, Array3, Axis};
 
-use crate::symmetry::symmetry_element::symmetry_operation::{
-    FiniteOrder, SpecialSymmetryTransformation,
-};
+use crate::symmetry::symmetry_element::symmetry_operation::FiniteOrder;
 use crate::symmetry::symmetry_symbols::ClassSymbol;
 
 use super::{Group, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
@@ -423,7 +421,7 @@ where
 
 impl<T> ClassProperties for MagneticRepresentedGroup<T>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder + SpecialSymmetryTransformation,
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     type ClassElement = T;
@@ -449,7 +447,7 @@ where
             .elements()
             .iter()
             .skip(1)
-            .filter_map(|(op, &i)| if op.is_antiunitary() { None } else { Some(i) })
+            .filter_map(|(op, &i)| if self.check_elem_antiunitary(op) { None } else { Some(i) })
             .collect::<HashSet<usize>>();
         let ctb = self
             .abstract_group
@@ -472,7 +470,7 @@ where
                 .unwrap_or_else(|| panic!("The inverse of `{g}` cannot be found."));
             let mut cur_cc = HashSet::from([g]);
             for (op, &s) in self.elements().iter() {
-                let h = if op.is_antiunitary() {
+                let h = if self.check_elem_antiunitary(op) {
                     // s denotes a.
                     let sginv = ctb[[s, ginv]];
                     let ctb_xs = ctb.slice(s![.., s]);
