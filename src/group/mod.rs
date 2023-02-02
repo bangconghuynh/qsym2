@@ -12,13 +12,15 @@ use crate::group::class::{ClassProperties, ClassStructure};
 use crate::symmetry::symmetry_element::symmetry_operation::FiniteOrder;
 use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
 
+mod class;
+mod construct_chartab;
+mod symmetry_group;
+
 #[cfg(test)]
 mod group_tests;
 
 #[cfg(test)]
 mod chartab_construction_tests;
-
-mod class;
 
 /// An enumerated type to contain information about the type of a group.
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
@@ -490,6 +492,3 @@ where
         &self.abstract_group
     }
 }
-
-mod construct_chartab;
-mod symmetry_group;

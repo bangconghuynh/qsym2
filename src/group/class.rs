@@ -19,24 +19,25 @@ pub struct ClassStructure<T>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
 {
-    /// A vector of conjugacy classes for this group.
+    /// A vector of conjugacy classes.
     ///
     /// Each element in the vector is a hashset containing the indices of the
-    /// elements in [`Self::elements`] for a particular conjugacy class. This
-    /// thus defines a multi-valued map from each conjugacy class index to one
-    /// or more element indices.
+    /// elements in a certain ordered collection of group elements for a particular conjugacy
+    /// class. This thus defines a multi-valued map from each conjugacy class index to one
+    /// or more element indices in said collection.
     conjugacy_classes: Vec<HashSet<usize>>,
 
-    /// The conjugacy class index of the elements in [`Self::elements`].
+    /// The conjugacy class index of the elements in a certain ordered collection of group
+    /// elements.
     ///
-    /// This is the so-called inverse of [`Self::conjugacy_classes`]. This maps
-    /// each element index to its corresponding conjugacy class index.
+    /// This is the so-called inverse map of [`Self::conjugacy_classes`]. This maps
+    /// each element index in said collection to its corresponding conjugacy class index.
     element_to_conjugacy_classes: Vec<Option<usize>>,
 
     /// The conjugacy class representatives of the group.
     ///
     /// Each element in the vector is an index for a representative element of the corresponding
-    /// conjugacy class.
+    /// conjugacy class in a certain ordered collection of group elements.
     #[builder(setter(custom))]
     conjugacy_class_transversal: Vec<usize>,
 
@@ -180,19 +181,6 @@ where
         self
     }
 
-    /// Calculates the class matrix $`\mathbf{N}`$ for the conjugacy classes in
-    /// the group.
-    ///
-    /// Let $`K_i`$ be the $`i^{\textrm{th}}`conjugacy class of the group. The
-    /// elements of the class matrix $`\mathbf{N}`$ are given by
-    ///
-    /// ```math
-    ///     N_{rst} = \lvert \{ (x, y) \in K_r \times K_s : xy = z \in K_t \} \rvert,
-    /// ```
-    ///
-    /// independent of any $`z \in K_t`$.
-    ///
-    /// This method sets the [`Self::class_matrix`] field.
     fn class_matrix(&mut self, ctb: &Array2<usize>) -> &mut Self {
         let class_number = self
             .conjugacy_classes
@@ -251,19 +239,21 @@ where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
 {
     /// Returns a builder to construct a new class structure.
-    ///
-    /// # Returns
-    ///
-    /// A builder to construct a new class structure.
     fn builder() -> ClassStructureBuilder<T> {
         ClassStructureBuilder::default()
     }
 
+    /// Returns the number of conjugacy classes in the class structure.
     #[must_use]
     fn class_number(&self) -> usize {
         self.conjugacy_classes.len()
     }
 
+    /// Constructs a new class structure.
+    ///
+    /// # Arguments
+    ///
+    /// * `group` - A group with a computed Cayley table.
     fn new(
         group: &Group<T>,
         conjugacy_classes: Vec<HashSet<usize>>,
