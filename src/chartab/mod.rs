@@ -502,7 +502,7 @@ impl<R: Clone> fmt::Debug for RepCharacterTable<R> {
 // CorepCharacterTable
 // ===================
 
-/// A struct to manage character tables of irreducible corepresentations of magnetic groups.
+/// A structure to manage character tables of irreducible corepresentations of magnetic groups.
 #[derive(Builder, Clone)]
 pub struct CorepCharacterTable<R, U>
 where
