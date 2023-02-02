@@ -444,102 +444,71 @@ where
     fn compute_class_structure(&mut self) {
         log::debug!("Finding magnetic conjugacy classes...");
         let order = self.abstract_group.order();
-        let (ccs, e2ccs) = if self.abstract_group.is_abelian() {
-            log::debug!("Abelian group found.");
-            // Abelian group; each unitary element is in its own conjugacy class.
-            (
-                self.elements()
-                    .iter()
-                    .filter_map(|(op, &i)| {
-                        if !op.is_antiunitary() {
-                            Some(HashSet::from([i]))
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<_>>(),
-                self.elements()
-                    .iter()
-                    .scan(0, |unitary_count, (op, _)| {
-                        if !op.is_antiunitary() {
-                            *unitary_count += 1;
-                            Some(Some(*unitary_count - 1))
-                        } else {
-                            Some(None)
-                        }
-                    })
-                    .collect::<Vec<_>>(),
-            )
-        } else {
-            // Non-Abelian group.
-            log::debug!("Non-Abelian group found.");
-            let mut ccs: Vec<HashSet<usize>> = vec![HashSet::from([0usize])];
-            let mut e2ccs = vec![None; order];
-            let mut remaining_unitary_elements = self
-                .elements()
-                .iter()
-                .skip(1)
-                .filter_map(|(op, &i)| if op.is_antiunitary() { None } else { Some(i) })
-                .collect::<HashSet<usize>>();
-            let ctb = self
-                .abstract_group
-                .cayley_table
-                .as_ref()
-                .expect("Cayley table not found.");
+        let mut ccs: Vec<HashSet<usize>> = vec![HashSet::from([0usize])];
+        let mut e2ccs = vec![None; order];
+        let mut remaining_unitary_elements = self
+            .elements()
+            .iter()
+            .skip(1)
+            .filter_map(|(op, &i)| if op.is_antiunitary() { None } else { Some(i) })
+            .collect::<HashSet<usize>>();
+        let ctb = self
+            .abstract_group
+            .cayley_table
+            .as_ref()
+            .expect("Cayley table not found.");
 
-            while !remaining_unitary_elements.is_empty() {
-                // For a fixed unitary g, find all unitary h such that ug = hu for all unitary u
-                // in the group, and all unitary h such that ag^(-1) = ha for all antiunitary a in
-                // the group.
-                let g = *remaining_unitary_elements
-                    .iter()
-                    .next()
-                    .expect("Unexpected empty `remaining_elements`.");
-                let ctb_xg = ctb.slice(s![.., g]);
-                let ginv = ctb_xg
-                    .iter()
-                    .position(|&x| x == 0)
-                    .unwrap_or_else(|| panic!("The inverse of `{g}` cannot be found."));
-                let mut cur_cc = HashSet::from([g]);
-                for (op, &s) in self.elements().iter() {
-                    let h = if op.is_antiunitary() {
-                        // s denotes a.
-                        let sginv = ctb[[s, ginv]];
-                        let ctb_xs = ctb.slice(s![.., s]);
-                        ctb_xs.iter().position(|&x| x == sginv).unwrap_or_else(|| {
-                            panic!("No element `{sginv}` can be found in column `{s}` of Cayley table.")
-                        })
-                    } else {
-                        // s denotes u.
-                        let sg = ctb[[s, g]];
-                        let ctb_xs = ctb.slice(s![.., s]);
-                        ctb_xs.iter().position(|&x| x == sg).unwrap_or_else(|| {
-                            panic!(
-                                "No element `{sg}` can be found in column `{s}` of Cayley table."
-                            )
-                        })
-                    };
-                    if remaining_unitary_elements.contains(&h) {
-                        remaining_unitary_elements.remove(&h);
-                        cur_cc.insert(h);
-                    }
+        while !remaining_unitary_elements.is_empty() {
+            // For a fixed unitary g, find all unitary h such that ug = hu for all unitary u
+            // in the group, and all unitary h such that ag^(-1) = ha for all antiunitary a in
+            // the group.
+            let g = *remaining_unitary_elements
+                .iter()
+                .next()
+                .expect("Unexpected empty `remaining_elements`.");
+            let ctb_xg = ctb.slice(s![.., g]);
+            let ginv = ctb_xg
+                .iter()
+                .position(|&x| x == 0)
+                .unwrap_or_else(|| panic!("The inverse of `{g}` cannot be found."));
+            let mut cur_cc = HashSet::from([g]);
+            for (op, &s) in self.elements().iter() {
+                let h = if op.is_antiunitary() {
+                    // s denotes a.
+                    let sginv = ctb[[s, ginv]];
+                    let ctb_xs = ctb.slice(s![.., s]);
+                    ctb_xs.iter().position(|&x| x == sginv).unwrap_or_else(|| {
+                        panic!("No element `{sginv}` can be found in column `{s}` of Cayley table.")
+                    })
+                } else {
+                    // s denotes u.
+                    let sg = ctb[[s, g]];
+                    let ctb_xs = ctb.slice(s![.., s]);
+                    ctb_xs.iter().position(|&x| x == sg).unwrap_or_else(|| {
+                        panic!(
+                            "No element `{sg}` can be found in column `{s}` of Cayley table."
+                        )
+                    })
+                };
+                if remaining_unitary_elements.contains(&h) {
+                    remaining_unitary_elements.remove(&h);
+                    cur_cc.insert(h);
                 }
-                ccs.push(cur_cc);
             }
-            ccs.sort_by_key(|cc| {
-                *cc.iter()
-                    .min()
-                    .expect("Unable to find the minimum element index in one conjugacy class.")
-            });
-            ccs.iter().enumerate().for_each(|(i, cc)| {
-                cc.iter().for_each(|&j| e2ccs[j] = Some(i));
-            });
-            assert!(e2ccs.iter().skip(1).all(|x_opt| if let Some(x) = x_opt { *x > 0 } else { true }));
-            (ccs, e2ccs)
-        };
-        log::debug!("Finding magnetic conjugacy classes... Done.");
+            ccs.push(cur_cc);
+        }
+        ccs.sort_by_key(|cc| {
+            *cc.iter()
+                .min()
+                .expect("Unable to find the minimum element index in one conjugacy class.")
+        });
+        ccs.iter().enumerate().for_each(|(i, cc)| {
+            cc.iter().for_each(|&j| e2ccs[j] = Some(i));
+        });
+        assert!(e2ccs.iter().skip(1).all(|x_opt| if let Some(x) = x_opt { *x > 0 } else { true }));
 
         let class_structure = ClassStructure::new(&self.abstract_group, ccs, e2ccs);
         self.class_structure = Some(class_structure);
+        log::debug!("Finding magnetic conjugacy classes... Done.");
     }
 }

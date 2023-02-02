@@ -160,10 +160,8 @@ fn test_ircorep_character_table_algebraic_validity(
             .intertwining_numbers
             .iter()
             .all(|(_, &intertwining_number)| intertwining_number == 1));
-        assert_eq!(chartab.characters.nrows(), chartab.characters.ncols());
-    } else {
-        assert!(chartab.characters.nrows() <= chartab.characters.ncols());
     }
+    assert_eq!(chartab.characters.nrows(), chartab.characters.ncols());
 
     // Sum of squared dimensions
     let unitary_order = chartab.get_order().div_euclid(2);
