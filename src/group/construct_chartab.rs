@@ -34,10 +34,14 @@ where
     C: MathematicalSymbol,
     Self::CharTab: Clone + CharacterTable<R, C>,
 {
+    /// Type of the character table of this group.
     type CharTab;
 
-    fn character_table(&self) -> &Self::CharTab;
+    /// Constructs the character table for this group.
     fn construct_character_table(&mut self);
+
+    /// Returns a shared reference to the character table of this group.
+    fn character_table(&self) -> &Self::CharTab;
 }
 
 impl<T> CharacterProperties<MullikenIrrepSymbol, ClassSymbol<T>> for UnitaryRepresentedGroup<T>
@@ -536,9 +540,9 @@ where
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     U: Clone
         + GroupProperties<GroupElement = T>
-        + ClassProperties<ClassElement = T>
+        + ClassProperties<GroupElement = T>
         + CharacterProperties<MullikenIrrepSymbol, ClassSymbol<T>>,
-    U::CharTab: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>
+    U::CharTab: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>,
 {
     type CharTab = CorepCharacterTable<T, U::CharTab>;
 
@@ -549,6 +553,10 @@ where
     }
 
     /// Constructs the ircorep character table for this group.
+    ///
+    /// For each irrep in the unitary subgroup, the type of the ircorep it induces is determined
+    /// using the Dimmock--Wheeler character test, then the ircorep's characters in the
+    /// unitary-represented part of the full group are determined to give a square character table.
     fn construct_character_table(&mut self) {
         log::debug!("===============================================");
         log::debug!("Construction of ircorep character table begins.");
@@ -562,8 +570,8 @@ where
             return;
         }
 
-        assert_eq!(self.order() % 2, 0);
-        assert_eq!(self.order().div_euclid(2), self.unitary_subgroup.order());
+        debug_assert_eq!(self.order() % 2, 0);
+        debug_assert_eq!(self.order().div_euclid(2), self.unitary_subgroup.order());
         let unitary_order: i32 = self
             .order()
             .div_euclid(2)

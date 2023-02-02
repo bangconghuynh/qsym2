@@ -250,7 +250,7 @@ fn test_group_abstract_class_matrices() {
 // ============================================
 
 fn verify_abstract_group(
-    group: &impl ClassProperties<ClassElement = SymmetryOperation>,
+    group: &impl ClassProperties<GroupElement = SymmetryOperation>,
     name: &str,
     order: usize,
     class_number: usize,

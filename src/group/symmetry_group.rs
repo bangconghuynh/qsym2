@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use indexmap::IndexMap;
-
 use super::{GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup};
-use crate::chartab::CharacterTable;
 use crate::group::class::ClassProperties;
 use crate::group::construct_chartab::CharacterProperties;
 use crate::symmetry::symmetry_core::Symmetry;
@@ -12,7 +9,7 @@ use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_symbols::{ClassSymbol, CollectionSymbol, MullikenIrrepSymbol};
 
-pub trait SymmetryGroupProperties: ClassProperties<ClassElement = SymmetryOperation> {
+pub trait SymmetryGroupProperties: ClassProperties<GroupElement = SymmetryOperation> {
     /// Constructs a group from molecular symmetry *elements* (not operations).
     ///
     /// # Arguments
@@ -24,10 +21,12 @@ pub trait SymmetryGroupProperties: ClassProperties<ClassElement = SymmetryOperat
     ///
     /// # Returns
     ///
-    /// A finite abstract group struct.
+    /// A finite group of symmetry operations.
     fn from_molecular_symmetry(sym: &Symmetry, infinite_order_to_finite: Option<u32>) -> Self;
 
-    fn finite_group_name(&mut self) -> String {
+    /// Deduces the group name in Schönflies notation of a finite subgroup of an infinite molecular
+    /// symmetry group.
+    fn deduce_finite_group_name(&mut self) -> String {
         let finite_group = if self.name().contains('∞') {
             // C∞, C∞h, C∞v, S∞, D∞, D∞h, D∞d, or the corresponding grey groups
             if self.name().as_bytes()[0] == b'D' {
@@ -124,6 +123,8 @@ pub trait SymmetryGroupProperties: ClassProperties<ClassElement = SymmetryOperat
         self.elements().keys().all(|op| !op.is_antiunitary())
     }
 
+    /// Determines whether this group is an ordinary (double) group, a magnetic grey (double)
+    /// group, or a magnetic black-and-white (double) group.
     fn group_type(&self) -> GroupType {
         if self.all_unitary() {
             GroupType::Ordinary(false)
@@ -138,6 +139,7 @@ pub trait SymmetryGroupProperties: ClassProperties<ClassElement = SymmetryOperat
         }
     }
 
+    /// Sets the conjugacy class symbols in this group based on molecular symmetry.
     fn set_class_symbols_from_symmetry(&mut self) {
         log::debug!("Assigning class symbols from symmetry operations...");
         let mut proper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
@@ -169,23 +171,14 @@ pub trait SymmetryGroupProperties: ClassProperties<ClassElement = SymmetryOperat
                     panic!("Unable to retrieve group element with index `{rep_ele_index}`.")
                 });
                 if rep_ele.is_identity() {
-                    (
-                        ClassSymbol::new("1||E||", Some(rep_ele.clone()))
-                            .expect("Unable to construct a class symbol from `1||E||`."),
-                        i,
-                    )
+                    ClassSymbol::new("1||E||", Some(rep_ele.clone()))
+                        .expect("Unable to construct a class symbol from `1||E||`.")
                 } else if rep_ele.is_inversion() {
-                    (
-                        ClassSymbol::new("1||i||", Some(rep_ele.clone()))
-                            .expect("Unable to construct a class symbol from `1||i||`."),
-                        i,
-                    )
+                    ClassSymbol::new("1||i||", Some(rep_ele.clone()))
+                        .expect("Unable to construct a class symbol from `1||i||`.")
                 } else if rep_ele.is_time_reversal() {
-                    (
-                        ClassSymbol::new("1||θ||", Some(rep_ele.clone()))
-                            .expect("Unable to construct a class symbol from `1||θ||`."),
-                        i,
-                    )
+                    ClassSymbol::new("1||θ||", Some(rep_ele.clone()))
+                        .expect("Unable to construct a class symbol from `1||θ||`.")
                 } else {
                     let rep_proper_order = rep_ele.generating_element.proper_order;
                     let rep_proper_power = rep_ele.generating_element.proper_power;
@@ -211,36 +204,33 @@ pub trait SymmetryGroupProperties: ClassProperties<ClassElement = SymmetryOperat
                         String::new()
                     };
                     let size = old_symbol.size();
-                    (
-                        ClassSymbol::new(
-                            format!(
-                                "{}||{}|^({})|",
-                                size,
-                                rep_ele.get_abbreviated_symbol(),
-                                dash
-                            )
-                            .as_str(),
-                            Some(rep_ele.clone()),
+                    ClassSymbol::new(
+                        format!(
+                            "{}||{}|^({})|",
+                            size,
+                            rep_ele.get_abbreviated_symbol(),
+                            dash
                         )
-                        .unwrap_or_else(|_| {
-                            panic!(
-                                "Unable to construct a class symbol from `{size}||{}|^({dash})|`",
-                                rep_ele.get_abbreviated_symbol()
-                            )
-                        }),
-                        i,
+                        .as_str(),
+                        Some(rep_ele.clone()),
                     )
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "Unable to construct a class symbol from `{size}||{}|^({dash})|`",
+                            rep_ele.get_abbreviated_symbol()
+                        )
+                    })
                 }
             })
-            .collect::<IndexMap<_, _>>();
+            .collect::<Vec<_>>();
         self.class_structure_mut()
-            .set_class_symbols(symmetry_class_symbols);
+            .set_class_symbols(&symmetry_class_symbols);
         log::debug!("Assigning class symbols from symmetry operations... Done.");
     }
 }
 
 impl SymmetryGroupProperties for UnitaryRepresentedGroup<SymmetryOperation> {
-    /// Constructs a unitary group from molecular symmetry *elements* (not operations).
+    /// Constructs a unitary-represented group from molecular symmetry *elements* (not operations).
     ///
     /// # Arguments
     ///
@@ -251,7 +241,7 @@ impl SymmetryGroupProperties for UnitaryRepresentedGroup<SymmetryOperation> {
     ///
     /// # Returns
     ///
-    /// A finite abstract group struct.
+    /// A unitary-represented group of the symmetry operations generated by `sym`.
     #[allow(clippy::too_many_lines)]
     fn from_molecular_symmetry(sym: &Symmetry, infinite_order_to_finite: Option<u32>) -> Self {
         let group_name = sym
@@ -271,7 +261,7 @@ impl SymmetryGroupProperties for UnitaryRepresentedGroup<SymmetryOperation> {
 
         let mut group = Self::new(group_name.as_str(), sorted_operations);
         if handles_infinite_group.is_some() {
-            group.finite_subgroup_name = Some(group.finite_group_name());
+            group.finite_subgroup_name = Some(group.deduce_finite_group_name());
         }
         group.set_class_symbols_from_symmetry();
         group.construct_character_table();
@@ -289,7 +279,7 @@ impl SymmetryGroupProperties
         >>::CharTab,
     >
 {
-    /// Constructs a magnetic group from molecular symmetry *elements* (not operations).
+    /// Constructs a magnetic-represented group from molecular symmetry *elements* (not operations).
     ///
     /// # Arguments
     ///
@@ -300,7 +290,11 @@ impl SymmetryGroupProperties
     ///
     /// # Returns
     ///
-    /// A finite abstract group struct.
+    /// A magnetic-represented group of the symmetry operations generated by `sym`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `sym` generates no antiunitary operations.
     #[allow(clippy::too_many_lines)]
     fn from_molecular_symmetry(sym: &Symmetry, infinite_order_to_finite: Option<u32>) -> Self {
         let group_name = sym
@@ -317,6 +311,11 @@ impl SymmetryGroupProperties
         };
 
         let sorted_operations = sym.generate_all_operations(infinite_order_to_finite);
+
+        assert!(
+            sorted_operations.iter().any(|op| op.is_antiunitary()),
+            "No antiunitary operations found from the `Symmetry` structure."
+        );
 
         log::debug!("Constructing the unitary subgroup for the magnetic group...");
         let unitary_operations = sorted_operations
@@ -337,12 +336,14 @@ impl SymmetryGroupProperties
         unitary_subgroup.construct_character_table();
         log::debug!("Constructing the unitary subgroup for the magnetic group... Done.");
 
+        log::debug!("Constructing the magnetic group...");
         let mut group = Self::new(group_name.as_str(), sorted_operations, unitary_subgroup);
         if handles_infinite_group.is_some() {
-            group.finite_subgroup_name = Some(group.finite_group_name());
+            group.finite_subgroup_name = Some(group.deduce_finite_group_name());
         }
         group.set_class_symbols_from_symmetry();
         group.construct_character_table();
+        log::debug!("Constructing the magnetic group... Done.");
         group
     }
 }

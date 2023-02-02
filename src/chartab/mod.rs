@@ -44,7 +44,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `irrep` - A Mulliken irreducible representation symbol.
+    /// * `row` - A row-labelling symbol.
     ///
     /// # Returns
     ///
@@ -55,24 +55,23 @@ where
     ///
     /// # Arguments
     ///
-    /// * `class` - A conjugacy class symbol.
+    /// * `col` - A column-labelling symbol.
     ///
     /// # Returns
     ///
     /// The required characters.
     fn get_col(&self, col: &ColSymbol) -> ArrayView1<Character>;
 
+    /// Retrieves the symbols of all rows in the character table.
     fn get_all_rows(&self) -> IndexSet<RowSymbol>;
 
+    /// Retrieves the symbols of all columns in the character table.
     fn get_all_cols(&self) -> IndexSet<ColSymbol>;
 
+    /// Returns a shared reference to the underlying array of the character table.
     fn array(&self) -> &Array2<Character>;
 
-    /// Gets the order of the group.
-    ///
-    /// # Returns
-    ///
-    /// The group order.
+    /// Retrieves the order of the group.
     fn get_order(&self) -> usize;
 
     /// Prints a nicely formatted character table.
@@ -288,23 +287,22 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
         self.characters.column(*col)
     }
 
+    /// Retrieves the Mulliken symbols of all irreducible representations of the group.
     fn get_all_rows(&self) -> IndexSet<MullikenIrrepSymbol> {
         self.irreps.keys().cloned().collect::<IndexSet<_>>()
     }
 
+    /// Retrieves the symbols of all conjugacy classes of the group.
     fn get_all_cols(&self) -> IndexSet<ClassSymbol<R>> {
         self.classes.keys().cloned().collect::<IndexSet<_>>()
     }
 
+    /// Returns a shared reference to the underlying array of the character table.
     fn array(&self) -> &Array2<Character> {
         &self.characters
     }
 
-    /// Gets the order of the group.
-    ///
-    /// # Returns
-    ///
-    /// The group order.
+    /// Retrieves the order of the group.
     fn get_order(&self) -> usize {
         self.classes
             .keys()
@@ -355,7 +353,7 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
             })
             .sum();
 
-        let name = format!("{} ({group_order})", self.name);
+        let name = format!("u {} ({group_order})", self.name);
         let chars_str = self.characters.map(|character| {
             if let Some(precision) = numerical {
                 let real_only = self.characters.iter().all(|character| {
@@ -676,23 +674,22 @@ where
         self.characters.column(*col)
     }
 
+    /// Retrieves the Mulliken symbols of all irreducible corepresentations of the group.
     fn get_all_rows(&self) -> IndexSet<MullikenIrcorepSymbol> {
         self.ircoreps.keys().cloned().collect::<IndexSet<_>>()
     }
 
+    /// Retrieves the symbols of all conjugacy classes of the group.
     fn get_all_cols(&self) -> IndexSet<ClassSymbol<R>> {
         self.classes.keys().cloned().collect::<IndexSet<_>>()
     }
 
+    /// Returns a shared reference to the underlying array of the character table.
     fn array(&self) -> &Array2<Character> {
         &self.characters
     }
 
-    /// Gets the order of the group.
-    ///
-    /// # Returns
-    ///
-    /// The group order.
+    /// Retrieves the order of the group.
     fn get_order(&self) -> usize {
         2 * self.unitary_character_table.get_order()
     }
