@@ -6,13 +6,12 @@ use derive_builder::Builder;
 use indexmap::IndexMap;
 use log;
 use ndarray::{Array2, Zip};
-use num_traits::Pow;
 
 use crate::chartab::{CorepCharacterTable, RepCharacterTable};
+use crate::group::class::{ClassProperties, ClassStructure};
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
 };
-use crate::group::class::{ClassStructure, ClassProperties};
 
 #[cfg(test)]
 mod group_tests;
@@ -61,7 +60,10 @@ const GRGRP: GroupType = GroupType::MagneticGrey(false);
 
 /// A struct for managing abstract groups.
 #[derive(Builder, Clone)]
-pub struct Group<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> {
+pub struct Group<T>
+where
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+{
     name: String,
 
     /// An ordered hash table containing the elements of the group. Each key is a group element,
@@ -81,7 +83,11 @@ pub struct Group<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> {
     cayley_table: Option<Array2<usize>>,
 }
 
-impl<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> GroupBuilder<T> {
+impl<T> GroupBuilder<T>
+where
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+{
     fn elements(&mut self, elems: Vec<T>) -> &mut Self {
         self.elements = Some(
             elems
@@ -96,7 +102,7 @@ impl<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> GroupBuilder<T> {
 
 impl<T> Group<T>
 where
-    T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Returns a builder to construct a new group.
@@ -105,7 +111,7 @@ where
     ///
     /// A builder to construct a new group.
     fn builder() -> GroupBuilder<T> {
-        GroupBuilder::default()
+        GroupBuilder::<T>::default()
     }
 
     /// Constructs a group from its elements.
@@ -153,7 +159,10 @@ where
 }
 
 pub trait GroupProperties
-where Self::GroupElement: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+where
+    Self::GroupElement:
+        Mul<Output = Self::GroupElement> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    for<'a, 'b> &'b Self::GroupElement: Mul<&'a Self::GroupElement, Output = Self::GroupElement>,
 {
     type GroupElement;
 
@@ -179,12 +188,17 @@ where Self::GroupElement: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     }
 
     fn cayley_table(&self) -> &Array2<usize> {
-        self.abstract_group().cayley_table.as_ref().expect("Cayley table not found for this group.")
+        self.abstract_group()
+            .cayley_table
+            .as_ref()
+            .expect("Cayley table not found for this group.")
     }
 }
 
 impl<T> GroupProperties for Group<T>
-where T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+where
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     type GroupElement = T;
 
@@ -198,7 +212,10 @@ where T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
 }
 
 #[derive(Clone, Builder)]
-struct UnitaryRepresentedGroup<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder> {
+struct UnitaryRepresentedGroup<T>
+where
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+{
     /// A name for the group.
     name: String,
 
@@ -218,7 +235,8 @@ struct UnitaryRepresentedGroup<T: Hash + Eq + Clone + Sync + fmt::Debug + Finite
 
 impl<T> UnitaryRepresentedGroupBuilder<T>
 where
-    T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
         if name_opt.is_some() {
@@ -242,7 +260,7 @@ where
 
 impl<T> UnitaryRepresentedGroup<T>
 where
-    T: Hash + Eq + Clone + Sync + Send + fmt::Debug + Pow<i32, Output = T> + FiniteOrder<Int = u32>,
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Returns a builder to construct a new unitary group.
@@ -251,7 +269,7 @@ where
     ///
     /// A builder to construct a new group.
     fn builder() -> UnitaryRepresentedGroupBuilder<T> {
-        UnitaryRepresentedGroupBuilder::default()
+        UnitaryRepresentedGroupBuilder::<T>::default()
     }
 
     /// Constructs a unitary group from its elements.
@@ -277,7 +295,9 @@ where
 }
 
 impl<T> GroupProperties for UnitaryRepresentedGroup<T>
-where T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+where
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     type GroupElement = T;
 
@@ -291,7 +311,17 @@ where T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
 }
 
 #[derive(Clone, Builder)]
-struct MagneticRepresentedGroup<T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder + SpecialSymmetryTransformation> {
+struct MagneticRepresentedGroup<T>
+where
+    T: Mul<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder
+        + SpecialSymmetryTransformation,
+{
     /// A name for the group.
     name: String,
 
@@ -300,6 +330,9 @@ struct MagneticRepresentedGroup<T: Hash + Eq + Clone + Sync + fmt::Debug + Finit
     finite_subgroup_name: Option<String>,
 
     abstract_group: Group<T>,
+
+    #[builder(setter(custom))]
+    unitary_subgroup: UnitaryRepresentedGroup<T>,
 
     #[builder(setter(skip), default = "None")]
     class_structure: Option<ClassStructure<T>>,
@@ -311,7 +344,15 @@ struct MagneticRepresentedGroup<T: Hash + Eq + Clone + Sync + fmt::Debug + Finit
 
 impl<T> MagneticRepresentedGroupBuilder<T>
 where
-    T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder + SpecialSymmetryTransformation,
+    T: Mul<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder
+        + SpecialSymmetryTransformation,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
         if name_opt.is_some() {
@@ -333,9 +374,56 @@ where
     }
 }
 
+impl<T> MagneticRepresentedGroupBuilder<T>
+where
+    T: Mul<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder
+        + SpecialSymmetryTransformation,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+{
+    fn unitary_subgroup(
+        &mut self,
+        uni_subgrp_opt: Option<UnitaryRepresentedGroup<T>>,
+    ) -> &mut Self {
+        self.unitary_subgroup = uni_subgrp_opt.or_else(|| {
+            let unitary_elements = self
+                .abstract_group
+                .as_ref()
+                .unwrap()
+                .elements
+                .iter()
+                .filter_map(|(op, _)| {
+                    if !op.is_antiunitary() {
+                        Some(op.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
+            Some(UnitaryRepresentedGroup::<T>::new(
+                &self.name.as_ref().unwrap(),
+                unitary_elements,
+            ))
+        });
+        self
+    }
+}
+
 impl<T> MagneticRepresentedGroup<T>
 where
-    T: Hash + Eq + Clone + Sync + Send + fmt::Debug + Pow<i32, Output = T> + FiniteOrder<Int = u32> + SpecialSymmetryTransformation,
+    T: Mul<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder
+        + SpecialSymmetryTransformation,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Returns a builder to construct a new unitary group.
@@ -344,7 +432,7 @@ where
     ///
     /// A builder to construct a new group.
     fn builder() -> MagneticRepresentedGroupBuilder<T> {
-        MagneticRepresentedGroupBuilder::default()
+        MagneticRepresentedGroupBuilder::<T>::default()
     }
 
     /// Constructs a unitary group from its elements.
@@ -357,11 +445,12 @@ where
     /// # Returns
     ///
     /// A group with its Cayley table constructed and conjugacy classes determined.
-    fn new(name: &str, elements: Vec<T>) -> Self {
+    fn new(name: &str, elements: Vec<T>, unitary_subgroup: Option<UnitaryRepresentedGroup<T>>) -> Self {
         let abstract_group = Group::<T>::new(name, elements);
         let mut magnetic_group = MagneticRepresentedGroup::<T>::builder()
             .name(name.to_string())
             .abstract_group(abstract_group)
+            .unitary_subgroup(unitary_subgroup)
             .build()
             .expect("Unable to construct a magnetic group.");
         magnetic_group.compute_class_structure();
@@ -370,7 +459,16 @@ where
 }
 
 impl<T> GroupProperties for MagneticRepresentedGroup<T>
-where T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder + SpecialSymmetryTransformation,
+where
+    T: Mul<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder
+        + SpecialSymmetryTransformation,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     type GroupElement = T;
 
@@ -383,5 +481,5 @@ where T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder + SpecialSymmetryTr
     }
 }
 
-mod symmetry_group;
 mod construct_chartab;
+mod symmetry_group;

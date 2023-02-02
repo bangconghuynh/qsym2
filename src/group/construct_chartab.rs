@@ -20,9 +20,8 @@ use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
-use crate::group::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
+    FiniteOrder, SpecialSymmetryTransformation,
 };
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, ClassSymbol,
@@ -43,15 +42,15 @@ where
 
 impl<T> CharacterProperties<MullikenIrrepSymbol, ClassSymbol<T>> for UnitaryRepresentedGroup<T>
 where
-    T: Hash
+    T: Mul<Output = T>
+        + Hash
         + Eq
         + Clone
         + Sync
-        + Send
         + fmt::Debug
+        + FiniteOrder<Int = u32>
         + Pow<i32, Output = T>
-        + SpecialSymmetryTransformation
-        + FiniteOrder<Int = u32>,
+        + SpecialSymmetryTransformation,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     type CharTab = RepCharacterTable<T>;
@@ -522,22 +521,22 @@ where
     }
 }
 
-// impl<T> CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<T>> for MagneticRepresentedGroup<T>
-// where
-//     T: Hash
-//         + Eq
-//         + Clone
-//         + Sync
-//         + Send
-//         + fmt::Debug
-//         + Pow<i32, Output = T>
-//         + SpecialSymmetryTransformation
-//         + FiniteOrder<Int = u32>,
-//     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-impl CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<SymmetryOperation>>
-    for MagneticRepresentedGroup<SymmetryOperation>
+impl<T> CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<T>> for MagneticRepresentedGroup<T>
+where
+    T: Mul<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder<Int = u32>
+        + Pow<i32, Output = T>
+        + SpecialSymmetryTransformation,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    // impl CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<SymmetryOperation>>
+    //     for MagneticRepresentedGroup<SymmetryOperation>
 {
-    type CharTab = CorepCharacterTable<SymmetryOperation>;
+    type CharTab = CorepCharacterTable<T>;
 
     fn character_table(&self) -> &Self::CharTab {
         self.ircorep_character_table
@@ -551,29 +550,7 @@ impl CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<SymmetryOperation>>
         log::debug!("Construction of ircorep character table begins.");
         log::debug!("===============================================");
 
-        log::debug!("Constructing the unitary subgroup...");
-        let unitary_elements = self
-            .elements()
-            .iter()
-            .filter_map(|(op, _)| {
-                if !op.is_antiunitary() {
-                    Some(op.clone())
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-        let mut unitary_subgroup =
-            UnitaryRepresentedGroup::<SymmetryOperation>::new(self.name.as_str(), unitary_elements);
-        unitary_subgroup.finite_subgroup_name = self
-            .finite_subgroup_name
-            .as_ref()
-            .map(|finite_group| format!("U({finite_group})"));
-        unitary_subgroup.set_class_symbols_from_symmetry();
-        unitary_subgroup.construct_character_table();
-        log::debug!("Constructing the unitary subgroup... Done.");
-
-        if unitary_subgroup.order() == self.order() {
+        if self.unitary_subgroup.order() == self.order() {
             log::debug!(
                 "The unitary subgroup order and the full group order are both {}. This is not a magnetic group.", self.order()
             );
@@ -582,18 +559,18 @@ impl CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<SymmetryOperation>>
         }
 
         assert_eq!(self.order() % 2, 0);
-        assert_eq!(self.order().div_euclid(2), unitary_subgroup.order());
+        assert_eq!(self.order().div_euclid(2), self.unitary_subgroup.order());
         let unitary_order: i32 = self
             .order()
             .div_euclid(2)
             .try_into()
             .expect("Unable to convert the unitary group order to `i32`.");
-        let unitary_chartab = unitary_subgroup.character_table();
+        let unitary_chartab = self.unitary_subgroup.character_table();
 
         let mag_ctb = self.cayley_table();
-        let uni_e2c = unitary_subgroup.element_to_conjugacy_classes();
+        let uni_e2c = self.unitary_subgroup.element_to_conjugacy_classes();
         let mag_ccsyms = self.conjugacy_class_symbols();
-        let uni_ccsyms = unitary_subgroup.conjugacy_class_symbols();
+        let uni_ccsyms = self.unitary_subgroup.conjugacy_class_symbols();
         let (_, a0_mag_idx) = self
             .elements()
             .iter()
@@ -615,7 +592,7 @@ impl CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<SymmetryOperation>>
                     let (a2, _) = self.elements().get_index(a2_mag_idx).unwrap_or_else(|| {
                         panic!("Element index `{a2_mag_idx}` not found in the magnetic group.")
                     });
-                    let a2_uni_idx = *unitary_subgroup.elements().get(a2).unwrap_or_else(|| {
+                    let a2_uni_idx = *self.unitary_subgroup.elements().get(a2).unwrap_or_else(|| {
                         panic!("Element `{a2:?}` not found in the unitary subgroup.")
                     });
                     let (a2_uni_class, _) = uni_ccsyms.get_index(
@@ -681,11 +658,11 @@ impl CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<SymmetryOperation>>
                 // Δ(u) is inequivalent to Δ*[a^(-1)ua].
                 // Δ(u) and Δ*[a^(-1)ua] are contained the induced irreducible corepresentation.
                 let irrep_conj_chars: Vec<Character> = unitary_chartab.classes.iter().map(|(cc, cc_idx)| {
-                    let u_unitary_idx = unitary_subgroup.conjugacy_classes()[*cc_idx]
+                    let u_unitary_idx = self.unitary_subgroup.conjugacy_classes()[*cc_idx]
                         .iter()
                         .next()
                         .unwrap_or_else(|| panic!("No unitary elements found for conjugacy class `{cc}`."));
-                    let (u, _) = unitary_subgroup
+                    let (u, _) = self.unitary_subgroup
                         .elements()
                         .get_index(*u_unitary_idx)
                         .unwrap_or_else(|| panic!("Unitary element with index `{u_unitary_idx}` cannot be retrieved."));
@@ -704,7 +681,7 @@ impl CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<SymmetryOperation>>
                         .unwrap_or_else(|| {
                             panic!("Unable to retrieve element with index `{a0invua0_mag_idx}` in the magnetic group.")
                         });
-                    let a0invua0_unitary_idx = unitary_subgroup.elements()
+                    let a0invua0_unitary_idx = self.unitary_subgroup.elements()
                         .get(a0invua0)
                         .unwrap_or_else(|| {
                             panic!("Unable to retrieve the index of element `{a0invua0:?}` in the unitary subgroup.")
@@ -749,15 +726,15 @@ impl CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<SymmetryOperation>>
                         "No representative element found for magnetic conjugacy class {mag_cc}."
                     );
                 });
-                let mag_cc_uni_idx =
-                    *unitary_subgroup
-                        .elements()
-                        .get(&mag_cc_rep)
-                        .unwrap_or_else(|| {
-                            panic!(
+                let mag_cc_uni_idx = *self
+                    .unitary_subgroup
+                    .elements()
+                    .get(&mag_cc_rep)
+                    .unwrap_or_else(|| {
+                        panic!(
                             "Index for element {mag_cc_rep:?} not found in the unitary subgroup."
                         );
-                        });
+                    });
                 let (uni_cc, _) = uni_ccsyms.get_index(
                     uni_e2c[mag_cc_uni_idx].unwrap_or_else(|| {
                         panic!("Unable to find the conjugacy class of element {mag_cc_rep:?} in the unitary subgroup.");
@@ -785,7 +762,7 @@ impl CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<SymmetryOperation>>
                 let mag_cc_rep = mag_cc.representative().unwrap_or_else(|| {
                     panic!("No representative element found for magnetic conjugacy class {mag_cc}.");
                 });
-                let mag_cc_uni_idx = *unitary_subgroup.elements().get(&mag_cc_rep).unwrap_or_else(|| {
+                let mag_cc_uni_idx = *self.unitary_subgroup.elements().get(&mag_cc_rep).unwrap_or_else(|| {
                     panic!("Index for element {mag_cc_rep:?} not found in the unitary subgroup.");
                 });
                 let (uni_cc, _) = uni_ccsyms.get_index(

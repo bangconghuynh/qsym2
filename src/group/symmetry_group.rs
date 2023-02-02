@@ -40,22 +40,30 @@ pub trait SymmetryGroupProperties: ClassProperties<ClassElement = SymmetryOperat
                 ) {
                     if self.name().contains('θ') {
                         assert_eq!(self.abstract_group().order() % 8, 0);
-                        self.name()
-                            .replace('∞', format!("{}", self.abstract_group().order() / 8).as_str())
+                        self.name().replace(
+                            '∞',
+                            format!("{}", self.abstract_group().order() / 8).as_str(),
+                        )
                     } else {
                         assert_eq!(self.abstract_group().order() % 4, 0);
-                        self.name()
-                            .replace('∞', format!("{}", self.abstract_group().order() / 4).as_str())
+                        self.name().replace(
+                            '∞',
+                            format!("{}", self.abstract_group().order() / 4).as_str(),
+                        )
                     }
                 } else {
                     if self.name().contains('θ') {
                         assert_eq!(self.abstract_group().order() % 4, 0);
-                        self.name()
-                            .replace('∞', format!("{}", self.abstract_group().order() / 4).as_str())
+                        self.name().replace(
+                            '∞',
+                            format!("{}", self.abstract_group().order() / 4).as_str(),
+                        )
                     } else {
                         assert_eq!(self.abstract_group().order() % 2, 0);
-                        self.name()
-                            .replace('∞', format!("{}", self.abstract_group().order() / 2).as_str())
+                        self.name().replace(
+                            '∞',
+                            format!("{}", self.abstract_group().order() / 2).as_str(),
+                        )
                     }
                 }
             } else {
@@ -300,7 +308,30 @@ impl SymmetryGroupProperties for MagneticRepresentedGroup<SymmetryOperation> {
 
         let sorted_operations = sym.generate_all_operations(infinite_order_to_finite);
 
-        let mut group = Self::new(group_name.as_str(), sorted_operations);
+        log::debug!("Constructing the unitary subgroup for the magnetic group...");
+        let unitary_operations = sorted_operations
+            .iter()
+            .filter_map(|op| {
+                if !op.is_antiunitary() {
+                    Some(op.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        let mut unitary_subgroup = UnitaryRepresentedGroup::<SymmetryOperation>::new(
+            group_name.as_str(),
+            unitary_operations,
+        );
+        unitary_subgroup.set_class_symbols_from_symmetry();
+        unitary_subgroup.construct_character_table();
+        log::debug!("Constructing the unitary subgroup for the magnetic group... Done.");
+
+        let mut group = Self::new(
+            group_name.as_str(),
+            sorted_operations,
+            Some(unitary_subgroup),
+        );
         if handles_infinite_group.is_some() {
             group.finite_subgroup_name = Some(group.finite_group_name());
         }

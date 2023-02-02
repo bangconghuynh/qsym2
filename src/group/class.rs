@@ -16,7 +16,10 @@ use crate::symmetry::symmetry_symbols::ClassSymbol;
 use super::{Group, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 
 #[derive(Builder, Clone)]
-pub struct ClassStructure<T: Clone + Hash> {
+pub struct ClassStructure<T>
+where
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+{
     /// A vector of conjugacy classes for this group.
     ///
     /// Each element in the vector is a hashset containing the indices of the
@@ -68,7 +71,7 @@ pub struct ClassStructure<T: Clone + Hash> {
 
 impl<T> ClassStructureBuilder<T>
 where
-    T: Clone + Hash,
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
 {
     fn conjugacy_class_transversal(&mut self) -> &mut Self {
         self.conjugacy_class_transversal = Some(
@@ -246,7 +249,7 @@ where
 
 impl<T> ClassStructure<T>
 where
-    T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
 {
     /// Returns a builder to construct a new class structure.
     ///
@@ -255,6 +258,11 @@ where
     /// A builder to construct a new class structure.
     fn builder() -> ClassStructureBuilder<T> {
         ClassStructureBuilder::default()
+    }
+
+    #[must_use]
+    fn class_number(&self) -> usize {
+        self.conjugacy_classes.len()
     }
 
     fn new(
@@ -282,19 +290,10 @@ where
     }
 }
 
-impl<T> ClassStructure<T>
-where
-    T: Clone + Hash,
-{
-    #[must_use]
-    fn class_number(&self) -> usize {
-        self.conjugacy_classes.len()
-    }
-}
-
 pub trait ClassProperties: GroupProperties<GroupElement = Self::ClassElement>
 where
-    Self::ClassElement: Clone + Hash,
+    Self::ClassElement: Mul<Output = Self::ClassElement> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    for<'a, 'b> &'b Self::ClassElement: Mul<&'a Self::ClassElement, Output = Self::ClassElement>,
 {
     type ClassElement;
 
@@ -343,7 +342,7 @@ where
 
 impl<T> ClassProperties for UnitaryRepresentedGroup<T>
 where
-    T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     type ClassElement = T;
@@ -417,14 +416,14 @@ where
         };
         log::debug!("Finding unitary conjugacy classes... Done.");
 
-        let class_structure = ClassStructure::new(&self.abstract_group, ccs, e2ccs);
+        let class_structure = ClassStructure::<T>::new(&self.abstract_group, ccs, e2ccs);
         self.class_structure = Some(class_structure);
     }
 }
 
 impl<T> ClassProperties for MagneticRepresentedGroup<T>
 where
-    T: Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder + SpecialSymmetryTransformation,
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder + SpecialSymmetryTransformation,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     type ClassElement = T;
@@ -507,7 +506,7 @@ where
         });
         assert!(e2ccs.iter().skip(1).all(|x_opt| if let Some(x) = x_opt { *x > 0 } else { true }));
 
-        let class_structure = ClassStructure::new(&self.abstract_group, ccs, e2ccs);
+        let class_structure = ClassStructure::<T>::new(&self.abstract_group, ccs, e2ccs);
         self.class_structure = Some(class_structure);
         log::debug!("Finding magnetic conjugacy classes... Done.");
     }

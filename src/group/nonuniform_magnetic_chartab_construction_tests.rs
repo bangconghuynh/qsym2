@@ -187,7 +187,7 @@ fn test_character_table_construction_symmetric_bf3_rad_magnetic_field_bw_d3h_d3(
 
 #[test]
 fn test_character_table_construction_symmetric_tan_rad_magnetic_field_bw_c3h_c3() {
-    env_logger::init();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);

@@ -1014,10 +1014,10 @@ impl Hash for SymmetryOperation {
     }
 }
 
-impl<'a, 'b> Mul<&'a SymmetryOperation> for &'b SymmetryOperation {
+impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
     type Output = SymmetryOperation;
 
-    fn mul(self, rhs: &'a SymmetryOperation) -> Self::Output {
+    fn mul(self, rhs: &SymmetryOperation) -> Self::Output {
         let (q1_s, q1_v) = self.calc_quaternion();
         let (q2_s, q2_v) = rhs.calc_quaternion();
 
@@ -1040,6 +1040,30 @@ impl<'a, 'b> Mul<&'a SymmetryOperation> for &'b SymmetryOperation {
             max_trial_power,
             self.is_antiunitary() != rhs.is_antiunitary(),
         )
+    }
+}
+
+impl Mul<&'_ SymmetryOperation> for SymmetryOperation {
+    type Output = SymmetryOperation;
+
+    fn mul(self, rhs: &SymmetryOperation) -> Self::Output {
+        &self * rhs
+    }
+}
+
+impl Mul<SymmetryOperation> for SymmetryOperation {
+    type Output = SymmetryOperation;
+
+    fn mul(self, rhs: SymmetryOperation) -> Self::Output {
+        &self * &rhs
+    }
+}
+
+impl Mul<SymmetryOperation> for &SymmetryOperation {
+    type Output = SymmetryOperation;
+
+    fn mul(self, rhs: SymmetryOperation) -> Self::Output {
+        self * &rhs
     }
 }
 
