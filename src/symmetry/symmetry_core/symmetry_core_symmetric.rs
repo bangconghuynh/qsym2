@@ -145,8 +145,8 @@ impl Symmetry {
             if let Some(improper_kind) =
                 presym.check_improper(&ORDER_1, &principal_element.axis, &SIG, tr)
             {
-                // Dnh (n > 2)
-                assert!(max_ord > ORDER_2);
+                // Dnh (n >= 2)
+                assert!(max_ord >= ORDER_2);
                 log::debug!("Located σh.");
                 self.set_group_name(format!("D{max_ord}h"));
                 self.add_improper(
@@ -443,6 +443,7 @@ impl Symmetry {
                     let principal_element = self.get_proper_principal_element();
                     let normal =
                         (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords).normalize();
+                    log::debug!("Checking: {}, {}, {normal}", atom2s[0], atom2s[1]);
                     if let Some(improper_kind) = presym.check_improper(&ORDER_1, &normal, &SIG, tr)
                     {
                         let sigma_symbol = deduce_sigma_symbol(
@@ -464,6 +465,30 @@ impl Symmetry {
                 }
             }
 
+            if matches!(presym.rotational_symmetry, RotationalSymmetry::OblatePlanar) {
+                // Planar system. The plane of the system (perpendicular to the highest-MoI
+                // principal axis) might be a symmetry element: time-reversed in the presence of
+                // a magnetic field (which must also lie in this plane), or both in the absence
+                // of a magnetic field.
+                let (_, principal_axes) = presym.molecule.calc_moi();
+                if let Some(improper_kind) =
+                    presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr)
+                {
+                    if presym.molecule.magnetic_atoms.is_some() {
+                        assert!(improper_kind.contains_time_reversal());
+                    }
+                    count_sigma += u32::from(self.add_improper(
+                        ORDER_1,
+                        principal_axes[2],
+                        false,
+                        SIG.clone(),
+                        Some("h".to_owned()),
+                        presym.dist_threshold,
+                        improper_kind.contains_time_reversal(),
+                    ));
+                }
+            }
+
             if count_sigma == max_ord_u32 {
                 if max_ord_u32 > 1 {
                     let principal_element = self.get_proper_principal_element();
@@ -472,13 +497,12 @@ impl Symmetry {
                     if max_ord_u32 == 2 && principal_element.contains_time_reversal() {
                         // C2v, but with θ·C2
                         log::debug!("The C2 axis is actually θ·C2. The non-time-reversed σv will be reassigned as σh.");
-                        let old_sigmas = self.get_elements_mut(&SIG)
+                        let old_sigmas = self
+                            .get_elements_mut(&SIG)
                             .expect("No improper elements found.")
                             .remove(&ORDER_1)
                             .expect("No σv found.");
-                        let old_sigma = old_sigmas.iter()
-                            .next()
-                            .expect("No σv found.");
+                        let old_sigma = old_sigmas.iter().next().expect("No σv found.");
                         self.add_improper(
                             ORDER_1,
                             old_sigma.axis,
@@ -508,11 +532,7 @@ impl Symmetry {
                             self.get_sigma_elements("h").expect("No σh found either.")
                         })
                         .into_iter()
-                        .chain(self
-                            .get_sigma_elements("h")
-                            .unwrap_or_default()
-                            .into_iter()
-                        )
+                        .chain(self.get_sigma_elements("h").unwrap_or_default().into_iter())
                         .cloned()
                         .collect_vec();
                     sigmas.sort_by_key(SymmetryElement::contains_time_reversal);

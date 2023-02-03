@@ -1,15 +1,18 @@
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::ops::{Add, Neg, Sub, Mul, MulAssign};
 
 use approx;
 use derive_builder::Builder;
-use indexmap::IndexMap;
+use indexmap::{IndexMap, IndexSet};
 use num::Complex;
-use num_traits::ToPrimitive;
+use num_traits::{ToPrimitive, Zero};
 
 use crate::aux::misc::HashableFloat;
 use crate::chartab::unityroot::UnityRoot;
+
+type F = fraction::GenericFraction<u32>;
 
 #[cfg(test)]
 #[path = "character_tests.rs"]
@@ -32,7 +35,13 @@ pub struct Character {
 
 impl CharacterBuilder {
     fn terms(&mut self, ts: &[(UnityRoot, usize)]) -> &mut Self {
-        self.terms = Some(ts.iter().cloned().collect());
+        let mut terms = IndexMap::<UnityRoot, usize>::new();
+        // This ensures that if there are two identical unity roots in ts, their multiplicities are
+        // accumulated.
+        for (ur, mult) in ts.iter() {
+            *terms.entry(ur.to_owned()).or_default() += mult;
+        }
+        self.terms = Some(terms);
         self
     }
 
@@ -285,6 +294,81 @@ impl Character {
             }
         }
     }
+
+    /// Gets the simplified form for this character.
+    ///
+    /// The simplified form gathers terms whose unity roots differ from each other by a factor of
+    /// $`-1`$.
+    ///
+    /// # Returns
+    ///
+    /// The simplified form of the character.
+    pub fn simplify(&self) -> Self {
+        let mut urs: IndexSet<_> = self.terms.keys().rev().collect();
+        let mut simplified_terms = Vec::<(UnityRoot, usize)>::with_capacity(urs.len());
+        let f12 = F::new(1u32, 2u32);
+        while !urs.is_empty() {
+            let ur = urs
+                .pop()
+                .expect("Unable to retrieve an unexamined unity root.");
+            let nur_option = urs
+                .iter()
+                .find(|&test_ur| {
+                    test_ur.fraction == ur.fraction + f12 || test_ur.fraction == ur.fraction - f12
+                })
+                .map(|nur| *nur);
+            if let Some(nur) = nur_option {
+                assert!(urs.remove(nur));
+                let ur_mult = self
+                    .terms
+                    .get(ur)
+                    .unwrap_or_else(|| panic!("Unable to retrieve the multiplicity of {ur}."));
+                let nur_mult = self
+                    .terms
+                    .get(nur)
+                    .unwrap_or_else(|| panic!("Unable to retrieve the multiplicity of {nur}."));
+                match ur_mult.cmp(nur_mult) {
+                    Ordering::Less => simplified_terms.push((nur.to_owned(), nur_mult - ur_mult)),
+                    Ordering::Greater => simplified_terms.push((ur.to_owned(), ur_mult - nur_mult)),
+                    Ordering::Equal => (),
+                };
+            } else {
+                let ur_mult = self
+                    .terms
+                    .get(ur)
+                    .unwrap_or_else(|| panic!("Unable to retrieve the multiplicity of {ur}."));
+                simplified_terms.push((ur.to_owned(), *ur_mult));
+            }
+        }
+        Character::builder()
+            .terms(&simplified_terms)
+            .threshold(self.threshold)
+            .build()
+            .expect("Unable to construct a simplified character.")
+    }
+
+    /// The complex conjugate of this character.
+    ///
+    /// # Returns
+    ///
+    /// The complex conjugate of this character.
+    ///
+    /// # Panics
+    ///
+    /// Panics when the complex conjugate cannot be found.
+    pub fn complex_conjugate(&self) -> Self {
+        Self::builder()
+            .terms(
+                &self
+                    .terms
+                    .iter()
+                    .map(|(ur, mult)| (ur.complex_conjugate(), *mult))
+                    .collect::<Vec<_>>(),
+            )
+            .threshold(self.threshold)
+            .build()
+            .unwrap_or_else(|_| panic!("Unable to construct the complex conjugate of `{self}`."))
+    }
 }
 
 impl PartialEq for Character {
@@ -396,5 +480,155 @@ impl Hash for Character {
             })
             .collect::<Vec<_>>();
         terms_vec.hash(state);
+    }
+}
+
+// ----
+// Zero
+// ----
+impl Zero for Character {
+    fn zero() -> Self {
+        Self::new(&[])
+    }
+
+    fn is_zero(&self) -> bool {
+        *self == Self::zero()
+    }
+}
+
+// ---
+// Add
+// ---
+impl Add<&'_ Character> for &Character {
+    type Output = Character;
+
+    fn add(self, rhs: &Character) -> Self::Output {
+        let mut sum = self.clone();
+        for (ur, mult) in rhs.terms.iter() {
+            *sum.terms.entry(ur.to_owned()).or_default() += mult;
+        }
+        sum
+    }
+}
+
+impl Add<&'_ Character> for Character {
+    type Output = Character;
+
+    fn add(self, rhs: &Self) -> Self::Output {
+        &self + rhs
+    }
+}
+
+impl Add<Character> for &Character {
+    type Output = Character;
+
+    fn add(self, rhs: Character) -> Self::Output {
+        self + &rhs
+    }
+}
+
+impl Add<Character> for Character {
+    type Output = Character;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        &self + &rhs
+    }
+}
+
+// ---
+// Neg
+// ---
+impl Neg for &Character {
+    type Output = Character;
+
+    fn neg(self) -> Self::Output {
+        let f12 = F::new(1u32, 2u32);
+        let terms: IndexMap<_, _> = self
+            .terms
+            .iter()
+            .map(|(ur, mult)| {
+                let mut nur = ur.clone();
+                nur.fraction = (nur.fraction + f12).fract();
+                (nur, *mult)
+            })
+            .collect();
+        let mut nchar = self.clone();
+        nchar.terms = terms;
+        nchar
+    }
+}
+
+impl Neg for Character {
+    type Output = Character;
+
+    fn neg(self) -> Self::Output {
+        -&self
+    }
+}
+
+// ---
+// Sub
+// ---
+impl Sub<&'_ Character> for &Character {
+    type Output = Character;
+
+    fn sub(self, rhs: &Character) -> Self::Output {
+        self + (-rhs)
+    }
+}
+
+impl Sub<&'_ Character> for Character {
+    type Output = Character;
+
+    fn sub(self, rhs: &Self) -> Self::Output {
+        &self + (-rhs)
+    }
+}
+
+impl Sub<Character> for &Character {
+    type Output = Character;
+
+    fn sub(self, rhs: Character) -> Self::Output {
+        self + (-&rhs)
+    }
+}
+
+impl Sub<Character> for Character {
+    type Output = Character;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        &self + (-&rhs)
+    }
+}
+
+// ---------
+// MulAssign
+// ---------
+impl MulAssign<usize> for Character {
+    fn mul_assign(&mut self, rhs: usize) {
+        self.terms.iter_mut().for_each(|(_, mult)| {
+            *mult *= rhs;
+        })
+    }
+}
+
+// ---
+// Mul
+// ---
+impl Mul<usize> for &Character {
+    type Output = Character;
+
+    fn mul(self, rhs: usize) -> Self::Output {
+        let mut prod = self.clone();
+        prod *= rhs;
+        prod
+    }
+}
+
+impl Mul<usize> for Character {
+    type Output = Character;
+
+    fn mul(self, rhs: usize) -> Self::Output {
+        &self * rhs
     }
 }

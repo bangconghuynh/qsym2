@@ -16,6 +16,7 @@ mod modular_linalg_tests;
 
 /// Calculates the determinant of a square matrix over a finite integer field
 /// using the Bereiss algorithm.
+///
 /// For more information, see
 /// <https://stackoverflow.com/questions/66192894/precise-determinant-of-integer-nxn-matrix>.
 ///

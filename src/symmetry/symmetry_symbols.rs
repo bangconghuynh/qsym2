@@ -23,6 +23,10 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
 use crate::symmetry::symmetry_element::SymmetryElement;
 use crate::symmetry::symmetry_element_order::ORDER_1;
 
+#[cfg(test)]
+#[path = "symmetry_symbols_tests.rs"]
+mod symmetry_symbols_tests;
+
 // =========
 // Constants
 // =========
@@ -80,38 +84,38 @@ pub static FORCED_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
 /// A trait for general mathematical symbols.
 pub trait MathematicalSymbol: Clone + Hash + Eq {
     /// The main part of the symbol.
-    fn main(&self) -> &str;
+    fn main(&self) -> String;
 
     /// The pre-superscript part of the symbol.
-    fn presuper(&self) -> &str;
+    fn presuper(&self) -> String;
 
     /// The pre-subscript part of the symbol.
-    fn presub(&self) -> &str;
+    fn presub(&self) -> String;
 
     /// The post-superscript part of the symbol.
-    fn postsuper(&self) -> &str;
+    fn postsuper(&self) -> String;
 
     /// The post-subscript part of the symbol.
-    fn postsub(&self) -> &str;
+    fn postsub(&self) -> String;
 
     /// The prefactor part of the symbol.
-    fn prefactor(&self) -> &str;
+    fn prefactor(&self) -> String;
 
     /// The postfactor part of the symbol.
-    fn postfactor(&self) -> &str;
+    fn postfactor(&self) -> String;
 
     /// The multiplicity of the symbol.
     fn multiplicity(&self) -> Option<usize>;
 }
 
 /// A trait for symbols describing linear spaces.
-trait LinearSpaceSymbol: MathematicalSymbol {
+pub trait LinearSpaceSymbol: MathematicalSymbol {
     /// The dimensionality of the linear space.
     fn dimensionality(&self) -> u64;
 }
 
 /// A trait for symbols describing collections of objects.
-trait CollectionSymbol: MathematicalSymbol {
+pub trait CollectionSymbol: MathematicalSymbol {
     /// The size of the collection.
     fn size(&self) -> usize;
 }
@@ -135,7 +139,7 @@ trait CollectionSymbol: MathematicalSymbol {
 /// \ ^{\textrm{postsuper}}_{\textrm{postsub}}
 /// \ \textrm{postfactor}.
 /// ```
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
 pub struct GenericSymbol {
     /// The main part of the symbol.
     main: String,
@@ -176,32 +180,32 @@ impl GenericSymbol {
 // ------------------
 
 impl MathematicalSymbol for GenericSymbol {
-    fn main(&self) -> &str {
-        &self.main
+    fn main(&self) -> String {
+        self.main.to_owned()
     }
 
-    fn presuper(&self) -> &str {
-        &self.presuper
+    fn presuper(&self) -> String {
+        self.presuper.to_owned()
     }
 
-    fn presub(&self) -> &str {
-        &self.presub
+    fn presub(&self) -> String {
+        self.presub.to_owned()
     }
 
-    fn postsuper(&self) -> &str {
-        &self.postsuper
+    fn postsuper(&self) -> String {
+        self.postsuper.to_owned()
     }
 
-    fn postsub(&self) -> &str {
-        &self.postsub
+    fn postsub(&self) -> String {
+        self.postsub.to_owned()
     }
 
-    fn prefactor(&self) -> &str {
-        &self.prefactor
+    fn prefactor(&self) -> String {
+        self.prefactor.to_owned()
     }
 
-    fn postfactor(&self) -> &str {
-        &self.postfactor
+    fn postfactor(&self) -> String {
+        self.postfactor.to_owned()
     }
 
     fn multiplicity(&self) -> Option<usize> {
@@ -358,7 +362,7 @@ impl fmt::Display for GenericSymbolParsingError {
 // -------------------
 
 /// A struct to handle Mulliken irreducible representation symbols.
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
 pub struct MullikenIrrepSymbol {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
@@ -386,51 +390,51 @@ impl MullikenIrrepSymbol {
     /// # Errors
     ///
     /// Errors when the string cannot be parsed as a generic symbol.
-    pub fn new(symstr: &str) -> Result<Self, GenericSymbolParsingError> {
+    pub fn new(symstr: &str) -> Result<Self, MullikenIrrepSymbolBuilderError> {
         Self::from_str(symstr)
     }
 }
 
 impl MathematicalSymbol for MullikenIrrepSymbol {
     /// The main part of the symbol, which primarily denotes the dimensionality of the irrep space.
-    fn main(&self) -> &str {
+    fn main(&self) -> String {
         self.generic_symbol.main()
     }
 
     /// The pre-superscript part of the symbol, which can be used to denote antiunitary symmetries
     /// or spin multiplicities.
-    fn presuper(&self) -> &str {
+    fn presuper(&self) -> String {
         self.generic_symbol.presuper()
     }
 
-    fn presub(&self) -> &str {
+    fn presub(&self) -> String {
         self.generic_symbol.presub()
     }
 
     /// The post-superscript part of the symbol, which denotes reflection parity.
-    fn postsuper(&self) -> &str {
+    fn postsuper(&self) -> String {
         self.generic_symbol.postsuper()
     }
 
     /// The post-subscript part of the symbol, which denotes inversion parity when available and
     /// which disambiguates similar irreps.
-    fn postsub(&self) -> &str {
+    fn postsub(&self) -> String {
         self.generic_symbol.postsub()
     }
 
     /// The prefactor part of the symbol, which is always `"1"` implicitly because of irreducibility.
-    fn prefactor(&self) -> &str {
-        ""
+    fn prefactor(&self) -> String {
+        String::new()
     }
 
     /// The postfactor part of the symbol, which is always empty.
-    fn postfactor(&self) -> &str {
-        ""
+    fn postfactor(&self) -> String {
+        String::new()
     }
 
     /// The dimensionality of the irreducible representation.
     fn multiplicity(&self) -> Option<usize> {
-        if let Some(&mult) = MULLIKEN_IRREP_DEGENERACIES.get(self.main()) {
+        if let Some(&mult) = MULLIKEN_IRREP_DEGENERACIES.get(&self.main()) {
             Some(
                 mult.try_into()
                     .unwrap_or_else(|_| panic!("Unable to convert {mult} to `usize`.")),
@@ -442,7 +446,7 @@ impl MathematicalSymbol for MullikenIrrepSymbol {
 }
 
 impl FromStr for MullikenIrrepSymbol {
-    type Err = GenericSymbolParsingError;
+    type Err = MullikenIrrepSymbolBuilderError;
 
     /// Parses a string representing a Mulliken irrep symbol.
     ///
@@ -469,18 +473,16 @@ impl FromStr for MullikenIrrepSymbol {
     ///
     /// Errors when the string cannot be parsed as a generic symbol.
     fn from_str(symstr: &str) -> Result<Self, Self::Err> {
-        let generic_symbol = GenericSymbol::from_str(symstr)?;
-        Ok(Self::builder()
-            .generic_symbol(generic_symbol)
-            .build()
-            .unwrap_or_else(|_| panic!("Unable to construct a Mulliken symbol from `{symstr}`.")))
+        let generic_symbol = GenericSymbol::from_str(symstr)
+            .unwrap_or_else(|_| panic!("Unable to parse {symstr} as a generic symbol."));
+        Self::builder().generic_symbol(generic_symbol).build()
     }
 }
 
 impl LinearSpaceSymbol for MullikenIrrepSymbol {
     fn dimensionality(&self) -> u64 {
         *MULLIKEN_IRREP_DEGENERACIES
-            .get(self.main())
+            .get(&self.main())
             .unwrap_or_else(|| {
                 panic!(
                     "Unknown dimensionality for Mulliken symbol {}.",
@@ -496,6 +498,212 @@ impl LinearSpaceSymbol for MullikenIrrepSymbol {
 impl fmt::Display for MullikenIrrepSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
+    }
+}
+
+// ---------------------
+// MullikenIrcorepSymbol
+// ---------------------
+
+/// A struct to handle Mulliken irreducible corepresentation symbols.
+#[derive(Builder, Debug, Clone, PartialEq, Eq)]
+pub struct MullikenIrcorepSymbol {
+    inducing_irreps: HashMap<MullikenIrrepSymbol, usize>,
+}
+
+impl MullikenIrcorepSymbol {
+    fn builder() -> MullikenIrcorepSymbolBuilder {
+        MullikenIrcorepSymbolBuilder::default()
+    }
+
+    /// Parses a string representing a Mulliken irrep symbol.
+    ///
+    /// Some permissible Mulliken irrep symbols:
+    ///
+    /// ```text
+    /// "T"
+    /// "||T|_(2g)|"
+    /// "|^(3)|T|_(2g)|"
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a Mulliken symbol.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string cannot be parsed as a generic symbol.
+    pub fn new(symstr: &str) -> Result<Self, MullikenIrcorepSymbolBuilderError> {
+        Self::from_str(symstr)
+    }
+
+    pub fn from_irreps(irreps: &[(MullikenIrrepSymbol, usize)]) -> Self {
+        Self::builder()
+            .inducing_irreps(irreps.iter().cloned().collect::<HashMap<_, _>>())
+            .build()
+            .expect("Unable to construct a Mulliken ircorep symbol from a slice of irrep symbols.")
+    }
+
+    /// Returns an iterator containing sorted references to the symbols of the inducing irreps.
+    pub fn sorted_inducing_irreps(&self) -> std::vec::IntoIter<(&MullikenIrrepSymbol, &usize)> {
+        self.inducing_irreps.iter().sorted_by(|(a, _), (b, _)| {
+            a.partial_cmp(b)
+                .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
+        })
+    }
+}
+
+impl MathematicalSymbol for MullikenIrcorepSymbol {
+    /// The main part of the symbol.
+    fn main(&self) -> String {
+        format!(
+            "D[{}]",
+            self.sorted_inducing_irreps()
+                .map(|(irrep, mult)| format!(
+                    "{}{irrep}",
+                    if *mult > 1 {
+                        mult.to_string()
+                    } else {
+                        String::new()
+                    }
+                ))
+                .join(" ⊕ ")
+        )
+    }
+
+    /// The pre-superscript part of the symbol, which is always empty.
+    fn presuper(&self) -> String {
+        String::new()
+    }
+
+    fn presub(&self) -> String {
+        String::new()
+    }
+
+    /// The post-superscript part of the symbol, which is always empty.
+    fn postsuper(&self) -> String {
+        String::new()
+    }
+
+    /// The post-subscript part of the symbol, which is always empty.
+    fn postsub(&self) -> String {
+        String::new()
+    }
+
+    /// The prefactor part of the symbol, which is always `"1"` implicitly because of irreducibility.
+    fn prefactor(&self) -> String {
+        "1".to_string()
+    }
+
+    /// The postfactor part of the symbol, which is always empty.
+    fn postfactor(&self) -> String {
+        String::new()
+    }
+
+    /// The dimensionality of the irreducible corepresentation.
+    fn multiplicity(&self) -> Option<usize> {
+        Some(
+            self.inducing_irreps
+            .iter()
+            .map(|(irrep, mult)| {
+                irrep
+                    .multiplicity()
+                    .expect("One of the inducing irreducible representations has an undefined multiplicity.")
+                * mult
+            })
+            .sum()
+        )
+    }
+}
+
+impl FromStr for MullikenIrcorepSymbol {
+    type Err = MullikenIrcorepSymbolBuilderError;
+
+    /// Parses a string representing a Mulliken ircorep symbol. A valid string representing a
+    /// Mulliken ircorep symbol is one consisting of one or more Mulliken irrep symbol strings,
+    /// separated by a `+` character.
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a Mulliken ircorep symbol.
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] wrapping the constructed Mulliken ircorep symbol.
+    ///
+    /// # Panics
+    ///
+    /// Panics when unable to construct a Mulliken ircorep symbol from the specified string.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string cannot be parsed.
+    fn from_str(symstr: &str) -> Result<Self, Self::Err> {
+        let re = Regex::new(r"(\d?)(.*)").expect("Regex pattern invalid.");
+        let irreps = symstr
+            .split("+")
+            .map(|irrep_str| {
+                let cap = re
+                    .captures(irrep_str.trim())
+                    .unwrap_or_else(|| panic!("{irrep_str} does not fit the expected pattern."));
+                let mult_str = cap.get(1)
+                    .expect("Unable to parse the multiplicity of the irrep.")
+                    .as_str();
+                let mult = if mult_str.is_empty() {
+                    1
+                } else {
+                    str::parse::<usize>(mult_str)
+                        .unwrap_or_else(|_| panic!("`{mult_str}` is not a positive integer."))
+                };
+                let irrep = cap.get(2)
+                    .expect("Unable to parse the irrep.")
+                    .as_str();
+                (
+                    MullikenIrrepSymbol::from_str(irrep).unwrap_or_else(|_| {
+                        panic!("Unable to parse {irrep} as a Mulliken irrep symbol.")
+                    }),
+                    mult,
+                )
+            })
+            .collect::<HashMap<_, _>>();
+        MullikenIrcorepSymbol::builder()
+            .inducing_irreps(irreps)
+            .build()
+    }
+}
+
+impl LinearSpaceSymbol for MullikenIrcorepSymbol {
+    fn dimensionality(&self) -> u64 {
+        let dim: usize = self.inducing_irreps
+        .iter()
+        .map(|(irrep, mult)| {
+            irrep
+                .multiplicity()
+                .expect("One of the inducing irreducible representations has an undefined multiplicity.")
+            * mult
+        }).sum();
+        TryInto::<u64>::try_into(dim)
+            .expect("Cannot convert the dimensionality of this ircorep symbol into `u64`.")
+    }
+}
+
+// -------
+// Display
+// -------
+impl fmt::Display for MullikenIrcorepSymbol {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.main())
+    }
+}
+
+// ----
+// Hash
+// ----
+impl Hash for MullikenIrcorepSymbol {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for irrep in self.sorted_inducing_irreps() {
+            irrep.hash(state);
+        }
     }
 }
 
@@ -531,42 +739,46 @@ impl<R: Clone> ClassSymbol<R> {
     fn builder() -> ClassSymbolBuilder<R> {
         ClassSymbolBuilder::default()
     }
+
+    pub fn representative(&self) -> Option<R> {
+        self.representative.clone()
+    }
 }
 
 impl<R: Clone> MathematicalSymbol for ClassSymbol<R> {
     /// The main part of the symbol, which denotes the representative symmetry operation.
-    fn main(&self) -> &str {
+    fn main(&self) -> String {
         self.generic_symbol.main()
     }
 
     /// The pre-superscript part of the symbol, which is empty.
-    fn presuper(&self) -> &str {
-        ""
+    fn presuper(&self) -> String {
+        String::new()
     }
 
     /// The pre-subscript part of the symbol, which is empty.
-    fn presub(&self) -> &str {
-        ""
+    fn presub(&self) -> String {
+        String::new()
     }
 
     /// The post-superscript part of the symbol, which is empty.
-    fn postsuper(&self) -> &str {
-        ""
+    fn postsuper(&self) -> String {
+        String::new()
     }
 
     /// The post-subscript part of the symbol, which is empty.
-    fn postsub(&self) -> &str {
-        ""
+    fn postsub(&self) -> String {
+        String::new()
     }
 
     /// The prefactor part of the symbol, which denotes the size of the class.
-    fn prefactor(&self) -> &str {
+    fn prefactor(&self) -> String {
         self.generic_symbol.prefactor()
     }
 
     /// The postfactor part of the symbol, which is empty.
-    fn postfactor(&self) -> &str {
-        ""
+    fn postfactor(&self) -> String {
+        String::new()
     }
 
     /// This is a synonym for the size of the conjugacy class.
@@ -808,12 +1020,19 @@ pub fn sort_irreps<R: Clone>(
     principal_classes: &[ClassSymbol<R>],
 ) -> Array2<Character> {
     log::debug!("Sorting irreducible representations...");
-    let class_e =
-        ClassSymbol::new("1||E||", None).expect("Unable to construct class symbol `1||E||`.");
+    let class_e = class_symbols
+        .first()
+        .expect("No class symbols found.")
+        .0
+        .clone();
     let class_i =
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
+    let class_ti =
+        ClassSymbol::new("1||θ·i||", None).expect("Unable to construct class symbol `1||θ·i||`.");
     let class_s =
         ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
+    let class_ts =
+        ClassSymbol::new("1||θ·σh||", None).expect("Unable to construct class symbol `1||θ·σh||`.");
     let class_t =
         ClassSymbol::new("1||θ||", None).expect("Unable to construct class symbol `1||θ||`.");
 
@@ -824,11 +1043,16 @@ pub fn sort_irreps<R: Clone>(
         leading_classes.insert(class_t);
     }
 
-    // Second highest priority: inversion, or horizontal mirror plane if inversion not available
+    // Second highest priority: inversion, or horizontal mirror plane if inversion not available,
+    // or time-reversed horizontal mirror plane if non-time-reversed version not available.
     if class_symbols.contains_key(&class_i) {
         leading_classes.insert(class_i);
+    } else if class_symbols.contains_key(&class_ti) {
+        leading_classes.insert(class_ti);
     } else if class_symbols.contains_key(&class_s) {
         leading_classes.insert(class_s);
+    } else if class_symbols.contains_key(&class_ts) {
+        leading_classes.insert(class_ts);
     };
 
     // Third highest priority: identity
@@ -1004,27 +1228,48 @@ where
 {
     log::debug!("Generating Mulliken irreducible representation symbols...");
 
-    let e_cc: ClassSymbol<R> =
-        ClassSymbol::new("1||E||", None).expect("Unable to construct class symbol `1||E||`.");
+    let e_cc = class_symbols
+        .first()
+        .expect("No class symbols found.")
+        .0
+        .clone();
     let i_cc: ClassSymbol<R> =
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
+    let ti_cc: ClassSymbol<R> =
+        ClassSymbol::new("1||θ·i||", None).expect("Unable to construct class symbol `1||θ·i||`.");
     let s_cc: ClassSymbol<R> =
         ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
+    let ts_cc: ClassSymbol<R> =
+        ClassSymbol::new("1||θ·σh||", None).expect("Unable to construct class symbol `1||θ·σh||`.");
     let t_cc: ClassSymbol<R> =
         ClassSymbol::new("1||θ||", None).expect("Unable to construct class symbol `1||θ||`.");
 
     // Inversion parity?
     let i_parity = class_symbols.contains_key(&i_cc);
 
+    // Time-reversed inversion parity?
+    let ti_parity = class_symbols.contains_key(&ti_cc);
+
     // Reflection parity?
     let s_parity = class_symbols.contains_key(&s_cc);
+
+    // Time-reversed reflection parity?
+    let ts_parity = class_symbols.contains_key(&ts_cc);
 
     // i_parity takes priority.
     if i_parity {
         log::debug!("Inversion centre found. This will be used for g/u ordering.");
+    } else if ti_parity {
+        log::debug!(
+            "Time-reversed inversion centre found (but no inversion centre). This will be used for g/u ordering."
+        );
     } else if s_parity {
         log::debug!(
             "Horizontal mirror plane found (but no inversion centre). This will be used for '/'' ordering."
+        );
+    } else if ts_parity {
+        log::debug!(
+            "Time-reversed horizontal mirror plane found (but no inversion centre). This will be used for '/'' ordering."
         );
     }
 
@@ -1085,13 +1330,19 @@ where
             }
         };
 
-        let (inv, mir) = if i_parity {
+        let (inv, mir) = if i_parity || ti_parity {
             // Determine inversion symmetry
             // Inversion symmetry trumps reflection symmetry.
             let char_inv = irrep[
-                *class_symbols.get(&i_cc).unwrap_or_else(|| {
-                    panic!("Class `{}` not found.", &i_cc)
-                })
+                *class_symbols
+                    .get(&i_cc)
+                    .unwrap_or_else(|| {
+                        class_symbols
+                            .get(&ti_cc)
+                            .unwrap_or_else(|| {
+                                panic!("Neither `{}` nor `{}` found.", &i_cc, &ti_cc)
+                            })
+                    })
             ].clone();
             let char_inv_c = char_inv.complex_value();
             assert!(
@@ -1115,12 +1366,18 @@ where
                 Ordering::Less => ("u", ""),
                 Ordering::Equal => panic!("Inversion character must not be zero."),
             }
-        } else if s_parity {
+        } else if s_parity || ts_parity {
             // Determine reflection symmetry
             let char_ref = irrep[
-                *class_symbols.get(&s_cc).unwrap_or_else(|| {
-                    panic!("Class `{}` not found.", &s_cc)
-                })
+                *class_symbols
+                    .get(&s_cc)
+                    .unwrap_or_else(|| {
+                        class_symbols
+                            .get(&ts_cc)
+                            .unwrap_or_else(|| {
+                                panic!("Neither `{}` nor `{}` found.", &s_cc, &ts_cc)
+                                })
+                    })
             ].clone();
             let char_ref_c = char_ref.complex_value();
             assert!(
