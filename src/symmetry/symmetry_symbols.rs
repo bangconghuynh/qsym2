@@ -646,9 +646,18 @@ impl FromStr for MullikenIrcorepSymbol {
                 let cap = re
                     .captures(irrep_str.trim())
                     .unwrap_or_else(|| panic!("{irrep_str} does not fit the expected pattern."));
-                let mult = str::parse::<usize>(&cap[0])
-                    .unwrap_or_else(|_| panic!("{} is not a positive integer.", &cap[0]));
-                let irrep = &cap[1];
+                let mult_str = cap.get(1)
+                    .expect("Unable to parse the multiplicity of the irrep.")
+                    .as_str();
+                let mult = if mult_str.is_empty() {
+                    1
+                } else {
+                    str::parse::<usize>(mult_str)
+                        .unwrap_or_else(|_| panic!("`{mult_str}` is not a positive integer."))
+                };
+                let irrep = cap.get(2)
+                    .expect("Unable to parse the irrep.")
+                    .as_str();
                 (
                     MullikenIrrepSymbol::from_str(irrep).unwrap_or_else(|_| {
                         panic!("Unable to parse {irrep} as a Mulliken irrep symbol.")
@@ -1011,7 +1020,11 @@ pub fn sort_irreps<R: Clone>(
     principal_classes: &[ClassSymbol<R>],
 ) -> Array2<Character> {
     log::debug!("Sorting irreducible representations...");
-    let class_e = class_symbols.first().expect("No class symbols found.").0.clone();
+    let class_e = class_symbols
+        .first()
+        .expect("No class symbols found.")
+        .0
+        .clone();
     let class_i =
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
     let class_ti =
@@ -1215,7 +1228,11 @@ where
 {
     log::debug!("Generating Mulliken irreducible representation symbols...");
 
-    let e_cc = class_symbols.first().expect("No class symbols found.").0.clone();
+    let e_cc = class_symbols
+        .first()
+        .expect("No class symbols found.")
+        .0
+        .clone();
     let i_cc: ClassSymbol<R> =
         ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
     let ti_cc: ClassSymbol<R> =
