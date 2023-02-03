@@ -360,7 +360,7 @@ where
     /// equivalence relation:
     ///
     /// ```math
-    ///     g \sim h \Leftrightarrow \exists u : h = u g u ^{-1} \quad \textrm{or} \quad a : h = a
+    ///     g \sim h \Leftrightarrow \exists u : h = u g u ^{-1} \quad \textrm{or} \quad \exists a : h = a
     ///     g^{-1} a^{-1},
     /// ```
     ///
