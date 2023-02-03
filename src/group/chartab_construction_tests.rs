@@ -48,6 +48,9 @@ fn test_irrep_character_table_validity(
             .sum()
     );
 
+    // Square character table
+    assert_eq!(chartab.array().nrows(), chartab.array().ncols());
+
     // First orthogonality theorem (row-orthogonality)
     assert!(chartab
         .irreps
@@ -165,7 +168,9 @@ fn test_ircorep_character_table_algebraic_validity(
             .iter()
             .all(|(_, &intertwining_number)| intertwining_number == 1));
     }
-    assert_eq!(chartab.characters.nrows(), chartab.characters.ncols());
+
+    // Square character table
+    assert_eq!(chartab.array().nrows(), chartab.array().ncols());
 
     // Sum of squared dimensions
     let unitary_order = chartab.get_order().div_euclid(2);
