@@ -16,6 +16,10 @@ use phf::{phf_map, phf_set};
 use regex::Regex;
 
 use crate::chartab::character::Character;
+use crate::chartab::chartab_symbols::{
+    CollectionSymbol, GenericSymbol, GenericSymbolParsingError, LinearSpaceSymbol,
+    MathematicalSymbol, ReducibleLinearSpaceSymbol,
+};
 use crate::chartab::unityroot::UnityRoot;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
@@ -62,12 +66,6 @@ static INV_MULLIKEN_IRREP_DEGENERACIES: phf::Map<u64, &'static str> = phf_map! {
      10u64 => "M",
 };
 
-pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
-    1i8 => "r",
-    0i8 => "c",
-    -1i8 => "q",
-};
-
 pub static FORCED_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
     "O",
     "Oh",
@@ -76,286 +74,6 @@ pub static FORCED_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
     "Oh + θ·Oh",
     "Td + θ·Td",
 };
-
-// ======
-// Traits
-// ======
-
-/// A trait for general mathematical symbols.
-pub trait MathematicalSymbol: Clone + Hash + Eq {
-    /// The main part of the symbol.
-    fn main(&self) -> String;
-
-    /// The pre-superscript part of the symbol.
-    fn presuper(&self) -> String;
-
-    /// The pre-subscript part of the symbol.
-    fn presub(&self) -> String;
-
-    /// The post-superscript part of the symbol.
-    fn postsuper(&self) -> String;
-
-    /// The post-subscript part of the symbol.
-    fn postsub(&self) -> String;
-
-    /// The prefactor part of the symbol.
-    fn prefactor(&self) -> String;
-
-    /// The postfactor part of the symbol.
-    fn postfactor(&self) -> String;
-
-    /// The multiplicity of the symbol.
-    fn multiplicity(&self) -> Option<usize>;
-}
-
-/// A trait for symbols describing linear spaces.
-pub trait LinearSpaceSymbol: MathematicalSymbol {
-    /// The dimensionality of the linear space.
-    fn dimensionality(&self) -> u64;
-}
-
-/// A trait for symbols describing collections of objects.
-pub trait CollectionSymbol: MathematicalSymbol {
-    /// The size of the collection.
-    fn size(&self) -> usize;
-}
-
-// =======
-// Structs
-// =======
-
-// -------------
-// GenericSymbol
-// -------------
-
-/// A struct to handle generic mathematical symbols.
-///
-/// Each generic symbol has the format
-///
-/// ```math
-/// \textrm{prefactor}
-/// \ ^{\textrm{presuper}}_{\textrm{presub}}
-/// \ \textrm{main}
-/// \ ^{\textrm{postsuper}}_{\textrm{postsub}}
-/// \ \textrm{postfactor}.
-/// ```
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
-pub struct GenericSymbol {
-    /// The main part of the symbol.
-    main: String,
-
-    /// The pre-superscript part of the symbol.
-    #[builder(default = "String::new()")]
-    presuper: String,
-
-    /// The pre-subscript part of the symbol.
-    #[builder(default = "String::new()")]
-    presub: String,
-
-    /// The post-superscript part of the symbol.
-    #[builder(default = "String::new()")]
-    postsuper: String,
-
-    /// The post-subscript part of the symbol.
-    #[builder(default = "String::new()")]
-    postsub: String,
-
-    /// The prefactor part of the symbol.
-    #[builder(default = "String::new()")]
-    prefactor: String,
-
-    /// The postfactor part of the symbol.
-    #[builder(default = "String::new()")]
-    postfactor: String,
-}
-
-impl GenericSymbol {
-    fn builder() -> GenericSymbolBuilder {
-        GenericSymbolBuilder::default()
-    }
-}
-
-// ------------------
-// MathematicalSymbol
-// ------------------
-
-impl MathematicalSymbol for GenericSymbol {
-    fn main(&self) -> String {
-        self.main.to_owned()
-    }
-
-    fn presuper(&self) -> String {
-        self.presuper.to_owned()
-    }
-
-    fn presub(&self) -> String {
-        self.presub.to_owned()
-    }
-
-    fn postsuper(&self) -> String {
-        self.postsuper.to_owned()
-    }
-
-    fn postsub(&self) -> String {
-        self.postsub.to_owned()
-    }
-
-    fn prefactor(&self) -> String {
-        self.prefactor.to_owned()
-    }
-
-    fn postfactor(&self) -> String {
-        self.postfactor.to_owned()
-    }
-
-    fn multiplicity(&self) -> Option<usize> {
-        str::parse::<usize>(&self.prefactor).ok()
-    }
-}
-
-// -------
-// FromStr
-// -------
-
-impl FromStr for GenericSymbol {
-    type Err = GenericSymbolParsingError;
-
-    /// Parses a string representing a generic symbol.
-    ///
-    /// Some permissible generic symbols:
-    ///
-    /// ```text
-    /// "T"
-    /// "||T|_(2g)|"
-    /// "|^(3)|T|_(2g)|"
-    /// "12||C|^(2)_(5)|"
-    /// "2||S|^(z)|(α)"
-    /// ```
-    fn from_str(symstr: &str) -> Result<Self, Self::Err> {
-        let strs: Vec<&str> = symstr.split('|').collect();
-        if strs.len() == 1 {
-            Ok(Self::builder()
-                .main(strs[0].to_string())
-                .build()
-                .unwrap_or_else(|_| {
-                    panic!("Unable to construct a generic symbol from `{symstr}`.")
-                }))
-        } else if strs.len() == 5 {
-            let prefacstr = strs[0];
-            let prestr = strs[1];
-            let mainstr = strs[2];
-            let poststr = strs[3];
-            let postfacstr = strs[4];
-
-            let presuper_re = Regex::new(r"\^\((.*?)\)").expect("Regex pattern invalid.");
-            let presuperstr = if let Some(cap) = presuper_re.captures(prestr) {
-                cap.get(1)
-                    .expect("Expected regex group cannot be captured.")
-                    .as_str()
-            } else {
-                ""
-            };
-
-            let presub_re = Regex::new(r"_\((.*?)\)").expect("Regex pattern invalid.");
-            let presubstr = if let Some(cap) = presub_re.captures(prestr) {
-                cap.get(1)
-                    .expect("Expected regex group cannot be captured.")
-                    .as_str()
-            } else {
-                ""
-            };
-
-            let postsuper_re = Regex::new(r"\^\((.*?)\)").expect("Regex pattern invalid.");
-            let postsuperstr = if let Some(cap) = postsuper_re.captures(poststr) {
-                cap.get(1)
-                    .expect("Expected regex group cannot be captured.")
-                    .as_str()
-            } else {
-                ""
-            };
-
-            let postsub_re = Regex::new(r"_\((.*?)\)").expect("Regex pattern invalid.");
-            let postsubstr = if let Some(cap) = postsub_re.captures(poststr) {
-                cap.get(1)
-                    .expect("Expected regex group cannot be captured.")
-                    .as_str()
-            } else {
-                ""
-            };
-
-            Ok(Self::builder()
-                .main(mainstr.to_string())
-                .presuper(presuperstr.to_string())
-                .presub(presubstr.to_string())
-                .postsuper(postsuperstr.to_string())
-                .postsub(postsubstr.to_string())
-                .prefactor(prefacstr.to_string())
-                .postfactor(postfacstr.to_string())
-                .build()
-                .unwrap_or_else(|_| {
-                    panic!("Unable to construct a generic symbol from `{symstr}`.")
-                }))
-        } else {
-            Err(GenericSymbolParsingError(format!(
-                "{} is not parsable.",
-                symstr
-            )))
-        }
-    }
-}
-
-// -------
-// Display
-// -------
-impl fmt::Display for GenericSymbol {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let prefac_str = if self.prefactor() == "1" {
-            String::new()
-        } else {
-            self.prefactor().to_string()
-        };
-        let presuper_str = if self.presuper().is_empty() {
-            String::new()
-        } else {
-            format!("^({})", self.presuper())
-        };
-        let presub_str = if self.presub().is_empty() {
-            String::new()
-        } else {
-            format!("_({})", self.presub())
-        };
-        let main_str = format!("|{}|", self.main());
-        let postsuper_str = if self.postsuper().is_empty() {
-            String::new()
-        } else {
-            format!("^({})", self.postsuper())
-        };
-        let postsub_str = if self.postsub().is_empty() {
-            String::new()
-        } else {
-            format!("_({})", self.postsub())
-        };
-        let postfac_str = if self.postfactor() == "1" {
-            String::new()
-        } else {
-            self.postfactor().to_string()
-        };
-        write!(
-            f,
-            "{}{}{}{}{}{}{}",
-            prefac_str, presuper_str, presub_str, main_str, postsuper_str, postsub_str, postfac_str,
-        )
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct GenericSymbolParsingError(String);
-
-impl fmt::Display for GenericSymbolParsingError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Generic symbol parsing error: {}.", self.0)
-    }
-}
 
 // -------------------
 // MullikenIrrepSymbol
@@ -480,15 +198,18 @@ impl FromStr for MullikenIrrepSymbol {
 }
 
 impl LinearSpaceSymbol for MullikenIrrepSymbol {
-    fn dimensionality(&self) -> u64 {
-        *MULLIKEN_IRREP_DEGENERACIES
-            .get(&self.main())
-            .unwrap_or_else(|| {
-                panic!(
-                    "Unknown dimensionality for Mulliken symbol {}.",
-                    self.main()
-                )
-            })
+    fn dimensionality(&self) -> usize {
+        usize::try_from(
+            *MULLIKEN_IRREP_DEGENERACIES
+                .get(&self.main())
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Unknown dimensionality for Mulliken symbol {}.",
+                        self.main()
+                    )
+                }),
+        )
+        .expect("Unable to convert the dimensionality of this irrep to `usize`.")
     }
 }
 
@@ -535,13 +256,6 @@ impl MullikenIrcorepSymbol {
     /// Errors when the string cannot be parsed as a generic symbol.
     pub fn new(symstr: &str) -> Result<Self, MullikenIrcorepSymbolBuilderError> {
         Self::from_str(symstr)
-    }
-
-    pub fn from_irreps(irreps: &[(MullikenIrrepSymbol, usize)]) -> Self {
-        Self::builder()
-            .inducing_irreps(irreps.iter().cloned().collect::<HashMap<_, _>>())
-            .build()
-            .expect("Unable to construct a Mulliken ircorep symbol from a slice of irrep symbols.")
     }
 
     /// Returns an iterator containing sorted references to the symbols of the inducing irreps.
@@ -646,7 +360,8 @@ impl FromStr for MullikenIrcorepSymbol {
                 let cap = re
                     .captures(irrep_str.trim())
                     .unwrap_or_else(|| panic!("{irrep_str} does not fit the expected pattern."));
-                let mult_str = cap.get(1)
+                let mult_str = cap
+                    .get(1)
                     .expect("Unable to parse the multiplicity of the irrep.")
                     .as_str();
                 let mult = if mult_str.is_empty() {
@@ -655,9 +370,7 @@ impl FromStr for MullikenIrcorepSymbol {
                     str::parse::<usize>(mult_str)
                         .unwrap_or_else(|_| panic!("`{mult_str}` is not a positive integer."))
                 };
-                let irrep = cap.get(2)
-                    .expect("Unable to parse the irrep.")
-                    .as_str();
+                let irrep = cap.get(2).expect("Unable to parse the irrep.").as_str();
                 (
                     MullikenIrrepSymbol::from_str(irrep).unwrap_or_else(|_| {
                         panic!("Unable to parse {irrep} as a Mulliken irrep symbol.")
@@ -673,17 +386,30 @@ impl FromStr for MullikenIrcorepSymbol {
 }
 
 impl LinearSpaceSymbol for MullikenIrcorepSymbol {
-    fn dimensionality(&self) -> u64 {
-        let dim: usize = self.inducing_irreps
-        .iter()
-        .map(|(irrep, mult)| {
-            irrep
-                .multiplicity()
-                .expect("One of the inducing irreducible representations has an undefined multiplicity.")
-            * mult
-        }).sum();
-        TryInto::<u64>::try_into(dim)
-            .expect("Cannot convert the dimensionality of this ircorep symbol into `u64`.")
+    fn dimensionality(&self) -> usize {
+        self.inducing_irreps
+            .iter()
+            .map(|(irrep, mult)| {
+                irrep
+                    .multiplicity()
+                    .expect("One of the inducing irreducible representations has an undefined multiplicity.")
+                * mult
+            }).sum()
+    }
+}
+
+impl ReducibleLinearSpaceSymbol for MullikenIrcorepSymbol {
+    type Subspace = MullikenIrrepSymbol;
+
+    fn from_subspaces(irreps: &[(Self::Subspace, usize)]) -> Self {
+        Self::builder()
+            .inducing_irreps(irreps.iter().cloned().collect::<HashMap<_, _>>())
+            .build()
+            .expect("Unable to construct a Mulliken ircorep symbol from a slice of irrep symbols.")
+    }
+
+    fn subspaces(&self) -> Vec<(&Self::Subspace, &usize)> {
+        self.inducing_irreps.iter().collect_vec()
     }
 }
 
@@ -708,12 +434,12 @@ impl Hash for MullikenIrcorepSymbol {
 }
 
 // -----------
-// ClassSymbol
+// SymmetryClassSymbol
 // -----------
 
 /// A struct to handle conjugacy class symbols.
 #[derive(Builder, Debug, Clone)]
-pub struct ClassSymbol<R: Clone> {
+pub struct SymmetryClassSymbol<R: Clone> {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
 
@@ -721,23 +447,23 @@ pub struct ClassSymbol<R: Clone> {
     representative: Option<R>,
 }
 
-impl<R: Clone> PartialEq for ClassSymbol<R> {
+impl<R: Clone> PartialEq for SymmetryClassSymbol<R> {
     fn eq(&self, other: &Self) -> bool {
         self.generic_symbol == other.generic_symbol
     }
 }
 
-impl<R: Clone> Eq for ClassSymbol<R> {}
+impl<R: Clone> Eq for SymmetryClassSymbol<R> {}
 
-impl<R: Clone> Hash for ClassSymbol<R> {
+impl<R: Clone> Hash for SymmetryClassSymbol<R> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.generic_symbol.hash(state);
     }
 }
 
-impl<R: Clone> ClassSymbol<R> {
-    fn builder() -> ClassSymbolBuilder<R> {
-        ClassSymbolBuilder::default()
+impl<R: Clone> SymmetryClassSymbol<R> {
+    fn builder() -> SymmetryClassSymbolBuilder<R> {
+        SymmetryClassSymbolBuilder::default()
     }
 
     pub fn representative(&self) -> Option<R> {
@@ -745,7 +471,7 @@ impl<R: Clone> ClassSymbol<R> {
     }
 }
 
-impl<R: Clone> MathematicalSymbol for ClassSymbol<R> {
+impl<R: Clone> MathematicalSymbol for SymmetryClassSymbol<R> {
     /// The main part of the symbol, which denotes the representative symmetry operation.
     fn main(&self) -> String {
         self.generic_symbol.main()
@@ -787,7 +513,9 @@ impl<R: Clone> MathematicalSymbol for ClassSymbol<R> {
     }
 }
 
-impl<R: Clone> CollectionSymbol for ClassSymbol<R> {
+impl<R: Clone> CollectionSymbol for SymmetryClassSymbol<R> {
+    type CollectionElement = R;
+
     fn size(&self) -> usize {
         self.multiplicity().unwrap_or_else(|| {
             panic!(
@@ -796,9 +524,20 @@ impl<R: Clone> CollectionSymbol for ClassSymbol<R> {
             )
         })
     }
+
+    fn from_rep(
+        symstr: &str,
+        rep: Option<Self::CollectionElement>,
+    ) -> Result<Self, GenericSymbolParsingError> {
+        Self::new(symstr, rep)
+    }
+
+    fn representative(&self) -> Option<Self::CollectionElement> {
+        self.representative.clone()
+    }
 }
 
-impl<R: Clone> ClassSymbol<R> {
+impl<R: Clone> SymmetryClassSymbol<R> {
     /// Creates a class symbol from a string and a representative element.
     ///
     /// Some permissible conjugacy class symbols:
@@ -846,7 +585,9 @@ impl<R: Clone> ClassSymbol<R> {
     }
 }
 
-impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for ClassSymbol<R> {
+impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
+    for SymmetryClassSymbol<R>
+{
     /// Checks if this class is proper.
     ///
     /// # Returns
@@ -968,7 +709,7 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation for
     }
 }
 
-impl<R: FiniteOrder + Clone> FiniteOrder for ClassSymbol<R> {
+impl<R: FiniteOrder + Clone> FiniteOrder for SymmetryClassSymbol<R> {
     type Int = R::Int;
 
     fn order(&self) -> Self::Int {
@@ -982,7 +723,7 @@ impl<R: FiniteOrder + Clone> FiniteOrder for ClassSymbol<R> {
 // -------
 // Display
 // -------
-impl<R: Clone> fmt::Display for ClassSymbol<R> {
+impl<R: Clone> fmt::Display for SymmetryClassSymbol<R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
     }
@@ -1016,27 +757,28 @@ impl<R: Clone> fmt::Display for ClassSymbol<R> {
 /// Panics when expected classes cannot be found.
 pub fn sort_irreps<R: Clone>(
     char_arr: &ArrayView2<Character>,
-    class_symbols: &IndexMap<ClassSymbol<R>, usize>,
-    principal_classes: &[ClassSymbol<R>],
-) -> Array2<Character> {
+    frobenius_schur_indicators: &[i8],
+    class_symbols: &IndexMap<SymmetryClassSymbol<R>, usize>,
+    principal_classes: &[SymmetryClassSymbol<R>],
+) -> (Array2<Character>, Vec<i8>) {
     log::debug!("Sorting irreducible representations...");
     let class_e = class_symbols
         .first()
         .expect("No class symbols found.")
         .0
         .clone();
-    let class_i =
-        ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
-    let class_ti =
-        ClassSymbol::new("1||θ·i||", None).expect("Unable to construct class symbol `1||θ·i||`.");
-    let class_s =
-        ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
-    let class_ts =
-        ClassSymbol::new("1||θ·σh||", None).expect("Unable to construct class symbol `1||θ·σh||`.");
-    let class_t =
-        ClassSymbol::new("1||θ||", None).expect("Unable to construct class symbol `1||θ||`.");
+    let class_i = SymmetryClassSymbol::new("1||i||", None)
+        .expect("Unable to construct class symbol `1||i||`.");
+    let class_ti = SymmetryClassSymbol::new("1||θ·i||", None)
+        .expect("Unable to construct class symbol `1||θ·i||`.");
+    let class_s = SymmetryClassSymbol::new("1||σh||", None)
+        .expect("Unable to construct class symbol `1||σh||`.");
+    let class_ts = SymmetryClassSymbol::new("1||θ·σh||", None)
+        .expect("Unable to construct class symbol `1||θ·σh||`.");
+    let class_t = SymmetryClassSymbol::new("1||θ||", None)
+        .expect("Unable to construct class symbol `1||θ||`.");
 
-    let mut leading_classes: IndexSet<ClassSymbol<R>> = IndexSet::new();
+    let mut leading_classes: IndexSet<SymmetryClassSymbol<R>> = IndexSet::new();
 
     // Highest priority: time-reversal
     if class_symbols.contains_key(&class_t) {
@@ -1091,8 +833,10 @@ pub fn sort_irreps<R: Clone>(
         })
         .collect();
     let char_arr = char_arr.select(Axis(0), &sort_row_indices);
+    let old_fs = frobenius_schur_indicators.iter().collect::<Vec<_>>();
+    let sorted_fs = sort_row_indices.iter().map(|&i| *old_fs[i]).collect_vec();
     log::debug!("Sorting irreducible representations... Done.");
-    char_arr
+    (char_arr, sorted_fs)
 }
 
 /// Determines the principal classes given a list of class symbols and any forcing conditions.
@@ -1119,13 +863,13 @@ pub fn sort_irreps<R: Clone>(
 /// * classes specified in `force_principal` cannot be found in `class_symbols`;
 /// * no principal classes can be found.
 pub fn deduce_principal_classes<R, P>(
-    class_symbols: &IndexMap<ClassSymbol<R>, usize>,
+    class_symbols: &IndexMap<SymmetryClassSymbol<R>, usize>,
     force_principal_predicate: Option<P>,
-    force_principal: Option<ClassSymbol<R>>,
-) -> Vec<ClassSymbol<R>>
+    force_principal: Option<SymmetryClassSymbol<R>>,
+) -> Vec<SymmetryClassSymbol<R>>
 where
     R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
-    P: Copy + Fn(&ClassSymbol<R>) -> bool,
+    P: Copy + Fn(&SymmetryClassSymbol<R>) -> bool,
 {
     log::debug!("Determining principal classes...");
     let principal_classes = force_principal.map_or_else(|| {
@@ -1220,8 +964,8 @@ where
 #[allow(clippy::too_many_lines)]
 pub fn deduce_mulliken_irrep_symbols<R>(
     char_arr: &ArrayView2<Character>,
-    class_symbols: &IndexMap<ClassSymbol<R>, usize>,
-    principal_classes: &[ClassSymbol<R>],
+    class_symbols: &IndexMap<SymmetryClassSymbol<R>, usize>,
+    principal_classes: &[SymmetryClassSymbol<R>],
 ) -> Vec<MullikenIrrepSymbol>
 where
     R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
@@ -1233,16 +977,16 @@ where
         .expect("No class symbols found.")
         .0
         .clone();
-    let i_cc: ClassSymbol<R> =
-        ClassSymbol::new("1||i||", None).expect("Unable to construct class symbol `1||i||`.");
-    let ti_cc: ClassSymbol<R> =
-        ClassSymbol::new("1||θ·i||", None).expect("Unable to construct class symbol `1||θ·i||`.");
-    let s_cc: ClassSymbol<R> =
-        ClassSymbol::new("1||σh||", None).expect("Unable to construct class symbol `1||σh||`.");
-    let ts_cc: ClassSymbol<R> =
-        ClassSymbol::new("1||θ·σh||", None).expect("Unable to construct class symbol `1||θ·σh||`.");
-    let t_cc: ClassSymbol<R> =
-        ClassSymbol::new("1||θ||", None).expect("Unable to construct class symbol `1||θ||`.");
+    let i_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||i||", None)
+        .expect("Unable to construct class symbol `1||i||`.");
+    let ti_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||θ·i||", None)
+        .expect("Unable to construct class symbol `1||θ·i||`.");
+    let s_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||σh||", None)
+        .expect("Unable to construct class symbol `1||σh||`.");
+    let ts_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||θ·σh||", None)
+        .expect("Unable to construct class symbol `1||θ·σh||`.");
+    let t_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||θ||", None)
+        .expect("Unable to construct class symbol `1||θ||`.");
 
     // Inversion parity?
     let i_parity = class_symbols.contains_key(&i_cc);

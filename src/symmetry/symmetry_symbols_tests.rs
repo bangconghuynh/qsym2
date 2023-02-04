@@ -5,7 +5,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
 };
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind};
 use crate::symmetry::symmetry_element_order::ElementOrder;
-use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
+use crate::symmetry::symmetry_symbols::{SymmetryClassSymbol, MullikenIrrepSymbol};
 
 #[test]
 fn test_symmetry_symbols_mulliken() {
@@ -40,7 +40,7 @@ fn test_symmetry_symbols_class() {
         .build()
         .unwrap();
 
-    let c3_cls = ClassSymbol::new("2||C3||", Some(c3)).unwrap();
+    let c3_cls = SymmetryClassSymbol::new("2||C3||", Some(c3)).unwrap();
     assert_eq!(c3_cls.to_string(), "2|C3|");
     assert!(c3_cls.is_proper());
 
@@ -58,7 +58,7 @@ fn test_symmetry_symbols_class() {
         .build()
         .unwrap();
 
-    let i_cls = ClassSymbol::new("1||i||", Some(i)).unwrap();
+    let i_cls = SymmetryClassSymbol::new("1||i||", Some(i)).unwrap();
     assert_eq!(i_cls.to_string(), "|i|");
     assert!(!i_cls.is_proper());
     assert!(i_cls.is_inversion());
@@ -78,7 +78,7 @@ fn test_symmetry_symbols_class() {
         .build()
         .unwrap();
 
-    let s_cls = ClassSymbol::new("1||σ|_(h)|", Some(s)).unwrap();
+    let s_cls = SymmetryClassSymbol::new("1||σ|_(h)|", Some(s)).unwrap();
     assert_eq!(s_cls.to_string(), "|σ|_(h)");
     assert!(!s_cls.is_proper());
     assert!(s_cls.is_reflection());

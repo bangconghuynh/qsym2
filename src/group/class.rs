@@ -8,16 +8,20 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use ndarray::{s, Array2, Array3, Axis};
 
-use crate::chartab::CharacterTable;
+use crate::chartab::chartab_group::CharacterProperties;
+use crate::chartab::chartab_symbols::{
+    CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
+};
 use crate::symmetry::symmetry_element::symmetry_operation::FiniteOrder;
-use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
+// use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
 
 use super::{Group, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 
 #[derive(Builder, Clone)]
-pub struct ClassStructure<T>
+pub struct ClassStructure<T, ClassSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    ClassSymbol: CollectionSymbol<CollectionElement = T>,
 {
     /// A vector of conjugacy classes.
     ///
@@ -46,7 +50,7 @@ where
     /// Each key in the index map is a class symbol, and the associated value is the index of
     /// the corresponding conjugacy class in [`Self::conjugacy_classes`].
     #[builder(setter(custom))]
-    conjugacy_class_symbols: IndexMap<ClassSymbol<T>, usize>,
+    conjugacy_class_symbols: IndexMap<ClassSymbol, usize>,
 
     /// A vector containing the indices of inverse conjugacy classes.
     ///
@@ -69,9 +73,10 @@ where
     class_matrix: Array3<usize>,
 }
 
-impl<T> ClassStructureBuilder<T>
+impl<T, ClassSymbol> ClassStructureBuilder<T, ClassSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    ClassSymbol: CollectionSymbol<CollectionElement = T>,
 {
     fn conjugacy_class_transversal(&mut self) -> &mut Self {
         self.conjugacy_class_transversal = Some(
@@ -109,7 +114,7 @@ where
                     panic!("Element with index {rep_ele_index} cannot be retrieved.")
                 });
                 (
-                    ClassSymbol::new(
+                    ClassSymbol::from_rep(
                         format!("{}||K{i}||", class_sizes[i]).as_str(),
                         Some(rep_ele.clone()),
                     )
@@ -234,13 +239,14 @@ where
     }
 }
 
-impl<T> ClassStructure<T>
+impl<T, ClassSymbol> ClassStructure<T, ClassSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    ClassSymbol: CollectionSymbol<CollectionElement = T>,
 {
     /// Returns a builder to construct a new class structure.
-    fn builder() -> ClassStructureBuilder<T> {
-        ClassStructureBuilder::default()
+    fn builder() -> ClassStructureBuilder<T, ClassSymbol> {
+        ClassStructureBuilder::<T, ClassSymbol>::default()
     }
 
     /// Constructs a new class structure.
@@ -292,7 +298,7 @@ where
     /// # Panics
     ///
     /// Panics if the length of `csyms` does not match that of [`Self::conjugacy_classes`].
-    pub fn set_class_symbols(&mut self, csyms: &[ClassSymbol<T>]) {
+    pub fn set_class_symbols(&mut self, csyms: &[ClassSymbol]) {
         assert_eq!(csyms.len(), self.conjugacy_classes.len());
         self.conjugacy_class_symbols = csyms
             .iter()
@@ -303,16 +309,21 @@ where
 }
 
 pub trait ClassProperties: GroupProperties
+where
+    Self::ClassSymbol: CollectionSymbol<CollectionElement = Self::GroupElement>,
 {
+    type ClassSymbol;
+
     /// Computes the class structure of the group.
     fn compute_class_structure(&mut self);
 
     /// Returns a shared reference to the underlying class structure of the group.
     #[must_use]
-    fn class_structure(&self) -> &ClassStructure<Self::GroupElement>;
+    fn class_structure(&self) -> &ClassStructure<Self::GroupElement, Self::ClassSymbol>;
 
     /// Returns an exclusive reference to the underlying class structure of the group.
-    fn class_structure_mut(&mut self) -> &mut ClassStructure<Self::GroupElement>;
+    fn class_structure_mut(&mut self)
+        -> &mut ClassStructure<Self::GroupElement, Self::ClassSymbol>;
 
     /// Returns a vector of hashsets, each containing indices of elements in the same conjugacy
     /// class.
@@ -337,7 +348,7 @@ pub trait ClassProperties: GroupProperties
 
     /// Returns an indexmap mapping each conjugacy class symbol to a conjugacy class index.
     #[must_use]
-    fn conjugacy_class_symbols(&self) -> &IndexMap<ClassSymbol<Self::GroupElement>, usize> {
+    fn conjugacy_class_symbols(&self) -> &IndexMap<Self::ClassSymbol, usize> {
         &self.class_structure().conjugacy_class_symbols
     }
 
@@ -360,18 +371,24 @@ pub trait ClassProperties: GroupProperties
     }
 }
 
-impl<T> ClassProperties for UnitaryRepresentedGroup<T>
+impl<T, RowSymbol, ColSymbol> ClassProperties for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    RowSymbol: LinearSpaceSymbol,
+    ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
-    fn class_structure(&self) -> &ClassStructure<Self::GroupElement> {
+    type ClassSymbol = ColSymbol;
+
+    fn class_structure(&self) -> &ClassStructure<Self::GroupElement, Self::ClassSymbol> {
         self.class_structure
             .as_ref()
             .expect("Class structure not found for this group.")
     }
 
-    fn class_structure_mut(&mut self) -> &mut ClassStructure<Self::GroupElement> {
+    fn class_structure_mut(
+        &mut self,
+    ) -> &mut ClassStructure<Self::GroupElement, Self::ClassSymbol> {
         self.class_structure
             .as_mut()
             .expect("Class structure not found for this group.")
@@ -440,25 +457,29 @@ where
         };
         log::debug!("Finding unitary conjugacy classes... Done.");
 
-        let class_structure = ClassStructure::<T>::new(&self.abstract_group, ccs, e2ccs);
+        let class_structure = ClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
         self.class_structure = Some(class_structure);
     }
 }
 
-impl<T, U, UC> ClassProperties for MagneticRepresentedGroup<T, U, UC>
+impl<T, UG, RowSymbol> ClassProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-    U: Clone + GroupProperties<GroupElement = T>,
-    UC: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>,
+    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
 {
-    fn class_structure(&self) -> &ClassStructure<Self::GroupElement> {
+    type ClassSymbol = UG::ClassSymbol;
+
+    fn class_structure(&self) -> &ClassStructure<Self::GroupElement, Self::ClassSymbol> {
         self.class_structure
             .as_ref()
             .expect("Class structure not found for this group.")
     }
 
-    fn class_structure_mut(&mut self) -> &mut ClassStructure<Self::GroupElement> {
+    fn class_structure_mut(
+        &mut self,
+    ) -> &mut ClassStructure<Self::GroupElement, Self::ClassSymbol> {
         self.class_structure
             .as_mut()
             .expect("Class structure not found for this group.")
@@ -546,7 +567,7 @@ where
             .skip(1)
             .all(|x_opt| if let Some(x) = x_opt { *x > 0 } else { true }));
 
-        let class_structure = ClassStructure::<T>::new(&self.abstract_group, ccs, e2ccs);
+        let class_structure = ClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
         self.class_structure = Some(class_structure);
         log::debug!("Finding magnetic conjugacy classes... Done.");
     }
