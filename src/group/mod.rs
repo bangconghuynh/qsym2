@@ -502,7 +502,7 @@ where
     /// # Panics
     ///
     /// Panics if `element` is not in the group.
-    fn check_elem_antiunitary(&self, element: &T) -> bool {
+    pub fn check_elem_antiunitary(&self, element: &T) -> bool {
         if self.abstract_group.elements().contains_key(element) {
             !self.unitary_subgroup.elements().contains_key(element)
         } else {

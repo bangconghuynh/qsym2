@@ -32,7 +32,7 @@ use crate::symmetry::symmetry_symbols::{
 #[path = "chartab_construction_tests.rs"]
 mod chartab_construction_tests;
 
-pub trait CharacterProperties<R, C>
+pub trait CharacterProperties<R, C>: ClassProperties
 where
     R: MathematicalSymbol,
     C: MathematicalSymbol,
@@ -528,8 +528,8 @@ where
     }
 }
 
-impl<T, U> CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<T>>
-    for MagneticRepresentedGroup<T, U, U::CharTab>
+impl<T, UG> CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<T>>
+    for MagneticRepresentedGroup<T, UG, UG::CharTab>
 where
     T: Mul<Output = T>
         + Hash
@@ -538,16 +538,15 @@ where
         + Sync
         + fmt::Debug
         + FiniteOrder<Int = u32>
-        + Pow<i32, Output = T>
-        + SpecialSymmetryTransformation,
+        + Pow<i32, Output = T>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-    U: Clone
+    UG: Clone
         + GroupProperties<GroupElement = T>
         + ClassProperties<GroupElement = T>
         + CharacterProperties<MullikenIrrepSymbol, ClassSymbol<T>>,
-    U::CharTab: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>,
+    UG::CharTab: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>,
 {
-    type CharTab = CorepCharacterTable<T, U::CharTab>;
+    type CharTab = CorepCharacterTable<T, UG::CharTab>;
 
     fn character_table(&self) -> &Self::CharTab {
         self.ircorep_character_table
@@ -589,7 +588,7 @@ where
         let (_, a0_mag_idx) = self
             .elements()
             .iter()
-            .find(|(op, _)| op.is_antiunitary())
+            .find(|(op, _)| self.check_elem_antiunitary(op))
             .expect("No antiunitary elements found in the magnetic group.");
 
         let mut remaining_irreps = unitary_chartab.get_all_rows().clone();
@@ -601,7 +600,7 @@ where
             let char_sum = self
                 .elements()
                 .iter()
-                .filter(|(op, _)| op.is_antiunitary())
+                .filter(|(op, _)| self.check_elem_antiunitary(op))
                 .fold(Character::zero(), |acc, (_, a_mag_idx)| {
                     let a2_mag_idx = mag_ctb[(*a_mag_idx, *a_mag_idx)];
                     let (a2, _) = self.elements().get_index(a2_mag_idx).unwrap_or_else(|| {
