@@ -11,12 +11,11 @@ use crate::aux::template_molecules;
 use crate::chartab::character::Character;
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
-use crate::group::{
-    construct_chartab::CharacterProperties, symmetry_group::SymmetryGroupProperties,
-    GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup,
-};
+use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
+use crate::symmetry::symmetry_chartab::CharacterProperties;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::{SpecialSymmetryTransformation, SymmetryOperation};
+use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_symbols::{ClassSymbol, MathematicalSymbol, MullikenIrrepSymbol};
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");

@@ -1,13 +1,17 @@
 use std::collections::HashMap;
 
-use super::{GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::group::class::ClassProperties;
-use crate::group::construct_chartab::CharacterProperties;
+use crate::group::{GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup};
+use crate::symmetry::symmetry_chartab::CharacterProperties;
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_symbols::{ClassSymbol, CollectionSymbol, MullikenIrrepSymbol};
+
+#[cfg(test)]
+#[path = "symmetry_group_tests.rs"]
+mod symmetry_group_tests;
 
 pub trait SymmetryGroupProperties: ClassProperties<GroupElement = SymmetryOperation> {
     /// Constructs a group from molecular symmetry *elements* (not operations).
@@ -261,7 +265,8 @@ impl SymmetryGroupProperties for UnitaryRepresentedGroup<SymmetryOperation> {
 
         let mut group = Self::new(group_name.as_str(), sorted_operations);
         if handles_infinite_group.is_some() {
-            group.finite_subgroup_name = Some(group.deduce_finite_group_name());
+            let finite_subgroup_name = group.deduce_finite_group_name();
+            group.set_finite_subgroup_name(Some(finite_subgroup_name));
         }
         group.set_class_symbols_from_symmetry();
         group.construct_character_table();
@@ -339,7 +344,8 @@ impl SymmetryGroupProperties
         log::debug!("Constructing the magnetic group...");
         let mut group = Self::new(group_name.as_str(), sorted_operations, unitary_subgroup);
         if handles_infinite_group.is_some() {
-            group.finite_subgroup_name = Some(group.deduce_finite_group_name());
+            let finite_subgroup_name = group.deduce_finite_group_name();
+            group.set_finite_subgroup_name(Some(finite_subgroup_name));
         }
         group.set_class_symbols_from_symmetry();
         group.construct_character_table();

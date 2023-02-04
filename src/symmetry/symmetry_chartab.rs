@@ -13,13 +13,13 @@ use num_traits::{Inv, Pow, ToPrimitive, Zero};
 use primes::is_prime;
 use rayon::prelude::*;
 
-use super::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::chartab::character::Character;
 use crate::chartab::modular_linalg::{modular_eig, split_space, weighted_hermitian_inprod};
 use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
+use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation,
 };
@@ -27,6 +27,10 @@ use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, ClassSymbol,
     MathematicalSymbol, MullikenIrcorepSymbol, MullikenIrrepSymbol, FORCED_PRINCIPAL_GROUPS,
 };
+
+#[cfg(test)]
+#[path = "chartab_construction_tests.rs"]
+mod chartab_construction_tests;
 
 pub trait CharacterProperties<R, C>
 where
@@ -380,10 +384,9 @@ where
         let ts_cc = ClassSymbol::new("1||θ·σh||", None)
             .expect("Unable to construct class symbol `1||θ·σh||`.");
 
-        let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(self.name.as_str())
+        let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(self.name())
             || FORCED_PRINCIPAL_GROUPS.contains(
-                self.finite_subgroup_name
-                    .as_ref()
+                self.finite_subgroup_name()
                     .unwrap_or(&String::new())
                     .as_str(),
             ) {
@@ -391,7 +394,7 @@ where
                 .expect("Unable to construct a class symbol from `8||C3||`.");
             log::debug!(
                 "Group is {}. Principal-axis classes will be forced to be {}. This is to obtain non-standard Mulliken symbols that are in line with conventions in the literature.",
-                self.name,
+                self.name(),
                 c3_cc
             );
             Some(c3_cc)
@@ -504,10 +507,10 @@ where
             })
             .collect();
 
-        let chartab_name = if let Some(finite_name) = self.finite_subgroup_name.as_ref() {
-            format!("{} > {finite_name}", self.name)
+        let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
+            format!("{} > {finite_name}", self.name())
         } else {
-            self.name.clone()
+            self.name().to_string()
         };
         self.irrep_character_table = Some(RepCharacterTable::new(
             chartab_name.as_str(),
@@ -562,7 +565,7 @@ where
         log::debug!("Construction of ircorep character table begins.");
         log::debug!("===============================================");
 
-        if self.unitary_subgroup.order() == self.order() {
+        if self.unitary_subgroup().order() == self.order() {
             log::debug!(
                 "The unitary subgroup order and the full group order are both {}. This is not a magnetic group.", self.order()
             );
@@ -571,18 +574,18 @@ where
         }
 
         debug_assert_eq!(self.order() % 2, 0);
-        debug_assert_eq!(self.order().div_euclid(2), self.unitary_subgroup.order());
+        debug_assert_eq!(self.order().div_euclid(2), self.unitary_subgroup().order());
         let unitary_order: i32 = self
             .order()
             .div_euclid(2)
             .try_into()
             .expect("Unable to convert the unitary group order to `i32`.");
-        let unitary_chartab = self.unitary_subgroup.character_table();
+        let unitary_chartab = self.unitary_subgroup().character_table();
 
         let mag_ctb = self.cayley_table();
-        let uni_e2c = self.unitary_subgroup.element_to_conjugacy_classes();
+        let uni_e2c = self.unitary_subgroup().element_to_conjugacy_classes();
         let mag_ccsyms = self.conjugacy_class_symbols();
-        let uni_ccsyms = self.unitary_subgroup.conjugacy_class_symbols();
+        let uni_ccsyms = self.unitary_subgroup().conjugacy_class_symbols();
         let (_, a0_mag_idx) = self
             .elements()
             .iter()
@@ -604,7 +607,7 @@ where
                     let (a2, _) = self.elements().get_index(a2_mag_idx).unwrap_or_else(|| {
                         panic!("Element index `{a2_mag_idx}` not found in the magnetic group.")
                     });
-                    let a2_uni_idx = *self.unitary_subgroup.elements().get(a2).unwrap_or_else(|| {
+                    let a2_uni_idx = *self.unitary_subgroup().elements().get(a2).unwrap_or_else(|| {
                         panic!("Element `{a2:?}` not found in the unitary subgroup.")
                     });
                     let (a2_uni_class, _) = uni_ccsyms.get_index(
@@ -670,11 +673,11 @@ where
                 // Δ(u) is inequivalent to Δ*[a^(-1)ua].
                 // Δ(u) and Δ*[a^(-1)ua] are contained the induced irreducible corepresentation.
                 let irrep_conj_chars: Vec<Character> = unitary_chartab.get_all_cols().iter().enumerate().map(|(cc_idx, cc)| {
-                    let u_unitary_idx = self.unitary_subgroup.conjugacy_classes()[cc_idx]
+                    let u_unitary_idx = self.unitary_subgroup().conjugacy_classes()[cc_idx]
                         .iter()
                         .next()
                         .unwrap_or_else(|| panic!("No unitary elements found for conjugacy class `{cc}`."));
-                    let (u, _) = self.unitary_subgroup
+                    let (u, _) = self.unitary_subgroup()
                         .elements()
                         .get_index(*u_unitary_idx)
                         .unwrap_or_else(|| panic!("Unitary element with index `{u_unitary_idx}` cannot be retrieved."));
@@ -693,7 +696,7 @@ where
                         .unwrap_or_else(|| {
                             panic!("Unable to retrieve element with index `{a0invua0_mag_idx}` in the magnetic group.")
                         });
-                    let a0invua0_unitary_idx = self.unitary_subgroup.elements()
+                    let a0invua0_unitary_idx = self.unitary_subgroup().elements()
                         .get(a0invua0)
                         .unwrap_or_else(|| {
                             panic!("Unable to retrieve the index of element `{a0invua0:?}` in the unitary subgroup.")
@@ -740,7 +743,7 @@ where
                     );
                 });
                 let mag_cc_uni_idx = *self
-                    .unitary_subgroup
+                    .unitary_subgroup()
                     .elements()
                     .get(&mag_cc_rep)
                     .unwrap_or_else(|| {
@@ -775,7 +778,7 @@ where
                 let mag_cc_rep = mag_cc.representative().unwrap_or_else(|| {
                     panic!("No representative element found for magnetic conjugacy class {mag_cc}.");
                 });
-                let mag_cc_uni_idx = *self.unitary_subgroup.elements().get(&mag_cc_rep).unwrap_or_else(|| {
+                let mag_cc_uni_idx = *self.unitary_subgroup().elements().get(&mag_cc_rep).unwrap_or_else(|| {
                     panic!("Index for element {mag_cc_rep:?} not found in the unitary subgroup.");
                 });
                 let (uni_cc, _) = uni_ccsyms.get_index(
@@ -795,10 +798,10 @@ where
         let (ircoreps, ins): (Vec<MullikenIrcorepSymbol>, Vec<u8>) =
             ircoreps_ins.into_iter().unzip();
 
-        let chartab_name = if let Some(finite_name) = self.finite_subgroup_name.as_ref() {
-            format!("{} > {finite_name}", self.name)
+        let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
+            format!("{} > {finite_name}", self.name())
         } else {
-            self.name.clone()
+            self.name().to_string()
         };
         self.ircorep_character_table = Some(CorepCharacterTable::new(
             chartab_name.as_str(),
