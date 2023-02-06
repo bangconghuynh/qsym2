@@ -227,7 +227,7 @@ fn test_character_table_construction_ordinary_group(
     sym.analyse(&presym, false);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     let chartab = group.character_table();
-    println!("{chartab:?}");
+    // println!("{chartab:?}");
     assert_eq!(chartab.name, expected_name);
     test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
 }
@@ -257,13 +257,13 @@ fn test_character_table_construction_magnetic_group(
 
     let unitary_group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
     let irrep_chartab = unitary_group.character_table();
-    println!("{irrep_chartab:?}");
+    // println!("{irrep_chartab:?}");
     assert_eq!(irrep_chartab.name, expected_name);
     test_irrep_character_table_validity(irrep_chartab, expected_irreps, expected_chars_option);
 
     let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
     let ircorep_chartab = magnetic_group.character_table();
-    println!("{ircorep_chartab:?}");
+    // println!("{ircorep_chartab:?}");
     assert_eq!(ircorep_chartab.name, expected_name);
     test_ircorep_character_table_algebraic_validity(ircorep_chartab, &magnetic_group);
 }
@@ -330,7 +330,7 @@ fn test_character_table_construction_magnetic_group_from_infinite(
     let magnetic_group =
         MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order));
     let ircorep_chartab = magnetic_group.character_table();
-    println!("{:?}", ircorep_chartab);
+    // println!("{:?}", ircorep_chartab);
     assert_eq!(ircorep_chartab.name, expected_name);
     test_ircorep_character_table_algebraic_validity(ircorep_chartab, &magnetic_group);
 }
