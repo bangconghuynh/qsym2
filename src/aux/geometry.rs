@@ -8,13 +8,26 @@ use num_traits::ToPrimitive;
 
 use crate::aux::atom::Atom;
 use crate::aux::misc::HashableFloat;
-use crate::symmetry::symmetry_element::SymmetryElementKind;
 
 type F32 = fraction::GenericFraction<u32>;
 
 #[cfg(test)]
 #[path = "geometry_tests.rs"]
 mod geometry_tests;
+
+/// An enum to classify the type of improper rotation given an angle and axis.
+pub enum ImproperRotationKind {
+    /// The improper rotation is a rotation by the specified angle and axis followed by a
+    /// reflection in a mirror plane perpendicular to the axis.
+    MirrorPlane,
+
+    /// The improper rotation is a rotation by the specified angle and axis followed by an
+    /// inversion through the centre of inversion.
+    InversionCentre,
+}
+
+pub const IMSIG: ImproperRotationKind = ImproperRotationKind::MirrorPlane;
+pub const IMINV: ImproperRotationKind = ImproperRotationKind::InversionCentre;
 
 /// Returns the rotation angle adjusted to be in the interval $(-\pi, +\pi]$.
 ///
@@ -181,26 +194,23 @@ pub fn improper_rotation_matrix(
     angle: f64,
     axis: &Vector3<f64>,
     power: i8,
-    kind: &SymmetryElementKind,
+    kind: &ImproperRotationKind,
 ) -> Matrix3<f64> {
     let rotmat = proper_rotation_matrix(angle, axis, power);
     let normalised_axis = UnitVector3::new_normalize(*axis);
     match kind {
-        SymmetryElementKind::ImproperMirrorPlane(tr) => {
-            assert!(!tr, "Time reversal is not allowed.");
+        ImproperRotationKind::MirrorPlane => {
             let refmat = Matrix3::identity()
                 - 2.0 * (f64::from(power % 2)) * outer(&normalised_axis, &normalised_axis);
             refmat * rotmat
         }
-        SymmetryElementKind::ImproperInversionCentre(tr) => {
-            assert!(!tr, "Time reversal is not allowed.");
+        ImproperRotationKind::InversionCentre => {
             if power % 2 == 1 {
                 -rotmat
             } else {
                 rotmat
             }
         }
-        SymmetryElementKind::Proper(_) => panic!("Only improper kinds are allowed."),
     }
 }
 
@@ -349,7 +359,7 @@ pub trait Transform {
     /// * angle - The angle of rotation.
     /// * axis - The axis of rotation.
     /// * kind - The convention in which the improper rotation is defined.
-    fn improper_rotate_mut(&mut self, angle: f64, axis: &Vector3<f64>, kind: &SymmetryElementKind);
+    fn improper_rotate_mut(&mut self, angle: f64, axis: &Vector3<f64>, kind: &ImproperRotationKind);
 
     /// Translates in-place the coordinates by a specified translation vector in
     /// three dimensions.
@@ -403,7 +413,7 @@ pub trait Transform {
     ///
     /// An improper-rotated copy.
     #[must_use]
-    fn improper_rotate(&self, angle: f64, axis: &Vector3<f64>, kind: &SymmetryElementKind) -> Self;
+    fn improper_rotate(&self, angle: f64, axis: &Vector3<f64>, kind: &ImproperRotationKind) -> Self;
 
     /// Clones and translates in-place the coordinates by a specified
     /// translation in three dimensions.

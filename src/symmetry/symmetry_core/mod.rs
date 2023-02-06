@@ -230,9 +230,17 @@ impl PreSymmetry {
             "This method does not work for infinite-order elements."
         );
         let angle = 2.0 * std::f64::consts::PI / order.to_float();
-        let transformed_mol = self
-            .molecule
-            .improper_rotate(angle, axis, &kind.to_tr(false));
+        let transformed_mol = self.molecule.improper_rotate(
+            angle,
+            axis,
+            &kind
+                .to_tr(false)
+                .try_into()
+                .unwrap_or_else(|err| {
+                    log::error!("Error detected: {err}.");
+                    panic!("Error detected: {err}.")
+                }),
+        );
         if transformed_mol == self.molecule {
             Some(kind.to_tr(false))
         } else if tr {

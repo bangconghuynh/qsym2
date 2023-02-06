@@ -1,7 +1,6 @@
 use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::geometry::Transform;
+use crate::aux::geometry::{Transform, IMINV, IMSIG};
 use crate::aux::molecule::Molecule;
-use crate::symmetry::symmetry_element::{INV, SIG};
 use std::collections::HashSet;
 use nalgebra::Vector3;
 use approx;
@@ -83,7 +82,7 @@ fn test_transform_n3() {
     let reflected_mol = mol.improper_rotate(
         0.0,
         &Vector3::new(1.0, -1.0, 0.0),
-        &SIG,
+        &IMSIG,
     );
     assert_eq!(mol, reflected_mol);
 
@@ -91,7 +90,7 @@ fn test_transform_n3() {
     let reflected_mol_mag = mol.improper_rotate(
         0.0,
         &Vector3::new(1.0, -1.0, 0.0),
-        &SIG,
+        &IMSIG,
     );
     assert_ne!(mol, reflected_mol_mag);
 
@@ -100,7 +99,7 @@ fn test_transform_n3() {
     let reflected_mol_ele = mol.improper_rotate(
         0.0,
         &Vector3::new(1.0, -1.0, 0.0),
-        &SIG,
+        &IMSIG,
     );
     assert_eq!(mol, reflected_mol_ele);
 }
@@ -116,7 +115,7 @@ fn test_transform_c2h2() {
     let inverted_mol = mol.improper_rotate(
         0.0,
         &Vector3::new(1.0, 0.0, 0.0),
-        &INV,
+        &IMINV,
     );
     assert_eq!(mol, inverted_mol);
 
@@ -124,7 +123,7 @@ fn test_transform_c2h2() {
     let inverted_mol_mag = mol.improper_rotate(
         0.0,
         &Vector3::new(1.0, 0.0, 0.0),
-        &INV,
+        &IMINV,
     );
     assert_eq!(mol, inverted_mol_mag);
 
@@ -133,7 +132,7 @@ fn test_transform_c2h2() {
     let inverted_mol_ele = mol.improper_rotate(
         0.0,
         &Vector3::new(1.0, 0.0, 0.0),
-        &INV,
+        &IMINV,
     );
     assert_ne!(mol, inverted_mol_ele);
 }

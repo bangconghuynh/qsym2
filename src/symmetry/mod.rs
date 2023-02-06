@@ -1,5 +1,5 @@
-pub mod symmetry_core;
-pub mod symmetry_element;
-pub mod symmetry_element_order;
-pub mod symmetry_group;
-pub mod symmetry_symbols;
+mod symmetry_core;
+mod symmetry_element;
+mod symmetry_element_order;
+mod symmetry_group;
+mod symmetry_symbols;
