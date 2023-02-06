@@ -997,9 +997,28 @@ impl Symmetry {
                 == ElementOrder::Inf
     }
 
-    pub fn generate_all_operations(&self, infinite_order_to_finite: Option<u32>) -> Vec<SymmetryOperation> {
+    /// Generates all possible symmetry operations from the available symmetry elements.
+    ///
+    /// # Arguments
+    ///
+    /// * `infinite_order_to_finite` - A finite order to interpret infinite-order generators of
+    /// infinite groups.
+    ///
+    /// # Returns
+    ///
+    /// A vector of generated symmetry operations.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the group is infinite but `infinite_order_to_finite` is `None`, or if the finite
+    /// order specified in `infinite_order_to_finite` is incompatible with the infinite group.
+    #[allow(clippy::too_many_lines)]
+    pub fn generate_all_operations(
+        &self,
+        infinite_order_to_finite: Option<u32>,
+    ) -> Vec<SymmetryOperation> {
         let handles_infinite_group = if self.is_infinite() {
-            assert_ne!(infinite_order_to_finite, None);
+            assert!(infinite_order_to_finite.is_some());
             infinite_order_to_finite
         } else {
             None
@@ -1010,16 +1029,12 @@ impl Symmetry {
             if group_name.contains("O(3)") {
                 if !matches!(finite_order, 2 | 4) {
                     log::error!(
-                        "Finite order of {} is not yet supported for {}.",
-                        finite_order,
-                        group_name
+                        "Finite order of `{finite_order}` is not yet supported for `{group_name}`."
                     );
                 }
                 assert!(
                     matches!(finite_order, 2 | 4),
-                    "Finite order of {} is not yet supported for {}.",
-                    finite_order,
-                    group_name
+                    "Finite order of `{finite_order}` is not yet supported for `{group_name}`."
                 );
             }
         }

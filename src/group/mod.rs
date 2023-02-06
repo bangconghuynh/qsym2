@@ -6,6 +6,7 @@ use derive_builder::Builder;
 use indexmap::IndexMap;
 use log;
 use ndarray::{Array2, Zip};
+use num::Integer;
 
 use crate::chartab::chartab_symbols::{
     CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
@@ -13,8 +14,6 @@ use crate::chartab::chartab_symbols::{
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::group::class::{ClassProperties, ClassStructure};
-use crate::symmetry::symmetry_element::symmetry_operation::FiniteOrder;
-// use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
 
 pub mod class;
 
@@ -54,6 +53,15 @@ impl fmt::Display for GroupType {
 pub const ORGRP: GroupType = GroupType::Ordinary(false);
 pub const BWGRP: GroupType = GroupType::MagneticBlackWhite(false);
 pub const GRGRP: GroupType = GroupType::MagneticGrey(false);
+
+/// A trait for order finiteness.
+pub trait FiniteOrder {
+    /// The integer type for the order of the element.
+    type Int: Integer;
+
+    /// Calculates the finite order.
+    fn order(&self) -> Self::Int;
+}
 
 /// A structure for managing abstract groups.
 #[derive(Builder, Clone)]
@@ -122,6 +130,7 @@ where
     /// # Returns
     ///
     /// An abstract group with its Cayley table constructed.
+    #[must_use]
     pub fn new(name: &str, elements: Vec<T>) -> Self {
         let mut group = Self::builder()
             .name(name.to_string())
@@ -282,6 +291,7 @@ where
     ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
     /// Returns the finite subgroup name of this group.
+    #[must_use]
     pub fn finite_subgroup_name(&self) -> Option<&String> {
         self.finite_subgroup_name.as_ref()
     }
@@ -292,7 +302,7 @@ where
     ///
     /// * `name` - A name to be set as the finite subgroup name of this group.
     pub fn set_finite_subgroup_name(&mut self, name: Option<String>) {
-        self.finite_subgroup_name = name
+        self.finite_subgroup_name = name;
     }
 }
 
@@ -323,6 +333,7 @@ where
     ///
     /// A unitary-represented group with its Cayley table constructed and conjugacy classes
     /// determined.
+    #[must_use]
     pub fn new(name: &str, elements: Vec<T>) -> Self {
         let abstract_group = Group::<T>::new(name, elements);
         let mut unitary_group = UnitaryRepresentedGroup::<T, RowSymbol, ColSymbol>::builder()
@@ -453,7 +464,7 @@ where
     ///
     /// * `name` - A name to be set as the finite subgroup name of this group.
     pub fn set_finite_subgroup_name(&mut self, name: Option<String>) {
-        self.finite_subgroup_name = name
+        self.finite_subgroup_name = name;
     }
 
     /// Returns a shared reference to the unitary subgroup of this group.

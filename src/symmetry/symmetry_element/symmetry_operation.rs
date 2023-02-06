@@ -6,11 +6,11 @@ use approx;
 use derive_builder::Builder;
 use fraction;
 use nalgebra::{Point3, Vector3};
-use num::Integer;
 use num_traits::Pow;
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
+use crate::group::FiniteOrder;
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, INV};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
@@ -20,14 +20,6 @@ type Quaternion = (f64, Vector3<f64>);
 #[cfg(test)]
 #[path = "symmetry_operation_tests.rs"]
 mod symmetry_operation_tests;
-
-/// A trait for order finiteness.
-pub trait FiniteOrder {
-    type Int: Integer;
-
-    /// Calculates the finite order.
-    fn order(&self) -> Self::Int;
-}
 
 /// A trait for special symmetry transformations.
 pub trait SpecialSymmetryTransformation {

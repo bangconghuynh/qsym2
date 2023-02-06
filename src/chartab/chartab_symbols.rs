@@ -54,10 +54,13 @@ pub trait ReducibleLinearSpaceSymbol: LinearSpaceSymbol
 where
     Self::Subspace: LinearSpaceSymbol,
 {
+    /// The type of the subspace symbol.
     type Subspace;
 
+    /// Constructs [`Self`] from constituting subspace symbols and their multiplicities.
     fn from_subspaces(subspaces: &[(Self::Subspace, usize)]) -> Self;
 
+    /// Returns the constituting subspace symbols and their multiplicities.
     fn subspaces(&self) -> Vec<(&Self::Subspace, &usize)>;
 }
 
@@ -65,6 +68,16 @@ where
 pub trait CollectionSymbol: MathematicalSymbol {
     type CollectionElement;
 
+    /// Constructs a collection symbol from a string and a representative collection element.
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed.
+    /// * `rep` - A representative collection element.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if `symstr` cannot be parsed.
     fn from_rep(
         symstr: &str,
         rep: Option<Self::CollectionElement>,
@@ -73,6 +86,7 @@ pub trait CollectionSymbol: MathematicalSymbol {
     /// The size of the collection.
     fn size(&self) -> usize;
 
+    /// The representative element of the collection.
     fn representative(&self) -> Option<Self::CollectionElement>;
 }
 
@@ -137,31 +151,31 @@ impl GenericSymbol {
 
 impl MathematicalSymbol for GenericSymbol {
     fn main(&self) -> String {
-        self.main.to_owned()
+        self.main.clone()
     }
 
     fn presuper(&self) -> String {
-        self.presuper.to_owned()
+        self.presuper.clone()
     }
 
     fn presub(&self) -> String {
-        self.presub.to_owned()
+        self.presub.clone()
     }
 
     fn postsuper(&self) -> String {
-        self.postsuper.to_owned()
+        self.postsuper.clone()
     }
 
     fn postsub(&self) -> String {
-        self.postsub.to_owned()
+        self.postsub.clone()
     }
 
     fn prefactor(&self) -> String {
-        self.prefactor.to_owned()
+        self.prefactor.clone()
     }
 
     fn postfactor(&self) -> String {
-        self.postfactor.to_owned()
+        self.postfactor.clone()
     }
 
     fn multiplicity(&self) -> Option<usize> {
@@ -253,8 +267,7 @@ impl FromStr for GenericSymbol {
                 }))
         } else {
             Err(GenericSymbolParsingError(format!(
-                "{} is not parsable.",
-                symstr
+                "`{symstr}` is not parsable."
             )))
         }
     }
@@ -268,7 +281,7 @@ impl fmt::Display for GenericSymbol {
         let prefac_str = if self.prefactor() == "1" {
             String::new()
         } else {
-            self.prefactor().to_string()
+            self.prefactor()
         };
         let presuper_str = if self.presuper().is_empty() {
             String::new()
@@ -294,12 +307,11 @@ impl fmt::Display for GenericSymbol {
         let postfac_str = if self.postfactor() == "1" {
             String::new()
         } else {
-            self.postfactor().to_string()
+            self.postfactor()
         };
         write!(
             f,
-            "{}{}{}{}{}{}{}",
-            prefac_str, presuper_str, presub_str, main_str, postsuper_str, postsub_str, postfac_str,
+            "{prefac_str}{presuper_str}{presub_str}{main_str}{postsuper_str}{postsub_str}{postfac_str}",
         )
     }
 }

@@ -73,20 +73,18 @@ pub trait SymmetryGroupProperties:
                             format!("{}", self.abstract_group().order() / 4).as_str(),
                         )
                     }
+                } else if self.name().contains('θ') {
+                    assert_eq!(self.abstract_group().order() % 4, 0);
+                    self.name().replace(
+                        '∞',
+                        format!("{}", self.abstract_group().order() / 4).as_str(),
+                    )
                 } else {
-                    if self.name().contains('θ') {
-                        assert_eq!(self.abstract_group().order() % 4, 0);
-                        self.name().replace(
-                            '∞',
-                            format!("{}", self.abstract_group().order() / 4).as_str(),
-                        )
-                    } else {
-                        assert_eq!(self.abstract_group().order() % 2, 0);
-                        self.name().replace(
-                            '∞',
-                            format!("{}", self.abstract_group().order() / 2).as_str(),
-                        )
-                    }
+                    assert_eq!(self.abstract_group().order() % 2, 0);
+                    self.name().replace(
+                        '∞',
+                        format!("{}", self.abstract_group().order() / 2).as_str(),
+                    )
                 }
             } else {
                 assert!(matches!(self.name().as_bytes()[0], b'C' | b'S'));
@@ -386,7 +384,7 @@ impl SymmetryGroupProperties
 
         let (char_arr, sorted_fs) = sort_irreps(
             &old_chartab.array().view(),
-            &old_chartab.frobenius_schurs.values().cloned().collect_vec(),
+            &old_chartab.frobenius_schurs.values().copied().collect_vec(),
             class_symbols,
             &principal_classes,
         );
@@ -450,7 +448,7 @@ impl SymmetryGroupProperties
         let sorted_operations = sym.generate_all_operations(infinite_order_to_finite);
 
         assert!(
-            sorted_operations.iter().any(|op| op.is_antiunitary()),
+            sorted_operations.iter().any(SpecialSymmetryTransformation::is_antiunitary),
             "No antiunitary operations found from the `Symmetry` structure."
         );
 
@@ -458,10 +456,10 @@ impl SymmetryGroupProperties
         let unitary_operations = sorted_operations
             .iter()
             .filter_map(|op| {
-                if !op.is_antiunitary() {
-                    Some(op.clone())
-                } else {
+                if op.is_antiunitary() {
                     None
+                } else {
+                    Some(op.clone())
                 }
             })
             .collect::<Vec<_>>();

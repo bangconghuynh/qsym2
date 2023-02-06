@@ -22,16 +22,7 @@ use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
-use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
-use crate::symmetry::symmetry_element::symmetry_operation::FiniteOrder;
-// use crate::symmetry::symmetry_symbols::{
-//     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, ClassSymbol,
-//     MathematicalSymbol, MullikenIrcorepSymbol, MullikenIrrepSymbol, FORCED_PRINCIPAL_GROUPS,
-// };
-
-// #[cfg(test)]
-// #[path = "chartab_construction_tests.rs"]
-// mod chartab_construction_tests;
+use crate::group::{FiniteOrder, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 
 pub trait CharacterProperties: ClassProperties
 where
@@ -386,7 +377,7 @@ where
             .into_iter()
             .enumerate()
             .map(|(irrep_i, _)| {
-                RowSymbol::from_str(&format!("||Λ|_({})|", irrep_i))
+                RowSymbol::from_str(&format!("||Λ|_({irrep_i})|"))
                     .ok()
                     .expect("Unable to construct default irrep symbols.")
             })
@@ -555,7 +546,7 @@ where
             .find(|(op, _)| self.check_elem_antiunitary(op))
             .expect("No antiunitary elements found in the magnetic group.");
 
-        let mut remaining_irreps = unitary_chartab.get_all_rows().clone();
+        let mut remaining_irreps = unitary_chartab.get_all_rows();
         remaining_irreps.reverse();
 
         let mut ircoreps_ins: Vec<(RowSymbol, u8)> = Vec::new();

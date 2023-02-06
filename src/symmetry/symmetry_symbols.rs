@@ -21,9 +21,8 @@ use crate::chartab::chartab_symbols::{
     MathematicalSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::unityroot::UnityRoot;
-use crate::symmetry::symmetry_element::symmetry_operation::{
-    FiniteOrder, SpecialSymmetryTransformation,
-};
+use crate::group::FiniteOrder;
+use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::SymmetryElement;
 use crate::symmetry::symmetry_element_order::ORDER_1;
 
@@ -227,7 +226,7 @@ impl fmt::Display for MullikenIrrepSymbol {
 // ---------------------
 
 /// A struct to handle Mulliken irreducible corepresentation symbols.
-#[derive(Builder, Debug, Clone, PartialEq, Eq)]
+#[derive(Builder, Debug, Clone, Eq)]
 pub struct MullikenIrcorepSymbol {
     inducing_irreps: HashMap<MullikenIrrepSymbol, usize>,
 }
@@ -259,10 +258,15 @@ impl MullikenIrcorepSymbol {
     }
 
     /// Returns an iterator containing sorted references to the symbols of the inducing irreps.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the inducing irrep symbols cannot be ordered.
+    #[must_use]
     pub fn sorted_inducing_irreps(&self) -> std::vec::IntoIter<(&MullikenIrrepSymbol, &usize)> {
         self.inducing_irreps.iter().sorted_by(|(a, _), (b, _)| {
             a.partial_cmp(b)
-                .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
+                .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
         })
     }
 }
@@ -355,7 +359,7 @@ impl FromStr for MullikenIrcorepSymbol {
     fn from_str(symstr: &str) -> Result<Self, Self::Err> {
         let re = Regex::new(r"(\d?)(.*)").expect("Regex pattern invalid.");
         let irreps = symstr
-            .split("+")
+            .split('+')
             .map(|irrep_str| {
                 let cap = re
                     .captures(irrep_str.trim())
@@ -409,7 +413,7 @@ impl ReducibleLinearSpaceSymbol for MullikenIrcorepSymbol {
     }
 
     fn subspaces(&self) -> Vec<(&Self::Subspace, &usize)> {
-        self.inducing_irreps.iter().collect_vec()
+        self.sorted_inducing_irreps().collect_vec()
     }
 }
 
@@ -419,6 +423,18 @@ impl ReducibleLinearSpaceSymbol for MullikenIrcorepSymbol {
 impl fmt::Display for MullikenIrcorepSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.main())
+    }
+}
+
+// ---------
+// PartialEq
+// ---------
+impl PartialEq for MullikenIrcorepSymbol {
+    fn eq(&self, other: &Self) -> bool {
+        let self_irreps = self.sorted_inducing_irreps().collect_vec();
+        let other_irreps = other.sorted_inducing_irreps().collect_vec();
+        self_irreps == other_irreps
+
     }
 }
 
@@ -572,8 +588,7 @@ impl<R: Clone> SymmetryClassSymbol<R> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
         if generic_symbol.multiplicity().is_none() {
             Err(GenericSymbolParsingError(format!(
-                "{} contains no class size prefactor.",
-                symstr
+                "{symstr} contains no class size prefactor."
             )))
         } else {
             Ok(Self::builder()
@@ -919,14 +934,11 @@ where
         );
         assert!(
             class_symbols.contains_key(&principal_cc),
-            "Forcing principal-axis class to be {}, but {} is not a valid class in the group.",
-            principal_cc,
-            principal_cc
+            "Forcing principal-axis class to be `{principal_cc}`, but `{principal_cc}` is not a valid class in the group."
         );
 
         log::warn!(
-            "Principal-axis class forced to be {}. Auto-detection of principal-axis classes will be skipped.",
-            principal_cc
+            "Principal-axis class forced to be `{principal_cc}`. Auto-detection of principal-axis classes will be skipped.",
         );
         vec![principal_cc]
     });
@@ -1186,11 +1198,7 @@ where
         MullikenIrrepSymbol::new(format!("|^({trev})|{main}|^({mir})_({inv})|").as_str())
             .unwrap_or_else(|_| {
                 panic!(
-                    "Unable to construct symmetry symbol `|^({})|{}|^({})_({})|`.",
-                    trev,
-                    main,
-                    mir,
-                    inv
+                    "Unable to construct symmetry symbol `|^({trev})|{main}|^({mir})_({inv})|`."
                 )
             })
     });

@@ -95,6 +95,10 @@ where
     /// # Returns
     ///
     /// A formatted string containing the character table in a printable form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when encountering any issue formatting the character table.
     fn write_nice_table(
         &self,
         f: &mut fmt::Formatter,

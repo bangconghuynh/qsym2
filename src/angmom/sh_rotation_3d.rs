@@ -45,17 +45,13 @@ fn func_p(i: i8, l: u32, mu: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<
     let li64 = i64::from(l);
     assert!(
         mu.abs() < li64,
-        "Index `mu` = {} lies outside [{}, {}].",
-        mu,
+        "Index `mu` = {mu} lies outside [{}, {}].",
         -(li64) + 1,
         l - 1
     );
     assert!(
         mdash.abs() <= li64,
-        "Index `mdash` = {} lies outside [-{}, {}].",
-        mdash,
-        l,
-        l
+        "Index `mdash` = {mdash} lies outside [-{l}, {l}].",
     );
     assert_eq!(rmat.shape(), &[3, 3], "`rmat` must be a 3 × 3 matrix.");
     assert_eq!(
@@ -135,17 +131,11 @@ fn func_v(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
     let li64 = i64::from(l);
     assert!(
         m.abs() <= li64,
-        "Index `m` = {} lies outside [-{}, {}].",
-        m,
-        l,
-        l
+        "Index `m` = {m} lies outside [-{l}, {l}].",
     );
     assert!(
         mdash.abs() <= li64,
-        "Index `mdash` = {} lies outside [-{}, {}].",
-        mdash,
-        l,
-        l
+        "Index `mdash` = {mdash} lies outside [-{l}, {l}].",
     );
     assert_eq!(rmat.shape(), &[3, 3], "`rmat` must be a 3 × 3 matrix.");
     assert_eq!(
@@ -196,18 +186,14 @@ fn func_w(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
     let li64 = i64::from(l);
     assert!(
         m.abs() <= li64 - 2,
-        "Index `m` = {} lies outside [{}, {}].",
-        m,
+        "Index `m` = {m} lies outside [{}, {}].",
         -li64 + 2,
         li64 - 2
     );
     assert_ne!(m, 0, "`m` cannot be zero.");
     assert!(
         mdash.abs() <= li64,
-        "Index `mdash` = {} lies outside [-{}, {}].",
-        mdash,
-        l,
-        l
+        "Index `mdash` = {mdash} lies outside [-{l}, {l}].",
     );
     assert_eq!(rmat.shape(), &[3, 3], "`rmat` must be a 3 × 3 matrix.");
     assert_eq!(
@@ -242,17 +228,11 @@ fn coeff_u(l: u32, m: i64, mdash: i64) -> f64 {
     let li64 = i64::from(l);
     assert!(
         m.abs() <= li64,
-        "Index `m` = {} lies outside [-{}, {}].",
-        m,
-        l,
-        l
+        "Index `m` = {m} lies outside [-{l}, {l}].",
     );
     assert!(
         mdash.abs() <= li64,
-        "Index `mdash` = {} lies outside [-{}, {}].",
-        mdash,
-        l,
-        l
+        "Index `mdash` = {mdash} lies outside [-{l}, {l}].",
     );
 
     let num = (li64 + m) * (li64 - m);
@@ -287,17 +267,11 @@ fn coeff_v(l: u32, m: i64, mdash: i64) -> f64 {
     let li64 = i64::from(l);
     assert!(
         m.abs() <= li64,
-        "Index `m` = {} lies outside [-{}, {}].",
-        m,
-        l,
-        l
+        "Index `m` = {m} lies outside [-{l}, {l}].",
     );
     assert!(
         mdash.abs() <= li64,
-        "Index `mdash` = {} lies outside [-{}, {}].",
-        mdash,
-        l,
-        l
+        "Index `mdash` = {mdash} lies outside [-{l}, {l}].",
     );
 
     let num = (1 + i64::from(kdelta(&m, &0))) * (li64 + m.abs() - 1) * (li64 + m.abs());
@@ -334,17 +308,11 @@ fn coeff_w(l: u32, m: i64, mdash: i64) -> f64 {
     let li64 = i64::from(l);
     assert!(
         m.abs() <= li64,
-        "Index `m` = {} lies outside [-{}, {}].",
-        m,
-        l,
-        l
+        "Index `m` = {m} lies outside [-{l}, {l}].",
     );
     assert!(
         mdash.abs() <= li64,
-        "Index `mdash` = {} lies outside [-{}, {}].",
-        mdash,
-        l,
-        l
+        "Index `mdash` = {mdash} lies outside [-{l}, {l}].",
     );
 
     let num = (li64 - m.abs() - 1) * (li64 - m.abs());

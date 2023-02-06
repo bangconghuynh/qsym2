@@ -199,13 +199,11 @@ fn dmat_euler_gen_element(
 ) -> Complex<f64> {
     assert!(
         mdashi <= twoj as usize,
-        "mdashi must be between 0 and {} (inclusive).",
-        twoj
+        "`mdashi` must be between 0 and {twoj} (inclusive).",
     );
     assert!(
         mi <= twoj as usize,
-        "mi must be between 0 and {} (inclusive).",
-        twoj
+        "`mi` must be between 0 and {twoj} (inclusive).",
     );
     let (alpha, beta, gamma) = euler_angles;
     let j = f64::from(twoj) / 2.0;

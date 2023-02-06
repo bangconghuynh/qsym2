@@ -12,8 +12,7 @@ use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
     CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
 };
-use crate::symmetry::symmetry_element::symmetry_operation::FiniteOrder;
-// use crate::symmetry::symmetry_symbols::{ClassSymbol, MullikenIrrepSymbol};
+use crate::group::FiniteOrder;
 
 use super::{Group, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 
@@ -314,7 +313,7 @@ where
 {
     type ClassSymbol;
 
-    /// Computes the class structure of the group.
+    /// Computes the class structure of the group and store the result.
     fn compute_class_structure(&mut self);
 
     /// Returns a shared reference to the underlying class structure of the group.
@@ -410,7 +409,7 @@ where
                 (0usize..order)
                     .map(|i| HashSet::from([i]))
                     .collect::<Vec<_>>(),
-                (0usize..order).map(|i| Some(i)).collect::<Vec<_>>(),
+                (0usize..order).map(Some).collect::<Vec<_>>(),
             )
         } else {
             // Non-Abelian group.
@@ -457,7 +456,8 @@ where
         };
         log::debug!("Finding unitary conjugacy classes... Done.");
 
-        let class_structure = ClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
+        let class_structure =
+            ClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
         self.class_structure = Some(class_structure);
     }
 }
@@ -567,7 +567,8 @@ where
             .skip(1)
             .all(|x_opt| if let Some(x) = x_opt { *x > 0 } else { true }));
 
-        let class_structure = ClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
+        let class_structure =
+            ClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
         self.class_structure = Some(class_structure);
         log::debug!("Finding magnetic conjugacy classes... Done.");
     }

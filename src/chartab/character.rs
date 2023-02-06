@@ -39,7 +39,7 @@ impl CharacterBuilder {
         // This ensures that if there are two identical unity roots in ts, their multiplicities are
         // accumulated.
         for (ur, mult) in ts.iter() {
-            *terms.entry(ur.to_owned()).or_default() += mult;
+            *terms.entry(ur.clone()).or_default() += mult;
         }
         self.terms = Some(terms);
         self
@@ -303,6 +303,11 @@ impl Character {
     /// # Returns
     ///
     /// The simplified form of the character.
+    ///
+    /// # Panics
+    ///
+    /// Panics
+    #[must_use]
     pub fn simplify(&self) -> Self {
         let mut urs: IndexSet<_> = self.terms.keys().rev().collect();
         let mut simplified_terms = Vec::<(UnityRoot, usize)>::with_capacity(urs.len());
@@ -316,9 +321,10 @@ impl Character {
                 .find(|&test_ur| {
                     test_ur.fraction == ur.fraction + f12 || test_ur.fraction == ur.fraction - f12
                 })
-                .map(|nur| *nur);
+                .copied();
             if let Some(nur) = nur_option {
-                assert!(urs.remove(nur));
+                let res = urs.remove(nur);
+                debug_assert!(res);
                 let ur_mult = self
                     .terms
                     .get(ur)
@@ -328,8 +334,8 @@ impl Character {
                     .get(nur)
                     .unwrap_or_else(|| panic!("Unable to retrieve the multiplicity of {nur}."));
                 match ur_mult.cmp(nur_mult) {
-                    Ordering::Less => simplified_terms.push((nur.to_owned(), nur_mult - ur_mult)),
-                    Ordering::Greater => simplified_terms.push((ur.to_owned(), ur_mult - nur_mult)),
+                    Ordering::Less => simplified_terms.push((nur.clone(), nur_mult - ur_mult)),
+                    Ordering::Greater => simplified_terms.push((ur.clone(), ur_mult - nur_mult)),
                     Ordering::Equal => (),
                 };
             } else {
@@ -337,7 +343,7 @@ impl Character {
                     .terms
                     .get(ur)
                     .unwrap_or_else(|| panic!("Unable to retrieve the multiplicity of {ur}."));
-                simplified_terms.push((ur.to_owned(), *ur_mult));
+                simplified_terms.push((ur.clone(), *ur_mult));
             }
         }
         Character::builder()
@@ -356,6 +362,7 @@ impl Character {
     /// # Panics
     ///
     /// Panics when the complex conjugate cannot be found.
+    #[must_use]
     pub fn complex_conjugate(&self) -> Self {
         Self::builder()
             .terms(
@@ -505,7 +512,7 @@ impl Add<&'_ Character> for &Character {
     fn add(self, rhs: &Character) -> Self::Output {
         let mut sum = self.clone();
         for (ur, mult) in rhs.terms.iter() {
-            *sum.terms.entry(ur.to_owned()).or_default() += mult;
+            *sum.terms.entry(ur.clone()).or_default() += mult;
         }
         sum
     }
@@ -608,7 +615,7 @@ impl MulAssign<usize> for Character {
     fn mul_assign(&mut self, rhs: usize) {
         self.terms.iter_mut().for_each(|(_, mult)| {
             *mult *= rhs;
-        })
+        });
     }
 }
 
