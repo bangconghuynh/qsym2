@@ -22,18 +22,23 @@ use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
-use crate::group::{FiniteOrder, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
+use crate::group::{
+    FiniteOrder, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup,
+};
 
 pub trait CharacterProperties: ClassProperties
 where
     Self::RowSymbol: LinearSpaceSymbol,
     Self::CharTab: CharacterTable<RowSymbol = Self::RowSymbol, ColSymbol = Self::ClassSymbol>,
 {
-    /// Type of the character table of this group.
+    /// Type of the row-labelling symbols in the associated character table.
     type RowSymbol;
+
+    /// Type of the associated character table whose row-labelling symbol type is constrained to be
+    /// the same as [`Self::RowSymbol`].
     type CharTab;
 
-    /// Constructs the character table for this group.
+    /// Constructs and store the character table for this group.
     fn construct_character_table(&mut self);
 
     /// Returns a shared reference to the character table of this group.
@@ -68,8 +73,8 @@ where
     ///
     /// # References
     ///
-    /// * J. D. Dixon, Numer. Math., 1967, 10, 446–450.
-    /// * L. C. Grove, Groups and Characters, John Wiley & Sons, Inc., 1997.
+    /// * Dixon, J. D. High speed computation of group characters. *Numerische Mathematik* **10**, 446–450 (1967).
+    /// * Grove, L. C. Groups and Characters. (John Wiley & Sons, Inc., 1997).
     ///
     /// # Panics
     ///
@@ -464,25 +469,6 @@ where
     }
 }
 
-// impl<T, UG> CharacterProperties<MullikenIrcorepSymbol, ClassSymbol<T>>
-//     for MagneticRepresentedGroup<T, UG, UG::CharTab>
-// where
-//     T: Mul<Output = T>
-//         + Hash
-//         + Eq
-//         + Clone
-//         + Sync
-//         + fmt::Debug
-//         + FiniteOrder<Int = u32>
-//         + Pow<i32, Output = T>,
-//     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-//     UG: Clone
-//         + GroupProperties<GroupElement = T>
-//         + ClassProperties<GroupElement = T>
-//         + CharacterProperties<MullikenIrrepSymbol, ClassSymbol<T>>,
-//     UG::CharTab: CharacterTable<MullikenIrrepSymbol, ClassSymbol<T>>,
-// {
-//     type CharTab = CorepCharacterTable<T, UG::CharTab>;
 impl<T, RowSymbol, UG> CharacterProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
@@ -743,7 +729,7 @@ where
                 ).unwrap_or_else(|| {
                     panic!("Unable to find the conjugacy class symbol of element {mag_cc_rep:?} in the unitary subgroup.");
                 });
-                if unitary_chartab.principal_classes().contains(uni_cc) {
+                if unitary_chartab.get_principal_cols().contains(uni_cc) {
                     Some(mag_cc.clone())
                 } else {
                     None

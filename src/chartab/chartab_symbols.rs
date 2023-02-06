@@ -54,7 +54,7 @@ pub trait ReducibleLinearSpaceSymbol: LinearSpaceSymbol
 where
     Self::Subspace: LinearSpaceSymbol,
 {
-    /// The type of the subspace symbol.
+    /// The type of the subspace symbols.
     type Subspace;
 
     /// Constructs [`Self`] from constituting subspace symbols and their multiplicities.

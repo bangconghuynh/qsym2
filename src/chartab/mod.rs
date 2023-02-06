@@ -8,12 +8,9 @@ use ndarray::{Array2, ArrayView1};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
-    CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol, MathematicalSymbol, FROBENIUS_SCHUR_SYMBOLS,
+    CollectionSymbol, LinearSpaceSymbol, MathematicalSymbol, ReducibleLinearSpaceSymbol,
+    FROBENIUS_SCHUR_SYMBOLS,
 };
-// use crate::symmetry::symmetry_symbols::{
-//     ClassSymbol, MathematicalSymbol, MullikenIrcorepSymbol, MullikenIrrepSymbol,
-//     FROBENIUS_SCHUR_SYMBOLS,
-// };
 
 pub mod character;
 pub mod chartab_group;
@@ -28,7 +25,10 @@ where
     Self::RowSymbol: LinearSpaceSymbol,
     Self::ColSymbol: CollectionSymbol,
 {
+    /// The type for the row-labelling symbols.
     type RowSymbol;
+
+    /// The type for the column-labelling symbols.
     type ColSymbol;
 
     /// Retrieves the character of a particular irreducible representation in a particular
@@ -82,6 +82,9 @@ where
     /// Retrieves the order of the group.
     fn get_order(&self) -> usize;
 
+    /// Returns the principal columns of the character table.
+    fn get_principal_cols(&self) -> &IndexSet<Self::ColSymbol>;
+
     /// Prints a nicely formatted character table.
     ///
     /// # Arguments
@@ -105,8 +108,6 @@ where
         compact: bool,
         numerical: Option<usize>,
     ) -> fmt::Result;
-
-    fn principal_classes(&self) -> &IndexSet<Self::ColSymbol>;
 }
 
 // =================
@@ -208,38 +209,6 @@ where
             .frobenius_schurs(frobenius_schurs_indexmap)
             .build()
             .expect("Unable to construct a character table.")
-    }
-
-    /// Retrieves the characters of all conjugacy classes in a particular irreducible
-    /// representation.
-    ///
-    /// This is an alias for [`Self::get_row`].
-    ///
-    /// # Arguments
-    ///
-    /// * `irrep` - A Mulliken irreducible representation symbol.
-    ///
-    /// # Returns
-    ///
-    /// The required characters.
-    fn get_irrep(&self, irrep: &RowSymbol) -> ArrayView1<Character> {
-        self.get_row(irrep)
-    }
-
-    /// Retrieves the characters of all irreducible representations in a particular conjugacy
-    /// class.
-    ///
-    /// This is an alias for [`Self::get_col`].
-    ///
-    /// # Arguments
-    ///
-    /// * `class` - A conjugacy class symbol.
-    ///
-    /// # Returns
-    ///
-    /// The required characters.
-    fn get_class(&self, class: &ColSymbol) -> ArrayView1<Character> {
-        self.get_col(class)
     }
 }
 
@@ -500,7 +469,7 @@ where
         write!(f, "\n{}\n", &"━".repeat(tab_width))
     }
 
-    fn principal_classes(&self) -> &IndexSet<Self::ColSymbol> {
+    fn get_principal_cols(&self) -> &IndexSet<Self::ColSymbol> {
         &self.principal_classes
     }
 }
@@ -886,7 +855,7 @@ where
         write!(f, "\n{}\n", &"━".repeat(tab_width))
     }
 
-    fn principal_classes(&self) -> &IndexSet<Self::ColSymbol> {
+    fn get_principal_cols(&self) -> &IndexSet<Self::ColSymbol> {
         &self.principal_classes
     }
 }

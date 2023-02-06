@@ -21,8 +21,8 @@ use crate::symmetry::symmetry_symbols::{
 mod symmetry_group_tests;
 
 #[cfg(test)]
-#[path = "chartab_construction_tests.rs"]
-mod chartab_construction_tests;
+#[path = "symmetry_chartab_tests.rs"]
+mod symmetry_chartab_tests;
 
 pub trait SymmetryGroupProperties:
     ClassProperties<
@@ -44,6 +44,8 @@ pub trait SymmetryGroupProperties:
     /// A finite group of symmetry operations.
     fn from_molecular_symmetry(sym: &Symmetry, infinite_order_to_finite: Option<u32>) -> Self;
 
+    /// Reorders and relabels the rows and columns of the constructed character table using
+    /// symmetry-specific rules and conventions.
     fn canonicalise_character_table(&mut self) {}
 
     /// Deduces the group name in Schönflies notation of a finite subgroup of an infinite molecular
@@ -296,6 +298,8 @@ impl SymmetryGroupProperties
         group
     }
 
+    /// Reorders and relabels the rows and columns of the constructed character table using
+    /// Mulliken conventions for the irreducible representations.
     fn canonicalise_character_table(&mut self) {
         let old_chartab = self.character_table();
         let class_symbols = self.conjugacy_class_symbols();
@@ -448,7 +452,9 @@ impl SymmetryGroupProperties
         let sorted_operations = sym.generate_all_operations(infinite_order_to_finite);
 
         assert!(
-            sorted_operations.iter().any(SpecialSymmetryTransformation::is_antiunitary),
+            sorted_operations
+                .iter()
+                .any(SpecialSymmetryTransformation::is_antiunitary),
             "No antiunitary operations found from the `Symmetry` structure."
         );
 

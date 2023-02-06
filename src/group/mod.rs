@@ -8,11 +8,11 @@ use log;
 use ndarray::{Array2, Zip};
 use num::Integer;
 
+use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
     CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
-use crate::chartab::chartab_group::CharacterProperties;
 use crate::group::class::{ClassProperties, ClassStructure};
 
 pub mod class;
@@ -402,7 +402,9 @@ where
     /// where $`u`$ is unitary-represented (*i.e.* $`u`$ is in [`Self::unitary_subgroup`]) and
     /// $`a`$ is antiunitary-represented (*i.e.* $`a`$ is not in [`Self::unitary_subgroup`]).
     #[builder(setter(skip), default = "None")]
-    class_structure: Option<ClassStructure<T, <<UG as CharacterProperties>::CharTab as CharacterTable>::ColSymbol>>,
+    class_structure: Option<
+        ClassStructure<T, <<UG as CharacterProperties>::CharTab as CharacterTable>::ColSymbol>,
+    >,
 
     /// The character table for the irreducible corepresentations of this group.
     #[builder(setter(skip), default = "None")]
