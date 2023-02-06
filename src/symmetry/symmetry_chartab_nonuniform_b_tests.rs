@@ -10,7 +10,7 @@ use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
-fn test_character_table_construction_symmetric_h8_twisted_alt_magnetic_field_bw_c4_c2() {
+fn test_chartab_symmetric_h8_twisted_alt_magnetic_field_bw_c4_c2() {
     // env_logger::init();
     let thresh = 1e-7;
     let angle = 0.2;
@@ -53,7 +53,7 @@ fn test_character_table_construction_symmetric_h8_twisted_alt_magnetic_field_bw_
         MullikenIrrepSymbol::new("||A||").unwrap(),
         MullikenIrrepSymbol::new("||B||").unwrap(),
     ];
-    test_character_table_construction_ordinary_group(&mol, thresh, "C2", &expected_irreps, None);
+    test_chartab_ordinary_group(&mol, thresh, "C2", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
@@ -61,17 +61,11 @@ fn test_character_table_construction_symmetric_h8_twisted_alt_magnetic_field_bw_
         MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
     ];
-    test_character_table_construction_magnetic_group(
-        &mol,
-        thresh,
-        "C4",
-        &mag_expected_irreps,
-        None,
-    );
+    test_chartab_magnetic_group(&mol, thresh, "C4", &mag_expected_irreps, None);
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_s4_c2() {
+fn test_chartab_symmetric_h8_alt_x_magnetic_field_bw_s4_c2() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
@@ -119,7 +113,7 @@ fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_s4_c2(
         MullikenIrrepSymbol::new("||A||").unwrap(),
         MullikenIrrepSymbol::new("||B||").unwrap(),
     ];
-    test_character_table_construction_ordinary_group(&mol, thresh, "C2", &expected_irreps, None);
+    test_chartab_ordinary_group(&mol, thresh, "C2", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
@@ -127,17 +121,11 @@ fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_s4_c2(
         MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
     ];
-    test_character_table_construction_magnetic_group(
-        &mol,
-        thresh,
-        "S4",
-        &mag_expected_irreps,
-        None,
-    );
+    test_chartab_magnetic_group(&mol, thresh, "S4", &mag_expected_irreps, None);
 }
 
 #[test]
-fn test_character_table_construction_symmetric_bf3_rad_magnetic_field_bw_d3h_d3() {
+fn test_chartab_symmetric_bf3_rad_magnetic_field_bw_d3h_d3() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
@@ -166,7 +154,7 @@ fn test_character_table_construction_symmetric_bf3_rad_magnetic_field_bw_d3h_d3(
         MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E||").unwrap(),
     ];
-    test_character_table_construction_ordinary_group(&mol, thresh, "D3", &expected_irreps, None);
+    test_chartab_ordinary_group(&mol, thresh, "D3", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|^(')_(1)|").unwrap(),
@@ -176,17 +164,11 @@ fn test_character_table_construction_symmetric_bf3_rad_magnetic_field_bw_d3h_d3(
         MullikenIrrepSymbol::new("||A|^('')_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E|^('')|").unwrap(),
     ];
-    test_character_table_construction_magnetic_group(
-        &mol,
-        thresh,
-        "D3h",
-        &mag_expected_irreps,
-        None,
-    );
+    test_chartab_magnetic_group(&mol, thresh, "D3h", &mag_expected_irreps, None);
 }
 
 #[test]
-fn test_character_table_construction_symmetric_tan_rad_magnetic_field_bw_c3h_c3() {
+fn test_chartab_symmetric_tan_rad_magnetic_field_bw_c3h_c3() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
@@ -236,7 +218,7 @@ fn test_character_table_construction_symmetric_tan_rad_magnetic_field_bw_c3h_c3(
         MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
     ];
-    test_character_table_construction_ordinary_group(&mol, thresh, "C3", &expected_irreps, None);
+    test_chartab_ordinary_group(&mol, thresh, "C3", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|^(')|").unwrap(),
@@ -246,17 +228,11 @@ fn test_character_table_construction_symmetric_tan_rad_magnetic_field_bw_c3h_c3(
         MullikenIrrepSymbol::new("||Γ|^('')_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||Γ|^('')_(2)|").unwrap(),
     ];
-    test_character_table_construction_magnetic_group(
-        &mol,
-        thresh,
-        "C3h",
-        &mag_expected_irreps,
-        None,
-    );
+    test_chartab_magnetic_group(&mol, thresh, "C3h", &mag_expected_irreps, None);
 }
 
 #[test]
-fn test_character_table_construction_symmetric_bf3_alt_magnetic_field_bw_c2v_cs() {
+fn test_chartab_symmetric_bf3_alt_magnetic_field_bw_c2v_cs() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
     let thresh = 1e-7;
@@ -292,7 +268,7 @@ fn test_character_table_construction_symmetric_bf3_alt_magnetic_field_bw_c2v_cs(
 }
 
 #[test]
-fn test_character_table_construction_symmetric_xef4_rad_magnetic_field_bw_c4v_c2v() {
+fn test_chartab_symmetric_xef4_rad_magnetic_field_bw_c4v_c2v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
@@ -331,7 +307,7 @@ fn test_character_table_construction_symmetric_xef4_rad_magnetic_field_bw_c4v_c2
         MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
     ];
-    test_character_table_construction_ordinary_group(&mol, thresh, "C2v", &expected_irreps, None);
+    test_chartab_ordinary_group(&mol, thresh, "C2v", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
@@ -340,17 +316,11 @@ fn test_character_table_construction_symmetric_xef4_rad_magnetic_field_bw_c4v_c2
         MullikenIrrepSymbol::new("||A|_(4)|").unwrap(),
         MullikenIrrepSymbol::new("||E||").unwrap(),
     ];
-    test_character_table_construction_magnetic_group(
-        &mol,
-        thresh,
-        "C4v",
-        &mag_expected_irreps,
-        None,
-    );
+    test_chartab_magnetic_group(&mol, thresh, "C4v", &mag_expected_irreps, None);
 }
 
 #[test]
-fn test_character_table_construction_symmetric_xef4_alt_z_magnetic_field_bw_d4h_d2h() {
+fn test_chartab_symmetric_xef4_alt_z_magnetic_field_bw_d4h_d2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
@@ -393,7 +363,7 @@ fn test_character_table_construction_symmetric_xef4_alt_z_magnetic_field_bw_d4h_
         MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(3u)|").unwrap(),
     ];
-    test_character_table_construction_ordinary_group(&mol, thresh, "D2h", &expected_irreps, None);
+    test_chartab_ordinary_group(&mol, thresh, "D2h", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
@@ -407,17 +377,11 @@ fn test_character_table_construction_symmetric_xef4_alt_z_magnetic_field_bw_d4h_
         MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
         MullikenIrrepSymbol::new("||E|_(u)|").unwrap(),
     ];
-    test_character_table_construction_magnetic_group(
-        &mol,
-        thresh,
-        "D4h",
-        &mag_expected_irreps,
-        None,
-    );
+    test_chartab_magnetic_group(&mol, thresh, "D4h", &mag_expected_irreps, None);
 }
 
 #[test]
-fn test_character_table_construction_symmetric_xef4_alt_xy_magnetic_field_bw_d4h_d2d() {
+fn test_chartab_symmetric_xef4_alt_xy_magnetic_field_bw_d4h_d2d() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
@@ -467,7 +431,7 @@ fn test_character_table_construction_symmetric_xef4_alt_xy_magnetic_field_bw_d4h
         MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
         MullikenIrrepSymbol::new("||E||").unwrap(),
     ];
-    test_character_table_construction_ordinary_group(&mol, thresh, "D2d", &expected_irreps, None);
+    test_chartab_ordinary_group(&mol, thresh, "D2d", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
@@ -481,17 +445,11 @@ fn test_character_table_construction_symmetric_xef4_alt_xy_magnetic_field_bw_d4h
         MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
         MullikenIrrepSymbol::new("||E|_(u)|").unwrap(),
     ];
-    test_character_table_construction_magnetic_group(
-        &mol,
-        thresh,
-        "D4h",
-        &mag_expected_irreps,
-        None,
-    );
+    test_chartab_magnetic_group(&mol, thresh, "D4h", &mag_expected_irreps, None);
 }
 
 #[test]
-fn test_character_table_construction_symmetric_xef4_alt_x_magnetic_field_bw_c4h_s4() {
+fn test_chartab_symmetric_xef4_alt_x_magnetic_field_bw_c4h_s4() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let thresh = 1e-7;
@@ -540,7 +498,7 @@ fn test_character_table_construction_symmetric_xef4_alt_x_magnetic_field_bw_c4h_
         MullikenIrrepSymbol::new("||B||").unwrap(),
         MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
     ];
-    test_character_table_construction_ordinary_group(&mol, thresh, "S4", &expected_irreps, None);
+    test_chartab_ordinary_group(&mol, thresh, "S4", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
@@ -552,17 +510,11 @@ fn test_character_table_construction_symmetric_xef4_alt_x_magnetic_field_bw_c4h_
         MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
     ];
-    test_character_table_construction_magnetic_group(
-        &mol,
-        thresh,
-        "C4h",
-        &mag_expected_irreps,
-        None,
-    );
+    test_chartab_magnetic_group(&mol, thresh, "C4h", &mag_expected_irreps, None);
 }
 
 #[test]
-fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_c4h_c2h() {
+fn test_chartab_symmetric_h8_alt_x_magnetic_field_bw_c4h_c2h() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
     let thresh = 1e-7;
@@ -606,7 +558,7 @@ fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_c4h_c2
         MullikenIrrepSymbol::new("||A|_(u)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(u)|").unwrap(),
     ];
-    test_character_table_construction_ordinary_group(&mol, thresh, "C2h", &expected_irreps, None);
+    test_chartab_ordinary_group(&mol, thresh, "C2h", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
@@ -618,11 +570,5 @@ fn test_character_table_construction_symmetric_h8_alt_x_magnetic_field_bw_c4h_c2
         MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
         MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
     ];
-    test_character_table_construction_magnetic_group(
-        &mol,
-        thresh,
-        "C4h",
-        &mag_expected_irreps,
-        None,
-    );
+    test_chartab_magnetic_group(&mol, thresh, "C4h", &mag_expected_irreps, None);
 }

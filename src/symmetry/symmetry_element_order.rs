@@ -35,8 +35,7 @@ impl ElementOrder {
     pub fn new(order: f64, thresh: f64) -> Self {
         assert!(
             order.is_sign_positive(),
-            "Order value {} is invalid. Order values must be strictly positive.",
-            order
+            "Order value `{order}` is invalid. Order values must be strictly positive.",
         );
         if order.is_infinite() {
             return Self::Inf;

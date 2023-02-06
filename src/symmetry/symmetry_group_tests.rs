@@ -9,7 +9,6 @@ use num_traits::Pow;
 use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
 use crate::group::class::ClassProperties;
-use crate::group::symmetry_group::SymmetryGroupProperties;
 use crate::group::{
     Group, GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup, BWGRP,
     GRGRP, ORGRP,
@@ -18,6 +17,7 @@ use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, ROT};
 use crate::symmetry::symmetry_element_order::ElementOrder;
+use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -86,7 +86,7 @@ fn test_ur_group_from_molecular_symmetry() {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    assert_eq!(group.name, "C3v".to_string());
+    assert_eq!(group.name(), "C3v".to_string());
     assert_eq!(group.order(), 6);
     assert_eq!(group.class_number(), 3);
 }
@@ -104,7 +104,7 @@ fn test_ur_group_element_to_conjugacy_class() {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    assert_eq!(group.name, "C5v".to_string());
+    assert_eq!(group.name(), "C5v".to_string());
     assert_eq!(group.order(), 10);
     assert_eq!(group.class_number(), 4);
 
@@ -441,11 +441,7 @@ fn test_mr_magnetic_group_from_infinite(
     verify_abstract_group(&group, name, order, class_number, abelian);
 }
 
-fn test_ur_ordinary_group_class_order(
-    mol: &Molecule,
-    thresh: f64,
-    class_order_str: &[&str],
-) {
+fn test_ur_ordinary_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
         .molecule(mol, true)
@@ -462,11 +458,7 @@ fn test_ur_ordinary_group_class_order(
     assert_eq!(&classes, class_order_str);
 }
 
-fn test_ur_magnetic_group_class_order(
-    mol: &Molecule,
-    thresh: f64,
-    class_order_str: &[&str],
-) {
+fn test_ur_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
         .molecule(mol, true)
@@ -483,11 +475,7 @@ fn test_ur_magnetic_group_class_order(
     assert_eq!(&classes, class_order_str);
 }
 
-fn test_mr_magnetic_group_class_order(
-    mol: &Molecule,
-    thresh: f64,
-    class_order_str: &[&str],
-) {
+fn test_mr_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
         .molecule(mol, true)
@@ -515,25 +503,17 @@ fn test_ur_group_spherical_atom_o3() {
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
 
-    test_ur_ordinary_group_from_infinite(
-        &mol, 2, thresh, "O(3)", "D2h", 8, 8, true,
-    );
+    test_ur_ordinary_group_from_infinite(&mol, 2, thresh, "O(3)", "D2h", 8, 8, true);
 
-    test_ur_ordinary_group_from_infinite(
-        &mol, 4, thresh, "O(3)", "Oh", 48, 10, false,
-    );
+    test_ur_ordinary_group_from_infinite(&mol, 4, thresh, "O(3)", "Oh", 48, 10, false);
 
     let result = panic::catch_unwind(|| {
-        test_ur_ordinary_group_from_infinite(
-            &mol, 5, thresh, "?", "?", 48, 10, false,
-        );
+        test_ur_ordinary_group_from_infinite(&mol, 5, thresh, "?", "?", 48, 10, false);
     });
     assert!(result.is_err());
 
     let result = panic::catch_unwind(|| {
-        test_ur_ordinary_group_from_infinite(
-            &mol, 3, thresh, "?", "?", 48, 10, false,
-        );
+        test_ur_ordinary_group_from_infinite(&mol, 3, thresh, "?", "?", 48, 10, false);
     });
     assert!(result.is_err());
 }
@@ -570,16 +550,12 @@ fn test_ur_group_spherical_atom_grey_o3() {
     );
 
     let result = panic::catch_unwind(|| {
-        test_ur_magnetic_group_from_infinite(
-            &mol, 5, thresh, "?", "?", 48, 10, false, GRGRP,
-        );
+        test_ur_magnetic_group_from_infinite(&mol, 5, thresh, "?", "?", 48, 10, false, GRGRP);
     });
     assert!(result.is_err());
 
     let result = panic::catch_unwind(|| {
-        test_ur_magnetic_group_from_infinite(
-            &mol, 3, thresh, "?", "?", 48, 10, false, GRGRP,
-        );
+        test_ur_magnetic_group_from_infinite(&mol, 3, thresh, "?", "?", 48, 10, false, GRGRP);
     });
     assert!(result.is_err());
 }
@@ -1765,11 +1741,7 @@ fn test_ur_group_symmetric_cpnico_magnetic_field_bw_c5v_c5_class_order() {
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -0.2)));
-    test_ur_magnetic_group_class_order(
-        &mol,
-        thresh,
-        &["|E|", "2|C5|", "2|[C5]^2|", "5|θ·σv|"],
-    );
+    test_ur_magnetic_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|θ·σv|"]);
 }
 
 #[test]
@@ -5248,11 +5220,7 @@ fn test_ur_group_asymmetric_water_magnetic_field_bw_c2v_c2_class_order() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 1.0, 0.0)));
-    test_ur_magnetic_group_class_order(
-        &mol,
-        thresh,
-        &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"],
-    );
+    test_ur_magnetic_group_class_order(&mol, thresh, &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"]);
 }
 
 #[test]
@@ -5279,11 +5247,7 @@ fn test_ur_group_asymmetric_pyridine_magnetic_field_bw_c2v_c2_class_order() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.2, 0.0)));
-    test_ur_magnetic_group_class_order(
-        &mol,
-        thresh,
-        &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"],
-    );
+    test_ur_magnetic_group_class_order(&mol, thresh, &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"]);
 }
 
 #[test]
@@ -5310,11 +5274,7 @@ fn test_ur_group_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2_class_order() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.2, 0.0, 0.0)));
-    test_ur_magnetic_group_class_order(
-        &mol,
-        thresh,
-        &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"],
-    );
+    test_ur_magnetic_group_class_order(&mol, thresh, &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"]);
 }
 
 #[test]
@@ -5341,11 +5301,7 @@ fn test_ur_group_asymmetric_azulene_magnetic_field_bw_c2v_c2_class_order() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
-    test_ur_magnetic_group_class_order(
-        &mol,
-        thresh,
-        &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"],
-    );
+    test_ur_magnetic_group_class_order(&mol, thresh, &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"]);
 }
 
 #[test]
@@ -5372,11 +5328,7 @@ fn test_ur_group_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_c2_class_order()
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.2, 0.0)));
-    test_ur_magnetic_group_class_order(
-        &mol,
-        thresh,
-        &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"],
-    );
+    test_ur_magnetic_group_class_order(&mol, thresh, &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"]);
 }
 
 #[test]
@@ -5403,11 +5355,7 @@ fn test_ur_group_asymmetric_cuneane_magnetic_field_bw_c2v_c2_class_order() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
-    test_ur_magnetic_group_class_order(
-        &mol,
-        thresh,
-        &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"],
-    );
+    test_ur_magnetic_group_class_order(&mol, thresh, &["|E|", "|C2|", "|θ·σv|", "|θ·σv|^(')"]);
 }
 
 /***

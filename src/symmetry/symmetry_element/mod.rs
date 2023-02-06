@@ -758,6 +758,7 @@ impl PartialEq for SymmetryElement {
     ///
     /// For improper elements, proper rotation angles are taken in the inversion
     /// centre convention.
+    #[allow(clippy::too_many_lines)]
     fn eq(&self, other: &Self) -> bool {
         if self.contains_time_reversal() != other.contains_time_reversal() {
             return false;

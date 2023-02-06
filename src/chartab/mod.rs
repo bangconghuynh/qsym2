@@ -7,22 +7,30 @@ use indexmap::{IndexMap, IndexSet};
 use ndarray::{Array2, ArrayView1};
 
 use crate::chartab::character::Character;
-use crate::symmetry::symmetry_symbols::{
-    ClassSymbol, MathematicalSymbol, MullikenIrcorepSymbol, MullikenIrrepSymbol,
+use crate::chartab::chartab_symbols::{
+    CollectionSymbol, LinearSpaceSymbol, MathematicalSymbol, ReducibleLinearSpaceSymbol,
     FROBENIUS_SCHUR_SYMBOLS,
 };
 
 pub mod character;
+pub mod chartab_group;
+pub mod chartab_symbols;
 pub mod modular_linalg;
 pub mod reducedint;
 pub mod unityroot;
 
 /// A trait to contain essential methods for a character table.
-pub trait CharacterTable<RowSymbol, ColSymbol>: Clone
+pub trait CharacterTable: Clone
 where
-    RowSymbol: MathematicalSymbol,
-    ColSymbol: MathematicalSymbol,
+    Self::RowSymbol: LinearSpaceSymbol,
+    Self::ColSymbol: CollectionSymbol,
 {
+    /// The type for the row-labelling symbols.
+    type RowSymbol;
+
+    /// The type for the column-labelling symbols.
+    type ColSymbol;
+
     /// Retrieves the character of a particular irreducible representation in a particular
     /// conjugacy class.
     ///
@@ -38,7 +46,7 @@ where
     /// # Panics
     ///
     /// Panics if the specified `irrep` or `class` cannot be found.
-    fn get_character(&self, irrep: &RowSymbol, class: &ColSymbol) -> &Character;
+    fn get_character(&self, irrep: &Self::RowSymbol, class: &Self::ColSymbol) -> &Character;
 
     /// Retrieves the characters of all columns in a particular row.
     ///
@@ -49,7 +57,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_row(&self, row: &RowSymbol) -> ArrayView1<Character>;
+    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character>;
 
     /// Retrieves the characters of all rows in a particular column.
     ///
@@ -60,19 +68,22 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_col(&self, col: &ColSymbol) -> ArrayView1<Character>;
+    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character>;
 
     /// Retrieves the symbols of all rows in the character table.
-    fn get_all_rows(&self) -> IndexSet<RowSymbol>;
+    fn get_all_rows(&self) -> IndexSet<Self::RowSymbol>;
 
     /// Retrieves the symbols of all columns in the character table.
-    fn get_all_cols(&self) -> IndexSet<ColSymbol>;
+    fn get_all_cols(&self) -> IndexSet<Self::ColSymbol>;
 
     /// Returns a shared reference to the underlying array of the character table.
     fn array(&self) -> &Array2<Character>;
 
     /// Retrieves the order of the group.
     fn get_order(&self) -> usize;
+
+    /// Returns the principal columns of the character table.
+    fn get_principal_cols(&self) -> &IndexSet<Self::ColSymbol>;
 
     /// Prints a nicely formatted character table.
     ///
@@ -87,14 +98,16 @@ where
     /// # Returns
     ///
     /// A formatted string containing the character table in a printable form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when encountering any issue formatting the character table.
     fn write_nice_table(
         &self,
         f: &mut fmt::Formatter,
         compact: bool,
         numerical: Option<usize>,
     ) -> fmt::Result;
-
-    fn principal_classes(&self) -> &IndexSet<ColSymbol>;
 }
 
 // =================
@@ -103,29 +116,37 @@ where
 
 /// A struct to manage character tables of irreducible representations.
 #[derive(Builder, Clone)]
-pub struct RepCharacterTable<R: Clone> {
+pub struct RepCharacterTable<RowSymbol, ColSymbol>
+where
+    RowSymbol: LinearSpaceSymbol,
+    ColSymbol: CollectionSymbol,
+{
     /// The name given to the character table.
     pub name: String,
 
     /// The irreducible representations of the group and their row indices in the character
     /// table.
-    pub irreps: IndexMap<MullikenIrrepSymbol, usize>,
+    pub irreps: IndexMap<RowSymbol, usize>,
 
     /// The conjugacy classes of the group and their column indices in the character table.
-    pub classes: IndexMap<ClassSymbol<R>, usize>,
+    pub classes: IndexMap<ColSymbol, usize>,
 
     /// The principal conjugacy classes of the group.
-    principal_classes: IndexSet<ClassSymbol<R>>,
+    principal_classes: IndexSet<ColSymbol>,
 
     /// The characters of the irreducible representations in this group.
     pub characters: Array2<Character>,
 
     /// The Frobenius--Schur indicators for the irreducible representations in this group.
-    frobenius_schurs: IndexMap<MullikenIrrepSymbol, i8>,
+    pub frobenius_schurs: IndexMap<RowSymbol, i8>,
 }
 
-impl<R: Clone> RepCharacterTable<R> {
-    fn builder() -> RepCharacterTableBuilder<R> {
+impl<RowSymbol, ColSymbol> RepCharacterTable<RowSymbol, ColSymbol>
+where
+    RowSymbol: LinearSpaceSymbol,
+    ColSymbol: CollectionSymbol,
+{
+    fn builder() -> RepCharacterTableBuilder<RowSymbol, ColSymbol> {
         RepCharacterTableBuilder::default()
     }
 
@@ -147,9 +168,9 @@ impl<R: Clone> RepCharacterTable<R> {
     /// Panics if the character table cannot be constructed.
     pub fn new(
         name: &str,
-        irreps: &[MullikenIrrepSymbol],
-        classes: &[ClassSymbol<R>],
-        principal_classes: &[ClassSymbol<R>],
+        irreps: &[RowSymbol],
+        classes: &[ColSymbol],
+        principal_classes: &[ColSymbol],
         char_arr: Array2<Character>,
         frobenius_schurs: &[i8],
     ) -> Self {
@@ -158,21 +179,21 @@ impl<R: Clone> RepCharacterTable<R> {
         assert_eq!(classes.len(), char_arr.dim().1);
         assert_eq!(char_arr.dim().0, char_arr.dim().1);
 
-        let irreps_indexmap: IndexMap<MullikenIrrepSymbol, usize> = irreps
+        let irreps_indexmap: IndexMap<RowSymbol, usize> = irreps
             .iter()
             .cloned()
             .enumerate()
             .map(|(i, irrep)| (irrep, i))
             .collect();
 
-        let classes_indexmap: IndexMap<ClassSymbol<R>, usize> = classes
+        let classes_indexmap: IndexMap<ColSymbol, usize> = classes
             .iter()
             .cloned()
             .enumerate()
             .map(|(i, class)| (class, i))
             .collect();
 
-        let principal_classes_indexset: IndexSet<ClassSymbol<R>> =
+        let principal_classes_indexset: IndexSet<ColSymbol> =
             principal_classes.iter().cloned().collect();
 
         let frobenius_schurs_indexmap = iter::zip(irreps, frobenius_schurs)
@@ -189,41 +210,16 @@ impl<R: Clone> RepCharacterTable<R> {
             .build()
             .expect("Unable to construct a character table.")
     }
-
-    /// Retrieves the characters of all conjugacy classes in a particular irreducible
-    /// representation.
-    ///
-    /// This is an alias for [`Self::get_row`].
-    ///
-    /// # Arguments
-    ///
-    /// * `irrep` - A Mulliken irreducible representation symbol.
-    ///
-    /// # Returns
-    ///
-    /// The required characters.
-    fn get_irrep(&self, irrep: &MullikenIrrepSymbol) -> ArrayView1<Character> {
-        self.get_row(irrep)
-    }
-
-    /// Retrieves the characters of all irreducible representations in a particular conjugacy
-    /// class.
-    ///
-    /// This is an alias for [`Self::get_col`].
-    ///
-    /// # Arguments
-    ///
-    /// * `class` - A conjugacy class symbol.
-    ///
-    /// # Returns
-    ///
-    /// The required characters.
-    fn get_class(&self, class: &ClassSymbol<R>) -> ArrayView1<Character> {
-        self.get_col(class)
-    }
 }
 
-impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharacterTable<R> {
+impl<RowSymbol, ColSymbol> CharacterTable for RepCharacterTable<RowSymbol, ColSymbol>
+where
+    RowSymbol: LinearSpaceSymbol,
+    ColSymbol: CollectionSymbol,
+{
+    type RowSymbol = RowSymbol;
+    type ColSymbol = ColSymbol;
+
     /// Retrieves the character of a particular irreducible representation in a particular
     /// conjugacy class.
     ///
@@ -239,7 +235,7 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
     /// # Panics
     ///
     /// Panics if the specified `irrep` or `class` cannot be found.
-    fn get_character(&self, irrep: &MullikenIrrepSymbol, class: &ClassSymbol<R>) -> &Character {
+    fn get_character(&self, irrep: &Self::RowSymbol, class: &Self::ColSymbol) -> &Character {
         let row = self
             .irreps
             .get(irrep)
@@ -261,7 +257,7 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
     /// # Returns
     ///
     /// The required characters.
-    fn get_row(&self, row: &MullikenIrrepSymbol) -> ArrayView1<Character> {
+    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character> {
         let row = self
             .irreps
             .get(row)
@@ -279,7 +275,7 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
     /// # Returns
     ///
     /// The required characters.
-    fn get_col(&self, col: &ClassSymbol<R>) -> ArrayView1<Character> {
+    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character> {
         let col = self
             .classes
             .get(col)
@@ -288,12 +284,12 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
     }
 
     /// Retrieves the Mulliken symbols of all irreducible representations of the group.
-    fn get_all_rows(&self) -> IndexSet<MullikenIrrepSymbol> {
+    fn get_all_rows(&self) -> IndexSet<Self::RowSymbol> {
         self.irreps.keys().cloned().collect::<IndexSet<_>>()
     }
 
     /// Retrieves the symbols of all conjugacy classes of the group.
-    fn get_all_cols(&self) -> IndexSet<ClassSymbol<R>> {
+    fn get_all_cols(&self) -> IndexSet<Self::ColSymbol> {
         self.classes.keys().cloned().collect::<IndexSet<_>>()
     }
 
@@ -473,7 +469,7 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
         write!(f, "\n{}\n", &"━".repeat(tab_width))
     }
 
-    fn principal_classes(&self) -> &IndexSet<ClassSymbol<R>> {
+    fn get_principal_cols(&self) -> &IndexSet<Self::ColSymbol> {
         &self.principal_classes
     }
 }
@@ -481,7 +477,11 @@ impl<R: Clone> CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>> for RepCharac
 // -------
 // Display
 // -------
-impl<R: Clone> fmt::Display for RepCharacterTable<R> {
+impl<RowSymbol, ColSymbol> fmt::Display for RepCharacterTable<RowSymbol, ColSymbol>
+where
+    RowSymbol: LinearSpaceSymbol,
+    ColSymbol: CollectionSymbol,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, Some(3))
     }
@@ -490,7 +490,11 @@ impl<R: Clone> fmt::Display for RepCharacterTable<R> {
 // -----
 // Debug
 // -----
-impl<R: Clone> fmt::Debug for RepCharacterTable<R> {
+impl<RowSymbol, ColSymbol> fmt::Debug for RepCharacterTable<RowSymbol, ColSymbol>
+where
+    RowSymbol: LinearSpaceSymbol,
+    ColSymbol: CollectionSymbol,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, None)
     }
@@ -502,41 +506,41 @@ impl<R: Clone> fmt::Debug for RepCharacterTable<R> {
 
 /// A structure to manage character tables of irreducible corepresentations of magnetic groups.
 #[derive(Builder, Clone)]
-pub struct CorepCharacterTable<R, U>
+pub struct CorepCharacterTable<RowSymbol, UC>
 where
-    R: Clone,
-    U: CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>>,
+    RowSymbol: ReducibleLinearSpaceSymbol,
+    UC: CharacterTable,
 {
     /// The name given to the character table.
     pub name: String,
 
     /// The character table of the irreducible representations of the halving unitary subgroup that
     /// induce the irreducible corepresentations of the current magnetic group.
-    pub unitary_character_table: U,
+    pub unitary_character_table: UC,
 
     /// The irreducible corepresentations of the group and their row indices in the character
     /// table.
-    pub ircoreps: IndexMap<MullikenIrcorepSymbol, usize>,
+    pub ircoreps: IndexMap<RowSymbol, usize>,
 
     /// The conjugacy classes of the group and their column indices in the character table.
-    pub classes: IndexMap<ClassSymbol<R>, usize>,
+    pub classes: IndexMap<UC::ColSymbol, usize>,
 
     /// The principal conjugacy classes of the group.
-    principal_classes: IndexSet<ClassSymbol<R>>,
+    principal_classes: IndexSet<UC::ColSymbol>,
 
     /// The characters of the irreducible corepresentations in this group.
     pub characters: Array2<Character>,
 
     /// The intertwining numbers of the irreducible corepresentations.
-    pub intertwining_numbers: IndexMap<MullikenIrcorepSymbol, u8>,
+    pub intertwining_numbers: IndexMap<RowSymbol, u8>,
 }
 
-impl<R, U> CorepCharacterTable<R, U>
+impl<RowSymbol, UC> CorepCharacterTable<RowSymbol, UC>
 where
-    R: Clone,
-    U: CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>>,
+    RowSymbol: ReducibleLinearSpaceSymbol,
+    UC: CharacterTable,
 {
-    fn builder() -> CorepCharacterTableBuilder<R, U> {
+    fn builder() -> CorepCharacterTableBuilder<RowSymbol, UC> {
         CorepCharacterTableBuilder::default()
     }
 
@@ -561,32 +565,31 @@ where
     /// Panics if the character table cannot be constructed.
     pub fn new(
         name: &str,
-        // unitary_chartab: RepCharacterTable<R>,
-        unitary_chartab: U,
-        ircoreps: &[MullikenIrcorepSymbol],
-        classes: &[ClassSymbol<R>],
-        principal_classes: &[ClassSymbol<R>],
+        unitary_chartab: UC,
+        ircoreps: &[RowSymbol],
+        classes: &[UC::ColSymbol],
+        principal_classes: &[UC::ColSymbol],
         char_arr: Array2<Character>,
         intertwining_numbers: &[u8],
     ) -> Self {
         assert_eq!(ircoreps.len(), char_arr.dim().0);
         assert_eq!(intertwining_numbers.len(), char_arr.dim().0);
 
-        let ircoreps_indexmap: IndexMap<MullikenIrcorepSymbol, usize> = ircoreps
+        let ircoreps_indexmap: IndexMap<RowSymbol, usize> = ircoreps
             .iter()
             .cloned()
             .enumerate()
             .map(|(i, ircorep)| (ircorep, i))
             .collect();
 
-        let classes_indexmap: IndexMap<ClassSymbol<R>, usize> = classes
+        let classes_indexmap: IndexMap<UC::ColSymbol, usize> = classes
             .iter()
             .cloned()
             .enumerate()
             .map(|(i, class)| (class, i))
             .collect();
 
-        let principal_classes_indexset: IndexSet<ClassSymbol<R>> =
+        let principal_classes_indexset: IndexSet<UC::ColSymbol> =
             principal_classes.iter().cloned().collect();
 
         let intertwining_numbers_indexmap = iter::zip(ircoreps, intertwining_numbers)
@@ -606,11 +609,14 @@ where
     }
 }
 
-impl<R, U> CharacterTable<MullikenIrcorepSymbol, ClassSymbol<R>> for CorepCharacterTable<R, U>
+impl<RowSymbol, UC> CharacterTable for CorepCharacterTable<RowSymbol, UC>
 where
-    R: Clone,
-    U: CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>>,
+    RowSymbol: ReducibleLinearSpaceSymbol,
+    UC: CharacterTable,
 {
+    type RowSymbol = RowSymbol;
+    type ColSymbol = UC::ColSymbol;
+
     /// Retrieves the character of a particular irreducible corepresentation in a particular
     /// unitary conjugacy class.
     ///
@@ -626,7 +632,7 @@ where
     /// # Panics
     ///
     /// Panics if the specified `ircorep` or `class` cannot be found.
-    fn get_character(&self, ircorep: &MullikenIrcorepSymbol, class: &ClassSymbol<R>) -> &Character {
+    fn get_character(&self, ircorep: &Self::RowSymbol, class: &Self::ColSymbol) -> &Character {
         let row = self
             .ircoreps
             .get(ircorep)
@@ -648,7 +654,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_row(&self, row: &MullikenIrcorepSymbol) -> ArrayView1<Character> {
+    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character> {
         let row = self
             .ircoreps
             .get(row)
@@ -666,7 +672,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_col(&self, col: &ClassSymbol<R>) -> ArrayView1<Character> {
+    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character> {
         let col = self
             .classes
             .get(col)
@@ -675,12 +681,12 @@ where
     }
 
     /// Retrieves the Mulliken symbols of all irreducible corepresentations of the group.
-    fn get_all_rows(&self) -> IndexSet<MullikenIrcorepSymbol> {
+    fn get_all_rows(&self) -> IndexSet<Self::RowSymbol> {
         self.ircoreps.keys().cloned().collect::<IndexSet<_>>()
     }
 
     /// Retrieves the symbols of all conjugacy classes of the group.
-    fn get_all_cols(&self) -> IndexSet<ClassSymbol<R>> {
+    fn get_all_cols(&self) -> IndexSet<Self::ColSymbol> {
         self.classes.keys().cloned().collect::<IndexSet<_>>()
     }
 
@@ -849,7 +855,7 @@ where
         write!(f, "\n{}\n", &"━".repeat(tab_width))
     }
 
-    fn principal_classes(&self) -> &IndexSet<ClassSymbol<R>> {
+    fn get_principal_cols(&self) -> &IndexSet<Self::ColSymbol> {
         &self.principal_classes
     }
 }
@@ -857,10 +863,10 @@ where
 // -------
 // Display
 // -------
-impl<R, U> fmt::Display for CorepCharacterTable<R, U>
+impl<RowSymbol, UC> fmt::Display for CorepCharacterTable<RowSymbol, UC>
 where
-    R: Clone,
-    U: CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>>,
+    RowSymbol: ReducibleLinearSpaceSymbol,
+    UC: CharacterTable,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, Some(3))
@@ -870,10 +876,10 @@ where
 // -----
 // Debug
 // -----
-impl<R, U> fmt::Debug for CorepCharacterTable<R, U>
+impl<RowSymbol, UC> fmt::Debug for CorepCharacterTable<RowSymbol, UC>
 where
-    R: Clone,
-    U: CharacterTable<MullikenIrrepSymbol, ClassSymbol<R>>,
+    RowSymbol: ReducibleLinearSpaceSymbol,
+    UC: CharacterTable,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, None)
