@@ -318,8 +318,10 @@ where
     #[must_use]
     pub fn simplify(&self) -> Self {
         let mut urs: IndexSet<_> = self.terms.keys().rev().collect();
-        let mut simplified_terms = Vec::<(UnityRoot, usize)>::with_capacity(urs.len());
-        let f12 = GenericFraction::<I>::new(1, 2);
+        let mut simplified_terms = Vec::<(UnityRoot<I>, usize)>::with_capacity(urs.len());
+        let one = I::one();
+        let two = one + one;
+        let f12 = GenericFraction::<I>::new(one, two);
         while !urs.is_empty() {
             let ur = urs
                 .pop()
@@ -449,7 +451,7 @@ where
     /// Prints the full form for this character showing all contributing unity
     /// roots and their multiplicities.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let one = UnityRoot::new(0u32, 2u32);
+        let one = UnityRoot::<I>::new(I::zero(), I::one());
         let str_terms: Vec<String> = self
             .terms
             .clone()
@@ -590,7 +592,8 @@ where
     type Output = Character<I>;
 
     fn neg(self) -> Self::Output {
-        let f12 = GenericFraction::<I>::new(1, 2);
+        let one = I::one();
+        let f12 = GenericFraction::<I>::new(one, one + one);
         let terms: IndexMap<_, _> = self
             .terms
             .iter()

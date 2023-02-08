@@ -7,10 +7,10 @@ use approx;
 use log;
 use fraction::generic::GenericInteger;
 use ndarray::{array, s, Array1, Array2, Zip};
-use num::{integer::lcm, Complex};
+use num::{integer::lcm, Complex, Bounded};
 use num_modular::{ModularInteger, MontgomeryInt};
 use num_ord::NumOrd;
-use num_traits::{Inv, Pow, ToPrimitive, Zero};
+use num_traits::{Inv, Pow, ToPrimitive, Zero, NumCast};
 use primes::is_prime;
 use rayon::prelude::*;
 
@@ -61,7 +61,8 @@ where
         + FiniteOrder<Int = I>
         + Pow<i32, Output = T>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-    I: Clone + GenericInteger + Hash + fmt::Display + Sync + Send,
+    I: Clone + GenericInteger + Hash + fmt::Display + Sync + Send + Bounded + NumCast,
+    f64: From<I>,
 {
     type RowSymbol = RowSymbol;
     type CharTab = RepCharacterTable<RowSymbol, ColSymbol, I>;
@@ -107,7 +108,7 @@ where
             .map(FiniteOrder::order)
             .reduce(lcm)
             .expect("Unable to find the LCM for the orders of the elements in this group.");
-        let zeta = UnityRoot::new(1, m);
+        let zeta = UnityRoot::<I>::new(I::one(), m);
         log::debug!("Found group exponent m = {}.", m);
         log::debug!("Chosen primitive unity root ζ = {}.", zeta);
 
@@ -117,26 +118,26 @@ where
                 .to_f64()
                 .unwrap_or_else(|| panic!("Unable to convert `{}` to `f64`.", self.order()))
                 .sqrt()
-            / (f64::from(m)))
+            / (<f64 as From<I>>::from(m)))
         .round();
         assert!(rf64.is_sign_positive());
-        assert!(rf64 <= f64::from(u32::MAX));
+        assert!(rf64 <= <f64 as From<I>>::from(I::max_value()));
         #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-        let mut r = rf64 as u32;
-        if r == 0 {
-            r = 1;
+        let mut r = I::from(rf64).unwrap();
+        if r == I::zero() {
+            r = I::one();
         };
-        let mut p = r * m + 1;
+        let mut p = r * m + I::one();
         while !is_prime(u64::from(p)) {
             log::debug!("Trying {}: not prime.", p);
-            r += 1;
-            p = r * m + 1;
+            r += I::one();
+            p = r * m + I::one();
         }
         log::debug!("Found r = {}.", r);
         log::debug!("Found prime number p = r * m + 1 = {}.", p);
         log::debug!("All arithmetic will now be carried out in GF({}).", p);
 
-        let modp = MontgomeryInt::<u32>::new(1, &p).linalg();
+        let modp = MontgomeryInt::<I>::new(&I::one(), &p).linalg();
         // p is prime, so there is guaranteed a z < p such that z^m ≡ 1 (mod p).
         let mut i = 1u32;
         while modp.convert(i).multiplicative_order().unwrap_or_else(|| {
