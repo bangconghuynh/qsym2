@@ -8,9 +8,9 @@ use log;
 
 use counter::Counter;
 use derive_builder::Builder;
-use fraction::generic::GenericInteger;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use fraction::generic::GenericInteger;
 use nalgebra::Vector3;
 use ndarray::{Array2, ArrayView2, Axis};
 use phf::{phf_map, phf_set};
@@ -18,8 +18,8 @@ use regex::Regex;
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
-    disambiguate_irrep_symbols, CollectionSymbol, GenericSymbol, GenericSymbolParsingError,
-    LinearSpaceSymbol, MathematicalSymbol, ReducibleLinearSpaceSymbol,
+    CollectionSymbol, GenericSymbol, GenericSymbolParsingError, LinearSpaceSymbol,
+    MathematicalSymbol, ReducibleLinearSpaceSymbol, disambiguate_irrep_symbols
 };
 use crate::chartab::unityroot::UnityRoot;
 use crate::group::FiniteOrder;
@@ -217,11 +217,9 @@ impl LinearSpaceSymbol for MullikenIrrepSymbol {
             log::error!("{err}");
             panic!("Unable to convert `{dim}` to `u64`.")
         });
-        let main = INV_MULLIKEN_IRREP_DEGENERACIES
-            .get(&dim_u64)
-            .unwrap_or_else(|| {
-                panic!("Unable to retrieve a Mulliken symbol for dimensionality `{dim_u64}`.")
-            });
+        let main = INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim_u64).unwrap_or_else(|| {
+            panic!("Unable to retrieve a Mulliken symbol for dimensionality `{dim_u64}`.")
+        });
         self.generic_symbol.set_main(main);
         true
     }
@@ -454,6 +452,7 @@ impl PartialEq for MullikenIrcorepSymbol {
         let self_irreps = self.sorted_inducing_irreps().collect_vec();
         let other_irreps = other.sorted_inducing_irreps().collect_vec();
         self_irreps == other_irreps
+
     }
 }
 

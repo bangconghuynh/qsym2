@@ -1,5 +1,8 @@
+use std::fmt;
+use std::hash::Hash;
 use std::collections::HashMap;
 
+use fraction::generic::GenericInteger;
 use itertools::Itertools;
 
 use crate::chartab::chartab_group::CharacterProperties;
@@ -24,11 +27,13 @@ mod symmetry_group_tests;
 #[path = "symmetry_chartab_tests.rs"]
 mod symmetry_chartab_tests;
 
-pub trait SymmetryGroupProperties:
+pub trait SymmetryGroupProperties<I>:
     ClassProperties<
         GroupElement = SymmetryOperation,
         ClassSymbol = SymmetryClassSymbol<SymmetryOperation>,
-    > + CharacterProperties<u32>
+    > + CharacterProperties<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
 {
     /// Constructs a group from molecular symmetry *elements* (not operations).
     ///
@@ -251,13 +256,15 @@ pub trait SymmetryGroupProperties:
     }
 }
 
-impl SymmetryGroupProperties
+impl<I> SymmetryGroupProperties<I>
     for UnitaryRepresentedGroup<
         SymmetryOperation,
         MullikenIrrepSymbol,
         SymmetryClassSymbol<SymmetryOperation>,
-        u32,
+        I,
     >
+where
+    I: Clone + GenericInteger + Hash + fmt::Display + Sync + Send,
 {
     /// Constructs a unitary-represented group from molecular symmetry *elements* (not operations).
     ///
@@ -408,18 +415,20 @@ impl SymmetryGroupProperties
     }
 }
 
-impl SymmetryGroupProperties
+impl<I> SymmetryGroupProperties<I>
     for MagneticRepresentedGroup<
         SymmetryOperation,
         UnitaryRepresentedGroup<
             SymmetryOperation,
             MullikenIrrepSymbol,
             SymmetryClassSymbol<SymmetryOperation>,
-            u32,
+            I,
         >,
         MullikenIrcorepSymbol,
-        u32,
+        I,
     >
+where
+    I: Clone + GenericInteger + Hash + fmt::Display + Sync + Send,
 {
     /// Constructs a magnetic-represented group from molecular symmetry *elements* (not operations).
     ///
@@ -476,7 +485,7 @@ impl SymmetryGroupProperties
             SymmetryOperation,
             MullikenIrrepSymbol,
             SymmetryClassSymbol<SymmetryOperation>,
-            u32,
+            I,
         >::new(group_name.as_str(), unitary_operations);
         unitary_subgroup.set_class_symbols_from_symmetry();
         unitary_subgroup.construct_character_table();
