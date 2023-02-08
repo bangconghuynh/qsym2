@@ -1,17 +1,24 @@
 use std::collections::HashSet;
+use std::fmt;
 use std::ops::Mul;
 
 use derive_builder::Builder;
 use indexmap::IndexSet;
 use log;
+use num::integer::lcm;
 use num_traits::{Inv, Pow};
+
+use crate::group::FiniteOrder;
+
+mod permutation_group;
+mod permutation_symbols;
 
 #[cfg(test)]
 mod permutation_tests;
 
 /// A structure to manage permutation actions of a finite set.
 #[derive(Builder, Clone, Debug, PartialEq, Eq, Hash)]
-struct Permutation {
+pub struct Permutation {
     /// The rank of the permutation, *i.e.* the number of elements in the finite set on which the
     /// permutation acts.
     rank: usize,
@@ -133,6 +140,23 @@ impl Permutation {
     }
 }
 
+// -------
+// Display
+// -------
+impl fmt::Display for Permutation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "π({})",
+            self.image
+                .iter()
+                .map(|i| i.to_string())
+                .collect::<Vec<_>>()
+                .join(".")
+        )
+    }
+}
+
 // ---
 // Mul
 // ---
@@ -233,5 +257,26 @@ impl Pow<i32> for Permutation {
 
     fn pow(self, rhs: i32) -> Self::Output {
         (&self).pow(rhs)
+    }
+}
+
+// -----------
+// FiniteOrder
+// -----------
+impl FiniteOrder for Permutation {
+    type Int = u32;
+
+    /// Calculates the order of this permutation.
+    fn order(&self) -> Self::Int {
+        u32::try_from(
+            self.cycle_pattern()
+                .iter()
+                .cloned()
+                .reduce(lcm)
+                .unwrap_or_else(|| {
+                    panic!("Unable to determine the permutation order of `{self}`.")
+                }),
+        )
+        .expect("Unable to convert the permutation order to `u32`.")
     }
 }

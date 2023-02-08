@@ -1,18 +1,17 @@
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::ops::{Add, Neg, Sub, Mul, MulAssign};
+use std::ops::{Add, Mul, MulAssign, Neg, Sub};
 
 use approx;
 use derive_builder::Builder;
+use fraction::{GenericFraction, generic::GenericInteger};
 use indexmap::{IndexMap, IndexSet};
 use num::Complex;
 use num_traits::{ToPrimitive, Zero};
 
 use crate::aux::misc::HashableFloat;
 use crate::chartab::unityroot::UnityRoot;
-
-type F = fraction::GenericFraction<u32>;
 
 #[cfg(test)]
 #[path = "character_tests.rs"]
@@ -21,21 +20,27 @@ mod character_tests;
 /// A struct to represent algebraic group characters.
 ///
 /// Partial orders between characters are based on their complex moduli and
-/// phases in the interval `$[0, 2\pi)$` with `$0$` being the smallest.
+/// phases in the interval $`[0, 2\pi)`$ with $`0`$ being the smallest.
 #[derive(Builder, Clone)]
-pub struct Character {
+pub struct Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
     /// The unity roots and their multiplicities constituting this character.
     #[builder(setter(custom))]
-    terms: IndexMap<UnityRoot, usize>,
+    terms: IndexMap<UnityRoot<I>, usize>,
 
     /// A threshold for approximate partial ordering comparisons.
     #[builder(setter(custom), default = "1e-14")]
     pub threshold: f64,
 }
 
-impl CharacterBuilder {
-    fn terms(&mut self, ts: &[(UnityRoot, usize)]) -> &mut Self {
-        let mut terms = IndexMap::<UnityRoot, usize>::new();
+impl<I> CharacterBuilder<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    fn terms(&mut self, ts: &[(UnityRoot<I>, usize)]) -> &mut Self {
+        let mut terms = IndexMap::<UnityRoot<I>, usize>::new();
         // This ensures that if there are two identical unity roots in ts, their multiplicities are
         // accumulated.
         for (ur, mult) in ts.iter() {
@@ -59,14 +64,17 @@ impl CharacterBuilder {
     }
 }
 
-impl Character {
+impl<I> Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
     /// Returns a builder to construct a new character.
     ///
     /// # Returns
     ///
     /// A builder to construct a new character.
-    fn builder() -> CharacterBuilder {
-        CharacterBuilder::default()
+    fn builder() -> CharacterBuilder<I> {
+        CharacterBuilder::<I>::default()
     }
 
     /// Constructs a character from an array of unity roots and multiplicities.
@@ -75,7 +83,7 @@ impl Character {
     ///
     /// A character.
     #[must_use]
-    pub fn new(ts: &[(UnityRoot, usize)]) -> Self {
+    pub fn new(ts: &[(UnityRoot<I>, usize)]) -> Self {
         Self::builder()
             .terms(ts)
             .build()
@@ -204,7 +212,7 @@ impl Character {
                 epsilon = self.threshold,
                 max_relative = self.threshold
             ) {
-                // Integer real
+                // GenericInteger real
                 if approx::relative_eq!(
                     rounded_re,
                     0.0,
@@ -238,7 +246,7 @@ impl Character {
                 epsilon = self.threshold,
                 max_relative = self.threshold
             ) {
-                // Integer imaginary
+                // GenericInteger imaginary
                 if approx::relative_eq!(
                     rounded_im.abs(),
                     1.0,
@@ -311,7 +319,7 @@ impl Character {
     pub fn simplify(&self) -> Self {
         let mut urs: IndexSet<_> = self.terms.keys().rev().collect();
         let mut simplified_terms = Vec::<(UnityRoot, usize)>::with_capacity(urs.len());
-        let f12 = F::new(1u32, 2u32);
+        let f12 = GenericFraction::<I>::new(1, 2);
         while !urs.is_empty() {
             let ur = urs
                 .pop()
@@ -378,7 +386,10 @@ impl Character {
     }
 }
 
-impl PartialEq for Character {
+impl<I> PartialEq for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
     fn eq(&self, other: &Self) -> bool {
         (self.terms == other.terms) || {
             let self_complex = self.complex_value();
@@ -399,9 +410,12 @@ impl PartialEq for Character {
     }
 }
 
-impl Eq for Character {}
+impl<I> Eq for Character<I> where I: Clone + GenericInteger + Hash + fmt::Display {}
 
-impl PartialOrd for Character {
+impl<I> PartialOrd for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
     /// Two characters are compared based on their polar forms: their partial ordering is
     /// determined by the ordering of their `$(\theta, r)$` ordered pairs, where `$\theta$` is the
     /// argument normalised to `$[0, 2\pi)$` and `$r$` the modulus.
@@ -428,7 +442,10 @@ impl PartialOrd for Character {
     }
 }
 
-impl fmt::Debug for Character {
+impl<I> fmt::Debug for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
     /// Prints the full form for this character showing all contributing unity
     /// roots and their multiplicities.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -461,7 +478,10 @@ impl fmt::Debug for Character {
     }
 }
 
-impl fmt::Display for Character {
+impl<I> fmt::Display for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
     /// Prints the short form for this character that shows either an integer
     /// or an imaginary integer or a compact complex number at 3 d.p.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -469,7 +489,10 @@ impl fmt::Display for Character {
     }
 }
 
-impl Hash for Character {
+impl<I> Hash for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
     fn hash<H: Hasher>(&self, state: &mut H) {
         let terms_vec = self
             .terms
@@ -493,7 +516,10 @@ impl Hash for Character {
 // ----
 // Zero
 // ----
-impl Zero for Character {
+impl<I> Zero for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
     fn zero() -> Self {
         Self::new(&[])
     }
@@ -506,10 +532,13 @@ impl Zero for Character {
 // ---
 // Add
 // ---
-impl Add<&'_ Character> for &Character {
-    type Output = Character;
+impl<I> Add<&'_ Character<I>> for &Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
-    fn add(self, rhs: &Character) -> Self::Output {
+    fn add(self, rhs: &Character<I>) -> Self::Output {
         let mut sum = self.clone();
         for (ur, mult) in rhs.terms.iter() {
             *sum.terms.entry(ur.clone()).or_default() += mult;
@@ -518,24 +547,33 @@ impl Add<&'_ Character> for &Character {
     }
 }
 
-impl Add<&'_ Character> for Character {
-    type Output = Character;
+impl<I> Add<&'_ Character<I>> for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
     fn add(self, rhs: &Self) -> Self::Output {
         &self + rhs
     }
 }
 
-impl Add<Character> for &Character {
-    type Output = Character;
+impl<I> Add<Character<I>> for &Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
-    fn add(self, rhs: Character) -> Self::Output {
+    fn add(self, rhs: Character<I>) -> Self::Output {
         self + &rhs
     }
 }
 
-impl Add<Character> for Character {
-    type Output = Character;
+impl<I> Add<Character<I>> for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
     fn add(self, rhs: Self) -> Self::Output {
         &self + &rhs
@@ -545,11 +583,14 @@ impl Add<Character> for Character {
 // ---
 // Neg
 // ---
-impl Neg for &Character {
-    type Output = Character;
+impl<I> Neg for &Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
     fn neg(self) -> Self::Output {
-        let f12 = F::new(1u32, 2u32);
+        let f12 = GenericFraction::<I>::new(1, 2);
         let terms: IndexMap<_, _> = self
             .terms
             .iter()
@@ -565,8 +606,11 @@ impl Neg for &Character {
     }
 }
 
-impl Neg for Character {
-    type Output = Character;
+impl<I> Neg for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
     fn neg(self) -> Self::Output {
         -&self
@@ -576,32 +620,44 @@ impl Neg for Character {
 // ---
 // Sub
 // ---
-impl Sub<&'_ Character> for &Character {
-    type Output = Character;
+impl<I> Sub<&'_ Character<I>> for &Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
-    fn sub(self, rhs: &Character) -> Self::Output {
+    fn sub(self, rhs: &Character<I>) -> Self::Output {
         self + (-rhs)
     }
 }
 
-impl Sub<&'_ Character> for Character {
-    type Output = Character;
+impl<I> Sub<&'_ Character<I>> for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
     fn sub(self, rhs: &Self) -> Self::Output {
         &self + (-rhs)
     }
 }
 
-impl Sub<Character> for &Character {
-    type Output = Character;
+impl<I> Sub<Character<I>> for &Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
-    fn sub(self, rhs: Character) -> Self::Output {
+    fn sub(self, rhs: Character<I>) -> Self::Output {
         self + (-&rhs)
     }
 }
 
-impl Sub<Character> for Character {
-    type Output = Character;
+impl<I> Sub<Character<I>> for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
     fn sub(self, rhs: Self) -> Self::Output {
         &self + (-&rhs)
@@ -611,7 +667,10 @@ impl Sub<Character> for Character {
 // ---------
 // MulAssign
 // ---------
-impl MulAssign<usize> for Character {
+impl<I> MulAssign<usize> for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
     fn mul_assign(&mut self, rhs: usize) {
         self.terms.iter_mut().for_each(|(_, mult)| {
             *mult *= rhs;
@@ -622,8 +681,11 @@ impl MulAssign<usize> for Character {
 // ---
 // Mul
 // ---
-impl Mul<usize> for &Character {
-    type Output = Character;
+impl<I> Mul<usize> for &Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
     fn mul(self, rhs: usize) -> Self::Output {
         let mut prod = self.clone();
@@ -632,8 +694,11 @@ impl Mul<usize> for &Character {
     }
 }
 
-impl Mul<usize> for Character {
-    type Output = Character;
+impl<I> Mul<usize> for Character<I>
+where
+    I: Clone + GenericInteger + Hash + fmt::Display,
+{
+    type Output = Character<I>;
 
     fn mul(self, rhs: usize) -> Self::Output {
         &self * rhs
