@@ -4,7 +4,6 @@ use std::hash::Hash;
 use std::ops::Mul;
 
 use derive_builder::Builder;
-use fraction::generic::GenericInteger;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use ndarray::{s, Array2, Array3, Axis};
@@ -371,14 +370,12 @@ where
     }
 }
 
-impl<T, RowSymbol, ColSymbol, I> ClassProperties
-    for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol, I>
+impl<T, RowSymbol, ColSymbol> ClassProperties for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
 {
     type ClassSymbol = ColSymbol;
 
@@ -465,13 +462,12 @@ where
     }
 }
 
-impl<T, UG, RowSymbol, I> ClassProperties for MagneticRepresentedGroup<T, UG, RowSymbol, I>
+impl<T, UG, RowSymbol> ClassProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties<I>,
+    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
 {
     type ClassSymbol = UG::ClassSymbol;
 

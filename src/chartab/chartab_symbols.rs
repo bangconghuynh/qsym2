@@ -1,9 +1,7 @@
 use std::fmt;
 use std::hash::Hash;
 use std::str::FromStr;
-use std::collections::{HashMap, VecDeque};
 
-use counter::Counter;
 use derive_builder::Builder;
 use phf::phf_map;
 use regex::Regex;
@@ -49,17 +47,6 @@ pub trait MathematicalSymbol: Clone + Hash + Eq + fmt::Display {
 pub trait LinearSpaceSymbol: MathematicalSymbol + FromStr {
     /// The dimensionality of the linear space.
     fn dimensionality(&self) -> usize;
-
-    /// Sets the dimensionality of the linear space for the symbol.
-    ///
-    /// # Arguments
-    ///
-    /// * `dim` - The dimensionality to be set.
-    ///
-    /// # Returns
-    ///
-    /// Returns `true` if the dimensionality has been successfully set.
-    fn set_dimensionality(&mut self, dim: usize) -> bool;
 }
 
 /// A trait for symbols describing reducible linear spaces.
@@ -155,11 +142,6 @@ pub struct GenericSymbol {
 impl GenericSymbol {
     fn builder() -> GenericSymbolBuilder {
         GenericSymbolBuilder::default()
-    }
-
-    /// Sets the main part of the symbol.
-    pub fn set_main(&mut self, main: &str) {
-        self.main = main.to_string();
     }
 }
 
@@ -341,68 +323,4 @@ impl fmt::Display for GenericSymbolParsingError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Generic symbol parsing error: {}.", self.0)
     }
-}
-
-pub fn disambiguate_irrep_symbols<S>(raw_irrep_symbols: impl Iterator<Item = S> + Clone) -> Vec<S>
-where
-    S: LinearSpaceSymbol
-{
-    let raw_symbol_count = raw_irrep_symbols.clone().collect::<Counter<S>>();
-    let mut raw_symbols_to_full_symbols: HashMap<S, VecDeque<S>> = raw_symbol_count
-        .iter()
-        .map(|(raw_irrep, &duplicate_count)| {
-            if duplicate_count == 1 {
-                let mut irreps: VecDeque<S> = VecDeque::new();
-                irreps.push_back(raw_irrep.clone());
-                (raw_irrep.clone(), irreps)
-            } else {
-                let irreps: VecDeque<S> = (0..duplicate_count)
-                    .map(|i| {
-                        let mut new_irrep = S::from_str(
-                            &format!(
-                                "|^({})|{}|^({})_({}{})|",
-                                raw_irrep.presuper(),
-                                raw_irrep.main(),
-                                raw_irrep.postsuper(),
-                                i + 1,
-                                raw_irrep.postsub(),
-                            )
-                        )
-                        .unwrap_or_else(|_| {
-                            panic!(
-                                "Unable to construct symmetry symbol `|^({})|{}|^({})_({}{})|`.",
-                                raw_irrep.presuper(),
-                                raw_irrep.main(),
-                                raw_irrep.postsuper(),
-                                i + 1,
-                                raw_irrep.postsub(),
-                            )
-                        });
-                        new_irrep.set_dimensionality(raw_irrep.dimensionality());
-                        new_irrep
-                    })
-                    .collect();
-                (raw_irrep.clone(), irreps)
-            }
-        })
-        .collect();
-
-    let irrep_symbols: Vec<S> = raw_irrep_symbols
-        .map(|raw_irrep| {
-            raw_symbols_to_full_symbols
-                .get_mut(&raw_irrep)
-                .unwrap_or_else(|| {
-                    panic!(
-                        "Unknown conversion of raw symbol `{}` to full symbol.",
-                        &raw_irrep
-                    )
-                })
-                .pop_front()
-                .unwrap_or_else(|| {
-                    panic!("No conversion to full symbol possible for `{}`", &raw_irrep)
-                })
-        })
-        .collect();
-
-    irrep_symbols
 }

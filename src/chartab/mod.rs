@@ -1,12 +1,10 @@
 use std::cmp::max;
 use std::fmt;
 use std::iter;
-use std::hash::Hash;
 
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use ndarray::{Array2, ArrayView1};
-use fraction::generic::GenericInteger;
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
@@ -22,9 +20,8 @@ pub mod reducedint;
 pub mod unityroot;
 
 /// A trait to contain essential methods for a character table.
-pub trait CharacterTable<I>: Clone
+pub trait CharacterTable: Clone
 where
-    I: Clone + GenericInteger + Hash + fmt::Display,
     Self::RowSymbol: LinearSpaceSymbol,
     Self::ColSymbol: CollectionSymbol,
 {
@@ -49,7 +46,7 @@ where
     /// # Panics
     ///
     /// Panics if the specified `irrep` or `class` cannot be found.
-    fn get_character(&self, irrep: &Self::RowSymbol, class: &Self::ColSymbol) -> &Character<I>;
+    fn get_character(&self, irrep: &Self::RowSymbol, class: &Self::ColSymbol) -> &Character;
 
     /// Retrieves the characters of all columns in a particular row.
     ///
@@ -60,7 +57,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character<I>>;
+    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character>;
 
     /// Retrieves the characters of all rows in a particular column.
     ///
@@ -71,7 +68,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character<I>>;
+    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character>;
 
     /// Retrieves the symbols of all rows in the character table.
     fn get_all_rows(&self) -> IndexSet<Self::RowSymbol>;
@@ -80,7 +77,7 @@ where
     fn get_all_cols(&self) -> IndexSet<Self::ColSymbol>;
 
     /// Returns a shared reference to the underlying array of the character table.
-    fn array(&self) -> &Array2<Character<I>>;
+    fn array(&self) -> &Array2<Character>;
 
     /// Retrieves the order of the group.
     fn get_order(&self) -> usize;
@@ -119,9 +116,8 @@ where
 
 /// A struct to manage character tables of irreducible representations.
 #[derive(Builder, Clone)]
-pub struct RepCharacterTable<RowSymbol, ColSymbol, I>
+pub struct RepCharacterTable<RowSymbol, ColSymbol>
 where
-    I: Clone + GenericInteger + Hash + fmt::Display,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol,
 {
@@ -139,19 +135,18 @@ where
     principal_classes: IndexSet<ColSymbol>,
 
     /// The characters of the irreducible representations in this group.
-    pub characters: Array2<Character<I>>,
+    pub characters: Array2<Character>,
 
     /// The Frobenius--Schur indicators for the irreducible representations in this group.
     pub frobenius_schurs: IndexMap<RowSymbol, i8>,
 }
 
-impl<RowSymbol, ColSymbol, I> RepCharacterTable<RowSymbol, ColSymbol, I>
+impl<RowSymbol, ColSymbol> RepCharacterTable<RowSymbol, ColSymbol>
 where
-    I: Clone + GenericInteger + Hash + fmt::Display,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol,
 {
-    fn builder() -> RepCharacterTableBuilder<RowSymbol, ColSymbol, I> {
+    fn builder() -> RepCharacterTableBuilder<RowSymbol, ColSymbol> {
         RepCharacterTableBuilder::default()
     }
 
@@ -176,7 +171,7 @@ where
         irreps: &[RowSymbol],
         classes: &[ColSymbol],
         principal_classes: &[ColSymbol],
-        char_arr: Array2<Character<I>>,
+        char_arr: Array2<Character>,
         frobenius_schurs: &[i8],
     ) -> Self {
         assert_eq!(irreps.len(), char_arr.dim().0);
@@ -217,9 +212,8 @@ where
     }
 }
 
-impl<RowSymbol, ColSymbol, I> CharacterTable<I> for RepCharacterTable<RowSymbol, ColSymbol, I>
+impl<RowSymbol, ColSymbol> CharacterTable for RepCharacterTable<RowSymbol, ColSymbol>
 where
-    I: Clone + GenericInteger + Hash + fmt::Display,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol,
 {
@@ -241,7 +235,7 @@ where
     /// # Panics
     ///
     /// Panics if the specified `irrep` or `class` cannot be found.
-    fn get_character(&self, irrep: &Self::RowSymbol, class: &Self::ColSymbol) -> &Character<I> {
+    fn get_character(&self, irrep: &Self::RowSymbol, class: &Self::ColSymbol) -> &Character {
         let row = self
             .irreps
             .get(irrep)
@@ -263,7 +257,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character<I>> {
+    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character> {
         let row = self
             .irreps
             .get(row)
@@ -281,7 +275,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character<I>> {
+    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character> {
         let col = self
             .classes
             .get(col)
@@ -300,7 +294,7 @@ where
     }
 
     /// Returns a shared reference to the underlying array of the character table.
-    fn array(&self) -> &Array2<Character<I>> {
+    fn array(&self) -> &Array2<Character> {
         &self.characters
     }
 
@@ -483,9 +477,8 @@ where
 // -------
 // Display
 // -------
-impl<RowSymbol, ColSymbol, I> fmt::Display for RepCharacterTable<RowSymbol, ColSymbol, I>
+impl<RowSymbol, ColSymbol> fmt::Display for RepCharacterTable<RowSymbol, ColSymbol>
 where
-    I: Clone + GenericInteger + Hash + fmt::Display,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol,
 {
@@ -497,9 +490,8 @@ where
 // -----
 // Debug
 // -----
-impl<RowSymbol, ColSymbol, I> fmt::Debug for RepCharacterTable<RowSymbol, ColSymbol, I>
+impl<RowSymbol, ColSymbol> fmt::Debug for RepCharacterTable<RowSymbol, ColSymbol>
 where
-    I: Clone + GenericInteger + Hash + fmt::Display,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol,
 {
@@ -514,11 +506,10 @@ where
 
 /// A structure to manage character tables of irreducible corepresentations of magnetic groups.
 #[derive(Builder, Clone)]
-pub struct CorepCharacterTable<RowSymbol, UC, I>
+pub struct CorepCharacterTable<RowSymbol, UC>
 where
-    I: Clone + GenericInteger + Hash + fmt::Display,
     RowSymbol: ReducibleLinearSpaceSymbol,
-    UC: CharacterTable<I>,
+    UC: CharacterTable,
 {
     /// The name given to the character table.
     pub name: String,
@@ -538,19 +529,18 @@ where
     principal_classes: IndexSet<UC::ColSymbol>,
 
     /// The characters of the irreducible corepresentations in this group.
-    pub characters: Array2<Character<I>>,
+    pub characters: Array2<Character>,
 
     /// The intertwining numbers of the irreducible corepresentations.
     pub intertwining_numbers: IndexMap<RowSymbol, u8>,
 }
 
-impl<RowSymbol, UC, I> CorepCharacterTable<RowSymbol, UC, I>
+impl<RowSymbol, UC> CorepCharacterTable<RowSymbol, UC>
 where
-    I: Clone + GenericInteger + Hash + fmt::Display,
     RowSymbol: ReducibleLinearSpaceSymbol,
-    UC: CharacterTable<I>,
+    UC: CharacterTable,
 {
-    fn builder() -> CorepCharacterTableBuilder<RowSymbol, UC, I> {
+    fn builder() -> CorepCharacterTableBuilder<RowSymbol, UC> {
         CorepCharacterTableBuilder::default()
     }
 
@@ -579,7 +569,7 @@ where
         ircoreps: &[RowSymbol],
         classes: &[UC::ColSymbol],
         principal_classes: &[UC::ColSymbol],
-        char_arr: Array2<Character<I>>,
+        char_arr: Array2<Character>,
         intertwining_numbers: &[u8],
     ) -> Self {
         assert_eq!(ircoreps.len(), char_arr.dim().0);
@@ -619,11 +609,10 @@ where
     }
 }
 
-impl<RowSymbol, UC, I> CharacterTable<I> for CorepCharacterTable<RowSymbol, UC, I>
+impl<RowSymbol, UC> CharacterTable for CorepCharacterTable<RowSymbol, UC>
 where
     RowSymbol: ReducibleLinearSpaceSymbol,
-    UC: CharacterTable<I>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
+    UC: CharacterTable,
 {
     type RowSymbol = RowSymbol;
     type ColSymbol = UC::ColSymbol;
@@ -643,7 +632,7 @@ where
     /// # Panics
     ///
     /// Panics if the specified `ircorep` or `class` cannot be found.
-    fn get_character(&self, ircorep: &Self::RowSymbol, class: &Self::ColSymbol) -> &Character<I> {
+    fn get_character(&self, ircorep: &Self::RowSymbol, class: &Self::ColSymbol) -> &Character {
         let row = self
             .ircoreps
             .get(ircorep)
@@ -665,7 +654,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character<I>> {
+    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character> {
         let row = self
             .ircoreps
             .get(row)
@@ -683,7 +672,7 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character<I>> {
+    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character> {
         let col = self
             .classes
             .get(col)
@@ -702,7 +691,7 @@ where
     }
 
     /// Returns a shared reference to the underlying array of the character table.
-    fn array(&self) -> &Array2<Character<I>> {
+    fn array(&self) -> &Array2<Character> {
         &self.characters
     }
 
@@ -874,11 +863,10 @@ where
 // -------
 // Display
 // -------
-impl<RowSymbol, UC, I> fmt::Display for CorepCharacterTable<RowSymbol, UC, I>
+impl<RowSymbol, UC> fmt::Display for CorepCharacterTable<RowSymbol, UC>
 where
-    I: Clone + GenericInteger + Hash + fmt::Display,
     RowSymbol: ReducibleLinearSpaceSymbol,
-    UC: CharacterTable<I>,
+    UC: CharacterTable,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, Some(3))
@@ -888,11 +876,10 @@ where
 // -----
 // Debug
 // -----
-impl<RowSymbol, UC, I> fmt::Debug for CorepCharacterTable<RowSymbol, UC, I>
+impl<RowSymbol, UC> fmt::Debug for CorepCharacterTable<RowSymbol, UC>
 where
-    I: Clone + GenericInteger + Hash + fmt::Display,
     RowSymbol: ReducibleLinearSpaceSymbol,
-    UC: CharacterTable<I>,
+    UC: CharacterTable,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, None)

@@ -5,7 +5,6 @@ use std::ops::Mul;
 
 use approx;
 use log;
-use fraction::generic::GenericInteger;
 use ndarray::{array, s, Array1, Array2, Zip};
 use num::{integer::lcm, Complex};
 use num_modular::{ModularInteger, MontgomeryInt};
@@ -27,11 +26,10 @@ use crate::group::{
     FiniteOrder, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup,
 };
 
-pub trait CharacterProperties<I>: ClassProperties
+pub trait CharacterProperties: ClassProperties
 where
-    I: Clone + GenericInteger + Hash + fmt::Display,
     Self::RowSymbol: LinearSpaceSymbol,
-    Self::CharTab: CharacterTable<I, RowSymbol = Self::RowSymbol, ColSymbol = Self::ClassSymbol>,
+    Self::CharTab: CharacterTable<RowSymbol = Self::RowSymbol, ColSymbol = Self::ClassSymbol>,
 {
     /// Type of the row-labelling symbols in the associated character table.
     type RowSymbol;
@@ -47,8 +45,8 @@ where
     fn character_table(&self) -> &Self::CharTab;
 }
 
-impl<T, RowSymbol, ColSymbol, I> CharacterProperties<I>
-    for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol, I>
+impl<T, RowSymbol, ColSymbol> CharacterProperties
+    for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
     RowSymbol: LinearSpaceSymbol + Sync,
     ColSymbol: CollectionSymbol<CollectionElement = T> + Sync,
@@ -58,13 +56,12 @@ where
         + Clone
         + Sync
         + fmt::Debug
-        + FiniteOrder<Int = I>
+        + FiniteOrder<Int = u32>
         + Pow<i32, Output = T>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-    I: Clone + GenericInteger + Hash + fmt::Display + Sync + Send,
 {
     type RowSymbol = RowSymbol;
-    type CharTab = RepCharacterTable<RowSymbol, ColSymbol, I>;
+    type CharTab = RepCharacterTable<RowSymbol, ColSymbol>;
 
     fn character_table(&self) -> &Self::CharTab {
         self.irrep_character_table
@@ -472,7 +469,7 @@ where
     }
 }
 
-impl<T, RowSymbol, UG, I> CharacterProperties<I> for MagneticRepresentedGroup<T, UG, RowSymbol, I>
+impl<T, RowSymbol, UG> CharacterProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     T: Mul<Output = T>
@@ -481,17 +478,16 @@ where
         + Clone
         + Sync
         + fmt::Debug
-        + FiniteOrder
+        + FiniteOrder<Int = u32>
         + Pow<i32, Output = T>,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     UG: Clone
         + GroupProperties<GroupElement = T>
         + ClassProperties<GroupElement = T>
-        + CharacterProperties<I>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
+        + CharacterProperties,
 {
     type RowSymbol = RowSymbol;
-    type CharTab = CorepCharacterTable<Self::RowSymbol, UG::CharTab, I>;
+    type CharTab = CorepCharacterTable<Self::RowSymbol, UG::CharTab>;
 
     fn character_table(&self) -> &Self::CharTab {
         self.ircorep_character_table
@@ -677,7 +673,7 @@ where
             ircoreps_ins.push((ircorep, intertwining_number));
         }
 
-        let mut char_arr: Array2<Character<I>> =
+        let mut char_arr: Array2<Character> =
             Array2::zeros((ircoreps_ins.len(), self.class_number()));
         for (i, (ircorep, intertwining_number)) in ircoreps_ins.iter().enumerate() {
             for (mag_cc, &cc_idx) in mag_ccsyms {

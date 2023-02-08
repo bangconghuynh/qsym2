@@ -1,11 +1,12 @@
 use std::fmt;
 use std::ops::Mul;
-use std::hash::Hash;
 
 use derive_builder::Builder;
-use fraction::{self, GenericFraction, generic::GenericInteger, ToPrimitive};
+use fraction::{self, ToPrimitive};
 use num::Complex;
-use num_traits::{Zero, One, Pow};
+use num_traits::Pow;
+
+type F = fraction::GenericFraction<u32>;
 
 #[cfg(test)]
 #[path = "unityroot_tests.rs"]
@@ -16,48 +17,38 @@ mod unityroot_tests;
 /// Partial orders between roots of unity are based on their angular positions
 /// on the unit circle in the Argand diagram, with unity being the smallest.
 #[derive(Builder, Clone, PartialOrd, PartialEq, Eq, Hash)]
-pub struct UnityRoot<I>
-where
-    I: Clone + GenericInteger + Hash,
-{
+pub struct UnityRoot {
     /// The fraction $`k/n \in [0, 1)`$ of the unity root, represented exactly
     /// for hashing and comparison purposes.
     #[builder(setter(custom))]
-    pub fraction: GenericFraction<I>,
+    pub fraction: F,
 }
 
-impl<I> UnityRootBuilder<I>
-where
-    I: Clone + GenericInteger + Hash + fmt::Display,
-{
-    fn fraction(&mut self, frac: GenericFraction<I>) -> &mut Self {
-        self.fraction =
-            if GenericFraction::<I>::zero() <= frac && frac < GenericFraction::<I>::one() {
-                Some(frac)
-            } else {
-                let numer = frac
-                    .numer()
-                    .unwrap_or_else(|| panic!("The numerator of {frac} cannot be extracted."));
-                let denom = frac
-                    .denom()
-                    .unwrap_or_else(|| panic!("The denominator of {frac} cannot be extracted."));
-                Some(GenericFraction::<I>::new(numer.rem(*denom), *denom))
-            };
+impl UnityRootBuilder {
+    fn fraction(&mut self, frac: F) -> &mut Self {
+        self.fraction = if F::from(0) <= frac && frac < F::from(1) {
+            Some(frac)
+        } else {
+            let numer = frac
+                .numer()
+                .unwrap_or_else(|| panic!("The numerator of {frac} cannot be extracted."));
+            let denom = frac
+                .denom()
+                .unwrap_or_else(|| panic!("The denominator of {frac} cannot be extracted."));
+            Some(F::new(numer.rem_euclid(*denom), *denom))
+        };
         self
     }
 }
 
-impl<I> UnityRoot<I>
-where
-    I: Clone + GenericInteger + Hash + fmt::Display,
-{
+impl UnityRoot {
     /// Returns a builder to construct a new unity root.
     ///
     /// # Returns
     ///
     /// A builder to construct a new unity root.
-    fn builder() -> UnityRootBuilder<I> {
-        UnityRootBuilder::<I>::default()
+    fn builder() -> UnityRootBuilder {
+        UnityRootBuilder::default()
     }
 
     /// Constructs a unity root from a non-negative index and order.
@@ -66,9 +57,9 @@ where
     ///
     /// A unity root.
     #[must_use]
-    pub fn new(index: I, order: I) -> Self {
+    pub fn new(index: u32, order: u32) -> Self {
         Self::builder()
-            .fraction(GenericFraction::<I>::new(index, order))
+            .fraction(F::new(index, order))
             .build()
             .expect("Unable to construct a unity root.")
     }
@@ -78,7 +69,7 @@ where
     /// # Returns
     ///
     /// The order $`n`$.
-    fn order(&self) -> &I {
+    fn order(&self) -> &u32 {
         self.fraction
             .denom()
             .expect("Unable to obtain the order of the root.")
@@ -90,7 +81,7 @@ where
     /// # Returns
     ///
     /// The index $`k`$.
-    fn index(&self) -> &I {
+    fn index(&self) -> &u32 {
         self.fraction
             .numer()
             .expect("Unable to obtain the index of the root.")
@@ -124,7 +115,7 @@ where
     #[must_use]
     pub fn complex_conjugate(&self) -> Self {
         Self::new(
-            self.order().checked_sub(self.index()).unwrap_or_else(|| {
+            self.order().checked_sub(*self.index()).unwrap_or_else(|| {
                 panic!(
                     "Unable to perform the subtraction `{} - {}` correctly.",
                     self.order(),
@@ -136,13 +127,10 @@ where
     }
 }
 
-impl<'a, 'b, I> Mul<&'a UnityRoot<I>> for &'b UnityRoot<I>
-where
-    I: Clone + GenericInteger + Hash + fmt::Display,
-{
-    type Output = UnityRoot<I>;
+impl<'a, 'b> Mul<&'a UnityRoot> for &'b UnityRoot {
+    type Output = UnityRoot;
 
-    fn mul(self, rhs: &'a UnityRoot<I>) -> Self::Output {
+    fn mul(self, rhs: &'a UnityRoot) -> Self::Output {
         #[allow(clippy::suspicious_arithmetic_impl)]
         let fract_sum = self.fraction + rhs.fraction;
         Self::Output::builder()
@@ -154,49 +142,36 @@ where
     }
 }
 
-// impl<I> Pow<i32> for &UnityRoot<I>
-// where
-//     I: Clone + GenericInteger + Hash + fmt::Display,
-// {
-//     type Output = UnityRoot<I>;
+impl Pow<i32> for &UnityRoot {
+    type Output = UnityRoot;
 
-//     fn pow(self, rhs: i32) -> Self::Output {
-//         let rhs_u = rhs.unsigned_abs();
-//         let index = *self.index() * I::from(rhs_u);
-//         Self::Output::new(
-//             // u32::try_from(
-//             //     (i32::try_from(*self.index())
-//             //         .unwrap_or_else(|_| panic!("Unable to convert `{}` to `i32`.", self.index()))
-//             //         * rhs)
-//             //         .rem_euclid(i32::try_from(*self.order()).unwrap_or_else(|_| {
-//             //             panic!("Unable to convert `{}` to `i32`.", self.order())
-//             //         })),
-//             // )
-//             // .expect("Unexpected negative remainder."),
-//             *self.order(),
-//         )
-//     }
-// }
+    fn pow(self, rhs: i32) -> Self::Output {
+        Self::Output::new(
+            u32::try_from(
+                (i32::try_from(*self.index())
+                    .unwrap_or_else(|_| panic!("Unable to convert `{}` to `i32`.", self.index()))
+                    * rhs)
+                    .rem_euclid(i32::try_from(*self.order()).unwrap_or_else(|_| {
+                        panic!("Unable to convert `{}` to `i32`.", self.order())
+                    })),
+            )
+            .expect("Unexpected negative remainder."),
+            *self.order(),
+        )
+    }
+}
 
-impl<I> fmt::Display for UnityRoot<I>
-where
-    I: Clone + GenericInteger + Hash + fmt::Display,
-{
+impl fmt::Display for UnityRoot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let zero = I::zero();
-        let one = I::one();
-        let two = one + one;
-        let three = one + two;
-        let four = two * two;
-        if self.fraction == GenericFraction::<I>::new(zero, four) {
+        if self.fraction == F::new(0u32, 4u32) {
             write!(f, "1")
-        } else if self.fraction == GenericFraction::<I>::new(one, four) {
+        } else if self.fraction == F::new(1u32, 4u32) {
             write!(f, "i")
-        } else if self.fraction == GenericFraction::<I>::new(two, four) {
+        } else if self.fraction == F::new(2u32, 4u32) {
             write!(f, "-1")
-        } else if self.fraction == GenericFraction::<I>::new(three, four) {
+        } else if self.fraction == F::new(3u32, 4u32) {
             write!(f, "-i")
-        } else if *self.index() == one {
+        } else if *self.index() == 1u32 {
             write!(f, "E{}", self.order())
         } else {
             write!(f, "(E{})^{}", self.order(), self.index())
@@ -204,18 +179,11 @@ where
     }
 }
 
-impl<I> fmt::Debug for UnityRoot<I>
-where
-    I: Clone + GenericInteger + Hash + fmt::Display,
-{
+impl fmt::Debug for UnityRoot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let zero = I::zero();
-        let one = I::one();
-        let two = one + one;
-        let four = two * two;
-        if self.fraction == GenericFraction::<I>::new(zero, four) {
+        if self.fraction == F::new(0u32, 4u32) {
             write!(f, "1")
-        } else if *self.index() == one {
+        } else if *self.index() == 1u32 {
             write!(f, "E{}", self.order())
         } else {
             write!(f, "(E{})^{}", self.order(), self.index())

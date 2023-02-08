@@ -6,7 +6,7 @@ use derive_builder::Builder;
 use indexmap::IndexMap;
 use log;
 use ndarray::{Array2, Zip};
-use fraction::generic::GenericInteger;
+use num::Integer;
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
@@ -57,7 +57,7 @@ pub const GRGRP: GroupType = GroupType::MagneticGrey(false);
 /// A trait for order finiteness.
 pub trait FiniteOrder {
     /// The integer type for the order of the element.
-    type Int: GenericInteger;
+    type Int: Integer;
 
     /// Calculates the finite order.
     fn order(&self) -> Self::Int;
@@ -226,12 +226,11 @@ where
 
 /// A structure for managing groups with unitary representations.
 #[derive(Clone, Builder)]
-pub struct UnitaryRepresentedGroup<T, RowSymbol, ColSymbol, I>
+pub struct UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
 {
     /// A name for the unitary-represented group.
     name: String,
@@ -255,16 +254,15 @@ where
 
     /// The character table for the irreducible representations of this group.
     #[builder(setter(skip), default = "None")]
-    pub irrep_character_table: Option<RepCharacterTable<RowSymbol, ColSymbol, I>>,
+    pub irrep_character_table: Option<RepCharacterTable<RowSymbol, ColSymbol>>,
 }
 
-impl<T, RowSymbol, ColSymbol, I> UnitaryRepresentedGroupBuilder<T, RowSymbol, ColSymbol, I>
+impl<T, RowSymbol, ColSymbol> UnitaryRepresentedGroupBuilder<T, RowSymbol, ColSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
 {
     fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
         if name_opt.is_some() {
@@ -286,12 +284,11 @@ where
     }
 }
 
-impl<T, RowSymbol, ColSymbol, I> UnitaryRepresentedGroup<T, RowSymbol, ColSymbol, I>
+impl<T, RowSymbol, ColSymbol> UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
 {
     /// Returns the finite subgroup name of this group.
     #[must_use]
@@ -309,21 +306,20 @@ where
     }
 }
 
-impl<T, RowSymbol, ColSymbol, I> UnitaryRepresentedGroup<T, RowSymbol, ColSymbol, I>
+impl<T, RowSymbol, ColSymbol> UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
 {
     /// Returns a builder to construct a new unitary-represented group.
     ///
     /// # Returns
     ///
     /// A builder to construct a new unitary-represented group.
-    fn builder() -> UnitaryRepresentedGroupBuilder<T, RowSymbol, ColSymbol, I> {
-        UnitaryRepresentedGroupBuilder::<T, RowSymbol, ColSymbol, I>::default()
+    fn builder() -> UnitaryRepresentedGroupBuilder<T, RowSymbol, ColSymbol> {
+        UnitaryRepresentedGroupBuilder::<T, RowSymbol, ColSymbol>::default()
     }
 
     /// Constructs a unitary-represented group from its elements.
@@ -340,7 +336,7 @@ where
     #[must_use]
     pub fn new(name: &str, elements: Vec<T>) -> Self {
         let abstract_group = Group::<T>::new(name, elements);
-        let mut unitary_group = UnitaryRepresentedGroup::<T, RowSymbol, ColSymbol, I>::builder()
+        let mut unitary_group = UnitaryRepresentedGroup::<T, RowSymbol, ColSymbol>::builder()
             .name(name.to_string())
             .abstract_group(abstract_group)
             .build()
@@ -350,13 +346,12 @@ where
     }
 }
 
-impl<T, RowSymbol, ColSymbol, I> GroupProperties for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol, I>
+impl<T, RowSymbol, ColSymbol> GroupProperties for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
 {
     type GroupElement = T;
 
@@ -375,12 +370,11 @@ where
 /// an equivalence relation defined in Newmarch, J. D. & Golding, R. M. The character table for the
 /// corepresentations of magnetic groups. *Journal of Mathematical Physics* **23**, 695–704 (1982).
 #[derive(Clone, Builder)]
-pub struct MagneticRepresentedGroup<T, UG, RowSymbol, I>
+pub struct MagneticRepresentedGroup<T, UG, RowSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
-    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties<I>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
+    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
 {
     /// A name for the magnetic-represented group.
     name: String,
@@ -409,21 +403,20 @@ where
     /// $`a`$ is antiunitary-represented (*i.e.* $`a`$ is not in [`Self::unitary_subgroup`]).
     #[builder(setter(skip), default = "None")]
     class_structure: Option<
-        ClassStructure<T, <<UG as CharacterProperties<I>>::CharTab as CharacterTable<I>>::ColSymbol>,
+        ClassStructure<T, <<UG as CharacterProperties>::CharTab as CharacterTable>::ColSymbol>,
     >,
 
     /// The character table for the irreducible corepresentations of this group.
     #[builder(setter(skip), default = "None")]
-    pub ircorep_character_table: Option<CorepCharacterTable<RowSymbol, UG::CharTab, I>>,
+    pub ircorep_character_table: Option<CorepCharacterTable<RowSymbol, UG::CharTab>>,
 }
 
-impl<T, UG, RowSymbol, I> MagneticRepresentedGroupBuilder<T, UG, RowSymbol, I>
+impl<T, UG, RowSymbol> MagneticRepresentedGroupBuilder<T, UG, RowSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
-    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties<I>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
+    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
 {
     fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
         if name_opt.is_some() {
@@ -456,12 +449,11 @@ where
     }
 }
 
-impl<T, UG, RowSymbol, I> MagneticRepresentedGroup<T, UG, RowSymbol, I>
+impl<T, UG, RowSymbol> MagneticRepresentedGroup<T, UG, RowSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
-    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties<I>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
+    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
 {
     /// Returns the finite subgroup name of this group.
     pub fn finite_subgroup_name(&self) -> Option<&String> {
@@ -483,21 +475,20 @@ where
     }
 }
 
-impl<T, UG, RowSymbol, I> MagneticRepresentedGroup<T, UG, RowSymbol, I>
+impl<T, UG, RowSymbol> MagneticRepresentedGroup<T, UG, RowSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
-    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties<I>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
+    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
 {
     /// Returns a builder to construct a new magnetic-represented group.
     ///
     /// # Returns
     ///
     /// A builder to construct a new magnetic-represented group.
-    fn builder() -> MagneticRepresentedGroupBuilder<T, UG, RowSymbol, I> {
-        MagneticRepresentedGroupBuilder::<T, UG, RowSymbol, I>::default()
+    fn builder() -> MagneticRepresentedGroupBuilder<T, UG, RowSymbol> {
+        MagneticRepresentedGroupBuilder::<T, UG, RowSymbol>::default()
     }
 
     /// Constructs a magnetic-represented group from its elements and the unitary subgroup.
@@ -515,7 +506,7 @@ where
     /// determined.
     pub fn new(name: &str, elements: Vec<T>, unitary_subgroup: UG) -> Self {
         let abstract_group = Group::<T>::new(name, elements);
-        let mut magnetic_group = MagneticRepresentedGroup::<T, UG, RowSymbol, I>::builder()
+        let mut magnetic_group = MagneticRepresentedGroup::<T, UG, RowSymbol>::builder()
             .name(name.to_string())
             .abstract_group(abstract_group)
             .unitary_subgroup(unitary_subgroup)
@@ -547,13 +538,12 @@ where
     }
 }
 
-impl<T, UG, RowSymbol, I> GroupProperties for MagneticRepresentedGroup<T, UG, RowSymbol, I>
+impl<T, UG, RowSymbol> GroupProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
     T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
-    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties<I>,
-    I: Clone + GenericInteger + Hash + fmt::Display,
+    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
 {
     type GroupElement = T;
 
