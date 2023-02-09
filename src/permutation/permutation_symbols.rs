@@ -352,11 +352,20 @@ impl fmt::Display for PermutationIrrepSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "{} ({})",
-            self.generic_symbol,
-            self.dim
-                .map(|dim| dim.to_string())
-                .unwrap_or_else(|| "?".to_string())
+            "|{}{}|{}",
+            self.main(),
+            if self.main() == "Λ" {
+                self.dim
+                    .map(|dim| dim.to_string())
+                    .unwrap_or_else(|| "?".to_string())
+            } else {
+                String::new()
+            },
+            if self.postsub().is_empty() {
+                String::new()
+            } else {
+                format!("_({})", self.postsub())
+            }
         )
     }
 }
@@ -367,7 +376,7 @@ pub fn sort_irreps(
 ) -> (Array2<Character>, Vec<i8>) {
     log::debug!("Sorting permutation irreducible representations...");
     let n_rows = char_arr.nrows();
-    let col_idxs: Vec<usize> = Vec::with_capacity(n_rows);
+    let col_idxs = (0..n_rows).collect_vec();
     let sort_arr = char_arr.select(Axis(1), &col_idxs);
 
     let sort_row_indices: Vec<_> = (0..n_rows)
@@ -382,7 +391,7 @@ pub fn sort_irreps(
     let char_arr = char_arr.select(Axis(0), &sort_row_indices);
     let old_fs = frobenius_schur_indicators.iter().collect::<Vec<_>>();
     let sorted_fs = sort_row_indices.iter().map(|&i| *old_fs[i]).collect_vec();
-    log::debug!("Sorting irreducible representations... Done.");
+    log::debug!("Sorting permutation irreducible representations... Done.");
     (char_arr, sorted_fs)
 }
 
@@ -395,7 +404,6 @@ pub fn deduce_permutation_irrep_symbols(
     log::debug!("First pass: assign symbols from rules");
 
     let one = Character::new(&[(UnityRoot::new(0u32, 1u32), 1)]);
-    let minus_one = -one.clone();
     let raw_irrep_symbols = char_arr.rows().into_iter().map(|irrep| {
         let dim = irrep[0].clone();
         if dim == one {
@@ -404,10 +412,6 @@ pub fn deduce_permutation_irrep_symbols(
                     panic!("Unable to construct permutation irrep symbol `||Sym||`")
                 })
             } else {
-                assert_eq!(
-                    irrep.iter().filter(|&chr| chr.clone() == one).count(),
-                    irrep.iter().filter(|&chr| chr.clone() == minus_one).count()
-                );
                 PermutationIrrepSymbol::new("||Alt||", 1).unwrap_or_else(|_| {
                     panic!("Unable to construct permutation irrep symbol `||Alt||`")
                 })

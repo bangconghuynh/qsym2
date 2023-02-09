@@ -232,6 +232,21 @@ where
         .collect()
 }
 
+#[derive(Debug, Clone)]
+pub struct ModularEigError<'a, T> {
+    mat: &'a Array2<T>,
+}
+
+impl<'a, T: Display + Debug> fmt::Display for ModularEigError<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Unable to diagonalise {}.",
+            self.mat
+        )
+    }
+}
+
 /// Determines the eigenvalues and eigenvector of a square matrix over a finite
 /// integer field.
 ///
@@ -249,7 +264,9 @@ where
 ///
 /// Panics when inconsistent ring moduli between matrix elements are encountered.
 #[must_use]
-pub fn modular_eig<T>(mat: &Array2<T>) -> HashMap<T, Vec<Array1<T>>>
+pub fn modular_eig<'a, T>(
+    mat: &'a Array2<T>,
+) -> Result<HashMap<T, Vec<Array1<T>>>, ModularEigError<'a, T>>
 where
     T: Clone
         + LinalgScalar
@@ -302,24 +319,35 @@ where
         })
         .collect();
     let eigen_dim = results.values().fold(0usize, |acc, vecs| acc + vecs.len());
-    assert_eq!(
-        eigen_dim,
-        dim,
-        "Found {} / {} eigenvector{}. The matrix is not diagonalisable in GF({}).",
-        eigen_dim,
-        dim,
-        if dim > 1 { "s" } else { "" },
-        modulus
-    );
-    log::debug!(
-        "Found {} / {} eigenvector{}. Eigensolver done in GF({}).",
-        eigen_dim,
-        dim,
-        if dim > 1 { "s" } else { "" },
-        modulus
-    );
+    if eigen_dim != dim {
+        log::error!(
+            "Found {} / {} eigenvector{}. The matrix is not diagonalisable in GF({}).",
+            eigen_dim,
+            dim,
+            if dim > 1 { "s" } else { "" },
+            modulus
+        );
+        Err(ModularEigError { mat })
+    } else {
+        // assert_eq!(
+        //     eigen_dim,
+        //     dim,
+        //     "Found {} / {} eigenvector{}. The matrix is not diagonalisable in GF({}).",
+        //     eigen_dim,
+        //     dim,
+        //     if dim > 1 { "s" } else { "" },
+        //     modulus
+        // );
+        log::debug!(
+            "Found {} / {} eigenvector{}. Eigensolver done in GF({}).",
+            eigen_dim,
+            dim,
+            if dim > 1 { "s" } else { "" },
+            modulus
+        );
 
-    results
+        Ok(results)
+    }
 }
 
 /// Calculates the weighted Hermitian inner product between two vectors defined
@@ -576,7 +604,7 @@ where
         // Diagonalise the representation matrix
         // Then use the eigenvectors to form linear combinations of the original
         // basis vectors and split the subspace
-        let eigs = modular_eig(&rep_mat);
+        let eigs = modular_eig(&rep_mat).map_err(|_| SplitSpaceError { mat, vecs })?;
         let n_subspaces = eigs.len();
         if n_subspaces == dim {
             log::debug!(

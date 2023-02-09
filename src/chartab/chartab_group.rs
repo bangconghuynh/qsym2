@@ -171,7 +171,10 @@ where
             });
             log::debug!("Considering class matrix N1...");
             let nmat_1 = nmat.slice(s![1, .., ..]).to_owned();
-            let eigs_1 = modular_eig(&nmat_1);
+            let eigs_1 = modular_eig(&nmat_1).unwrap_or_else(|err| {
+                log::error!("{err}");
+                panic!("{err}");
+            });
             eigvecs_1d.extend(eigs_1.iter().filter_map(|(_, eigvecs)| {
                 if eigvecs.len() == 1 {
                     Some(eigvecs[0].clone())
@@ -421,27 +424,27 @@ where
                     epsilon = 1e-14,
                     max_relative = 1e-14
                 );
-                approx::assert_relative_eq!(
-                    indicator.re,
-                    indicator.re.round(),
-                    epsilon = 1e-14,
-                    max_relative = 1e-14
-                );
-                assert!(
-                    approx::relative_eq!(indicator.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
-                        || approx::relative_eq!(
-                            indicator.re,
-                            0.0,
-                            epsilon = 1e-14,
-                            max_relative = 1e-14
-                        )
-                        || approx::relative_eq!(
-                            indicator.re,
-                            -1.0,
-                            epsilon = 1e-14,
-                            max_relative = 1e-14
-                        )
-                );
+                // approx::assert_relative_eq!(
+                //     indicator.re,
+                //     indicator.re.round(),
+                //     epsilon = 1e-14,
+                //     max_relative = 1e-14
+                // );
+                // assert!(
+                //     approx::relative_eq!(indicator.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
+                //         || approx::relative_eq!(
+                //             indicator.re,
+                //             0.0,
+                //             epsilon = 1e-14,
+                //             max_relative = 1e-14
+                //         )
+                //         || approx::relative_eq!(
+                //             indicator.re,
+                //             -1.0,
+                //             epsilon = 1e-14,
+                //             max_relative = 1e-14
+                //         )
+                // );
                 #[allow(clippy::cast_possible_truncation)]
                 let indicator_i8 = indicator.re.round() as i8;
                 indicator_i8

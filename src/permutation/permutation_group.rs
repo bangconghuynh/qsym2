@@ -10,6 +10,10 @@ use crate::permutation::permutation_symbols::{
 };
 use crate::permutation::Permutation;
 
+#[cfg(test)]
+#[path = "permutation_group_tests.rs"]
+mod permutation_group_tests;
+
 pub trait PermutationGroupProperties:
     ClassProperties<GroupElement = Permutation, ClassSymbol = PermutationClassSymbol>
     + CharacterProperties
@@ -48,6 +52,7 @@ impl PermutationGroupProperties
             perms,
         );
         group.set_class_symbols_from_cycle_patterns();
+        group.construct_character_table();
         group.canonicalise_character_table();
         group
     }

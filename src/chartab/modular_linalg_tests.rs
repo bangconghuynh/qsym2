@@ -269,7 +269,7 @@ fn test_modular_linalg_eig() {
         [i_19s[0], i_19s[0], i_19s[3], i_19s[0]],
         [i_19s[0], i_19s[0], i_19s[0], i_19s[3]]
     ];
-    let eigs = modular_eig(&arr_1);
+    let eigs = modular_eig(&arr_1).unwrap();
     eigs.iter().for_each(|(val, vecs)| {
         vecs.iter().for_each(|vec| {
             assert_eq!(arr_1.dot(vec), vec.map(|x| { x * val }));
@@ -280,7 +280,7 @@ fn test_modular_linalg_eig() {
     let i_5s: Vec<_> = (0..5).map(|x| m5.convert(x)).collect();
 
     let arr_2 = array![[i_5s[2], i_5s[2]], [i_5s[1], i_5s[1]]];
-    let eigs = modular_eig(&arr_2);
+    let eigs = modular_eig(&arr_2).unwrap();
     eigs.iter().for_each(|(val, vecs)| {
         vecs.iter().for_each(|vec| {
             assert_eq!(arr_2.dot(vec), vec.map(|x| { x * val }));
@@ -288,7 +288,7 @@ fn test_modular_linalg_eig() {
     });
 
     let arr_3 = array![[i_19s[7], i_19s[2]], [i_19s[15], i_19s[1]]];
-    let eigs = modular_eig(&arr_3);
+    let eigs = modular_eig(&arr_3).unwrap();
     eigs.iter().for_each(|(val, vecs)| {
         vecs.iter().for_each(|vec| {
             assert_eq!(arr_3.dot(vec), vec.map(|x| { x * val }));
@@ -306,7 +306,7 @@ fn test_modular_linalg_eig() {
         [i_41s[0], i_41s[0], i_41s[0], i_41s[4], i_41s[0]],
         [i_41s[0], i_41s[0], i_41s[0], i_41s[0], i_41s[4]],
     ];
-    let eigs = modular_eig(&arr_4);
+    let eigs = modular_eig(&arr_4).unwrap();
     eigs.iter().for_each(|(val, vecs)| {
         vecs.iter().for_each(|vec| {
             assert_eq!(arr_4.dot(vec), vec.map(|x| { x * val }));
@@ -326,7 +326,7 @@ fn test_modular_linalg_eig() {
         [i_5s[0], i_5s[0], i_5s[0], i_5s[1]],
         [i_5s[0], i_5s[0], i_5s[1], i_5s[0]],
     ];
-    let eigs = modular_eig(&arr_5);
+    let eigs = modular_eig(&arr_5).unwrap();
     eigs.iter().for_each(|(val, vecs)| {
         vecs.iter().for_each(|vec| {
             assert_eq!(arr_5.dot(vec), vec.map(|x| { x * val }));
@@ -360,7 +360,7 @@ fn test_modular_linalg_split_space() {
         [i_41s[5], i_41s[5], i_41s[0], i_41s[0], i_41s[0]],
     ];
 
-    let eigs = modular_eig(&arr_1);
+    let eigs = modular_eig(&arr_1).unwrap();
     let ev4_eigvecs = eigs.get(&i_41s[4]).unwrap();
     let ev4_eigvecs_subspaces =
         split_space(&arr_2, ev4_eigvecs, &class_sizes, Some(&perm_for_conj)).unwrap();

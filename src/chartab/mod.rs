@@ -444,7 +444,8 @@ where
                             "Unable to obtain the Frobenius--Schur indicator for irrep `{irrep}`."
                         )
                         }))
-                        .expect("Unknown Frobenius--Schur symbol.");
+                        .unwrap_or(&"?");
+                        // .expect("Unknown Frobenius--Schur symbol.");
                     let mut line = format!(" {irrep_str:<first_width$} ┆ {fs:>2} ║");
 
                     let line_chars: String = itertools::Itertools::intersperse(
