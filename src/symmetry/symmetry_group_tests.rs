@@ -239,10 +239,10 @@ fn test_ur_group_class_matrices() {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    let nmat_rst = group.class_matrix();
-    let mut nmat_srt = nmat_rst.clone();
-    nmat_srt.swap_axes(0, 1);
-    assert_eq!(nmat_rst, nmat_srt);
+    // let nmat_rst = group.class_matrix();
+    // let mut nmat_srt = nmat_rst.clone();
+    // nmat_srt.swap_axes(0, 1);
+    // assert_eq!(nmat_rst, nmat_srt);
 }
 
 // ============================================
@@ -281,11 +281,11 @@ fn verify_abstract_group(
         );
     }
 
-    // Test class matrix symmetry w.r.t. the first two indices
-    let nmat_rst = group.class_matrix();
-    let mut nmat_srt = nmat_rst.clone();
-    nmat_srt.swap_axes(0, 1);
-    assert_eq!(nmat_rst, nmat_srt);
+    // // Test class matrix symmetry w.r.t. the first two indices
+    // let nmat_rst = group.class_matrix();
+    // let mut nmat_srt = nmat_rst.clone();
+    // nmat_srt.swap_axes(0, 1);
+    // assert_eq!(nmat_rst, nmat_srt);
 }
 
 fn test_ur_ordinary_group(

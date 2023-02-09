@@ -58,18 +58,18 @@ where
     #[builder(setter(custom))]
     inverse_conjugacy_classes: Vec<usize>,
 
-    /// The class matrices $`\mathbf{N}`$ for the conjugacy classes in the group.
-    ///
-    /// Let $`K_i`$ be the $`i^{\textrm{th}}`conjugacy class of the group. The
-    /// elements of the class matrix $`\mathbf{N}`$ are given by
-    ///
-    /// ```math
-    ///     N_{rst} = \lvert \{ (x, y) \in K_r \times K_s : xy = z \in K_t \} \rvert,
-    /// ```
-    ///
-    /// independent of any $`z \in K_t`$.
-    #[builder(setter(custom))]
-    class_matrix: Array3<usize>,
+    ///// The class matrices $`\mathbf{N}`$ for the conjugacy classes in the group.
+    /////
+    ///// Let $`K_i`$ be the $`i^{\textrm{th}}`conjugacy class of the group. The
+    ///// elements of the class matrix $`\mathbf{N}`$ are given by
+    /////
+    ///// ```math
+    /////     N_{rst} = \lvert \{ (x, y) \in K_r \times K_s : xy = z \in K_t \} \rvert,
+    ///// ```
+    /////
+    ///// independent of any $`z \in K_t`$.
+    //#[builder(setter(custom))]
+    //class_matrix: Array3<usize>,
 }
 
 impl<T, ClassSymbol> ClassStructureBuilder<T, ClassSymbol>
@@ -185,57 +185,57 @@ where
         self
     }
 
-    fn class_matrix(&mut self, ctb: &Array2<usize>) -> &mut Self {
-        let class_number = self
-            .conjugacy_classes
-            .as_ref()
-            .expect("Conjugacy classes have not been found.")
-            .len();
-        let mut nmat = Array3::<usize>::zeros((class_number, class_number, class_number));
-        for (r, class_r) in self
-            .conjugacy_classes
-            .as_ref()
-            .expect("Conjugacy classes have not been found.")
-            .iter()
-            .enumerate()
-        {
-            let idx_r = class_r.iter().copied().collect::<Vec<_>>();
-            for (s, class_s) in self
-                .conjugacy_classes
-                .as_ref()
-                .expect("Conjugacy classes have not been found.")
-                .iter()
-                .enumerate()
-            {
-                let idx_s = class_s.iter().copied().collect::<Vec<_>>();
-                let cayley_block_rs = ctb
-                    .select(Axis(0), &idx_r)
-                    .select(Axis(1), &idx_s)
-                    .iter()
-                    .copied()
-                    .counts();
+    // fn class_matrix(&mut self, ctb: &Array2<usize>) -> &mut Self {
+    //     let class_number = self
+    //         .conjugacy_classes
+    //         .as_ref()
+    //         .expect("Conjugacy classes have not been found.")
+    //         .len();
+    //     let mut nmat = Array3::<usize>::zeros((class_number, class_number, class_number));
+    //     for (r, class_r) in self
+    //         .conjugacy_classes
+    //         .as_ref()
+    //         .expect("Conjugacy classes have not been found.")
+    //         .iter()
+    //         .enumerate()
+    //     {
+    //         let idx_r = class_r.iter().copied().collect::<Vec<_>>();
+    //         for (s, class_s) in self
+    //             .conjugacy_classes
+    //             .as_ref()
+    //             .expect("Conjugacy classes have not been found.")
+    //             .iter()
+    //             .enumerate()
+    //         {
+    //             let idx_s = class_s.iter().copied().collect::<Vec<_>>();
+    //             let cayley_block_rs = ctb
+    //                 .select(Axis(0), &idx_r)
+    //                 .select(Axis(1), &idx_s)
+    //                 .iter()
+    //                 .copied()
+    //                 .counts();
 
-                for (t, class_t) in self
-                    .conjugacy_classes
-                    .as_ref()
-                    .expect("Conjugacy classes have not been found.")
-                    .iter()
-                    .enumerate()
-                {
-                    nmat[[r, s, t]] = *cayley_block_rs
-                        .get(
-                            class_t
-                                .iter()
-                                .next()
-                                .expect("No conjugacy classes can be empty."),
-                        )
-                        .unwrap_or(&0);
-                }
-            }
-        }
-        self.class_matrix = Some(nmat);
-        self
-    }
+    //             for (t, class_t) in self
+    //                 .conjugacy_classes
+    //                 .as_ref()
+    //                 .expect("Conjugacy classes have not been found.")
+    //                 .iter()
+    //                 .enumerate()
+    //             {
+    //                 nmat[[r, s, t]] = *cayley_block_rs
+    //                     .get(
+    //                         class_t
+    //                             .iter()
+    //                             .next()
+    //                             .expect("No conjugacy classes can be empty."),
+    //                     )
+    //                     .unwrap_or(&0);
+    //             }
+    //         }
+    //     }
+    //     self.class_matrix = Some(nmat);
+    //     self
+    // }
 }
 
 impl<T, ClassSymbol> ClassStructure<T, ClassSymbol>
@@ -277,7 +277,7 @@ where
             .conjugacy_class_transversal()
             .conjugacy_class_symbols(&group.elements)
             .inverse_conjugacy_classes(ctb)
-            .class_matrix(ctb)
+            // .class_matrix(ctb)
             .build()
             .expect("Unable to construct a `ClassStructure`.")
     }
@@ -304,6 +304,44 @@ where
             .enumerate()
             .map(|(i, cc)| (cc.clone(), i))
             .collect::<IndexMap<_, _>>();
+    }
+
+    fn class_matrix(&self, ctb: &Array2<usize>, r: usize) -> Array2<usize> {
+        let class_number = self
+            .conjugacy_classes
+            .len();
+        let mut nmat_r = Array2::<usize>::zeros((class_number, class_number));
+        let class_r = &self.conjugacy_classes[r];
+        let idx_r = class_r.iter().copied().collect::<Vec<_>>();
+        for (s, class_s) in self
+            .conjugacy_classes
+            .iter()
+            .enumerate()
+        {
+            let idx_s = class_s.iter().copied().collect::<Vec<_>>();
+            let cayley_block_rs = ctb
+                .select(Axis(0), &idx_r)
+                .select(Axis(1), &idx_s)
+                .iter()
+                .copied()
+                .counts();
+
+            for (t, class_t) in self
+                .conjugacy_classes
+                .iter()
+                .enumerate()
+            {
+                nmat_r[[s, t]] = *cayley_block_rs
+                    .get(
+                        class_t
+                            .iter()
+                            .next()
+                            .expect("No conjugacy classes can be empty."),
+                    )
+                    .unwrap_or(&0);
+            }
+        }
+        nmat_r
     }
 }
 
@@ -357,10 +395,10 @@ where
         &self.class_structure().inverse_conjugacy_classes
     }
 
-    /// Returns the class matrix.
+    /// Returns a required class matrix.
     #[must_use]
-    fn class_matrix(&self) -> &Array3<usize> {
-        &self.class_structure().class_matrix
+    fn class_matrix(&self, ctb: &Array2<usize>, r: usize) -> Array2<usize> {
+        self.class_structure().class_matrix(ctb, r)
     }
 
     /// Returns the number of conjugacy classes in the group.

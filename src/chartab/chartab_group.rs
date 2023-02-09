@@ -163,14 +163,21 @@ where
             eigvecs_1d.push(array![modp.convert(1)]);
         } else {
             let mut degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> = vec![];
-            let nmat = self.class_matrix().map(|&i| {
+            let ctb = self.cayley_table();
+            // let nmat = self.class_matrix().map(|&i| {
+            //     modp.convert(
+            //         u32::try_from(i)
+            //             .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
+            //     )
+            // });
+            log::debug!("Considering class matrix N1...");
+            // let nmat_1 = nmat.slice(s![1, .., ..]).to_owned();
+            let nmat_1 = self.class_matrix(ctb, 1).map(|&i| {
                 modp.convert(
                     u32::try_from(i)
                         .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
                 )
             });
-            log::debug!("Considering class matrix N1...");
-            let nmat_1 = nmat.slice(s![1, .., ..]).to_owned();
             let eigs_1 = modular_eig(&nmat_1).unwrap_or_else(|err| {
                 log::error!("{err}");
                 panic!("{err}");
@@ -214,7 +221,13 @@ where
                 );
 
                 log::debug!("Considering class matrix N{}...", r);
-                let nmat_r = nmat.slice(s![r, .., ..]).to_owned();
+                // let nmat_r = nmat.slice(s![r, .., ..]).to_owned();
+                let nmat_r = self.class_matrix(ctb, r).map(|&i| {
+                    modp.convert(
+                        u32::try_from(i)
+                            .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
+                    )
+                });
                 log::debug!("{}", nmat_r);
 
                 let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> =
