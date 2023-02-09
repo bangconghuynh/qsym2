@@ -1,12 +1,11 @@
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use log;
 
-use counter::Counter;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -18,7 +17,7 @@ use regex::Regex;
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
     CollectionSymbol, GenericSymbol, GenericSymbolParsingError, LinearSpaceSymbol,
-    MathematicalSymbol, ReducibleLinearSpaceSymbol,
+    MathematicalSymbol, ReducibleLinearSpaceSymbol, disambiguate_irrep_symbols
 };
 use crate::chartab::unityroot::UnityRoot;
 use crate::group::FiniteOrder;
@@ -210,6 +209,20 @@ impl LinearSpaceSymbol for MullikenIrrepSymbol {
         )
         .expect("Unable to convert the dimensionality of this irrep to `usize`.")
     }
+
+    fn set_dimensionality(&mut self, dim: usize) -> bool {
+        let dim_u64 = u64::try_from(dim).unwrap_or_else(|err| {
+            log::error!("{err}");
+            panic!("Unable to convert `{dim}` to `u64`.")
+        });
+        let main = INV_MULLIKEN_IRREP_DEGENERACIES
+            .get(&dim_u64)
+            .unwrap_or_else(|| {
+                panic!("Unable to retrieve a Mulliken symbol for dimensionality `{dim_u64}`.")
+            });
+        self.generic_symbol.set_main(main);
+        true
+    }
 }
 
 // -------
@@ -400,6 +413,11 @@ impl LinearSpaceSymbol for MullikenIrcorepSymbol {
                 * mult
             }).sum()
     }
+
+    fn set_dimensionality(&mut self, dim: usize) -> bool {
+        log::error!("The dimensionality of `{self}` cannot be set.");
+        false
+    }
 }
 
 impl ReducibleLinearSpaceSymbol for MullikenIrcorepSymbol {
@@ -434,7 +452,6 @@ impl PartialEq for MullikenIrcorepSymbol {
         let self_irreps = self.sorted_inducing_irreps().collect_vec();
         let other_irreps = other.sorted_inducing_irreps().collect_vec();
         self_irreps == other_irreps
-
     }
 }
 
@@ -1204,63 +1221,64 @@ where
     });
 
     log::debug!("Second pass: disambiguate identical cases not distinguishable by rules");
-    let raw_symbol_count = raw_irrep_symbols.clone().collect::<Counter<_>>();
-    let mut raw_symbols_to_full_symbols: HashMap<_, _> = raw_symbol_count
-        .iter()
-        .map(|(raw_irrep, &duplicate_count)| {
-            if duplicate_count == 1 {
-                let mut irreps: VecDeque<MullikenIrrepSymbol> = VecDeque::new();
-                irreps.push_back(raw_irrep.clone());
-                (raw_irrep.clone(), irreps)
-            } else {
-                let irreps: VecDeque<MullikenIrrepSymbol> = (0..duplicate_count)
-                    .map(|i| {
-                        MullikenIrrepSymbol::new(
-                            format!(
-                                "|^({})|{}|^({})_({}{})|",
-                                raw_irrep.presuper(),
-                                raw_irrep.main(),
-                                raw_irrep.postsuper(),
-                                i + 1,
-                                raw_irrep.postsub(),
-                            )
-                            .as_str(),
-                        )
-                        .unwrap_or_else(|_| {
-                            panic!(
-                                "Unable to construct symmetry symbol `|^({})|{}|^({})_({}{})|`.",
-                                raw_irrep.presuper(),
-                                raw_irrep.main(),
-                                raw_irrep.postsuper(),
-                                i + 1,
-                                raw_irrep.postsub(),
-                            )
-                        })
-                    })
-                    .collect();
-                (raw_irrep.clone(), irreps)
-            }
-        })
-        .collect();
-
-    let irrep_symbols: Vec<_> = raw_irrep_symbols
-        .map(|raw_irrep| {
-            raw_symbols_to_full_symbols
-                .get_mut(&raw_irrep)
-                .unwrap_or_else(|| {
-                    panic!(
-                        "Unknown conversion of raw symbol {} to full symbol.",
-                        &raw_irrep
-                    )
-                })
-                .pop_front()
-                .unwrap_or_else(|| {
-                    panic!("No conversion to full symbol possible for {}", &raw_irrep)
-                })
-        })
-        .collect();
+    let irrep_symbols = disambiguate_irrep_symbols(raw_irrep_symbols);
     log::debug!("Generating Mulliken irreducible representation symbols... Done.");
     irrep_symbols
+    // let raw_symbol_count = raw_irrep_symbols.clone().collect::<Counter<_>>();
+    // let mut raw_symbols_to_full_symbols: HashMap<_, _> = raw_symbol_count
+    //     .iter()
+    //     .map(|(raw_irrep, &duplicate_count)| {
+    //         if duplicate_count == 1 {
+    //             let mut irreps: VecDeque<MullikenIrrepSymbol> = VecDeque::new();
+    //             irreps.push_back(raw_irrep.clone());
+    //             (raw_irrep.clone(), irreps)
+    //         } else {
+    //             let irreps: VecDeque<MullikenIrrepSymbol> = (0..duplicate_count)
+    //                 .map(|i| {
+    //                     MullikenIrrepSymbol::new(
+    //                         format!(
+    //                             "|^({})|{}|^({})_({}{})|",
+    //                             raw_irrep.presuper(),
+    //                             raw_irrep.main(),
+    //                             raw_irrep.postsuper(),
+    //                             i + 1,
+    //                             raw_irrep.postsub(),
+    //                         )
+    //                         .as_str(),
+    //                     )
+    //                     .unwrap_or_else(|_| {
+    //                         panic!(
+    //                             "Unable to construct symmetry symbol `|^({})|{}|^({})_({}{})|`.",
+    //                             raw_irrep.presuper(),
+    //                             raw_irrep.main(),
+    //                             raw_irrep.postsuper(),
+    //                             i + 1,
+    //                             raw_irrep.postsub(),
+    //                         )
+    //                     })
+    //                 })
+    //                 .collect();
+    //             (raw_irrep.clone(), irreps)
+    //         }
+    //     })
+    //     .collect();
+
+    // let irrep_symbols: Vec<_> = raw_irrep_symbols
+    //     .map(|raw_irrep| {
+    //         raw_symbols_to_full_symbols
+    //             .get_mut(&raw_irrep)
+    //             .unwrap_or_else(|| {
+    //                 panic!(
+    //                     "Unknown conversion of raw symbol {} to full symbol.",
+    //                     &raw_irrep
+    //                 )
+    //             })
+    //             .pop_front()
+    //             .unwrap_or_else(|| {
+    //                 panic!("No conversion to full symbol possible for {}", &raw_irrep)
+    //             })
+    //     })
+    //     .collect();
 }
 
 /// Determines the mirror-plane symbol given a principal axis.
