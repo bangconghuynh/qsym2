@@ -115,7 +115,7 @@ where
                 .unwrap_or_else(|| panic!("Unable to convert `{}` to `f64`.", self.order()))
                 .sqrt()
             / (f64::from(m)))
-        .round();
+        .ceil();
         assert!(rf64.is_sign_positive());
         assert!(rf64 <= f64::from(u32::MAX));
         #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
@@ -215,6 +215,7 @@ where
 
                 log::debug!("Considering class matrix N{}...", r);
                 let nmat_r = nmat.slice(s![r, .., ..]).to_owned();
+                log::debug!("{}", nmat_r);
 
                 let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> =
                     vec![];
@@ -239,12 +240,12 @@ where
                                 .cloned(),
                         );
                     } else {
-                        log::debug!(
+                        log::warn!(
                             "Class matrix N{} failed to split degenerate subspace {}.",
                             r,
                             degenerate_subspaces.len()
                         );
-                        log::debug!("Stashing this subspace for the next class matrices...");
+                        log::warn!("Stashing this subspace for the next class matrices...");
                         remaining_degenerate_subspaces.push(subspace);
                     }
                 }
@@ -272,25 +273,21 @@ where
         let chars: Vec<_> = eigvecs_1d
             .par_iter()
             .flat_map(|vec_i| {
-                let mut dim2_mod_p = weighted_hermitian_inprod(
+                let vec_i_inprod = weighted_hermitian_inprod(
                     (vec_i, vec_i),
                     &class_sizes,
                     inverse_conjugacy_classes,
-                )
-                .inv()
-                .residue();
-                while !approx::relative_eq!(
-                    f64::from(dim2_mod_p).sqrt().round(),
-                    f64::from(dim2_mod_p).sqrt()
-                ) {
-                    dim2_mod_p += p;
-                }
-
-                let dim_if64 = f64::from(dim2_mod_p).sqrt().round();
-                assert!(dim_if64.is_sign_positive());
-                assert!(dim_if64 <= f64::from(u32::MAX));
-                #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-                let dim_i = dim_if64 as u32;
+                );
+                let dim_i = (1..=p.div_euclid(2))
+                    .map(|d| vec_i_inprod.convert(d))
+                    .find(|d_modp| {
+                        vec_i_inprod == (d_modp * d_modp).inv()
+                    })
+                    .unwrap_or_else(|| {
+                        log::error!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
+                        panic!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
+                    });
+                log::debug!("⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i} yields irrep dimensionality {}.", dim_i.residue());
 
                 let tchar_i =
                     Zip::from(vec_i)
@@ -424,27 +421,27 @@ where
                     epsilon = 1e-14,
                     max_relative = 1e-14
                 );
-                // approx::assert_relative_eq!(
-                //     indicator.re,
-                //     indicator.re.round(),
-                //     epsilon = 1e-14,
-                //     max_relative = 1e-14
-                // );
-                // assert!(
-                //     approx::relative_eq!(indicator.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
-                //         || approx::relative_eq!(
-                //             indicator.re,
-                //             0.0,
-                //             epsilon = 1e-14,
-                //             max_relative = 1e-14
-                //         )
-                //         || approx::relative_eq!(
-                //             indicator.re,
-                //             -1.0,
-                //             epsilon = 1e-14,
-                //             max_relative = 1e-14
-                //         )
-                // );
+                approx::assert_relative_eq!(
+                    indicator.re,
+                    indicator.re.round(),
+                    epsilon = 1e-14,
+                    max_relative = 1e-14
+                );
+                assert!(
+                    approx::relative_eq!(indicator.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
+                        || approx::relative_eq!(
+                            indicator.re,
+                            0.0,
+                            epsilon = 1e-14,
+                            max_relative = 1e-14
+                        )
+                        || approx::relative_eq!(
+                            indicator.re,
+                            -1.0,
+                            epsilon = 1e-14,
+                            max_relative = 1e-14
+                        )
+                );
                 #[allow(clippy::cast_possible_truncation)]
                 let indicator_i8 = indicator.re.round() as i8;
                 indicator_i8

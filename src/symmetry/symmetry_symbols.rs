@@ -16,8 +16,8 @@ use regex::Regex;
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
-    CollectionSymbol, GenericSymbol, GenericSymbolParsingError, LinearSpaceSymbol,
-    MathematicalSymbol, ReducibleLinearSpaceSymbol, disambiguate_irrep_symbols
+    disambiguate_irrep_symbols, CollectionSymbol, GenericSymbol, GenericSymbolParsingError,
+    LinearSpaceSymbol, MathematicalSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::unityroot::UnityRoot;
 use crate::group::FiniteOrder;
@@ -215,13 +215,14 @@ impl LinearSpaceSymbol for MullikenIrrepSymbol {
             log::error!("{err}");
             panic!("Unable to convert `{dim}` to `u64`.")
         });
-        let main = INV_MULLIKEN_IRREP_DEGENERACIES
-            .get(&dim_u64)
-            .unwrap_or_else(|| {
-                panic!("Unable to retrieve a Mulliken symbol for dimensionality `{dim_u64}`.")
-            });
-        self.generic_symbol.set_main(main);
-        true
+        let main_opt = INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim_u64);
+        if let Some(main) = main_opt {
+            self.generic_symbol.set_main(main);
+            true
+        } else {
+            log::warn!("Unable to retrieve an unambiguous Mulliken symbol for dimensionality `{dim_u64}`. Main symbol of {self} will be kept unchanged.");
+            false
+        }
     }
 }
 

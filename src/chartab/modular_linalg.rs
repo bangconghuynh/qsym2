@@ -8,7 +8,7 @@ use itertools::Itertools;
 use log;
 use ndarray::{s, Array1, Array2, ArrayView1, Axis, LinalgScalar, ShapeBuilder, Zip};
 use num_modular::ModularInteger;
-use num_traits::Zero;
+use num_traits::{Inv, Zero};
 
 #[cfg(test)]
 #[path = "modular_linalg_tests.rs"]
@@ -239,11 +239,7 @@ pub struct ModularEigError<'a, T> {
 
 impl<'a, T: Display + Debug> fmt::Display for ModularEigError<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Unable to diagonalise {}.",
-            self.mat
-        )
+        write!(f, "Unable to diagonalise {}.", self.mat)
     }
 }
 
@@ -320,7 +316,7 @@ where
         .collect();
     let eigen_dim = results.values().fold(0usize, |acc, vecs| acc + vecs.len());
     if eigen_dim != dim {
-        log::error!(
+        log::warn!(
             "Found {} / {} eigenvector{}. The matrix is not diagonalisable in GF({}).",
             eigen_dim,
             dim,
@@ -464,7 +460,12 @@ where
         ortho_vecs.push(vec_j.to_owned());
         for i in 0..j {
             let rij =
-                weighted_hermitian_inprod((vec_j, &ortho_vecs[i]), class_sizes, perm_for_conj);
+                weighted_hermitian_inprod((vec_j, &ortho_vecs[i]), class_sizes, perm_for_conj)
+                    / weighted_hermitian_inprod(
+                        (&ortho_vecs[i], &ortho_vecs[i]),
+                        class_sizes,
+                        perm_for_conj,
+                    );
             ortho_vecs[j] = &ortho_vecs[j] - vecs[i].map(|&x| x * rij);
         }
     }
@@ -524,6 +525,7 @@ where
         + Eq
         + Hash
         + Zero
+        + Inv
         + panic::UnwindSafe
         + panic::RefUnwindSafe,
 {
@@ -599,6 +601,10 @@ where
         .expect(
             "Unable to construct a two-dimensional matrix of the conjugated orthogonal vectors.",
         );
+
+        // The division below is correct: `ortho_vecs_mag` (dim × 1) is broadcast to (dim × dim),
+        // hence every row of the dividend is divided by the corresponding element of
+        // `ortho_vecs_mag`.
         let rep_mat = ortho_vecs_conj_mat.t().dot(mat).dot(&ortho_vecs_mat) / ortho_vecs_mag;
 
         // Diagonalise the representation matrix
@@ -608,15 +614,11 @@ where
         let n_subspaces = eigs.len();
         if n_subspaces == dim {
             log::debug!(
-                "{}-dimensional space is completely split into {} one-dimensional subspaces.",
-                dim,
-                n_subspaces
+                "{dim}-dimensional space is completely split into {n_subspaces} one-dimensional subspaces.",
             );
         } else {
             log::debug!(
-                "{}-dimensional space is incompletely split into {} subspace{}.",
-                dim,
-                n_subspaces,
+                "{dim}-dimensional space is incompletely split into {n_subspaces} subspace{}.",
                 if n_subspaces == 1 { "" } else { "s" }
             );
         }

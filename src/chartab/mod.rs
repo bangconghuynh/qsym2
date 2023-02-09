@@ -438,14 +438,14 @@ where
             iter::zip(self.irreps.keys(), irreps_str)
                 .enumerate()
                 .map(|(i, (irrep, irrep_str))| {
+                    let ind = self.frobenius_schurs.get(irrep).unwrap_or_else(|| {
+                        panic!(
+                        "Unable to obtain the Frobenius--Schur indicator for irrep `{irrep}`."
+                    )
+                    });
                     let fs = FROBENIUS_SCHUR_SYMBOLS
-                        .get(self.frobenius_schurs.get(irrep).unwrap_or_else(|| {
-                            panic!(
-                            "Unable to obtain the Frobenius--Schur indicator for irrep `{irrep}`."
-                        )
-                        }))
-                        .unwrap_or(&"?");
-                        // .expect("Unknown Frobenius--Schur symbol.");
+                        .get(ind)
+                        .unwrap_or_else(|| panic!("Unknown Frobenius--Schur symbol for indicator {ind}."));
                     let mut line = format!(" {irrep_str:<first_width$} ┆ {fs:>2} ║");
 
                     let line_chars: String = itertools::Itertools::intersperse(
