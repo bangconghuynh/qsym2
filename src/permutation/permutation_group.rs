@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use crate::chartab::chartab_group::CharacterProperties;
+use crate::chartab::chartab_group::{CharacterProperties, IrrepCharTabConstruction};
 use crate::chartab::chartab_symbols::CollectionSymbol;
 use crate::chartab::{CharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
@@ -52,7 +52,7 @@ impl PermutationGroupProperties
             perms,
         );
         group.set_class_symbols_from_cycle_patterns();
-        group.construct_character_table();
+        group.construct_irrep_character_table();
         group.canonicalise_character_table();
         group
     }

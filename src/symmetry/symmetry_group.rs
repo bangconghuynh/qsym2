@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 
-use crate::chartab::chartab_group::CharacterProperties;
+use crate::chartab::chartab_group::{
+    CharacterProperties, IrcorepCharTabConstruction, IrrepCharTabConstruction,
+};
 use crate::chartab::chartab_symbols::CollectionSymbol;
 use crate::chartab::{CharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
@@ -293,7 +295,7 @@ impl SymmetryGroupProperties
             group.set_finite_subgroup_name(Some(finite_subgroup_name));
         }
         group.set_class_symbols_from_symmetry();
-        group.construct_character_table();
+        group.construct_irrep_character_table();
         group.canonicalise_character_table();
         group
     }
@@ -475,7 +477,7 @@ impl SymmetryGroupProperties
             SymmetryClassSymbol<SymmetryOperation>,
         >::new(group_name.as_str(), unitary_operations);
         unitary_subgroup.set_class_symbols_from_symmetry();
-        unitary_subgroup.construct_character_table();
+        unitary_subgroup.construct_irrep_character_table();
         unitary_subgroup.canonicalise_character_table();
         log::debug!("Constructing the unitary subgroup for the magnetic group... Done.");
 
@@ -486,7 +488,7 @@ impl SymmetryGroupProperties
             group.set_finite_subgroup_name(Some(finite_subgroup_name));
         }
         group.set_class_symbols_from_symmetry();
-        group.construct_character_table();
+        group.construct_ircorep_character_table();
         log::debug!("Constructing the magnetic group... Done.");
         group
     }

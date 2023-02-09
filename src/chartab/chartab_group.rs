@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
+use std::str::FromStr;
 
 use approx;
 use log;
@@ -23,8 +24,13 @@ use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
 use crate::group::{
-    FiniteOrder, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup,
+    FiniteOrder, GroupProperties, HasUnitarySubgroup, MagneticRepresentedGroup,
+    UnitaryRepresentedGroup,
 };
+
+// -------------------------------
+// Trait declarations and defaults
+// -------------------------------
 
 pub trait CharacterProperties: ClassProperties
 where
@@ -38,36 +44,29 @@ where
     /// the same as [`Self::RowSymbol`].
     type CharTab;
 
-    /// Constructs and store the character table for this group.
-    fn construct_character_table(&mut self);
-
     /// Returns a shared reference to the character table of this group.
     fn character_table(&self) -> &Self::CharTab;
 }
 
-impl<T, RowSymbol, ColSymbol> CharacterProperties
-    for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
+pub trait IrrepCharTabConstruction:
+    CharacterProperties<
+    CharTab = RepCharacterTable<
+        <Self as CharacterProperties>::RowSymbol,
+        <Self as ClassProperties>::ClassSymbol,
+    >,
+>
 where
-    RowSymbol: LinearSpaceSymbol + Sync,
-    ColSymbol: CollectionSymbol<CollectionElement = T> + Sync,
-    T: Mul<Output = T>
+    Self: Sync,
+    Self::GroupElement: Mul<Output = Self::GroupElement>
         + Hash
         + Eq
         + Clone
         + Sync
         + fmt::Debug
         + FiniteOrder<Int = u32>
-        + Pow<i32, Output = T>,
-    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+        + Pow<i32, Output = Self::GroupElement>,
 {
-    type RowSymbol = RowSymbol;
-    type CharTab = RepCharacterTable<RowSymbol, ColSymbol>;
-
-    fn character_table(&self) -> &Self::CharTab {
-        self.irrep_character_table
-            .as_ref()
-            .expect("Irrep character table not found for this group.")
-    }
+    fn set_irrep_character_table(&mut self, chartab: Self::CharTab);
 
     /// Constructs the irrep character table for this group using the Burnside--Dixon algorithm.
     ///
@@ -80,7 +79,7 @@ where
     ///
     /// Panics if the Frobenius--Schur indicator takes on unexpected values.
     #[allow(clippy::too_many_lines)]
-    fn construct_character_table(&mut self) {
+    fn construct_irrep_character_table(&mut self) {
         // Variable definitions
         // --------------------
         // m: LCM of the orders of the elements in the group (i.e. the group
@@ -395,7 +394,7 @@ where
             .into_iter()
             .enumerate()
             .map(|(irrep_i, _)| {
-                RowSymbol::from_str(&format!("||Λ|_({irrep_i})|"))
+                Self::RowSymbol::from_str(&format!("||Λ|_({irrep_i})|"))
                     .ok()
                     .expect("Unable to construct default irrep symbols.")
             })
@@ -466,7 +465,7 @@ where
         } else {
             self.name().to_string()
         };
-        self.irrep_character_table = Some(RepCharacterTable::new(
+        self.set_irrep_character_table(RepCharacterTable::new(
             chartab_name.as_str(),
             &default_irrep_symbols,
             &class_symbols.keys().cloned().collect::<Vec<_>>(),
@@ -482,38 +481,28 @@ where
     }
 }
 
-impl<T, RowSymbol, UG> CharacterProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
+pub trait IrcorepCharTabConstruction: HasUnitarySubgroup + CharacterProperties<
+    CharTab = CorepCharacterTable<
+        <Self as CharacterProperties>::RowSymbol,
+        <<Self as HasUnitarySubgroup>::UnitarySubgroup as CharacterProperties>::CharTab,
+    >
+>
 where
-    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
-    T: Mul<Output = T>
-        + Hash
-        + Eq
-        + Clone
-        + Sync
-        + fmt::Debug
-        + FiniteOrder<Int = u32>
-        + Pow<i32, Output = T>,
-    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-    UG: Clone
-        + GroupProperties<GroupElement = T>
-        + ClassProperties<GroupElement = T>
-        + CharacterProperties,
+    Self: ClassProperties<ClassSymbol = <<Self as HasUnitarySubgroup>::UnitarySubgroup as ClassProperties>::ClassSymbol>,
+    Self::RowSymbol: ReducibleLinearSpaceSymbol<
+        Subspace = <
+            <Self as HasUnitarySubgroup>::UnitarySubgroup as CharacterProperties
+        >::RowSymbol
+    >,
 {
-    type RowSymbol = RowSymbol;
-    type CharTab = CorepCharacterTable<Self::RowSymbol, UG::CharTab>;
-
-    fn character_table(&self) -> &Self::CharTab {
-        self.ircorep_character_table
-            .as_ref()
-            .expect("Ircorep character table not found for this group.")
-    }
+    fn set_ircorep_character_table(&mut self, chartab: Self::CharTab);
 
     /// Constructs the ircorep character table for this group.
     ///
     /// For each irrep in the unitary subgroup, the type of the ircorep it induces is determined
     /// using the Dimmock--Wheeler character test, then the ircorep's characters in the
     /// unitary-represented part of the full group are determined to give a square character table.
-    fn construct_character_table(&mut self) {
+    fn construct_ircorep_character_table(&mut self) {
         log::debug!("===============================================");
         log::debug!("Construction of ircorep character table begins.");
         log::debug!("===============================================");
@@ -548,7 +537,7 @@ where
         let mut remaining_irreps = unitary_chartab.get_all_rows();
         remaining_irreps.reverse();
 
-        let mut ircoreps_ins: Vec<(RowSymbol, u8)> = Vec::new();
+        let mut ircoreps_ins: Vec<(Self::RowSymbol, u8)> = Vec::new();
         while let Some(irrep) = remaining_irreps.pop() {
             log::debug!("Considering irrep {irrep} of the unitary subgroup...");
             let char_sum = self
@@ -612,7 +601,7 @@ where
                 log::debug!(
                     "  Ircorep induced by {irrep} is of type (a) with intertwining number 1."
                 );
-                (1u8, RowSymbol::from_subspaces(&[(irrep, 1)]))
+                (1u8, Self::RowSymbol::from_subspaces(&[(irrep, 1)]))
             } else if NumOrd(char_sum) == NumOrd(-unitary_order) {
                 // Irreducible corepresentation type b
                 // Δ(u) is equivalent to Δ*[a^(-1)ua].
@@ -620,7 +609,7 @@ where
                 log::debug!(
                     "  Ircorep induced by {irrep} is of type (b) with intertwining number 4."
                 );
-                (4u8, RowSymbol::from_subspaces(&[(irrep, 2)]))
+                (4u8, Self::RowSymbol::from_subspaces(&[(irrep, 2)]))
             } else if NumOrd(char_sum) == NumOrd(0i8) {
                 // Irreducible corepresentation type c
                 // Δ(u) is inequivalent to Δ*[a^(-1)ua].
@@ -675,7 +664,7 @@ where
                 log::debug!("  Ircorep induced by {irrep} and {conj_irrep} is of type (c) with intertwining number 2.");
                 (
                     2u8,
-                    RowSymbol::from_subspaces(&[(irrep, 1), (conj_irrep.to_owned(), 1)]),
+                    Self::RowSymbol::from_subspaces(&[(irrep, 1), (conj_irrep.to_owned(), 1)]),
                 )
             } else {
                 log::error!(
@@ -749,14 +738,14 @@ where
                 }
             }).collect::<Vec<_>>();
 
-        let (ircoreps, ins): (Vec<RowSymbol>, Vec<u8>) = ircoreps_ins.into_iter().unzip();
+        let (ircoreps, ins): (Vec<Self::RowSymbol>, Vec<u8>) = ircoreps_ins.into_iter().unzip();
 
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
             format!("{} > {finite_name}", self.name())
         } else {
             self.name().to_string()
         };
-        self.ircorep_character_table = Some(CorepCharacterTable::new(
+        self.set_ircorep_character_table(Self::CharTab::new(
             chartab_name.as_str(),
             unitary_chartab.clone(),
             &ircoreps,
@@ -769,5 +758,99 @@ where
         log::debug!("=============================================");
         log::debug!("Construction of ircorep character table ends.");
         log::debug!("=============================================");
+    }
+}
+
+impl<T, RowSymbol, ColSymbol> CharacterProperties
+    for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
+where
+    RowSymbol: LinearSpaceSymbol + Sync,
+    ColSymbol: CollectionSymbol<CollectionElement = T> + Sync,
+    T: Mul<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder<Int = u32>
+        + Pow<i32, Output = T>,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+{
+    type RowSymbol = RowSymbol;
+    type CharTab = RepCharacterTable<RowSymbol, ColSymbol>;
+
+    fn character_table(&self) -> &Self::CharTab {
+        self.irrep_character_table
+            .as_ref()
+            .expect("Irrep character table not found for this group.")
+    }
+}
+
+impl<T, RowSymbol, ColSymbol> IrrepCharTabConstruction
+    for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
+where
+    RowSymbol: LinearSpaceSymbol + Sync,
+    ColSymbol: CollectionSymbol<CollectionElement = T> + Sync,
+    T: Mul<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder<Int = u32>
+        + Pow<i32, Output = T>,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+{
+    fn set_irrep_character_table(&mut self, chartab: Self::CharTab) {
+        self.irrep_character_table = Some(chartab)
+    }
+}
+
+impl<T, RowSymbol, UG> CharacterProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
+where
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    T: Mul<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder<Int = u32>
+        + Pow<i32, Output = T>,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    UG: Clone
+        + GroupProperties<GroupElement = T>
+        + ClassProperties<GroupElement = T>
+        + CharacterProperties,
+{
+    type RowSymbol = RowSymbol;
+    type CharTab = CorepCharacterTable<Self::RowSymbol, UG::CharTab>;
+
+    fn character_table(&self) -> &Self::CharTab {
+        self.ircorep_character_table
+            .as_ref()
+            .expect("Ircorep character table not found for this group.")
+    }
+}
+
+impl<T, RowSymbol, UG> IrcorepCharTabConstruction for MagneticRepresentedGroup<T, UG, RowSymbol>
+where
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    T: Mul<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder<Int = u32>
+        + Pow<i32, Output = T>,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    UG: Clone
+        + GroupProperties<GroupElement = T>
+        + ClassProperties<GroupElement = T>
+        + CharacterProperties,
+{
+    fn set_ircorep_character_table(&mut self, chartab: Self::CharTab) {
+        self.ircorep_character_table = Some(chartab);
     }
 }

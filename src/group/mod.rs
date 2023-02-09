@@ -179,6 +179,9 @@ where
     /// The name of the group.
     fn name(&self) -> &str;
 
+    /// The finite subgroup name of this group, if any.
+    fn finite_subgroup_name(&self) -> Option<&String>;
+
     /// The elements in the group.
     fn elements(&self) -> &IndexMap<Self::GroupElement, usize> {
         &self.abstract_group().elements
@@ -217,6 +220,10 @@ where
 
     fn name(&self) -> &str {
         &self.name
+    }
+
+    fn finite_subgroup_name(&self) -> Option<&String> {
+        None
     }
 
     fn abstract_group(&self) -> &Self {
@@ -290,12 +297,6 @@ where
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
-    /// Returns the finite subgroup name of this group.
-    #[must_use]
-    pub fn finite_subgroup_name(&self) -> Option<&String> {
-        self.finite_subgroup_name.as_ref()
-    }
-
     /// Sets the finite subgroup name of this group.
     ///
     /// # Arguments
@@ -357,6 +358,10 @@ where
 
     fn name(&self) -> &str {
         &self.name
+    }
+
+    fn finite_subgroup_name(&self) -> Option<&String> {
+        self.finite_subgroup_name.as_ref()
     }
 
     fn abstract_group(&self) -> &Group<Self::GroupElement> {
@@ -455,11 +460,6 @@ where
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
 {
-    /// Returns the finite subgroup name of this group.
-    pub fn finite_subgroup_name(&self) -> Option<&String> {
-        self.finite_subgroup_name.as_ref()
-    }
-
     /// Sets the finite subgroup name of this group.
     ///
     /// # Arguments
@@ -515,27 +515,6 @@ where
         magnetic_group.compute_class_structure();
         magnetic_group
     }
-
-    /// Checks if a given element is antiunitary-represented in this group.
-    ///
-    /// # Arguments
-    ///
-    /// `element` - A reference to an element to be checked.
-    ///
-    /// # Returns
-    ///
-    /// Returns `true` if `element` is antiunitary-represented in this group.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `element` is not in the group.
-    pub fn check_elem_antiunitary(&self, element: &T) -> bool {
-        if self.abstract_group.elements().contains_key(element) {
-            !self.unitary_subgroup.elements().contains_key(element)
-        } else {
-            panic!("`{element:?}` is not an element of the group.")
-        }
-    }
 }
 
 impl<T, UG, RowSymbol> GroupProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
@@ -551,7 +530,56 @@ where
         &self.name
     }
 
+    fn finite_subgroup_name(&self) -> Option<&String> {
+        self.finite_subgroup_name.as_ref()
+    }
+
     fn abstract_group(&self) -> &Group<Self::GroupElement> {
         &self.abstract_group
+    }
+}
+
+pub trait HasUnitarySubgroup: GroupProperties
+where
+    Self::UnitarySubgroup: GroupProperties<GroupElement = Self::GroupElement> + CharacterProperties,
+{
+    type UnitarySubgroup;
+
+    fn unitary_subgroup(&self) -> &Self::UnitarySubgroup;
+    fn check_elem_antiunitary(&self, element: &Self::GroupElement) -> bool;
+}
+
+impl<T, UG, RowSymbol> HasUnitarySubgroup for MagneticRepresentedGroup<T, UG, RowSymbol>
+where
+    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
+{
+    type UnitarySubgroup = UG;
+
+    fn unitary_subgroup(&self) -> &Self::UnitarySubgroup {
+        &self.unitary_subgroup
+    }
+
+    /// Checks if a given element is antiunitary-represented in this group.
+    ///
+    /// # Arguments
+    ///
+    /// `element` - A reference to an element to be checked.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if `element` is antiunitary-represented in this group.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `element` is not in the group.
+    fn check_elem_antiunitary(&self, element: &T) -> bool {
+        if self.abstract_group.elements().contains_key(element) {
+            !self.unitary_subgroup.elements().contains_key(element)
+        } else {
+            panic!("`{element:?}` is not an element of the group.")
+        }
     }
 }

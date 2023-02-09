@@ -6,13 +6,13 @@ use std::ops::Mul;
 use derive_builder::Builder;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use ndarray::{s, Array2, Array3, Axis};
+use ndarray::{s, Array2, Axis};
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
     CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
 };
-use crate::group::FiniteOrder;
+use crate::group::{FiniteOrder, HasUnitarySubgroup};
 
 use super::{Group, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 
