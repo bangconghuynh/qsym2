@@ -72,17 +72,35 @@ impl PermutationGroupProperties
                     });
                 let cycle_pattern = rep_ele
                     .cycle_pattern()
+                    .clone();
+                let mut cycle_pattern_count: Vec<(usize, usize)> = Vec::with_capacity(cycle_pattern.len());
+                let mut i = 0usize;
+                while i < cycle_pattern.len() {
+                    let mut j = i + 1;
+                    while j < cycle_pattern.len() && cycle_pattern[j] == cycle_pattern[i] {
+                        j += 1;
+                    }
+                    cycle_pattern_count.push((cycle_pattern[i], j - i));
+                    i = j;
+                }
+                let cycle_pattern_str = cycle_pattern_count
                     .iter()
-                    .map(ToString::to_string)
+                    .map(|(length, count)| {
+                        if *count > 1 {
+                            format!("{length}^{count}")
+                        } else {
+                            length.to_string()
+                        }
+                    })
                     .collect_vec()
-                    .join("-");
+                    .join("·");
                 let size = old_symbol.size();
                 PermutationClassSymbol::new(
-                    format!("{size}||{cycle_pattern}||").as_str(),
+                    format!("{size}||{cycle_pattern_str}||").as_str(),
                     Some(rep_ele.clone()),
                 )
                 .unwrap_or_else(|_| {
-                    panic!("Unable to construct a class symbol from `{size}||{cycle_pattern}||`")
+                    panic!("Unable to construct a class symbol from `{size}||{cycle_pattern_str}||`")
                 })
             })
             .collect_vec();

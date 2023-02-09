@@ -402,9 +402,7 @@ impl PartialEq for Character {
 impl Eq for Character {}
 
 impl PartialOrd for Character {
-    /// Two characters are compared based on their polar forms: their partial ordering is
-    /// determined by the ordering of their `$(\theta, r)$` ordered pairs, where `$\theta$` is the
-    /// argument normalised to `$[0, 2\pi)$` and `$r$` the modulus.
+    /// Two characters are compared based on their constituent unity roots.
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let mut self_terms = self.terms.clone();
         self_terms.retain(|_, mult| *mult > 0);

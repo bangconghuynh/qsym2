@@ -8,5 +8,5 @@ use crate::permutation::permutation_group::PermutationGroupProperties;
 fn test_permutation_group_construction() {
     env_logger::init();
     let sym3 = UnitaryRepresentedGroup::from_rank(7);
-    println!("{}", sym3.character_table());
+    println!("{:?}", sym3.character_table());
 }

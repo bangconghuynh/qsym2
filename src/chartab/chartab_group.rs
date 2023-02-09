@@ -287,7 +287,7 @@ where
                         log::error!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
                         panic!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
                     });
-                log::debug!("⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i} yields irrep dimensionality {}.", dim_i.residue());
+                log::debug!("⟨θvi, θvi⟩ = {vec_i_inprod} yields irrep dimensionality {}.", dim_i.residue());
 
                 let tchar_i =
                     Zip::from(vec_i)
