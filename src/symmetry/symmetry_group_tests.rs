@@ -798,6 +798,7 @@ fn test_ur_group_spherical_vh2o6_th() {
 
 #[test]
 fn test_ur_group_spherical_vh2o6_th_class_order() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -2050,6 +2051,7 @@ fn test_ur_group_symmetric_sf5cl_c4v() {
 
 #[test]
 fn test_ur_group_symmetric_sf5cl_c4v_class_order() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4970,6 +4972,7 @@ fn test_ur_group_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10() {
 
 #[test]
 fn test_ur_group_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10_class_order() {
+    env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);

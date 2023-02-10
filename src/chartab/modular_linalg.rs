@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::error::Error;
 use std::fmt::{self, Debug, Display};
 use std::hash::Hash;
 use std::ops::Div;
@@ -8,7 +9,7 @@ use itertools::Itertools;
 use log;
 use ndarray::{s, Array1, Array2, ArrayView1, Axis, LinalgScalar, ShapeBuilder, Zip};
 use num_modular::ModularInteger;
-use num_traits::{Inv, Zero};
+use num_traits::{Inv, Pow, ToPrimitive, Zero};
 
 #[cfg(test)]
 #[path = "modular_linalg_tests.rs"]
@@ -243,6 +244,8 @@ impl<'a, T: Display + Debug> fmt::Display for ModularEigError<'a, T> {
     }
 }
 
+impl<'a, T: Display + Debug> Error for ModularEigError<'a, T> {}
+
 /// Determines the eigenvalues and eigenvector of a square matrix over a finite
 /// integer field.
 ///
@@ -432,6 +435,23 @@ where
         )
 }
 
+#[derive(Debug, Clone)]
+pub struct GramSchmidtError<'a, T> {
+    vecs: &'a [Array1<T>],
+}
+
+impl<'a, T: Display + Debug> fmt::Display for GramSchmidtError<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Unable to perform Gram--Schmidt orthogonalisation of the vectors {:#?}.",
+            self.vecs
+        )
+    }
+}
+
+impl<'a, T: Display + Debug> Error for GramSchmidtError<'a, T> {}
+
 /// Performs Gram--Schmidt orthogonalisation (but not normalisation) on a set of vectors.
 ///
 /// # Arguments
@@ -442,11 +462,11 @@ where
 ///
 /// # Returns
 /// The orthogonal vectors forming a basis for the same subspace.
-fn gram_schmidt<T>(
-    vecs: &[Array1<T>],
+fn gram_schmidt<'a, T>(
+    vecs: &'a [Array1<T>],
     class_sizes: &[usize],
     perm_for_conj: Option<&Vec<usize>>,
-) -> Vec<Array1<T>>
+) -> Result<Vec<Array1<T>>, GramSchmidtError<'a, T>>
 where
     T: Display
         + Debug
@@ -459,17 +479,21 @@ where
     for (j, vec_j) in vecs.iter().enumerate() {
         ortho_vecs.push(vec_j.to_owned());
         for i in 0..j {
+            let norm_sq_i = weighted_hermitian_inprod(
+                (&ortho_vecs[i], &ortho_vecs[i]),
+                class_sizes,
+                perm_for_conj,
+            );
+            if Zero::is_zero(&norm_sq_i) {
+                return Err(GramSchmidtError { vecs });
+            }
             let rij =
                 weighted_hermitian_inprod((vec_j, &ortho_vecs[i]), class_sizes, perm_for_conj)
-                    / weighted_hermitian_inprod(
-                        (&ortho_vecs[i], &ortho_vecs[i]),
-                        class_sizes,
-                        perm_for_conj,
-                    );
+                    / norm_sq_i;
             ortho_vecs[j] = &ortho_vecs[j] - vecs[i].map(|&x| x * rij);
         }
     }
-    ortho_vecs
+    Ok(ortho_vecs)
 }
 
 #[derive(Debug, Clone)]
@@ -487,6 +511,8 @@ impl<'a, T: Display + Debug> fmt::Display for SplitSpaceError<'a, T> {
         )
     }
 }
+
+impl<'a, T: Display + Debug> Error for SplitSpaceError<'a, T> {}
 
 /// Splits a space into smaller subspaces under the action of a matrix.
 ///
@@ -555,7 +581,10 @@ where
         vec![Vec::from(vecs)]
     } else {
         // Orthogonalise the subspace basis
-        let ortho_vecs = gram_schmidt(vecs, class_sizes, perm_for_conj);
+        let ortho_vecs = gram_schmidt(vecs, class_sizes, perm_for_conj).map_err(|err| {
+            log::warn!("{err}");
+            SplitSpaceError { mat, vecs }
+        })?;
         let ortho_vecs_mat = Array2::from_shape_vec(
             (class_sizes.len(), dim).f(),
             ortho_vecs.iter().flatten().copied().collect::<Vec<_>>(),
@@ -591,14 +620,11 @@ where
                     Zip::from(col_i_conj.view())
                         .and(ArrayView1::from(class_sizes))
                         .map_collect(|&eij, &kj| {
-                            eij / (
-                                rep.convert(u32::try_from(kj).unwrap_or_else(
-                                    |_| panic!("Unable to convert `{}` to `u32`.", kj),
-                                ))
-                                * rep.convert(u32::try_from(group_order).unwrap_or_else(
-                                    |_| panic!("Unable to convert `{}` to `u32`.", group_order),
-                                ))
-                            )
+                            eij / (rep.convert(u32::try_from(kj).unwrap_or_else(|_| {
+                                panic!("Unable to convert `{}` to `u32`.", kj)
+                            })) * rep.convert(u32::try_from(group_order).unwrap_or_else(
+                                |_| panic!("Unable to convert `{}` to `u32`.", group_order),
+                            )))
                         })
                 })
                 .collect::<Vec<_>>(),
@@ -659,4 +685,161 @@ where
         })
     };
     Ok(split_subspaces)
+}
+
+#[derive(Debug, Clone)]
+pub struct Split2dSpaceError<'a, T> {
+    vecs: &'a [Array1<T>],
+}
+
+impl<'a, T: Display + Debug> fmt::Display for Split2dSpaceError<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(
+            f,
+            "Unable to greedily split the two-dimensional degenerate subspace spanned by",
+        )?;
+        for vec in self.vecs {
+            writeln!(f, "  {vec}")?;
+        }
+        fmt::Result::Ok(())
+    }
+}
+
+impl<'a, T: Display + Debug> Error for Split2dSpaceError<'a, T> {}
+
+pub fn split_2d_space<'a, T>(
+    vecs: &'a [Array1<T>],
+    class_sizes: &[usize],
+    perm_for_conj: Option<&Vec<usize>>,
+) -> Result<Vec<Vec<Array1<T>>>, Split2dSpaceError<'a, T>>
+where
+    T: Display
+        + LinalgScalar
+        + Debug
+        + ModularInteger<Base = u32>
+        + Eq
+        + Hash
+        + Zero
+        + Inv
+        + Pow<u32, Output = T>
+        + panic::UnwindSafe
+        + panic::RefUnwindSafe,
+{
+    assert_eq!(vecs.len(), 2, "Only two-dimensional spaces are allowed.");
+    let rep = vecs
+        .iter()
+        .flatten()
+        .find(|x| panic::catch_unwind(|| x.modulus()).is_ok())
+        .expect("No known modulus found.");
+    // let ortho_vecs = gram_schmidt(vecs, class_sizes, perm_for_conj).map_err(|err| {
+    //     log::warn!("{err}");
+    //     Split2dSpaceError { vecs }
+    // })?;
+    // assert_eq!(
+    //     ortho_vecs.len(),
+    //     2,
+    //     "Only two-dimensional spaces are allowed."
+    // );
+    let v0 = &vecs[0];
+    let v1 = &vecs[1];
+    let v0_inprod = weighted_hermitian_inprod((v0, v0), class_sizes, perm_for_conj);
+    let v1_inprod = weighted_hermitian_inprod((v1, v1), class_sizes, perm_for_conj);
+    let v01_inprod = weighted_hermitian_inprod((v0, v1), class_sizes, perm_for_conj);
+    let v10_inprod = weighted_hermitian_inprod((v1, v0), class_sizes, perm_for_conj);
+    let group_order = class_sizes.iter().sum::<usize>();
+    let sqrt_group_order = group_order
+        .to_f64()
+        .expect("Unable to convert the group order to `f64`.")
+        .sqrt()
+        .floor()
+        .to_u32()
+        .expect("Unable to convert the square root of the group order to `u32`.");
+    let one = rep.convert(1);
+    let p = rep.modulus();
+    log::debug!("Using p = {p}.");
+    let mut results = (1..=sqrt_group_order)
+        .filter_map(|d0_u32| {
+            if group_order.rem_euclid(usize::try_from(d0_u32).unwrap_or_else(|_| {
+                panic!("Unable to convert the trial dimension {d0_u32} to `usize`.")
+            })) == 0
+            {
+                let a0_opt = (1..p).find_map(|a0_u32| {
+                    let a0 = rep.convert(a0_u32);
+                    if Zero::is_zero(
+                        &(a0 * (a0 * v1_inprod + v01_inprod + v10_inprod) + v0_inprod
+                            - one / rep.convert(d0_u32).pow(2)),
+                    ) {
+                        Some(a0)
+                    } else {
+                        None
+                    }
+                });
+                if let Some(a0) = a0_opt {
+                    let denom = a0 * v1_inprod + v01_inprod;
+                    if Zero::is_zero(&denom) {
+                        None
+                    } else {
+                        let a1 = -(v0_inprod + a0 * v10_inprod) / denom;
+                        let d1_2 = one / (a1 * (a1 * v1_inprod + v01_inprod + v10_inprod) + v0_inprod);
+                        if let Some(res) = (1..=sqrt_group_order).find_map(|d1_u32| {
+                            if group_order.rem_euclid(usize::try_from(d1_u32).unwrap_or_else(|_| {
+                                panic!("Unable to convert the trial dimension {d1_u32} to `usize`.")
+                            })) == 0 && rep.convert(d1_u32).pow(2) == d1_2 {
+                                let v0_split = Array1::from_vec(
+                                    v0.iter()
+                                        .zip(v1.iter())
+                                        .map(|(&v0_x, &v1_x)| v0_x + a0 * v1_x)
+                                        .collect_vec(),
+                                );
+                                let v1_split = Array1::from_vec(
+                                    v0.iter()
+                                        .zip(v1.iter())
+                                        .map(|(&v0_x, &v1_x)| v0_x + a1 * v1_x)
+                                        .collect_vec(),
+                                );
+
+                                if d0_u32 <= d1_u32 && v0_split[[0]] == one && v1_split[[0]] == one {
+                                    Some((
+                                        (v0_split, v1_split),
+                                        (d0_u32, d1_u32),
+                                    ))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        }) {
+                            Some(res)
+                        } else {
+                            None
+                        }
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect_vec();
+
+    if results.len() == 1 {
+        // Unique solution found.
+        log::debug!("Greedy splitting algorithm for 2-D subspace found a unique solution.");
+        let (_, (d0_u32, d1_u32)) = results[0];
+        log::debug!("==========> Irrep dimensionalities: ({d0_u32}, {d1_u32})");
+        let (v0_split, v1_split) = results[0].0.clone();
+        Ok(vec![vec![v0_split], vec![v1_split]])
+    } else {
+        // Multiple solutions found. We will error out for now.
+        log::debug!(
+            "Greedy splitting algorithm for 2-D subspace found {} solutions.",
+            results.len()
+        );
+        for (i, (_, (d0_u32, d1_u32))) in results.iter().enumerate() {
+            log::debug!("Irrep dimensionalities of solution {i}: ({d0_u32}, {d1_u32})");
+        }
+        Err(Split2dSpaceError { vecs })
+    }
 }

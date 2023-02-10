@@ -18,7 +18,9 @@ use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
     CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
 };
-use crate::chartab::modular_linalg::{modular_eig, split_space, weighted_hermitian_inprod};
+use crate::chartab::modular_linalg::{
+    modular_eig, split_2d_space, split_space, weighted_hermitian_inprod,
+};
 use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
@@ -158,13 +160,17 @@ where
         let inverse_conjugacy_classes = Some(self.inverse_conjugacy_classes());
         let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u32>>> = vec![];
 
+        let mut rs = (1..self.class_number()).collect::<Vec<_>>();
+        let mut r_iter = rs.into_iter();
+
         if self.class_number() == 1 {
             eigvecs_1d.push(array![modp.convert(1)]);
         } else {
             let mut degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> = vec![];
             let ctb = self.cayley_table();
-            log::debug!("Considering class matrix N1...");
-            let nmat_1 = self.class_matrix(ctb, 1).map(|&i| {
+            let r = r_iter.next().expect("Unable to obtain any `r` indices for class matrices.");
+            log::debug!("Considering class matrix N{r}...");
+            let nmat_1 = self.class_matrix(ctb, r).map(|&i| {
                 modp.convert(
                     u32::try_from(i)
                         .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
@@ -194,14 +200,8 @@ where
                     .cloned(),
             );
 
-            let mut r = 1;
+            // let mut r = 1;
             while !degenerate_subspaces.is_empty() {
-                assert!(
-                    r < (self.class_number() - 1),
-                    "Class matrices exhausted before degenerate subspaces are fully resolved."
-                );
-
-                r += 1;
                 log::debug!(
                     "Number of 1-D eigenvectors found: {} / {}.",
                     eigvecs_1d.len(),
@@ -212,49 +212,96 @@ where
                     degenerate_subspaces.len(),
                 );
 
-                log::debug!("Considering class matrix N{}...", r);
-                // let nmat_r = nmat.slice(s![r, .., ..]).to_owned();
-                let nmat_r = self.class_matrix(ctb, r).map(|&i| {
-                    modp.convert(
-                        u32::try_from(i)
-                            .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
-                    )
-                });
-                log::debug!("{}", nmat_r);
-
-                let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> =
-                    vec![];
-                while !degenerate_subspaces.is_empty() {
-                    let subspace = degenerate_subspaces
-                        .pop()
-                        .expect("Unexpected empty `degenerate_subspaces`.");
-                    if let Ok(subsubspaces) =
-                        split_space(&nmat_r, &subspace, &class_sizes, inverse_conjugacy_classes)
-                    {
-                        eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
-                            if subsubspace.len() == 1 {
-                                Some(subsubspace[0].clone())
-                            } else {
-                                None
-                            }
-                        }));
-                        remaining_degenerate_subspaces.extend(
-                            subsubspaces
-                                .iter()
-                                .filter(|subsubspace| subsubspace.len() > 1)
-                                .cloned(),
-                        );
-                    } else {
-                        log::warn!(
-                            "Class matrix N{} failed to split degenerate subspace {}.",
-                            r,
-                            degenerate_subspaces.len()
-                        );
-                        log::warn!("Stashing this subspace for the next class matrices...");
-                        remaining_degenerate_subspaces.push(subspace);
+                let mut degenerate_2d_subspaces = degenerate_subspaces
+                    .iter()
+                    .filter(|subspace| subspace.len() == 2)
+                    .cloned()
+                    .collect::<Vec<_>>();
+                if !degenerate_2d_subspaces.is_empty() {
+                    degenerate_subspaces.retain(|subspace| subspace.len() > 2);
+                    log::debug!(
+                        "Number of 2-D degenerate subspaces found: {}",
+                        degenerate_2d_subspaces.len()
+                    );
+                    log::debug!("Schneider's greedy algorithm for splitting two-dimensional subspaces will be attempted.");
+                    while let Some(subspace) = degenerate_2d_subspaces.pop() {
+                        if let Ok(subsubspaces) =
+                            split_2d_space(&subspace, &class_sizes, inverse_conjugacy_classes)
+                        {
+                            eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
+                                if subsubspace.len() == 1 {
+                                    Some(subsubspace[0].clone())
+                                } else {
+                                    None
+                                }
+                            }));
+                            log::debug!(
+                                "Two-dimensional subspace {} successfully split.",
+                                degenerate_2d_subspaces.len()
+                            );
+                        } else {
+                            log::warn!(
+                                "Two-dimensional subspace {} cannot be split greedily.",
+                                degenerate_2d_subspaces.len()
+                            );
+                            log::warn!(
+                                "Stashing this subspace for splitting with class matrices..."
+                            );
+                            degenerate_subspaces.push(subspace);
+                        }
                     }
                 }
-                degenerate_subspaces = remaining_degenerate_subspaces;
+
+                if !degenerate_subspaces.is_empty() {
+                    if let Some(r) = r_iter.next() {
+                        log::debug!("Considering class matrix N{}...", r);
+                        let nmat_r = self.class_matrix(ctb, r).map(|&i| {
+                            modp.convert(
+                                u32::try_from(i)
+                                    .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
+                            )
+                        });
+
+                        let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> =
+                            vec![];
+                        while !degenerate_subspaces.is_empty() {
+                            let subspace = degenerate_subspaces
+                                .pop()
+                                .expect("Unexpected empty `degenerate_subspaces`.");
+
+                            if let Ok(subsubspaces) =
+                                split_space(&nmat_r, &subspace, &class_sizes, inverse_conjugacy_classes)
+                            {
+                                eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
+                                    if subsubspace.len() == 1 {
+                                        Some(subsubspace[0].clone())
+                                    } else {
+                                        None
+                                    }
+                                }));
+                                remaining_degenerate_subspaces.extend(
+                                    subsubspaces
+                                        .iter()
+                                        .filter(|subsubspace| subsubspace.len() > 1)
+                                        .cloned(),
+                                );
+                            } else {
+                                log::warn!(
+                                    "Class matrix N{} failed to split degenerate subspace {}.",
+                                    r,
+                                    degenerate_subspaces.len()
+                                );
+                                log::warn!("Stashing this subspace for the next class matrices...");
+                                remaining_degenerate_subspaces.push(subspace);
+                            }
+                        }
+                        degenerate_subspaces = remaining_degenerate_subspaces;
+                    } else {
+                        panic!(
+                            "Class matrices exhausted before degenerate subspaces are fully resolved."
+                        );
+                    }
+                }
             }
         }
 

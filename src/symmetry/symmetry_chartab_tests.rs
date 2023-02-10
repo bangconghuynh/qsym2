@@ -1445,6 +1445,7 @@ fn test_chartab_spherical_c165_diamond_nanoparticle_grey_td() {
 
 #[test]
 fn test_chartab_spherical_vh2o6_th() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -10442,6 +10443,7 @@ fn test_chartab_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
 
 #[test]
 fn test_chartab_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd_s2n() {
+    // env_logger::init();
     let thresh = 1e-7;
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
