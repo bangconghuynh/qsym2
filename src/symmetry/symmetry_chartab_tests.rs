@@ -153,7 +153,7 @@ fn test_ircorep_character_table_algebraic_validity(
 ) {
     // Theorem 7.5, Newmarch, J. D. Some character theory for groups of linear and antilinear
     // operators. J. Math. Phys. 24, 742–756 (1983).
-    let mag_ctb = group.cayley_table();
+    let mag_ctb = group.cayley_table().expect("Cayley table not found for the magnetic group.");
     let zeta_2 = group
         .elements()
         .iter()

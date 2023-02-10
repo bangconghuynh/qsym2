@@ -313,7 +313,7 @@ impl SymmetryGroupProperties
         let ts_cc = SymmetryClassSymbol::new("1||θ·σh||", None)
             .expect("Unable to construct class symbol `1||θ·σh||`.");
 
-        let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(self.name())
+        let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(&self.name())
             || FORCED_PRINCIPAL_GROUPS.contains(
                 self.finite_subgroup_name()
                     .unwrap_or(&String::new())

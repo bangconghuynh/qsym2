@@ -163,14 +163,7 @@ where
         } else {
             let mut degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> = vec![];
             let ctb = self.cayley_table();
-            // let nmat = self.class_matrix().map(|&i| {
-            //     modp.convert(
-            //         u32::try_from(i)
-            //             .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
-            //     )
-            // });
             log::debug!("Considering class matrix N1...");
-            // let nmat_1 = nmat.slice(s![1, .., ..]).to_owned();
             let nmat_1 = self.class_matrix(ctb, 1).map(|&i| {
                 modp.convert(
                     u32::try_from(i)
@@ -524,7 +517,7 @@ where
             .expect("Unable to convert the unitary group order to `i32`.");
         let unitary_chartab = self.unitary_subgroup().character_table();
 
-        let mag_ctb = self.cayley_table();
+        let mag_ctb = self.cayley_table().expect("Cayley table not found for the magnetic group.");
         let uni_e2c = self.unitary_subgroup().element_to_conjugacy_classes();
         let mag_ccsyms = self.conjugacy_class_symbols();
         let uni_ccsyms = self.unitary_subgroup().conjugacy_class_symbols();

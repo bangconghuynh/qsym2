@@ -141,6 +141,15 @@ where
         group
     }
 
+    pub fn new_no_ctb(name: &str, elements: Vec<T>) -> Self {
+        let mut group = Self::builder()
+            .name(name.to_string())
+            .elements(elements)
+            .build()
+            .expect("Unable to construct a group.");
+        group
+    }
+
     /// Constructs the Cayley table for the abstract group.
     fn compute_cayley_table(&mut self) {
         log::debug!("Constructing Cayley table in parallel...");
@@ -177,7 +186,7 @@ where
     fn abstract_group(&self) -> &Group<Self::GroupElement>;
 
     /// The name of the group.
-    fn name(&self) -> &str;
+    fn name(&self) -> String;
 
     /// The finite subgroup name of this group, if any.
     fn finite_subgroup_name(&self) -> Option<&String>;
@@ -203,11 +212,10 @@ where
     }
 
     /// The Cayley table of the group.
-    fn cayley_table(&self) -> &Array2<usize> {
+    fn cayley_table(&self) -> Option<&Array2<usize>> {
         self.abstract_group()
             .cayley_table
             .as_ref()
-            .expect("Cayley table not found for this group.")
     }
 }
 
@@ -218,8 +226,8 @@ where
 {
     type GroupElement = T;
 
-    fn name(&self) -> &str {
-        &self.name
+    fn name(&self) -> String {
+        self.name.to_string()
     }
 
     fn finite_subgroup_name(&self) -> Option<&String> {
@@ -356,8 +364,8 @@ where
 {
     type GroupElement = T;
 
-    fn name(&self) -> &str {
-        &self.name
+    fn name(&self) -> String {
+        self.name.to_string()
     }
 
     fn finite_subgroup_name(&self) -> Option<&String> {
@@ -526,8 +534,8 @@ where
 {
     type GroupElement = T;
 
-    fn name(&self) -> &str {
-        &self.name
+    fn name(&self) -> String {
+        self.name.to_string()
     }
 
     fn finite_subgroup_name(&self) -> Option<&String> {

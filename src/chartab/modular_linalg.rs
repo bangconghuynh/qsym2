@@ -591,9 +591,14 @@ where
                     Zip::from(col_i_conj.view())
                         .and(ArrayView1::from(class_sizes))
                         .map_collect(|&eij, &kj| {
-                            eij / rep.convert(u32::try_from(kj * group_order).unwrap_or_else(
-                                |_| panic!("Unable to convert `{}` to `u32`.", kj * group_order),
-                            ))
+                            eij / (
+                                rep.convert(u32::try_from(kj).unwrap_or_else(
+                                    |_| panic!("Unable to convert `{}` to `u32`.", kj),
+                                ))
+                                * rep.convert(u32::try_from(group_order).unwrap_or_else(
+                                    |_| panic!("Unable to convert `{}` to `u32`.", group_order),
+                                ))
+                            )
                         })
                 })
                 .collect::<Vec<_>>(),

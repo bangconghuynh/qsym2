@@ -268,7 +268,7 @@ fn verify_abstract_group(
     }
 
     // Test inverse conjugacy classes
-    let ctb = group.cayley_table();
+    let ctb = group.cayley_table().expect("Cayley table not found.");
     for (class_i, inv_class_i) in group.inverse_conjugacy_classes().iter().enumerate() {
         assert!(
             conjugacy_classes[class_i]
