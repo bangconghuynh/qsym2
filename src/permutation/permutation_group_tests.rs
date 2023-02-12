@@ -41,8 +41,7 @@ fn test_irrep_character_table_algebraic_validity(
             max_relative = thresh
         ) && approx::relative_eq!(chr_c.im, 0.0, epsilon = thresh, max_relative = thresh);
         if !res {
-            println!("{chr_c}");
-            panic!("Non-integer.")
+            panic!("{chr_c} is a non-integer.")
         } else {
             chr_c.re.round().to_i32().unwrap_or_else(|| {
                 panic!("Unable to convert {chr_c} to `i32`.")
@@ -68,11 +67,7 @@ fn test_irrep_character_table_algebraic_validity(
             assert_eq!(inprod_unnormed.rem_euclid(order_i32), 0);
             let inprod = inprod_unnormed.div_euclid(order_i32);
 
-            let res = if i == j { inprod == 1 } else { inprod == 0 };
-            if !res {
-                println!("{i}, {j}, {inprod}");
-            }
-            res
+            if i == j { inprod == 1 } else { inprod == 0 }
         }));
 
     // Second orthogonality theorem (column-orthogonality)
@@ -100,8 +95,9 @@ fn test_irrep_character_table_algebraic_validity(
             }
         }));
 }
+
 #[test]
-fn test_permutation_group_construction() {
+fn test_permutation_group_chartab() {
     env_logger::init();
     for p in 1..=10 {
         let sym = PermutationGroup::from_rank(p);
