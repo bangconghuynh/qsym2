@@ -10,7 +10,7 @@ use ndarray::{array, s, Array1, Array2, Zip};
 use num::integer::lcm;
 use num_modular::{ModularInteger, MontgomeryInt};
 use num_ord::NumOrd;
-use num_traits::{Inv, Pow, ToPrimitive, Zero, One};
+use num_traits::{Inv, One, Pow, ToPrimitive, Zero};
 use primes::is_prime;
 use rayon::prelude::*;
 
@@ -70,7 +70,8 @@ where
 {
     fn set_irrep_character_table(&mut self, chartab: Self::CharTab);
 
-    /// Constructs the irrep character table for this group using the Burnside--Dixon algorithm.
+    /// Constructs the irrep character table for this group using the Burnside--Dixon--Schneider
+    /// algorithm.
     ///
     /// # References
     ///
@@ -95,7 +96,8 @@ where
 
         log::debug!("=============================================");
         log::debug!("Construction of irrep character table begins.");
-        log::debug!("     *** Burnside -- Dixon algorithm ***     ");
+        log::debug!("      *** Burnside--Dixon algorithm ***      ");
+        log::debug!("      ** with Schneider optimisation **      ");
         log::debug!("=============================================");
 
         // Identify a suitable finite field
@@ -242,29 +244,36 @@ where
                         "Number of 2-D degenerate subspaces found: {}",
                         degenerate_2d_subspaces.len()
                     );
-                    log::debug!("Schneider's greedy algorithm for splitting two-dimensional subspaces will be attempted.");
+                    log::debug!(
+                        "Schneider's greedy algorithm for splitting 2-D spaces will be attempted."
+                    );
                     while let Some(subspace) = degenerate_2d_subspaces.pop() {
-                        if let Ok(subsubspaces) =
-                            split_2d_space(&subspace, &class_sizes, &sq_indices, inverse_conjugacy_classes)
-                        {
+                        if let Ok(subsubspaces) = split_2d_space(
+                            &subspace,
+                            &class_sizes,
+                            &sq_indices,
+                            inverse_conjugacy_classes,
+                        ) {
                             eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
                                 if subsubspace.len() == 1 {
                                     Some(subsubspace[0].clone())
                                 } else {
-                                    None
+                                    log::error!("Unexpected!");
+                                    panic!("Unexpected");
+                                    // None
                                 }
                             }));
                             log::debug!(
-                                "Two-dimensional subspace {} successfully split.",
+                                "2-D subspace index {} successfully split.",
                                 degenerate_2d_subspaces.len()
                             );
                         } else {
                             log::warn!(
-                                "Two-dimensional subspace {} cannot be split greedily.",
+                                "2-D subspace index {} cannot be split greedily.",
                                 degenerate_2d_subspaces.len()
                             );
                             log::warn!(
-                                "Stashing this subspace for splitting with class matrices..."
+                                "Stashing this 2-D subspace for splitting with class matrices..."
                             );
                             degenerate_subspaces.push(subspace);
                         }
@@ -339,9 +348,7 @@ where
         }
 
         // Lift characters back to the complex field
-        log::debug!(
-            "Lifting characters from GF({p}) back to the complex field...",
-        );
+        log::debug!("Lifting characters from GF({p}) back to the complex field...",);
         let class_transversal = self.conjugacy_class_transversal();
 
         let chars: Vec<_> = eigvecs_1d
@@ -443,10 +450,8 @@ where
             .collect();
 
         let char_arr = Array2::from_shape_vec((self.class_number(), self.class_number()), chars)
-            .expect("Unable to construct the two-dimensional table of characters.");
-        log::debug!(
-            "Lifting characters from GF({p}) back to the complex field... Done.",
-        );
+            .expect("Unable to construct the two-dimensional array of characters.");
+        log::debug!("Lifting characters from GF({p}) back to the complex field... Done.",);
 
         let class_symbols = self.conjugacy_class_symbols();
 
@@ -470,7 +475,7 @@ where
         log::debug!("Computing the Frobenius--Schur indicators in GF({p})...");
         let group_order = class_sizes.iter().sum::<usize>();
         let group_order_u32 = u32::try_from(group_order).unwrap_or_else(|_| {
-                    panic!("Unable to convert the group order {group_order} to `u32`.")
+            panic!("Unable to convert the group order {group_order} to `u32`.")
         });
         let frobenius_schur_indicators: Vec<i8> = eigvecs_1d
             .par_iter()
@@ -520,62 +525,6 @@ where
                     panic!("Invalid Frobenius -- Schur indicator: `{fs_i}`.");
                 }
             }).collect();
-        // let frobenius_schur_indicators: Vec<_> = char_arr
-        //     .rows()
-        //     .into_iter()
-        //     .enumerate()
-        //     .map(|(irrep_i, _)| {
-        //         let indicator: Complex<f64> = self
-        //             .elements()
-        //             .keys()
-        //             .fold(Character::new(&[]), |acc, ele| {
-        //                 let ele_2_idx =
-        //                     self.elements().get(&ele.clone().pow(2)).unwrap_or_else(|| {
-        //                         panic!("Element {:?} not found.", &ele.clone().pow(2))
-        //                     });
-        //                 let class_2_j = self.element_to_conjugacy_classes()[*ele_2_idx]
-        //                     .unwrap_or_else(|| {
-        //                         panic!("Element `{ele:?}` does not have a conjugacy class.")
-        //                     });
-        //                 acc + char_arr[[irrep_i, class_2_j]].clone()
-        //             })
-        //             .simplify()
-        //             .complex_value()
-        //             / self.order().to_f64().unwrap_or_else(|| {
-        //                 panic!("Unable to convert `{}` to `f64`.", self.order())
-        //             });
-        //         approx::assert_relative_eq!(
-        //             indicator.im,
-        //             0.0,
-        //             epsilon = 1e-14,
-        //             max_relative = 1e-14
-        //         );
-        //         approx::assert_relative_eq!(
-        //             indicator.re,
-        //             indicator.re.round(),
-        //             epsilon = 1e-14,
-        //             max_relative = 1e-14
-        //         );
-        //         assert!(
-        //             approx::relative_eq!(indicator.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
-        //                 || approx::relative_eq!(
-        //                     indicator.re,
-        //                     0.0,
-        //                     epsilon = 1e-14,
-        //                     max_relative = 1e-14
-        //                 )
-        //                 || approx::relative_eq!(
-        //                     indicator.re,
-        //                     -1.0,
-        //                     epsilon = 1e-14,
-        //                     max_relative = 1e-14
-        //                 )
-        //         );
-        //         #[allow(clippy::cast_possible_truncation)]
-        //         let indicator_i8 = indicator.re.round() as i8;
-        //         indicator_i8
-        //     })
-        //     .collect();
         log::debug!("Computing the Frobenius--Schur indicators in GF({p})... Done.");
 
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
@@ -593,7 +542,8 @@ where
         ));
 
         log::debug!("===========================================");
-        log::debug!("    *** Burnside -- Dixon algorithm ***    ");
+        log::debug!("     *** Burnside--Dixon algorithm ***     ");
+        log::debug!("     ** with Schneider optimisation **     ");
         log::debug!("Construction of irrep character table ends.");
         log::debug!("===========================================");
     }

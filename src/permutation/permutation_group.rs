@@ -4,9 +4,6 @@ use derive_builder::Builder;
 use indexmap::map::Entry::Vacant;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use ndarray::Array2;
-use num_traits::Inv;
-use rayon::prelude::*;
 
 use crate::chartab::chartab_group::{CharacterProperties, IrrepCharTabConstruction};
 use crate::chartab::chartab_symbols::CollectionSymbol;
@@ -245,6 +242,7 @@ impl IrrepCharTabConstruction for PermutationGroup {
 
 impl PermutationGroupProperties for PermutationGroup {
     fn from_rank(rank: usize) -> Self {
+        assert!(rank > 0, "A permutation rank must be a positive integer.");
         let perms = (0..rank)
             .permutations(rank)
             .map(|image| Permutation::from_image(&image))

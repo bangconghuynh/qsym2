@@ -7,7 +7,7 @@ use std::panic;
 
 use itertools::Itertools;
 use log;
-use ndarray::{s, Array1, Array2, ArrayView1, Axis, LinalgScalar, ShapeBuilder, Zip};
+use ndarray::{s, Array1, Array2, Axis, LinalgScalar, ShapeBuilder, Zip};
 use num_modular::ModularInteger;
 use num_traits::{Inv, Pow, ToPrimitive, Zero};
 
@@ -328,15 +328,6 @@ where
         );
         Err(ModularEigError { mat })
     } else {
-        // assert_eq!(
-        //     eigen_dim,
-        //     dim,
-        //     "Found {} / {} eigenvector{}. The matrix is not diagonalisable in GF({}).",
-        //     eigen_dim,
-        //     dim,
-        //     if dim > 1 { "s" } else { "" },
-        //     modulus
-        // );
         log::debug!(
             "Found {} / {} eigenvector{}. Eigensolver done in GF({}).",
             eigen_dim,
@@ -463,7 +454,7 @@ impl<'a, T: Display + Debug> Error for GramSchmidtError<'a, T> {}
 /// # Returns
 /// The orthogonal vectors forming a basis for the same subspace.
 fn gram_schmidt<'a, T>(
-    vecs: &'a [Array1<T>],
+    vs: &'a [Array1<T>],
     class_sizes: &[usize],
     perm_for_conj: Option<&Vec<usize>>,
 ) -> Result<Vec<Array1<T>>, GramSchmidtError<'a, T>>
@@ -475,25 +466,43 @@ where
         + panic::UnwindSafe
         + panic::RefUnwindSafe,
 {
-    let mut ortho_vecs: Vec<Array1<T>> = vec![];
-    for (j, vec_j) in vecs.iter().enumerate() {
-        ortho_vecs.push(vec_j.to_owned());
-        for i in 0..j {
-            let norm_sq_i = weighted_hermitian_inprod(
-                (&ortho_vecs[i], &ortho_vecs[i]),
-                class_sizes,
-                perm_for_conj,
-            );
-            if Zero::is_zero(&norm_sq_i) {
-                return Err(GramSchmidtError { vecs });
+    let mut us: Vec<Array1<T>> = Vec::with_capacity(vs.len());
+    let mut us_sq_norm: Vec<T> = Vec::with_capacity(vs.len());
+    for (i, vi) in vs.iter().enumerate() {
+        // u[i] now initialised with v[i]
+        us.push(vi.clone());
+
+        // Project vi onto all uj (0 <= j < i)
+        for j in 0..i {
+            if Zero::is_zero(&us_sq_norm[j]) {
+                return Err(GramSchmidtError { vecs: vs });
             }
-            let rij =
-                weighted_hermitian_inprod((vec_j, &ortho_vecs[i]), class_sizes, perm_for_conj)
-                    / norm_sq_i;
-            ortho_vecs[j] = &ortho_vecs[j] - vecs[i].map(|&x| x * rij);
+            let p_uj_vi =
+                weighted_hermitian_inprod((vi, &us[j]), class_sizes, perm_for_conj) / us_sq_norm[j];
+            us[i] = &us[i] - us[j].map(|&x| x * p_uj_vi);
         }
+
+        // Evaluate the squared norm of ui which will no longer be changed after this iteration.
+        // us_sq_norm[i] now available.
+        us_sq_norm.push(weighted_hermitian_inprod(
+            (&us[i], &us[i]),
+            class_sizes,
+            perm_for_conj,
+        ));
     }
-    Ok(ortho_vecs)
+
+    // let mut ov: Array2<T> = Array2::zeros((us.len(), us.len()));
+    // for (i, ui) in us.iter().enumerate() {
+    //     for (j, uj) in us.iter().enumerate() {
+    //         ov[[i, j]] =
+    //             weighted_hermitian_inprod((ui, uj), class_sizes, perm_for_conj);
+    //         if i != j {
+    //             assert!(Zero::is_zero(&ov[[i, j]]));
+    //         }
+    //     }
+    // }
+
+    Ok(us)
 }
 
 #[derive(Debug, Clone)]
@@ -567,13 +576,6 @@ where
         "Inconsistent ring moduli between vector and matrix elements."
     );
 
-    let rep = vecs
-        .iter()
-        .flatten()
-        .chain(mat.iter())
-        .find(|x| panic::catch_unwind(|| x.modulus()).is_ok())
-        .expect("No known modulus found.");
-
     let dim = vecs.len();
     log::debug!("Dimensionality of space to be split: {}", dim);
     let split_subspaces = if dim <= 1 {
@@ -606,37 +608,18 @@ where
             return Err(SplitSpaceError { mat, vecs });
         }
 
-        let group_order = class_sizes.iter().sum::<usize>();
-        let ortho_vecs_conj_mat = Array2::from_shape_vec(
-            (class_sizes.len(), dim).f(),
-            ortho_vecs
-                .iter()
-                .flat_map(|col_i| {
-                    let col_i_conj = if let Some(indices) = perm_for_conj {
-                        col_i.select(Axis(0), indices)
-                    } else {
-                        col_i.clone()
-                    };
-                    Zip::from(col_i_conj.view())
-                        .and(ArrayView1::from(class_sizes))
-                        .map_collect(|&eij, &kj| {
-                            eij / (rep.convert(u32::try_from(kj).unwrap_or_else(|_| {
-                                panic!("Unable to convert `{}` to `u32`.", kj)
-                            })) * rep.convert(u32::try_from(group_order).unwrap_or_else(
-                                |_| panic!("Unable to convert `{}` to `u32`.", group_order),
-                            )))
-                        })
-                })
-                .collect::<Vec<_>>(),
-        )
-        .expect(
-            "Unable to construct a two-dimensional matrix of the conjugated orthogonal vectors.",
-        );
-
         // The division below is correct: `ortho_vecs_mag` (dim × 1) is broadcast to (dim × dim),
         // hence every row of the dividend is divided by the corresponding element of
         // `ortho_vecs_mag`.
-        let rep_mat = ortho_vecs_conj_mat.t().dot(mat).dot(&ortho_vecs_mat) / ortho_vecs_mag;
+        let nv_mat = mat.dot(&ortho_vecs_mat);
+        let mut rep_mat_unnorm: Array2<T> = Array2::zeros((dim, dim));
+        for (i, v) in ortho_vecs.iter().enumerate() {
+            for (j, nv) in nv_mat.columns().into_iter().enumerate() {
+                rep_mat_unnorm[[i, j]] =
+                    weighted_hermitian_inprod((v, &nv.to_owned()), class_sizes, perm_for_conj);
+            }
+        }
+        let rep_mat = rep_mat_unnorm / ortho_vecs_mag;
 
         // Diagonalise the representation matrix
         // Then use the eigenvectors to form linear combinations of the original
@@ -644,12 +627,10 @@ where
         let eigs = modular_eig(&rep_mat).map_err(|_| SplitSpaceError { mat, vecs })?;
         let n_subspaces = eigs.len();
         if n_subspaces == dim {
-            log::debug!(
-                "{dim}-dimensional space is completely split into {n_subspaces} one-dimensional subspaces.",
-            );
+            log::debug!("{dim}-D space is completely split into {n_subspaces} 1-D subspaces.",);
         } else {
             log::debug!(
-                "{dim}-dimensional space is incompletely split into {n_subspaces} subspace{}.",
+                "{dim}-D space is incompletely split into {n_subspaces} subspace{}.",
                 if n_subspaces == 1 { "" } else { "s" }
             );
         }
