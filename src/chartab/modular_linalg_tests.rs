@@ -1,5 +1,3 @@
-
-
 use ndarray::{array, Array1};
 use num_modular::{ModularInteger, MontgomeryInt};
 

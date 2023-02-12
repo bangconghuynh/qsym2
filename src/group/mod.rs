@@ -7,6 +7,7 @@ use indexmap::IndexMap;
 use log;
 use ndarray::{Array2, Zip};
 use num::Integer;
+use num_traits::Inv;
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
@@ -67,7 +68,7 @@ pub trait FiniteOrder {
 #[derive(Builder, Clone)]
 pub struct Group<T>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
 {
     /// A name for the abstract group.
     name: String,
@@ -91,7 +92,7 @@ where
 
 impl<T> GroupBuilder<T>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     fn elements(&mut self, elems: Vec<T>) -> &mut Self {
@@ -108,7 +109,7 @@ where
 
 impl<T> Group<T>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Returns a builder to construct a new abstract group.
@@ -176,8 +177,14 @@ where
 
 pub trait GroupProperties
 where
-    Self::GroupElement:
-        Mul<Output = Self::GroupElement> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    Self::GroupElement: Mul<Output = Self::GroupElement>
+        + Inv<Output = Self::GroupElement>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder,
 {
     /// The type of the elements in the group.
     type GroupElement;
@@ -213,15 +220,13 @@ where
 
     /// The Cayley table of the group.
     fn cayley_table(&self) -> Option<&Array2<usize>> {
-        self.abstract_group()
-            .cayley_table
-            .as_ref()
+        self.abstract_group().cayley_table.as_ref()
     }
 }
 
 impl<T> GroupProperties for Group<T>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     type GroupElement = T;
@@ -243,7 +248,7 @@ where
 #[derive(Clone, Builder)]
 pub struct UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
@@ -274,7 +279,7 @@ where
 
 impl<T, RowSymbol, ColSymbol> UnitaryRepresentedGroupBuilder<T, RowSymbol, ColSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
@@ -301,7 +306,7 @@ where
 
 impl<T, RowSymbol, ColSymbol> UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
@@ -317,7 +322,7 @@ where
 
 impl<T, RowSymbol, ColSymbol> UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
@@ -357,7 +362,7 @@ where
 
 impl<T, RowSymbol, ColSymbol> GroupProperties for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
@@ -385,7 +390,7 @@ where
 #[derive(Clone, Builder)]
 pub struct MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
 {
@@ -426,7 +431,7 @@ where
 
 impl<T, UG, RowSymbol> MagneticRepresentedGroupBuilder<T, UG, RowSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
@@ -464,7 +469,7 @@ where
 
 impl<T, UG, RowSymbol> MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
 {
@@ -485,7 +490,7 @@ where
 
 impl<T, UG, RowSymbol> MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
@@ -527,7 +532,7 @@ where
 
 impl<T, UG, RowSymbol> GroupProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
@@ -559,7 +564,7 @@ where
 
 impl<T, UG, RowSymbol> HasUnitarySubgroup for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,

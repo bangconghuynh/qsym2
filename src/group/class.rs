@@ -5,21 +5,22 @@ use std::ops::Mul;
 
 use derive_builder::Builder;
 use indexmap::IndexMap;
-use itertools::Itertools;
-use ndarray::{s, Array2, Axis};
+use ndarray::{s, Array2};
+use num_traits::Inv;
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
     CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
 };
-use crate::group::{FiniteOrder, HasUnitarySubgroup};
-
-use super::{Group, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
+use crate::group::{
+    FiniteOrder, Group, GroupProperties, HasUnitarySubgroup, MagneticRepresentedGroup,
+    UnitaryRepresentedGroup,
+};
 
 #[derive(Builder, Clone)]
 pub struct ClassStructure<T, ClassSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     ClassSymbol: CollectionSymbol<CollectionElement = T>,
 {
     /// A vector of conjugacy classes.
@@ -61,7 +62,7 @@ where
 
 impl<T, ClassSymbol> ClassStructureBuilder<T, ClassSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     ClassSymbol: CollectionSymbol<CollectionElement = T>,
 {
     fn conjugacy_class_transversal(&mut self) -> &mut Self {
@@ -190,7 +191,7 @@ where
 
 impl<T, ClassSymbol> ClassStructure<T, ClassSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     ClassSymbol: CollectionSymbol<CollectionElement = T>,
 {
     /// Returns a builder to construct a new class structure.
@@ -248,7 +249,7 @@ where
         group: &Group<T>,
         conjugacy_classes: Vec<HashSet<usize>>,
         element_to_conjugacy_classes: Vec<Option<usize>>,
-        inverse_conjugacy_classes: Vec<usize>
+        inverse_conjugacy_classes: Vec<usize>,
     ) -> Self {
         Self::builder()
             .conjugacy_classes(conjugacy_classes)
@@ -306,25 +307,24 @@ where
         let class_number = self.conjugacy_classes.len();
         let mut nmat_r = Array2::<usize>::zeros((class_number, class_number));
         let class_r = &self.conjugacy_classes[r];
-        let idx_r = class_r.iter().copied().collect::<Vec<_>>();
-        for (s, class_s) in self.conjugacy_classes.iter().enumerate() {
-            let idx_s = class_s.iter().copied().collect::<Vec<_>>();
-            let cayley_block_rs = ctb
-                .select(Axis(0), &idx_r)
-                .select(Axis(1), &idx_s)
+        for (t, class_t) in self.conjugacy_classes.iter().enumerate() {
+            let rep_z_idx = *class_t
                 .iter()
-                .copied()
-                .counts();
-
-            for (t, class_t) in self.conjugacy_classes.iter().enumerate() {
-                nmat_r[[s, t]] = *cayley_block_rs
-                    .get(
-                        class_t
-                            .iter()
-                            .next()
-                            .expect("No conjugacy classes can be empty."),
-                    )
-                    .unwrap_or(&0);
+                .next()
+                .expect("No conjugacy classes can be empty.");
+            for &x_idx in class_r.iter() {
+                let x_inv_idx = ctb
+                    .slice(s![.., x_idx])
+                    .iter()
+                    .position(|&x| x == 0)
+                    .unwrap_or_else(|| {
+                        panic!("The inverse of element index {x_idx} cannot be found.")
+                    });
+                let y_idx = ctb[[x_inv_idx, rep_z_idx]];
+                let s = self.element_to_conjugacy_classes[y_idx].unwrap_or_else(|| {
+                    panic!("Conjugacy class of element index {y_idx} not found.")
+                });
+                nmat_r[[s, t]] += 1;
             }
         }
         nmat_r
@@ -334,6 +334,7 @@ where
 pub trait ClassProperties: GroupProperties
 where
     Self::ClassSymbol: CollectionSymbol<CollectionElement = Self::GroupElement>,
+    <Self as GroupProperties>::GroupElement: Inv<Output = <Self as GroupProperties>::GroupElement>,
 {
     type ClassSymbol;
 
@@ -369,8 +370,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `ctb_opt` - An optional Cayley table. The default implementation requires this to be not
-    /// `None`.
+    /// * `ctb_opt` - An optional Cayley table.
     /// * `r` - The index $`r`$.
     ///
     /// # Returns
@@ -378,10 +378,46 @@ where
     /// The class matrix $`\mathbf{N}_r`$.
     #[must_use]
     fn class_matrix(&self, ctb_opt: Option<&Array2<usize>>, r: usize) -> Array2<usize> {
-        self.class_structure().class_matrix(
-            ctb_opt.expect("A Cayley table is required in the default clas matrix implementation."),
-            r,
-        )
+        let nmat_r = if let Some(ctb) = ctb_opt {
+            log::debug!("Computing class matrix N{r} using the Cayley table...");
+            self.class_structure().class_matrix(ctb, r)
+        } else {
+            log::debug!("Computing class matrix N{r} without the Cayley table...");
+            let class_number = self.conjugacy_classes().len();
+            let mut nmat_r = Array2::<usize>::zeros((class_number, class_number));
+            let class_r = &self.conjugacy_classes()[r];
+            for (t, class_t) in self.conjugacy_classes().iter().enumerate() {
+                let rep_z_idx = *class_t
+                    .iter()
+                    .next()
+                    .expect("No conjugacy classes can be empty.");
+                let z = self
+                    .abstract_group()
+                    .elements
+                    .get_index(rep_z_idx)
+                    .unwrap_or_else(|| panic!("No element with index `{rep_z_idx}` found."))
+                    .0;
+                for &x_idx in class_r.iter() {
+                    let x = self
+                        .abstract_group()
+                        .elements
+                        .get_index(x_idx)
+                        .unwrap_or_else(|| panic!("No element with index `{x_idx}` found."))
+                        .0;
+                    let y = x.clone().inv() * z.clone();
+                    let y_idx = *self
+                        .elements()
+                        .get(&y)
+                        .unwrap_or_else(|| panic!("Element `{y:?}` not found in this group."));
+                    let s = self.element_to_conjugacy_classes()[y_idx]
+                        .unwrap_or_else(|| panic!("Conjugacy class of element `{y:?}` not found."));
+                    nmat_r[[s, t]] += 1;
+                }
+            }
+            nmat_r
+        };
+        log::debug!("Computing class matrix N{r}... Done.");
+        nmat_r
     }
 
     /// Returns a vector of hashsets, each containing indices of elements in the same conjugacy
@@ -426,8 +462,9 @@ where
 
 impl<T, RowSymbol, ColSymbol> ClassProperties for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    <Self as GroupProperties>::GroupElement: Inv,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
@@ -518,8 +555,9 @@ where
 
 impl<T, UG, RowSymbol> ClassProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    <Self as GroupProperties>::GroupElement: Inv,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
 {

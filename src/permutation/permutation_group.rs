@@ -5,6 +5,7 @@ use indexmap::map::Entry::Vacant;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use ndarray::Array2;
+use num_traits::Inv;
 use rayon::prelude::*;
 
 use crate::chartab::chartab_group::{CharacterProperties, IrrepCharTabConstruction};
@@ -222,48 +223,6 @@ impl ClassProperties for PermutationGroup {
         self.class_structure
             .as_mut()
             .expect("Class structure not found for this group.")
-    }
-
-    /// Obtains the class matrix $`\mathbf{N}_r`$ for the conjugacy classes in the group without
-    /// using the Cayley table.
-    fn class_matrix(&self, ctb_opt: Option<&Array2<usize>>, r: usize) -> Array2<usize> {
-        log::debug!("Constructing N{r}...");
-        assert!(ctb_opt.is_none());
-        let class_number = self.conjugacy_classes().len();
-        let mut nmat_r = Array2::<usize>::zeros((class_number, class_number));
-        let class_r = &self.conjugacy_classes()[r];
-        for (s, class_s) in self.conjugacy_classes().iter().enumerate() {
-            for (t, class_t) in self.conjugacy_classes().iter().enumerate() {
-                let rep_t_idx = *class_t
-                    .iter()
-                    .next()
-                    .expect("No conjugacy classes can be empty.");
-                nmat_r[[s, t]] = class_r
-                    .iter()
-                    .cartesian_product(class_s.iter())
-                    .par_bridge()
-                    .filter(|(&r_idx, &s_idx)| {
-                        let r = self
-                            .abstract_group
-                            .elements()
-                            .get_index(r_idx)
-                            .unwrap_or_else(|| panic!("No element with index `{r_idx}` found."))
-                            .0;
-                        let s = self
-                            .abstract_group()
-                            .elements()
-                            .get_index(s_idx)
-                            .unwrap_or_else(|| panic!("No element with index `{s_idx}` found."))
-                            .0;
-                        let t = r * s;
-                        let t_idx = self.abstract_group.elements().get_index_of(&t).unwrap();
-                        t_idx == rep_t_idx
-                    })
-                    .count();
-            }
-        }
-        log::debug!("Constructing N{r}... Done.");
-        nmat_r
     }
 }
 

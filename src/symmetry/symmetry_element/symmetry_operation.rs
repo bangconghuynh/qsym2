@@ -6,7 +6,7 @@ use approx;
 use derive_builder::Builder;
 use fraction;
 use nalgebra::{Point3, Vector3};
-use num_traits::Pow;
+use num_traits::{Pow, Inv};
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
@@ -1076,5 +1076,25 @@ impl Pow<i32> for SymmetryOperation {
 
     fn pow(self, rhs: i32) -> Self::Output {
         (&self).pow(rhs)
+    }
+}
+
+impl Inv for &SymmetryOperation {
+    type Output = SymmetryOperation;
+
+    fn inv(self) -> Self::Output {
+        SymmetryOperation::builder()
+            .generating_element(self.generating_element.clone())
+            .power(-self.power)
+            .build()
+            .expect("Unable to construct an inverse symmetry operation.")
+    }
+}
+
+impl Inv for SymmetryOperation {
+    type Output = SymmetryOperation;
+
+    fn inv(self) -> Self::Output {
+        (&self).inv()
     }
 }

@@ -8,6 +8,7 @@ use std::panic;
 use itertools::Itertools;
 use log;
 use ndarray::{s, Array1, Array2, ArrayView1, Axis, LinalgScalar, ShapeBuilder, Zip};
+use num::Complex;
 use num_modular::ModularInteger;
 use num_traits::{Inv, Pow, ToPrimitive, Zero};
 
@@ -32,7 +33,7 @@ mod modular_linalg_tests;
 /// # Panics
 ///
 /// Panics if `mat` is not a square matrix.
-pub fn modular_determinant<T>(mat: &Array2<T>) -> T
+fn modular_determinant<T>(mat: &Array2<T>) -> T
 where
     T: Clone + LinalgScalar + ModularInteger<Base = u32> + Div<Output = T>,
 {
@@ -87,7 +88,7 @@ where
 /// # Panics
 ///
 /// Panics when the pivoting values are not unity.
-pub fn modular_rref<T>(mat: &Array2<T>) -> (Array2<T>, usize)
+fn modular_rref<T>(mat: &Array2<T>) -> (Array2<T>, usize)
 where
     T: Clone + Copy + Debug + ModularInteger<Base = u32> + Div<Output = T>,
 {
@@ -710,6 +711,7 @@ impl<'a, T: Display + Debug> Error for Split2dSpaceError<'a, T> {}
 pub fn split_2d_space<'a, T>(
     vecs: &'a [Array1<T>],
     class_sizes: &[usize],
+    sq_indices: &[usize],
     perm_for_conj: Option<&Vec<usize>>,
 ) -> Result<Vec<Vec<Array1<T>>>, Split2dSpaceError<'a, T>>
 where
@@ -731,22 +733,23 @@ where
         .flatten()
         .find(|x| panic::catch_unwind(|| x.modulus()).is_ok())
         .expect("No known modulus found.");
-    // let ortho_vecs = gram_schmidt(vecs, class_sizes, perm_for_conj).map_err(|err| {
-    //     log::warn!("{err}");
-    //     Split2dSpaceError { vecs }
-    // })?;
-    // assert_eq!(
-    //     ortho_vecs.len(),
-    //     2,
-    //     "Only two-dimensional spaces are allowed."
-    // );
-    let v0 = &vecs[0];
-    let v1 = &vecs[1];
-    let v0_inprod = weighted_hermitian_inprod((v0, v0), class_sizes, perm_for_conj);
-    let v1_inprod = weighted_hermitian_inprod((v1, v1), class_sizes, perm_for_conj);
-    let v01_inprod = weighted_hermitian_inprod((v0, v1), class_sizes, perm_for_conj);
-    let v10_inprod = weighted_hermitian_inprod((v1, v0), class_sizes, perm_for_conj);
+
+    // Echelonise the basis so that v0 has first entry of 1, while v1 has first entry of 0.
+    let v_flat: Vec<T> = vecs.iter().flatten().cloned().collect();
+    let shape = (vecs.len(), vecs[0].dim());
+    let (v_mat, _) = modular_rref(&Array2::from_shape_vec(shape, v_flat).unwrap());
+    let vs = v_mat.rows().into_iter().map(|v| v.to_owned()).collect::<Vec<_>>();
+    let v0 = vs[0].clone();
+    let v1 = vs[1].clone();
+
+    let v00 = weighted_hermitian_inprod((&v0, &v0), class_sizes, perm_for_conj);
+    let v11 = weighted_hermitian_inprod((&v1, &v1), class_sizes, perm_for_conj);
+    let v01 = weighted_hermitian_inprod((&v0, &v1), class_sizes, perm_for_conj);
+    let v10 = weighted_hermitian_inprod((&v1, &v0), class_sizes, perm_for_conj);
     let group_order = class_sizes.iter().sum::<usize>();
+    let group_order_u32 = u32::try_from(group_order).unwrap_or_else(|_| {
+                panic!("Unable to convert the group order {group_order} to `u32`.")
+    });
     let sqrt_group_order = group_order
         .to_f64()
         .expect("Unable to convert the group order to `f64`.")
@@ -756,79 +759,98 @@ where
         .expect("Unable to convert the square root of the group order to `u32`.");
     let one = rep.convert(1);
     let p = rep.modulus();
-    log::debug!("Using p = {p}.");
-    let mut results = (1..=sqrt_group_order)
+    let results = (1..=sqrt_group_order)
         .filter_map(|d0_u32| {
             if group_order.rem_euclid(usize::try_from(d0_u32).unwrap_or_else(|_| {
                 panic!("Unable to convert the trial dimension {d0_u32} to `usize`.")
-            })) == 0
-            {
-                let a0_opt = (1..p).find_map(|a0_u32| {
+            })) != 0 {
+                None
+            } else {
+                let res = (0..p).filter_map(|a0_u32| {
                     let a0 = rep.convert(a0_u32);
                     if Zero::is_zero(
-                        &(a0 * (a0 * v1_inprod + v01_inprod + v10_inprod) + v0_inprod
-                            - one / rep.convert(d0_u32).pow(2)),
+                        &(a0 * (a0 * v11 + v01 + v10) + v00
+                            - one / rep.convert(d0_u32).square()),
                     ) {
-                        Some(a0)
-                    } else {
-                        None
-                    }
-                });
-                if let Some(a0) = a0_opt {
-                    let denom = a0 * v1_inprod + v01_inprod;
-                    if Zero::is_zero(&denom) {
-                        None
-                    } else {
-                        let a1 = -(v0_inprod + a0 * v10_inprod) / denom;
-                        let d1_2 = one / (a1 * (a1 * v1_inprod + v01_inprod + v10_inprod) + v0_inprod);
-                        if let Some(res) = (1..=sqrt_group_order).find_map(|d1_u32| {
-                            if group_order.rem_euclid(usize::try_from(d1_u32).unwrap_or_else(|_| {
-                                panic!("Unable to convert the trial dimension {d1_u32} to `usize`.")
-                            })) == 0 && rep.convert(d1_u32).pow(2) == d1_2 {
-                                let v0_split = Array1::from_vec(
-                                    v0.iter()
-                                        .zip(v1.iter())
-                                        .map(|(&v0_x, &v1_x)| v0_x + a0 * v1_x)
-                                        .collect_vec(),
-                                );
-                                let v1_split = Array1::from_vec(
-                                    v0.iter()
-                                        .zip(v1.iter())
-                                        .map(|(&v0_x, &v1_x)| v0_x + a1 * v1_x)
-                                        .collect_vec(),
-                                );
+                        let denom = a0 * v11 + v10;
+                        if Zero::is_zero(&denom) {
+                            None
+                        } else {
+                            let a1 = -(v00 + a0 * v01) / denom;
+                            let d1p2 = one / (a1 * (a1 * v11 + v01 + v10) + v00);
+                            let res2 = (1..=sqrt_group_order).filter_map(|d1_u32| {
+                                if group_order.rem_euclid(usize::try_from(d1_u32).unwrap_or_else(|_| {
+                                    panic!("Unable to convert the trial dimension {d1_u32} to `usize`.")
+                                })) == 0 && rep.convert(d1_u32).square() == d1p2 {
 
-                                if d0_u32 <= d1_u32 && v0_split[[0]] == one && v1_split[[0]] == one {
-                                    Some((
-                                        (v0_split, v1_split),
-                                        (d0_u32, d1_u32),
-                                    ))
+                                    let v0_split = Array1::from_vec(
+                                        v0.iter()
+                                            .zip(v1.iter())
+                                            .map(|(&v0_x, &v1_x)| v0_x + a0 * v1_x)
+                                            .collect_vec(),
+                                    );
+                                    let v1_split = Array1::from_vec(
+                                        v0.iter()
+                                            .zip(v1.iter())
+                                            .map(|(&v0_x, &v1_x)| v0_x + a1 * v1_x)
+                                            .collect_vec(),
+                                    );
+
+                                    let d0 = rep.convert(d0_u32);
+                                    let d1 = rep.convert(d1_u32);
+                                    let char0 = v0_split.iter().zip(class_sizes.iter()).map(|(&x, &k)| d0 * x / rep.convert(k as u32)).collect::<Vec<_>>();
+                                    let char1 = v1_split.iter().zip(class_sizes.iter()).map(|(&x, &k)| d1 * x / rep.convert(k as u32)).collect::<Vec<_>>();
+
+                                    let fs0 = sq_indices
+                                        .iter()
+                                        .zip(class_sizes.iter())
+                                        .fold(T::zero(), |acc, (&sq_idx, &k)| {
+                                            let k_u32 = u32::try_from(k).unwrap_or_else(|_| {
+                                                panic!("Unable to convert the class size {k} to `u32`.");
+                                            });
+                                            acc + rep.convert(k_u32) * char0[sq_idx]
+                                        }) / rep.convert(group_order_u32);
+                                    let fs0_good = fs0.is_one() || Zero::is_zero(&fs0) || fs0 == rep.convert(p - 1);
+                                    let fs1 = sq_indices
+                                        .iter()
+                                        .zip(class_sizes.iter())
+                                        .fold(T::zero(), |acc, (&sq_idx, &k)| {
+                                            let k_u32 = u32::try_from(k).unwrap_or_else(|_| {
+                                                panic!("Unable to convert the class size {k} to `u32`.");
+                                            });
+                                            acc + rep.convert(k_u32) * char1[sq_idx]
+                                        }) / rep.convert(group_order_u32);
+                                    let fs1_good = fs1.is_one() || Zero::is_zero(&fs1) || fs1 == rep.convert(p - 1);
+
+                                    if fs0_good && fs1_good && d0_u32 <= d1_u32 {
+                                        Some((
+                                            (v0_split, v1_split),
+                                            (d0_u32, d1_u32),
+                                        ))
+                                    } else {
+                                        None
+                                    }
                                 } else {
                                     None
                                 }
-                            } else {
-                                None
-                            }
-                        }) {
-                            Some(res)
-                        } else {
-                            None
+                            }).collect_vec();
+                            Some(res2)
                         }
+                    } else {
+                        None
                     }
-                } else {
-                    None
-                }
-            } else {
-                None
+                })
+                .flatten()
+                .collect_vec();
+                Some(res)
             }
         })
+        .flatten()
         .collect_vec();
 
     if results.len() == 1 {
         // Unique solution found.
         log::debug!("Greedy splitting algorithm for 2-D subspace found a unique solution.");
-        let (_, (d0_u32, d1_u32)) = results[0];
-        log::debug!("==========> Irrep dimensionalities: ({d0_u32}, {d1_u32})");
         let (v0_split, v1_split) = results[0].0.clone();
         Ok(vec![vec![v0_split], vec![v1_split]])
     } else {

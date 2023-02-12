@@ -157,10 +157,28 @@ where
 
         // Diagonalise class matrices
         let class_sizes: Vec<_> = self.conjugacy_classes().iter().map(HashSet::len).collect();
+        log::debug!("Class sizes: {:?}", class_sizes);
+        let sq_indices: Vec<usize> = self
+            .conjugacy_class_transversal()
+            .iter()
+            .map(|&ele_i| {
+                let (ele, _) = self
+                    .elements()
+                    .get_index(ele_i)
+                    .unwrap_or_else(|| panic!("Element index {ele_i} cannot be retrieved."));
+                let elep2 = ele.clone().pow(2);
+                let elep2_i = *self
+                    .elements()
+                    .get(&elep2)
+                    .unwrap_or_else(|| panic!("Element {elep2:?} not found."));
+                self.element_to_conjugacy_classes()[elep2_i]
+                    .unwrap_or_else(|| panic!("Conjugacy class for element {elep2:?} not found."))
+            })
+            .collect();
         let inverse_conjugacy_classes = Some(self.inverse_conjugacy_classes());
         let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u32>>> = vec![];
 
-        let mut rs = (1..self.class_number()).collect::<Vec<_>>();
+        let rs = (1..self.class_number()).collect::<Vec<_>>();
         let mut r_iter = rs.into_iter();
 
         if self.class_number() == 1 {
@@ -168,7 +186,9 @@ where
         } else {
             let mut degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> = vec![];
             let ctb = self.cayley_table();
-            let r = r_iter.next().expect("Unable to obtain any `r` indices for class matrices.");
+            let r = r_iter
+                .next()
+                .expect("Unable to obtain any `r` indices for class matrices.");
             log::debug!("Considering class matrix N{r}...");
             let nmat_1 = self.class_matrix(ctb, r).map(|&i| {
                 modp.convert(
@@ -200,7 +220,6 @@ where
                     .cloned(),
             );
 
-            // let mut r = 1;
             while !degenerate_subspaces.is_empty() {
                 log::debug!(
                     "Number of 1-D eigenvectors found: {} / {}.",
@@ -226,7 +245,7 @@ where
                     log::debug!("Schneider's greedy algorithm for splitting two-dimensional subspaces will be attempted.");
                     while let Some(subspace) = degenerate_2d_subspaces.pop() {
                         if let Ok(subsubspaces) =
-                            split_2d_space(&subspace, &class_sizes, inverse_conjugacy_classes)
+                            split_2d_space(&subspace, &class_sizes, &sq_indices, inverse_conjugacy_classes)
                         {
                             eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
                                 if subsubspace.len() == 1 {
@@ -255,23 +274,27 @@ where
                 if !degenerate_subspaces.is_empty() {
                     if let Some(r) = r_iter.next() {
                         log::debug!("Considering class matrix N{}...", r);
-                        let nmat_r = self.class_matrix(ctb, r).map(|&i| {
-                            modp.convert(
-                                u32::try_from(i)
-                                    .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
-                            )
-                        });
+                        let nmat_r =
+                            self.class_matrix(ctb, r).map(|&i| {
+                                modp.convert(u32::try_from(i).unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{i}` to `u32`.")
+                                }))
+                            });
 
-                        let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> =
-                            vec![];
+                        let mut remaining_degenerate_subspaces: Vec<
+                            Vec<Array1<LinAlgMontgomeryInt<u32>>>,
+                        > = vec![];
                         while !degenerate_subspaces.is_empty() {
                             let subspace = degenerate_subspaces
                                 .pop()
                                 .expect("Unexpected empty `degenerate_subspaces`.");
 
-                            if let Ok(subsubspaces) =
-                                split_space(&nmat_r, &subspace, &class_sizes, inverse_conjugacy_classes)
-                            {
+                            if let Ok(subsubspaces) = split_space(
+                                &nmat_r,
+                                &subspace,
+                                &class_sizes,
+                                inverse_conjugacy_classes,
+                            ) {
                                 eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
                                     if subsubspace.len() == 1 {
                                         Some(subsubspace[0].clone())
@@ -333,7 +356,7 @@ where
                 let dim_i = (1..=p.div_euclid(2))
                     .map(|d| vec_i_inprod.convert(d))
                     .find(|d_modp| {
-                        vec_i_inprod == (d_modp * d_modp).inv()
+                        vec_i_inprod == d_modp.square().inv()
                     })
                     .unwrap_or_else(|| {
                         log::error!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
@@ -445,28 +468,32 @@ where
             .expect("No conjugacy class symbols found.")
             .0
             .clone()];
+
+        log::debug!("Computing the Frobenius--Schur indicators...");
         let frobenius_schur_indicators: Vec<_> = char_arr
             .rows()
             .into_iter()
             .enumerate()
             .map(|(irrep_i, _)| {
-                let indicator: Complex<f64> =
-                    self.elements()
-                        .keys()
-                        .fold(Complex::new(0.0f64, 0.0f64), |acc, ele| {
-                            let ele_2_idx =
-                                self.elements().get(&ele.clone().pow(2)).unwrap_or_else(|| {
-                                    panic!("Element {:?} not found.", &ele.clone().pow(2))
-                                });
-                            let class_2_j = self.element_to_conjugacy_classes()[*ele_2_idx]
-                                .unwrap_or_else(|| {
-                                    panic!("Element `{ele:?}` does not have a conjugacy class.")
-                                });
-                            acc + char_arr[[irrep_i, class_2_j]].complex_value()
-                        })
-                        / self.order().to_f64().unwrap_or_else(|| {
-                            panic!("Unable to convert `{}` to `f64`.", self.order())
-                        });
+                let indicator: Complex<f64> = self
+                    .elements()
+                    .keys()
+                    .fold(Character::new(&[]), |acc, ele| {
+                        let ele_2_idx =
+                            self.elements().get(&ele.clone().pow(2)).unwrap_or_else(|| {
+                                panic!("Element {:?} not found.", &ele.clone().pow(2))
+                            });
+                        let class_2_j = self.element_to_conjugacy_classes()[*ele_2_idx]
+                            .unwrap_or_else(|| {
+                                panic!("Element `{ele:?}` does not have a conjugacy class.")
+                            });
+                        acc + char_arr[[irrep_i, class_2_j]].clone()
+                    })
+                    .simplify()
+                    .complex_value()
+                    / self.order().to_f64().unwrap_or_else(|| {
+                        panic!("Unable to convert `{}` to `f64`.", self.order())
+                    });
                 approx::assert_relative_eq!(
                     indicator.im,
                     0.0,
@@ -499,6 +526,7 @@ where
                 indicator_i8
             })
             .collect();
+        log::debug!("Computing the Frobenius--Schur indicators... Done.");
 
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
             format!("{} > {finite_name}", self.name())
@@ -807,6 +835,7 @@ where
     RowSymbol: LinearSpaceSymbol + Sync,
     ColSymbol: CollectionSymbol<CollectionElement = T> + Sync,
     T: Mul<Output = T>
+        + Inv<Output = T>
         + Hash
         + Eq
         + Clone
@@ -832,6 +861,7 @@ where
     RowSymbol: LinearSpaceSymbol + Sync,
     ColSymbol: CollectionSymbol<CollectionElement = T> + Sync,
     T: Mul<Output = T>
+        + Inv<Output = T>
         + Hash
         + Eq
         + Clone
@@ -850,6 +880,7 @@ impl<T, RowSymbol, UG> CharacterProperties for MagneticRepresentedGroup<T, UG, R
 where
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     T: Mul<Output = T>
+        + Inv<Output = T>
         + Hash
         + Eq
         + Clone
@@ -877,6 +908,7 @@ impl<T, RowSymbol, UG> IrcorepCharTabConstruction for MagneticRepresentedGroup<T
 where
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     T: Mul<Output = T>
+        + Inv<Output = T>
         + Hash
         + Eq
         + Clone
