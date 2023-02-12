@@ -8,7 +8,6 @@ use std::panic;
 use itertools::Itertools;
 use log;
 use ndarray::{s, Array1, Array2, ArrayView1, Axis, LinalgScalar, ShapeBuilder, Zip};
-use num::Complex;
 use num_modular::ModularInteger;
 use num_traits::{Inv, Pow, ToPrimitive, Zero};
 
@@ -738,7 +737,11 @@ where
     let v_flat: Vec<T> = vecs.iter().flatten().cloned().collect();
     let shape = (vecs.len(), vecs[0].dim());
     let (v_mat, _) = modular_rref(&Array2::from_shape_vec(shape, v_flat).unwrap());
-    let vs = v_mat.rows().into_iter().map(|v| v.to_owned()).collect::<Vec<_>>();
+    let vs = v_mat
+        .rows()
+        .into_iter()
+        .map(|v| v.to_owned())
+        .collect::<Vec<_>>();
     let v0 = vs[0].clone();
     let v1 = vs[1].clone();
 
@@ -747,9 +750,8 @@ where
     let v01 = weighted_hermitian_inprod((&v0, &v1), class_sizes, perm_for_conj);
     let v10 = weighted_hermitian_inprod((&v1, &v0), class_sizes, perm_for_conj);
     let group_order = class_sizes.iter().sum::<usize>();
-    let group_order_u32 = u32::try_from(group_order).unwrap_or_else(|_| {
-                panic!("Unable to convert the group order {group_order} to `u32`.")
-    });
+    let group_order_u32 = u32::try_from(group_order)
+        .unwrap_or_else(|_| panic!("Unable to convert the group order {group_order} to `u32`."));
     let sqrt_group_order = group_order
         .to_f64()
         .expect("Unable to convert the group order to `f64`.")

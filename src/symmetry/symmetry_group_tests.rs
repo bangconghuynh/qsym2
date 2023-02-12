@@ -4972,7 +4972,6 @@ fn test_ur_group_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10() {
 
 #[test]
 fn test_ur_group_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10_class_order() {
-    env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);

@@ -7,10 +7,10 @@ use std::str::FromStr;
 use approx;
 use log;
 use ndarray::{array, s, Array1, Array2, Zip};
-use num::{integer::lcm, Complex};
+use num::integer::lcm;
 use num_modular::{ModularInteger, MontgomeryInt};
 use num_ord::NumOrd;
-use num_traits::{Inv, Pow, ToPrimitive, Zero};
+use num_traits::{Inv, Pow, ToPrimitive, Zero, One};
 use primes::is_prime;
 use rayon::prelude::*;
 
@@ -340,8 +340,7 @@ where
 
         // Lift characters back to the complex field
         log::debug!(
-            "Lifting characters from GF({}) back to the complex field...",
-            p
+            "Lifting characters from GF({p}) back to the complex field...",
         );
         let class_transversal = self.conjugacy_class_transversal();
 
@@ -446,8 +445,7 @@ where
         let char_arr = Array2::from_shape_vec((self.class_number(), self.class_number()), chars)
             .expect("Unable to construct the two-dimensional table of characters.");
         log::debug!(
-            "Lifting characters from GF({}) back to the complex field... Done.",
-            p
+            "Lifting characters from GF({p}) back to the complex field... Done.",
         );
 
         let class_symbols = self.conjugacy_class_symbols();
@@ -469,64 +467,116 @@ where
             .0
             .clone()];
 
-        log::debug!("Computing the Frobenius--Schur indicators...");
-        let frobenius_schur_indicators: Vec<_> = char_arr
-            .rows()
-            .into_iter()
-            .enumerate()
-            .map(|(irrep_i, _)| {
-                let indicator: Complex<f64> = self
-                    .elements()
-                    .keys()
-                    .fold(Character::new(&[]), |acc, ele| {
-                        let ele_2_idx =
-                            self.elements().get(&ele.clone().pow(2)).unwrap_or_else(|| {
-                                panic!("Element {:?} not found.", &ele.clone().pow(2))
-                            });
-                        let class_2_j = self.element_to_conjugacy_classes()[*ele_2_idx]
-                            .unwrap_or_else(|| {
-                                panic!("Element `{ele:?}` does not have a conjugacy class.")
-                            });
-                        acc + char_arr[[irrep_i, class_2_j]].clone()
+        log::debug!("Computing the Frobenius--Schur indicators in GF({p})...");
+        let group_order = class_sizes.iter().sum::<usize>();
+        let group_order_u32 = u32::try_from(group_order).unwrap_or_else(|_| {
+                    panic!("Unable to convert the group order {group_order} to `u32`.")
+        });
+        let frobenius_schur_indicators: Vec<i8> = eigvecs_1d
+            .par_iter()
+            .map(|vec_i| {
+                let vec_i_inprod = weighted_hermitian_inprod(
+                    (vec_i, vec_i),
+                    &class_sizes,
+                    inverse_conjugacy_classes,
+                );
+                let dim_i = (1..=p.div_euclid(2))
+                    .map(|d| vec_i_inprod.convert(d))
+                    .find(|d_modp| {
+                        vec_i_inprod == d_modp.square().inv()
                     })
-                    .simplify()
-                    .complex_value()
-                    / self.order().to_f64().unwrap_or_else(|| {
-                        panic!("Unable to convert `{}` to `f64`.", self.order())
+                    .unwrap_or_else(|| {
+                        log::error!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
+                        panic!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
                     });
-                approx::assert_relative_eq!(
-                    indicator.im,
-                    0.0,
-                    epsilon = 1e-14,
-                    max_relative = 1e-14
-                );
-                approx::assert_relative_eq!(
-                    indicator.re,
-                    indicator.re.round(),
-                    epsilon = 1e-14,
-                    max_relative = 1e-14
-                );
-                assert!(
-                    approx::relative_eq!(indicator.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
-                        || approx::relative_eq!(
-                            indicator.re,
-                            0.0,
-                            epsilon = 1e-14,
-                            max_relative = 1e-14
-                        )
-                        || approx::relative_eq!(
-                            indicator.re,
-                            -1.0,
-                            epsilon = 1e-14,
-                            max_relative = 1e-14
-                        )
-                );
-                #[allow(clippy::cast_possible_truncation)]
-                let indicator_i8 = indicator.re.round() as i8;
-                indicator_i8
-            })
-            .collect();
-        log::debug!("Computing the Frobenius--Schur indicators... Done.");
+
+                let tchar_i =
+                    Zip::from(vec_i)
+                        .and(class_sizes.as_slice())
+                        .par_map_collect(|&v, &k| {
+                            v * dim_i
+                                / modp.convert(u32::try_from(k).unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{k}` to `u32`.")
+                                }))
+                        });
+                let fs_i = sq_indices
+                    .iter()
+                    .zip(class_sizes.iter())
+                    .fold(modp.convert(0), |acc, (&sq_idx, &k)| {
+                        let k_u32 = u32::try_from(k).unwrap_or_else(|_| {
+                            panic!("Unable to convert the class size {k} to `u32`.");
+                        });
+                        acc + modp.convert(k_u32) * tchar_i[sq_idx]
+                    }) / modp.convert(group_order_u32);
+
+                if fs_i.is_one() {
+                    1i8
+                } else if Zero::is_zero(&fs_i) {
+                    0i8
+                } else if fs_i == modp.convert(modp.modulus() - 1) {
+                    -1i8
+                } else {
+                    log::error!("Invalid Frobenius -- Schur indicator: `{fs_i}`.");
+                    panic!("Invalid Frobenius -- Schur indicator: `{fs_i}`.");
+                }
+            }).collect();
+        // let frobenius_schur_indicators: Vec<_> = char_arr
+        //     .rows()
+        //     .into_iter()
+        //     .enumerate()
+        //     .map(|(irrep_i, _)| {
+        //         let indicator: Complex<f64> = self
+        //             .elements()
+        //             .keys()
+        //             .fold(Character::new(&[]), |acc, ele| {
+        //                 let ele_2_idx =
+        //                     self.elements().get(&ele.clone().pow(2)).unwrap_or_else(|| {
+        //                         panic!("Element {:?} not found.", &ele.clone().pow(2))
+        //                     });
+        //                 let class_2_j = self.element_to_conjugacy_classes()[*ele_2_idx]
+        //                     .unwrap_or_else(|| {
+        //                         panic!("Element `{ele:?}` does not have a conjugacy class.")
+        //                     });
+        //                 acc + char_arr[[irrep_i, class_2_j]].clone()
+        //             })
+        //             .simplify()
+        //             .complex_value()
+        //             / self.order().to_f64().unwrap_or_else(|| {
+        //                 panic!("Unable to convert `{}` to `f64`.", self.order())
+        //             });
+        //         approx::assert_relative_eq!(
+        //             indicator.im,
+        //             0.0,
+        //             epsilon = 1e-14,
+        //             max_relative = 1e-14
+        //         );
+        //         approx::assert_relative_eq!(
+        //             indicator.re,
+        //             indicator.re.round(),
+        //             epsilon = 1e-14,
+        //             max_relative = 1e-14
+        //         );
+        //         assert!(
+        //             approx::relative_eq!(indicator.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
+        //                 || approx::relative_eq!(
+        //                     indicator.re,
+        //                     0.0,
+        //                     epsilon = 1e-14,
+        //                     max_relative = 1e-14
+        //                 )
+        //                 || approx::relative_eq!(
+        //                     indicator.re,
+        //                     -1.0,
+        //                     epsilon = 1e-14,
+        //                     max_relative = 1e-14
+        //                 )
+        //         );
+        //         #[allow(clippy::cast_possible_truncation)]
+        //         let indicator_i8 = indicator.re.round() as i8;
+        //         indicator_i8
+        //     })
+        //     .collect();
+        log::debug!("Computing the Frobenius--Schur indicators in GF({p})... Done.");
 
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
             format!("{} > {finite_name}", self.name())
