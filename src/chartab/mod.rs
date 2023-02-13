@@ -19,6 +19,10 @@ pub mod modular_linalg;
 pub mod reducedint;
 pub mod unityroot;
 
+// =================
+// Trait definitions
+// =================
+
 /// A trait to contain essential methods for a character table.
 pub trait CharacterTable: Clone
 where
@@ -110,9 +114,13 @@ where
     ) -> fmt::Result;
 }
 
-// =================
+// ======================================
+// Struct definitions and implementations
+// ======================================
+
+// -----------------
 // RepCharacterTable
-// =================
+// -----------------
 
 /// A struct to manage character tables of irreducible representations.
 #[derive(Builder, Clone)]
@@ -146,6 +154,7 @@ where
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol,
 {
+    /// Returns a builder to construct a `RepCharacterTable`.
     fn builder() -> RepCharacterTableBuilder<RowSymbol, ColSymbol> {
         RepCharacterTableBuilder::default()
     }
@@ -157,7 +166,10 @@ where
     /// * `name` - A name given to the character table.
     /// * `irreps` - A slice of Mulliken irreducible representation symbols in the right order.
     /// * `classes` - A slice of conjugacy class symbols in the right order.
-    /// * `char_arr` - A two-dimensional array of characters,
+    /// * `principal_classes` - A slice of the principal classes used in determining the irrep
+    /// symbols.
+    /// * `char_arr` - A two-dimensional array of characters.
+    /// * `frobenius_schurs` - A slice of Frobenius--Schur indicators for the irreps.
     ///
     /// # Returns
     ///
@@ -239,11 +251,11 @@ where
         let row = self
             .irreps
             .get(irrep)
-            .unwrap_or_else(|| panic!("Irrep {irrep} not found."));
+            .unwrap_or_else(|| panic!("Irrep `{irrep}` not found."));
         let col = self
             .classes
             .get(class)
-            .unwrap_or_else(|| panic!("Conjugacy class {class} not found."));
+            .unwrap_or_else(|| panic!("Conjugacy class `{class}` not found."));
         &self.characters[(*row, *col)]
     }
 
@@ -257,11 +269,11 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character> {
+    fn get_row(&self, irrep: &Self::RowSymbol) -> ArrayView1<Character> {
         let row = self
             .irreps
-            .get(row)
-            .unwrap_or_else(|| panic!("Irrep {row} not found."));
+            .get(irrep)
+            .unwrap_or_else(|| panic!("Irrep `{irrep}` not found."));
         self.characters.row(*row)
     }
 
@@ -275,11 +287,11 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character> {
+    fn get_col(&self, class: &Self::ColSymbol) -> ArrayView1<Character> {
         let col = self
             .classes
-            .get(col)
-            .unwrap_or_else(|| panic!("Conjugacy class {col} not found."));
+            .get(class)
+            .unwrap_or_else(|| panic!("Conjugacy class `{class}` not found."));
         self.characters.column(*col)
     }
 
@@ -440,12 +452,12 @@ where
                 .map(|(i, (irrep, irrep_str))| {
                     let ind = self.frobenius_schurs.get(irrep).unwrap_or_else(|| {
                         panic!(
-                        "Unable to obtain the Frobenius--Schur indicator for irrep `{irrep}`."
-                    )
+                            "Unable to obtain the Frobenius--Schur indicator for irrep `{irrep}`."
+                        )
                     });
-                    let fs = FROBENIUS_SCHUR_SYMBOLS
-                        .get(ind)
-                        .unwrap_or_else(|| panic!("Unknown Frobenius--Schur symbol for indicator {ind}."));
+                    let fs = FROBENIUS_SCHUR_SYMBOLS.get(ind).unwrap_or_else(|| {
+                        panic!("Unknown Frobenius--Schur symbol for indicator {ind}.")
+                    });
                     let mut line = format!(" {irrep_str:<first_width$} ┆ {fs:>2} ║");
 
                     let line_chars: String = itertools::Itertools::intersperse(
@@ -475,9 +487,6 @@ where
     }
 }
 
-// -------
-// Display
-// -------
 impl<RowSymbol, ColSymbol> fmt::Display for RepCharacterTable<RowSymbol, ColSymbol>
 where
     RowSymbol: LinearSpaceSymbol,
@@ -488,9 +497,6 @@ where
     }
 }
 
-// -----
-// Debug
-// -----
 impl<RowSymbol, ColSymbol> fmt::Debug for RepCharacterTable<RowSymbol, ColSymbol>
 where
     RowSymbol: LinearSpaceSymbol,
@@ -501,9 +507,9 @@ where
     }
 }
 
-// ===================
+// -------------------
 // CorepCharacterTable
-// ===================
+// -------------------
 
 /// A structure to manage character tables of irreducible corepresentations of magnetic groups.
 #[derive(Builder, Clone)]
@@ -553,6 +559,9 @@ where
     /// * `unitary_chartab` - The character table of irreducible representations of the unitary
     /// halving subgroup, which will be owned by this [`CorepCharacterTable`].
     /// * `ircoreps` - A slice of Mulliken irreducible corepresentation symbols in the right order.
+    /// * `classes` - A slice of conjugacy class symbols in the right order. These symbols must be
+    /// of the same type as those of the unitary subgroup.
+    /// * `principal_classes` - A slice of the principal classes of the group.
     /// * `char_arr` - A two-dimensional array of characters,
     /// * `intertwining_numbers` - A slice of the intertwining numbers of the irreducible
     /// corepresentations in the right order.
@@ -637,11 +646,11 @@ where
         let row = self
             .ircoreps
             .get(ircorep)
-            .unwrap_or_else(|| panic!("Ircorep {ircorep} not found."));
+            .unwrap_or_else(|| panic!("Ircorep `{ircorep}` not found."));
         let col = self
             .classes
             .get(class)
-            .unwrap_or_else(|| panic!("Conjugacy class {class} not found."));
+            .unwrap_or_else(|| panic!("Conjugacy class `{class}` not found."));
         &self.characters[(*row, *col)]
     }
 
@@ -655,11 +664,11 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_row(&self, row: &Self::RowSymbol) -> ArrayView1<Character> {
+    fn get_row(&self, ircorep: &Self::RowSymbol) -> ArrayView1<Character> {
         let row = self
             .ircoreps
-            .get(row)
-            .unwrap_or_else(|| panic!("Ircorep {row} not found."));
+            .get(ircorep)
+            .unwrap_or_else(|| panic!("Ircorep `{ircorep}` not found."));
         self.characters.row(*row)
     }
 
@@ -673,11 +682,11 @@ where
     /// # Returns
     ///
     /// The required characters.
-    fn get_col(&self, col: &Self::ColSymbol) -> ArrayView1<Character> {
+    fn get_col(&self, class: &Self::ColSymbol) -> ArrayView1<Character> {
         let col = self
             .classes
-            .get(col)
-            .unwrap_or_else(|| panic!("Conjugacy class {col} not found."));
+            .get(class)
+            .unwrap_or_else(|| panic!("Conjugacy class `{class}` not found."));
         self.characters.column(*col)
     }
 
@@ -861,9 +870,6 @@ where
     }
 }
 
-// -------
-// Display
-// -------
 impl<RowSymbol, UC> fmt::Display for CorepCharacterTable<RowSymbol, UC>
 where
     RowSymbol: ReducibleLinearSpaceSymbol,
@@ -874,9 +880,6 @@ where
     }
 }
 
-// -----
-// Debug
-// -----
 impl<RowSymbol, UC> fmt::Debug for CorepCharacterTable<RowSymbol, UC>
 where
     RowSymbol: ReducibleLinearSpaceSymbol,
