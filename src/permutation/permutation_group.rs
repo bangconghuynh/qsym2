@@ -19,24 +19,68 @@ use crate::permutation::Permutation;
 #[path = "permutation_group_tests.rs"]
 mod permutation_group_tests;
 
+// ==================
+// Struct definitions
+// ==================
+
+/// A dedicated structure for managing permutation groups efficiently.
+#[derive(Clone, Builder)]
+pub struct PermutationGroup {
+    /// The rank of the permutation group.
+    rank: usize,
+
+    /// The underlying abstract group of this permutation group.
+    abstract_group: Group<Permutation>,
+
+    /// The class structure of this permutation group that is induced by the following equivalence
+    /// relation:
+    ///
+    /// ```math
+    ///     g \sim h \Leftrightarrow \exists u : h = u g u^{-1}.
+    /// ```
+    ///
+    /// This means that all permutations having the same cycle pattern are in the same conjugacy
+    /// class.
+    #[builder(setter(skip), default = "None")]
+    class_structure: Option<ClassStructure<Permutation, PermutationClassSymbol>>,
+
+    /// The character table for the irreducible representations of this permutation group.
+    #[builder(setter(skip), default = "None")]
+    irrep_character_table:
+        Option<RepCharacterTable<PermutationIrrepSymbol, PermutationClassSymbol>>,
+}
+
+impl PermutationGroup {
+    fn builder() -> PermutationGroupBuilder {
+        PermutationGroupBuilder::default()
+    }
+}
+
+// =================
+// Trait definitions
+// =================
+
+/// Trait for permutation groups.
 pub trait PermutationGroupProperties:
     ClassProperties<GroupElement = Permutation, ClassSymbol = PermutationClassSymbol>
     + CharacterProperties
 {
-    /// Constructs a group from molecular symmetry *elements* (not operations).
+    /// Constructs a permutation group $`Sym(n)`$ from a given rank $`n`$ (*i.e.* the number of
+    /// elements in the set to be permuted).
     ///
     /// # Arguments
     ///
-    /// * `sym` - A molecular symmetry struct.
-    /// * `infinite_order_to_finite` - Interpret infinite-order generating
-    /// elements as finite-order generating elements to create a finite subgroup
-    /// of an otherwise infinite group.
+    /// * `rank` - The permutation rank.
     ///
     /// # Returns
     ///
-    /// A finite group of symmetry operations.
+    /// A finite group of permutations.
     fn from_rank(rank: usize) -> Self;
 
+    /// Sets class symbols from cycle patterns.
+    ///
+    /// Classes in permutation groups are determined by the cycle patterns of their elements. The
+    /// number of classes for $`Sym(n)`$ is the number of integer partitions of $`n`$.
     fn set_class_symbols_from_cycle_patterns(&mut self) {
         log::debug!("Assigning class symbols from cycle patterns...");
         let class_symbols = self
@@ -86,9 +130,17 @@ pub trait PermutationGroupProperties:
     }
 
     /// Reorders and relabels the rows and columns of the constructed character table using
-    /// symmetry-specific rules and conventions.
+    /// permutation-specific rules and conventions.
     fn canonicalise_character_table(&mut self);
 }
+
+// =====================
+// Trait implementations
+// =====================
+
+// -----------------------
+// UnitaryRepresentedGroup
+// -----------------------
 
 impl PermutationGroupProperties
     for UnitaryRepresentedGroup<Permutation, PermutationIrrepSymbol, PermutationClassSymbol>
@@ -128,38 +180,9 @@ impl PermutationGroupProperties
     }
 }
 
-/// A structure for managing permutation groups efficiently.
-#[derive(Clone, Builder)]
-pub struct PermutationGroup {
-    /// The rank of the permutation group.
-    rank: usize,
-
-    /// The underlying abstract group of this permutation group.
-    abstract_group: Group<Permutation>,
-
-    /// The class structure of this permutation group that is induced by the following equivalence
-    /// relation:
-    ///
-    /// ```math
-    ///     g \sim h \Leftrightarrow \exists u : h = u g u^{-1}.
-    /// ```
-    ///
-    /// This means that all permutations having the same cycle pattern are in the same conjugacy
-    /// class.
-    #[builder(setter(skip), default = "None")]
-    class_structure: Option<ClassStructure<Permutation, PermutationClassSymbol>>,
-
-    /// The character table for the irreducible representations of this permutation group.
-    #[builder(setter(skip), default = "None")]
-    irrep_character_table:
-        Option<RepCharacterTable<PermutationIrrepSymbol, PermutationClassSymbol>>,
-}
-
-impl PermutationGroup {
-    fn builder() -> PermutationGroupBuilder {
-        PermutationGroupBuilder::default()
-    }
-}
+// ----------------
+// PermutationGroup
+// ----------------
 
 impl GroupProperties for PermutationGroup {
     type GroupElement = Permutation;
