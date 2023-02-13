@@ -18,6 +18,10 @@ type F = fraction::GenericFraction<u32>;
 #[path = "character_tests.rs"]
 mod character_tests;
 
+// ==================
+// Struct definitions
+// ==================
+
 /// A struct to represent algebraic group characters.
 ///
 /// Partial orders between characters are based on their complex moduli and
@@ -380,6 +384,10 @@ impl Character {
             .unwrap_or_else(|_| panic!("Unable to construct the complex conjugate of `{self}`."))
     }
 }
+
+// =====================
+// Trait implementations
+// =====================
 
 impl PartialEq for Character {
     fn eq(&self, other: &Self) -> bool {

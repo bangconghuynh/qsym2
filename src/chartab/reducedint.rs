@@ -12,6 +12,10 @@ use crate::aux::misc;
 #[path = "reducedint_tests.rs"]
 mod reducedint_tests;
 
+// ================
+// Enum definitions
+// ================
+
 /// A wrapper enum to represent an integer in a modulo ring, with added additive
 /// and multiplicative identities to support linear algebra operations.
 #[derive(Clone, Copy, Debug)]
@@ -30,6 +34,43 @@ pub enum LinAlgReducedInt<T, R: Reducer<T>> {
 }
 
 pub type LinAlgMontgomeryInt<T> = LinAlgReducedInt<T, Montgomery<T, T>>;
+
+// ------------------
+// Associated methods
+// ------------------
+impl<T, R> LinAlgReducedInt<T, R>
+where
+    T: Zero + One + PartialEq + Clone + Hash + fmt::Display + Integer,
+    R: Reducer<T> + Clone,
+{
+    pub fn multiplicative_order(&self) -> Option<T> {
+        match self {
+            Self::Zero => None,
+            Self::One => Some(T::one()),
+            Self::KnownChar(_) => {
+                // Check that residue and modulus are coprime.
+                if gcd(self.residue(), self.modulus()) != T::one() {
+                    log::debug!("{} is not coprime to {}.", self.residue(), self.modulus());
+                    return None;
+                }
+                let unity = Self::one();
+                let mut k = T::one();
+                while self.pow(k.clone()) != unity && k < self.modulus() - T::one() {
+                    k = k + T::one();
+                }
+                if self.pow(k.clone()) == unity {
+                    Some(k)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
+// =====================
+// Trait implementations
+// =====================
 
 // ---
 // Add
@@ -623,42 +664,9 @@ where
     }
 }
 
-// ------------------
-// Associated methods
-// ------------------
-impl<T, R> LinAlgReducedInt<T, R>
-where
-    T: Zero + One + PartialEq + Clone + Hash + fmt::Display + Integer,
-    R: Reducer<T> + Clone,
-{
-    pub fn multiplicative_order(&self) -> Option<T> {
-        match self {
-            Self::Zero => None,
-            Self::One => Some(T::one()),
-            Self::KnownChar(_) => {
-                // Check that residue and modulus are coprime.
-                if gcd(self.residue(), self.modulus()) != T::one() {
-                    log::debug!("{} is not coprime to {}.", self.residue(), self.modulus());
-                    return None;
-                }
-                let unity = Self::one();
-                let mut k = T::one();
-                while self.pow(k.clone()) != unity && k < self.modulus() - T::one() {
-                    k = k + T::one();
-                }
-                if self.pow(k.clone()) == unity {
-                    Some(k)
-                } else {
-                    None
-                }
-            }
-        }
-    }
-}
-
-// ----
+// ====
 // Wrap
-// ----
+// ====
 pub trait IntoLinAlgReducedInt {
     type InnerT;
     type InnerR: Reducer<Self::InnerT>;
