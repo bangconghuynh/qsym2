@@ -9,7 +9,7 @@ use num_traits::ToPrimitive;
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
-    disambiguate_irrep_symbols, CollectionSymbol, GenericSymbol, GenericSymbolParsingError,
+    disambiguate_linspace_symbols, CollectionSymbol, GenericSymbol, GenericSymbolParsingError,
     LinearSpaceSymbol, MathematicalSymbol,
 };
 use crate::chartab::unityroot::UnityRoot;
@@ -435,7 +435,7 @@ pub fn deduce_permutation_irrep_symbols(
 
     // Second pass: disambiguate identical cases not distinguishable by rules
     log::debug!("Second pass: disambiguate identical cases not distinguishable by rules");
-    let irrep_symbols = disambiguate_irrep_symbols(raw_irrep_symbols);
+    let irrep_symbols = disambiguate_linspace_symbols(raw_irrep_symbols);
 
     log::debug!("Generating permutation irreducible representation symbols... Done.");
     irrep_symbols

@@ -16,7 +16,7 @@ use regex::Regex;
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
-    disambiguate_irrep_symbols, CollectionSymbol, GenericSymbol, GenericSymbolParsingError,
+    disambiguate_linspace_symbols, CollectionSymbol, GenericSymbol, GenericSymbolParsingError,
     LinearSpaceSymbol, MathematicalSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::unityroot::UnityRoot;
@@ -415,7 +415,7 @@ impl LinearSpaceSymbol for MullikenIrcorepSymbol {
             }).sum()
     }
 
-    fn set_dimensionality(&mut self, dim: usize) -> bool {
+    fn set_dimensionality(&mut self, _: usize) -> bool {
         log::error!("The dimensionality of `{self}` cannot be set.");
         false
     }
@@ -1222,64 +1222,9 @@ where
     });
 
     log::debug!("Second pass: disambiguate identical cases not distinguishable by rules");
-    let irrep_symbols = disambiguate_irrep_symbols(raw_irrep_symbols);
+    let irrep_symbols = disambiguate_linspace_symbols(raw_irrep_symbols);
     log::debug!("Generating Mulliken irreducible representation symbols... Done.");
     irrep_symbols
-    // let raw_symbol_count = raw_irrep_symbols.clone().collect::<Counter<_>>();
-    // let mut raw_symbols_to_full_symbols: HashMap<_, _> = raw_symbol_count
-    //     .iter()
-    //     .map(|(raw_irrep, &duplicate_count)| {
-    //         if duplicate_count == 1 {
-    //             let mut irreps: VecDeque<MullikenIrrepSymbol> = VecDeque::new();
-    //             irreps.push_back(raw_irrep.clone());
-    //             (raw_irrep.clone(), irreps)
-    //         } else {
-    //             let irreps: VecDeque<MullikenIrrepSymbol> = (0..duplicate_count)
-    //                 .map(|i| {
-    //                     MullikenIrrepSymbol::new(
-    //                         format!(
-    //                             "|^({})|{}|^({})_({}{})|",
-    //                             raw_irrep.presuper(),
-    //                             raw_irrep.main(),
-    //                             raw_irrep.postsuper(),
-    //                             i + 1,
-    //                             raw_irrep.postsub(),
-    //                         )
-    //                         .as_str(),
-    //                     )
-    //                     .unwrap_or_else(|_| {
-    //                         panic!(
-    //                             "Unable to construct symmetry symbol `|^({})|{}|^({})_({}{})|`.",
-    //                             raw_irrep.presuper(),
-    //                             raw_irrep.main(),
-    //                             raw_irrep.postsuper(),
-    //                             i + 1,
-    //                             raw_irrep.postsub(),
-    //                         )
-    //                     })
-    //                 })
-    //                 .collect();
-    //             (raw_irrep.clone(), irreps)
-    //         }
-    //     })
-    //     .collect();
-
-    // let irrep_symbols: Vec<_> = raw_irrep_symbols
-    //     .map(|raw_irrep| {
-    //         raw_symbols_to_full_symbols
-    //             .get_mut(&raw_irrep)
-    //             .unwrap_or_else(|| {
-    //                 panic!(
-    //                     "Unknown conversion of raw symbol {} to full symbol.",
-    //                     &raw_irrep
-    //                 )
-    //             })
-    //             .pop_front()
-    //             .unwrap_or_else(|| {
-    //                 panic!("No conversion to full symbol possible for {}", &raw_irrep)
-    //             })
-    //     })
-    //     .collect();
 }
 
 /// Determines the mirror-plane symbol given a principal axis.

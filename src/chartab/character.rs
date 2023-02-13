@@ -309,7 +309,7 @@ impl Character {
     ///
     /// # Panics
     ///
-    /// Panics
+    /// Panics when the multiplicity of any unitary root cannot be retrieved.
     #[must_use]
     pub fn simplify(&self) -> Self {
         let mut urs: IndexSet<_> = self.terms.keys().rev().collect();

@@ -1,4 +1,5 @@
 use std::collections::{HashMap, VecDeque};
+use std::error::Error;
 use std::fmt;
 use std::hash::Hash;
 use std::str::FromStr;
@@ -14,9 +15,9 @@ pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
     -1i8 => "q",
 };
 
-// ======
-// Traits
-// ======
+// =================
+// Trait definitions
+// =================
 
 /// A trait for general mathematical symbols.
 pub trait MathematicalSymbol: Clone + Hash + Eq + fmt::Display {
@@ -161,7 +162,6 @@ impl GenericSymbol {
     pub fn set_main(&mut self, main: &str) {
         self.main = main.to_string();
     }
-
 }
 
 // ------------------
@@ -201,10 +201,6 @@ impl MathematicalSymbol for GenericSymbol {
         str::parse::<usize>(&self.prefactor).ok()
     }
 }
-
-// -------
-// FromStr
-// -------
 
 impl FromStr for GenericSymbol {
     type Err = GenericSymbolParsingError;
@@ -292,9 +288,6 @@ impl FromStr for GenericSymbol {
     }
 }
 
-// -------
-// Display
-// -------
 impl fmt::Display for GenericSymbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let prefac_str = if self.prefactor() == "1" {
@@ -344,66 +337,84 @@ impl fmt::Display for GenericSymbolParsingError {
     }
 }
 
-pub fn disambiguate_irrep_symbols<S>(raw_irrep_symbols: impl Iterator<Item = S> + Clone) -> Vec<S>
+impl Error for GenericSymbolParsingError {}
+
+// =======
+// Methods
+// =======
+
+/// Disambiguates linear-space labelling symbols that cannot be otherwise distinguished from rules.
+///
+/// This essentially appends appropriate roman subscripts to otherwise identical symbols.
+///
+/// # Arguments
+///
+/// * `raw_symbols` - An iterator of raw symbols, some of which might be identical.
+///
+/// # Returns
+///
+/// A vector of disambiguated symbols.
+pub fn disambiguate_linspace_symbols<S>(raw_symbols: impl Iterator<Item = S> + Clone) -> Vec<S>
 where
-    S: LinearSpaceSymbol
+    S: LinearSpaceSymbol,
 {
-    let raw_symbol_count = raw_irrep_symbols.clone().collect::<Counter<S>>();
+    let raw_symbol_count = raw_symbols.clone().collect::<Counter<S>>();
     let mut raw_symbols_to_full_symbols: HashMap<S, VecDeque<S>> = raw_symbol_count
         .iter()
-        .map(|(raw_irrep, &duplicate_count)| {
+        .map(|(raw_symbol, &duplicate_count)| {
             if duplicate_count == 1 {
-                let mut irreps: VecDeque<S> = VecDeque::new();
-                irreps.push_back(raw_irrep.clone());
-                (raw_irrep.clone(), irreps)
+                let mut symbols: VecDeque<S> = VecDeque::new();
+                symbols.push_back(raw_symbol.clone());
+                (raw_symbol.clone(), symbols)
             } else {
-                let irreps: VecDeque<S> = (0..duplicate_count)
+                let symbols: VecDeque<S> = (0..duplicate_count)
                     .map(|i| {
-                        let mut new_irrep = S::from_str(
-                            &format!(
-                                "|^({})|{}|^({})_({}{})|",
-                                raw_irrep.presuper(),
-                                raw_irrep.main(),
-                                raw_irrep.postsuper(),
-                                i + 1,
-                                raw_irrep.postsub(),
-                            )
-                        )
+                        let mut new_symbol = S::from_str(&format!(
+                            "|^({})|{}|^({})_({}{})|",
+                            raw_symbol.presuper(),
+                            raw_symbol.main(),
+                            raw_symbol.postsuper(),
+                            i + 1,
+                            raw_symbol.postsub(),
+                        ))
                         .unwrap_or_else(|_| {
                             panic!(
                                 "Unable to construct symmetry symbol `|^({})|{}|^({})_({}{})|`.",
-                                raw_irrep.presuper(),
-                                raw_irrep.main(),
-                                raw_irrep.postsuper(),
+                                raw_symbol.presuper(),
+                                raw_symbol.main(),
+                                raw_symbol.postsuper(),
                                 i + 1,
-                                raw_irrep.postsub(),
+                                raw_symbol.postsub(),
                             )
                         });
-                        new_irrep.set_dimensionality(raw_irrep.dimensionality());
-                        new_irrep
+                        new_symbol.set_dimensionality(raw_symbol.dimensionality());
+                        new_symbol
                     })
                     .collect();
-                (raw_irrep.clone(), irreps)
+                (raw_symbol.clone(), symbols)
             }
         })
         .collect();
 
-    let irrep_symbols: Vec<S> = raw_irrep_symbols
-        .map(|raw_irrep| {
+    let symbols: Vec<S> = raw_symbols
+        .map(|raw_symbol| {
             raw_symbols_to_full_symbols
-                .get_mut(&raw_irrep)
+                .get_mut(&raw_symbol)
                 .unwrap_or_else(|| {
                     panic!(
                         "Unknown conversion of raw symbol `{}` to full symbol.",
-                        &raw_irrep
+                        &raw_symbol
                     )
                 })
                 .pop_front()
                 .unwrap_or_else(|| {
-                    panic!("No conversion to full symbol possible for `{}`", &raw_irrep)
+                    panic!(
+                        "No conversion to full symbol possible for `{}`",
+                        &raw_symbol
+                    )
                 })
         })
         .collect();
 
-    irrep_symbols
+    symbols
 }
