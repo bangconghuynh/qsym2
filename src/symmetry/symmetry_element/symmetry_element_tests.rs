@@ -597,7 +597,10 @@ fn test_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &tsi2), "θ·S∞(+0.121)(+0.707, +0.000, +0.707)");
-    assert_eq!(format!("{:?}", &tsi2), "θ·σC∞(+0.121)(+0.707, +0.000, +0.707)");
+    assert_eq!(
+        format!("{:?}", &tsi2),
+        "θ·σC∞(+0.121)(+0.707, +0.000, +0.707)"
+    );
 
     let si2b = si2.convert_to_improper_kind(&INV, false);
     assert_eq!(format!("{}", &si2b), "Ṡ∞(-3.021)(+0.707, +0.000, +0.707)");
@@ -607,14 +610,20 @@ fn test_symmetry_element_constructor() {
     );
 
     let tsi2b = tsi2.convert_to_improper_kind(&INV, false);
-    assert_eq!(format!("{}", &tsi2b), "θ·Ṡ∞(-3.021)(+0.707, +0.000, +0.707)");
+    assert_eq!(
+        format!("{}", &tsi2b),
+        "θ·Ṡ∞(-3.021)(+0.707, +0.000, +0.707)"
+    );
     assert_eq!(
         format!("{:?}", &tsi2b),
         "θ·iC∞(-3.021)(+0.707, +0.000, +0.707)"
     );
 
     let tsi2c = tsi2.convert_to_improper_kind(&TRINV, false);
-    assert_eq!(format!("{}", &tsi2c), "θ·Ṡ∞(-3.021)(+0.707, +0.000, +0.707)");
+    assert_eq!(
+        format!("{}", &tsi2c),
+        "θ·Ṡ∞(-3.021)(+0.707, +0.000, +0.707)"
+    );
     assert_eq!(
         format!("{:?}", &tsi2c),
         "θ·iC∞(-3.021)(+0.707, +0.000, +0.707)"

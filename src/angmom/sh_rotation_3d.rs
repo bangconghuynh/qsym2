@@ -129,10 +129,7 @@ fn func_u(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 fn func_v(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) -> f64 {
     assert!(l >= 2, "`l` must be at least 2.");
     let li64 = i64::from(l);
-    assert!(
-        m.abs() <= li64,
-        "Index `m` = {m} lies outside [-{l}, {l}].",
-    );
+    assert!(m.abs() <= li64, "Index `m` = {m} lies outside [-{l}, {l}].",);
     assert!(
         mdash.abs() <= li64,
         "Index `mdash` = {mdash} lies outside [-{l}, {l}].",
@@ -226,10 +223,7 @@ fn func_w(l: u32, m: i64, mdash: i64, rmat: &Array2<f64>, rlm1: &Array2<f64>) ->
 /// The value of $`u^l_{mm'}`$.
 fn coeff_u(l: u32, m: i64, mdash: i64) -> f64 {
     let li64 = i64::from(l);
-    assert!(
-        m.abs() <= li64,
-        "Index `m` = {m} lies outside [-{l}, {l}].",
-    );
+    assert!(m.abs() <= li64, "Index `m` = {m} lies outside [-{l}, {l}].",);
     assert!(
         mdash.abs() <= li64,
         "Index `mdash` = {mdash} lies outside [-{l}, {l}].",
@@ -265,10 +259,7 @@ fn coeff_u(l: u32, m: i64, mdash: i64) -> f64 {
 /// The value of $`v^l_{mm'}`$.
 fn coeff_v(l: u32, m: i64, mdash: i64) -> f64 {
     let li64 = i64::from(l);
-    assert!(
-        m.abs() <= li64,
-        "Index `m` = {m} lies outside [-{l}, {l}].",
-    );
+    assert!(m.abs() <= li64, "Index `m` = {m} lies outside [-{l}, {l}].",);
     assert!(
         mdash.abs() <= li64,
         "Index `mdash` = {mdash} lies outside [-{l}, {l}].",
@@ -306,10 +297,7 @@ fn coeff_v(l: u32, m: i64, mdash: i64) -> f64 {
 /// The value of $`w^l_{mm'}`$.
 fn coeff_w(l: u32, m: i64, mdash: i64) -> f64 {
     let li64 = i64::from(l);
-    assert!(
-        m.abs() <= li64,
-        "Index `m` = {m} lies outside [-{l}, {l}].",
-    );
+    assert!(m.abs() <= li64, "Index `m` = {m} lies outside [-{l}, {l}].",);
     assert!(
         mdash.abs() <= li64,
         "Index `mdash` = {mdash} lies outside [-{l}, {l}].",

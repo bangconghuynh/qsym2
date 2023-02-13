@@ -22,22 +22,27 @@ fn test_symmetry_check_proper_improper_n3() {
         .check_proper(&ElementOrder::Int(15), &Vector3::new(1.0, 1.0, 1.0), false)
         .is_some());
     assert!(presym
-        .check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, -1.0, 0.0), false).is_none());
+        .check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, -1.0, 0.0), false)
+        .is_none());
 
     let sig = SymmetryElementKind::ImproperMirrorPlane(false);
     let inv = SymmetryElementKind::ImproperInversionCentre(false);
-    assert!(presym.check_improper(
-        &ElementOrder::Int(1),
-        &Vector3::new(-1.0, 0.0, 1.0),
-        &sig,
-        false
-    ).is_some());
-    assert!(presym.check_improper(
-        &ElementOrder::Int(1),
-        &Vector3::new(-1.0, 0.0, 1.0),
-        &inv,
-        false
-    ).is_none());
+    assert!(presym
+        .check_improper(
+            &ElementOrder::Int(1),
+            &Vector3::new(-1.0, 0.0, 1.0),
+            &sig,
+            false
+        )
+        .is_some());
+    assert!(presym
+        .check_improper(
+            &ElementOrder::Int(1),
+            &Vector3::new(-1.0, 0.0, 1.0),
+            &inv,
+            false
+        )
+        .is_none());
     assert!(presym
         .check_improper(
             &ElementOrder::Int(2),
@@ -52,7 +57,8 @@ fn test_symmetry_check_proper_improper_n3() {
             &Vector3::new(0.0, 1.0, -1.0),
             &sig,
             false
-        ).is_none());
+        )
+        .is_none());
 }
 
 #[test]

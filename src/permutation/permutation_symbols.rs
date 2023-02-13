@@ -173,7 +173,6 @@ impl fmt::Display for PermutationClassSymbol {
     }
 }
 
-
 // ----------------------
 // PermutationIrrepSymbol
 // ----------------------

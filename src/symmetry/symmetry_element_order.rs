@@ -4,7 +4,6 @@ use std::hash::{Hash, Hasher};
 
 use crate::aux::misc::HashableFloat;
 
-
 /// An enum to handle symmetry element orders.
 #[derive(Clone, Copy, Debug)]
 pub enum ElementOrder {
@@ -71,9 +70,7 @@ impl PartialEq for ElementOrder {
     fn eq(&self, other: &Self) -> bool {
         match &self {
             Self::Int(s_i) => match &other {
-                Self::Int(o_i) => {
-                    s_i == o_i
-                }
+                Self::Int(o_i) => s_i == o_i,
                 Self::Inf => false,
             },
             Self::Inf => match &other {

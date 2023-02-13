@@ -6422,7 +6422,9 @@ fn verify_bw_c2h_ci(presym: &PreSymmetry) {
     sym.analyse(presym, true);
     assert_eq!(sym.group_name, Some("C2h".to_owned()));
     assert_eq!(
-        sym.get_elements(&TRROT).expect("No time-reversed proper elements found.")[&ORDER_2].len(),
+        sym.get_elements(&TRROT)
+            .expect("No time-reversed proper elements found.")[&ORDER_2]
+            .len(),
         1
     );
     assert_eq!(
@@ -6430,7 +6432,9 @@ fn verify_bw_c2h_ci(presym: &PreSymmetry) {
         1
     );
     assert_eq!(
-        sym.get_elements(&TRSIG).expect("No time-reversed improper elements found.")[&ORDER_1].len(),
+        sym.get_elements(&TRSIG)
+            .expect("No time-reversed improper elements found.")[&ORDER_1]
+            .len(),
         1
     );
     assert_eq!(

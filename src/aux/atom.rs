@@ -1,4 +1,4 @@
-use crate::aux::geometry::{self, Transform, ImproperRotationKind};
+use crate::aux::geometry::{self, ImproperRotationKind, Transform};
 use crate::aux::misc::{self, HashableFloat};
 use approx;
 use nalgebra::{Matrix3, Point3, Rotation3, Translation3, UnitVector3, Vector3};
@@ -264,7 +264,12 @@ impl Transform for Atom {
         self.coordinates = rotation.transform_point(&self.coordinates);
     }
 
-    fn improper_rotate_mut(&mut self, angle: f64, axis: &Vector3<f64>, kind: &ImproperRotationKind) {
+    fn improper_rotate_mut(
+        &mut self,
+        angle: f64,
+        axis: &Vector3<f64>,
+        kind: &ImproperRotationKind,
+    ) {
         let mat = geometry::improper_rotation_matrix(angle, axis, 1, kind);
         self.transform_mut(&mat);
     }
@@ -296,7 +301,12 @@ impl Transform for Atom {
         rotated_atom
     }
 
-    fn improper_rotate(&self, angle: f64, axis: &Vector3<f64>, kind: &ImproperRotationKind) -> Self {
+    fn improper_rotate(
+        &self,
+        angle: f64,
+        axis: &Vector3<f64>,
+        kind: &ImproperRotationKind,
+    ) -> Self {
         let mut improper_rotated_atom = self.clone();
         improper_rotated_atom.improper_rotate_mut(angle, axis, kind);
         improper_rotated_atom

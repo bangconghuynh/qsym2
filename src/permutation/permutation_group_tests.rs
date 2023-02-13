@@ -43,9 +43,11 @@ fn test_irrep_character_table_algebraic_validity(
         if !res {
             panic!("{chr_c} is a non-integer.")
         } else {
-            chr_c.re.round().to_i32().unwrap_or_else(|| {
-                panic!("Unable to convert {chr_c} to `i32`.")
-            })
+            chr_c
+                .re
+                .round()
+                .to_i32()
+                .unwrap_or_else(|| panic!("Unable to convert {chr_c} to `i32`."))
         }
     });
 
@@ -67,7 +69,11 @@ fn test_irrep_character_table_algebraic_validity(
             assert_eq!(inprod_unnormed.rem_euclid(order_i32), 0);
             let inprod = inprod_unnormed.div_euclid(order_i32);
 
-            if i == j { inprod == 1 } else { inprod == 0 }
+            if i == j {
+                inprod == 1
+            } else {
+                inprod == 0
+            }
         }));
 
     // Second orthogonality theorem (column-orthogonality)

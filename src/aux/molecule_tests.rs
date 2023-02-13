@@ -1,9 +1,9 @@
 use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::geometry::{Transform, IMINV, IMSIG};
 use crate::aux::molecule::Molecule;
-use std::collections::HashSet;
-use nalgebra::Vector3;
 use approx;
+use nalgebra::Vector3;
+use std::collections::HashSet;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -31,7 +31,10 @@ fn test_transform_c60() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
     let mut mol = Molecule::from_xyz(&path, 1e-6);
     mol.recentre_mut();
-    let rotated_mol = mol.rotate(2.0 * std::f64::consts::PI / 5.0, &Vector3::new(0.0, 0.0, 1.0));
+    let rotated_mol = mol.rotate(
+        2.0 * std::f64::consts::PI / 5.0,
+        &Vector3::new(0.0, 0.0, 1.0),
+    );
     assert_eq!(mol, rotated_mol);
 }
 
@@ -79,28 +82,16 @@ fn test_transform_n3() {
     let rotated_mol2 = mol.rotate(std::f64::consts::PI, &Vector3::new(1.0, -1.0, 0.0));
     assert_ne!(mol, rotated_mol2);
 
-    let reflected_mol = mol.improper_rotate(
-        0.0,
-        &Vector3::new(1.0, -1.0, 0.0),
-        &IMSIG,
-    );
+    let reflected_mol = mol.improper_rotate(0.0, &Vector3::new(1.0, -1.0, 0.0), &IMSIG);
     assert_eq!(mol, reflected_mol);
 
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    let reflected_mol_mag = mol.improper_rotate(
-        0.0,
-        &Vector3::new(1.0, -1.0, 0.0),
-        &IMSIG,
-    );
+    let reflected_mol_mag = mol.improper_rotate(0.0, &Vector3::new(1.0, -1.0, 0.0), &IMSIG);
     assert_ne!(mol, reflected_mol_mag);
 
     mol.set_magnetic_field(None);
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    let reflected_mol_ele = mol.improper_rotate(
-        0.0,
-        &Vector3::new(1.0, -1.0, 0.0),
-        &IMSIG,
-    );
+    let reflected_mol_ele = mol.improper_rotate(0.0, &Vector3::new(1.0, -1.0, 0.0), &IMSIG);
     assert_eq!(mol, reflected_mol_ele);
 }
 
@@ -112,28 +103,16 @@ fn test_transform_c2h2() {
     let rotated_mol = mol.rotate(std::f64::consts::PI, &Vector3::new(0.0, 1.0, -1.0));
     assert_eq!(mol, rotated_mol);
 
-    let inverted_mol = mol.improper_rotate(
-        0.0,
-        &Vector3::new(1.0, 0.0, 0.0),
-        &IMINV,
-    );
+    let inverted_mol = mol.improper_rotate(0.0, &Vector3::new(1.0, 0.0, 0.0), &IMINV);
     assert_eq!(mol, inverted_mol);
 
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    let inverted_mol_mag = mol.improper_rotate(
-        0.0,
-        &Vector3::new(1.0, 0.0, 0.0),
-        &IMINV,
-    );
+    let inverted_mol_mag = mol.improper_rotate(0.0, &Vector3::new(1.0, 0.0, 0.0), &IMINV);
     assert_eq!(mol, inverted_mol_mag);
 
     mol.set_magnetic_field(None);
     mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
-    let inverted_mol_ele = mol.improper_rotate(
-        0.0,
-        &Vector3::new(1.0, 0.0, 0.0),
-        &IMINV,
-    );
+    let inverted_mol_ele = mol.improper_rotate(0.0, &Vector3::new(1.0, 0.0, 0.0), &IMINV);
     assert_ne!(mol, inverted_mol_ele);
 }
 
@@ -152,24 +131,13 @@ fn test_calc_moi_h8() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let (mois, principal_axes) = mol.calc_moi();
 
-    approx::assert_relative_eq!(
-        mois[0], 4.031776,
-        epsilon = 1e-6,
-        max_relative = 1e-6
-    );
-    approx::assert_relative_eq!(
-        mois[1], 10.07944,
-        epsilon = 1e-6,
-        max_relative = 1e-6
-    );
-    approx::assert_relative_eq!(
-        mois[2], 10.07944,
-        epsilon = 1e-6,
-        max_relative = 1e-6
-    );
+    approx::assert_relative_eq!(mois[0], 4.031776, epsilon = 1e-6, max_relative = 1e-6);
+    approx::assert_relative_eq!(mois[1], 10.07944, epsilon = 1e-6, max_relative = 1e-6);
+    approx::assert_relative_eq!(mois[2], 10.07944, epsilon = 1e-6, max_relative = 1e-6);
 
     approx::assert_relative_eq!(
-        principal_axes[0], Vector3::new(0.0, 0.0, 1.0),
+        principal_axes[0],
+        Vector3::new(0.0, 0.0, 1.0),
         epsilon = 1e-6,
         max_relative = 1e-6
     );
@@ -181,24 +149,23 @@ fn test_calc_moi_n3() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let (mois, principal_axes) = mol.calc_moi();
 
+    approx::assert_relative_eq!(mois[0], 0.0, epsilon = 1e-13, max_relative = 1e-13);
     approx::assert_relative_eq!(
-        mois[0], 0.0,
+        mois[1],
+        196.09407999999996,
         epsilon = 1e-13,
         max_relative = 1e-13
     );
     approx::assert_relative_eq!(
-        mois[1], 196.09407999999996,
-        epsilon = 1e-13,
-        max_relative = 1e-13
-    );
-    approx::assert_relative_eq!(
-        mois[2], 196.09407999999996,
+        mois[2],
+        196.09407999999996,
         epsilon = 1e-13,
         max_relative = 1e-13
     );
 
     approx::assert_relative_eq!(
-        principal_axes[0], Vector3::new(1.0, 1.0, 1.0) / 3.0_f64.sqrt(),
+        principal_axes[0],
+        Vector3::new(1.0, 1.0, 1.0) / 3.0_f64.sqrt(),
         epsilon = 1e-6,
         max_relative = 1e-6
     );

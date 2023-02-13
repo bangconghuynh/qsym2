@@ -7,7 +7,7 @@ use nalgebra::{DVector, Matrix3, Point3, Vector3};
 use num_traits::ToPrimitive;
 
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
-use crate::aux::geometry::{self, Transform, ImproperRotationKind};
+use crate::aux::geometry::{self, ImproperRotationKind, Transform};
 
 #[cfg(test)]
 #[path = "sea_tests.rs"]
@@ -496,7 +496,12 @@ impl Transform for Molecule {
         }
     }
 
-    fn improper_rotate_mut(&mut self, angle: f64, axis: &Vector3<f64>, kind: &ImproperRotationKind) {
+    fn improper_rotate_mut(
+        &mut self,
+        angle: f64,
+        axis: &Vector3<f64>,
+        kind: &ImproperRotationKind,
+    ) {
         for atom in &mut self.atoms {
             atom.improper_rotate_mut(angle, axis, kind);
         }
@@ -554,7 +559,12 @@ impl Transform for Molecule {
         rotated_mol
     }
 
-    fn improper_rotate(&self, angle: f64, axis: &Vector3<f64>, kind: &ImproperRotationKind) -> Self {
+    fn improper_rotate(
+        &self,
+        angle: f64,
+        axis: &Vector3<f64>,
+        kind: &ImproperRotationKind,
+    ) -> Self {
         let mut improper_rotated_mol = self.clone();
         improper_rotated_mol.improper_rotate_mut(angle, axis, kind);
         improper_rotated_mol

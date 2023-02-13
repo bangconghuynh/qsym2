@@ -11,7 +11,8 @@ use crate::chartab::{CharacterTable, RepCharacterTable};
 use crate::group::class::{ClassProperties, ClassStructure};
 use crate::group::{Group, GroupProperties, UnitaryRepresentedGroup};
 use crate::permutation::permutation_symbols::{
-    deduce_permutation_irrep_symbols, sort_perm_irreps, PermutationClassSymbol, PermutationIrrepSymbol,
+    deduce_permutation_irrep_symbols, sort_perm_irreps, PermutationClassSymbol,
+    PermutationIrrepSymbol,
 };
 use crate::permutation::Permutation;
 

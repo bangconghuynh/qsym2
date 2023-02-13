@@ -1,5 +1,5 @@
 use nalgebra::{Point3, Vector3};
-use num_traits::{Pow, Inv};
+use num_traits::{Inv, Pow};
 use std::collections::HashSet;
 
 use crate::aux::geometry;

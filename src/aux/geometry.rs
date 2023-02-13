@@ -413,7 +413,8 @@ pub trait Transform {
     ///
     /// An improper-rotated copy.
     #[must_use]
-    fn improper_rotate(&self, angle: f64, axis: &Vector3<f64>, kind: &ImproperRotationKind) -> Self;
+    fn improper_rotate(&self, angle: f64, axis: &Vector3<f64>, kind: &ImproperRotationKind)
+        -> Self;
 
     /// Clones and translates in-place the coordinates by a specified
     /// translation in three dimensions.

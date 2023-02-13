@@ -6,11 +6,11 @@ use std::ops::Div;
 use std::panic;
 
 use itertools::Itertools;
-use rayon::prelude::*;
 use log;
 use ndarray::{s, Array1, Array2, Axis, LinalgScalar, ShapeBuilder, Zip};
 use num_modular::ModularInteger;
 use num_traits::{Inv, Pow, ToPrimitive, Zero};
+use rayon::prelude::*;
 
 #[cfg(test)]
 #[path = "modular_linalg_tests.rs"]

@@ -322,14 +322,8 @@ fn test_character_algebra() {
     // ---
     // Add
     // ---
-    let c1 = Character::new(&[
-        (e3p1.clone(), 1usize),
-        (e3p2.clone(), 1usize),
-    ]);
-    let c2 = Character::new(&[
-        (e6p2.clone(), 1usize),
-        (e6p3.clone(), 2usize),
-    ]);
+    let c1 = Character::new(&[(e3p1.clone(), 1usize), (e3p2.clone(), 1usize)]);
+    let c2 = Character::new(&[(e6p2.clone(), 1usize), (e6p3.clone(), 2usize)]);
     let c3 = &c1 + &c2;
     let c3_ref = Character::new(&[
         (e3p1.clone(), 2usize),
@@ -348,27 +342,16 @@ fn test_character_algebra() {
     // ---
     // Neg
     // ---
-    let nc1 = Character::new(&[
-        (e6p1.clone(), 1usize),
-        (e6p5.clone(), 1usize),
-    ]);
+    let nc1 = Character::new(&[(e6p1.clone(), 1usize), (e6p5.clone(), 1usize)]);
     assert_eq!(-&c1, nc1);
 
-    let c7 = Character::new(&[
-        (e3p0.clone(), 2usize),
-        (e6p3.clone(), 1usize),
-    ]);
-    let nc7 = Character::new(&[
-        (e3p0.clone(), 1usize),
-        (e6p3.clone(), 2usize),
-    ]);
+    let c7 = Character::new(&[(e3p0.clone(), 2usize), (e6p3.clone(), 1usize)]);
+    let nc7 = Character::new(&[(e3p0.clone(), 1usize), (e6p3.clone(), 2usize)]);
     let nc7s = nc7.simplify();
     assert_eq!(-&c7, nc7);
     assert_eq!(-&c7, nc7s);
 
-    let c8 = Character::new(&[
-        (e6p4.clone(), 6usize),
-    ]);
+    let c8 = Character::new(&[(e6p4.clone(), 6usize)]);
     assert!((&c8 + (-&c8)).is_zero());
 
     // ---
@@ -377,17 +360,11 @@ fn test_character_algebra() {
     assert!((&c8 - &c8).is_zero());
 
     let c9 = &c1 - &c2;
-    let c9_ref = Character::new(&[
-        (e6p0.clone(), 2usize),
-        (e3p2.clone(), 1usize),
-    ]);
+    let c9_ref = Character::new(&[(e6p0.clone(), 2usize), (e3p2.clone(), 1usize)]);
     assert_eq!(c9, c9_ref);
 
     let c10 = &c1 - &c4;
-    let c10_ref = Character::new(&[
-        (e3p1.clone(), 2usize),
-        (e3p2.clone(), 2usize),
-    ]);
+    let c10_ref = Character::new(&[(e3p1.clone(), 2usize), (e3p2.clone(), 2usize)]);
     assert_eq!(c10, c10_ref);
 
     let c11 = &c4 - &c1;
