@@ -16,6 +16,10 @@ mod permutation_symbols;
 #[cfg(test)]
 mod permutation_tests;
 
+// ==================
+// Struct definitions
+// ==================
+
 /// A structure to manage permutation actions of a finite set.
 #[derive(Builder, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Permutation {
@@ -39,6 +43,11 @@ impl PermutationBuilder {
                 .expect("The rank for this permutation has not been set."),
             perm.len(),
             "The permutation image `{perm:?}` does not contain the expected number of elements",
+        );
+        let mut uniq = HashSet::<usize>::new();
+        assert!(
+            perm.into_iter().all(move |x| uniq.insert(*x)),
+            "The permutation image `{perm:?}` contains repeated elements."
         );
         self.image = Some(perm.to_vec());
         self
@@ -78,11 +87,22 @@ impl Permutation {
         PermutationBuilder::default()
     }
 
+    /// Constructs a permutation from the image of its action on an ordered sequence of integers,
+    /// $`0, 1, \ldots`$.
+    ///
+    /// # Arguments
+    ///
+    /// * `image` - The image of the permutation when acting on an ordered sequence of integers,
+    /// $`0, 1, \ldots`$.
+    ///
+    /// # Returns
+    ///
+    /// The corresponding permutation.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `image` contains repeated elements.
     pub fn from_image(image: &[usize]) -> Self {
-        assert_eq!(
-            image.len(),
-            image.iter().cloned().collect::<HashSet<usize>>().len()
-        );
         Self::builder()
             .rank(image.len())
             .image(image)
@@ -93,7 +113,25 @@ impl Permutation {
             })
     }
 
+    /// Constructs a permutation from its disjoint cycles.
+    ///
+    /// # Arguments
+    ///
+    /// * `cycles` - The disjoint cycles defining the permutation.
+    ///
+    /// # Returns
+    ///
+    /// The corresponding permutation.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the cycles in `cycles` contain repeated elements.
     pub fn from_cycles(cycles: &[Vec<usize>]) -> Self {
+        let mut uniq = HashSet::<usize>::new();
+        assert!(
+            cycles.iter().flatten().all(move |x| uniq.insert(*x)),
+            "The permutation cycles `{cycles:?}` contains repeated elements."
+        );
         let mut image_map = cycles
             .iter()
             .flat_map(|cycle| {
@@ -117,6 +155,8 @@ impl Permutation {
         Self::from_image(&image)
     }
 
+    /// If the permutation is to act on an ordered sequence of integers, $`0, 1, \ldots`$, then
+    /// this gives the result of the action.
     pub fn image(&self) -> &Vec<usize> {
         &self.image
     }
@@ -139,6 +179,10 @@ impl Permutation {
         self.image == (0..self.rank).collect::<Vec<usize>>()
     }
 }
+
+// =====================
+// Trait implementations
+// =====================
 
 // -------
 // Display
@@ -266,7 +310,8 @@ impl Pow<i32> for Permutation {
 impl FiniteOrder for Permutation {
     type Int = u32;
 
-    /// Calculates the order of this permutation.
+    /// Calculates the order of this permutation. This is the lowest common multiplier of the
+    /// lengths of the disjoint cycles constituting this permutation.
     fn order(&self) -> Self::Int {
         u32::try_from(
             self.cycle_pattern()
