@@ -1,4 +1,5 @@
 use std::cmp;
+use std::convert::TryInto;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -71,6 +72,42 @@ impl SymmetryElementKind {
             Self::Proper(_) => Self::Proper(tr),
             Self::ImproperMirrorPlane(_) => Self::ImproperMirrorPlane(tr),
             Self::ImproperInversionCentre(_) => Self::ImproperInversionCentre(tr),
+        }
+    }
+}
+
+pub struct SymmetryElementKindConversionError(String);
+
+impl fmt::Debug for SymmetryElementKindConversionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SymmetryElementKindConversionError")
+            .field("Message", &self.0)
+            .finish()
+    }
+}
+
+impl fmt::Display for SymmetryElementKindConversionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "SymmetryElementKindConversionError with message: {}",
+            &self.0
+        )
+    }
+}
+
+impl std::error::Error for SymmetryElementKindConversionError {}
+
+impl TryInto<geometry::ImproperRotationKind> for SymmetryElementKind {
+    type Error = SymmetryElementKindConversionError;
+
+    fn try_into(self) -> Result<geometry::ImproperRotationKind, Self::Error> {
+        match self {
+            Self::Proper(_) => Err(SymmetryElementKindConversionError(
+                "Unable to convert a proper element to an `ImproperRotationKind`.".to_string(),
+            )),
+            Self::ImproperMirrorPlane(_) => Ok(geometry::ImproperRotationKind::MirrorPlane),
+            Self::ImproperInversionCentre(_) => Ok(geometry::ImproperRotationKind::InversionCentre),
         }
     }
 }

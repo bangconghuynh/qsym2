@@ -7,8 +7,7 @@ use nalgebra::{DVector, Matrix3, Point3, Vector3};
 use num_traits::ToPrimitive;
 
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
-use crate::aux::geometry::{self, Transform};
-use crate::symmetry::symmetry_element::SymmetryElementKind;
+use crate::aux::geometry::{self, ImproperRotationKind, Transform};
 
 #[cfg(test)]
 #[path = "sea_tests.rs"]
@@ -28,7 +27,6 @@ pub struct Molecule {
     pub electric_atoms: Option<[Atom; 1]>,
 
     /// Optional special atoms to represent the magnetic field applied to this molecule.
-    // pub magnetic_atoms: Option<[Atom; 2]>,
     pub magnetic_atoms: Option<Vec<Atom>>,
 
     /// A threshold for approximate equality comparisons.
@@ -498,7 +496,12 @@ impl Transform for Molecule {
         }
     }
 
-    fn improper_rotate_mut(&mut self, angle: f64, axis: &Vector3<f64>, kind: &SymmetryElementKind) {
+    fn improper_rotate_mut(
+        &mut self,
+        angle: f64,
+        axis: &Vector3<f64>,
+        kind: &ImproperRotationKind,
+    ) {
         for atom in &mut self.atoms {
             atom.improper_rotate_mut(angle, axis, kind);
         }
@@ -556,7 +559,12 @@ impl Transform for Molecule {
         rotated_mol
     }
 
-    fn improper_rotate(&self, angle: f64, axis: &Vector3<f64>, kind: &SymmetryElementKind) -> Self {
+    fn improper_rotate(
+        &self,
+        angle: f64,
+        axis: &Vector3<f64>,
+        kind: &ImproperRotationKind,
+    ) -> Self {
         let mut improper_rotated_mol = self.clone();
         improper_rotated_mol.improper_rotate_mut(angle, axis, kind);
         improper_rotated_mol

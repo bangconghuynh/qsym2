@@ -1,8 +1,7 @@
-use std::collections::HashSet;
 use num_traits::Pow;
+use std::collections::HashSet;
 
 use crate::chartab::unityroot::UnityRoot;
-
 
 #[test]
 fn test_unityroot_equality() {
@@ -31,7 +30,6 @@ fn test_unityroot_equality() {
     assert_eq!(e8.pow(4), e8.pow(4).complex_conjugate());
     assert_ne!(e8.pow(3), e8.pow(3).complex_conjugate());
 }
-
 
 #[test]
 fn test_unityroot_hashing() {
@@ -78,7 +76,6 @@ fn test_unityroot_hashing() {
     assert_eq!(s1.len(), 5);
 }
 
-
 #[test]
 fn test_unityroot_partial_ord() {
     let e3 = UnityRoot::new(1u32, 3u32);
@@ -96,7 +93,6 @@ fn test_unityroot_partial_ord() {
     assert!(e7pm2 > e3p1);
 }
 
-
 #[test]
 fn test_unityroot_mul() {
     let e3 = UnityRoot::new(1u32, 3u32);
@@ -112,7 +108,6 @@ fn test_unityroot_mul() {
     assert_eq!(&e3 * &e21.pow(15), e21);
     assert_eq!(&e3 * &e3.complex_conjugate(), e21.pow(0));
 }
-
 
 #[test]
 fn test_unityroot_fmt() {

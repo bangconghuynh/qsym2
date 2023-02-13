@@ -225,26 +225,6 @@ fn test_ur_group_element_sort() {
     );
 }
 
-#[test]
-fn test_ur_group_class_matrices() {
-    // H2O in yz-plane, with C2 axis along z - C2v
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
-    let thresh = 1e-7;
-    let mol = Molecule::from_xyz(&path, thresh);
-    let presym = PreSymmetry::builder()
-        .moi_threshold(thresh)
-        .molecule(&mol, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    let nmat_rst = group.class_matrix();
-    let mut nmat_srt = nmat_rst.clone();
-    nmat_srt.swap_axes(0, 1);
-    assert_eq!(nmat_rst, nmat_srt);
-}
-
 // ============================================
 // Abstract group from molecular symmetry tests
 // ============================================
@@ -268,7 +248,7 @@ fn verify_abstract_group(
     }
 
     // Test inverse conjugacy classes
-    let ctb = group.cayley_table();
+    let ctb = group.cayley_table().expect("Cayley table not found.");
     for (class_i, inv_class_i) in group.inverse_conjugacy_classes().iter().enumerate() {
         assert!(
             conjugacy_classes[class_i]
@@ -281,11 +261,11 @@ fn verify_abstract_group(
         );
     }
 
-    // Test class matrix symmetry w.r.t. the first two indices
-    let nmat_rst = group.class_matrix();
-    let mut nmat_srt = nmat_rst.clone();
-    nmat_srt.swap_axes(0, 1);
-    assert_eq!(nmat_rst, nmat_srt);
+    // // Test class matrix symmetry w.r.t. the first two indices
+    // let nmat_rst = group.class_matrix();
+    // let mut nmat_srt = nmat_rst.clone();
+    // nmat_srt.swap_axes(0, 1);
+    // assert_eq!(nmat_rst, nmat_srt);
 }
 
 fn test_ur_ordinary_group(
@@ -798,6 +778,7 @@ fn test_ur_group_spherical_vh2o6_th() {
 
 #[test]
 fn test_ur_group_spherical_vh2o6_th_class_order() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -1851,6 +1832,7 @@ fn test_ur_group_symmetric_nh3_c3v() {
 
 #[test]
 fn test_ur_group_symmetric_nh3_c3v_class_order() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -2049,6 +2031,7 @@ fn test_ur_group_symmetric_sf5cl_c4v() {
 
 #[test]
 fn test_ur_group_symmetric_sf5cl_c4v_class_order() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/sf5cl.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);

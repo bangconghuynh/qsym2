@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use itertools::Itertools;
 
-use crate::chartab::chartab_group::CharacterProperties;
+use crate::chartab::chartab_group::{
+    CharacterProperties, IrcorepCharTabConstruction, IrrepCharTabConstruction,
+};
 use crate::chartab::chartab_symbols::CollectionSymbol;
 use crate::chartab::{CharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
@@ -23,6 +25,10 @@ mod symmetry_group_tests;
 #[cfg(test)]
 #[path = "symmetry_chartab_tests.rs"]
 mod symmetry_chartab_tests;
+
+// =================
+// Trait definitions
+// =================
 
 pub trait SymmetryGroupProperties:
     ClassProperties<
@@ -251,6 +257,14 @@ pub trait SymmetryGroupProperties:
     }
 }
 
+// =====================
+// Trait implementations
+// =====================
+
+// -----------------------
+// UnitaryRepresentedGroup
+// -----------------------
+
 impl SymmetryGroupProperties
     for UnitaryRepresentedGroup<
         SymmetryOperation,
@@ -293,7 +307,7 @@ impl SymmetryGroupProperties
             group.set_finite_subgroup_name(Some(finite_subgroup_name));
         }
         group.set_class_symbols_from_symmetry();
-        group.construct_character_table();
+        group.construct_irrep_character_table();
         group.canonicalise_character_table();
         group
     }
@@ -311,7 +325,7 @@ impl SymmetryGroupProperties
         let ts_cc = SymmetryClassSymbol::new("1||θ·σh||", None)
             .expect("Unable to construct class symbol `1||θ·σh||`.");
 
-        let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(self.name())
+        let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(&self.name())
             || FORCED_PRINCIPAL_GROUPS.contains(
                 self.finite_subgroup_name()
                     .unwrap_or(&String::new())
@@ -407,6 +421,10 @@ impl SymmetryGroupProperties
     }
 }
 
+// ------------------------
+// MagneticRepresentedGroup
+// ------------------------
+
 impl SymmetryGroupProperties
     for MagneticRepresentedGroup<
         SymmetryOperation,
@@ -475,7 +493,7 @@ impl SymmetryGroupProperties
             SymmetryClassSymbol<SymmetryOperation>,
         >::new(group_name.as_str(), unitary_operations);
         unitary_subgroup.set_class_symbols_from_symmetry();
-        unitary_subgroup.construct_character_table();
+        unitary_subgroup.construct_irrep_character_table();
         unitary_subgroup.canonicalise_character_table();
         log::debug!("Constructing the unitary subgroup for the magnetic group... Done.");
 
@@ -486,7 +504,7 @@ impl SymmetryGroupProperties
             group.set_finite_subgroup_name(Some(finite_subgroup_name));
         }
         group.set_class_symbols_from_symmetry();
-        group.construct_character_table();
+        group.construct_ircorep_character_table();
         log::debug!("Constructing the magnetic group... Done.");
         group
     }

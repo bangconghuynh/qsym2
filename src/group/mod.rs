@@ -7,6 +7,7 @@ use indexmap::IndexMap;
 use log;
 use ndarray::{Array2, Zip};
 use num::Integer;
+use num_traits::Inv;
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
@@ -16,6 +17,101 @@ use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
 use crate::group::class::{ClassProperties, ClassStructure};
 
 pub mod class;
+
+// =================
+// Trait definitions
+// =================
+
+/// A trait for order finiteness.
+pub trait FiniteOrder {
+    /// The integer type for the order of the element.
+    type Int: Integer;
+
+    /// Calculates the finite order.
+    fn order(&self) -> Self::Int;
+}
+
+/// A trait for purely group-theoretic properties.
+pub trait GroupProperties
+where
+    Self::GroupElement: Mul<Output = Self::GroupElement>
+        + Inv<Output = Self::GroupElement>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder,
+{
+    /// The type of the elements in the group.
+    type GroupElement;
+
+    /// The underlying abstract group of the possibly concrete group.
+    fn abstract_group(&self) -> &Group<Self::GroupElement>;
+
+    /// The name of the group.
+    fn name(&self) -> String;
+
+    /// The finite subgroup name of this group, if any.
+    fn finite_subgroup_name(&self) -> Option<&String>;
+
+    /// The elements in the group.
+    fn elements(&self) -> &IndexMap<Self::GroupElement, usize> {
+        &self.abstract_group().elements
+    }
+
+    /// Checks if this group is abelian.
+    fn is_abelian(&self) -> bool {
+        let ctb = self
+            .abstract_group()
+            .cayley_table
+            .as_ref()
+            .expect("Cayley table not found for this group.");
+        ctb == ctb.t()
+    }
+
+    /// The order of the group.
+    fn order(&self) -> usize {
+        self.abstract_group().elements.len()
+    }
+
+    /// The Cayley table of the group.
+    fn cayley_table(&self) -> Option<&Array2<usize>> {
+        self.abstract_group().cayley_table.as_ref()
+    }
+}
+
+/// A trait for indicating that a group can be partitioned into a unitary halving subgroup and and
+/// antiunitary coset.
+pub trait HasUnitarySubgroup: GroupProperties
+where
+    Self::UnitarySubgroup: GroupProperties<GroupElement = Self::GroupElement> + CharacterProperties,
+{
+    /// The type of the unitary halving subgroup.
+    type UnitarySubgroup;
+
+    /// Returns a shared reference to the unitary subgroup associated with this group.
+    fn unitary_subgroup(&self) -> &Self::UnitarySubgroup;
+
+    /// Checks if an element in the group belongs to the antiunitary coset.
+    ///
+    /// # Arguments
+    ///
+    /// * `element` - A group element.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if `element` is in the antiunitary coset of the group.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `element` is not a member of the group.
+    fn check_elem_antiunitary(&self, element: &Self::GroupElement) -> bool;
+}
+
+// ====================================
+// Enum definitions and implementations
+// ====================================
 
 /// An enumerated type to contain information about the type of a group.
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
@@ -54,20 +150,19 @@ pub const ORGRP: GroupType = GroupType::Ordinary(false);
 pub const BWGRP: GroupType = GroupType::MagneticBlackWhite(false);
 pub const GRGRP: GroupType = GroupType::MagneticGrey(false);
 
-/// A trait for order finiteness.
-pub trait FiniteOrder {
-    /// The integer type for the order of the element.
-    type Int: Integer;
+// ======================================
+// Struct definitions and implementations
+// ======================================
 
-    /// Calculates the finite order.
-    fn order(&self) -> Self::Int;
-}
+// --------------
+// Abstract group
+// --------------
 
 /// A structure for managing abstract groups.
 #[derive(Builder, Clone)]
 pub struct Group<T>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
 {
     /// A name for the abstract group.
     name: String,
@@ -91,7 +186,7 @@ where
 
 impl<T> GroupBuilder<T>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     fn elements(&mut self, elems: Vec<T>) -> &mut Self {
@@ -108,7 +203,7 @@ where
 
 impl<T> Group<T>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     /// Returns a builder to construct a new abstract group.
@@ -120,7 +215,7 @@ where
         GroupBuilder::<T>::default()
     }
 
-    /// Constructs an abstract group from its elements.
+    /// Constructs an abstract group from its elements and calculate its Cayley table.
     ///
     /// # Arguments
     ///
@@ -141,6 +236,24 @@ where
         group
     }
 
+    /// Constructs an abstract group from its elements but without calculating its Cayley table.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - A name to be given to the abstract group.
+    /// * `elements` - A vector of *all* group elements.
+    ///
+    /// # Returns
+    ///
+    /// An abstract group without its Cayley table constructed.
+    pub fn new_no_ctb(name: &str, elements: Vec<T>) -> Self {
+        Self::builder()
+            .name(name.to_string())
+            .elements(elements)
+            .build()
+            .expect("Unable to construct a group.")
+    }
+
     /// Constructs the Cayley table for the abstract group.
     fn compute_cayley_table(&mut self) {
         log::debug!("Constructing Cayley table in parallel...");
@@ -155,68 +268,31 @@ where
             let op_k = op_i_ref * op_j_ref;
             *k = *self.elements
                 .get(&op_k)
-                .unwrap_or_else(|| panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try changing thresholds.",
+                .unwrap_or_else(||
+                    panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try changing thresholds.",
                         op_i_ref,
                         op_j_ref,
-                        &op_k));
+                        &op_k)
+                    );
         });
         self.cayley_table = Some(ctb);
         log::debug!("Constructing Cayley table in parallel... Done.");
     }
 }
 
-pub trait GroupProperties
-where
-    Self::GroupElement:
-        Mul<Output = Self::GroupElement> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
-{
-    /// The type of the elements in the group.
-    type GroupElement;
-
-    /// The underlying abstract group of the possibly concrete group.
-    fn abstract_group(&self) -> &Group<Self::GroupElement>;
-
-    /// The name of the group.
-    fn name(&self) -> &str;
-
-    /// The elements in the group.
-    fn elements(&self) -> &IndexMap<Self::GroupElement, usize> {
-        &self.abstract_group().elements
-    }
-
-    /// Checks if this group is abelian.
-    fn is_abelian(&self) -> bool {
-        let ctb = self
-            .abstract_group()
-            .cayley_table
-            .as_ref()
-            .expect("Cayley table not found for this group.");
-        ctb == ctb.t()
-    }
-
-    /// The order of the group.
-    fn order(&self) -> usize {
-        self.abstract_group().elements.len()
-    }
-
-    /// The Cayley table of the group.
-    fn cayley_table(&self) -> &Array2<usize> {
-        self.abstract_group()
-            .cayley_table
-            .as_ref()
-            .expect("Cayley table not found for this group.")
-    }
-}
-
 impl<T> GroupProperties for Group<T>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     type GroupElement = T;
 
-    fn name(&self) -> &str {
-        &self.name
+    fn name(&self) -> String {
+        self.name.to_string()
+    }
+
+    fn finite_subgroup_name(&self) -> Option<&String> {
+        None
     }
 
     fn abstract_group(&self) -> &Self {
@@ -224,11 +300,15 @@ where
     }
 }
 
+// -------------------------
+// Unitary-represented group
+// -------------------------
+
 /// A structure for managing groups with unitary representations.
 #[derive(Clone, Builder)]
 pub struct UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
@@ -259,7 +339,7 @@ where
 
 impl<T, RowSymbol, ColSymbol> UnitaryRepresentedGroupBuilder<T, RowSymbol, ColSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
@@ -286,16 +366,10 @@ where
 
 impl<T, RowSymbol, ColSymbol> UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
-    /// Returns the finite subgroup name of this group.
-    #[must_use]
-    pub fn finite_subgroup_name(&self) -> Option<&String> {
-        self.finite_subgroup_name.as_ref()
-    }
-
     /// Sets the finite subgroup name of this group.
     ///
     /// # Arguments
@@ -308,7 +382,7 @@ where
 
 impl<T, RowSymbol, ColSymbol> UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
@@ -348,21 +422,29 @@ where
 
 impl<T, RowSymbol, ColSymbol> GroupProperties for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: LinearSpaceSymbol,
     ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
     type GroupElement = T;
 
-    fn name(&self) -> &str {
-        &self.name
+    fn name(&self) -> String {
+        self.name.to_string()
+    }
+
+    fn finite_subgroup_name(&self) -> Option<&String> {
+        self.finite_subgroup_name.as_ref()
     }
 
     fn abstract_group(&self) -> &Group<Self::GroupElement> {
         &self.abstract_group
     }
 }
+
+// --------------------------
+// Magnetic-represented group
+// --------------------------
 
 /// A structure for managing groups with magnetic corepresentations. Such a group consists of two
 /// types of elements in equal numbers: those that are unitary represented and those that are
@@ -372,7 +454,7 @@ where
 #[derive(Clone, Builder)]
 pub struct MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
 {
@@ -413,7 +495,7 @@ where
 
 impl<T, UG, RowSymbol> MagneticRepresentedGroupBuilder<T, UG, RowSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
@@ -451,15 +533,10 @@ where
 
 impl<T, UG, RowSymbol> MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
 {
-    /// Returns the finite subgroup name of this group.
-    pub fn finite_subgroup_name(&self) -> Option<&String> {
-        self.finite_subgroup_name.as_ref()
-    }
-
     /// Sets the finite subgroup name of this group.
     ///
     /// # Arguments
@@ -477,7 +554,7 @@ where
 
 impl<T, UG, RowSymbol> MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
@@ -515,6 +592,42 @@ where
         magnetic_group.compute_class_structure();
         magnetic_group
     }
+}
+
+impl<T, UG, RowSymbol> GroupProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
+where
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
+{
+    type GroupElement = T;
+
+    fn name(&self) -> String {
+        self.name.to_string()
+    }
+
+    fn finite_subgroup_name(&self) -> Option<&String> {
+        self.finite_subgroup_name.as_ref()
+    }
+
+    fn abstract_group(&self) -> &Group<Self::GroupElement> {
+        &self.abstract_group
+    }
+}
+
+impl<T, UG, RowSymbol> HasUnitarySubgroup for MagneticRepresentedGroup<T, UG, RowSymbol>
+where
+    T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
+{
+    type UnitarySubgroup = UG;
+
+    fn unitary_subgroup(&self) -> &Self::UnitarySubgroup {
+        &self.unitary_subgroup
+    }
 
     /// Checks if a given element is antiunitary-represented in this group.
     ///
@@ -529,29 +642,11 @@ where
     /// # Panics
     ///
     /// Panics if `element` is not in the group.
-    pub fn check_elem_antiunitary(&self, element: &T) -> bool {
+    fn check_elem_antiunitary(&self, element: &T) -> bool {
         if self.abstract_group.elements().contains_key(element) {
             !self.unitary_subgroup.elements().contains_key(element)
         } else {
             panic!("`{element:?}` is not an element of the group.")
         }
-    }
-}
-
-impl<T, UG, RowSymbol> GroupProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
-where
-    T: Mul<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
-    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
-    UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
-{
-    type GroupElement = T;
-
-    fn name(&self) -> &str {
-        &self.name
-    }
-
-    fn abstract_group(&self) -> &Group<Self::GroupElement> {
-        &self.abstract_group
     }
 }

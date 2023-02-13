@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::ops::{Add, Neg, Sub, Mul, MulAssign};
+use std::ops::{Add, Mul, MulAssign, Neg, Sub};
 
 use approx;
 use derive_builder::Builder;
@@ -17,6 +17,10 @@ type F = fraction::GenericFraction<u32>;
 #[cfg(test)]
 #[path = "character_tests.rs"]
 mod character_tests;
+
+// ==================
+// Struct definitions
+// ==================
 
 /// A struct to represent algebraic group characters.
 ///
@@ -189,11 +193,14 @@ impl Character {
     /// The concise form of the character.
     fn get_concise(&self, num_non_int: bool) -> String {
         let complex_value = self.complex_value();
+        let precision = 3i32;
+        let precision_u = usize::try_from(precision.unsigned_abs())
+            .expect("Unable to represent `precision` as `usize`.");
         if approx::relative_eq!(
             complex_value.im,
             0.0,
-            epsilon = self.threshold,
-            max_relative = self.threshold
+            epsilon = 10.0f64.powi(-precision - 1).max(self.threshold),
+            max_relative = 10.0f64.powi(-precision - 1).max(self.threshold)
         ) {
             // Zero imaginary
             // Zero or non-zero real
@@ -201,15 +208,15 @@ impl Character {
             if approx::relative_eq!(
                 rounded_re,
                 rounded_re.round(),
-                epsilon = self.threshold,
-                max_relative = self.threshold
+                epsilon = 10.0f64.powi(-precision - 1).max(self.threshold),
+                max_relative = 10.0f64.powi(-precision - 1).max(self.threshold)
             ) {
                 // Integer real
                 if approx::relative_eq!(
                     rounded_re,
                     0.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
+                    epsilon = 10.0f64.powi(-precision - 1).max(self.threshold),
+                    max_relative = 10.0f64.powi(-precision - 1).max(self.threshold)
                 ) {
                     "0".to_string()
                 } else {
@@ -218,7 +225,7 @@ impl Character {
             } else {
                 // Non-integer real
                 if num_non_int {
-                    format!("{:+.3}", complex_value.re)
+                    format!("{:+.precision_u$}", complex_value.re)
                 } else {
                     format!("{self:?}")
                 }
@@ -235,15 +242,15 @@ impl Character {
             if approx::relative_eq!(
                 rounded_im,
                 rounded_im.round(),
-                epsilon = self.threshold,
-                max_relative = self.threshold
+                epsilon = 10.0f64.powi(-precision - 1).max(self.threshold),
+                max_relative = 10.0f64.powi(-precision - 1).max(self.threshold)
             ) {
                 // Integer imaginary
                 if approx::relative_eq!(
                     rounded_im.abs(),
                     1.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
+                    epsilon = 10.0f64.powi(-precision - 1).max(self.threshold),
+                    max_relative = 10.0f64.powi(-precision - 1).max(self.threshold)
                 ) {
                     // i or -i
                     let imag = if rounded_im > 0.0 { "+i" } else { "-i" };
@@ -255,7 +262,7 @@ impl Character {
             } else {
                 // Non-integer imaginary
                 if num_non_int {
-                    format!("{:+.3}i", complex_value.im)
+                    format!("{:+.precision_u$}i", complex_value.im)
                 } else {
                     format!("{self:?}")
                 }
@@ -268,19 +275,19 @@ impl Character {
             if (approx::relative_ne!(
                 rounded_re,
                 rounded_re.round(),
-                epsilon = self.threshold,
-                max_relative = self.threshold
+                epsilon = 10.0f64.powi(-precision - 1).max(self.threshold),
+                max_relative = 10.0f64.powi(-precision - 1).max(self.threshold)
             ) || approx::relative_ne!(
                 rounded_im,
                 rounded_im.round(),
-                epsilon = self.threshold,
-                max_relative = self.threshold
+                epsilon = 10.0f64.powi(-precision - 1).max(self.threshold),
+                max_relative = 10.0f64.powi(-precision - 1).max(self.threshold)
             )) && !num_non_int
             {
                 format!("{self:?}")
             } else {
                 format!(
-                    "{:+.3} {} {:.3}i",
+                    "{:+.precision_u$} {} {:.precision_u$}i",
                     complex_value.re,
                     {
                         if complex_value.im > 0.0 {
@@ -306,7 +313,7 @@ impl Character {
     ///
     /// # Panics
     ///
-    /// Panics
+    /// Panics when the multiplicity of any unitary root cannot be retrieved.
     #[must_use]
     pub fn simplify(&self) -> Self {
         let mut urs: IndexSet<_> = self.terms.keys().rev().collect();
@@ -378,6 +385,10 @@ impl Character {
     }
 }
 
+// =====================
+// Trait implementations
+// =====================
+
 impl PartialEq for Character {
     fn eq(&self, other: &Self) -> bool {
         (self.terms == other.terms) || {
@@ -402,9 +413,7 @@ impl PartialEq for Character {
 impl Eq for Character {}
 
 impl PartialOrd for Character {
-    /// Two characters are compared based on their polar forms: their partial ordering is
-    /// determined by the ordering of their `$(\theta, r)$` ordered pairs, where `$\theta$` is the
-    /// argument normalised to `$[0, 2\pi)$` and `$r$` the modulus.
+    /// Two characters are compared based on their constituent unity roots.
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let mut self_terms = self.terms.clone();
         self_terms.retain(|_, mult| *mult > 0);

@@ -2,14 +2,15 @@ use std::collections::HashSet;
 use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
+use std::str::FromStr;
 
 use approx;
 use log;
 use ndarray::{array, s, Array1, Array2, Zip};
-use num::{integer::lcm, Complex};
+use num::integer::lcm;
 use num_modular::{ModularInteger, MontgomeryInt};
 use num_ord::NumOrd;
-use num_traits::{Inv, Pow, ToPrimitive, Zero};
+use num_traits::{Inv, One, Pow, ToPrimitive, Zero};
 use primes::is_prime;
 use rayon::prelude::*;
 
@@ -17,15 +18,24 @@ use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
     CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
 };
-use crate::chartab::modular_linalg::{modular_eig, split_space, weighted_hermitian_inprod};
+use crate::chartab::modular_linalg::{
+    modular_eig, split_2d_space, split_space, weighted_hermitian_inprod,
+};
 use crate::chartab::reducedint::{IntoLinAlgReducedInt, LinAlgMontgomeryInt};
 use crate::chartab::unityroot::UnityRoot;
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
 use crate::group::{
-    FiniteOrder, GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup,
+    FiniteOrder, GroupProperties, HasUnitarySubgroup, MagneticRepresentedGroup,
+    UnitaryRepresentedGroup,
 };
 
+// =================
+// Trait definitions
+// =================
+
+/// A trait to indicate the presence of character properties in a group and enable access to the
+/// character table of the group.
 pub trait CharacterProperties: ClassProperties
 where
     Self::RowSymbol: LinearSpaceSymbol,
@@ -38,49 +48,50 @@ where
     /// the same as [`Self::RowSymbol`].
     type CharTab;
 
-    /// Constructs and store the character table for this group.
-    fn construct_character_table(&mut self);
-
     /// Returns a shared reference to the character table of this group.
     fn character_table(&self) -> &Self::CharTab;
 }
 
-impl<T, RowSymbol, ColSymbol> CharacterProperties
-    for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
+/// A trait for the ability to construct an irrep character table for the group.
+///
+/// This trait comes with a default implementation of character table calculation based on the
+/// Burnside--Dixon algorithm with Schneider optimisation.
+pub trait IrrepCharTabConstruction:
+    CharacterProperties<
+    CharTab = RepCharacterTable<
+        <Self as CharacterProperties>::RowSymbol,
+        <Self as ClassProperties>::ClassSymbol,
+    >,
+>
 where
-    RowSymbol: LinearSpaceSymbol + Sync,
-    ColSymbol: CollectionSymbol<CollectionElement = T> + Sync,
-    T: Mul<Output = T>
+    Self: Sync,
+    Self::GroupElement: Mul<Output = Self::GroupElement>
         + Hash
         + Eq
         + Clone
         + Sync
         + fmt::Debug
         + FiniteOrder<Int = u32>
-        + Pow<i32, Output = T>,
-    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+        + Pow<i32, Output = Self::GroupElement>,
 {
-    type RowSymbol = RowSymbol;
-    type CharTab = RepCharacterTable<RowSymbol, ColSymbol>;
+    /// Sets the irrep character table internally.
+    fn set_irrep_character_table(&mut self, chartab: Self::CharTab);
 
-    fn character_table(&self) -> &Self::CharTab {
-        self.irrep_character_table
-            .as_ref()
-            .expect("Irrep character table not found for this group.")
-    }
-
-    /// Constructs the irrep character table for this group using the Burnside--Dixon algorithm.
+    /// Constructs the irrep character table for this group using the Burnside--Dixon algorithm
+    /// with Schneider optimisation.
     ///
     /// # References
     ///
     /// * Dixon, J. D. High speed computation of group characters. *Numerische Mathematik* **10**, 446–450 (1967).
+    /// * Schneider, G. J. A. Dixon’s character table algorithm revisited. *Journal of Symbolic Computation* **9**, 601–606 (1990).
     /// * Grove, L. C. Groups and Characters. (John Wiley & Sons, Inc., 1997).
     ///
     /// # Panics
     ///
-    /// Panics if the Frobenius--Schur indicator takes on unexpected values.
+    /// Panics if the Frobenius--Schur indicator for any resulted irrep takes on unexpected values
+    /// and thus implies that the computed irrep is invalid.
     #[allow(clippy::too_many_lines)]
-    fn construct_character_table(&mut self) {
+    fn construct_irrep_character_table(&mut self) {
         // Variable definitions
         // --------------------
         // m: LCM of the orders of the elements in the group (i.e. the group
@@ -94,7 +105,8 @@ where
 
         log::debug!("=============================================");
         log::debug!("Construction of irrep character table begins.");
-        log::debug!("     *** Burnside -- Dixon algorithm ***     ");
+        log::debug!("      *** Burnside--Dixon algorithm ***      ");
+        log::debug!("      ** with Schneider optimisation **      ");
         log::debug!("=============================================");
 
         // Identify a suitable finite field
@@ -115,7 +127,7 @@ where
                 .unwrap_or_else(|| panic!("Unable to convert `{}` to `f64`.", self.order()))
                 .sqrt()
             / (f64::from(m)))
-        .round();
+        .ceil();
         assert!(rf64.is_sign_positive());
         assert!(rf64 <= f64::from(u32::MAX));
         #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
@@ -156,22 +168,49 @@ where
 
         // Diagonalise class matrices
         let class_sizes: Vec<_> = self.conjugacy_classes().iter().map(HashSet::len).collect();
+        log::debug!("Class sizes: {:?}", class_sizes);
+        let sq_indices: Vec<usize> = self
+            .conjugacy_class_transversal()
+            .iter()
+            .map(|&ele_i| {
+                let (ele, _) = self
+                    .elements()
+                    .get_index(ele_i)
+                    .unwrap_or_else(|| panic!("Element index {ele_i} cannot be retrieved."));
+                let elep2 = ele.clone().pow(2);
+                let elep2_i = *self
+                    .elements()
+                    .get(&elep2)
+                    .unwrap_or_else(|| panic!("Element {elep2:?} not found."));
+                self.element_to_conjugacy_classes()[elep2_i]
+                    .unwrap_or_else(|| panic!("Conjugacy class for element {elep2:?} not found."))
+            })
+            .collect();
         let inverse_conjugacy_classes = Some(self.inverse_conjugacy_classes());
         let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u32>>> = vec![];
+
+        let rs = (1..self.class_number()).collect::<Vec<_>>();
+        let mut r_iter = rs.into_iter();
 
         if self.class_number() == 1 {
             eigvecs_1d.push(array![modp.convert(1)]);
         } else {
             let mut degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> = vec![];
-            let nmat = self.class_matrix().map(|&i| {
+            let ctb = self.cayley_table();
+            let r = r_iter
+                .next()
+                .expect("Unable to obtain any `r` indices for class matrices.");
+            log::debug!("Considering class matrix N{r}...");
+            let nmat_1 = self.class_matrix(ctb, r).map(|&i| {
                 modp.convert(
                     u32::try_from(i)
                         .unwrap_or_else(|_| panic!("Unable to convert `{i}` to `u32`.")),
                 )
             });
-            log::debug!("Considering class matrix N1...");
-            let nmat_1 = nmat.slice(s![1, .., ..]).to_owned();
-            let eigs_1 = modular_eig(&nmat_1);
+            let eigs_1 = modular_eig(&nmat_1).unwrap_or_else(|err| {
+                log::error!("{err}");
+                panic!("{err}");
+            });
             eigvecs_1d.extend(eigs_1.iter().filter_map(|(_, eigvecs)| {
                 if eigvecs.len() == 1 {
                     Some(eigvecs[0].clone())
@@ -192,14 +231,7 @@ where
                     .cloned(),
             );
 
-            let mut r = 1;
             while !degenerate_subspaces.is_empty() {
-                assert!(
-                    r < (self.class_number() - 1),
-                    "Class matrices exhausted before degenerate subspaces are fully resolved."
-                );
-
-                r += 1;
                 log::debug!(
                     "Number of 1-D eigenvectors found: {} / {}.",
                     eigvecs_1d.len(),
@@ -210,42 +242,107 @@ where
                     degenerate_subspaces.len(),
                 );
 
-                log::debug!("Considering class matrix N{}...", r);
-                let nmat_r = nmat.slice(s![r, .., ..]).to_owned();
-
-                let mut remaining_degenerate_subspaces: Vec<Vec<Array1<LinAlgMontgomeryInt<u32>>>> =
-                    vec![];
-                while !degenerate_subspaces.is_empty() {
-                    let subspace = degenerate_subspaces
-                        .pop()
-                        .expect("Unexpected empty `degenerate_subspaces`.");
-                    if let Ok(subsubspaces) =
-                        split_space(&nmat_r, &subspace, &class_sizes, inverse_conjugacy_classes)
-                    {
-                        eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
-                            if subsubspace.len() == 1 {
-                                Some(subsubspace[0].clone())
-                            } else {
-                                None
-                            }
-                        }));
-                        remaining_degenerate_subspaces.extend(
-                            subsubspaces
-                                .iter()
-                                .filter(|subsubspace| subsubspace.len() > 1)
-                                .cloned(),
-                        );
-                    } else {
-                        log::debug!(
-                            "Class matrix N{} failed to split degenerate subspace {}.",
-                            r,
-                            degenerate_subspaces.len()
-                        );
-                        log::debug!("Stashing this subspace for the next class matrices...");
-                        remaining_degenerate_subspaces.push(subspace);
+                let mut degenerate_2d_subspaces = degenerate_subspaces
+                    .iter()
+                    .filter(|subspace| subspace.len() == 2)
+                    .cloned()
+                    .collect::<Vec<_>>();
+                if !degenerate_2d_subspaces.is_empty() {
+                    degenerate_subspaces.retain(|subspace| subspace.len() > 2);
+                    log::debug!(
+                        "Number of 2-D degenerate subspaces found: {}",
+                        degenerate_2d_subspaces.len()
+                    );
+                    log::debug!(
+                        "Schneider's greedy algorithm for splitting 2-D spaces will be attempted."
+                    );
+                    while let Some(subspace) = degenerate_2d_subspaces.pop() {
+                        if let Ok(subsubspaces) = split_2d_space(
+                            &subspace,
+                            &class_sizes,
+                            &sq_indices,
+                            inverse_conjugacy_classes,
+                        ) {
+                            eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
+                                if subsubspace.len() == 1 {
+                                    Some(subsubspace[0].clone())
+                                } else {
+                                    log::error!("Unexpected!");
+                                    panic!("Unexpected");
+                                    // None
+                                }
+                            }));
+                            log::debug!(
+                                "2-D subspace index {} successfully split.",
+                                degenerate_2d_subspaces.len()
+                            );
+                        } else {
+                            log::warn!(
+                                "2-D subspace index {} cannot be split greedily.",
+                                degenerate_2d_subspaces.len()
+                            );
+                            log::warn!(
+                                "Stashing this 2-D subspace for splitting with class matrices..."
+                            );
+                            degenerate_subspaces.push(subspace);
+                        }
                     }
                 }
-                degenerate_subspaces = remaining_degenerate_subspaces;
+
+                if !degenerate_subspaces.is_empty() {
+                    if let Some(r) = r_iter.next() {
+                        log::debug!("Considering class matrix N{}...", r);
+                        let nmat_r =
+                            self.class_matrix(ctb, r).map(|&i| {
+                                modp.convert(u32::try_from(i).unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{i}` to `u32`.")
+                                }))
+                            });
+
+                        let mut remaining_degenerate_subspaces: Vec<
+                            Vec<Array1<LinAlgMontgomeryInt<u32>>>,
+                        > = vec![];
+                        while !degenerate_subspaces.is_empty() {
+                            let subspace = degenerate_subspaces
+                                .pop()
+                                .expect("Unexpected empty `degenerate_subspaces`.");
+
+                            if let Ok(subsubspaces) = split_space(
+                                &nmat_r,
+                                &subspace,
+                                &class_sizes,
+                                inverse_conjugacy_classes,
+                            ) {
+                                eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
+                                    if subsubspace.len() == 1 {
+                                        Some(subsubspace[0].clone())
+                                    } else {
+                                        None
+                                    }
+                                }));
+                                remaining_degenerate_subspaces.extend(
+                                    subsubspaces
+                                        .iter()
+                                        .filter(|subsubspace| subsubspace.len() > 1)
+                                        .cloned(),
+                                );
+                            } else {
+                                log::warn!(
+                                    "Class matrix N{} failed to split degenerate subspace {}.",
+                                    r,
+                                    degenerate_subspaces.len()
+                                );
+                                log::warn!("Stashing this subspace for the next class matrices...");
+                                remaining_degenerate_subspaces.push(subspace);
+                            }
+                        }
+                        degenerate_subspaces = remaining_degenerate_subspaces;
+                    } else {
+                        panic!(
+                            "Class matrices exhausted before degenerate subspaces are fully resolved."
+                        );
+                    }
+                }
             }
         }
 
@@ -260,34 +357,27 @@ where
         }
 
         // Lift characters back to the complex field
-        log::debug!(
-            "Lifting characters from GF({}) back to the complex field...",
-            p
-        );
+        log::debug!("Lifting characters from GF({p}) back to the complex field...",);
         let class_transversal = self.conjugacy_class_transversal();
 
         let chars: Vec<_> = eigvecs_1d
             .par_iter()
             .flat_map(|vec_i| {
-                let mut dim2_mod_p = weighted_hermitian_inprod(
+                let vec_i_inprod = weighted_hermitian_inprod(
                     (vec_i, vec_i),
                     &class_sizes,
                     inverse_conjugacy_classes,
-                )
-                .inv()
-                .residue();
-                while !approx::relative_eq!(
-                    f64::from(dim2_mod_p).sqrt().round(),
-                    f64::from(dim2_mod_p).sqrt()
-                ) {
-                    dim2_mod_p += p;
-                }
-
-                let dim_if64 = f64::from(dim2_mod_p).sqrt().round();
-                assert!(dim_if64.is_sign_positive());
-                assert!(dim_if64 <= f64::from(u32::MAX));
-                #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-                let dim_i = dim_if64 as u32;
+                );
+                let dim_i = (1..=p.div_euclid(2))
+                    .map(|d| vec_i_inprod.convert(d))
+                    .find(|d_modp| {
+                        vec_i_inprod == d_modp.square().inv()
+                    })
+                    .unwrap_or_else(|| {
+                        log::error!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
+                        panic!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
+                    });
+                log::debug!("⟨θvi, θvi⟩ = {vec_i_inprod} yields irrep dimensionality {}.", dim_i.residue());
 
                 let tchar_i =
                     Zip::from(vec_i)
@@ -369,11 +459,8 @@ where
             .collect();
 
         let char_arr = Array2::from_shape_vec((self.class_number(), self.class_number()), chars)
-            .expect("Unable to construct the two-dimensional table of characters.");
-        log::debug!(
-            "Lifting characters from GF({}) back to the complex field... Done.",
-            p
-        );
+            .expect("Unable to construct the two-dimensional array of characters.");
+        log::debug!("Lifting characters from GF({p}) back to the complex field... Done.",);
 
         let class_symbols = self.conjugacy_class_symbols();
 
@@ -382,7 +469,7 @@ where
             .into_iter()
             .enumerate()
             .map(|(irrep_i, _)| {
-                RowSymbol::from_str(&format!("||Λ|_({irrep_i})|"))
+                Self::RowSymbol::from_str(&format!("||Λ|_({irrep_i})|"))
                     .ok()
                     .expect("Unable to construct default irrep symbols.")
             })
@@ -393,67 +480,68 @@ where
             .expect("No conjugacy class symbols found.")
             .0
             .clone()];
-        let frobenius_schur_indicators: Vec<_> = char_arr
-            .rows()
-            .into_iter()
-            .enumerate()
-            .map(|(irrep_i, _)| {
-                let indicator: Complex<f64> =
-                    self.elements()
-                        .keys()
-                        .fold(Complex::new(0.0f64, 0.0f64), |acc, ele| {
-                            let ele_2_idx =
-                                self.elements().get(&ele.clone().pow(2)).unwrap_or_else(|| {
-                                    panic!("Element {:?} not found.", &ele.clone().pow(2))
-                                });
-                            let class_2_j = self.element_to_conjugacy_classes()[*ele_2_idx]
-                                .unwrap_or_else(|| {
-                                    panic!("Element `{ele:?}` does not have a conjugacy class.")
-                                });
-                            acc + char_arr[[irrep_i, class_2_j]].complex_value()
-                        })
-                        / self.order().to_f64().unwrap_or_else(|| {
-                            panic!("Unable to convert `{}` to `f64`.", self.order())
+
+        log::debug!("Computing the Frobenius--Schur indicators in GF({p})...");
+        let group_order = class_sizes.iter().sum::<usize>();
+        let group_order_u32 = u32::try_from(group_order).unwrap_or_else(|_| {
+            panic!("Unable to convert the group order {group_order} to `u32`.")
+        });
+        let frobenius_schur_indicators: Vec<i8> = eigvecs_1d
+            .par_iter()
+            .map(|vec_i| {
+                let vec_i_inprod = weighted_hermitian_inprod(
+                    (vec_i, vec_i),
+                    &class_sizes,
+                    inverse_conjugacy_classes,
+                );
+                let dim_i = (1..=p.div_euclid(2))
+                    .map(|d| vec_i_inprod.convert(d))
+                    .find(|d_modp| {
+                        vec_i_inprod == d_modp.square().inv()
+                    })
+                    .unwrap_or_else(|| {
+                        log::error!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
+                        panic!("Unable to deduce the irrep dimensionality from ⟨θvi, θvi⟩ = {vec_i_inprod} where vi = {vec_i}.");
+                    });
+
+                let tchar_i =
+                    Zip::from(vec_i)
+                        .and(class_sizes.as_slice())
+                        .par_map_collect(|&v, &k| {
+                            v * dim_i
+                                / modp.convert(u32::try_from(k).unwrap_or_else(|_| {
+                                    panic!("Unable to convert `{k}` to `u32`.")
+                                }))
                         });
-                approx::assert_relative_eq!(
-                    indicator.im,
-                    0.0,
-                    epsilon = 1e-14,
-                    max_relative = 1e-14
-                );
-                approx::assert_relative_eq!(
-                    indicator.re,
-                    indicator.re.round(),
-                    epsilon = 1e-14,
-                    max_relative = 1e-14
-                );
-                assert!(
-                    approx::relative_eq!(indicator.re, 1.0, epsilon = 1e-14, max_relative = 1e-14)
-                        || approx::relative_eq!(
-                            indicator.re,
-                            0.0,
-                            epsilon = 1e-14,
-                            max_relative = 1e-14
-                        )
-                        || approx::relative_eq!(
-                            indicator.re,
-                            -1.0,
-                            epsilon = 1e-14,
-                            max_relative = 1e-14
-                        )
-                );
-                #[allow(clippy::cast_possible_truncation)]
-                let indicator_i8 = indicator.re.round() as i8;
-                indicator_i8
-            })
-            .collect();
+                let fs_i = sq_indices
+                    .iter()
+                    .zip(class_sizes.iter())
+                    .fold(modp.convert(0), |acc, (&sq_idx, &k)| {
+                        let k_u32 = u32::try_from(k).unwrap_or_else(|_| {
+                            panic!("Unable to convert the class size {k} to `u32`.");
+                        });
+                        acc + modp.convert(k_u32) * tchar_i[sq_idx]
+                    }) / modp.convert(group_order_u32);
+
+                if fs_i.is_one() {
+                    1i8
+                } else if Zero::is_zero(&fs_i) {
+                    0i8
+                } else if fs_i == modp.convert(modp.modulus() - 1) {
+                    -1i8
+                } else {
+                    log::error!("Invalid Frobenius -- Schur indicator: `{fs_i}`.");
+                    panic!("Invalid Frobenius -- Schur indicator: `{fs_i}`.");
+                }
+            }).collect();
+        log::debug!("Computing the Frobenius--Schur indicators in GF({p})... Done.");
 
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
             format!("{} > {finite_name}", self.name())
         } else {
             self.name().to_string()
         };
-        self.irrep_character_table = Some(RepCharacterTable::new(
+        self.set_irrep_character_table(RepCharacterTable::new(
             chartab_name.as_str(),
             &default_irrep_symbols,
             &class_symbols.keys().cloned().collect::<Vec<_>>(),
@@ -463,44 +551,40 @@ where
         ));
 
         log::debug!("===========================================");
-        log::debug!("    *** Burnside -- Dixon algorithm ***    ");
+        log::debug!("     *** Burnside--Dixon algorithm ***     ");
+        log::debug!("     ** with Schneider optimisation **     ");
         log::debug!("Construction of irrep character table ends.");
         log::debug!("===========================================");
     }
 }
 
-impl<T, RowSymbol, UG> CharacterProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
+/// A trait for the ability to construct an ircorep character table for the group.
+///
+/// This trait comes with a default implementation of ircorep character table calculation based on
+/// the irreps of the unitary subgroup.
+pub trait IrcorepCharTabConstruction: HasUnitarySubgroup + CharacterProperties<
+    CharTab = CorepCharacterTable<
+        <Self as CharacterProperties>::RowSymbol,
+        <<Self as HasUnitarySubgroup>::UnitarySubgroup as CharacterProperties>::CharTab,
+    >
+>
 where
-    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
-    T: Mul<Output = T>
-        + Hash
-        + Eq
-        + Clone
-        + Sync
-        + fmt::Debug
-        + FiniteOrder<Int = u32>
-        + Pow<i32, Output = T>,
-    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-    UG: Clone
-        + GroupProperties<GroupElement = T>
-        + ClassProperties<GroupElement = T>
-        + CharacterProperties,
+    Self: ClassProperties<ClassSymbol = <<Self as HasUnitarySubgroup>::UnitarySubgroup as ClassProperties>::ClassSymbol>,
+    Self::RowSymbol: ReducibleLinearSpaceSymbol<
+        Subspace = <
+            <Self as HasUnitarySubgroup>::UnitarySubgroup as CharacterProperties
+        >::RowSymbol
+    >,
 {
-    type RowSymbol = RowSymbol;
-    type CharTab = CorepCharacterTable<Self::RowSymbol, UG::CharTab>;
-
-    fn character_table(&self) -> &Self::CharTab {
-        self.ircorep_character_table
-            .as_ref()
-            .expect("Ircorep character table not found for this group.")
-    }
+    /// Sets the irrep character table internally.
+    fn set_ircorep_character_table(&mut self, chartab: Self::CharTab);
 
     /// Constructs the ircorep character table for this group.
     ///
     /// For each irrep in the unitary subgroup, the type of the ircorep it induces is determined
     /// using the Dimmock--Wheeler character test, then the ircorep's characters in the
     /// unitary-represented part of the full group are determined to give a square character table.
-    fn construct_character_table(&mut self) {
+    fn construct_ircorep_character_table(&mut self) {
         log::debug!("===============================================");
         log::debug!("Construction of ircorep character table begins.");
         log::debug!("===============================================");
@@ -522,7 +606,7 @@ where
             .expect("Unable to convert the unitary group order to `i32`.");
         let unitary_chartab = self.unitary_subgroup().character_table();
 
-        let mag_ctb = self.cayley_table();
+        let mag_ctb = self.cayley_table().expect("Cayley table not found for the magnetic group.");
         let uni_e2c = self.unitary_subgroup().element_to_conjugacy_classes();
         let mag_ccsyms = self.conjugacy_class_symbols();
         let uni_ccsyms = self.unitary_subgroup().conjugacy_class_symbols();
@@ -535,7 +619,7 @@ where
         let mut remaining_irreps = unitary_chartab.get_all_rows();
         remaining_irreps.reverse();
 
-        let mut ircoreps_ins: Vec<(RowSymbol, u8)> = Vec::new();
+        let mut ircoreps_ins: Vec<(Self::RowSymbol, u8)> = Vec::new();
         while let Some(irrep) = remaining_irreps.pop() {
             log::debug!("Considering irrep {irrep} of the unitary subgroup...");
             let char_sum = self
@@ -599,7 +683,7 @@ where
                 log::debug!(
                     "  Ircorep induced by {irrep} is of type (a) with intertwining number 1."
                 );
-                (1u8, RowSymbol::from_subspaces(&[(irrep, 1)]))
+                (1u8, Self::RowSymbol::from_subspaces(&[(irrep, 1)]))
             } else if NumOrd(char_sum) == NumOrd(-unitary_order) {
                 // Irreducible corepresentation type b
                 // Δ(u) is equivalent to Δ*[a^(-1)ua].
@@ -607,7 +691,7 @@ where
                 log::debug!(
                     "  Ircorep induced by {irrep} is of type (b) with intertwining number 4."
                 );
-                (4u8, RowSymbol::from_subspaces(&[(irrep, 2)]))
+                (4u8, Self::RowSymbol::from_subspaces(&[(irrep, 2)]))
             } else if NumOrd(char_sum) == NumOrd(0i8) {
                 // Irreducible corepresentation type c
                 // Δ(u) is inequivalent to Δ*[a^(-1)ua].
@@ -662,7 +746,7 @@ where
                 log::debug!("  Ircorep induced by {irrep} and {conj_irrep} is of type (c) with intertwining number 2.");
                 (
                     2u8,
-                    RowSymbol::from_subspaces(&[(irrep, 1), (conj_irrep.to_owned(), 1)]),
+                    Self::RowSymbol::from_subspaces(&[(irrep, 1), (conj_irrep.to_owned(), 1)]),
                 )
             } else {
                 log::error!(
@@ -736,14 +820,14 @@ where
                 }
             }).collect::<Vec<_>>();
 
-        let (ircoreps, ins): (Vec<RowSymbol>, Vec<u8>) = ircoreps_ins.into_iter().unzip();
+        let (ircoreps, ins): (Vec<Self::RowSymbol>, Vec<u8>) = ircoreps_ins.into_iter().unzip();
 
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
             format!("{} > {finite_name}", self.name())
         } else {
             self.name().to_string()
         };
-        self.ircorep_character_table = Some(CorepCharacterTable::new(
+        self.set_ircorep_character_table(Self::CharTab::new(
             chartab_name.as_str(),
             unitary_chartab.clone(),
             &ircoreps,
@@ -756,5 +840,115 @@ where
         log::debug!("=============================================");
         log::debug!("Construction of ircorep character table ends.");
         log::debug!("=============================================");
+    }
+}
+
+// =====================
+// Trait implementations
+// =====================
+
+// ---------------------------------------------
+// UnitaryRepresentedGroup trait implementations
+// ---------------------------------------------
+
+impl<T, RowSymbol, ColSymbol> CharacterProperties
+    for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
+where
+    RowSymbol: LinearSpaceSymbol + Sync,
+    ColSymbol: CollectionSymbol<CollectionElement = T> + Sync,
+    T: Mul<Output = T>
+        + Inv<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder<Int = u32>
+        + Pow<i32, Output = T>,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+{
+    type RowSymbol = RowSymbol;
+    type CharTab = RepCharacterTable<RowSymbol, ColSymbol>;
+
+    fn character_table(&self) -> &Self::CharTab {
+        self.irrep_character_table
+            .as_ref()
+            .expect("Irrep character table not found for this group.")
+    }
+}
+
+impl<T, RowSymbol, ColSymbol> IrrepCharTabConstruction
+    for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
+where
+    RowSymbol: LinearSpaceSymbol + Sync,
+    ColSymbol: CollectionSymbol<CollectionElement = T> + Sync,
+    T: Mul<Output = T>
+        + Inv<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder<Int = u32>
+        + Pow<i32, Output = T>,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+{
+    fn set_irrep_character_table(&mut self, chartab: Self::CharTab) {
+        self.irrep_character_table = Some(chartab)
+    }
+}
+
+// ----------------------------------------------
+// MagneticRepresentedGroup trait implementations
+// ----------------------------------------------
+
+impl<T, RowSymbol, UG> CharacterProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
+where
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    T: Mul<Output = T>
+        + Inv<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder<Int = u32>
+        + Pow<i32, Output = T>,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    UG: Clone
+        + GroupProperties<GroupElement = T>
+        + ClassProperties<GroupElement = T>
+        + CharacterProperties,
+{
+    type RowSymbol = RowSymbol;
+    type CharTab = CorepCharacterTable<Self::RowSymbol, UG::CharTab>;
+
+    fn character_table(&self) -> &Self::CharTab {
+        self.ircorep_character_table
+            .as_ref()
+            .expect("Ircorep character table not found for this group.")
+    }
+}
+
+impl<T, RowSymbol, UG> IrcorepCharTabConstruction for MagneticRepresentedGroup<T, UG, RowSymbol>
+where
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    T: Mul<Output = T>
+        + Inv<Output = T>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder<Int = u32>
+        + Pow<i32, Output = T>,
+    for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
+    UG: Clone
+        + GroupProperties<GroupElement = T>
+        + ClassProperties<GroupElement = T>
+        + CharacterProperties,
+{
+    fn set_ircorep_character_table(&mut self, chartab: Self::CharTab) {
+        self.ircorep_character_table = Some(chartab);
     }
 }

@@ -1,12 +1,11 @@
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use log;
 
-use counter::Counter;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -17,8 +16,8 @@ use regex::Regex;
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
-    CollectionSymbol, GenericSymbol, GenericSymbolParsingError, LinearSpaceSymbol,
-    MathematicalSymbol, ReducibleLinearSpaceSymbol,
+    disambiguate_linspace_symbols, CollectionSymbol, GenericSymbol, GenericSymbolParsingError,
+    LinearSpaceSymbol, MathematicalSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::unityroot::UnityRoot;
 use crate::group::FiniteOrder;
@@ -74,6 +73,10 @@ pub static FORCED_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
     "Td + θ·Td",
 };
 
+// ==================
+// Struct definitions
+// ==================
+
 // -------------------
 // MullikenIrrepSymbol
 // -------------------
@@ -111,6 +114,133 @@ impl MullikenIrrepSymbol {
         Self::from_str(symstr)
     }
 }
+
+// ---------------------
+// MullikenIrcorepSymbol
+// ---------------------
+
+/// A struct to handle Mulliken irreducible corepresentation symbols.
+#[derive(Builder, Debug, Clone, Eq)]
+pub struct MullikenIrcorepSymbol {
+    inducing_irreps: HashMap<MullikenIrrepSymbol, usize>,
+}
+
+impl MullikenIrcorepSymbol {
+    fn builder() -> MullikenIrcorepSymbolBuilder {
+        MullikenIrcorepSymbolBuilder::default()
+    }
+
+    /// Parses a string representing a Mulliken irrep symbol.
+    ///
+    /// Some permissible Mulliken irrep symbols:
+    ///
+    /// ```text
+    /// "T"
+    /// "||T|_(2g)|"
+    /// "|^(3)|T|_(2g)|"
+    /// ```
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a Mulliken symbol.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string cannot be parsed as a generic symbol.
+    pub fn new(symstr: &str) -> Result<Self, MullikenIrcorepSymbolBuilderError> {
+        Self::from_str(symstr)
+    }
+
+    /// Returns an iterator containing sorted references to the symbols of the inducing irreps.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the inducing irrep symbols cannot be ordered.
+    #[must_use]
+    pub fn sorted_inducing_irreps(&self) -> std::vec::IntoIter<(&MullikenIrrepSymbol, &usize)> {
+        self.inducing_irreps.iter().sorted_by(|(a, _), (b, _)| {
+            a.partial_cmp(b)
+                .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
+        })
+    }
+}
+
+// -------------------
+// SymmetryClassSymbol
+// -------------------
+
+/// A struct to handle conjugacy class symbols.
+#[derive(Builder, Debug, Clone)]
+pub struct SymmetryClassSymbol<R: Clone> {
+    /// The generic part of the symbol.
+    generic_symbol: GenericSymbol,
+
+    /// A representative element in the class.
+    representative: Option<R>,
+}
+
+impl<R: Clone> SymmetryClassSymbol<R> {
+    fn builder() -> SymmetryClassSymbolBuilder<R> {
+        SymmetryClassSymbolBuilder::default()
+    }
+
+    pub fn representative(&self) -> Option<R> {
+        self.representative.clone()
+    }
+
+    /// Creates a class symbol from a string and a representative element.
+    ///
+    /// Some permissible conjugacy class symbols:
+    ///
+    /// ```text
+    /// "1||C3||"
+    /// "1||C3|^(2)|"
+    /// "12||C2|^(5)|"
+    /// "2||S|^(z)|(α)"
+    /// ```
+    ///
+    /// Note that the prefactor is required.
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a class symbol.
+    /// * `rep` - An optional representative element for this class.
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] wrapping the constructed class symbol.
+    ///
+    /// # Panics
+    ///
+    /// Panics when unable to construct a class symbol from the specified string.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string contains no parsable class size prefactor, or when the string cannot
+    /// be parsed as a generic symbol.
+    pub fn new(symstr: &str, rep: Option<R>) -> Result<Self, GenericSymbolParsingError> {
+        let generic_symbol = GenericSymbol::from_str(symstr)?;
+        if generic_symbol.multiplicity().is_none() {
+            Err(GenericSymbolParsingError(format!(
+                "{symstr} contains no class size prefactor."
+            )))
+        } else {
+            Ok(Self::builder()
+                .generic_symbol(generic_symbol)
+                .representative(rep)
+                .build()
+                .unwrap_or_else(|_| panic!("Unable to construct a class symbol from `{symstr}`.")))
+        }
+    }
+}
+
+// =====================
+// Trait implementations
+// =====================
+
+// -------------------
+// MullikenIrrepSymbol
+// -------------------
 
 impl MathematicalSymbol for MullikenIrrepSymbol {
     /// The main part of the symbol, which primarily denotes the dimensionality of the irrep space.
@@ -210,11 +340,23 @@ impl LinearSpaceSymbol for MullikenIrrepSymbol {
         )
         .expect("Unable to convert the dimensionality of this irrep to `usize`.")
     }
+
+    fn set_dimensionality(&mut self, dim: usize) -> bool {
+        let dim_u64 = u64::try_from(dim).unwrap_or_else(|err| {
+            log::error!("{err}");
+            panic!("Unable to convert `{dim}` to `u64`.")
+        });
+        let main_opt = INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim_u64);
+        if let Some(main) = main_opt {
+            self.generic_symbol.set_main(main);
+            true
+        } else {
+            log::warn!("Unable to retrieve an unambiguous Mulliken symbol for dimensionality `{dim_u64}`. Main symbol of {self} will be kept unchanged.");
+            false
+        }
+    }
 }
 
-// -------
-// Display
-// -------
 impl fmt::Display for MullikenIrrepSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
@@ -224,52 +366,6 @@ impl fmt::Display for MullikenIrrepSymbol {
 // ---------------------
 // MullikenIrcorepSymbol
 // ---------------------
-
-/// A struct to handle Mulliken irreducible corepresentation symbols.
-#[derive(Builder, Debug, Clone, Eq)]
-pub struct MullikenIrcorepSymbol {
-    inducing_irreps: HashMap<MullikenIrrepSymbol, usize>,
-}
-
-impl MullikenIrcorepSymbol {
-    fn builder() -> MullikenIrcorepSymbolBuilder {
-        MullikenIrcorepSymbolBuilder::default()
-    }
-
-    /// Parses a string representing a Mulliken irrep symbol.
-    ///
-    /// Some permissible Mulliken irrep symbols:
-    ///
-    /// ```text
-    /// "T"
-    /// "||T|_(2g)|"
-    /// "|^(3)|T|_(2g)|"
-    /// ```
-    ///
-    /// # Arguments
-    ///
-    /// * `symstr` - A string to be parsed to give a Mulliken symbol.
-    ///
-    /// # Errors
-    ///
-    /// Errors when the string cannot be parsed as a generic symbol.
-    pub fn new(symstr: &str) -> Result<Self, MullikenIrcorepSymbolBuilderError> {
-        Self::from_str(symstr)
-    }
-
-    /// Returns an iterator containing sorted references to the symbols of the inducing irreps.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the inducing irrep symbols cannot be ordered.
-    #[must_use]
-    pub fn sorted_inducing_irreps(&self) -> std::vec::IntoIter<(&MullikenIrrepSymbol, &usize)> {
-        self.inducing_irreps.iter().sorted_by(|(a, _), (b, _)| {
-            a.partial_cmp(b)
-                .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
-        })
-    }
-}
 
 impl MathematicalSymbol for MullikenIrcorepSymbol {
     /// The main part of the symbol.
@@ -400,6 +496,11 @@ impl LinearSpaceSymbol for MullikenIrcorepSymbol {
                 * mult
             }).sum()
     }
+
+    fn set_dimensionality(&mut self, _: usize) -> bool {
+        log::error!("The dimensionality of `{self}` cannot be set.");
+        false
+    }
 }
 
 impl ReducibleLinearSpaceSymbol for MullikenIrcorepSymbol {
@@ -417,30 +518,20 @@ impl ReducibleLinearSpaceSymbol for MullikenIrcorepSymbol {
     }
 }
 
-// -------
-// Display
-// -------
 impl fmt::Display for MullikenIrcorepSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.main())
     }
 }
 
-// ---------
-// PartialEq
-// ---------
 impl PartialEq for MullikenIrcorepSymbol {
     fn eq(&self, other: &Self) -> bool {
         let self_irreps = self.sorted_inducing_irreps().collect_vec();
         let other_irreps = other.sorted_inducing_irreps().collect_vec();
         self_irreps == other_irreps
-
     }
 }
 
-// ----
-// Hash
-// ----
 impl Hash for MullikenIrcorepSymbol {
     fn hash<H: Hasher>(&self, state: &mut H) {
         for irrep in self.sorted_inducing_irreps() {
@@ -449,19 +540,9 @@ impl Hash for MullikenIrcorepSymbol {
     }
 }
 
-// -----------
+// -------------------
 // SymmetryClassSymbol
-// -----------
-
-/// A struct to handle conjugacy class symbols.
-#[derive(Builder, Debug, Clone)]
-pub struct SymmetryClassSymbol<R: Clone> {
-    /// The generic part of the symbol.
-    generic_symbol: GenericSymbol,
-
-    /// A representative element in the class.
-    representative: Option<R>,
-}
+// -------------------
 
 impl<R: Clone> PartialEq for SymmetryClassSymbol<R> {
     fn eq(&self, other: &Self) -> bool {
@@ -474,16 +555,6 @@ impl<R: Clone> Eq for SymmetryClassSymbol<R> {}
 impl<R: Clone> Hash for SymmetryClassSymbol<R> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.generic_symbol.hash(state);
-    }
-}
-
-impl<R: Clone> SymmetryClassSymbol<R> {
-    fn builder() -> SymmetryClassSymbolBuilder<R> {
-        SymmetryClassSymbolBuilder::default()
-    }
-
-    pub fn representative(&self) -> Option<R> {
-        self.representative.clone()
     }
 }
 
@@ -550,53 +621,6 @@ impl<R: Clone> CollectionSymbol for SymmetryClassSymbol<R> {
 
     fn representative(&self) -> Option<Self::CollectionElement> {
         self.representative.clone()
-    }
-}
-
-impl<R: Clone> SymmetryClassSymbol<R> {
-    /// Creates a class symbol from a string and a representative element.
-    ///
-    /// Some permissible conjugacy class symbols:
-    ///
-    /// ```text
-    /// "1||C3||"
-    /// "1||C3|^(2)|"
-    /// "12||C2|^(5)|"
-    /// "2||S|^(z)|(α)"
-    /// ```
-    ///
-    /// Note that the prefactor is required.
-    ///
-    /// # Arguments
-    ///
-    /// * `symstr` - A string to be parsed to give a class symbol.
-    /// * `rep` - An optional representative element for this class.
-    ///
-    /// # Returns
-    ///
-    /// A [`Result`] wrapping the constructed class symbol.
-    ///
-    /// # Panics
-    ///
-    /// Panics when unable to construct a class symbol from the specified string.
-    ///
-    /// # Errors
-    ///
-    /// Errors when the string contains no parsable class size prefactor, or when the string cannot
-    /// be parsed as a generic symbol.
-    pub fn new(symstr: &str, rep: Option<R>) -> Result<Self, GenericSymbolParsingError> {
-        let generic_symbol = GenericSymbol::from_str(symstr)?;
-        if generic_symbol.multiplicity().is_none() {
-            Err(GenericSymbolParsingError(format!(
-                "{symstr} contains no class size prefactor."
-            )))
-        } else {
-            Ok(Self::builder()
-                .generic_symbol(generic_symbol)
-                .representative(rep)
-                .build()
-                .unwrap_or_else(|_| panic!("Unable to construct a class symbol from `{symstr}`.")))
-        }
     }
 }
 
@@ -735,18 +759,15 @@ impl<R: FiniteOrder + Clone> FiniteOrder for SymmetryClassSymbol<R> {
     }
 }
 
-// -------
-// Display
-// -------
 impl<R: Clone> fmt::Display for SymmetryClassSymbol<R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
     }
 }
 
-// =========
-// Functions
-// =========
+// =======
+// Methods
+// =======
 
 /// Reorder the rows so that the characters are in increasing order as we
 /// go down the table, with the first column being used as the primary sort
@@ -1204,61 +1225,7 @@ where
     });
 
     log::debug!("Second pass: disambiguate identical cases not distinguishable by rules");
-    let raw_symbol_count = raw_irrep_symbols.clone().collect::<Counter<_>>();
-    let mut raw_symbols_to_full_symbols: HashMap<_, _> = raw_symbol_count
-        .iter()
-        .map(|(raw_irrep, &duplicate_count)| {
-            if duplicate_count == 1 {
-                let mut irreps: VecDeque<MullikenIrrepSymbol> = VecDeque::new();
-                irreps.push_back(raw_irrep.clone());
-                (raw_irrep.clone(), irreps)
-            } else {
-                let irreps: VecDeque<MullikenIrrepSymbol> = (0..duplicate_count)
-                    .map(|i| {
-                        MullikenIrrepSymbol::new(
-                            format!(
-                                "|^({})|{}|^({})_({}{})|",
-                                raw_irrep.presuper(),
-                                raw_irrep.main(),
-                                raw_irrep.postsuper(),
-                                i + 1,
-                                raw_irrep.postsub(),
-                            )
-                            .as_str(),
-                        )
-                        .unwrap_or_else(|_| {
-                            panic!(
-                                "Unable to construct symmetry symbol `|^({})|{}|^({})_({}{})|`.",
-                                raw_irrep.presuper(),
-                                raw_irrep.main(),
-                                raw_irrep.postsuper(),
-                                i + 1,
-                                raw_irrep.postsub(),
-                            )
-                        })
-                    })
-                    .collect();
-                (raw_irrep.clone(), irreps)
-            }
-        })
-        .collect();
-
-    let irrep_symbols: Vec<_> = raw_irrep_symbols
-        .map(|raw_irrep| {
-            raw_symbols_to_full_symbols
-                .get_mut(&raw_irrep)
-                .unwrap_or_else(|| {
-                    panic!(
-                        "Unknown conversion of raw symbol {} to full symbol.",
-                        &raw_irrep
-                    )
-                })
-                .pop_front()
-                .unwrap_or_else(|| {
-                    panic!("No conversion to full symbol possible for {}", &raw_irrep)
-                })
-        })
-        .collect();
+    let irrep_symbols = disambiguate_linspace_symbols(raw_irrep_symbols);
     log::debug!("Generating Mulliken irreducible representation symbols... Done.");
     irrep_symbols
 }

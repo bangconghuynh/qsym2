@@ -295,10 +295,7 @@ impl<'a> BasisAtom<'a> {
 
     /// The number of basis functions localised on this atom.
     fn n_funcs(&self) -> usize {
-        self.basis_shells
-            .iter()
-            .map(BasisShell::n_funcs)
-            .sum()
+        self.basis_shells.iter().map(BasisShell::n_funcs).sum()
     }
 
     /// The ordered tuples of 0-based indices indicating the starting (inclusive) and ending
@@ -348,10 +345,7 @@ impl<'a> BasisAngularOrder<'a> {
 
     /// The number of basis functions in this basis set.
     fn n_funcs(&self) -> usize {
-        self.basis_atoms
-            .iter()
-            .map(BasisAtom::n_funcs)
-            .sum()
+        self.basis_atoms.iter().map(BasisAtom::n_funcs).sum()
     }
 
     /// The ordered tuples of 0-based indices indicating the starting (inclusive) and ending

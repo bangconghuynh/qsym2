@@ -50,7 +50,7 @@ impl Symmetry {
             &ElementOrder::Int(2),
             &Vector3::new(0.0, 0.0, 1.0),
             &SIG,
-            tr
+            tr,
         ) {
             // i
             log::debug!("Located an inversion centre.");
@@ -76,9 +76,7 @@ impl Symmetry {
                 Some("h".to_owned()),
                 presym.dist_threshold,
                 sigma_check
-                    .expect(
-                        "Expected mirror plane implied by C∞ and i not found.",
-                    )
+                    .expect("Expected mirror plane implied by C∞ and i not found.",)
                     .contains_time_reversal(),
             ));
 
@@ -90,7 +88,7 @@ impl Symmetry {
                     principal_axes[1],
                     true,
                     presym.dist_threshold,
-                    proper_kind.contains_time_reversal()
+                    proper_kind.contains_time_reversal(),
                 );
                 self.set_group_name("D∞h".to_owned());
             } else {
@@ -101,7 +99,9 @@ impl Symmetry {
         } else {
             // No i
             log::debug!("No inversion centres found.");
-            if let Some(improper_kind) = presym.check_improper(&ORDER_1, &principal_axes[1], &SIG, tr) {
+            if let Some(improper_kind) =
+                presym.check_improper(&ORDER_1, &principal_axes[1], &SIG, tr)
+            {
                 // σv
                 log::debug!("Located a σv plane.");
                 self.add_improper(
@@ -111,7 +111,7 @@ impl Symmetry {
                     SIG.clone(),
                     Some("v".to_owned()),
                     presym.dist_threshold,
-                    improper_kind.contains_time_reversal()
+                    improper_kind.contains_time_reversal(),
                 );
                 self.set_group_name("C∞v".to_owned());
             } else {

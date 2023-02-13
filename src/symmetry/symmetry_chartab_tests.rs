@@ -27,21 +27,10 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 // Character table for abstract group from molecular symmetry tests
 // ================================================================
 
-fn test_irrep_character_table_validity(
+fn test_irrep_character_table_algebraic_validity(
     chartab: &RepCharacterTable<MullikenIrrepSymbol, SymmetryClassSymbol<SymmetryOperation>>,
-    expected_irreps: &[MullikenIrrepSymbol],
-    expected_chars_option: Option<
-        HashMap<
-            (
-                &MullikenIrrepSymbol,
-                &SymmetryClassSymbol<SymmetryOperation>,
-            ),
-            Character,
-        >,
-    >,
 ) {
     let order: usize = chartab.classes.keys().map(|cc| cc.size()).sum();
-
     // Sum of squared dimensions
     assert_eq!(
         order,
@@ -114,6 +103,22 @@ fn test_irrep_character_table_validity(
                     && approx::relative_eq!(inprod.im, 0.0, epsilon = 1e-14, max_relative = 1e-14)
             }
         }));
+}
+
+fn test_irrep_character_table_validity(
+    chartab: &RepCharacterTable<MullikenIrrepSymbol, SymmetryClassSymbol<SymmetryOperation>>,
+    expected_irreps: &[MullikenIrrepSymbol],
+    expected_chars_option: Option<
+        HashMap<
+            (
+                &MullikenIrrepSymbol,
+                &SymmetryClassSymbol<SymmetryOperation>,
+            ),
+            Character,
+        >,
+    >,
+) {
+    test_irrep_character_table_algebraic_validity(chartab);
 
     // Expected irreps
     assert_eq!(
@@ -153,7 +158,9 @@ fn test_ircorep_character_table_algebraic_validity(
 ) {
     // Theorem 7.5, Newmarch, J. D. Some character theory for groups of linear and antilinear
     // operators. J. Math. Phys. 24, 742–756 (1983).
-    let mag_ctb = group.cayley_table();
+    let mag_ctb = group
+        .cayley_table()
+        .expect("Cayley table not found for the magnetic group.");
     let zeta_2 = group
         .elements()
         .iter()
@@ -1445,6 +1452,7 @@ fn test_chartab_spherical_c165_diamond_nanoparticle_grey_td() {
 
 #[test]
 fn test_chartab_spherical_vh2o6_th() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -7274,7 +7282,7 @@ fn test_chartab_symmetric_8_eclipsed_sandwich_grey_d8h() {
 
 // #[test]
 // fn test_chartab_symmetric_h100_d100h() {
-//     env_logger::init();
+//     // env_logger::init();
 //     let path: String = format!("{}{}", ROOT, "/tests/xyz/h100.xyz");
 //     let thresh = 1e-6;
 //     let mol = Molecule::from_xyz(&path, thresh);
@@ -7285,11 +7293,9 @@ fn test_chartab_symmetric_8_eclipsed_sandwich_grey_d8h() {
 //         .unwrap();
 //     let mut sym = Symmetry::new();
 //     sym.analyse(&presym, false);
-//     let uni_group = group_from_molecular_symmetry(&sym, None);
+//     let uni_group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
 //     let irrep_chartab = uni_group
-//         .irrep_character_table
-//         .as_ref()
-//         .expect("No irrep character table found.");
+//         .character_table();
 //     println!("Irreps of unitary subgroup");
 //     println!("{:?}", irrep_chartab);
 // }
@@ -10442,6 +10448,7 @@ fn test_chartab_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
 
 #[test]
 fn test_chartab_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd_s2n() {
+    // env_logger::init();
     let thresh = 1e-7;
     for n in 3..=20 {
         let mut mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);

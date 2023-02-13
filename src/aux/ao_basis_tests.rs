@@ -343,15 +343,7 @@ fn test_ao_basis_basisangularorder() {
     let batm_cl = BasisAtom::builder()
         .atom(&atm_cl)
         .basis_shells(&[
-            bs1s_p,
-            bs2s_p,
-            bs2p_p,
-            bs3s_p,
-            bs3p_p,
-            bs3d_p,
-            bs4s_p,
-            bs4p_p,
-            bs4d_p,
+            bs1s_p, bs2s_p, bs2p_p, bs3s_p, bs3p_p, bs3d_p, bs4s_p, bs4p_p, bs4d_p,
         ])
         .build()
         .unwrap();

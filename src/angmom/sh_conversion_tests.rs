@@ -4,11 +4,11 @@ use ndarray::{array, Array2};
 use num::Complex;
 use num_traits::{One, Zero};
 
-use crate::aux::ao_basis::CartOrder;
 use crate::angmom::sh_conversion::{
     complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat, sh_cart2cl_mat,
     sh_cart2r, sh_cart2rl_mat, sh_cl2cart_mat, sh_r2c_mat, sh_r2cart, sh_rl2cart_mat,
 };
+use crate::aux::ao_basis::CartOrder;
 
 type C128 = Complex<f64>;
 
@@ -188,7 +188,8 @@ fn test_sh_conversion_complexc() {
             < 1e-14
     );
     assert!(
-        (complexc((3, -1), (3, 0, 0), true) - C128::new(-(3.0f64.sqrt()) / 4.0, 0.0)).norm() < 1e-14
+        (complexc((3, -1), (3, 0, 0), true) - C128::new(-(3.0f64.sqrt()) / 4.0, 0.0)).norm()
+            < 1e-14
     );
     assert!(
         (complexc((3, -1), (0, 3, 0), true) - C128::new(0.0, 3.0f64.sqrt() / 4.0)).norm() < 1e-14

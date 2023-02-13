@@ -1,5 +1,5 @@
 use nalgebra::{Point3, Vector3};
-use num_traits::Pow;
+use num_traits::{Inv, Pow};
 use std::collections::HashSet;
 
 use crate::aux::geometry;
@@ -4893,6 +4893,49 @@ fn test_symmetry_operation_exponentiation() {
     assert_eq!(tc5.order(), 10);
     assert!((&tc5).pow(1).is_antiunitary());
     assert!((&tc5).pow(5).is_time_reversal());
+}
+
+#[test]
+fn test_symmetry_operation_invertibility() {
+    let c5_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(ROT)
+        .build()
+        .unwrap();
+
+    let c5 = SymmetryOperation::builder()
+        .generating_element(c5_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c5pm1 = SymmetryOperation::builder()
+        .generating_element(c5_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!((&c5).inv(), c5pm1);
+    assert!((&c5 * &(&c5).inv()).is_identity());
+
+    let tc5_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -2.0, 2.0))
+        .kind(TRROT)
+        .build()
+        .unwrap();
+
+    let tc5 = SymmetryOperation::builder()
+        .generating_element(tc5_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!((&c5).inv(), (&c5).pow(-1));
+    assert!((&tc5 * &(&tc5).inv()).is_identity());
 }
 
 #[test]
