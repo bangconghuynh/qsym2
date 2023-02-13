@@ -30,10 +30,12 @@ use crate::group::{
     UnitaryRepresentedGroup,
 };
 
-// -------------------------------
-// Trait declarations and defaults
-// -------------------------------
+// =================
+// Trait definitions
+// =================
 
+/// A trait to indicate the presence of character properties in a group and enable access to the
+/// character table of the group.
 pub trait CharacterProperties: ClassProperties
 where
     Self::RowSymbol: LinearSpaceSymbol,
@@ -50,6 +52,10 @@ where
     fn character_table(&self) -> &Self::CharTab;
 }
 
+/// A trait for the ability to construct an irrep character table for the group.
+///
+/// This trait comes with a default implementation of character table calculation based on the
+/// Burnside--Dixon algorithm with Schneider optimisation.
 pub trait IrrepCharTabConstruction:
     CharacterProperties<
     CharTab = RepCharacterTable<
@@ -68,19 +74,22 @@ where
         + FiniteOrder<Int = u32>
         + Pow<i32, Output = Self::GroupElement>,
 {
+    /// Sets the irrep character table internally.
     fn set_irrep_character_table(&mut self, chartab: Self::CharTab);
 
-    /// Constructs the irrep character table for this group using the Burnside--Dixon--Schneider
-    /// algorithm.
+    /// Constructs the irrep character table for this group using the Burnside--Dixon algorithm
+    /// with Schneider optimisation.
     ///
     /// # References
     ///
     /// * Dixon, J. D. High speed computation of group characters. *Numerische Mathematik* **10**, 446–450 (1967).
+    /// * Schneider, G. J. A. Dixon’s character table algorithm revisited. *Journal of Symbolic Computation* **9**, 601–606 (1990).
     /// * Grove, L. C. Groups and Characters. (John Wiley & Sons, Inc., 1997).
     ///
     /// # Panics
     ///
-    /// Panics if the Frobenius--Schur indicator takes on unexpected values.
+    /// Panics if the Frobenius--Schur indicator for any resulted irrep takes on unexpected values
+    /// and thus implies that the computed irrep is invalid.
     #[allow(clippy::too_many_lines)]
     fn construct_irrep_character_table(&mut self) {
         // Variable definitions
@@ -549,6 +558,10 @@ where
     }
 }
 
+/// A trait for the ability to construct an ircorep character table for the group.
+///
+/// This trait comes with a default implementation of ircorep character table calculation based on
+/// the irreps of the unitary subgroup.
 pub trait IrcorepCharTabConstruction: HasUnitarySubgroup + CharacterProperties<
     CharTab = CorepCharacterTable<
         <Self as CharacterProperties>::RowSymbol,
@@ -563,6 +576,7 @@ where
         >::RowSymbol
     >,
 {
+    /// Sets the irrep character table internally.
     fn set_ircorep_character_table(&mut self, chartab: Self::CharTab);
 
     /// Constructs the ircorep character table for this group.
@@ -829,6 +843,14 @@ where
     }
 }
 
+// =====================
+// Trait implementations
+// =====================
+
+// ---------------------------------------------
+// UnitaryRepresentedGroup trait implementations
+// ---------------------------------------------
+
 impl<T, RowSymbol, ColSymbol> CharacterProperties
     for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
@@ -875,6 +897,10 @@ where
         self.irrep_character_table = Some(chartab)
     }
 }
+
+// ----------------------------------------------
+// MagneticRepresentedGroup trait implementations
+// ----------------------------------------------
 
 impl<T, RowSymbol, UG> CharacterProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
 where

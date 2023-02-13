@@ -472,6 +472,10 @@ where
 // Trait implementations
 // =====================
 
+// ---------------------------------------------
+// UnitaryRepresentedGroup trait implementations
+// ---------------------------------------------
+
 impl<T, RowSymbol, ColSymbol> ClassProperties for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
@@ -562,6 +566,10 @@ where
         log::debug!("Finding unitary conjugacy classes... Done.");
     }
 }
+
+// ----------------------------------------------
+// MagneticRepresentedGroup trait implementations
+// ----------------------------------------------
 
 impl<T, UG, RowSymbol> ClassProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
