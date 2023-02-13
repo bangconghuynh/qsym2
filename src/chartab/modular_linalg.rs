@@ -36,11 +36,11 @@ fn modular_determinant<T>(mat: &Array2<T>) -> T
 where
     T: Clone + LinalgScalar + ModularInteger<Base = u32> + Div<Output = T>,
 {
+    assert_eq!(mat.ncols(), mat.nrows(), "A square matrix is expected.");
     let mut mat = mat.clone();
     let rep = mat
         .first()
         .expect("Unable to obtain the first element of `mat`.");
-    assert_eq!(mat.ncols(), mat.nrows(), "A square matrix is expected.");
     let dim = mat.ncols();
     let mut sign = rep.convert(1u32);
     let mut prev = rep.convert(1u32);
@@ -173,14 +173,14 @@ where
 /// Determines a set of basis vectors for the kernel of a matrix via Gaussian
 /// elimination over a finite integer field.
 ///
-/// The kernel of an `$m \times n$` matrix `$\mathbf{M}$` is the space of
+/// The kernel of an $`m \times n`$ matrix $`\mathbf{M}`$ is the space of
 /// the solutions to the equation
 ///
 /// ```math
 ///     \mathbf{M} \mathbf{x} = \mathbf{0},
 /// ```
 ///
-/// where `$\mathbf{x}$` is an `$n \times 1$` column vector.
+/// where $`\mathbf{x}`$ is an $`n \times 1`$ column vector.
 ///
 /// # Arguments
 ///
@@ -443,16 +443,25 @@ impl<'a, T: Display + Debug> fmt::Display for GramSchmidtError<'a, T> {
 
 impl<'a, T: Display + Debug> Error for GramSchmidtError<'a, T> {}
 
-/// Performs Gram--Schmidt orthogonalisation (but not normalisation) on a set of vectors.
+/// Performs Gram--Schmidt orthogonalisation (but not normalisation) on a set of vectors with
+/// respect to the inner product defined in [`self::weighted_hermitian_inprod`].
 ///
 /// # Arguments
 ///
-/// * `vecs` - Vectors forming a basis for a subspace.
-/// * `class_sizes` - Sizes for the conjugacy classes.
-/// * `perm_for_conj` - The permutation indices to take a vector into its conjugate.
+/// * `vs` - Vectors forming a basis for a subspace.
+/// * `class_sizes` - Sizes for the conjugacy classes. This is required to compute the inner
+/// product.
+/// * `perm_for_conj` - The permutation indices to take a vector into its conjugate. This is
+/// required to compute the inner product.
 ///
 /// # Returns
+///
 /// The orthogonal vectors forming a basis for the same subspace.
+///
+/// # Errors
+///
+/// Errors when the orthogonalisation procedure fails, which occurs when there is linear dependency
+/// between the basis vectors.
 fn gram_schmidt<'a, T>(
     vs: &'a [Array1<T>],
     class_sizes: &[usize],
@@ -501,6 +510,14 @@ where
     //         }
     //     }
     // }
+    debug_assert!({
+        us.iter().enumerate().all(|(i, ui)| {
+            us.iter().enumerate().all(|(j, uj)| {
+                let ov_ij = weighted_hermitian_inprod((ui, uj), class_sizes, perm_for_conj);
+                i == j || Zero::is_zero(&ov_ij)
+            })
+        })
+    });
 
     Ok(us)
 }
@@ -529,13 +546,15 @@ impl<'a, T: Display + Debug> Error for SplitSpaceError<'a, T> {}
 ///
 /// * `mat` - A matrix to act on the specified space.
 /// * `vecs` - The basis vectors specifying the space.
-/// * `class_sizes` - Sizes for the conjugacy classes.
-/// * `perm_for_conj` - The permutation indices to take a vector into its conjugate.
+/// * `class_sizes` - Sizes for the conjugacy classes. This is required to compute the inner
+/// product defined in [`self::weighted_hermitian_inprod`].
+/// * `perm_for_conj` - The permutation indices to take a vector into its conjugate. This is
+/// required to compute the inner product defined in [`self::weighted_hermitian_inprod`].
 ///
 /// # Returns
 ///
 /// A vector of vectors of vectors, where each inner vector contains the basis
-/// vectors for an `$n$`-dimensional subspace, `$n \ge 1$`.
+/// vectors for an $`n`$-dimensional subspace, `$n \ge 1$`.
 ///
 /// # Panics
 ///
@@ -688,6 +707,34 @@ impl<'a, T: Display + Debug> fmt::Display for Split2dSpaceError<'a, T> {
 
 impl<'a, T: Display + Debug> Error for Split2dSpaceError<'a, T> {}
 
+/// Splits a two-dimensional space using the trial-and-error approach suggested by
+/// Schneider, G. J. A. Dixon's character table algorithm revisited.
+/// *Journal of Symbolic Computation* **9**, 601–606 (1990).
+///
+/// In cases of ambiguity, the Frobenius--Schur indicators of the prospective irreps are computed
+/// to help rule out invalid cases.
+///
+/// # Arguments
+///
+/// * `vecs` - The two basis vectors specifying the space.
+/// * `class_sizes` - Sizes for the conjugacy classes. This is required to compute the inner
+/// product defined in [`self::weighted_hermitian_inprod`].
+/// * `perm_for_conj` - The permutation indices to take a vector into its conjugate. This is
+/// required to compute the inner product defined in [`self::weighted_hermitian_inprod`].
+///
+/// # Returns
+///
+/// A vector of two vectors of vectors, where each inner vector contains the basis
+/// vectors for a one-dimensional subspace.
+///
+/// # Panics
+///
+/// Panics when inconsistent ring moduli between vector and matrix elements are found.
+///
+/// # Errors
+///
+/// Errors when the two-dimensional subspace cannot be split using this approach. This occurs when
+/// the Frobenius--Schur indicators fail to rule out all prospective cases.
 pub fn split_2d_space<'a, T>(
     vecs: &'a [Array1<T>],
     class_sizes: &[usize],
@@ -715,6 +762,8 @@ where
         .expect("No known modulus found.");
 
     // Echelonise the basis so that v0 has first entry of 1, while v1 has first entry of 0.
+    // This then ensures that v0 + ai*v1 (i = 0, 1) always has first entry of 1, thus satisfying
+    // the requirement for 'normalised' eigenvectors of class matrices.
     let v_flat: Vec<T> = vecs.iter().flatten().cloned().collect();
     let shape = (vecs.len(), vecs[0].dim());
     let (v_mat, _) = modular_rref(&Array2::from_shape_vec(shape, v_flat).unwrap());
@@ -749,7 +798,7 @@ where
             })) != 0 {
                 None
             } else {
-                let res = (0..p).filter_map(|a0_u32| {
+                let res_a0 = (0..p).filter_map(|a0_u32| {
                     let a0 = rep.convert(a0_u32);
                     if Zero::is_zero(
                         &(a0 * (a0 * v11 + v01 + v10) + v00
@@ -761,7 +810,7 @@ where
                         } else {
                             let a1 = -(v00 + a0 * v01) / denom;
                             let d1p2 = one / (a1 * (a1 * v11 + v01 + v10) + v00);
-                            let res2 = (1..=sqrt_group_order).filter_map(|d1_u32| {
+                            let res_d1 = (1..=sqrt_group_order).filter_map(|d1_u32| {
                                 if group_order.rem_euclid(usize::try_from(d1_u32).unwrap_or_else(|_| {
                                     panic!("Unable to convert the trial dimension {d1_u32} to `usize`.")
                                 })) == 0 && rep.convert(d1_u32).square() == d1p2 {
@@ -781,9 +830,20 @@ where
 
                                     let d0 = rep.convert(d0_u32);
                                     let d1 = rep.convert(d1_u32);
-                                    let char0 = v0_split.iter().zip(class_sizes.iter()).map(|(&x, &k)| d0 * x / rep.convert(k as u32)).collect::<Vec<_>>();
-                                    let char1 = v1_split.iter().zip(class_sizes.iter()).map(|(&x, &k)| d1 * x / rep.convert(k as u32)).collect::<Vec<_>>();
+                                    let char0 = v0_split
+                                        .iter()
+                                        .zip(class_sizes.iter())
+                                        .map(|(&x, &k)|
+                                            d0 * x / rep.convert(k as u32)
+                                        ).collect::<Vec<_>>();
+                                    let char1 = v1_split
+                                        .iter()
+                                        .zip(class_sizes.iter())
+                                        .map(|(&x, &k)|
+                                            d1 * x / rep.convert(k as u32)
+                                        ).collect::<Vec<_>>();
 
+                                    // Frobenius--Schur indicator calculation in GF(p)
                                     let fs0 = sq_indices
                                         .iter()
                                         .zip(class_sizes.iter())
@@ -817,7 +877,7 @@ where
                                     None
                                 }
                             }).collect_vec();
-                            Some(res2)
+                            Some(res_d1)
                         }
                     } else {
                         None
@@ -825,7 +885,7 @@ where
                 })
                 .flatten()
                 .collect_vec();
-                Some(res)
+                Some(res_a0)
             }
         })
         .flatten()
@@ -833,13 +893,15 @@ where
 
     if results.len() == 1 {
         // Unique solution found.
-        log::debug!("Greedy splitting algorithm for 2-D subspace found a unique solution.");
+        log::debug!(
+            "Greedy Schneider splitting algorithm for 2-D subspace found a unique solution."
+        );
         let (v0_split, v1_split) = results[0].0.clone();
         Ok(vec![vec![v0_split], vec![v1_split]])
     } else {
-        // Multiple solutions found. We will error out for now.
+        // Multiple solutions found. The algorithm has failed.
         log::debug!(
-            "Greedy splitting algorithm for 2-D subspace found {} solutions.",
+            "Greedy Schneider splitting algorithm for 2-D subspace found {} solutions.",
             results.len()
         );
         for (i, (_, (d0_u32, d1_u32))) in results.iter().enumerate() {
