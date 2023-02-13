@@ -18,6 +18,101 @@ use crate::group::class::{ClassProperties, ClassStructure};
 
 pub mod class;
 
+// =================
+// Trait definitions
+// =================
+
+/// A trait for order finiteness.
+pub trait FiniteOrder {
+    /// The integer type for the order of the element.
+    type Int: Integer;
+
+    /// Calculates the finite order.
+    fn order(&self) -> Self::Int;
+}
+
+/// A trait for purely group-theoretic properties.
+pub trait GroupProperties
+where
+    Self::GroupElement: Mul<Output = Self::GroupElement>
+        + Inv<Output = Self::GroupElement>
+        + Hash
+        + Eq
+        + Clone
+        + Sync
+        + fmt::Debug
+        + FiniteOrder,
+{
+    /// The type of the elements in the group.
+    type GroupElement;
+
+    /// The underlying abstract group of the possibly concrete group.
+    fn abstract_group(&self) -> &Group<Self::GroupElement>;
+
+    /// The name of the group.
+    fn name(&self) -> String;
+
+    /// The finite subgroup name of this group, if any.
+    fn finite_subgroup_name(&self) -> Option<&String>;
+
+    /// The elements in the group.
+    fn elements(&self) -> &IndexMap<Self::GroupElement, usize> {
+        &self.abstract_group().elements
+    }
+
+    /// Checks if this group is abelian.
+    fn is_abelian(&self) -> bool {
+        let ctb = self
+            .abstract_group()
+            .cayley_table
+            .as_ref()
+            .expect("Cayley table not found for this group.");
+        ctb == ctb.t()
+    }
+
+    /// The order of the group.
+    fn order(&self) -> usize {
+        self.abstract_group().elements.len()
+    }
+
+    /// The Cayley table of the group.
+    fn cayley_table(&self) -> Option<&Array2<usize>> {
+        self.abstract_group().cayley_table.as_ref()
+    }
+}
+
+/// A trait for indicating that a group can be partitioned into a unitary halving subgroup and and
+/// antiunitary coset.
+pub trait HasUnitarySubgroup: GroupProperties
+where
+    Self::UnitarySubgroup: GroupProperties<GroupElement = Self::GroupElement> + CharacterProperties,
+{
+    /// The type of the unitary halving subgroup.
+    type UnitarySubgroup;
+
+    /// Returns a shared reference to the unitary subgroup associated with this group.
+    fn unitary_subgroup(&self) -> &Self::UnitarySubgroup;
+
+    /// Checks if an element in the group belongs to the antiunitary coset.
+    ///
+    /// # Arguments
+    ///
+    /// * `element` - A group element.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if `element` is in the antiunitary coset of the group.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `element` is not a member of the group.
+    fn check_elem_antiunitary(&self, element: &Self::GroupElement) -> bool;
+}
+
+// ====================================
+// Enum definitions and implementations
+// ====================================
+
 /// An enumerated type to contain information about the type of a group.
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub enum GroupType {
@@ -55,14 +150,13 @@ pub const ORGRP: GroupType = GroupType::Ordinary(false);
 pub const BWGRP: GroupType = GroupType::MagneticBlackWhite(false);
 pub const GRGRP: GroupType = GroupType::MagneticGrey(false);
 
-/// A trait for order finiteness.
-pub trait FiniteOrder {
-    /// The integer type for the order of the element.
-    type Int: Integer;
+// ======================================
+// Struct definitions and implementations
+// ======================================
 
-    /// Calculates the finite order.
-    fn order(&self) -> Self::Int;
-}
+// --------------
+// Abstract group
+// --------------
 
 /// A structure for managing abstract groups.
 #[derive(Builder, Clone)]
@@ -121,7 +215,7 @@ where
         GroupBuilder::<T>::default()
     }
 
-    /// Constructs an abstract group from its elements.
+    /// Constructs an abstract group from its elements and calculate its Cayley table.
     ///
     /// # Arguments
     ///
@@ -142,13 +236,22 @@ where
         group
     }
 
+    /// Constructs an abstract group from its elements but without calculating its Cayley table.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - A name to be given to the abstract group.
+    /// * `elements` - A vector of *all* group elements.
+    ///
+    /// # Returns
+    ///
+    /// An abstract group without its Cayley table constructed.
     pub fn new_no_ctb(name: &str, elements: Vec<T>) -> Self {
-        let mut group = Self::builder()
+        Self::builder()
             .name(name.to_string())
             .elements(elements)
             .build()
-            .expect("Unable to construct a group.");
-        group
+            .expect("Unable to construct a group.")
     }
 
     /// Constructs the Cayley table for the abstract group.
@@ -165,62 +268,15 @@ where
             let op_k = op_i_ref * op_j_ref;
             *k = *self.elements
                 .get(&op_k)
-                .unwrap_or_else(|| panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try changing thresholds.",
+                .unwrap_or_else(||
+                    panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try changing thresholds.",
                         op_i_ref,
                         op_j_ref,
-                        &op_k));
+                        &op_k)
+                    );
         });
         self.cayley_table = Some(ctb);
         log::debug!("Constructing Cayley table in parallel... Done.");
-    }
-}
-
-pub trait GroupProperties
-where
-    Self::GroupElement: Mul<Output = Self::GroupElement>
-        + Inv<Output = Self::GroupElement>
-        + Hash
-        + Eq
-        + Clone
-        + Sync
-        + fmt::Debug
-        + FiniteOrder,
-{
-    /// The type of the elements in the group.
-    type GroupElement;
-
-    /// The underlying abstract group of the possibly concrete group.
-    fn abstract_group(&self) -> &Group<Self::GroupElement>;
-
-    /// The name of the group.
-    fn name(&self) -> String;
-
-    /// The finite subgroup name of this group, if any.
-    fn finite_subgroup_name(&self) -> Option<&String>;
-
-    /// The elements in the group.
-    fn elements(&self) -> &IndexMap<Self::GroupElement, usize> {
-        &self.abstract_group().elements
-    }
-
-    /// Checks if this group is abelian.
-    fn is_abelian(&self) -> bool {
-        let ctb = self
-            .abstract_group()
-            .cayley_table
-            .as_ref()
-            .expect("Cayley table not found for this group.");
-        ctb == ctb.t()
-    }
-
-    /// The order of the group.
-    fn order(&self) -> usize {
-        self.abstract_group().elements.len()
-    }
-
-    /// The Cayley table of the group.
-    fn cayley_table(&self) -> Option<&Array2<usize>> {
-        self.abstract_group().cayley_table.as_ref()
     }
 }
 
@@ -243,6 +299,10 @@ where
         self
     }
 }
+
+// -------------------------
+// Unitary-represented group
+// -------------------------
 
 /// A structure for managing groups with unitary representations.
 #[derive(Clone, Builder)]
@@ -381,6 +441,10 @@ where
         &self.abstract_group
     }
 }
+
+// --------------------------
+// Magnetic-represented group
+// --------------------------
 
 /// A structure for managing groups with magnetic corepresentations. Such a group consists of two
 /// types of elements in equal numbers: those that are unitary represented and those that are
@@ -550,16 +614,6 @@ where
     fn abstract_group(&self) -> &Group<Self::GroupElement> {
         &self.abstract_group
     }
-}
-
-pub trait HasUnitarySubgroup: GroupProperties
-where
-    Self::UnitarySubgroup: GroupProperties<GroupElement = Self::GroupElement> + CharacterProperties,
-{
-    type UnitarySubgroup;
-
-    fn unitary_subgroup(&self) -> &Self::UnitarySubgroup;
-    fn check_elem_antiunitary(&self, element: &Self::GroupElement) -> bool;
 }
 
 impl<T, UG, RowSymbol> HasUnitarySubgroup for MagneticRepresentedGroup<T, UG, RowSymbol>
