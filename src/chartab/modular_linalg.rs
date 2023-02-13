@@ -6,6 +6,7 @@ use std::ops::Div;
 use std::panic;
 
 use itertools::Itertools;
+use rayon::prelude::*;
 use log;
 use ndarray::{s, Array1, Array2, Axis, LinalgScalar, ShapeBuilder, Zip};
 use num_modular::ModularInteger;
@@ -275,7 +276,9 @@ where
         + Eq
         + Hash
         + panic::UnwindSafe
-        + panic::RefUnwindSafe,
+        + panic::RefUnwindSafe
+        + Sync
+        + Send,
 {
     assert!(mat.is_square(), "Only square matrices are supported.");
     let dim = mat.nrows();
@@ -300,6 +303,7 @@ where
     log::debug!("Diagonalising in GF({})...", modulus);
 
     let results: HashMap<T, Vec<Array1<T>>> = (0..modulus)
+        .par_bridge()
         .filter_map(|lam| {
             let lamb = rep.convert(lam);
             let char_mat = mat - Array2::from_diag_elem(dim, lamb);
@@ -581,7 +585,9 @@ where
         + Zero
         + Inv
         + panic::UnwindSafe
-        + panic::RefUnwindSafe,
+        + panic::RefUnwindSafe
+        + Sync
+        + Send,
 {
     let modulus_set: HashSet<u32> = vecs
         .iter()

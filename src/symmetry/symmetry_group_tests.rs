@@ -225,26 +225,6 @@ fn test_ur_group_element_sort() {
     );
 }
 
-#[test]
-fn test_ur_group_class_matrices() {
-    // H2O in yz-plane, with C2 axis along z - C2v
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
-    let thresh = 1e-7;
-    let mol = Molecule::from_xyz(&path, thresh);
-    let presym = PreSymmetry::builder()
-        .moi_threshold(thresh)
-        .molecule(&mol, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    // let nmat_rst = group.class_matrix();
-    // let mut nmat_srt = nmat_rst.clone();
-    // nmat_srt.swap_axes(0, 1);
-    // assert_eq!(nmat_rst, nmat_srt);
-}
-
 // ============================================
 // Abstract group from molecular symmetry tests
 // ============================================
