@@ -16,6 +16,29 @@ mod permutation_symbols;
 #[cfg(test)]
 mod permutation_tests;
 
+// =================
+// Trait definitions
+// =================
+
+/// A trait defining a permutable collection consisting of discrete and distinguishable items that
+/// can be permuted.
+pub trait PermutableCollection {
+    /// Type of the items in the collection being permuted.
+    type Item;
+
+    /// Determines the permutation, if any, that maps `self` to `other`.
+    fn perm(&self, other: &Self) -> Option<Permutation>;
+}
+
+/// A trait defining an action on a permutable collection that can be converted into an equivalent
+/// permutation acting on that collection.
+pub trait IntoPermutation<C: PermutableCollection> {
+
+    /// Determines the permutation of `rhs` considered as a collection induced by the action of
+    /// `self` on `rhs` considered as an element in its domain.
+    fn act_permute(&self, rhs: &C) -> Permutation;
+}
+
 // ==================
 // Struct definitions
 // ==================
@@ -32,6 +55,7 @@ pub struct Permutation {
     #[builder(setter(custom))]
     image: Vec<usize>,
 
+    /// The disjoint cycles of this permutation.
     #[builder(setter(skip), default = "self.calc_cycles()")]
     cycles: Vec<Vec<usize>>,
 }

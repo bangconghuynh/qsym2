@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::process;
 
@@ -8,6 +8,7 @@ use num_traits::ToPrimitive;
 
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
 use crate::aux::geometry::{self, ImproperRotationKind, Transform};
+use crate::permutation::{PermutableCollection, Permutation};
 
 #[cfg(test)]
 #[path = "sea_tests.rs"]
@@ -16,6 +17,10 @@ mod sea_tests;
 #[cfg(test)]
 #[path = "molecule_tests.rs"]
 mod molecule_tests;
+
+// ==================
+// Struct definitions
+// ==================
 
 /// A struct containing the atoms constituting a molecule.
 #[derive(Clone, Debug)]
@@ -463,6 +468,10 @@ impl Molecule {
     }
 }
 
+// =====================
+// Trait implementations
+// =====================
+
 impl Transform for Molecule {
     fn transform_mut(&mut self, mat: &Matrix3<f64>) {
         for atom in &mut self.atoms {
@@ -673,5 +682,26 @@ impl PartialEq for Molecule {
             return false;
         };
         true
+    }
+}
+
+impl PermutableCollection for Molecule {
+    type Item = Atom;
+
+    /// Determines the permutation of *ordinary* atoms to map `self` to `other`. Special fictitious
+    /// atoms are not included.
+    fn perm(&self, other: &Self) -> Option<Permutation> {
+        let o_atoms: HashMap<Atom, usize> = other
+            .atoms
+            .iter()
+            .enumerate()
+            .map(|(i, atom)| (atom.clone(), i))
+            .collect();
+        let image_opt: Option<Vec<usize>> = self
+            .atoms
+            .iter()
+            .map(|s_atom| o_atoms.get(s_atom).copied())
+            .collect();
+        image_opt.map(|image| Permutation::from_image(&image))
     }
 }

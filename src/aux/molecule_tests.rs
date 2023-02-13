@@ -1,9 +1,12 @@
+use std::collections::HashSet;
+
+use approx;
+use nalgebra::Vector3;
+
 use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::geometry::{Transform, IMINV, IMSIG};
 use crate::aux::molecule::Molecule;
-use approx;
-use nalgebra::Vector3;
-use std::collections::HashSet;
+use crate::permutation::{PermutableCollection, Permutation};
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -169,4 +172,8 @@ fn test_calc_moi_n3() {
         epsilon = 1e-6,
         max_relative = 1e-6
     );
+}
+
+#[test]
+fn test_molecule_perm() {
 }

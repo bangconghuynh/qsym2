@@ -19,6 +19,8 @@ type F = fraction::GenericFraction<u32>;
 pub mod symmetry_operation;
 pub use symmetry_operation::*;
 
+pub mod symmetry_action;
+
 #[cfg(test)]
 mod symmetry_element_tests;
 
