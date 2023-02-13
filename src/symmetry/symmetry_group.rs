@@ -26,6 +26,10 @@ mod symmetry_group_tests;
 #[path = "symmetry_chartab_tests.rs"]
 mod symmetry_chartab_tests;
 
+// =================
+// Trait definitions
+// =================
+
 pub trait SymmetryGroupProperties:
     ClassProperties<
         GroupElement = SymmetryOperation,
@@ -253,6 +257,14 @@ pub trait SymmetryGroupProperties:
     }
 }
 
+// =====================
+// Trait implementations
+// =====================
+
+// -----------------------
+// UnitaryRepresentedGroup
+// -----------------------
+
 impl SymmetryGroupProperties
     for UnitaryRepresentedGroup<
         SymmetryOperation,
@@ -408,6 +420,10 @@ impl SymmetryGroupProperties
         ));
     }
 }
+
+// ------------------------
+// MagneticRepresentedGroup
+// ------------------------
 
 impl SymmetryGroupProperties
     for MagneticRepresentedGroup<
