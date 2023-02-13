@@ -490,7 +490,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     fn is_proper(&self) -> bool {
         self.generating_element.is_proper(true)
             || self.generating_element.is_proper(false)
-            || (self.power % 2 == 0)
+            || (self.power.rem_euclid(2) == 0)
     }
 
     /// Checks if the symmetry operation is antiunitary or not.
@@ -499,7 +499,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A flag indicating if the symmetry oppperation is antiunitary.
     fn is_antiunitary(&self) -> bool {
-        self.generating_element.contains_time_reversal() && self.power % 2 == 1
+        self.generating_element.contains_time_reversal() && self.power.rem_euclid(2) == 1
     }
 
     /// Checks if the whole symmetry operation is the identity.
@@ -520,8 +520,19 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                 .expect("No proper angles found for the generating element.")
                                 * (f64::from(self.power)),
                             self.generating_element.threshold
-                        ) % (2.0 * std::f64::consts::PI),
+                        ).rem_euclid(2.0 * std::f64::consts::PI),
                         0.0,
+                        max_relative = self.generating_element.threshold,
+                        epsilon = self.generating_element.threshold
+                    ) || approx::relative_eq!(
+                        geometry::normalise_rotation_angle(
+                            self.generating_element
+                                .proper_angle
+                                .expect("No proper angles found for the generating element.")
+                                * (f64::from(self.power)),
+                            self.generating_element.threshold
+                        ).rem_euclid(2.0 * std::f64::consts::PI),
+                        2.0 * std::f64::consts::PI,
                         max_relative = self.generating_element.threshold,
                         epsilon = self.generating_element.threshold
                     )
@@ -549,7 +560,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                     .expect("No proper angles found for the generating element.")
                                     * (f64::from(self.power)),
                                 self.generating_element.threshold
-                            ) % (2.0 * std::f64::consts::PI),
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
                             std::f64::consts::PI,
                             max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
@@ -567,8 +578,19 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                     .expect("No proper angles found for the generating element.")
                                     * (f64::from(self.power)),
                                 self.generating_element.threshold
-                            ) % (2.0 * std::f64::consts::PI),
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
                             0.0,
+                            max_relative = self.generating_element.threshold,
+                            epsilon = self.generating_element.threshold
+                        ) || approx::relative_eq!(
+                            geometry::normalise_rotation_angle(
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
+                                self.generating_element.threshold
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
+                            2.0 * std::f64::consts::PI,
                             max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
                         )
@@ -598,7 +620,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                     .expect("No proper angles found for the generating element.")
                                     * (f64::from(self.power)),
                                 self.generating_element.threshold
-                            ) % (2.0 * std::f64::consts::PI),
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
                             std::f64::consts::PI,
                             max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
@@ -616,8 +638,19 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                     .expect("No proper angles found for the generating element.")
                                     * (f64::from(self.power)),
                                 self.generating_element.threshold
-                            ) % (2.0 * std::f64::consts::PI),
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
                             0.0,
+                            max_relative = self.generating_element.threshold,
+                            epsilon = self.generating_element.threshold
+                        ) || approx::relative_eq!(
+                            geometry::normalise_rotation_angle(
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
+                                self.generating_element.threshold
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
+                            2.0 * std::f64::consts::PI,
                             max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
                         )
@@ -645,7 +678,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                 .expect("No proper angles found for the generating element.")
                                 * (f64::from(self.power)),
                             self.generating_element.threshold
-                        ) % (2.0 * std::f64::consts::PI),
+                        ).rem_euclid(2.0 * std::f64::consts::PI),
                         std::f64::consts::PI,
                         max_relative = self.generating_element.threshold,
                         epsilon = self.generating_element.threshold
@@ -672,7 +705,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                 .expect("No proper angles found for the generating element.")
                                 * (f64::from(self.power)),
                             self.generating_element.threshold
-                        ) % (2.0 * std::f64::consts::PI),
+                        ).rem_euclid(2.0 * std::f64::consts::PI),
                         std::f64::consts::PI,
                         max_relative = self.generating_element.threshold,
                         epsilon = self.generating_element.threshold
@@ -701,8 +734,19 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                     .expect("No proper angles found for the generating element.")
                                     * (f64::from(self.power)),
                                 self.generating_element.threshold
-                            ) % (2.0 * std::f64::consts::PI),
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
                             0.0,
+                            max_relative = self.generating_element.threshold,
+                            epsilon = self.generating_element.threshold
+                        ) || approx::relative_eq!(
+                            geometry::normalise_rotation_angle(
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
+                                self.generating_element.threshold
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
+                            2.0 * std::f64::consts::PI,
                             max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
                         )
@@ -719,7 +763,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                     .expect("No proper angles found for the generating element.")
                                     * (f64::from(self.power)),
                                 self.generating_element.threshold
-                            ) % (2.0 * std::f64::consts::PI),
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
                             std::f64::consts::PI,
                             max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
@@ -748,8 +792,19 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                 .expect("No proper angles found for the generating element.")
                                 * (f64::from(self.power)),
                             self.generating_element.threshold
-                        ) % (2.0 * std::f64::consts::PI),
+                        ).rem_euclid(2.0 * std::f64::consts::PI),
                         0.0,
+                        max_relative = self.generating_element.threshold,
+                        epsilon = self.generating_element.threshold
+                    ) || approx::relative_eq!(
+                        geometry::normalise_rotation_angle(
+                            self.generating_element
+                                .proper_angle
+                                .expect("No proper angles found for the generating element.")
+                                * (f64::from(self.power)),
+                            self.generating_element.threshold
+                        ).rem_euclid(2.0 * std::f64::consts::PI),
+                        2.0 * std::f64::consts::PI,
                         max_relative = self.generating_element.threshold,
                         epsilon = self.generating_element.threshold
                     )
@@ -777,8 +832,19 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                     .expect("No proper angles found for the generating element.")
                                     * (f64::from(self.power)),
                                 self.generating_element.threshold
-                            ) % (2.0 * std::f64::consts::PI),
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
                             0.0,
+                            max_relative = self.generating_element.threshold,
+                            epsilon = self.generating_element.threshold
+                        ) || approx::relative_eq!(
+                            geometry::normalise_rotation_angle(
+                                self.generating_element
+                                    .proper_angle
+                                    .expect("No proper angles found for the generating element.")
+                                    * (f64::from(self.power)),
+                                self.generating_element.threshold
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
+                            2.0 * std::f64::consts::PI,
                             max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
                         )
@@ -795,7 +861,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                                     .expect("No proper angles found for the generating element.")
                                     * (f64::from(self.power)),
                                 self.generating_element.threshold
-                            ) % (2.0 * std::f64::consts::PI),
+                            ).rem_euclid(2.0 * std::f64::consts::PI),
                             std::f64::consts::PI,
                             max_relative = self.generating_element.threshold,
                             epsilon = self.generating_element.threshold
