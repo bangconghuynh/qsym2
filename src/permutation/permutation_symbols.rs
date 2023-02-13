@@ -15,6 +15,10 @@ use crate::chartab::chartab_symbols::{
 use crate::chartab::unityroot::UnityRoot;
 use crate::permutation::Permutation;
 
+// ==================
+// Struct definitions
+// ==================
+
 // ----------------------
 // PermutationClassSymbol
 // ----------------------
@@ -50,6 +54,50 @@ impl PermutationClassSymbol {
 
     pub fn representative(&self) -> Option<Permutation> {
         self.representative.clone()
+    }
+
+    /// Creates a class symbol from a string and a representative element.
+    ///
+    /// Some possible conjugacy class symbols:
+    ///
+    /// ```text
+    /// "1||(5)(2)(1)||"
+    /// "1||(4)(1)|^(2)|"
+    /// "12||(2)(2)(1)|^(5)|"
+    /// ```
+    ///
+    /// Note that the prefactor is required.
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a class symbol.
+    /// * `rep` - An optional representative element for this class.
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] wrapping the constructed class symbol.
+    ///
+    /// # Panics
+    ///
+    /// Panics when unable to construct a class symbol from the specified string.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string contains no parsable class size prefactor, or when the string cannot
+    /// be parsed as a generic symbol.
+    pub fn new(symstr: &str, rep: Option<Permutation>) -> Result<Self, GenericSymbolParsingError> {
+        let generic_symbol = GenericSymbol::from_str(symstr)?;
+        if generic_symbol.multiplicity().is_none() {
+            Err(GenericSymbolParsingError(format!(
+                "{symstr} contains no class size prefactor."
+            )))
+        } else {
+            Ok(Self::builder()
+                .generic_symbol(generic_symbol)
+                .representative(rep)
+                .build()
+                .unwrap_or_else(|_| panic!("Unable to construct a class symbol from `{symstr}`.")))
+        }
     }
 }
 
@@ -119,60 +167,12 @@ impl CollectionSymbol for PermutationClassSymbol {
     }
 }
 
-// -------
-// Display
-// -------
 impl fmt::Display for PermutationClassSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
     }
 }
 
-impl PermutationClassSymbol {
-    /// Creates a class symbol from a string and a representative element.
-    ///
-    /// Some possible conjugacy class symbols:
-    ///
-    /// ```text
-    /// "1||(5)(2)(1)||"
-    /// "1||(4)(1)|^(2)|"
-    /// "12||(2)(2)(1)|^(5)|"
-    /// ```
-    ///
-    /// Note that the prefactor is required.
-    ///
-    /// # Arguments
-    ///
-    /// * `symstr` - A string to be parsed to give a class symbol.
-    /// * `rep` - An optional representative element for this class.
-    ///
-    /// # Returns
-    ///
-    /// A [`Result`] wrapping the constructed class symbol.
-    ///
-    /// # Panics
-    ///
-    /// Panics when unable to construct a class symbol from the specified string.
-    ///
-    /// # Errors
-    ///
-    /// Errors when the string contains no parsable class size prefactor, or when the string cannot
-    /// be parsed as a generic symbol.
-    pub fn new(symstr: &str, rep: Option<Permutation>) -> Result<Self, GenericSymbolParsingError> {
-        let generic_symbol = GenericSymbol::from_str(symstr)?;
-        if generic_symbol.multiplicity().is_none() {
-            Err(GenericSymbolParsingError(format!(
-                "{symstr} contains no class size prefactor."
-            )))
-        } else {
-            Ok(Self::builder()
-                .generic_symbol(generic_symbol)
-                .representative(rep)
-                .build()
-                .unwrap_or_else(|_| panic!("Unable to construct a class symbol from `{symstr}`.")))
-        }
-    }
-}
 
 // ----------------------
 // PermutationIrrepSymbol
@@ -345,9 +345,6 @@ impl LinearSpaceSymbol for PermutationIrrepSymbol {
     }
 }
 
-// -------
-// Display
-// -------
 impl fmt::Display for PermutationIrrepSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
@@ -370,7 +367,22 @@ impl fmt::Display for PermutationIrrepSymbol {
     }
 }
 
-pub fn sort_irreps(
+// =======
+// Methods
+// =======
+
+/// Sorts permutation irreps based on their dimensionalities.
+///
+/// # Arguments
+///
+/// * `char_arr` - A view of the array of characters for which the irreps are to be sorted.
+/// * `frobenius_schur_indicators` - The associated Frobenius--Schur indicators with the irreps.
+///
+/// # Returns
+///
+/// An array of characters where the irreps have been sorted, and a vector of the associated
+/// Frobenius--Schur indicators that have also been similarly sorted.
+pub fn sort_perm_irreps(
     char_arr: &ArrayView2<Character>,
     frobenius_schur_indicators: &[i8],
 ) -> (Array2<Character>, Vec<i8>) {
@@ -395,6 +407,19 @@ pub fn sort_irreps(
     (char_arr, sorted_fs)
 }
 
+/// Deduces the permutation irrep symbols based on the characters.
+///
+/// This classifies each irrep into either `Sym` for the totally symmetric irrep, `Alt` for the
+/// alternating one-dimensional irrep, or `Λ` for all higher-dimensional irreps. No attempt is made
+/// to assign Young diagrams to the irreps.
+///
+/// # Arguments
+///
+/// * `char_arr` - An array of characters.
+///
+/// # Returns
+///
+/// A vector of permutation irrep symbols.
 pub fn deduce_permutation_irrep_symbols(
     char_arr: &ArrayView2<Character>,
 ) -> Vec<PermutationIrrepSymbol> {

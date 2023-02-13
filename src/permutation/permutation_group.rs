@@ -11,7 +11,7 @@ use crate::chartab::{CharacterTable, RepCharacterTable};
 use crate::group::class::{ClassProperties, ClassStructure};
 use crate::group::{Group, GroupProperties, UnitaryRepresentedGroup};
 use crate::permutation::permutation_symbols::{
-    deduce_permutation_irrep_symbols, sort_irreps, PermutationClassSymbol, PermutationIrrepSymbol,
+    deduce_permutation_irrep_symbols, sort_perm_irreps, PermutationClassSymbol, PermutationIrrepSymbol,
 };
 use crate::permutation::Permutation;
 
@@ -112,7 +112,7 @@ impl PermutationGroupProperties
     fn canonicalise_character_table(&mut self) {
         let old_chartab = self.character_table();
         let class_symbols = self.conjugacy_class_symbols();
-        let (char_arr, sorted_fs) = sort_irreps(
+        let (char_arr, sorted_fs) = sort_perm_irreps(
             &old_chartab.array().view(),
             &old_chartab.frobenius_schurs.values().copied().collect_vec(),
         );
@@ -264,7 +264,7 @@ impl PermutationGroupProperties for PermutationGroup {
     fn canonicalise_character_table(&mut self) {
         let old_chartab = self.character_table();
         let class_symbols = self.conjugacy_class_symbols();
-        let (char_arr, sorted_fs) = sort_irreps(
+        let (char_arr, sorted_fs) = sort_perm_irreps(
             &old_chartab.array().view(),
             &old_chartab.frobenius_schurs.values().copied().collect_vec(),
         );
