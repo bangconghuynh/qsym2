@@ -176,4 +176,73 @@ fn test_calc_moi_n3() {
 
 #[test]
 fn test_molecule_perm() {
+    let emap = ElementMap::new();
+    let atom_0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_0p = Atom::from_xyz("B 1.0 1.0 0.0", &emap, 1e-7).unwrap();
+    let atom_1 = Atom::from_xyz("H 1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_2 = Atom::from_xyz("H 0.0 1.0 0.0", &emap, 1e-7).unwrap();
+    let atom_3 = Atom::from_xyz("H -1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_4 = Atom::from_xyz("H 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
+    let mol1 = Molecule::from_atoms(
+        &[
+            atom_0.clone(),
+            atom_1.clone(),
+            atom_2.clone(),
+            atom_3.clone(),
+            atom_4.clone(),
+        ],
+        1e-7,
+    );
+    let mol2 = Molecule::from_atoms(
+        &[
+            atom_0.clone(),
+            atom_2.clone(),
+            atom_3.clone(),
+            atom_4.clone(),
+            atom_1.clone(),
+        ],
+        1e-7,
+    );
+    let mol3 = Molecule::from_atoms(
+        &[
+            atom_0.clone(),
+            atom_1.clone(),
+            atom_4.clone(),
+            atom_3.clone(),
+            atom_2.clone(),
+        ],
+        1e-7,
+    );
+    let mol4 = Molecule::from_atoms(
+        &[
+            atom_0p.clone(),
+            atom_1.clone(),
+            atom_4.clone(),
+            atom_3.clone(),
+            atom_2.clone(),
+        ],
+        1e-7,
+    );
+
+    assert_eq!(
+        mol1.perm(&mol2),
+        Some(Permutation::from_image(&[0, 4, 1, 2, 3]))
+    );
+    assert_eq!(
+        mol1.perm(&mol3),
+        Some(Permutation::from_image(&[0, 1, 4, 3, 2]))
+    );
+    assert_eq!(mol1.perm(&mol4), None);
+    assert_eq!(
+        mol2.perm(&mol1),
+        Some(Permutation::from_image(&[0, 2, 3, 4, 1]))
+    );
+    assert_eq!(
+        mol2.perm(&mol2),
+        Some(Permutation::from_image(&[0, 1, 2, 3, 4]))
+    );
+    assert_eq!(
+        mol2.perm(&mol3),
+        Some(Permutation::from_image(&[0, 4, 3, 2, 1]))
+    );
 }
