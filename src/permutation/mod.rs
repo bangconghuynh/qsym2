@@ -23,27 +23,14 @@ mod permutation_tests;
 /// A structure to manage permutation actions of a finite set.
 #[derive(Builder, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Permutation {
-    /// The rank of the permutation, *i.e.* the number of elements in the finite set on which the
-    /// permutation acts.
-    rank: usize,
-
     /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$
     /// where $`n`$ is [`Self::rank`], then this gives the result of the action.
     #[builder(setter(custom))]
     image: Vec<usize>,
-
-    #[builder(setter(skip), default = "self.calc_cycles()")]
-    cycles: Vec<Vec<usize>>,
 }
 
 impl PermutationBuilder {
     fn image(&mut self, perm: &[usize]) -> &mut Self {
-        assert_eq!(
-            self.rank
-                .expect("The rank for this permutation has not been set."),
-            perm.len(),
-            "The permutation image `{perm:?}` does not contain the expected number of elements",
-        );
         let mut uniq = HashSet::<usize>::new();
         assert!(
             perm.into_iter().all(move |x| uniq.insert(*x)),
@@ -51,32 +38,6 @@ impl PermutationBuilder {
         );
         self.image = Some(perm.to_vec());
         self
-    }
-
-    fn calc_cycles(&self) -> Vec<Vec<usize>> {
-        let rank = self.rank.expect("Permutation rank has not been set.");
-        let image = self
-            .image
-            .as_ref()
-            .expect("Permutation image has not been set.");
-        let mut remaining_indices = (0..rank).rev().collect::<IndexSet<usize>>();
-        let mut cycles: Vec<Vec<usize>> = Vec::with_capacity(rank);
-        while !remaining_indices.is_empty() {
-            let start = remaining_indices
-                .pop()
-                .expect("`remaining_indices` should not be empty.");
-            let mut cycle: Vec<usize> = Vec::with_capacity(remaining_indices.len());
-            cycle.push(start);
-            let mut idx = start;
-            while image[idx] != start {
-                idx = image[idx];
-                assert!(remaining_indices.shift_remove(&idx));
-                cycle.push(idx);
-            }
-            cycles.push(cycle);
-        }
-        cycles.sort_by_key(|cycle| (!cycle.len(), cycle.clone()));
-        cycles
     }
 }
 
@@ -104,7 +65,6 @@ impl Permutation {
     /// Panics if `image` contains repeated elements.
     pub fn from_image(image: &[usize]) -> Self {
         Self::builder()
-            .rank(image.len())
             .image(image)
             .build()
             .unwrap_or_else(|err| {
@@ -155,6 +115,10 @@ impl Permutation {
         Self::from_image(&image)
     }
 
+    pub fn rank(&self) -> usize {
+        self.image.len()
+    }
+
     /// If the permutation is to act on an ordered sequence of integers, $`0, 1, \ldots`$, then
     /// this gives the result of the action.
     pub fn image(&self) -> &Vec<usize> {
@@ -162,13 +126,33 @@ impl Permutation {
     }
 
     /// Obtains the cycle representation of the permutation.
-    pub fn cycles(&self) -> &Vec<Vec<usize>> {
-        &self.cycles
+    pub fn cycles(&self) -> Vec<Vec<usize>> {
+        // &self.cycles
+        let image = &self.image;
+        let rank = image.len();
+        let mut remaining_indices = (0..rank).rev().collect::<IndexSet<usize>>();
+        let mut cycles: Vec<Vec<usize>> = Vec::with_capacity(rank);
+        while !remaining_indices.is_empty() {
+            let start = remaining_indices
+                .pop()
+                .expect("`remaining_indices` should not be empty.");
+            let mut cycle: Vec<usize> = Vec::with_capacity(remaining_indices.len());
+            cycle.push(start);
+            let mut idx = start;
+            while image[idx] != start {
+                idx = image[idx];
+                assert!(remaining_indices.shift_remove(&idx));
+                cycle.push(idx);
+            }
+            cycles.push(cycle);
+        }
+        cycles.sort_by_key(|cycle| (!cycle.len(), cycle.clone()));
+        cycles
     }
 
     /// Obtains the pattern of the cycle representation of the permutation.
     pub fn cycle_pattern(&self) -> Vec<usize> {
-        self.cycles
+        self.cycles()
             .iter()
             .map(|cycle| cycle.len())
             .collect::<Vec<usize>>()
@@ -176,7 +160,7 @@ impl Permutation {
 
     /// Returns `true` if this permutation is the identity permutation for this rank.
     pub fn is_identity(&self) -> bool {
-        self.image == (0..self.rank).collect::<Vec<usize>>()
+        self.image == (0..self.rank()).collect::<Vec<usize>>()
     }
 }
 
@@ -209,11 +193,10 @@ impl Mul<&'_ Permutation> for &Permutation {
 
     fn mul(self, rhs: &Permutation) -> Self::Output {
         assert_eq!(
-            self.rank, rhs.rank,
+            self.rank(), rhs.rank(),
             "The ranks of two multiplying permutations do not match."
         );
         Self::Output::builder()
-            .rank(self.rank)
             .image(
                 &rhs.image
                     .iter()
@@ -256,10 +239,9 @@ impl Inv for &Permutation {
     type Output = Permutation;
 
     fn inv(self) -> Self::Output {
-        let mut image_inv = (0..self.rank).collect::<Vec<_>>();
+        let mut image_inv = (0..self.rank()).collect::<Vec<_>>();
         image_inv.sort_by_key(|&i| self.image[i]);
         Self::Output::builder()
-            .rank(self.rank)
             .image(&image_inv)
             .build()
             .expect("Unable to construct an inverse `Permutation`.")
@@ -283,8 +265,7 @@ impl Pow<i32> for &Permutation {
     fn pow(self, rhs: i32) -> Self::Output {
         if rhs == 0 {
             Self::Output::builder()
-                .rank(self.rank)
-                .image(&(0..self.rank).collect::<Vec<_>>())
+                .image(&(0..self.rank()).collect::<Vec<_>>())
                 .build()
                 .expect("Unable to construct an identity `Permutation`.")
         } else if rhs > 0 {

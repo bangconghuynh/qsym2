@@ -15,7 +15,7 @@ fn test_permutation_cycles() {
     assert_eq!(p_32104.cycles(), &[vec![0, 3], vec![1, 2], vec![4]]);
     assert_eq!(p_32104.cycle_pattern(), &[2, 2, 1]);
 
-    let p_32104_2 = Permutation::from_cycles(p_32104.cycles());
+    let p_32104_2 = Permutation::from_cycles(&p_32104.cycles());
     assert_eq!(p_32104, p_32104_2);
 
     let p_12340 = Permutation::from_image(&[1, 2, 3, 4, 0]);
