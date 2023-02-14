@@ -148,7 +148,7 @@ pub trait SymmetryGroupProperties:
 
     /// Returns `true` if all elements in this group are unitary.
     fn all_unitary(&self) -> bool {
-        self.elements().keys().all(|op| !op.is_antiunitary())
+        self.elements().iter().all(|op| !op.is_antiunitary())
     }
 
     /// Determines whether this group is an ordinary (double) group, a magnetic grey (double)
@@ -158,7 +158,7 @@ pub trait SymmetryGroupProperties:
             GroupType::Ordinary(false)
         } else if self
             .elements()
-            .keys()
+            .iter()
             .any(SpecialSymmetryTransformation::is_time_reversal)
         {
             GroupType::MagneticGrey(false)
@@ -190,12 +190,11 @@ pub trait SymmetryGroupProperties:
                             .get_index(j)
                             .unwrap_or_else(|| {
                                 panic!("Element with index {j} cannot be retrieved.")
-                            })
-                            .0;
+                            });
                         (op.power, op.generating_element.proper_power)
                     })
                     .expect("Unable to obtain a representative element index.");
-                let (rep_ele, _) = self.elements().get_index(rep_ele_index).unwrap_or_else(|| {
+                let rep_ele = self.elements().get_index(rep_ele_index).unwrap_or_else(|| {
                     panic!("Unable to retrieve group element with index `{rep_ele_index}`.")
                 });
                 if rep_ele.is_identity() {
@@ -383,7 +382,7 @@ impl SymmetryGroupProperties
                 }),
                 None,
             )
-        } else if !self.elements().iter().all(|(op, _)| !op.is_antiunitary()) {
+        } else if !self.elements().iter().all(|op| !op.is_antiunitary()) {
             log::debug!(
                 "Antiunitary elements exist without any inversion centres or horizonal mirror planes. Principal-axis classes will be forced to be unitary."
             );

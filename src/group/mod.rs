@@ -3,7 +3,7 @@ use std::hash::Hash;
 use std::ops::Mul;
 
 use derive_builder::Builder;
-use indexmap::IndexMap;
+use indexmap::{IndexSet, IndexMap};
 use log;
 use ndarray::{Array2, Zip};
 use num::Integer;
@@ -56,7 +56,7 @@ where
     fn finite_subgroup_name(&self) -> Option<&String>;
 
     /// The elements in the group.
-    fn elements(&self) -> &IndexMap<Self::GroupElement, usize> {
+    fn elements(&self) -> &IndexSet<Self::GroupElement> {
         &self.abstract_group().elements
     }
 
@@ -170,7 +170,7 @@ where
     /// An ordered hash table containing the elements of the group. Each key is a group element,
     /// and the associated value is its index.
     #[builder(setter(custom))]
-    elements: IndexMap<T, usize>,
+    elements: IndexSet<T>,
 
     /// The Cayley table for this group w.r.t. the elements in [`Self::elements`].
     ///
@@ -193,8 +193,6 @@ where
         self.elements = Some(
             elems
                 .into_iter()
-                .enumerate()
-                .map(|(i, element)| (element, i))
                 .collect(),
         );
         self
@@ -259,15 +257,15 @@ where
         log::debug!("Constructing Cayley table in parallel...");
         let mut ctb = Array2::<usize>::zeros((self.order(), self.order()));
         Zip::indexed(&mut ctb).par_for_each(|(i, j), k| {
-            let (op_i_ref, _) = self.elements
+            let op_i_ref = self.elements
                 .get_index(i)
                 .unwrap_or_else(|| panic!("Element with index {i} cannot be retrieved."));
-            let (op_j_ref, _) = self.elements
+            let op_j_ref = self.elements
                 .get_index(j)
                 .unwrap_or_else(|| panic!("Element with index {j} cannot be retrieved."));
             let op_k = op_i_ref * op_j_ref;
-            *k = *self.elements
-                .get(&op_k)
+            *k = self.elements
+                .get_index_of(&op_k)
                 .unwrap_or_else(||
                     panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try changing thresholds.",
                         op_i_ref,
@@ -520,12 +518,12 @@ where
     }
 
     fn unitary_subgroup(&mut self, uni_subgrp: UG) -> &mut Self {
-        assert!(uni_subgrp.elements().iter().all(|(op, _)| self
+        assert!(uni_subgrp.elements().iter().all(|op| self
             .abstract_group
             .as_ref()
             .expect("Abstract group not yet set for this magnetic-represented group.")
             .elements()
-            .contains_key(op)));
+            .contains(op)));
         self.unitary_subgroup = Some(uni_subgrp);
         self
     }
@@ -643,8 +641,8 @@ where
     ///
     /// Panics if `element` is not in the group.
     fn check_elem_antiunitary(&self, element: &T) -> bool {
-        if self.abstract_group.elements().contains_key(element) {
-            !self.unitary_subgroup.elements().contains_key(element)
+        if self.abstract_group.elements().contains(element) {
+            !self.unitary_subgroup.elements().contains(element)
         } else {
             panic!("`{element:?}` is not an element of the group.")
         }

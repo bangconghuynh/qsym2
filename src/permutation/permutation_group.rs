@@ -92,15 +92,15 @@ pub trait PermutationGroupProperties:
                     panic!("No representative element found for conjugacy class `{old_symbol}`.")
                 });
                 let cycle_pattern = rep_ele.cycle_pattern().clone();
-                let mut cycle_pattern_count: Vec<(usize, usize)> =
+                let mut cycle_pattern_count: Vec<(u8, u8)> =
                     Vec::with_capacity(cycle_pattern.len());
-                let mut i = 0usize;
-                while i < cycle_pattern.len() {
+                let mut i = 0u8;
+                while i < u8::try_from(cycle_pattern.len()).unwrap() {
                     let mut j = i + 1;
-                    while j < cycle_pattern.len() && cycle_pattern[j] == cycle_pattern[i] {
+                    while j < u8::try_from(cycle_pattern.len()).unwrap() && cycle_pattern[usize::from(j)] == cycle_pattern[usize::from(i)] {
                         j += 1;
                     }
-                    cycle_pattern_count.push((cycle_pattern[i], j - i));
+                    cycle_pattern_count.push((cycle_pattern[usize::from(i)], j - i));
                     i = j;
                 }
                 let cycle_pattern_str = cycle_pattern_count
@@ -147,16 +147,22 @@ impl PermutationGroupProperties
     for UnitaryRepresentedGroup<Permutation, PermutationIrrepSymbol, PermutationClassSymbol>
 {
     fn from_rank(rank: u8) -> Self {
+        log::debug!("Generating all permutations of rank {rank}...");
         let perms = (0..rank)
             .permutations(usize::from(rank))
             .map(|image| Permutation::from_image(&image))
             .collect_vec();
+        log::debug!("Generating all permutations of rank {rank}... Done.");
+        log::debug!("Collecting all permutations into a unitary-represented group...");
         let mut group = UnitaryRepresentedGroup::<
             Permutation,
             PermutationIrrepSymbol,
             PermutationClassSymbol,
         >::new(format!("Sym({rank})").as_str(), perms);
+        log::debug!("Collecting all permutations into a unitary-represented group... Done.");
+        log::debug!("Setting class symbols...");
         group.set_class_symbols_from_cycle_patterns();
+        log::debug!("Setting class symbols... Done.");
         group.construct_irrep_character_table();
         group.canonicalise_character_table();
         group
@@ -209,9 +215,9 @@ impl ClassProperties for PermutationGroup {
         log::debug!("Finding unitary conjugacy classes using permutation cycle patterns...");
 
         let order = self.abstract_group.order();
-        let mut cycle_patterns: IndexMap<Vec<usize>, HashSet<usize>> = IndexMap::new();
+        let mut cycle_patterns: IndexMap<Vec<u8>, HashSet<usize>> = IndexMap::new();
         let mut e2ccs = vec![Some(0usize); order];
-        for (element, &i) in self.abstract_group.elements().iter() {
+        for (i, element) in self.abstract_group.elements().iter().enumerate() {
             let cycle_pattern = element.cycle_pattern();
             if let Vacant(class) = cycle_patterns.entry(cycle_pattern.clone()) {
                 class.insert(HashSet::from([i]));
@@ -267,10 +273,13 @@ impl IrrepCharTabConstruction for PermutationGroup {
 impl PermutationGroupProperties for PermutationGroup {
     fn from_rank(rank: u8) -> Self {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
+        log::debug!("Generating all permutations of rank {rank}...");
         let perms = (0..rank)
             .permutations(usize::from(rank))
             .map(|image| Permutation::from_image(&image))
             .collect_vec();
+        log::debug!("Generating all permutations of rank {rank}... Done.");
+        log::debug!("Collecting all permutations into a permutation group...");
         let abstract_group =
             Group::<Permutation>::new_no_ctb(format!("Sym({rank})").as_str(), perms);
         let mut group = PermutationGroup::builder()
@@ -278,6 +287,7 @@ impl PermutationGroupProperties for PermutationGroup {
             .abstract_group(abstract_group)
             .build()
             .expect("Unable to construct a `PermutationGroup`.");
+        log::debug!("Collecting all permutations into a permutation group... Done.");
         group.compute_class_structure();
         group.set_class_symbols_from_cycle_patterns();
         group.construct_irrep_character_table();

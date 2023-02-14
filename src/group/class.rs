@@ -4,7 +4,7 @@ use std::hash::Hash;
 use std::ops::Mul;
 
 use derive_builder::Builder;
-use indexmap::IndexMap;
+use indexmap::{IndexSet, IndexMap};
 use ndarray::{s, Array2};
 use num_traits::Inv;
 
@@ -85,19 +85,17 @@ where
                     .abstract_group()
                     .elements
                     .get_index(rep_z_idx)
-                    .unwrap_or_else(|| panic!("No element with index `{rep_z_idx}` found."))
-                    .0;
+                    .unwrap_or_else(|| panic!("No element with index `{rep_z_idx}` found."));
                 for &x_idx in class_r.iter() {
                     let x = self
                         .abstract_group()
                         .elements
                         .get_index(x_idx)
-                        .unwrap_or_else(|| panic!("No element with index `{x_idx}` found."))
-                        .0;
+                        .unwrap_or_else(|| panic!("No element with index `{x_idx}` found."));
                     let y = x.clone().inv() * z.clone();
-                    let y_idx = *self
+                    let y_idx = self
                         .elements()
-                        .get(&y)
+                        .get_index_of(&y)
                         .unwrap_or_else(|| panic!("Element `{y:?}` not found in this group."));
                     let s = self.element_to_conjugacy_classes()[y_idx]
                         .unwrap_or_else(|| panic!("Conjugacy class of element `{y:?}` not found."));
@@ -218,7 +216,7 @@ where
         self
     }
 
-    fn conjugacy_class_symbols(&mut self, elements: &IndexMap<T, usize>) -> &mut Self {
+    fn conjugacy_class_symbols(&mut self, elements: &IndexSet<T>) -> &mut Self {
         log::debug!("Assigning generic class symbols...");
         let class_sizes: Vec<_> = self
             .conjugacy_classes
@@ -234,7 +232,7 @@ where
             .iter()
             .enumerate()
             .map(|(i, &rep_ele_index)| {
-                let (rep_ele, _) = elements.get_index(rep_ele_index).unwrap_or_else(|| {
+                let rep_ele = elements.get_index(rep_ele_index).unwrap_or_else(|| {
                     panic!("Element with index {rep_ele_index} cannot be retrieved.")
                 });
                 (
@@ -614,8 +612,9 @@ where
         let mut remaining_unitary_elements = self
             .elements()
             .iter()
+            .enumerate()
             .skip(1)
-            .filter_map(|(op, &i)| {
+            .filter_map(|(i, op)| {
                 if self.check_elem_antiunitary(op) {
                     None
                 } else {
@@ -642,7 +641,7 @@ where
                 .position(|&x| x == 0)
                 .unwrap_or_else(|| panic!("The inverse of `{g}` cannot be found."));
             let mut cur_cc = HashSet::from([g]);
-            for (op, &s) in self.elements().iter() {
+            for (s, op) in self.elements().iter().enumerate() {
                 let h = if self.check_elem_antiunitary(op) {
                     // s denotes a.
                     let sginv = ctb[[s, ginv]];

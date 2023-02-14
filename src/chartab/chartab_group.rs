@@ -112,7 +112,7 @@ where
         // Identify a suitable finite field
         let m = self
             .elements()
-            .keys()
+            .iter()
             .map(FiniteOrder::order)
             .reduce(lcm)
             .expect("Unable to find the LCM for the orders of the elements in this group.");
@@ -173,14 +173,14 @@ where
             .conjugacy_class_transversal()
             .iter()
             .map(|&ele_i| {
-                let (ele, _) = self
+                let ele = self
                     .elements()
                     .get_index(ele_i)
                     .unwrap_or_else(|| panic!("Element index {ele_i} cannot be retrieved."));
                 let elep2 = ele.clone().pow(2);
-                let elep2_i = *self
+                let elep2_i = self
                     .elements()
-                    .get(&elep2)
+                    .get_index_of(&elep2)
                     .unwrap_or_else(|| panic!("Element {elep2:?} not found."));
                 self.element_to_conjugacy_classes()[elep2_i]
                     .unwrap_or_else(|| panic!("Conjugacy class for element {elep2:?} not found."))
@@ -396,8 +396,7 @@ where
                             .get_index(*x_idx)
                             .unwrap_or_else(|| {
                                 panic!("Element with index {x_idx} cannot be retrieved.")
-                            })
-                            .0;
+                            });
                         let k = x.order();
                         let xi = zeta.clone().pow(
                             i32::try_from(m.checked_div_euclid(k).unwrap_or_else(|| {
@@ -417,9 +416,9 @@ where
                                         x.clone().pow(i32::try_from(l).unwrap_or_else(|_| {
                                             panic!("Unable to convert `{l}` to `i32`.")
                                         }));
-                                    let x_l_idx = *self
+                                    let x_l_idx = self
                                         .elements()
-                                        .get(&x_l)
+                                        .get_index_of(&x_l)
                                         .unwrap_or_else(|| panic!("Element {x_l:?} not found."));
                                     let x_l_class_idx =
                                         self.element_to_conjugacy_classes()[x_l_idx].unwrap_or_else(|| {
@@ -610,10 +609,11 @@ where
         let uni_e2c = self.unitary_subgroup().element_to_conjugacy_classes();
         let mag_ccsyms = self.conjugacy_class_symbols();
         let uni_ccsyms = self.unitary_subgroup().conjugacy_class_symbols();
-        let (_, a0_mag_idx) = self
+        let (a0_mag_idx, _) = self
             .elements()
             .iter()
-            .find(|(op, _)| self.check_elem_antiunitary(op))
+            .enumerate()
+            .find(|(_, op)| self.check_elem_antiunitary(op))
             .expect("No antiunitary elements found in the magnetic group.");
 
         let mut remaining_irreps = unitary_chartab.get_all_rows();
@@ -625,13 +625,14 @@ where
             let char_sum = self
                 .elements()
                 .iter()
-                .filter(|(op, _)| self.check_elem_antiunitary(op))
-                .fold(Character::zero(), |acc, (_, a_mag_idx)| {
-                    let a2_mag_idx = mag_ctb[(*a_mag_idx, *a_mag_idx)];
-                    let (a2, _) = self.elements().get_index(a2_mag_idx).unwrap_or_else(|| {
+                .enumerate()
+                .filter(|(_, op)| self.check_elem_antiunitary(op))
+                .fold(Character::zero(), |acc, (a_mag_idx, _)| {
+                    let a2_mag_idx = mag_ctb[(a_mag_idx, a_mag_idx)];
+                    let a2 = self.elements().get_index(a2_mag_idx).unwrap_or_else(|| {
                         panic!("Element index `{a2_mag_idx}` not found in the magnetic group.")
                     });
-                    let a2_uni_idx = *self.unitary_subgroup().elements().get(a2).unwrap_or_else(|| {
+                    let a2_uni_idx = self.unitary_subgroup().elements().get_index_of(a2).unwrap_or_else(|| {
                         panic!("Element `{a2:?}` not found in the unitary subgroup.")
                     });
                     let (a2_uni_class, _) = uni_ccsyms.get_index(
@@ -701,32 +702,32 @@ where
                         .iter()
                         .next()
                         .unwrap_or_else(|| panic!("No unitary elements found for conjugacy class `{cc}`."));
-                    let (u, _) = self.unitary_subgroup()
+                    let u = self.unitary_subgroup()
                         .elements()
                         .get_index(*u_unitary_idx)
                         .unwrap_or_else(|| panic!("Unitary element with index `{u_unitary_idx}` cannot be retrieved."));
                     let u_mag_idx = self
                         .elements()
-                        .get(u)
+                        .get_index_of(u)
                         .unwrap_or_else(|| panic!("Unable to retrieve the index of unitary element `{u:?}` in the magnetic group."));
-                    let ua0_mag_idx = mag_ctb[(*u_mag_idx, *a0_mag_idx)];
-                    let mag_ctb_a0x = mag_ctb.slice(s![*a0_mag_idx, ..]);
+                    let ua0_mag_idx = mag_ctb[(u_mag_idx, a0_mag_idx)];
+                    let mag_ctb_a0x = mag_ctb.slice(s![a0_mag_idx, ..]);
                     let a0invua0_mag_idx = mag_ctb_a0x.iter().position(|&x| x == ua0_mag_idx).unwrap_or_else(|| {
                         panic!("No element `{ua0_mag_idx}` can be found in row `{a0_mag_idx}` of the magnetic group Cayley table.")
                     });
-                    let (a0invua0, _) = self
+                    let a0invua0 = self
                         .elements()
                         .get_index(a0invua0_mag_idx)
                         .unwrap_or_else(|| {
                             panic!("Unable to retrieve element with index `{a0invua0_mag_idx}` in the magnetic group.")
                         });
                     let a0invua0_unitary_idx = self.unitary_subgroup().elements()
-                        .get(a0invua0)
+                        .get_index_of(a0invua0)
                         .unwrap_or_else(|| {
                             panic!("Unable to retrieve the index of element `{a0invua0:?}` in the unitary subgroup.")
                         });
                     let (a0invua0_unitary_class, _) = uni_ccsyms
-                        .get_index(uni_e2c[*a0invua0_unitary_idx].unwrap_or_else(|| {
+                        .get_index(uni_e2c[a0invua0_unitary_idx].unwrap_or_else(|| {
                             panic!("Unable to retrieve the class for `{a0invua0:?}` in the unitary subgroup.")
                         }))
                         .unwrap_or_else(|| panic!("Unable to retrieve the class for `{a0invua0:?}` in the unitary subgroup."));
@@ -766,10 +767,10 @@ where
                         "No representative element found for magnetic conjugacy class {mag_cc}."
                     );
                 });
-                let mag_cc_uni_idx = *self
+                let mag_cc_uni_idx = self
                     .unitary_subgroup()
                     .elements()
-                    .get(&mag_cc_rep)
+                    .get_index_of(&mag_cc_rep)
                     .unwrap_or_else(|| {
                         panic!(
                             "Index for element {mag_cc_rep:?} not found in the unitary subgroup."
@@ -803,7 +804,7 @@ where
                 let mag_cc_rep = mag_cc.representative().unwrap_or_else(|| {
                     panic!("No representative element found for magnetic conjugacy class {mag_cc}.");
                 });
-                let mag_cc_uni_idx = *self.unitary_subgroup().elements().get(&mag_cc_rep).unwrap_or_else(|| {
+                let mag_cc_uni_idx = self.unitary_subgroup().elements().get_index_of(&mag_cc_rep).unwrap_or_else(|| {
                     panic!("Index for element {mag_cc_rep:?} not found in the unitary subgroup.");
                 });
                 let (uni_cc, _) = uni_ccsyms.get_index(

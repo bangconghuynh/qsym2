@@ -153,11 +153,11 @@ impl Permutation {
     }
 
     /// Obtains the pattern of the cycle representation of the permutation.
-    pub fn cycle_pattern(&self) -> Vec<usize> {
+    pub fn cycle_pattern(&self) -> Vec<u8> {
         self.cycles()
             .iter()
-            .map(|cycle| cycle.len())
-            .collect::<Vec<usize>>()
+            .map(|cycle| u8::try_from(cycle.len()).expect("Some cycle lengths are too long for `u8`."))
+            .collect::<Vec<u8>>()
     }
 
     /// Returns `true` if this permutation is the identity permutation for this rank.

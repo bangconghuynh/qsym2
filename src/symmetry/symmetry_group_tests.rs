@@ -42,7 +42,7 @@ fn test_abstract_group_creation() {
         .unwrap();
 
     let group_c5 = Group::<SymmetryOperation>::new("C5", (0..5).map(|k| (&c5).pow(k)).collect());
-    let mut elements = group_c5.elements().keys();
+    let mut elements = group_c5.elements().iter();
     for i in 0..5 {
         let op = elements.next().unwrap();
         assert_eq!(*op, (&c5).pow(i));
@@ -66,7 +66,7 @@ fn test_abstract_group_creation() {
 
     let group_c29 =
         Group::<SymmetryOperation>::new("C29", (0..29).map(|k| (&c29).pow(k)).collect());
-    let mut elements = group_c29.elements().keys();
+    let mut elements = group_c29.elements().iter();
     for i in 0..29 {
         let op = elements.next().unwrap();
         assert_eq!(*op, (&c29).pow(i));
@@ -111,7 +111,7 @@ fn test_ur_group_element_to_conjugacy_class() {
     let conjugacy_classes = group.conjugacy_classes();
     for (element_i, class_i) in group.element_to_conjugacy_classes().iter().enumerate() {
         assert!(class_i.is_some());
-        assert!(conjugacy_classes[class_i.unwrap()].contains(&group.elements()[element_i]));
+        assert!(conjugacy_classes[class_i.unwrap()].contains(&element_i));
     }
 }
 
@@ -134,7 +134,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(2)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(0.0, 1.0, 0.0)
@@ -144,7 +143,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(3)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(1.0, 0.0, 0.0)
@@ -167,7 +165,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(1)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(0.0, 0.0, 1.0)
@@ -177,7 +174,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(2)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(0.0, 1.0, 0.0)
@@ -187,18 +183,16 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(3)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(1.0, 0.0, 0.0)
     );
-    assert!(group.elements().get_index(4).unwrap().0.is_inversion());
+    assert!(group.elements().get_index(4).unwrap().is_inversion());
     approx::assert_relative_eq!(
         group
             .elements()
             .get_index(5)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(0.0, 0.0, 1.0)
@@ -208,7 +202,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(6)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(0.0, 1.0, 0.0)
@@ -218,7 +211,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(7)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(1.0, 0.0, 0.0)
@@ -244,7 +236,7 @@ fn verify_abstract_group(
     // Test element to conjugacy class
     let conjugacy_classes = group.conjugacy_classes();
     for (element_i, class_i) in group.element_to_conjugacy_classes().iter().enumerate() {
-        assert!(conjugacy_classes[class_i.unwrap()].contains(&group.elements()[element_i]));
+        assert!(conjugacy_classes[class_i.unwrap()].contains(&element_i));
     }
 
     // Test inverse conjugacy classes
@@ -373,12 +365,12 @@ fn test_ur_magnetic_group_from_infinite(
     assert_eq!(
         group
             .elements()
-            .keys()
+            .iter()
             .filter(|op| op.is_antiunitary())
             .count(),
         group
             .elements()
-            .keys()
+            .iter()
             .filter(|op| !op.is_antiunitary())
             .count(),
     );
@@ -408,12 +400,12 @@ fn test_mr_magnetic_group_from_infinite(
     assert_eq!(
         group
             .elements()
-            .keys()
+            .iter()
             .filter(|op| op.is_antiunitary())
             .count(),
         group
             .elements()
-            .keys()
+            .iter()
             .filter(|op| !op.is_antiunitary())
             .count(),
     );
