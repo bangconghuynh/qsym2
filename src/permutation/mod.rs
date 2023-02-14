@@ -26,12 +26,12 @@ pub struct Permutation {
     /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$
     /// where $`n`$ is [`Self::rank`], then this gives the result of the action.
     #[builder(setter(custom))]
-    image: Vec<usize>,
+    image: Vec<u8>,
 }
 
 impl PermutationBuilder {
-    fn image(&mut self, perm: &[usize]) -> &mut Self {
-        let mut uniq = HashSet::<usize>::new();
+    fn image(&mut self, perm: &[u8]) -> &mut Self {
+        let mut uniq = HashSet::<u8>::new();
         assert!(
             perm.into_iter().all(move |x| uniq.insert(*x)),
             "The permutation image `{perm:?}` contains repeated elements."
@@ -63,14 +63,11 @@ impl Permutation {
     /// # Panics
     ///
     /// Panics if `image` contains repeated elements.
-    pub fn from_image(image: &[usize]) -> Self {
-        Self::builder()
-            .image(image)
-            .build()
-            .unwrap_or_else(|err| {
-                log::error!("{err}");
-                panic!("Unable to construct a `Permutation` from `{image:?}`.")
-            })
+    pub fn from_image(image: &[u8]) -> Self {
+        Self::builder().image(image).build().unwrap_or_else(|err| {
+            log::error!("{err}");
+            panic!("Unable to construct a `Permutation` from `{image:?}`.")
+        })
     }
 
     /// Constructs a permutation from its disjoint cycles.
@@ -86,8 +83,8 @@ impl Permutation {
     /// # Panics
     ///
     /// Panics if the cycles in `cycles` contain repeated elements.
-    pub fn from_cycles(cycles: &[Vec<usize>]) -> Self {
-        let mut uniq = HashSet::<usize>::new();
+    pub fn from_cycles(cycles: &[Vec<u8>]) -> Self {
+        let mut uniq = HashSet::<u8>::new();
         assert!(
             cycles.iter().flatten().all(move |x| uniq.insert(*x)),
             "The permutation cycles `{cycles:?}` contains repeated elements."
@@ -106,41 +103,46 @@ impl Permutation {
                     })
                     .chain([(end, start)])
             })
-            .collect::<Vec<(usize, usize)>>();
+            .collect::<Vec<(u8, u8)>>();
         image_map.sort();
         let image = image_map
             .into_iter()
             .map(|(_, img)| img)
-            .collect::<Vec<usize>>();
+            .collect::<Vec<u8>>();
         Self::from_image(&image)
     }
 
-    pub fn rank(&self) -> usize {
-        self.image.len()
+    pub fn rank(&self) -> u8 {
+        let rank = u8::try_from(self.image.len()).unwrap_or_else(|_| {
+            panic!(
+                "The rank of `{:?}` is too large to be represented as `u8`.",
+                self.image
+            )
+        });
+        rank
     }
 
     /// If the permutation is to act on an ordered sequence of integers, $`0, 1, \ldots`$, then
     /// this gives the result of the action.
-    pub fn image(&self) -> &Vec<usize> {
+    pub fn image(&self) -> &Vec<u8> {
         &self.image
     }
 
     /// Obtains the cycle representation of the permutation.
-    pub fn cycles(&self) -> Vec<Vec<usize>> {
-        // &self.cycles
+    pub fn cycles(&self) -> Vec<Vec<u8>> {
         let image = &self.image;
-        let rank = image.len();
-        let mut remaining_indices = (0..rank).rev().collect::<IndexSet<usize>>();
-        let mut cycles: Vec<Vec<usize>> = Vec::with_capacity(rank);
+        let rank = self.rank();
+        let mut remaining_indices = (0..rank).rev().collect::<IndexSet<u8>>();
+        let mut cycles: Vec<Vec<u8>> = Vec::with_capacity(usize::from(rank));
         while !remaining_indices.is_empty() {
             let start = remaining_indices
                 .pop()
                 .expect("`remaining_indices` should not be empty.");
-            let mut cycle: Vec<usize> = Vec::with_capacity(remaining_indices.len());
+            let mut cycle: Vec<u8> = Vec::with_capacity(remaining_indices.len());
             cycle.push(start);
             let mut idx = start;
-            while image[idx] != start {
-                idx = image[idx];
+            while image[usize::from(idx)] != start {
+                idx = image[usize::from(idx)];
                 assert!(remaining_indices.shift_remove(&idx));
                 cycle.push(idx);
             }
@@ -160,7 +162,7 @@ impl Permutation {
 
     /// Returns `true` if this permutation is the identity permutation for this rank.
     pub fn is_identity(&self) -> bool {
-        self.image == (0..self.rank()).collect::<Vec<usize>>()
+        self.image == (0..self.rank()).collect::<Vec<u8>>()
     }
 }
 
@@ -193,15 +195,16 @@ impl Mul<&'_ Permutation> for &Permutation {
 
     fn mul(self, rhs: &Permutation) -> Self::Output {
         assert_eq!(
-            self.rank(), rhs.rank(),
+            self.rank(),
+            rhs.rank(),
             "The ranks of two multiplying permutations do not match."
         );
         Self::Output::builder()
             .image(
                 &rhs.image
                     .iter()
-                    .map(|&ri| self.image[ri])
-                    .collect::<Vec<usize>>(),
+                    .map(|&ri| self.image[usize::from(ri)])
+                    .collect::<Vec<u8>>(),
             )
             .build()
             .expect("Unable to construct a product `Permutation`.")
@@ -240,7 +243,7 @@ impl Inv for &Permutation {
 
     fn inv(self) -> Self::Output {
         let mut image_inv = (0..self.rank()).collect::<Vec<_>>();
-        image_inv.sort_by_key(|&i| self.image[i]);
+        image_inv.sort_by_key(|&i| self.image[usize::from(i)]);
         Self::Output::builder()
             .image(&image_inv)
             .build()

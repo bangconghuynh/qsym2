@@ -22,9 +22,9 @@ fn test_permutation_cycles() {
     assert_eq!(p_12340.cycles(), &[vec![0, 1, 2, 3, 4]]);
     assert_eq!(p_12340.cycle_pattern(), &[5]);
 
-    let rank = 9;
+    let rank = 9u8;
     let perms = (0..rank)
-        .permutations(rank)
+        .permutations(usize::from(rank))
         .map(|image| Permutation::from_image(&image));
     for perm in perms.into_iter() {
         assert_eq!(perm, Permutation::from_cycles(&perm.cycles()));
@@ -55,9 +55,9 @@ fn test_permutation_composition() {
     assert_eq!(p_01234, &p_12340 * (&p_12340).inv());
     assert_eq!(p_01234, (&p_12340).pow(0));
 
-    let rank = 8;
+    let rank = 8u8;
     let perms = (0..rank)
-        .permutations(rank)
+        .permutations(usize::from(rank))
         .map(|image| Permutation::from_image(&image));
     for perm in perms.into_iter() {
         assert!((&perm * (&perm).inv()).is_identity());

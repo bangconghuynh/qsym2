@@ -28,7 +28,7 @@ mod permutation_group_tests;
 #[derive(Clone, Builder)]
 pub struct PermutationGroup {
     /// The rank of the permutation group.
-    rank: usize,
+    rank: u8,
 
     /// The underlying abstract group of this permutation group.
     abstract_group: Group<Permutation>,
@@ -76,7 +76,7 @@ pub trait PermutationGroupProperties:
     /// # Returns
     ///
     /// A finite group of permutations.
-    fn from_rank(rank: usize) -> Self;
+    fn from_rank(rank: u8) -> Self;
 
     /// Sets class symbols from cycle patterns.
     ///
@@ -146,9 +146,9 @@ pub trait PermutationGroupProperties:
 impl PermutationGroupProperties
     for UnitaryRepresentedGroup<Permutation, PermutationIrrepSymbol, PermutationClassSymbol>
 {
-    fn from_rank(rank: usize) -> Self {
+    fn from_rank(rank: u8) -> Self {
         let perms = (0..rank)
-            .permutations(rank)
+            .permutations(usize::from(rank))
             .map(|image| Permutation::from_image(&image))
             .collect_vec();
         let mut group = UnitaryRepresentedGroup::<
@@ -265,10 +265,10 @@ impl IrrepCharTabConstruction for PermutationGroup {
 }
 
 impl PermutationGroupProperties for PermutationGroup {
-    fn from_rank(rank: usize) -> Self {
+    fn from_rank(rank: u8) -> Self {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
         let perms = (0..rank)
-            .permutations(rank)
+            .permutations(usize::from(rank))
             .map(|image| Permutation::from_image(&image))
             .collect_vec();
         let abstract_group =
