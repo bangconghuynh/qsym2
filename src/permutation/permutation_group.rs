@@ -97,7 +97,9 @@ pub trait PermutationGroupProperties:
                 let mut i = 0u8;
                 while i < u8::try_from(cycle_pattern.len()).unwrap() {
                     let mut j = i + 1;
-                    while j < u8::try_from(cycle_pattern.len()).unwrap() && cycle_pattern[usize::from(j)] == cycle_pattern[usize::from(i)] {
+                    while j < u8::try_from(cycle_pattern.len()).unwrap()
+                        && cycle_pattern[usize::from(j)] == cycle_pattern[usize::from(i)]
+                    {
                         j += 1;
                     }
                     cycle_pattern_count.push((cycle_pattern[usize::from(i)], j - i));
@@ -160,9 +162,7 @@ impl PermutationGroupProperties
             PermutationClassSymbol,
         >::new(format!("Sym({rank})").as_str(), perms);
         log::debug!("Collecting all permutations into a unitary-represented group... Done.");
-        log::debug!("Setting class symbols...");
         group.set_class_symbols_from_cycle_patterns();
-        log::debug!("Setting class symbols... Done.");
         group.construct_irrep_character_table();
         group.canonicalise_character_table();
         group
@@ -274,14 +274,13 @@ impl PermutationGroupProperties for PermutationGroup {
     fn from_rank(rank: u8) -> Self {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
         log::debug!("Generating all permutations of rank {rank}...");
-        let perms = (0..rank)
+        let perms_iter = (0..rank)
             .permutations(usize::from(rank))
-            .map(|image| Permutation::from_image(image))
-            .collect_vec();
+            .map(|image| Permutation::from_image(image));
         log::debug!("Generating all permutations of rank {rank}... Done.");
         log::debug!("Collecting all permutations into a permutation group...");
         let abstract_group =
-            Group::<Permutation>::new_no_ctb(format!("Sym({rank})").as_str(), perms);
+            Group::<Permutation>::from_iter_no_ctb(format!("Sym({rank})").as_str(), perms_iter);
         let mut group = PermutationGroup::builder()
             .rank(rank)
             .abstract_group(abstract_group)

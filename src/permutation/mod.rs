@@ -146,8 +146,10 @@ impl Permutation {
                 assert!(remaining_indices.shift_remove(&idx));
                 cycle.push(idx);
             }
+            cycle.shrink_to_fit();
             cycles.push(cycle);
         }
+        cycles.shrink_to_fit();
         cycles.sort_by_key(|cycle| (!cycle.len(), cycle.clone()));
         cycles
     }

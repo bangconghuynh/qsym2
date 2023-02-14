@@ -3,7 +3,7 @@ use std::hash::Hash;
 use std::ops::Mul;
 
 use derive_builder::Builder;
-use indexmap::{IndexSet, IndexMap};
+use indexmap::{IndexMap, IndexSet};
 use log;
 use ndarray::{Array2, Zip};
 use num::Integer;
@@ -190,11 +190,12 @@ where
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     fn elements(&mut self, elems: Vec<T>) -> &mut Self {
-        self.elements = Some(
-            elems
-                .into_iter()
-                .collect(),
-        );
+        self.elements = Some(elems.into_iter().collect());
+        self
+    }
+
+    fn elements_iter(&mut self, elems_iter: impl Iterator<Item = T>) -> &mut Self {
+        self.elements = Some(elems_iter.collect());
         self
     }
 }
@@ -248,6 +249,47 @@ where
         Self::builder()
             .name(name.to_string())
             .elements(elements)
+            .build()
+            .expect("Unable to construct a group.")
+    }
+
+    /// Constructs an abstract group from an iterator of its elements and calculate its Cayley
+    /// table.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - A name to be given to the abstract group.
+    /// * `elements_iter` - An iterator yielding group elements.
+    ///
+    /// # Returns
+    ///
+    /// An abstract group with its Cayley table constructed.
+    #[must_use]
+    pub fn from_iter(name: &str, elements_iter: impl Iterator<Item = T>) -> Self {
+        let mut group = Self::builder()
+            .name(name.to_string())
+            .elements_iter(elements_iter)
+            .build()
+            .expect("Unable to construct a group.");
+        group.compute_cayley_table();
+        group
+    }
+
+    /// Constructs an abstract group from an iterator of its elements but without calculating its
+    /// Cayley table.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - A name to be given to the abstract group.
+    /// * `elements_iter` - An iterator yielding group elements.
+    ///
+    /// # Returns
+    ///
+    /// An abstract group without its Cayley table constructed.
+    pub fn from_iter_no_ctb(name: &str, elements_iter: impl Iterator<Item = T>) -> Self {
+        Self::builder()
+            .name(name.to_string())
+            .elements_iter(elements_iter)
             .build()
             .expect("Unable to construct a group.")
     }
