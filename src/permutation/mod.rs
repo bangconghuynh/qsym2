@@ -30,13 +30,13 @@ pub struct Permutation {
 }
 
 impl PermutationBuilder {
-    fn image(&mut self, perm: &[u8]) -> &mut Self {
+    fn image(&mut self, perm: Vec<u8>) -> &mut Self {
         let mut uniq = HashSet::<u8>::new();
         assert!(
-            perm.into_iter().all(move |x| uniq.insert(*x)),
+            perm.iter().all(move |x| uniq.insert(*x)),
             "The permutation image `{perm:?}` contains repeated elements."
         );
-        self.image = Some(perm.to_vec());
+        self.image = Some(perm);
         self
     }
 }
@@ -63,8 +63,8 @@ impl Permutation {
     /// # Panics
     ///
     /// Panics if `image` contains repeated elements.
-    pub fn from_image(image: &[u8]) -> Self {
-        Self::builder().image(image).build().unwrap_or_else(|err| {
+    pub fn from_image(image: Vec<u8>) -> Self {
+        Self::builder().image(image.clone()).build().unwrap_or_else(|err| {
             log::error!("{err}");
             panic!("Unable to construct a `Permutation` from `{image:?}`.")
         })
@@ -109,7 +109,7 @@ impl Permutation {
             .into_iter()
             .map(|(_, img)| img)
             .collect::<Vec<u8>>();
-        Self::from_image(&image)
+        Self::from_image(image)
     }
 
     pub fn rank(&self) -> u8 {
@@ -201,7 +201,7 @@ impl Mul<&'_ Permutation> for &Permutation {
         );
         Self::Output::builder()
             .image(
-                &rhs.image
+                rhs.image
                     .iter()
                     .map(|&ri| self.image[usize::from(ri)])
                     .collect::<Vec<u8>>(),
@@ -245,7 +245,7 @@ impl Inv for &Permutation {
         let mut image_inv = (0..self.rank()).collect::<Vec<_>>();
         image_inv.sort_by_key(|&i| self.image[usize::from(i)]);
         Self::Output::builder()
-            .image(&image_inv)
+            .image(image_inv)
             .build()
             .expect("Unable to construct an inverse `Permutation`.")
     }
@@ -268,7 +268,7 @@ impl Pow<i32> for &Permutation {
     fn pow(self, rhs: i32) -> Self::Output {
         if rhs == 0 {
             Self::Output::builder()
-                .image(&(0..self.rank()).collect::<Vec<_>>())
+                .image((0..self.rank()).collect::<Vec<_>>())
                 .build()
                 .expect("Unable to construct an identity `Permutation`.")
         } else if rhs > 0 {

@@ -150,7 +150,7 @@ impl PermutationGroupProperties
         log::debug!("Generating all permutations of rank {rank}...");
         let perms = (0..rank)
             .permutations(usize::from(rank))
-            .map(|image| Permutation::from_image(&image))
+            .map(|image| Permutation::from_image(image))
             .collect_vec();
         log::debug!("Generating all permutations of rank {rank}... Done.");
         log::debug!("Collecting all permutations into a unitary-represented group...");
@@ -227,7 +227,7 @@ impl ClassProperties for PermutationGroup {
             let cc_idx = cycle_patterns.get_index_of(&cycle_pattern).unwrap();
             e2ccs[i] = Some(cc_idx);
         }
-        let ccs = cycle_patterns.values().cloned().collect_vec();
+        let ccs = cycle_patterns.into_values().collect_vec();
 
         let class_number = ccs.len();
         let class_structure = ClassStructure::<Permutation, PermutationClassSymbol>::new_no_ctb(
@@ -276,7 +276,7 @@ impl PermutationGroupProperties for PermutationGroup {
         log::debug!("Generating all permutations of rank {rank}...");
         let perms = (0..rank)
             .permutations(usize::from(rank))
-            .map(|image| Permutation::from_image(&image))
+            .map(|image| Permutation::from_image(image))
             .collect_vec();
         log::debug!("Generating all permutations of rank {rank}... Done.");
         log::debug!("Collecting all permutations into a permutation group...");
