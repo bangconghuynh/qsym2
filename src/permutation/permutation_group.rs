@@ -2,10 +2,11 @@ use std::collections::HashSet;
 use std::ops::Range;
 
 use derive_builder::Builder;
-use ndarray::Array2;
 use indexmap::map::Entry::Vacant;
 use indexmap::IndexMap;
-use itertools::{structs::Permutations, Itertools};
+use itertools::Itertools;
+use factorial::Factorial;
+use ndarray::Array2;
 
 use crate::chartab::chartab_group::{CharacterProperties, IrrepCharTabConstruction};
 use crate::chartab::chartab_symbols::CollectionSymbol;
@@ -28,16 +29,17 @@ mod permutation_group_tests;
 
 #[derive(Clone)]
 pub struct PermutationIterator {
-    raw_perms: Permutations<Range<u8>>,
+    rank: u8,
+    raw_perm_indices: Range<usize>,
 }
 
 impl Iterator for PermutationIterator {
     type Item = Permutation;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.raw_perms
+        self.raw_perm_indices
             .next()
-            .map(|image| Permutation::from_image(image))
+            .map(|index| Permutation::from_lehmer_index(index, self.rank))
     }
 }
 
@@ -220,28 +222,24 @@ impl GroupProperties for PermutationGroup {
     }
 
     fn get_index(&self, index: usize) -> Option<Self::GroupElement> {
-        self.perms_iter
-            .clone()
-            .into_iter()
-            .enumerate()
-            .find_map(|(i, op)| if i == index { Some(op.clone()) } else { None })
+        let perm = Permutation::from_lehmer_index(index, self.rank);
+        if perm.rank() != self.rank {
+            None
+        } else {
+            Some(perm)
+        }
     }
 
     fn get_index_of(&self, g: &Self::GroupElement) -> Option<usize> {
-        self.perms_iter
-            .clone()
-            .into_iter()
-            .enumerate()
-            .find_map(|(i, op)| if op == *g { Some(i) } else { None })
+        if g.rank() != self.rank {
+            None
+        } else {
+            Some(g.lehmer_index(None))
+        }
     }
 
     fn contains(&self, g: &Self::GroupElement) -> bool {
-        self.perms_iter
-            .clone()
-            .into_iter()
-            .enumerate()
-            .find(|(_, op)| *op == *g)
-            .is_some()
+        g.rank() == self.rank
     }
 
     fn elements(&self) -> &Self::ElementCollection {
@@ -249,14 +247,18 @@ impl GroupProperties for PermutationGroup {
     }
 
     fn is_abelian(&self) -> bool {
-        self.perms_iter.clone().into_iter().enumerate().all(|(i, gi)| {
-            (0..i).all(|j| {
-                let gj = self
-                    .get_index(j)
-                    .unwrap_or_else(|| panic!("Element with index `{j}` not found."));
-                (&gi) * (&gj) == (&gj) * (&gi)
+        self.perms_iter
+            .clone()
+            .into_iter()
+            .enumerate()
+            .all(|(i, gi)| {
+                (0..i).all(|j| {
+                    let gj = self
+                        .get_index(j)
+                        .unwrap_or_else(|| panic!("Element with index `{j}` not found."));
+                    (&gi) * (&gj) == (&gj) * (&gi)
+                })
             })
-        })
     }
 
     fn order(&self) -> usize {
@@ -337,7 +339,8 @@ impl PermutationGroupProperties for PermutationGroup {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
         log::debug!("Generating all permutations of rank {rank}...");
         let perms_iter = PermutationIterator {
-            raw_perms: (0..rank).permutations(usize::from(rank))
+            rank,
+            raw_perm_indices: (0..usize::from(rank).checked_factorial().unwrap()),
         };
         log::debug!("Generating all permutations of rank {rank}... Done.");
         let mut group = PermutationGroup::builder()

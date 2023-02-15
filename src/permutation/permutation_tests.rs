@@ -63,3 +63,31 @@ fn test_permutation_composition() {
         assert!((&perm * (&perm).inv()).is_identity());
     }
 }
+
+#[test]
+fn test_permutation_lehmer() {
+    let p201 = Permutation::from_image(vec![2, 0, 1]);
+    assert_eq!(&p201.lehmer(None), &[2, 0, 0]);
+
+    let p1506432 = Permutation::from_image(vec![1, 5, 0, 6, 3, 4, 2]);
+    assert_eq!(&p1506432.lehmer(None), &[1, 4, 0, 3, 1, 1, 0]);
+
+    let p2154603 = Permutation::from_image(vec![2, 1, 5, 4, 6, 0, 3]);
+    assert_eq!(&p2154603.lehmer(None), &[2, 1, 3, 2, 2, 0, 0]);
+    assert_eq!(p2154603.lehmer_index(None), 1648);
+    assert_eq!(Permutation::from_lehmer_index(1648, 7), p2154603);
+
+    let p012345678 = Permutation::from_image(vec![0, 1, 2, 3, 4, 5, 6, 7, 8]);
+    assert_eq!(p012345678.lehmer_index(None), 0);
+    println!("{:?}", p012345678.lehmer(None));
+    assert_eq!(Permutation::from_lehmer_index(0, 9), Some(p012345678));
+
+    let p2154603d = Permutation::from_lehmer(p2154603.lehmer(None));
+    assert_eq!(p2154603, p2154603d);
+
+    let p24107635 = Permutation::from_image(vec![2, 4, 1, 0, 7, 6, 3, 5]);
+    assert_eq!(&p24107635.lehmer(None), &[2, 3, 1, 0, 3, 2, 0, 0]);
+
+    let p24107635d = Permutation::from_lehmer(p24107635.lehmer(None));
+    assert_eq!(p24107635, p24107635d);
+}

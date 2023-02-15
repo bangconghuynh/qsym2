@@ -1,8 +1,10 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::ops::Mul;
 
+use bitvec::prelude::*;
 use derive_builder::Builder;
+use factorial::Factorial;
 use indexmap::IndexSet;
 use log;
 use num::integer::lcm;
@@ -64,10 +66,13 @@ impl Permutation {
     ///
     /// Panics if `image` contains repeated elements.
     pub fn from_image(image: Vec<u8>) -> Self {
-        Self::builder().image(image.clone()).build().unwrap_or_else(|err| {
-            log::error!("{err}");
-            panic!("Unable to construct a `Permutation` from `{image:?}`.")
-        })
+        Self::builder()
+            .image(image.clone())
+            .build()
+            .unwrap_or_else(|err| {
+                log::error!("{err}");
+                panic!("Unable to construct a `Permutation` from `{image:?}`.")
+            })
     }
 
     /// Constructs a permutation from its disjoint cycles.
@@ -110,6 +115,43 @@ impl Permutation {
             .map(|(_, img)| img)
             .collect::<Vec<u8>>();
         Self::from_image(image)
+    }
+
+    pub fn from_lehmer(lehmer: Vec<u8>) -> Self {
+        let n = u8::try_from(lehmer.len()).expect("Unable to convert the `lehmer` length to `u8`.");
+        let mut remaining = (0..n).collect::<VecDeque<u8>>();
+        let image = lehmer
+            .iter()
+            .map(|&k| {
+                remaining.remove(usize::from(k)).unwrap_or_else(|| {
+                    panic!("Unable to retrieve element index `{k}` from `{remaining:?}`.")
+                })
+            })
+            .collect::<Vec<_>>();
+        Self::from_image(image)
+    }
+
+    pub fn from_lehmer_index(index: usize, rank: u8) -> Option<Self> {
+        let mut quotient = index;
+        let mut lehmer: VecDeque<u8> = VecDeque::new();
+        let mut i = 1usize;
+        while quotient != 0 {
+            if i == 1 {
+                lehmer.push_front(0);
+            } else {
+                lehmer.push_front(u8::try_from(quotient.rem_euclid(i)).unwrap());
+                quotient = quotient.div_euclid(i);
+            }
+            i += 1;
+        }
+        if lehmer.len() > usize::from(rank) {
+            None
+        } else {
+            while lehmer.len() < usize::from(rank) {
+                lehmer.push_front(0);
+            }
+            Some(Self::from_lehmer(lehmer.into_iter().collect::<Vec<_>>()))
+        }
     }
 
     pub fn rank(&self) -> u8 {
@@ -158,13 +200,64 @@ impl Permutation {
     pub fn cycle_pattern(&self) -> Vec<u8> {
         self.cycles()
             .iter()
-            .map(|cycle| u8::try_from(cycle.len()).expect("Some cycle lengths are too long for `u8`."))
+            .map(|cycle| {
+                u8::try_from(cycle.len()).expect("Some cycle lengths are too long for `u8`.")
+            })
             .collect::<Vec<u8>>()
     }
 
     /// Returns `true` if this permutation is the identity permutation for this rank.
     pub fn is_identity(&self) -> bool {
         self.image == (0..self.rank()).collect::<Vec<u8>>()
+    }
+
+    pub fn lehmer(&self, count_ones_opt: Option<&HashMap<BitVec<u8, Lsb0>, u8>>) -> Vec<u8> {
+        let mut bv: BitVec<u8, Lsb0> = bitvec![u8, Lsb0; 0; self.rank().into()];
+        let n = self.rank();
+        self.image
+            .iter()
+            .enumerate()
+            .map(|(i, &k)| {
+                let k_usize = usize::from(k);
+                let flipped_bv_k = !bv[k_usize];
+                bv.set(k_usize, flipped_bv_k);
+                if i == 0 {
+                    k
+                } else if i == usize::from(n - 1) {
+                    0
+                } else {
+                    let mut bv_k = bv.clone();
+                    bv_k.shift_right(usize::from(n - k));
+                    k - if let Some(count_ones) = count_ones_opt {
+                        *(count_ones.get(&bv_k).unwrap_or_else(|| {
+                            panic!("Unable to count the number of ones in `{bv}`.")
+                        }))
+                    } else {
+                        u8::try_from(bv_k.count_ones())
+                            .expect("Unable to convert the number of ones to `u8`.")
+                    }
+                }
+            })
+            .collect::<Vec<u8>>()
+    }
+
+    pub fn lehmer_index(&self, count_ones_opt: Option<&HashMap<BitVec<u8, Lsb0>, u8>>) -> usize {
+        let lehmer = self.lehmer(count_ones_opt);
+        let n = usize::from(self.rank()) - 1;
+        if n == 0 {
+            0
+        } else {
+            lehmer
+                .into_iter()
+                .enumerate()
+                .map(|(i, l)| {
+                    usize::from(l)
+                        * (n - i).checked_factorial().unwrap_or_else(|| {
+                            panic!("The factorial of `{}` cannot be correctly computed.", n - i)
+                        })
+                })
+                .sum()
+        }
     }
 }
 
