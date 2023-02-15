@@ -1,15 +1,17 @@
 use std::collections::HashSet;
+use std::ops::Range;
 
 use derive_builder::Builder;
+use ndarray::Array2;
 use indexmap::map::Entry::Vacant;
 use indexmap::IndexMap;
-use itertools::Itertools;
+use itertools::{structs::Permutations, Itertools};
 
 use crate::chartab::chartab_group::{CharacterProperties, IrrepCharTabConstruction};
 use crate::chartab::chartab_symbols::CollectionSymbol;
 use crate::chartab::{CharacterTable, RepCharacterTable};
 use crate::group::class::{ClassProperties, ClassStructure};
-use crate::group::{Group, GroupProperties, UnitaryRepresentedGroup};
+use crate::group::{GroupProperties, UnitaryRepresentedGroup};
 use crate::permutation::permutation_symbols::{
     deduce_permutation_irrep_symbols, sort_perm_irreps, PermutationClassSymbol,
     PermutationIrrepSymbol,
@@ -24,14 +26,28 @@ mod permutation_group_tests;
 // Struct definitions
 // ==================
 
+#[derive(Clone)]
+pub struct PermutationIterator {
+    raw_perms: Permutations<Range<u8>>,
+}
+
+impl Iterator for PermutationIterator {
+    type Item = Permutation;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.raw_perms
+            .next()
+            .map(|image| Permutation::from_image(image))
+    }
+}
+
 /// A dedicated structure for managing permutation groups efficiently.
 #[derive(Clone, Builder)]
 pub struct PermutationGroup {
     /// The rank of the permutation group.
     rank: u8,
 
-    /// The underlying abstract group of this permutation group.
-    abstract_group: Group<Permutation>,
+    perms_iter: PermutationIterator,
 
     /// The class structure of this permutation group that is induced by the following equivalence
     /// relation:
@@ -193,16 +209,61 @@ impl PermutationGroupProperties
 
 impl GroupProperties for PermutationGroup {
     type GroupElement = Permutation;
-
-    fn abstract_group(&self) -> &Group<Self::GroupElement> {
-        &self.abstract_group
-    }
+    type ElementCollection = PermutationIterator;
 
     fn name(&self) -> String {
         format!("Sym({})", self.rank)
     }
 
     fn finite_subgroup_name(&self) -> Option<&String> {
+        None
+    }
+
+    fn get_index(&self, index: usize) -> Option<Self::GroupElement> {
+        self.perms_iter
+            .clone()
+            .into_iter()
+            .enumerate()
+            .find_map(|(i, op)| if i == index { Some(op.clone()) } else { None })
+    }
+
+    fn get_index_of(&self, g: &Self::GroupElement) -> Option<usize> {
+        self.perms_iter
+            .clone()
+            .into_iter()
+            .enumerate()
+            .find_map(|(i, op)| if op == *g { Some(i) } else { None })
+    }
+
+    fn contains(&self, g: &Self::GroupElement) -> bool {
+        self.perms_iter
+            .clone()
+            .into_iter()
+            .enumerate()
+            .find(|(_, op)| *op == *g)
+            .is_some()
+    }
+
+    fn elements(&self) -> &Self::ElementCollection {
+        &self.perms_iter
+    }
+
+    fn is_abelian(&self) -> bool {
+        self.perms_iter.clone().into_iter().enumerate().all(|(i, gi)| {
+            (0..i).all(|j| {
+                let gj = self
+                    .get_index(j)
+                    .unwrap_or_else(|| panic!("Element with index `{j}` not found."));
+                (&gi) * (&gj) == (&gj) * (&gi)
+            })
+        })
+    }
+
+    fn order(&self) -> usize {
+        self.perms_iter.clone().into_iter().count()
+    }
+
+    fn cayley_table(&self) -> Option<&Array2<usize>> {
         None
     }
 }
@@ -214,10 +275,10 @@ impl ClassProperties for PermutationGroup {
     fn compute_class_structure(&mut self) {
         log::debug!("Finding unitary conjugacy classes using permutation cycle patterns...");
 
-        let order = self.abstract_group.order();
+        let order = self.order();
         let mut cycle_patterns: IndexMap<Vec<u8>, HashSet<usize>> = IndexMap::new();
         let mut e2ccs = vec![Some(0usize); order];
-        for (i, element) in self.abstract_group.elements().iter().enumerate() {
+        for (i, element) in self.elements().clone().into_iter().enumerate() {
             let cycle_pattern = element.cycle_pattern();
             if let Vacant(class) = cycle_patterns.entry(cycle_pattern.clone()) {
                 class.insert(HashSet::from([i]));
@@ -231,12 +292,13 @@ impl ClassProperties for PermutationGroup {
 
         let class_number = ccs.len();
         let class_structure = ClassStructure::<Permutation, PermutationClassSymbol>::new_no_ctb(
-            &self.abstract_group,
+            self,
             ccs,
             e2ccs,
             (0..class_number).into_iter().collect_vec(),
         );
         self.class_structure = Some(class_structure);
+
         log::debug!("Finding unitary conjugacy classes using permutation cycle patterns... Done.");
     }
 
@@ -274,16 +336,13 @@ impl PermutationGroupProperties for PermutationGroup {
     fn from_rank(rank: u8) -> Self {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
         log::debug!("Generating all permutations of rank {rank}...");
-        let perms_iter = (0..rank)
-            .permutations(usize::from(rank))
-            .map(|image| Permutation::from_image(image));
+        let perms_iter = PermutationIterator {
+            raw_perms: (0..rank).permutations(usize::from(rank))
+        };
         log::debug!("Generating all permutations of rank {rank}... Done.");
-        log::debug!("Collecting all permutations into a permutation group...");
-        let abstract_group =
-            Group::<Permutation>::from_iter_no_ctb(format!("Sym({rank})").as_str(), perms_iter);
         let mut group = PermutationGroup::builder()
             .rank(rank)
-            .abstract_group(abstract_group)
+            .perms_iter(perms_iter)
             .build()
             .expect("Unable to construct a `PermutationGroup`.");
         log::debug!("Collecting all permutations into a permutation group... Done.");
