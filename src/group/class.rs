@@ -4,7 +4,7 @@ use std::hash::Hash;
 use std::ops::Mul;
 
 use derive_builder::Builder;
-use indexmap::{IndexSet, IndexMap};
+use indexmap::IndexMap;
 use ndarray::{s, Array2};
 use num_traits::Inv;
 
@@ -13,7 +13,7 @@ use crate::chartab::chartab_symbols::{
     CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::group::{
-    FiniteOrder, Group, GroupProperties, HasUnitarySubgroup, MagneticRepresentedGroup,
+    FiniteOrder, GroupProperties, HasUnitarySubgroup, MagneticRepresentedGroup,
     UnitaryRepresentedGroup,
 };
 
@@ -82,19 +82,14 @@ where
                     .next()
                     .expect("No conjugacy classes can be empty.");
                 let z = self
-                    .abstract_group()
-                    .elements
                     .get_index(rep_z_idx)
                     .unwrap_or_else(|| panic!("No element with index `{rep_z_idx}` found."));
                 for &x_idx in class_r.iter() {
                     let x = self
-                        .abstract_group()
-                        .elements
                         .get_index(x_idx)
                         .unwrap_or_else(|| panic!("No element with index `{x_idx}` found."));
                     let y = x.clone().inv() * z.clone();
                     let y_idx = self
-                        .elements()
                         .get_index_of(&y)
                         .unwrap_or_else(|| panic!("Element `{y:?}` not found in this group."));
                     let s = self.element_to_conjugacy_classes()[y_idx]
@@ -216,7 +211,10 @@ where
         self
     }
 
-    fn conjugacy_class_symbols(&mut self, elements: &IndexSet<T>) -> &mut Self {
+    fn conjugacy_class_symbols(
+        &mut self,
+        group: &impl GroupProperties<GroupElement = T>,
+    ) -> &mut Self {
         log::debug!("Assigning generic class symbols...");
         let class_sizes: Vec<_> = self
             .conjugacy_classes
@@ -232,7 +230,7 @@ where
             .iter()
             .enumerate()
             .map(|(i, &rep_ele_index)| {
-                let rep_ele = elements.get_index(rep_ele_index).unwrap_or_else(|| {
+                let rep_ele = group.get_index(rep_ele_index).unwrap_or_else(|| {
                     panic!("Element with index {rep_ele_index} cannot be retrieved.")
                 });
                 (
@@ -349,19 +347,19 @@ where
     ///
     /// A new class structure.
     pub fn new(
-        group: &Group<T>,
+        group: &impl GroupProperties<GroupElement = T>,
         conjugacy_classes: Vec<HashSet<usize>>,
         element_to_conjugacy_classes: Vec<Option<usize>>,
     ) -> Self {
-        let ctb = group
-            .cayley_table
+        let ctb_opt = group.cayley_table();
+        let ctb = ctb_opt
             .as_ref()
             .expect("Cayley table not found for this group.");
         Self::builder()
             .conjugacy_classes(conjugacy_classes)
             .element_to_conjugacy_classes(element_to_conjugacy_classes)
             .conjugacy_class_transversal()
-            .conjugacy_class_symbols(&group.elements)
+            .conjugacy_class_symbols(group)
             .inverse_conjugacy_classes(ctb)
             .build()
             .expect("Unable to construct a `ClassStructure`.")
@@ -381,7 +379,7 @@ where
     ///
     /// A new class structure.
     pub fn new_no_ctb(
-        group: &Group<T>,
+        group: &impl GroupProperties<GroupElement = T>,
         conjugacy_classes: Vec<HashSet<usize>>,
         element_to_conjugacy_classes: Vec<Option<usize>>,
         inverse_conjugacy_classes: Vec<usize>,
@@ -390,7 +388,7 @@ where
             .conjugacy_classes(conjugacy_classes)
             .element_to_conjugacy_classes(element_to_conjugacy_classes)
             .conjugacy_class_transversal()
-            .conjugacy_class_symbols(&group.elements)
+            .conjugacy_class_symbols(group)
             .custom_inverse_conjugacy_classes(inverse_conjugacy_classes)
             .build()
             .expect("Unable to construct a `ClassStructure`.")
