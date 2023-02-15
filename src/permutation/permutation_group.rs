@@ -40,6 +40,7 @@ impl Iterator for PermutationIterator {
         self.raw_perm_indices
             .next()
             .map(|index| Permutation::from_lehmer_index(index, self.rank))
+            .flatten()
     }
 }
 
@@ -222,12 +223,7 @@ impl GroupProperties for PermutationGroup {
     }
 
     fn get_index(&self, index: usize) -> Option<Self::GroupElement> {
-        let perm = Permutation::from_lehmer_index(index, self.rank);
-        if perm.rank() != self.rank {
-            None
-        } else {
-            Some(perm)
-        }
+        Permutation::from_lehmer_index(index, self.rank)
     }
 
     fn get_index_of(&self, g: &Self::GroupElement) -> Option<usize> {

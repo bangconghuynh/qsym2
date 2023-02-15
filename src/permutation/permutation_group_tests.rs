@@ -109,6 +109,6 @@ fn test_permutation_group_chartab() {
     //     let sym = PermutationGroup::from_rank(p);
     //     test_irrep_character_table_algebraic_validity(sym.character_table());
     // }
-    let sym = PermutationGroup::from_rank(11);
+    let sym = PermutationGroup::from_rank(12);
     println!("{:?}", sym.character_table());
 }

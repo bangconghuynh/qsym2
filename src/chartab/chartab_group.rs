@@ -111,10 +111,17 @@ where
 
         // Identify a suitable finite field
         let m = self
-            .elements()
-            .clone()
-            .into_iter()
-            .map(|op| op.order())
+            .conjugacy_class_transversal()
+            .iter()
+            // .elements()
+            // .clone()
+            // .into_iter()
+            .map(|&i| {
+                self
+                    .get_index(i)
+                    .unwrap_or_else(|| panic!("No element with index `{i}` found."))
+                    .order()
+            })
             .reduce(lcm)
             .expect("Unable to find the LCM for the orders of the elements in this group.");
         let zeta = UnityRoot::new(1, m);
