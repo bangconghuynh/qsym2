@@ -2,10 +2,10 @@ use std::collections::HashSet;
 use std::ops::Range;
 
 use derive_builder::Builder;
+use factorial::Factorial;
 use indexmap::map::Entry::Vacant;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use factorial::Factorial;
 use ndarray::Array2;
 
 use crate::chartab::chartab_group::{CharacterProperties, IrrepCharTabConstruction};
