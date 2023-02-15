@@ -10,8 +10,8 @@ use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
 use crate::group::class::ClassProperties;
 use crate::group::{
-    EagerGroup, GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup,
-    BWGRP, GRGRP, ORGRP,
+    Group, GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup, BWGRP,
+    GRGRP, ORGRP,
 };
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
@@ -41,8 +41,7 @@ fn test_abstract_group_creation() {
         .build()
         .unwrap();
 
-    let group_c5 =
-        EagerGroup::<SymmetryOperation>::new("C5", (0..5).map(|k| (&c5).pow(k)).collect());
+    let group_c5 = Group::<SymmetryOperation>::new("C5", (0..5).map(|k| (&c5).pow(k)).collect());
     let mut elements = group_c5.elements().iter();
     for i in 0..5 {
         let op = elements.next().unwrap();
@@ -66,7 +65,7 @@ fn test_abstract_group_creation() {
         .unwrap();
 
     let group_c29 =
-        EagerGroup::<SymmetryOperation>::new("C29", (0..29).map(|k| (&c29).pow(k)).collect());
+        Group::<SymmetryOperation>::new("C29", (0..29).map(|k| (&c29).pow(k)).collect());
     let mut elements = group_c29.elements().iter();
     for i in 0..29 {
         let op = elements.next().unwrap();

@@ -69,29 +69,29 @@ pub trait SymmetryGroupProperties:
                     b'h' | b'd'
                 ) {
                     if self.name().contains('θ') {
-                        assert_eq!(self.order() % 8, 0);
+                        assert_eq!(self.abstract_group().order() % 8, 0);
                         self.name().replace(
                             '∞',
-                            format!("{}", self.order() / 8).as_str(),
+                            format!("{}", self.abstract_group().order() / 8).as_str(),
                         )
                     } else {
-                        assert_eq!(self.order() % 4, 0);
+                        assert_eq!(self.abstract_group().order() % 4, 0);
                         self.name().replace(
                             '∞',
-                            format!("{}", self.order() / 4).as_str(),
+                            format!("{}", self.abstract_group().order() / 4).as_str(),
                         )
                     }
                 } else if self.name().contains('θ') {
-                    assert_eq!(self.order() % 4, 0);
+                    assert_eq!(self.abstract_group().order() % 4, 0);
                     self.name().replace(
                         '∞',
-                        format!("{}", self.order() / 4).as_str(),
+                        format!("{}", self.abstract_group().order() / 4).as_str(),
                     )
                 } else {
-                    assert_eq!(self.order() % 2, 0);
+                    assert_eq!(self.abstract_group().order() % 2, 0);
                     self.name().replace(
                         '∞',
-                        format!("{}", self.order() / 2).as_str(),
+                        format!("{}", self.abstract_group().order() / 2).as_str(),
                     )
                 }
             } else {
@@ -105,20 +105,20 @@ pub trait SymmetryGroupProperties:
                     b'h' | b'v'
                 ) {
                     if self.name().contains('θ') {
-                        assert_eq!(self.order() % 4, 0);
+                        assert_eq!(self.abstract_group().order() % 4, 0);
                     } else {
-                        assert_eq!(self.order() % 2, 0);
+                        assert_eq!(self.abstract_group().order() % 2, 0);
                     }
-                    if self.order() > 2 {
+                    if self.abstract_group().order() > 2 {
                         if self.name().contains('θ') {
                             self.name().replace(
                                 '∞',
-                                format!("{}", self.order() / 4).as_str(),
+                                format!("{}", self.abstract_group().order() / 4).as_str(),
                             )
                         } else {
                             self.name().replace(
                                 '∞',
-                                format!("{}", self.order() / 2).as_str(),
+                                format!("{}", self.abstract_group().order() / 2).as_str(),
                             )
                         }
                     } else {
@@ -127,12 +127,12 @@ pub trait SymmetryGroupProperties:
                     }
                 } else {
                     self.name()
-                        .replace('∞', format!("{}", self.order()).as_str())
+                        .replace('∞', format!("{}", self.abstract_group().order()).as_str())
                 }
             }
         } else if self.name().contains("O(3)") {
             // O(3) or the corresponding grey group
-            match self.order() {
+            match self.abstract_group().order() {
                 8 => "D2h".to_string(),
                 16 => "D2h + θ·D2h".to_string(),
                 48 => "Oh".to_string(),
@@ -148,7 +148,7 @@ pub trait SymmetryGroupProperties:
 
     /// Returns `true` if all elements in this group are unitary.
     fn all_unitary(&self) -> bool {
-        self.elements().clone().into_iter().all(|op| !op.is_antiunitary())
+        self.elements().iter().all(|op| !op.is_antiunitary())
     }
 
     /// Determines whether this group is an ordinary (double) group, a magnetic grey (double)
@@ -158,9 +158,8 @@ pub trait SymmetryGroupProperties:
             GroupType::Ordinary(false)
         } else if self
             .elements()
-            .clone()
-            .into_iter()
-            .any(|op| op.is_time_reversal())
+            .iter()
+            .any(SpecialSymmetryTransformation::is_time_reversal)
         {
             GroupType::MagneticGrey(false)
         } else {
@@ -187,6 +186,7 @@ pub trait SymmetryGroupProperties:
                     .iter()
                     .min_by_key(|&&j| {
                         let op = self
+                            .elements()
                             .get_index(j)
                             .unwrap_or_else(|| {
                                 panic!("Element with index {j} cannot be retrieved.")
@@ -194,7 +194,7 @@ pub trait SymmetryGroupProperties:
                         (op.power, op.generating_element.proper_power)
                     })
                     .expect("Unable to obtain a representative element index.");
-                let rep_ele = self.get_index(rep_ele_index).unwrap_or_else(|| {
+                let rep_ele = self.elements().get_index(rep_ele_index).unwrap_or_else(|| {
                     panic!("Unable to retrieve group element with index `{rep_ele_index}`.")
                 });
                 if rep_ele.is_identity() {
