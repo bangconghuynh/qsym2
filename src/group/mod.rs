@@ -22,7 +22,7 @@ pub mod class;
 // Trait definitions
 // =================
 
-/// A trait for order finiteness.
+/// A trait for order finiteness of group elements.
 pub trait FiniteOrder {
     /// The integer type for the order of the element.
     type Int: Integer;
@@ -57,13 +57,18 @@ where
     fn finite_subgroup_name(&self) -> Option<&String>;
 
 
-    /// The elements in the group.
+    /// A iterable collection of the elements in the group.
     fn elements(&self) -> &Self::ElementCollection;
 
+    /// Given an index, returns the element associated with it, or `None` if the index is out of
+    /// range.
     fn get_index(&self, index: usize) -> Option<Self::GroupElement>;
 
+    /// Given an element, returns its index in the group, or `None` if the element does not exist
+    /// in the group.
     fn get_index_of(&self, g: &Self::GroupElement) -> Option<usize>;
 
+    /// Checks if an element is a member of the group.
     fn contains(&self, g: &Self::GroupElement) -> bool;
 
     /// Checks if this group is abelian.
@@ -153,7 +158,7 @@ pub const GRGRP: GroupType = GroupType::MagneticGrey(false);
 // Abstract group
 // --------------
 
-/// A structure for managing abstract groups.
+/// A structure for managing abstract groups eagerly, *i.e.* all group elements are stored.
 #[derive(Builder, Clone)]
 pub struct EagerGroup<T>
 where
@@ -162,8 +167,7 @@ where
     /// A name for the abstract group.
     name: String,
 
-    /// An ordered hash table containing the elements of the group. Each key is a group element,
-    /// and the associated value is its index.
+    /// An ordered hashset containing the elements of the group.
     #[builder(setter(custom))]
     elements: IndexSet<T>,
 
@@ -174,7 +178,7 @@ where
     /// elements act on the function first, followed by row elements.
     ///
     /// Each element in this array contains the index of the resultant operation
-    /// from the composition, w.r.t. the array [`Self::elements`].
+    /// from the composition, w.r.t. the ordered hashset [`Self::elements`].
     #[builder(setter(skip), default = "None")]
     cayley_table: Option<Array2<usize>>,
 }

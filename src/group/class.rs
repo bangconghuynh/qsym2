@@ -21,11 +21,13 @@ use crate::group::{
 // Trait definitions
 // =================
 
+/// A trait for conjugacy class properties of a finite group.
 pub trait ClassProperties: GroupProperties
 where
     Self::ClassSymbol: CollectionSymbol<CollectionElement = Self::GroupElement>,
     <Self as GroupProperties>::GroupElement: Inv<Output = <Self as GroupProperties>::GroupElement>,
 {
+    /// The type for class symbols.
     type ClassSymbol;
 
     // ----------------
@@ -233,8 +235,10 @@ where
 // Struct definitions and implementations
 // ======================================
 
+/// A struct for managing class structures eagerly, *i.e.* all elements and their class maps are
+/// stored.
 #[derive(Builder, Clone)]
-pub struct EagerClassStructure<T, ClassSymbol>
+pub(super) struct EagerClassStructure<T, ClassSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     ClassSymbol: CollectionSymbol<CollectionElement = T>,
@@ -418,7 +422,7 @@ where
         EagerClassStructureBuilder::<T, ClassSymbol>::default()
     }
 
-    /// Constructs a new class structure.
+    /// Constructs a new eager class structure.
     ///
     /// # Arguments
     ///
@@ -432,7 +436,7 @@ where
     /// # Returns
     ///
     /// A new class structure.
-    pub fn new(
+    fn new(
         group: &impl GroupProperties<GroupElement = T>,
         conjugacy_classes: Vec<HashSet<usize>>,
         element_to_conjugacy_classes: Vec<Option<usize>>,
@@ -451,7 +455,7 @@ where
             .expect("Unable to construct a `EagerClassStructure`.")
     }
 
-    /// Constructs a new class structure without using any information from any Cayley table.
+    /// Constructs a new eager class structure without using any information from any Cayley table.
     ///
     /// # Arguments
     ///
@@ -464,7 +468,7 @@ where
     /// # Returns
     ///
     /// A new class structure.
-    pub fn new_no_ctb(
+    fn new_no_ctb(
         group: &impl GroupProperties<GroupElement = T>,
         conjugacy_classes: Vec<HashSet<usize>>,
         element_to_conjugacy_classes: Vec<Option<usize>>,
@@ -495,7 +499,7 @@ where
     /// # Panics
     ///
     /// Panics if the length of `csyms` does not match that of [`Self::conjugacy_classes`].
-    pub fn set_class_symbols(&mut self, csyms: &[ClassSymbol]) {
+    fn set_class_symbols(&mut self, csyms: &[ClassSymbol]) {
         assert_eq!(csyms.len(), self.conjugacy_classes.len());
         self.conjugacy_class_symbols = csyms
             .iter()
