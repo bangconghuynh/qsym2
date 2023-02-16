@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
@@ -110,16 +109,10 @@ where
         log::debug!("=============================================");
 
         // Identify a suitable finite field
-        let m = self
-            .conjugacy_class_transversal()
-            .iter()
-            // .elements()
-            // .clone()
-            // .into_iter()
-            .map(|&i| {
-                self
-                    .get_index(i)
-                    .unwrap_or_else(|| panic!("No element with index `{i}` found."))
+        let m = (0..self.class_number())
+            .map(|i| {
+                self.get_cc_transversal(i)
+                    .unwrap_or_else(|| panic!("No representative of class index `{i}` found."))
                     .order()
             })
             .reduce(lcm)
@@ -175,24 +168,31 @@ where
         log::debug!("Found integer z = {} with multiplicative order {}.", z, m);
 
         // Diagonalise class matrices
-        let class_sizes: Vec<_> = self.conjugacy_classes().iter().map(HashSet::len).collect();
+        let class_sizes: Vec<_> = (0..self.class_number())
+            .map(|i| {
+                self.class_size(i)
+                    .expect("Not all class sizes can be found.")
+            })
+            .collect();
         log::debug!("Class sizes: {:?}", class_sizes);
-        let sq_indices: Vec<usize> = self
-            .conjugacy_class_transversal()
-            .iter()
-            .map(|&ele_i| {
+        let sq_indices: Vec<usize> = (0..self.class_number())
+            .map(|i| {
                 let ele = self
-                    .get_index(ele_i)
-                    .unwrap_or_else(|| panic!("Element index {ele_i} cannot be retrieved."));
+                    .get_cc_transversal(i)
+                    .unwrap_or_else(|| panic!("No representative of class index `{i}` found."));
                 let elep2 = ele.clone().pow(2);
                 let elep2_i = self
                     .get_index_of(&elep2)
                     .unwrap_or_else(|| panic!("Element {elep2:?} not found."));
-                self.element_to_conjugacy_classes()[elep2_i]
+                self.get_cc_of_element_index(elep2_i)
                     .unwrap_or_else(|| panic!("Conjugacy class for element {elep2:?} not found."))
             })
             .collect();
-        let inverse_conjugacy_classes = Some(self.inverse_conjugacy_classes());
+        let inverse_conjugacy_classes = Some(
+            (0..self.class_number())
+                .map(|i| self.get_inverse_cc(i))
+                .collect::<Vec<_>>(),
+        );
         let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u32>>> = vec![];
 
         let rs = (1..self.class_number()).collect::<Vec<_>>();
@@ -267,7 +267,7 @@ where
                             &subspace,
                             &class_sizes,
                             &sq_indices,
-                            inverse_conjugacy_classes,
+                            inverse_conjugacy_classes.as_ref(),
                         ) {
                             eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
                                 if subsubspace.len() == 1 {
@@ -317,7 +317,7 @@ where
                                 &nmat_r,
                                 &subspace,
                                 &class_sizes,
-                                inverse_conjugacy_classes,
+                                inverse_conjugacy_classes.as_ref(),
                             ) {
                                 eigvecs_1d.extend(subsubspaces.iter().filter_map(|subsubspace| {
                                     if subsubspace.len() == 1 {
@@ -364,7 +364,7 @@ where
 
         // Lift characters back to the complex field
         log::debug!("Lifting characters from GF({p}) back to the complex field...",);
-        let class_transversal = self.conjugacy_class_transversal();
+        // let class_transversal = self.conjugacy_class_transversal();
 
         let chars: Vec<_> = eigvecs_1d
             .par_iter()
@@ -372,7 +372,7 @@ where
                 let vec_i_inprod = weighted_hermitian_inprod(
                     (vec_i, vec_i),
                     &class_sizes,
-                    inverse_conjugacy_classes,
+                    inverse_conjugacy_classes.as_ref(),
                 );
                 let dim_i = (1..=p.div_euclid(2))
                     .map(|d| vec_i_inprod.convert(d))
@@ -394,13 +394,13 @@ where
                                     panic!("Unable to convert `{k}` to `u32`.")
                                 }))
                         });
-                let char_i: Vec<_> = class_transversal
-                    .par_iter()
-                    .map(|x_idx| {
+                let char_i: Vec<_> = (0..self.class_number())
+                    .into_par_iter()
+                    .map(|cc_i| {
                         let x = self
-                            .get_index(*x_idx)
+                            .get_cc_transversal(cc_i)
                             .unwrap_or_else(|| {
-                                panic!("Element with index {x_idx} cannot be retrieved.")
+                                panic!("Representative of class index `{cc_i}` not found.")
                             });
                         let k = x.order();
                         let xi = zeta.clone().pow(
@@ -425,7 +425,7 @@ where
                                         .get_index_of(&x_l)
                                         .unwrap_or_else(|| panic!("Element {x_l:?} not found."));
                                     let x_l_class_idx =
-                                        self.element_to_conjugacy_classes()[x_l_idx].unwrap_or_else(|| {
+                                        self.get_cc_of_element_index(x_l_idx).unwrap_or_else(|| {
                                             panic!("Element `{x_l_idx}` does not have a conjugacy class.")
                                         });
                                     let tchar_i_x_l = tchar_i[x_l_class_idx];
@@ -465,8 +465,6 @@ where
             .expect("Unable to construct the two-dimensional array of characters.");
         log::debug!("Lifting characters from GF({p}) back to the complex field... Done.",);
 
-        let class_symbols = self.conjugacy_class_symbols();
-
         let default_irrep_symbols = char_arr
             .rows()
             .into_iter()
@@ -478,10 +476,8 @@ where
             })
             .collect::<Vec<_>>();
         let default_principal_classes = vec![self
-            .conjugacy_class_symbols()
-            .first()
+            .get_cc_symbol_of_index(0)
             .expect("No conjugacy class symbols found.")
-            .0
             .clone()];
 
         log::debug!("Computing the Frobenius--Schur indicators in GF({p})...");
@@ -495,7 +491,7 @@ where
                 let vec_i_inprod = weighted_hermitian_inprod(
                     (vec_i, vec_i),
                     &class_sizes,
-                    inverse_conjugacy_classes,
+                    inverse_conjugacy_classes.as_ref(),
                 );
                 let dim_i = (1..=p.div_euclid(2))
                     .map(|d| vec_i_inprod.convert(d))
@@ -544,10 +540,17 @@ where
         } else {
             self.name().to_string()
         };
+        let ccsyms = (0..self.class_number())
+            .map(|i| {
+                self.get_cc_symbol_of_index(i)
+                    .expect("Unable to obtain all class symbols.")
+                    .clone()
+            })
+            .collect::<Vec<_>>();
         self.set_irrep_character_table(RepCharacterTable::new(
             chartab_name.as_str(),
             &default_irrep_symbols,
-            &class_symbols.keys().cloned().collect::<Vec<_>>(),
+            &ccsyms,
             &default_principal_classes,
             char_arr,
             &frobenius_schur_indicators,
@@ -610,9 +613,16 @@ where
         let unitary_chartab = self.unitary_subgroup().character_table();
 
         let mag_ctb = self.cayley_table().expect("Cayley table not found for the magnetic group.");
-        let uni_e2c = self.unitary_subgroup().element_to_conjugacy_classes();
-        let mag_ccsyms = self.conjugacy_class_symbols();
-        let uni_ccsyms = self.unitary_subgroup().conjugacy_class_symbols();
+
+        let mag = &self;
+        let uni = self.unitary_subgroup();
+        let mag_ccsyms = (0..mag.class_number()) .map(|i| {
+            mag.get_cc_symbol_of_index(i).expect("Unable to retrieve all class symbols of the magnetic group.")
+        })
+        .collect::<Vec<_>>();
+        let uni_ccsyms = (0..uni.class_number()).map(|i| {
+            uni.get_cc_symbol_of_index(i).expect("Unable to retrieve all class symbols of the unitary subgroup.")
+        }).collect::<Vec<_>>();
         let (a0_mag_idx, _) = self
             .elements()
             .clone()
@@ -641,14 +651,12 @@ where
                     let a2_uni_idx = self.unitary_subgroup().get_index_of(&a2).unwrap_or_else(|| {
                         panic!("Element `{a2:?}` not found in the unitary subgroup.")
                     });
-                    let (a2_uni_class, _) = uni_ccsyms.get_index(
-                        uni_e2c[a2_uni_idx].unwrap_or_else(|| {
+                    let a2_uni_class = &uni_ccsyms[
+                        uni.get_cc_of_element_index(a2_uni_idx).unwrap_or_else(|| {
                             panic!("Conjugacy class for `{a2:?}` not found in the unitary subgroup.")
                         })
-                    ).unwrap_or_else(|| {
-                            panic!("Conjugacy class symbol for `{a2:?}` not found in the unitary subgroup.")
-                    });
-                    acc + unitary_chartab.get_character(&irrep, a2_uni_class)
+                    ];
+                    acc + unitary_chartab.get_character(&irrep, &a2_uni_class)
                 })
                 .simplify();
             log::debug!("  Dimmock--Wheeler indicator for {irrep}: {char_sum}");
@@ -708,7 +716,11 @@ where
                     .iter()
                     .enumerate()
                     .map(|(cc_idx, cc)| {
-                        let u_unitary_idx = self.unitary_subgroup().conjugacy_classes()[cc_idx]
+                        let u_cc = self
+                            .unitary_subgroup()
+                            .get_cc_index(cc_idx)
+                            .unwrap_or_else(|| panic!("Conjugacy class `{cc}` not found."));
+                        let u_unitary_idx = u_cc
                             .iter()
                             .next()
                             .unwrap_or_else(|| panic!("No unitary elements found for conjugacy class `{cc}`."));
@@ -733,12 +745,12 @@ where
                             .unwrap_or_else(|| {
                                 panic!("Unable to retrieve the index of element `{a0invua0:?}` in the unitary subgroup.")
                             });
-                        let (a0invua0_unitary_class, _) = uni_ccsyms
-                            .get_index(uni_e2c[a0invua0_unitary_idx].unwrap_or_else(|| {
+                        let a0invua0_unitary_class = &uni_ccsyms[
+                            uni.get_cc_of_element_index(a0invua0_unitary_idx).unwrap_or_else(|| {
                                 panic!("Unable to retrieve the class for `{a0invua0:?}` in the unitary subgroup.")
-                            }))
-                            .unwrap_or_else(|| panic!("Unable to retrieve the class for `{a0invua0:?}` in the unitary subgroup."));
-                        unitary_chartab.get_character(&irrep, a0invua0_unitary_class).complex_conjugate()
+                            })
+                        ];
+                        unitary_chartab.get_character(&irrep, &a0invua0_unitary_class).complex_conjugate()
                 }).collect();
                 let all_irreps = unitary_chartab.get_all_rows();
                 let (_, conj_irrep) = all_irreps
@@ -768,7 +780,8 @@ where
         let mut char_arr: Array2<Character> =
             Array2::zeros((ircoreps_ins.len(), self.class_number()));
         for (i, (ircorep, intertwining_number)) in ircoreps_ins.iter().enumerate() {
-            for (mag_cc, &cc_idx) in mag_ccsyms {
+            for cc_idx in 0..mag.class_number() {
+                let mag_cc = &mag_ccsyms[cc_idx];
                 let mag_cc_rep = mag_cc.representative().unwrap_or_else(|| {
                     panic!(
                         "No representative element found for magnetic conjugacy class {mag_cc}."
@@ -782,19 +795,17 @@ where
                             "Index for element {mag_cc_rep:?} not found in the unitary subgroup."
                         );
                     });
-                let (uni_cc, _) = uni_ccsyms.get_index(
-                    uni_e2c[mag_cc_uni_idx].unwrap_or_else(|| {
+                let uni_cc = &uni_ccsyms[
+                    uni.get_cc_of_element_index(mag_cc_uni_idx).unwrap_or_else(|| {
                         panic!("Unable to find the conjugacy class of element {mag_cc_rep:?} in the unitary subgroup.");
                     })
-                ).unwrap_or_else(|| {
-                    panic!("Unable to find the conjugacy class symbol of element {mag_cc_rep:?} in the unitary subgroup.");
-                });
+                ];
 
                 char_arr[(i, cc_idx)] = ircorep
                     .subspaces()
                     .iter()
                     .fold(Character::zero(), |acc, (irrep, _)| {
-                        acc + unitary_chartab.get_character(irrep, uni_cc)
+                        acc + unitary_chartab.get_character(irrep, &uni_cc)
                     });
                 if *intertwining_number == 4 {
                     // Irreducible corepresentation type b
@@ -804,23 +815,23 @@ where
             }
         }
 
-        let principal_classes = mag_ccsyms
-            .iter()
-            .filter_map(|(mag_cc, _)| {
+        let principal_classes = (0..mag.class_number())
+            .filter_map(|i| {
+                let mag_cc = &mag_ccsyms[i];
                 let mag_cc_rep = mag_cc.representative().unwrap_or_else(|| {
                     panic!("No representative element found for magnetic conjugacy class {mag_cc}.");
                 });
                 let mag_cc_uni_idx = self.unitary_subgroup().get_index_of(&mag_cc_rep).unwrap_or_else(|| {
                     panic!("Index for element {mag_cc_rep:?} not found in the unitary subgroup.");
                 });
-                let (uni_cc, _) = uni_ccsyms.get_index(
-                    uni_e2c[mag_cc_uni_idx].unwrap_or_else(|| {
+                let uni_cc = uni.get_cc_symbol_of_index(
+                    uni.get_cc_of_element_index(mag_cc_uni_idx).unwrap_or_else(|| {
                         panic!("Unable to find the conjugacy class of element {mag_cc_rep:?} in the unitary subgroup.");
                     })
                 ).unwrap_or_else(|| {
                     panic!("Unable to find the conjugacy class symbol of element {mag_cc_rep:?} in the unitary subgroup.");
                 });
-                if unitary_chartab.get_principal_cols().contains(uni_cc) {
+                if unitary_chartab.get_principal_cols().contains(&uni_cc) {
                     Some(mag_cc.clone())
                 } else {
                     None
@@ -838,7 +849,7 @@ where
             chartab_name.as_str(),
             unitary_chartab.clone(),
             &ircoreps,
-            &mag_ccsyms.keys().cloned().collect::<Vec<_>>(),
+            &mag_ccsyms,
             &principal_classes,
             char_arr,
             &ins,

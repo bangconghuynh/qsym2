@@ -3,15 +3,13 @@ use std::ops::Range;
 
 use derive_builder::Builder;
 use factorial::Factorial;
-use indexmap::map::Entry::Vacant;
-use indexmap::IndexMap;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use ndarray::Array2;
 
 use crate::chartab::chartab_group::{CharacterProperties, IrrepCharTabConstruction};
-use crate::chartab::chartab_symbols::CollectionSymbol;
 use crate::chartab::{CharacterTable, RepCharacterTable};
-use crate::group::class::{ClassProperties, ClassStructure};
+use crate::group::class::ClassProperties;
 use crate::group::{GroupProperties, UnitaryRepresentedGroup};
 use crate::permutation::permutation_symbols::{
     deduce_permutation_irrep_symbols, sort_perm_irreps, PermutationClassSymbol,
@@ -52,17 +50,22 @@ pub struct PermutationGroup {
 
     perms_iter: PermutationIterator,
 
-    /// The class structure of this permutation group that is induced by the following equivalence
-    /// relation:
-    ///
-    /// ```math
-    ///     g \sim h \Leftrightarrow \exists u : h = u g u^{-1}.
-    /// ```
-    ///
-    /// This means that all permutations having the same cycle pattern are in the same conjugacy
-    /// class.
+    //    /// The class structure of this permutation group that is induced by the following equivalence
+    //    /// relation:
+    //    ///
+    //    /// ```math
+    //    ///     g \sim h \Leftrightarrow \exists u : h = u g u^{-1}.
+    //    /// ```
+    //    ///
+    //    /// This means that all permutations having the same cycle pattern are in the same conjugacy
+    //    /// class.
+    //    #[builder(setter(skip), default = "None")]
+    //    class_structure: Option<ClassStructure<Permutation, PermutationClassSymbol>>,
     #[builder(setter(skip), default = "None")]
-    class_structure: Option<ClassStructure<Permutation, PermutationClassSymbol>>,
+    cycle_patterns: Option<IndexSet<Vec<u8>>>,
+
+    #[builder(setter(skip), default = "None")]
+    conjugacy_class_symbols: Option<IndexSet<PermutationClassSymbol>>,
 
     /// The character table for the irreducible representations of this permutation group.
     #[builder(setter(skip), default = "None")]
@@ -103,12 +106,10 @@ pub trait PermutationGroupProperties:
     /// number of classes for $`Sym(n)`$ is the number of integer partitions of $`n`$.
     fn set_class_symbols_from_cycle_patterns(&mut self) {
         log::debug!("Assigning class symbols from cycle patterns...");
-        let class_symbols = self
-            .conjugacy_class_symbols()
-            .iter()
-            .map(|(old_symbol, _)| {
-                let rep_ele = old_symbol.representative().unwrap_or_else(|| {
-                    panic!("No representative element found for conjugacy class `{old_symbol}`.")
+        let class_symbols = (0..self.class_number())
+            .map(|cc_i| {
+                let rep_ele = self.get_cc_transversal(cc_i).unwrap_or_else(|| {
+                    panic!("No representative element found for conjugacy class index `{cc_i}`.")
                 });
                 let cycle_pattern = rep_ele.cycle_pattern().clone();
                 let mut cycle_pattern_count: Vec<(u8, u8)> =
@@ -135,7 +136,9 @@ pub trait PermutationGroupProperties:
                     })
                     .collect_vec()
                     .join("·");
-                let size = old_symbol.size();
+                let size = self
+                    .class_size(cc_i)
+                    .unwrap_or_else(|| panic!("Unknown size for conjugacy class index `{i}`."));
                 PermutationClassSymbol::new(
                     format!("{size}||{cycle_pattern_str}||").as_str(),
                     Some(rep_ele.clone()),
@@ -147,7 +150,7 @@ pub trait PermutationGroupProperties:
                 })
             })
             .collect_vec();
-        self.class_structure_mut().set_class_symbols(&class_symbols);
+        self.set_class_symbols(&class_symbols);
         log::debug!("Assigning class symbols from cycle patterns... Done.");
     }
 
@@ -189,7 +192,12 @@ impl PermutationGroupProperties
 
     fn canonicalise_character_table(&mut self) {
         let old_chartab = self.character_table();
-        let class_symbols = self.conjugacy_class_symbols();
+        let class_symbols = (0..self.class_number())
+            .map(|i| {
+                self.get_cc_symbol_of_index(i)
+                    .expect("Unable to retrieve all class symbols.")
+            })
+            .collect_vec();
         let (char_arr, sorted_fs) = sort_perm_irreps(
             &old_chartab.array().view(),
             &old_chartab.frobenius_schurs.values().copied().collect_vec(),
@@ -198,7 +206,7 @@ impl PermutationGroupProperties
         self.set_irrep_character_table(RepCharacterTable::new(
             &old_chartab.name,
             &ordered_irreps,
-            &class_symbols.keys().cloned().collect::<Vec<_>>(),
+            &class_symbols,
             &[],
             char_arr,
             &sorted_fs,
@@ -258,11 +266,48 @@ impl GroupProperties for PermutationGroup {
     }
 
     fn order(&self) -> usize {
-        self.perms_iter.clone().into_iter().count()
+        usize::from(self.rank).checked_factorial().unwrap()
     }
 
     fn cayley_table(&self) -> Option<&Array2<usize>> {
         None
+    }
+}
+
+/// https://jeromekelleher.net/generating-integer-partitions.html
+fn partitions(n: u8) -> IndexSet<Vec<u8>> {
+    if n == 0 {
+        IndexSet::from([vec![0]])
+    } else {
+        let mut res: IndexSet<Vec<u8>> = IndexSet::new();
+        let mut a = vec![0; usize::from(n) + 1];
+        let mut k = 1;
+        let mut y = n - 1;
+        while k != 0 {
+            let mut x = a[k - 1] + 1;
+            k -= 1;
+            while 2 * x <= y {
+                a[k] = x;
+                y -= x;
+                k += 1;
+            }
+            let l = k + 1;
+            while x <= y {
+                a[k] = x;
+                a[l] = y;
+                let mut cycle = a[0..k + 2].to_vec();
+                cycle.reverse();
+                res.insert(cycle);
+                x += 1;
+                y -= 1;
+            }
+            a[k] = x + y;
+            y = x + y - 1;
+            let mut cycle = a[0..k + 1].to_vec();
+            cycle.reverse();
+            res.insert(cycle);
+        }
+        res
     }
 }
 
@@ -271,45 +316,108 @@ impl ClassProperties for PermutationGroup {
 
     /// Computes the class structure of this permutation group based on cycle patterns.
     fn compute_class_structure(&mut self) {
-        log::debug!("Finding unitary conjugacy classes using permutation cycle patterns...");
-
-        let order = self.order();
-        let mut cycle_patterns: IndexMap<Vec<u8>, HashSet<usize>> = IndexMap::new();
-        let mut e2ccs = vec![Some(0usize); order];
-        for (i, element) in self.elements().clone().into_iter().enumerate() {
-            let cycle_pattern = element.cycle_pattern();
-            if let Vacant(class) = cycle_patterns.entry(cycle_pattern.clone()) {
-                class.insert(HashSet::from([i]));
-            } else {
-                cycle_patterns.get_mut(&cycle_pattern).unwrap().insert(i);
-            }
-            let cc_idx = cycle_patterns.get_index_of(&cycle_pattern).unwrap();
-            e2ccs[i] = Some(cc_idx);
-        }
-        let ccs = cycle_patterns.into_values().collect_vec();
-
-        let class_number = ccs.len();
-        let class_structure = ClassStructure::<Permutation, PermutationClassSymbol>::new_no_ctb(
-            self,
-            ccs,
-            e2ccs,
-            (0..class_number).into_iter().collect_vec(),
-        );
-        self.class_structure = Some(class_structure);
-
-        log::debug!("Finding unitary conjugacy classes using permutation cycle patterns... Done.");
+        log::debug!("Finding all partitions of {}...", self.rank);
+        self.cycle_patterns = Some(partitions(self.rank));
+        log::debug!("Finding all partitions of {}... Done.", self.rank);
     }
 
-    fn class_structure(&self) -> &ClassStructure<Permutation, PermutationClassSymbol> {
-        self.class_structure
+    fn get_cc_index(&self, cc_idx: usize) -> Option<HashSet<usize>> {
+        None
+        // let cycles = self
+        //     .cycle_patterns
+        //     .expect("Cycle patterns not found.")
+        //     .get_index(cc_idx)
+        //     .unwrap_or_else(|| {
+        //         panic!("Cycle pattern for conjugacy class index `{cc_idx}` not found.");
+        //     });
+    }
+
+    fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize> {
+        let perm = Permutation::from_lehmer_index(e_idx, self.rank)?;
+        self.cycle_patterns
             .as_ref()
-            .expect("Class structure not found for this group.")
+            .expect("Cycle patterns not found.")
+            .get_index_of(&perm.cycle_pattern())
     }
 
-    fn class_structure_mut(&mut self) -> &mut ClassStructure<Permutation, PermutationClassSymbol> {
-        self.class_structure
-            .as_mut()
-            .expect("Class structure not found for this group.")
+    fn get_cc_transversal(&self, cc_idx: usize) -> Option<Self::GroupElement> {
+        let cycle_pattern = self
+            .cycle_patterns
+            .as_ref()
+            .expect("Cycle patterns not found.")
+            .get_index(cc_idx)?;
+        let cycles = cycle_pattern
+            .iter()
+            .scan(0u8, |start, &l| {
+                let cycle = (*start..*start + l).collect::<Vec<u8>>();
+                *start += l;
+                Some(cycle)
+            })
+            .collect_vec();
+        Some(Permutation::from_cycles(&cycles))
+    }
+
+    fn get_index_of_cc_symbol(&self, cc_sym: &Self::ClassSymbol) -> Option<usize> {
+        self.conjugacy_class_symbols
+            .as_ref()
+            .expect("Conjugacy class symbols not found.")
+            .get_index_of(cc_sym)
+    }
+
+    fn get_cc_symbol_of_index(&self, cc_idx: usize) -> Option<Self::ClassSymbol> {
+        self.conjugacy_class_symbols
+            .as_ref()
+            .expect("Conjugacy class symbols not found.")
+            .get_index(cc_idx)
+            .cloned()
+    }
+
+    fn set_class_symbols(&mut self, cc_symbols: &[Self::ClassSymbol]) {
+        self.conjugacy_class_symbols = Some(cc_symbols.into_iter().cloned().collect());
+    }
+
+    fn get_inverse_cc(&self, cc_idx: usize) -> usize {
+        cc_idx
+    }
+
+    fn class_number(&self) -> usize {
+        self.cycle_patterns
+            .as_ref()
+            .expect("Cycle patterns not found.")
+            .len()
+    }
+
+    /// https://math.stackexchange.com/questions/140311/number-of-permutations-for-a-cycle-type
+    fn class_size(&self, cc_idx: usize) -> Option<usize> {
+        let cycle_pattern = self
+            .cycle_patterns
+            .as_ref()
+            .expect("Cycle patterns not found.")
+            .get_index(cc_idx)?;
+        let mut cycle_pattern_count: Vec<(u8, u8)> = Vec::with_capacity(cycle_pattern.len());
+        let mut i = 0u8;
+        while i < u8::try_from(cycle_pattern.len()).unwrap() {
+            let mut j = i + 1;
+            while j < u8::try_from(cycle_pattern.len()).unwrap()
+                && cycle_pattern[usize::from(j)] == cycle_pattern[usize::from(i)]
+            {
+                j += 1;
+            }
+            cycle_pattern_count.push((cycle_pattern[usize::from(i)], j - i));
+            i = j;
+        }
+        let denom = cycle_pattern_count
+            .into_iter()
+            .map(|(l, m)| {
+                usize::from(l).pow(u32::from(m)) * usize::from(m).checked_factorial().unwrap()
+            })
+            .product();
+        Some(
+            usize::from(self.rank)
+                .checked_factorial()
+                .unwrap()
+                .div_euclid(denom),
+        )
     }
 }
 
@@ -354,7 +462,12 @@ impl PermutationGroupProperties for PermutationGroup {
 
     fn canonicalise_character_table(&mut self) {
         let old_chartab = self.character_table();
-        let class_symbols = self.conjugacy_class_symbols();
+        let class_symbols = (0..self.class_number())
+            .map(|i| {
+                self.get_cc_symbol_of_index(i)
+                    .expect("Unable to retrieve all class symbols.")
+            })
+            .collect_vec();
         let (char_arr, sorted_fs) = sort_perm_irreps(
             &old_chartab.array().view(),
             &old_chartab.frobenius_schurs.values().copied().collect_vec(),
@@ -363,7 +476,7 @@ impl PermutationGroupProperties for PermutationGroup {
         self.set_irrep_character_table(RepCharacterTable::new(
             &old_chartab.name,
             &ordered_irreps,
-            &class_symbols.keys().cloned().collect::<Vec<_>>(),
+            &class_symbols,
             &[],
             char_arr,
             &sorted_fs,

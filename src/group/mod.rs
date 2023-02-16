@@ -1,4 +1,5 @@
-use std::fmt; use std::hash::Hash;
+use std::fmt;
+use std::hash::Hash;
 use std::ops::Mul;
 
 use derive_builder::Builder;
@@ -13,7 +14,7 @@ use crate::chartab::chartab_symbols::{
     CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
-use crate::group::class::{ClassProperties, ClassStructure};
+use crate::group::class::{ClassProperties, EagerClassStructure};
 
 pub mod class;
 
@@ -55,10 +56,9 @@ where
     /// The finite subgroup name of this group, if any.
     fn finite_subgroup_name(&self) -> Option<&String>;
 
-    // /// The elements in the group.
-    // fn elements(&self) -> &IndexSet<Self::GroupElement> {
-    //     &self.abstract_group().elements
-    // }
+
+    /// The elements in the group.
+    fn elements(&self) -> &Self::ElementCollection;
 
     fn get_index(&self, index: usize) -> Option<Self::GroupElement>;
 
@@ -66,38 +66,21 @@ where
 
     fn contains(&self, g: &Self::GroupElement) -> bool;
 
-    fn elements(&self) -> &Self::ElementCollection;
-
     /// Checks if this group is abelian.
     fn is_abelian(&self) -> bool;
-    // fn is_abelian(&self) -> bool {
-    //     let ctb = self
-    //         .abstract_group()
-    //         .cayley_table
-    //         .as_ref()
-    //         .expect("Cayley table not found for this group.");
-    //     ctb == ctb.t()
-    // }
 
     /// The order of the group.
     fn order(&self) -> usize;
-    // fn order(&self) -> usize {
-    //     self.abstract_group().elements.len()
-    // }
 
     /// The Cayley table of the group.
     fn cayley_table(&self) -> Option<&Array2<usize>>;
-    // fn cayley_table(&self) -> Option<&Array2<usize>> {
-    //     self.abstract_group().cayley_table.as_ref()
-    // }
 }
 
 /// A trait for indicating that a group can be partitioned into a unitary halving subgroup and and
 /// antiunitary coset.
 pub trait HasUnitarySubgroup: GroupProperties
 where
-    Self::UnitarySubgroup:
-        GroupProperties<GroupElement = Self::GroupElement> + CharacterProperties,
+    Self::UnitarySubgroup: GroupProperties<GroupElement = Self::GroupElement> + CharacterProperties,
 {
     /// The type of the unitary halving subgroup.
     type UnitarySubgroup;
@@ -419,7 +402,7 @@ where
     ///     g \sim h \Leftrightarrow \exists u : h = u g u ^{-1}.
     /// ```
     #[builder(setter(skip), default = "None")]
-    class_structure: Option<ClassStructure<T, ColSymbol>>,
+    class_structure: Option<EagerClassStructure<T, ColSymbol>>,
 
     /// The character table for the irreducible representations of this group.
     #[builder(setter(skip), default = "None")]
@@ -509,8 +492,7 @@ where
     }
 }
 
-impl<T, RowSymbol, ColSymbol> GroupProperties
-    for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
+impl<T, RowSymbol, ColSymbol> GroupProperties for UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
@@ -600,7 +582,7 @@ where
     /// $`a`$ is antiunitary-represented (*i.e.* $`a`$ is not in [`Self::unitary_subgroup`]).
     #[builder(setter(skip), default = "None")]
     class_structure: Option<
-        ClassStructure<T, <<UG as CharacterProperties>::CharTab as CharacterTable>::ColSymbol>,
+        EagerClassStructure<T, <<UG as CharacterProperties>::CharTab as CharacterTable>::ColSymbol>,
     >,
 
     /// The character table for the irreducible corepresentations of this group.

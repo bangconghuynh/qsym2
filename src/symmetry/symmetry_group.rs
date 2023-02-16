@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use indexmap::IndexMap;
 use itertools::Itertools;
 
 use crate::chartab::chartab_group::{
@@ -70,29 +71,21 @@ pub trait SymmetryGroupProperties:
                 ) {
                     if self.name().contains('θ') {
                         assert_eq!(self.order() % 8, 0);
-                        self.name().replace(
-                            '∞',
-                            format!("{}", self.order() / 8).as_str(),
-                        )
+                        self.name()
+                            .replace('∞', format!("{}", self.order() / 8).as_str())
                     } else {
                         assert_eq!(self.order() % 4, 0);
-                        self.name().replace(
-                            '∞',
-                            format!("{}", self.order() / 4).as_str(),
-                        )
+                        self.name()
+                            .replace('∞', format!("{}", self.order() / 4).as_str())
                     }
                 } else if self.name().contains('θ') {
                     assert_eq!(self.order() % 4, 0);
-                    self.name().replace(
-                        '∞',
-                        format!("{}", self.order() / 4).as_str(),
-                    )
+                    self.name()
+                        .replace('∞', format!("{}", self.order() / 4).as_str())
                 } else {
                     assert_eq!(self.order() % 2, 0);
-                    self.name().replace(
-                        '∞',
-                        format!("{}", self.order() / 2).as_str(),
-                    )
+                    self.name()
+                        .replace('∞', format!("{}", self.order() / 2).as_str())
                 }
             } else {
                 assert!(matches!(self.name().as_bytes()[0], b'C' | b'S'));
@@ -111,15 +104,11 @@ pub trait SymmetryGroupProperties:
                     }
                     if self.order() > 2 {
                         if self.name().contains('θ') {
-                            self.name().replace(
-                                '∞',
-                                format!("{}", self.order() / 4).as_str(),
-                            )
+                            self.name()
+                                .replace('∞', format!("{}", self.order() / 4).as_str())
                         } else {
-                            self.name().replace(
-                                '∞',
-                                format!("{}", self.order() / 2).as_str(),
-                            )
+                            self.name()
+                                .replace('∞', format!("{}", self.order() / 2).as_str())
                         }
                     } else {
                         assert_eq!(self.name().as_bytes()[0], b'C');
@@ -148,7 +137,10 @@ pub trait SymmetryGroupProperties:
 
     /// Returns `true` if all elements in this group are unitary.
     fn all_unitary(&self) -> bool {
-        self.elements().clone().into_iter().all(|op| !op.is_antiunitary())
+        self.elements()
+            .clone()
+            .into_iter()
+            .all(|op| !op.is_antiunitary())
     }
 
     /// Determines whether this group is an ordinary (double) group, a magnetic grey (double)
@@ -169,7 +161,7 @@ pub trait SymmetryGroupProperties:
     }
 
     /// Sets the conjugacy class symbols in this group based on molecular symmetry.
-    fn set_class_symbols_from_symmetry(&mut self) {
+    fn class_symbols_from_symmetry(&mut self) -> Vec<SymmetryClassSymbol<SymmetryOperation>> {
         log::debug!("Assigning class symbols from symmetry operations...");
         let mut proper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
             HashMap::new();
@@ -179,18 +171,19 @@ pub trait SymmetryGroupProperties:
             HashMap::new();
         let mut tr_improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
             HashMap::new();
-        let symmetry_class_symbols = self
-            .conjugacy_class_symbols()
-            .iter()
-            .map(|(old_symbol, &i)| {
-                let rep_ele_index = *self.conjugacy_classes()[i]
+        let symmetry_class_symbols = (0..self.class_number())
+            .map(|i| {
+                let old_symbol = self.get_cc_symbol_of_index(i).unwrap_or_else(|| {
+                    panic!("No symmetry symbol for class index `{i}` can be found.")
+                });
+                let rep_ele_index = *self
+                    .get_cc_index(i)
+                    .unwrap_or_else(|| panic!("No conjugacy class index `{i}` can be found."))
                     .iter()
                     .min_by_key(|&&j| {
-                        let op = self
-                            .get_index(j)
-                            .unwrap_or_else(|| {
-                                panic!("Element with index {j} cannot be retrieved.")
-                            });
+                        let op = self.get_index(j).unwrap_or_else(|| {
+                            panic!("Element with index {j} cannot be retrieved.")
+                        });
                         (op.power, op.generating_element.proper_power)
                     })
                     .expect("Unable to obtain a representative element index.");
@@ -250,9 +243,8 @@ pub trait SymmetryGroupProperties:
                 }
             })
             .collect::<Vec<_>>();
-        self.class_structure_mut()
-            .set_class_symbols(&symmetry_class_symbols);
         log::debug!("Assigning class symbols from symmetry operations... Done.");
+        symmetry_class_symbols
     }
 }
 
@@ -305,7 +297,8 @@ impl SymmetryGroupProperties
             let finite_subgroup_name = group.deduce_finite_group_name();
             group.set_finite_subgroup_name(Some(finite_subgroup_name));
         }
-        group.set_class_symbols_from_symmetry();
+        let symbols = group.class_symbols_from_symmetry();
+        group.set_class_symbols(&symbols);
         group.construct_irrep_character_table();
         group.canonicalise_character_table();
         group
@@ -315,7 +308,9 @@ impl SymmetryGroupProperties
     /// Mulliken conventions for the irreducible representations.
     fn canonicalise_character_table(&mut self) {
         let old_chartab = self.character_table();
-        let class_symbols = self.conjugacy_class_symbols();
+        let class_symbols: IndexMap<_, _> = (0..self.class_number())
+            .map(|i| (self.get_cc_symbol_of_index(i).unwrap(), i))
+            .collect();
 
         let i_cc = SymmetryClassSymbol::new("1||i||", None)
             .expect("Unable to construct a class symbol from `1||i||`.");
@@ -345,7 +340,7 @@ impl SymmetryGroupProperties
 
         let principal_classes = if force_principal.is_some() {
             deduce_principal_classes(
-                class_symbols,
+                &class_symbols,
                 None::<fn(&SymmetryClassSymbol<SymmetryOperation>) -> bool>,
                 force_principal,
             )
@@ -354,7 +349,7 @@ impl SymmetryGroupProperties
                 "Inversion centre exists. Principal-axis classes will be forced to be proper."
             );
             deduce_principal_classes(
-                class_symbols,
+                &class_symbols,
                 Some(|cc: &SymmetryClassSymbol<SymmetryOperation>| {
                     cc.is_proper() && !cc.is_antiunitary()
                 }),
@@ -365,7 +360,7 @@ impl SymmetryGroupProperties
                 "Horizontal mirror plane exists. Principal-axis classes will be forced to be proper."
             );
             deduce_principal_classes(
-                class_symbols,
+                &class_symbols,
                 Some(|cc: &SymmetryClassSymbol<SymmetryOperation>| {
                     cc.is_proper() && !cc.is_antiunitary()
                 }),
@@ -376,7 +371,7 @@ impl SymmetryGroupProperties
                 "Time-reversed horizontal mirror plane exists. Principal-axis classes will be forced to be proper."
             );
             deduce_principal_classes(
-                class_symbols,
+                &class_symbols,
                 Some(|cc: &SymmetryClassSymbol<SymmetryOperation>| {
                     cc.is_proper() && !cc.is_antiunitary()
                 }),
@@ -387,13 +382,13 @@ impl SymmetryGroupProperties
                 "Antiunitary elements exist without any inversion centres or horizonal mirror planes. Principal-axis classes will be forced to be unitary."
             );
             deduce_principal_classes(
-                class_symbols,
+                &class_symbols,
                 Some(|cc: &SymmetryClassSymbol<SymmetryOperation>| !cc.is_antiunitary()),
                 None,
             )
         } else {
             deduce_principal_classes(
-                class_symbols,
+                &class_symbols,
                 None::<fn(&SymmetryClassSymbol<SymmetryOperation>) -> bool>,
                 None,
             )
@@ -402,12 +397,12 @@ impl SymmetryGroupProperties
         let (char_arr, sorted_fs) = sort_irreps(
             &old_chartab.array().view(),
             &old_chartab.frobenius_schurs.values().copied().collect_vec(),
-            class_symbols,
+            &class_symbols,
             &principal_classes,
         );
 
         let ordered_irreps =
-            deduce_mulliken_irrep_symbols(&char_arr.view(), class_symbols, &principal_classes);
+            deduce_mulliken_irrep_symbols(&char_arr.view(), &class_symbols, &principal_classes);
 
         self.irrep_character_table = Some(RepCharacterTable::new(
             &old_chartab.name,
@@ -491,7 +486,8 @@ impl SymmetryGroupProperties
             MullikenIrrepSymbol,
             SymmetryClassSymbol<SymmetryOperation>,
         >::new(group_name.as_str(), unitary_operations);
-        unitary_subgroup.set_class_symbols_from_symmetry();
+        let uni_symbols = unitary_subgroup.class_symbols_from_symmetry();
+        unitary_subgroup.set_class_symbols(&uni_symbols);
         unitary_subgroup.construct_irrep_character_table();
         unitary_subgroup.canonicalise_character_table();
         log::debug!("Constructing the unitary subgroup for the magnetic group... Done.");
@@ -502,7 +498,8 @@ impl SymmetryGroupProperties
             let finite_subgroup_name = group.deduce_finite_group_name();
             group.set_finite_subgroup_name(Some(finite_subgroup_name));
         }
-        group.set_class_symbols_from_symmetry();
+        let symbols = group.class_symbols_from_symmetry();
+        group.set_class_symbols(&symbols);
         group.construct_ircorep_character_table();
         log::debug!("Constructing the magnetic group... Done.");
         group

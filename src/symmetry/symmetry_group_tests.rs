@@ -109,10 +109,9 @@ fn test_ur_group_element_to_conjugacy_class() {
     assert_eq!(group.order(), 10);
     assert_eq!(group.class_number(), 4);
 
-    let conjugacy_classes = group.conjugacy_classes();
-    for (element_i, class_i) in group.element_to_conjugacy_classes().iter().enumerate() {
-        assert!(class_i.is_some());
-        assert!(conjugacy_classes[class_i.unwrap()].contains(&element_i));
+    for element_i in 0..group.order() {
+        let class_i = group.get_cc_of_element_index(element_i).unwrap();
+        assert!(group.get_cc_index(class_i).unwrap().contains(&element_i));
     }
 }
 
@@ -234,31 +233,27 @@ fn verify_abstract_group(
     assert_eq!(group.class_number(), class_number);
     assert_eq!(group.is_abelian(), abelian);
 
-    // Test element to conjugacy class
-    let conjugacy_classes = group.conjugacy_classes();
-    for (element_i, class_i) in group.element_to_conjugacy_classes().iter().enumerate() {
-        assert!(conjugacy_classes[class_i.unwrap()].contains(&element_i));
+    for element_i in 0..group.order() {
+        let class_i = group.get_cc_of_element_index(element_i).unwrap();
+        assert!(group.get_cc_index(class_i).unwrap().contains(&element_i));
     }
 
     // Test inverse conjugacy classes
     let ctb = group.cayley_table().expect("Cayley table not found.");
-    for (class_i, inv_class_i) in group.inverse_conjugacy_classes().iter().enumerate() {
+    for class_i in 0..group.class_number() {
+        let inv_class_i = group.get_inverse_cc(class_i);
         assert!(
-            conjugacy_classes[class_i]
+            group
+                .get_cc_index(class_i)
+                .unwrap()
                 .iter()
-                .cartesian_product(conjugacy_classes[*inv_class_i].iter())
+                .cartesian_product(group.get_cc_index(inv_class_i).unwrap().iter())
                 .filter(|(&g, &inv_g)| { ctb[[g, inv_g]] == 0 })
                 .collect::<Vec<_>>()
                 .len()
-                == conjugacy_classes[class_i].len()
-        );
+                == group.get_cc_index(class_i).unwrap().len()
+        )
     }
-
-    // // Test class matrix symmetry w.r.t. the first two indices
-    // let nmat_rst = group.class_matrix();
-    // let mut nmat_srt = nmat_rst.clone();
-    // nmat_srt.swap_axes(0, 1);
-    // assert_eq!(nmat_rst, nmat_srt);
 }
 
 fn test_ur_ordinary_group(
@@ -423,10 +418,13 @@ fn test_ur_ordinary_group_class_order(mol: &Molecule, thresh: f64, class_order_s
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    let classes = group
-        .conjugacy_class_symbols()
-        .iter()
-        .map(|(class_symbol, _)| format!("{}", class_symbol))
+    let classes = (0..group.class_number())
+        .map(|i| {
+            group
+                .get_cc_symbol_of_index(i)
+                .expect("Unable to retrieve all class symbols.")
+                .to_string()
+        })
         .collect_vec();
     assert_eq!(&classes, class_order_str);
 }
@@ -440,10 +438,13 @@ fn test_ur_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_s
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
-    let classes = group
-        .conjugacy_class_symbols()
-        .iter()
-        .map(|(class_symbol, _)| format!("{}", class_symbol))
+    let classes = (0..group.class_number())
+        .map(|i| {
+            group
+                .get_cc_symbol_of_index(i)
+                .expect("Unable to retrieve all class symbols.")
+                .to_string()
+        })
         .collect_vec();
     assert_eq!(&classes, class_order_str);
 }
@@ -457,10 +458,13 @@ fn test_mr_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_s
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
-    let classes = group
-        .conjugacy_class_symbols()
-        .iter()
-        .map(|(class_symbol, _)| format!("{}", class_symbol))
+    let classes = (0..group.class_number())
+        .map(|i| {
+            group
+                .get_cc_symbol_of_index(i)
+                .expect("Unable to retrieve all class symbols.")
+                .to_string()
+        })
         .collect_vec();
     assert_eq!(&classes, class_order_str);
 }
