@@ -176,6 +176,7 @@ impl PermutationGroupProperties
 {
     fn from_rank(rank: u8) -> Self {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
+        assert!(rank <= 20, "Permutations of rank more than 20 will not be representable.");
         log::debug!("Generating all permutations of rank {rank}...");
         let perms = (0..rank)
             .permutations(usize::from(rank))
@@ -327,7 +328,9 @@ impl ClassProperties for PermutationGroup {
 
         log::debug!("Finding conjugacy classes based on cycle patterns in parallel...");
         let mut conjugacy_classes = vec![HashSet::<usize>::new(); self.class_number()];
-        let mut e2ccs: Vec<(usize, usize)> = Vec::with_capacity(self.order());
+
+        // For ranks up to 20, the number of classes is at most 627. `u16` is then plenty.
+        let mut e2ccs: Vec<(usize, u16)> = Vec::with_capacity(self.order());
         (0..self.order())
             .into_par_iter()
             .map(|i| {
@@ -338,22 +341,24 @@ impl ClassProperties for PermutationGroup {
                     );
                 });
                 let cycle_pattern = p_i.cycle_pattern();
-                let c_i = self
-                    .cycle_patterns
-                    .as_ref()
-                    .expect("Cycle patterns not found.")
-                    .get_index_of(&cycle_pattern)
-                    .unwrap_or_else(|| {
-                        panic!(
-                            "Cycle pattern {:?} is not valid in this group.",
-                            cycle_pattern
-                        );
-                    });
+                let c_i = u16::try_from(
+                    self
+                        .cycle_patterns
+                        .as_ref()
+                        .expect("Cycle patterns not found.")
+                        .get_index_of(&cycle_pattern)
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Cycle pattern {:?} is not valid in this group.",
+                                cycle_pattern
+                            );
+                        })
+                ).expect("A class index cannot fit within a `u16`.");
                 (i, c_i)
             })
             .collect_into_vec(&mut e2ccs);
         e2ccs.into_iter().for_each(|(i, c_i)| {
-            conjugacy_classes[c_i].insert(i);
+            conjugacy_classes[usize::from(c_i)].insert(i);
         });
         self.conjugacy_classes = Some(conjugacy_classes);
         log::debug!("Finding conjugacy classes based on cycle patterns in parallel... Done.");
@@ -409,8 +414,8 @@ impl ClassProperties for PermutationGroup {
         self.conjugacy_class_symbols = Some(cc_symbols.into_iter().cloned().collect());
     }
 
-    fn get_inverse_cc(&self, cc_idx: usize) -> usize {
-        cc_idx
+    fn get_inverse_cc(&self, cc_idx: usize) -> Option<usize> {
+        Some(cc_idx)
     }
 
     fn class_number(&self) -> usize {
@@ -474,6 +479,7 @@ impl IrrepCharTabConstruction for PermutationGroup {
 impl PermutationGroupProperties for PermutationGroup {
     fn from_rank(rank: u8) -> Self {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
+        assert!(rank <= 20, "Permutations of rank more than 20 will not be representable.");
         log::debug!("Initialising lazy iterator for permutations of rank {rank}...");
         let perms_iter = PermutationIterator {
             rank,

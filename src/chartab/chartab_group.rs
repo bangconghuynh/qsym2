@@ -190,7 +190,10 @@ where
             .collect();
         let inverse_conjugacy_classes = Some(
             (0..self.class_number())
-                .map(|i| self.get_inverse_cc(i))
+                .map(|i| {
+                    self.get_inverse_cc(i)
+                        .expect("Not all class inverses could be obtained.")
+                })
                 .collect::<Vec<_>>(),
         );
         let mut eigvecs_1d: Vec<Array1<LinAlgMontgomeryInt<u32>>> = vec![];

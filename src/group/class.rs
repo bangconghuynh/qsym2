@@ -35,52 +35,108 @@ where
     /// Computes the class structure of the group and store the result.
     fn compute_class_structure(&mut self);
 
-    // /// Returns a shared reference to the underlying class structure of the group.
-    // #[must_use]
-    // fn class_structure(&self) -> &EagerClassStructure<Self::GroupElement, Self::ClassSymbol>;
-
-    // /// Returns an exclusive reference to the underlying class structure of the group.
-    // fn class_structure_mut(&mut self)
-    //     -> &mut EagerClassStructure<Self::GroupElement, Self::ClassSymbol>;
-
-    // /// Returns a vector of hashsets, each containing indices of elements in the same conjugacy
-    // /// class.
-    // #[must_use]
-    // fn conjugacy_classes(&self) -> &Vec<HashSet<usize>>;
+    /// Given a class index, returns an optional shared reference to the set containing the indices
+    /// of all elements in that class.
+    ///
+    /// # Arguments
+    ///
+    /// * `cc_idx` - A class index.
+    ///
+    /// # Returns
+    ///
+    /// Returns a shared reference to the set containing the indices of all elements in that class, or
+    /// `None` if `cc_idx` is not a valid class index of the group.
+    #[must_use]
     fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>>;
 
-    // /// Returns a vector of conjugacy class indices for the elements. Some elements may not have
-    // /// conjugacy classes associated with them.
-    // #[must_use]
-    // fn element_to_conjugacy_classes(&self) -> &Vec<Option<usize>>;
-
+    /// Given an element index, returns an optional index of the conjugacy class to which the
+    /// element belongs.
+    ///
+    /// # Arguments
+    ///
+    /// * `e_idx` - An element index.
+    ///
+    /// # Returns
+    ///
+    /// Returns an index of the conjugacy class to which the element belongs, or `None` if either
+    /// the element does not have a conjugacy class, or the index is out of range.
+    #[must_use]
     fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize>;
 
-    // /// Returns a vector of conjugacy class indices for the elements. Some elements may not have
-    // /// conjugacy classes associated with them.
-    // #[must_use]
-    // fn conjugacy_class_transversal(&self) -> &Vec<usize>;
-
+    /// Given a class index, returns an optional representative element of that conjugacy class.
+    ///
+    /// # Arguments
+    ///
+    /// * `cc_idx` - A class index.
+    ///
+    /// # Returns
+    ///
+    /// Returns a representative element of the class, or `None` if the class index is out of
+    /// range.
+    #[must_use]
     fn get_cc_transversal(&self, cc_idx: usize) -> Option<Self::GroupElement>;
 
-    // /// Returns an indexmap mapping each conjugacy class symbol to a conjugacy class index.
-    // #[must_use]
-    // fn conjugacy_class_symbols(&self) -> &IndexMap<Self::ClassSymbol, usize>;
-
+    /// Given a conjugacy class symbol, returns the index of the corresponding conjugacy class.
+    ///
+    /// # Arguments
+    ///
+    /// * `cc_sym` - A conjugacy class symbol.
+    ///
+    /// # Returns
+    ///
+    /// Returns an index corresponding to the conjugacy class of `cc_sym`, or `None` if `cc_sym`
+    /// does not exist in the group.
+    #[must_use]
     fn get_index_of_cc_symbol(&self, cc_sym: &Self::ClassSymbol) -> Option<usize>;
 
+    /// Given a class index, returns its conjugacy class symbol, if any.
+    ///
+    /// # Arguments
+    ///
+    /// * `cc_idx` - A class index.
+    ///
+    /// # Returns
+    ///
+    /// Returns a conjugacy class symbol, or `None` if such a symbol does not exist for the class,
+    /// or if the class index is out of range.
+    #[must_use]
     fn get_cc_symbol_of_index(&self, cc_idx: usize) -> Option<Self::ClassSymbol>;
 
+    /// Sets the conjugacy class symbols for this group.
+    ///
+    /// # Arguments
+    ///
+    /// `cc_symbols` - A sliced of owned conjugacy class symbols.
     fn set_class_symbols(&mut self, cc_symbols: &[Self::ClassSymbol]);
 
-    /// Returns a vector containing the indices of the inverse conjugacy classes.
+    /// Given a class index, returns an index for its inverse.
+    ///
+    /// The inverse of a class contains the inverses of its elements.
+    ///
+    /// # Arguments
+    ///
+    /// `cc_idx` - A class index.
+    ///
+    /// # Returns
+    ///
+    /// The index of the inverse of `cc_idx`, or `None` if the class index is out of range.
     #[must_use]
-    fn get_inverse_cc(&self, cc_idx: usize) -> usize;
+    fn get_inverse_cc(&self, cc_idx: usize) -> Option<usize>;
 
     /// Returns the number of conjugacy classes in the group.
     #[must_use]
     fn class_number(&self) -> usize;
 
+    /// Given a class index, returns its size.
+    ///
+    /// # Arguments
+    ///
+    /// `cc_idx` - A class index.
+    ///
+    /// # Returns
+    ///
+    /// The size of the class with index `cc_idx`, or `None` if the class index is out of range.
+    #[must_use]
     fn class_size(&self, cc_idx: usize) -> Option<usize>;
 
     // ----------------
@@ -588,11 +644,13 @@ where
     }
 
     #[must_use]
-    fn get_inverse_cc(&self, cc_idx: usize) -> usize {
+    fn get_inverse_cc(&self, cc_idx: usize) -> Option<usize> {
         self.class_structure
             .as_ref()
             .expect("No class structure found.")
-            .inverse_conjugacy_classes[cc_idx]
+            .inverse_conjugacy_classes
+            .get(cc_idx)
+            .cloned()
     }
 
     #[must_use]
@@ -773,11 +831,13 @@ where
     }
 
     #[must_use]
-    fn get_inverse_cc(&self, cc_idx: usize) -> usize {
+    fn get_inverse_cc(&self, cc_idx: usize) -> Option<usize> {
         self.class_structure
             .as_ref()
             .expect("No class structure found.")
-            .inverse_conjugacy_classes[cc_idx]
+            .inverse_conjugacy_classes
+            .get(cc_idx)
+            .cloned()
     }
 
     #[must_use]
