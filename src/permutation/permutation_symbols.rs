@@ -381,7 +381,7 @@ impl fmt::Display for PermutationIrrepSymbol {
 ///
 /// An array of characters where the irreps have been sorted, and a vector of the associated
 /// Frobenius--Schur indicators that have also been similarly sorted.
-pub fn sort_perm_irreps(
+pub(super) fn sort_perm_irreps(
     char_arr: &ArrayView2<Character>,
     frobenius_schur_indicators: &[i8],
 ) -> (Array2<Character>, Vec<i8>) {
@@ -419,7 +419,7 @@ pub fn sort_perm_irreps(
 /// # Returns
 ///
 /// A vector of permutation irrep symbols.
-pub fn deduce_permutation_irrep_symbols(
+pub(super) fn deduce_permutation_irrep_symbols(
     char_arr: &ArrayView2<Character>,
 ) -> Vec<PermutationIrrepSymbol> {
     log::debug!("Generating permutation irreducible representation symbols...");
