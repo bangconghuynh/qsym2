@@ -47,7 +47,7 @@ where
     // /// class.
     // #[must_use]
     // fn conjugacy_classes(&self) -> &Vec<HashSet<usize>>;
-    fn get_cc_index(&self, cc_idx: usize) -> Option<HashSet<usize>>;
+    fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>>;
 
     // /// Returns a vector of conjugacy class indices for the elements. Some elements may not have
     // /// conjugacy classes associated with them.
@@ -534,13 +534,12 @@ where
     }
 
     #[must_use]
-    fn get_cc_index(&self, cc_idx: usize) -> Option<HashSet<usize>> {
+    fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>> {
         self.class_structure
             .as_ref()
             .expect("No class structure found.")
             .conjugacy_classes
             .get(cc_idx)
-            .cloned()
     }
 
     #[must_use]
@@ -720,13 +719,12 @@ where
     }
 
     #[must_use]
-    fn get_cc_index(&self, cc_idx: usize) -> Option<HashSet<usize>> {
+    fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>> {
         self.class_structure
             .as_ref()
             .expect("No class structure found.")
             .conjugacy_classes
             .get(cc_idx)
-            .cloned()
     }
 
     #[must_use]

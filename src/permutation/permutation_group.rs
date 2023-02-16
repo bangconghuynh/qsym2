@@ -6,6 +6,7 @@ use factorial::Factorial;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use ndarray::Array2;
+use rayon::prelude::*;
 
 use crate::chartab::chartab_group::{CharacterProperties, IrrepCharTabConstruction};
 use crate::chartab::{CharacterTable, RepCharacterTable};
@@ -63,6 +64,9 @@ pub struct PermutationGroup {
     //    class_structure: Option<ClassStructure<Permutation, PermutationClassSymbol>>,
     #[builder(setter(skip), default = "None")]
     cycle_patterns: Option<IndexSet<Vec<u8>>>,
+
+    #[builder(setter(skip), default = "None")]
+    conjugacy_classes: Option<Vec<HashSet<usize>>>,
 
     #[builder(setter(skip), default = "None")]
     conjugacy_class_symbols: Option<IndexSet<PermutationClassSymbol>>,
@@ -171,6 +175,7 @@ impl PermutationGroupProperties
     for UnitaryRepresentedGroup<Permutation, PermutationIrrepSymbol, PermutationClassSymbol>
 {
     fn from_rank(rank: u8) -> Self {
+        assert!(rank > 0, "A permutation rank must be a positive integer.");
         log::debug!("Generating all permutations of rank {rank}...");
         let perms = (0..rank)
             .permutations(usize::from(rank))
@@ -319,17 +324,34 @@ impl ClassProperties for PermutationGroup {
         log::debug!("Finding all partitions of {}...", self.rank);
         self.cycle_patterns = Some(partitions(self.rank));
         log::debug!("Finding all partitions of {}... Done.", self.rank);
+
+        log::debug!("Finding conjugacy classes based on cycle patterns...");
+        let mut conjugacy_classes = vec![HashSet::<usize>::new(); self.class_number()];
+        let mut e2ccs: Vec<(usize, usize)> = Vec::new();
+        (0..self.order()).into_par_iter().map(|i| {
+            let p_i = Permutation::from_lehmer_index(i, self.rank).unwrap_or_else(|| {
+                panic!("Unable to construct a permutation of rank {} with Lehmer index {i}.", self.rank);
+            });
+            let cycle_pattern = p_i.cycle_pattern();
+            let c_i = self
+                .cycle_patterns
+                .as_ref()
+                .expect("Cycle patterns not found.")
+                .get_index_of(&cycle_pattern)
+                .unwrap_or_else(|| {
+                    panic!("Cycle pattern {:?} is not valid in this group.", cycle_pattern);
+                });
+            (i, c_i)
+        }).collect_into_vec(&mut e2ccs);
+        e2ccs.into_iter().for_each(|(i, c_i)| {
+            conjugacy_classes[c_i].insert(i);
+        });
+        self.conjugacy_classes = Some(conjugacy_classes);
+        log::debug!("Finding conjugacy classes based on cycle patterns... Done.");
     }
 
-    fn get_cc_index(&self, cc_idx: usize) -> Option<HashSet<usize>> {
-        None
-        // let cycles = self
-        //     .cycle_patterns
-        //     .expect("Cycle patterns not found.")
-        //     .get_index(cc_idx)
-        //     .unwrap_or_else(|| {
-        //         panic!("Cycle pattern for conjugacy class index `{cc_idx}` not found.");
-        //     });
+    fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>> {
+        self.conjugacy_classes.as_ref().map(|conjugacy_classes| &conjugacy_classes[cc_idx])
     }
 
     fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize> {
@@ -441,18 +463,17 @@ impl IrrepCharTabConstruction for PermutationGroup {
 impl PermutationGroupProperties for PermutationGroup {
     fn from_rank(rank: u8) -> Self {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
-        log::debug!("Generating all permutations of rank {rank}...");
+        log::debug!("Initialising lazy iterator for permutations of rank {rank}...");
         let perms_iter = PermutationIterator {
             rank,
             raw_perm_indices: (0..usize::from(rank).checked_factorial().unwrap()),
         };
-        log::debug!("Generating all permutations of rank {rank}... Done.");
         let mut group = PermutationGroup::builder()
             .rank(rank)
             .perms_iter(perms_iter)
             .build()
             .expect("Unable to construct a `PermutationGroup`.");
-        log::debug!("Collecting all permutations into a permutation group... Done.");
+        log::debug!("Initialising lazy iterator for permutations of rank {rank}... Done.");
         group.compute_class_structure();
         group.set_class_symbols_from_cycle_patterns();
         group.construct_irrep_character_table();
