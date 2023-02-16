@@ -26,6 +26,8 @@ mod permutation_group_tests;
 // Struct definitions
 // ==================
 
+/// A lazy iterator for permutations of a particular rank enumerated by their Lehmer encoding
+/// integers.
 #[derive(Clone)]
 pub struct PermutationIterator {
     rank: u8,
@@ -49,25 +51,22 @@ pub struct PermutationGroup {
     /// The rank of the permutation group.
     rank: u8,
 
+    /// The lazy iterator yielding all permutations in this group in their Lehmer-encoding-integer
+    /// order.
     perms_iter: PermutationIterator,
 
-    //    /// The class structure of this permutation group that is induced by the following equivalence
-    //    /// relation:
-    //    ///
-    //    /// ```math
-    //    ///     g \sim h \Leftrightarrow \exists u : h = u g u^{-1}.
-    //    /// ```
-    //    ///
-    //    /// This means that all permutations having the same cycle pattern are in the same conjugacy
-    //    /// class.
-    //    #[builder(setter(skip), default = "None")]
-    //    class_structure: Option<ClassStructure<Permutation, PermutationClassSymbol>>,
+    /// All possible cycle patterns of this group. These are the possible partitions of
+    /// [`Self::rank`].
     #[builder(setter(skip), default = "None")]
     cycle_patterns: Option<IndexSet<Vec<u8>>>,
 
+    /// A vector of hashsets, each of which contains the indices of the elements having the
+    /// corresponding cycle pattern in [`Self::cycle_patterns`]. These elements are also in the
+    /// same conjugacy class.
     #[builder(setter(skip), default = "None")]
     conjugacy_classes: Option<Vec<HashSet<usize>>>,
 
+    /// The symbols for the conjugacy classes.
     #[builder(setter(skip), default = "None")]
     conjugacy_class_symbols: Option<IndexSet<PermutationClassSymbol>>,
 
@@ -87,7 +86,7 @@ impl PermutationGroup {
 // Trait definitions
 // =================
 
-/// Trait for permutation groups.
+/// A trait for permutation groups.
 pub trait PermutationGroupProperties:
     ClassProperties<GroupElement = Permutation, ClassSymbol = PermutationClassSymbol>
     + CharacterProperties
@@ -280,7 +279,20 @@ impl GroupProperties for PermutationGroup {
     }
 }
 
-/// https://jeromekelleher.net/generating-integer-partitions.html
+/// Returns all partitions of an integer.
+///
+/// The partitions are generated in lexicographic order, then, within each partition, the
+/// sub-partitions are arranged in decreasing order.
+///
+/// See [here](https://jeromekelleher.net/generating-integer-partitions.html) for the algorithm.
+///
+/// # Arguments
+///
+/// * `n` - An integer.
+///
+/// # Returns
+///
+/// An indexset containing the partition vectors.
 fn partitions(n: u8) -> IndexSet<Vec<u8>> {
     if n == 0 {
         IndexSet::from([vec![0]])
@@ -329,7 +341,8 @@ impl ClassProperties for PermutationGroup {
         log::debug!("Finding conjugacy classes based on cycle patterns in parallel...");
         let mut conjugacy_classes = vec![HashSet::<usize>::new(); self.class_number()];
 
-        // For ranks up to 20, the number of classes is at most 627. `u16` is then plenty.
+        // For ranks up to 20, the number of classes is at most 627. `u16` is then plenty to store
+        // each class index. This helps reduce memory cost a little bit.
         let mut e2ccs: Vec<(usize, u16)> = Vec::with_capacity(self.order());
         (0..self.order())
             .into_par_iter()
@@ -425,7 +438,10 @@ impl ClassProperties for PermutationGroup {
             .len()
     }
 
-    /// https://math.stackexchange.com/questions/140311/number-of-permutations-for-a-cycle-type
+    /// Computes the class size given a class index.
+    ///
+    /// The closed form for a conjugacy class of a particular cycle pattern is given
+    /// [here](https://math.stackexchange.com/questions/140311/number-of-permutations-for-a-cycle-type).
     fn class_size(&self, cc_idx: usize) -> Option<usize> {
         let cycle_pattern = self
             .cycle_patterns
