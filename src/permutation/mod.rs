@@ -117,6 +117,9 @@ impl Permutation {
         Self::from_image(image)
     }
 
+    /// Constructs a permutation from its Lehmer encoding.
+    ///
+    /// See [here](https://en.wikipedia.org/wiki/Lehmer_code) for additional information.
     pub fn from_lehmer(lehmer: Vec<u8>) -> Self {
         let n = u8::try_from(lehmer.len()).expect("Unable to convert the `lehmer` length to `u8`.");
         let mut remaining = (0..n).collect::<VecDeque<u8>>();
@@ -131,6 +134,21 @@ impl Permutation {
         Self::from_image(image)
     }
 
+    /// Constructs a permutation from the integer index obtained from a Lehmer encoding.
+    ///
+    /// See [here](https://en.wikipedia.org/wiki/Lehmer_code) and
+    /// Korf, R. E. Linear-time disk-based implicit graph search. *J. ACM* **55**, 1–40 (2008).
+    /// for additional information.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - An integer index.
+    /// * `rank` - A rank for the permutation to be constructed.
+    ///
+    /// # Returns
+    ///
+    /// Returns the corresponding permutation, or `None` if `index` is not valid for a permutation
+    /// of rank `rank`.
     pub fn from_lehmer_index(index: usize, rank: u8) -> Option<Self> {
         let mut quotient = index;
         let mut lehmer: VecDeque<u8> = VecDeque::new();
@@ -154,6 +172,7 @@ impl Permutation {
         }
     }
 
+    /// The rank of the permutation.
     pub fn rank(&self) -> u8 {
         let rank = u8::try_from(self.image.len()).unwrap_or_else(|_| {
             panic!(
@@ -196,7 +215,7 @@ impl Permutation {
         cycles
     }
 
-    /// Obtains the pattern of the cycle representation of the permutation.
+    /// Returns the pattern of the cycle representation of the permutation.
     pub fn cycle_pattern(&self) -> Vec<u8> {
         self.cycles()
             .iter()
@@ -211,6 +230,17 @@ impl Permutation {
         self.image == (0..self.rank()).collect::<Vec<u8>>()
     }
 
+    /// Returns the Lehmer encoding of the permutation.
+    ///
+    /// # Arguments
+    ///
+    /// * `count_ones_opt` - An optional hashmap containing the number of ones in each of the
+    /// possible bit vectors of length [`Self::rank`].
+    ///
+    /// # Returns
+    ///
+    /// The Lehmer encoding of this permutation. See
+    /// [here](https://en.wikipedia.org/wiki/Lehmer_code) for additional information.
     pub fn lehmer(&self, count_ones_opt: Option<&HashMap<BitVec<u8, Lsb0>, u8>>) -> Vec<u8> {
         let mut bv: BitVec<u8, Lsb0> = bitvec![u8, Lsb0; 0; self.rank().into()];
         let n = self.rank();
@@ -241,6 +271,20 @@ impl Permutation {
             .collect::<Vec<u8>>()
     }
 
+    /// Returns the integer corresponding to the Lehmer encoding of this permutation.
+    ///
+    /// See [here](https://en.wikipedia.org/wiki/Lehmer_code) and
+    /// Korf, R. E. Linear-time disk-based implicit graph search. *J. ACM* **55**, 1–40 (2008).
+    /// for additional information.
+    ///
+    /// # Arguments
+    ///
+    /// * `count_ones_opt` - An optional hashmap containing the number of ones in each of the
+    /// possible bit vectors of length [`Self::rank`].
+    ///
+    /// # Returns
+    ///
+    /// Returns the integer corresponding to the Lehmer encoding of this permutation.
     pub fn lehmer_index(&self, count_ones_opt: Option<&HashMap<BitVec<u8, Lsb0>, u8>>) -> usize {
         let lehmer = self.lehmer(count_ones_opt);
         let n = usize::from(self.rank()) - 1;
