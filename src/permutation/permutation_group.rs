@@ -325,33 +325,44 @@ impl ClassProperties for PermutationGroup {
         self.cycle_patterns = Some(partitions(self.rank));
         log::debug!("Finding all partitions of {}... Done.", self.rank);
 
-        log::debug!("Finding conjugacy classes based on cycle patterns...");
+        log::debug!("Finding conjugacy classes based on cycle patterns in parallel...");
         let mut conjugacy_classes = vec![HashSet::<usize>::new(); self.class_number()];
-        let mut e2ccs: Vec<(usize, usize)> = Vec::new();
-        (0..self.order()).into_par_iter().map(|i| {
-            let p_i = Permutation::from_lehmer_index(i, self.rank).unwrap_or_else(|| {
-                panic!("Unable to construct a permutation of rank {} with Lehmer index {i}.", self.rank);
-            });
-            let cycle_pattern = p_i.cycle_pattern();
-            let c_i = self
-                .cycle_patterns
-                .as_ref()
-                .expect("Cycle patterns not found.")
-                .get_index_of(&cycle_pattern)
-                .unwrap_or_else(|| {
-                    panic!("Cycle pattern {:?} is not valid in this group.", cycle_pattern);
+        let mut e2ccs: Vec<(usize, usize)> = Vec::with_capacity(self.order());
+        (0..self.order())
+            .into_par_iter()
+            .map(|i| {
+                let p_i = Permutation::from_lehmer_index(i, self.rank).unwrap_or_else(|| {
+                    panic!(
+                        "Unable to construct a permutation of rank {} with Lehmer index {i}.",
+                        self.rank
+                    );
                 });
-            (i, c_i)
-        }).collect_into_vec(&mut e2ccs);
+                let cycle_pattern = p_i.cycle_pattern();
+                let c_i = self
+                    .cycle_patterns
+                    .as_ref()
+                    .expect("Cycle patterns not found.")
+                    .get_index_of(&cycle_pattern)
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Cycle pattern {:?} is not valid in this group.",
+                            cycle_pattern
+                        );
+                    });
+                (i, c_i)
+            })
+            .collect_into_vec(&mut e2ccs);
         e2ccs.into_iter().for_each(|(i, c_i)| {
             conjugacy_classes[c_i].insert(i);
         });
         self.conjugacy_classes = Some(conjugacy_classes);
-        log::debug!("Finding conjugacy classes based on cycle patterns... Done.");
+        log::debug!("Finding conjugacy classes based on cycle patterns in parallel... Done.");
     }
 
     fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>> {
-        self.conjugacy_classes.as_ref().map(|conjugacy_classes| &conjugacy_classes[cc_idx])
+        self.conjugacy_classes
+            .as_ref()
+            .map(|conjugacy_classes| &conjugacy_classes[cc_idx])
     }
 
     fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize> {
