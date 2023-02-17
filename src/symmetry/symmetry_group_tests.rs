@@ -10,8 +10,8 @@ use crate::aux::molecule::Molecule;
 use crate::aux::template_molecules;
 use crate::group::class::ClassProperties;
 use crate::group::{
-    Group, GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup, BWGRP,
-    GRGRP, ORGRP,
+    EagerGroup, GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup,
+    BWGRP, GRGRP, ORGRP,
 };
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
@@ -41,8 +41,9 @@ fn test_abstract_group_creation() {
         .build()
         .unwrap();
 
-    let group_c5 = Group::<SymmetryOperation>::new("C5", (0..5).map(|k| (&c5).pow(k)).collect());
-    let mut elements = group_c5.elements().keys();
+    let group_c5 =
+        EagerGroup::<SymmetryOperation>::new("C5", (0..5).map(|k| (&c5).pow(k)).collect());
+    let mut elements = group_c5.elements().iter();
     for i in 0..5 {
         let op = elements.next().unwrap();
         assert_eq!(*op, (&c5).pow(i));
@@ -65,8 +66,8 @@ fn test_abstract_group_creation() {
         .unwrap();
 
     let group_c29 =
-        Group::<SymmetryOperation>::new("C29", (0..29).map(|k| (&c29).pow(k)).collect());
-    let mut elements = group_c29.elements().keys();
+        EagerGroup::<SymmetryOperation>::new("C29", (0..29).map(|k| (&c29).pow(k)).collect());
+    let mut elements = group_c29.elements().iter();
     for i in 0..29 {
         let op = elements.next().unwrap();
         assert_eq!(*op, (&c29).pow(i));
@@ -108,10 +109,9 @@ fn test_ur_group_element_to_conjugacy_class() {
     assert_eq!(group.order(), 10);
     assert_eq!(group.class_number(), 4);
 
-    let conjugacy_classes = group.conjugacy_classes();
-    for (element_i, class_i) in group.element_to_conjugacy_classes().iter().enumerate() {
-        assert!(class_i.is_some());
-        assert!(conjugacy_classes[class_i.unwrap()].contains(&group.elements()[element_i]));
+    for element_i in 0..group.order() {
+        let class_i = group.get_cc_of_element_index(element_i).unwrap();
+        assert!(group.get_cc_index(class_i).unwrap().contains(&element_i));
     }
 }
 
@@ -134,7 +134,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(2)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(0.0, 1.0, 0.0)
@@ -144,7 +143,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(3)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(1.0, 0.0, 0.0)
@@ -167,7 +165,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(1)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(0.0, 0.0, 1.0)
@@ -177,7 +174,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(2)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(0.0, 1.0, 0.0)
@@ -187,18 +183,16 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(3)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(1.0, 0.0, 0.0)
     );
-    assert!(group.elements().get_index(4).unwrap().0.is_inversion());
+    assert!(group.elements().get_index(4).unwrap().is_inversion());
     approx::assert_relative_eq!(
         group
             .elements()
             .get_index(5)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(0.0, 0.0, 1.0)
@@ -208,7 +202,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(6)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(0.0, 1.0, 0.0)
@@ -218,7 +211,6 @@ fn test_ur_group_element_sort() {
             .elements()
             .get_index(7)
             .unwrap()
-            .0
             .generating_element
             .axis,
         Vector3::new(1.0, 0.0, 0.0)
@@ -241,31 +233,29 @@ fn verify_abstract_group(
     assert_eq!(group.class_number(), class_number);
     assert_eq!(group.is_abelian(), abelian);
 
-    // Test element to conjugacy class
-    let conjugacy_classes = group.conjugacy_classes();
-    for (element_i, class_i) in group.element_to_conjugacy_classes().iter().enumerate() {
-        assert!(conjugacy_classes[class_i.unwrap()].contains(&group.elements()[element_i]));
+    for element_i in 0..group.order() {
+        let class_i = group.get_cc_of_element_index(element_i).unwrap();
+        assert!(group.get_cc_index(class_i).unwrap().contains(&element_i));
     }
 
     // Test inverse conjugacy classes
     let ctb = group.cayley_table().expect("Cayley table not found.");
-    for (class_i, inv_class_i) in group.inverse_conjugacy_classes().iter().enumerate() {
+    for class_i in 0..group.class_number() {
+        let inv_class_i = group
+            .get_inverse_cc(class_i)
+            .expect("Inverse conjugacy class not found.");
         assert!(
-            conjugacy_classes[class_i]
+            group
+                .get_cc_index(class_i)
+                .unwrap()
                 .iter()
-                .cartesian_product(conjugacy_classes[*inv_class_i].iter())
+                .cartesian_product(group.get_cc_index(inv_class_i).unwrap().iter())
                 .filter(|(&g, &inv_g)| { ctb[[g, inv_g]] == 0 })
                 .collect::<Vec<_>>()
                 .len()
-                == conjugacy_classes[class_i].len()
-        );
+                == group.get_cc_index(class_i).unwrap().len()
+        )
     }
-
-    // // Test class matrix symmetry w.r.t. the first two indices
-    // let nmat_rst = group.class_matrix();
-    // let mut nmat_srt = nmat_rst.clone();
-    // nmat_srt.swap_axes(0, 1);
-    // assert_eq!(nmat_rst, nmat_srt);
 }
 
 fn test_ur_ordinary_group(
@@ -373,12 +363,12 @@ fn test_ur_magnetic_group_from_infinite(
     assert_eq!(
         group
             .elements()
-            .keys()
+            .iter()
             .filter(|op| op.is_antiunitary())
             .count(),
         group
             .elements()
-            .keys()
+            .iter()
             .filter(|op| !op.is_antiunitary())
             .count(),
     );
@@ -408,12 +398,12 @@ fn test_mr_magnetic_group_from_infinite(
     assert_eq!(
         group
             .elements()
-            .keys()
+            .iter()
             .filter(|op| op.is_antiunitary())
             .count(),
         group
             .elements()
-            .keys()
+            .iter()
             .filter(|op| !op.is_antiunitary())
             .count(),
     );
@@ -430,10 +420,13 @@ fn test_ur_ordinary_group_class_order(mol: &Molecule, thresh: f64, class_order_s
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    let classes = group
-        .conjugacy_class_symbols()
-        .iter()
-        .map(|(class_symbol, _)| format!("{}", class_symbol))
+    let classes = (0..group.class_number())
+        .map(|i| {
+            group
+                .get_cc_symbol_of_index(i)
+                .expect("Unable to retrieve all class symbols.")
+                .to_string()
+        })
         .collect_vec();
     assert_eq!(&classes, class_order_str);
 }
@@ -447,10 +440,13 @@ fn test_ur_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_s
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
-    let classes = group
-        .conjugacy_class_symbols()
-        .iter()
-        .map(|(class_symbol, _)| format!("{}", class_symbol))
+    let classes = (0..group.class_number())
+        .map(|i| {
+            group
+                .get_cc_symbol_of_index(i)
+                .expect("Unable to retrieve all class symbols.")
+                .to_string()
+        })
         .collect_vec();
     assert_eq!(&classes, class_order_str);
 }
@@ -464,10 +460,13 @@ fn test_mr_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_s
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
-    let classes = group
-        .conjugacy_class_symbols()
-        .iter()
-        .map(|(class_symbol, _)| format!("{}", class_symbol))
+    let classes = (0..group.class_number())
+        .map(|i| {
+            group
+                .get_cc_symbol_of_index(i)
+                .expect("Unable to retrieve all class symbols.")
+                .to_string()
+        })
         .collect_vec();
     assert_eq!(&classes, class_order_str);
 }

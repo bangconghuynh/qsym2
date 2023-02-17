@@ -995,7 +995,7 @@ where
 ///
 /// Panics when expected classes cannot be found in `class_symbols`.
 #[allow(clippy::too_many_lines)]
-pub fn deduce_mulliken_irrep_symbols<R>(
+pub(super) fn deduce_mulliken_irrep_symbols<R>(
     char_arr: &ArrayView2<Character>,
     class_symbols: &IndexMap<SymmetryClassSymbol<R>, usize>,
     principal_classes: &[SymmetryClassSymbol<R>],
@@ -1244,7 +1244,7 @@ where
 ///
 /// The mirror-plane symbol.
 #[must_use]
-pub fn deduce_sigma_symbol(
+pub(super) fn deduce_sigma_symbol(
     sigma_axis: &Vector3<f64>,
     principal_element: &SymmetryElement,
     thresh: f64,

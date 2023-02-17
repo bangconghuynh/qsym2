@@ -1,8 +1,10 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::ops::Mul;
 
+use bitvec::prelude::*;
 use derive_builder::Builder;
+use factorial::Factorial;
 use indexmap::IndexSet;
 use log;
 use num::integer::lcm;
@@ -46,61 +48,21 @@ pub trait IntoPermutation<C: PermutableCollection> {
 /// A structure to manage permutation actions of a finite set.
 #[derive(Builder, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Permutation {
-    /// The rank of the permutation, *i.e.* the number of elements in the finite set on which the
-    /// permutation acts.
-    rank: usize,
-
     /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$
     /// where $`n`$ is [`Self::rank`], then this gives the result of the action.
     #[builder(setter(custom))]
-    image: Vec<usize>,
-
-    /// The disjoint cycles of this permutation.
-    #[builder(setter(skip), default = "self.calc_cycles()")]
-    cycles: Vec<Vec<usize>>,
+    image: Vec<u8>,
 }
 
 impl PermutationBuilder {
-    fn image(&mut self, perm: &[usize]) -> &mut Self {
-        assert_eq!(
-            self.rank
-                .expect("The rank for this permutation has not been set."),
-            perm.len(),
-            "The permutation image `{perm:?}` does not contain the expected number of elements",
-        );
-        let mut uniq = HashSet::<usize>::new();
+    fn image(&mut self, perm: Vec<u8>) -> &mut Self {
+        let mut uniq = HashSet::<u8>::new();
         assert!(
-            perm.into_iter().all(move |x| uniq.insert(*x)),
+            perm.iter().all(move |x| uniq.insert(*x)),
             "The permutation image `{perm:?}` contains repeated elements."
         );
-        self.image = Some(perm.to_vec());
+        self.image = Some(perm);
         self
-    }
-
-    fn calc_cycles(&self) -> Vec<Vec<usize>> {
-        let rank = self.rank.expect("Permutation rank has not been set.");
-        let image = self
-            .image
-            .as_ref()
-            .expect("Permutation image has not been set.");
-        let mut remaining_indices = (0..rank).rev().collect::<IndexSet<usize>>();
-        let mut cycles: Vec<Vec<usize>> = Vec::with_capacity(rank);
-        while !remaining_indices.is_empty() {
-            let start = remaining_indices
-                .pop()
-                .expect("`remaining_indices` should not be empty.");
-            let mut cycle: Vec<usize> = Vec::with_capacity(remaining_indices.len());
-            cycle.push(start);
-            let mut idx = start;
-            while image[idx] != start {
-                idx = image[idx];
-                assert!(remaining_indices.shift_remove(&idx));
-                cycle.push(idx);
-            }
-            cycles.push(cycle);
-        }
-        cycles.sort_by_key(|cycle| (!cycle.len(), cycle.clone()));
-        cycles
     }
 }
 
@@ -126,10 +88,9 @@ impl Permutation {
     /// # Panics
     ///
     /// Panics if `image` contains repeated elements.
-    pub fn from_image(image: &[usize]) -> Self {
+    pub fn from_image(image: Vec<u8>) -> Self {
         Self::builder()
-            .rank(image.len())
-            .image(image)
+            .image(image.clone())
             .build()
             .unwrap_or_else(|err| {
                 log::error!("{err}");
@@ -150,8 +111,8 @@ impl Permutation {
     /// # Panics
     ///
     /// Panics if the cycles in `cycles` contain repeated elements.
-    pub fn from_cycles(cycles: &[Vec<usize>]) -> Self {
-        let mut uniq = HashSet::<usize>::new();
+    pub fn from_cycles(cycles: &[Vec<u8>]) -> Self {
+        let mut uniq = HashSet::<u8>::new();
         assert!(
             cycles.iter().flatten().all(move |x| uniq.insert(*x)),
             "The permutation cycles `{cycles:?}` contains repeated elements."
@@ -170,37 +131,200 @@ impl Permutation {
                     })
                     .chain([(end, start)])
             })
-            .collect::<Vec<(usize, usize)>>();
+            .collect::<Vec<(u8, u8)>>();
         image_map.sort();
         let image = image_map
             .into_iter()
             .map(|(_, img)| img)
-            .collect::<Vec<usize>>();
-        Self::from_image(&image)
+            .collect::<Vec<u8>>();
+        Self::from_image(image)
+    }
+
+    /// Constructs a permutation from its Lehmer encoding.
+    ///
+    /// See [here](https://en.wikipedia.org/wiki/Lehmer_code) for additional information.
+    pub fn from_lehmer(lehmer: Vec<u8>) -> Self {
+        let n = u8::try_from(lehmer.len()).expect("Unable to convert the `lehmer` length to `u8`.");
+        let mut remaining = (0..n).collect::<VecDeque<u8>>();
+        let image = lehmer
+            .iter()
+            .map(|&k| {
+                remaining.remove(usize::from(k)).unwrap_or_else(|| {
+                    panic!("Unable to retrieve element index `{k}` from `{remaining:?}`.")
+                })
+            })
+            .collect::<Vec<_>>();
+        Self::from_image(image)
+    }
+
+    /// Constructs a permutation from the integer index obtained from a Lehmer encoding.
+    ///
+    /// See [here](https://en.wikipedia.org/wiki/Lehmer_code) and
+    /// Korf, R. E. Linear-time disk-based implicit graph search. *J. ACM* **55**, 1–40 (2008).
+    /// for additional information.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - An integer index.
+    /// * `rank` - A rank for the permutation to be constructed.
+    ///
+    /// # Returns
+    ///
+    /// Returns the corresponding permutation, or `None` if `index` is not valid for a permutation
+    /// of rank `rank`.
+    pub fn from_lehmer_index(index: usize, rank: u8) -> Option<Self> {
+        let mut quotient = index;
+        let mut lehmer: VecDeque<u8> = VecDeque::new();
+        let mut i = 1usize;
+        while quotient != 0 {
+            if i == 1 {
+                lehmer.push_front(0);
+            } else {
+                lehmer.push_front(u8::try_from(quotient.rem_euclid(i)).unwrap());
+                quotient = quotient.div_euclid(i);
+            }
+            i += 1;
+        }
+        if lehmer.len() > usize::from(rank) {
+            None
+        } else {
+            while lehmer.len() < usize::from(rank) {
+                lehmer.push_front(0);
+            }
+            Some(Self::from_lehmer(lehmer.into_iter().collect::<Vec<_>>()))
+        }
+    }
+
+    /// The rank of the permutation.
+    pub fn rank(&self) -> u8 {
+        let rank = u8::try_from(self.image.len()).unwrap_or_else(|_| {
+            panic!(
+                "The rank of `{:?}` is too large to be represented as `u8`.",
+                self.image
+            )
+        });
+        rank
     }
 
     /// If the permutation is to act on an ordered sequence of integers, $`0, 1, \ldots`$, then
     /// this gives the result of the action.
-    pub fn image(&self) -> &Vec<usize> {
+    pub fn image(&self) -> &Vec<u8> {
         &self.image
     }
 
     /// Obtains the cycle representation of the permutation.
-    pub fn cycles(&self) -> &Vec<Vec<usize>> {
-        &self.cycles
+    pub fn cycles(&self) -> Vec<Vec<u8>> {
+        let image = &self.image;
+        let rank = self.rank();
+        let mut remaining_indices = (0..rank).rev().collect::<IndexSet<u8>>();
+        let mut cycles: Vec<Vec<u8>> = Vec::with_capacity(usize::from(rank));
+        while !remaining_indices.is_empty() {
+            let start = remaining_indices
+                .pop()
+                .expect("`remaining_indices` should not be empty.");
+            let mut cycle: Vec<u8> = Vec::with_capacity(remaining_indices.len());
+            cycle.push(start);
+            let mut idx = start;
+            while image[usize::from(idx)] != start {
+                idx = image[usize::from(idx)];
+                assert!(remaining_indices.shift_remove(&idx));
+                cycle.push(idx);
+            }
+            cycle.shrink_to_fit();
+            cycles.push(cycle);
+        }
+        cycles.shrink_to_fit();
+        cycles.sort_by_key(|cycle| (!cycle.len(), cycle.clone()));
+        cycles
     }
 
-    /// Obtains the pattern of the cycle representation of the permutation.
-    pub fn cycle_pattern(&self) -> Vec<usize> {
-        self.cycles
+    /// Returns the pattern of the cycle representation of the permutation.
+    pub fn cycle_pattern(&self) -> Vec<u8> {
+        self.cycles()
             .iter()
-            .map(|cycle| cycle.len())
-            .collect::<Vec<usize>>()
+            .map(|cycle| {
+                u8::try_from(cycle.len()).expect("Some cycle lengths are too long for `u8`.")
+            })
+            .collect::<Vec<u8>>()
     }
 
     /// Returns `true` if this permutation is the identity permutation for this rank.
     pub fn is_identity(&self) -> bool {
-        self.image == (0..self.rank).collect::<Vec<usize>>()
+        self.image == (0..self.rank()).collect::<Vec<u8>>()
+    }
+
+    /// Returns the Lehmer encoding of the permutation.
+    ///
+    /// # Arguments
+    ///
+    /// * `count_ones_opt` - An optional hashmap containing the number of ones in each of the
+    /// possible bit vectors of length [`Self::rank`].
+    ///
+    /// # Returns
+    ///
+    /// The Lehmer encoding of this permutation. See
+    /// [here](https://en.wikipedia.org/wiki/Lehmer_code) for additional information.
+    pub fn lehmer(&self, count_ones_opt: Option<&HashMap<BitVec<u8, Lsb0>, u8>>) -> Vec<u8> {
+        let mut bv: BitVec<u8, Lsb0> = bitvec![u8, Lsb0; 0; self.rank().into()];
+        let n = self.rank();
+        self.image
+            .iter()
+            .enumerate()
+            .map(|(i, &k)| {
+                let k_usize = usize::from(k);
+                let flipped_bv_k = !bv[k_usize];
+                bv.set(k_usize, flipped_bv_k);
+                if i == 0 {
+                    k
+                } else if i == usize::from(n - 1) {
+                    0
+                } else {
+                    let mut bv_k = bv.clone();
+                    bv_k.shift_right(usize::from(n - k));
+                    k - if let Some(count_ones) = count_ones_opt {
+                        *(count_ones.get(&bv_k).unwrap_or_else(|| {
+                            panic!("Unable to count the number of ones in `{bv}`.")
+                        }))
+                    } else {
+                        u8::try_from(bv_k.count_ones())
+                            .expect("Unable to convert the number of ones to `u8`.")
+                    }
+                }
+            })
+            .collect::<Vec<u8>>()
+    }
+
+    /// Returns the integer corresponding to the Lehmer encoding of this permutation.
+    ///
+    /// See [here](https://en.wikipedia.org/wiki/Lehmer_code) and
+    /// Korf, R. E. Linear-time disk-based implicit graph search. *J. ACM* **55**, 1–40 (2008).
+    /// for additional information.
+    ///
+    /// # Arguments
+    ///
+    /// * `count_ones_opt` - An optional hashmap containing the number of ones in each of the
+    /// possible bit vectors of length [`Self::rank`].
+    ///
+    /// # Returns
+    ///
+    /// Returns the integer corresponding to the Lehmer encoding of this permutation.
+    pub fn lehmer_index(&self, count_ones_opt: Option<&HashMap<BitVec<u8, Lsb0>, u8>>) -> usize {
+        let lehmer = self.lehmer(count_ones_opt);
+        let n = usize::from(self.rank()) - 1;
+        if n == 0 {
+            0
+        } else {
+            lehmer
+                .into_iter()
+                .enumerate()
+                .map(|(i, l)| {
+                    usize::from(l)
+                        * (n - i).checked_factorial().unwrap_or_else(|| {
+                            panic!("The factorial of `{}` cannot be correctly computed.", n - i)
+                        })
+                })
+                .sum()
+        }
     }
 }
 
@@ -233,16 +357,16 @@ impl Mul<&'_ Permutation> for &Permutation {
 
     fn mul(self, rhs: &Permutation) -> Self::Output {
         assert_eq!(
-            self.rank, rhs.rank,
+            self.rank(),
+            rhs.rank(),
             "The ranks of two multiplying permutations do not match."
         );
         Self::Output::builder()
-            .rank(self.rank)
             .image(
-                &rhs.image
+                rhs.image
                     .iter()
-                    .map(|&ri| self.image[ri])
-                    .collect::<Vec<usize>>(),
+                    .map(|&ri| self.image[usize::from(ri)])
+                    .collect::<Vec<u8>>(),
             )
             .build()
             .expect("Unable to construct a product `Permutation`.")
@@ -280,11 +404,10 @@ impl Inv for &Permutation {
     type Output = Permutation;
 
     fn inv(self) -> Self::Output {
-        let mut image_inv = (0..self.rank).collect::<Vec<_>>();
-        image_inv.sort_by_key(|&i| self.image[i]);
+        let mut image_inv = (0..self.rank()).collect::<Vec<_>>();
+        image_inv.sort_by_key(|&i| self.image[usize::from(i)]);
         Self::Output::builder()
-            .rank(self.rank)
-            .image(&image_inv)
+            .image(image_inv)
             .build()
             .expect("Unable to construct an inverse `Permutation`.")
     }
@@ -307,8 +430,7 @@ impl Pow<i32> for &Permutation {
     fn pow(self, rhs: i32) -> Self::Output {
         if rhs == 0 {
             Self::Output::builder()
-                .rank(self.rank)
-                .image(&(0..self.rank).collect::<Vec<_>>())
+                .image((0..self.rank()).collect::<Vec<_>>())
                 .build()
                 .expect("Unable to construct an identity `Permutation`.")
         } else if rhs > 0 {
