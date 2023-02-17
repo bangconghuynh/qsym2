@@ -164,7 +164,8 @@ fn test_ircorep_character_table_algebraic_validity(
     let zeta_2 = group
         .elements()
         .iter()
-        .filter(|(op, &op_idx)| op.is_antiunitary() && mag_ctb[(op_idx, op_idx)] == 0)
+        .enumerate()
+        .filter(|(op_idx, op)| op.is_antiunitary() && mag_ctb[(*op_idx, *op_idx)] == 0)
         .count();
     let uni_dim_sum = chartab
         .unitary_character_table

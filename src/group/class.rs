@@ -13,7 +13,7 @@ use crate::chartab::chartab_symbols::{
     CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::group::{
-    FiniteOrder, Group, GroupProperties, HasUnitarySubgroup, MagneticRepresentedGroup,
+    FiniteOrder, GroupProperties, HasUnitarySubgroup, MagneticRepresentedGroup,
     UnitaryRepresentedGroup,
 };
 
@@ -21,11 +21,13 @@ use crate::group::{
 // Trait definitions
 // =================
 
+/// A trait for conjugacy class properties of a finite group.
 pub trait ClassProperties: GroupProperties
 where
     Self::ClassSymbol: CollectionSymbol<CollectionElement = Self::GroupElement>,
     <Self as GroupProperties>::GroupElement: Inv<Output = <Self as GroupProperties>::GroupElement>,
 {
+    /// The type for class symbols.
     type ClassSymbol;
 
     // ----------------
@@ -35,13 +37,109 @@ where
     /// Computes the class structure of the group and store the result.
     fn compute_class_structure(&mut self);
 
-    /// Returns a shared reference to the underlying class structure of the group.
+    /// Given a class index, returns an optional shared reference to the set containing the indices
+    /// of all elements in that class.
+    ///
+    /// # Arguments
+    ///
+    /// * `cc_idx` - A class index.
+    ///
+    /// # Returns
+    ///
+    /// Returns a shared reference to the set containing the indices of all elements in that class, or
+    /// `None` if `cc_idx` is not a valid class index of the group.
     #[must_use]
-    fn class_structure(&self) -> &ClassStructure<Self::GroupElement, Self::ClassSymbol>;
+    fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>>;
 
-    /// Returns an exclusive reference to the underlying class structure of the group.
-    fn class_structure_mut(&mut self)
-        -> &mut ClassStructure<Self::GroupElement, Self::ClassSymbol>;
+    /// Given an element index, returns an optional index of the conjugacy class to which the
+    /// element belongs.
+    ///
+    /// # Arguments
+    ///
+    /// * `e_idx` - An element index.
+    ///
+    /// # Returns
+    ///
+    /// Returns an index of the conjugacy class to which the element belongs, or `None` if either
+    /// the element does not have a conjugacy class, or the index is out of range.
+    #[must_use]
+    fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize>;
+
+    /// Given a class index, returns an optional representative element of that conjugacy class.
+    ///
+    /// # Arguments
+    ///
+    /// * `cc_idx` - A class index.
+    ///
+    /// # Returns
+    ///
+    /// Returns a representative element of the class, or `None` if the class index is out of
+    /// range.
+    #[must_use]
+    fn get_cc_transversal(&self, cc_idx: usize) -> Option<Self::GroupElement>;
+
+    /// Given a conjugacy class symbol, returns the index of the corresponding conjugacy class.
+    ///
+    /// # Arguments
+    ///
+    /// * `cc_sym` - A conjugacy class symbol.
+    ///
+    /// # Returns
+    ///
+    /// Returns an index corresponding to the conjugacy class of `cc_sym`, or `None` if `cc_sym`
+    /// does not exist in the group.
+    #[must_use]
+    fn get_index_of_cc_symbol(&self, cc_sym: &Self::ClassSymbol) -> Option<usize>;
+
+    /// Given a class index, returns its conjugacy class symbol, if any.
+    ///
+    /// # Arguments
+    ///
+    /// * `cc_idx` - A class index.
+    ///
+    /// # Returns
+    ///
+    /// Returns a conjugacy class symbol, or `None` if such a symbol does not exist for the class,
+    /// or if the class index is out of range.
+    #[must_use]
+    fn get_cc_symbol_of_index(&self, cc_idx: usize) -> Option<Self::ClassSymbol>;
+
+    /// Sets the conjugacy class symbols for this group.
+    ///
+    /// # Arguments
+    ///
+    /// `cc_symbols` - A sliced of owned conjugacy class symbols.
+    fn set_class_symbols(&mut self, cc_symbols: &[Self::ClassSymbol]);
+
+    /// Given a class index, returns an index for its inverse.
+    ///
+    /// The inverse of a class contains the inverses of its elements.
+    ///
+    /// # Arguments
+    ///
+    /// `cc_idx` - A class index.
+    ///
+    /// # Returns
+    ///
+    /// The index of the inverse of `cc_idx`, or `None` if the class index is out of range.
+    #[must_use]
+    fn get_inverse_cc(&self, cc_idx: usize) -> Option<usize>;
+
+    /// Returns the number of conjugacy classes in the group.
+    #[must_use]
+    fn class_number(&self) -> usize;
+
+    /// Given a class index, returns its size.
+    ///
+    /// # Arguments
+    ///
+    /// `cc_idx` - A class index.
+    ///
+    /// # Returns
+    ///
+    /// The size of the class with index `cc_idx`, or `None` if the class index is out of range.
+    #[must_use]
+    fn class_size(&self, cc_idx: usize) -> Option<usize>;
 
     // ----------------
     // Provided methods
@@ -68,85 +166,68 @@ where
     /// The class matrix $`\mathbf{N}_r`$.
     #[must_use]
     fn class_matrix(&self, ctb_opt: Option<&Array2<usize>>, r: usize) -> Array2<usize> {
-        let nmat_r = if let Some(ctb) = ctb_opt {
+        let class_number = self.class_number();
+        let mut nmat_r = Array2::<usize>::zeros((class_number, class_number));
+        let class_r = &self
+            .get_cc_index(r)
+            .unwrap_or_else(|| panic!("Conjugacy class index `{r}` not found."));
+
+        if let Some(ctb) = ctb_opt {
             log::debug!("Computing class matrix N{r} using the Cayley table...");
-            self.class_structure().class_matrix(ctb, r)
+            (0..class_number).for_each(|t| {
+                let class_t = self
+                    .get_cc_index(t)
+                    .unwrap_or_else(|| panic!("Conjugacy class index `{t}` not found."));
+                let rep_z_idx = *class_t
+                    .iter()
+                    .next()
+                    .expect("No conjugacy classes can be empty.");
+                for &x_idx in class_r.iter() {
+                    let x_inv_idx = ctb
+                        .slice(s![.., x_idx])
+                        .iter()
+                        .position(|&x| x == 0)
+                        .unwrap_or_else(|| {
+                            panic!("The inverse of element index `{x_idx}` cannot be found.")
+                        });
+                    let y_idx = ctb[[x_inv_idx, rep_z_idx]];
+                    let s = self.get_cc_of_element_index(y_idx).unwrap_or_else(|| {
+                        panic!("Conjugacy class of element index `{y_idx}` not found.")
+                    });
+                    nmat_r[[s, t]] += 1;
+                }
+            });
         } else {
             log::debug!("Computing class matrix N{r} without the Cayley table...");
-            let class_number = self.conjugacy_classes().len();
-            let mut nmat_r = Array2::<usize>::zeros((class_number, class_number));
-            let class_r = &self.conjugacy_classes()[r];
-            for (t, class_t) in self.conjugacy_classes().iter().enumerate() {
+            (0..class_number).for_each(|t| {
+                let class_t = self
+                    .get_cc_index(t)
+                    .unwrap_or_else(|| panic!("Conjugacy class index `{t}` not found."));
                 let rep_z_idx = *class_t
                     .iter()
                     .next()
                     .expect("No conjugacy classes can be empty.");
                 let z = self
-                    .abstract_group()
-                    .elements
                     .get_index(rep_z_idx)
-                    .unwrap_or_else(|| panic!("No element with index `{rep_z_idx}` found."))
-                    .0;
+                    .unwrap_or_else(|| panic!("No element with index `{rep_z_idx}` found."));
                 for &x_idx in class_r.iter() {
                     let x = self
-                        .abstract_group()
-                        .elements
                         .get_index(x_idx)
-                        .unwrap_or_else(|| panic!("No element with index `{x_idx}` found."))
-                        .0;
+                        .unwrap_or_else(|| panic!("No element with index `{x_idx}` found."));
                     let y = x.clone().inv() * z.clone();
-                    let y_idx = *self
-                        .elements()
-                        .get(&y)
+                    let y_idx = self
+                        .get_index_of(&y)
                         .unwrap_or_else(|| panic!("Element `{y:?}` not found in this group."));
-                    let s = self.element_to_conjugacy_classes()[y_idx]
+                    let s = self
+                        .get_cc_of_element_index(y_idx)
                         .unwrap_or_else(|| panic!("Conjugacy class of element `{y:?}` not found."));
                     nmat_r[[s, t]] += 1;
                 }
-            }
-            nmat_r
+            });
         };
+
         log::debug!("Computing class matrix N{r}... Done.");
         nmat_r
-    }
-
-    /// Returns a vector of hashsets, each containing indices of elements in the same conjugacy
-    /// class.
-    #[must_use]
-    fn conjugacy_classes(&self) -> &Vec<HashSet<usize>> {
-        &self.class_structure().conjugacy_classes
-    }
-
-    /// Returns a vector of conjugacy class indices for the elements. Some elements may not have
-    /// conjugacy classes associated with them.
-    #[must_use]
-    fn element_to_conjugacy_classes(&self) -> &Vec<Option<usize>> {
-        &self.class_structure().element_to_conjugacy_classes
-    }
-
-    /// Returns a vector of conjugacy class indices for the elements. Some elements may not have
-    /// conjugacy classes associated with them.
-    #[must_use]
-    fn conjugacy_class_transversal(&self) -> &Vec<usize> {
-        &self.class_structure().conjugacy_class_transversal
-    }
-
-    /// Returns an indexmap mapping each conjugacy class symbol to a conjugacy class index.
-    #[must_use]
-    fn conjugacy_class_symbols(&self) -> &IndexMap<Self::ClassSymbol, usize> {
-        &self.class_structure().conjugacy_class_symbols
-    }
-
-    /// Returns a vector containing the indices of the inverse conjugacy classes.
-    #[must_use]
-    fn inverse_conjugacy_classes(&self) -> &Vec<usize> {
-        &self.class_structure().inverse_conjugacy_classes
-    }
-
-    /// Returns the number of conjugacy classes in the group.
-    #[must_use]
-    fn class_number(&self) -> usize {
-        self.class_structure().class_number()
     }
 }
 
@@ -154,8 +235,10 @@ where
 // Struct definitions and implementations
 // ======================================
 
+/// A struct for managing class structures eagerly, *i.e.* all elements and their class maps are
+/// stored.
 #[derive(Builder, Clone)]
-pub struct ClassStructure<T, ClassSymbol>
+pub(super) struct EagerClassStructure<T, ClassSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     ClassSymbol: CollectionSymbol<CollectionElement = T>,
@@ -197,7 +280,7 @@ where
     inverse_conjugacy_classes: Vec<usize>,
 }
 
-impl<T, ClassSymbol> ClassStructureBuilder<T, ClassSymbol>
+impl<T, ClassSymbol> EagerClassStructureBuilder<T, ClassSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     ClassSymbol: CollectionSymbol<CollectionElement = T>,
@@ -218,7 +301,10 @@ where
         self
     }
 
-    fn conjugacy_class_symbols(&mut self, elements: &IndexMap<T, usize>) -> &mut Self {
+    fn conjugacy_class_symbols(
+        &mut self,
+        group: &impl GroupProperties<GroupElement = T>,
+    ) -> &mut Self {
         log::debug!("Assigning generic class symbols...");
         let class_sizes: Vec<_> = self
             .conjugacy_classes
@@ -234,7 +320,7 @@ where
             .iter()
             .enumerate()
             .map(|(i, &rep_ele_index)| {
-                let (rep_ele, _) = elements.get_index(rep_ele_index).unwrap_or_else(|| {
+                let rep_ele = group.get_index(rep_ele_index).unwrap_or_else(|| {
                     panic!("Element with index {rep_ele_index} cannot be retrieved.")
                 });
                 (
@@ -326,17 +412,17 @@ where
     }
 }
 
-impl<T, ClassSymbol> ClassStructure<T, ClassSymbol>
+impl<T, ClassSymbol> EagerClassStructure<T, ClassSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     ClassSymbol: CollectionSymbol<CollectionElement = T>,
 {
     /// Returns a builder to construct a new class structure.
-    fn builder() -> ClassStructureBuilder<T, ClassSymbol> {
-        ClassStructureBuilder::<T, ClassSymbol>::default()
+    fn builder() -> EagerClassStructureBuilder<T, ClassSymbol> {
+        EagerClassStructureBuilder::<T, ClassSymbol>::default()
     }
 
-    /// Constructs a new class structure.
+    /// Constructs a new eager class structure.
     ///
     /// # Arguments
     ///
@@ -350,26 +436,26 @@ where
     /// # Returns
     ///
     /// A new class structure.
-    pub fn new(
-        group: &Group<T>,
+    fn new(
+        group: &impl GroupProperties<GroupElement = T>,
         conjugacy_classes: Vec<HashSet<usize>>,
         element_to_conjugacy_classes: Vec<Option<usize>>,
     ) -> Self {
-        let ctb = group
-            .cayley_table
+        let ctb_opt = group.cayley_table();
+        let ctb = ctb_opt
             .as_ref()
             .expect("Cayley table not found for this group.");
         Self::builder()
             .conjugacy_classes(conjugacy_classes)
             .element_to_conjugacy_classes(element_to_conjugacy_classes)
             .conjugacy_class_transversal()
-            .conjugacy_class_symbols(&group.elements)
+            .conjugacy_class_symbols(group)
             .inverse_conjugacy_classes(ctb)
             .build()
-            .expect("Unable to construct a `ClassStructure`.")
+            .expect("Unable to construct a `EagerClassStructure`.")
     }
 
-    /// Constructs a new class structure without using any information from any Cayley table.
+    /// Constructs a new eager class structure without using any information from any Cayley table.
     ///
     /// # Arguments
     ///
@@ -382,8 +468,8 @@ where
     /// # Returns
     ///
     /// A new class structure.
-    pub fn new_no_ctb(
-        group: &Group<T>,
+    fn new_no_ctb(
+        group: &impl GroupProperties<GroupElement = T>,
         conjugacy_classes: Vec<HashSet<usize>>,
         element_to_conjugacy_classes: Vec<Option<usize>>,
         inverse_conjugacy_classes: Vec<usize>,
@@ -392,10 +478,10 @@ where
             .conjugacy_classes(conjugacy_classes)
             .element_to_conjugacy_classes(element_to_conjugacy_classes)
             .conjugacy_class_transversal()
-            .conjugacy_class_symbols(&group.elements)
+            .conjugacy_class_symbols(group)
             .custom_inverse_conjugacy_classes(inverse_conjugacy_classes)
             .build()
-            .expect("Unable to construct a `ClassStructure`.")
+            .expect("Unable to construct a `EagerClassStructure`.")
     }
 
     /// Returns the number of conjugacy classes in the class structure.
@@ -413,58 +499,13 @@ where
     /// # Panics
     ///
     /// Panics if the length of `csyms` does not match that of [`Self::conjugacy_classes`].
-    pub fn set_class_symbols(&mut self, csyms: &[ClassSymbol]) {
+    fn set_class_symbols(&mut self, csyms: &[ClassSymbol]) {
         assert_eq!(csyms.len(), self.conjugacy_classes.len());
         self.conjugacy_class_symbols = csyms
             .iter()
             .enumerate()
             .map(|(i, cc)| (cc.clone(), i))
             .collect::<IndexMap<_, _>>();
-    }
-
-    /// The class matrix $`\mathbf{N}_r`$ for the conjugacy classes in the group.
-    ///
-    /// Let $`K_i`$ be the $`i^{\textrm{th}}`conjugacy class of the group. The
-    /// elements of the class matrix $`\mathbf{N}_r`$ are given by
-    ///
-    /// ```math
-    ///     N_{r, st} = \lvert \{ (x, y) \in K_r \times K_s : xy = z \in K_t \} \rvert,
-    /// ```
-    ///
-    /// independent of any $`z \in K_t`$.
-    ///
-    /// # Arguments
-    ///
-    /// * `r` - The index $`r`$.
-    ///
-    /// # Returns
-    ///
-    /// The class matrix $`\mathbf{N}_r`$.
-    fn class_matrix(&self, ctb: &Array2<usize>, r: usize) -> Array2<usize> {
-        let class_number = self.conjugacy_classes.len();
-        let mut nmat_r = Array2::<usize>::zeros((class_number, class_number));
-        let class_r = &self.conjugacy_classes[r];
-        for (t, class_t) in self.conjugacy_classes.iter().enumerate() {
-            let rep_z_idx = *class_t
-                .iter()
-                .next()
-                .expect("No conjugacy classes can be empty.");
-            for &x_idx in class_r.iter() {
-                let x_inv_idx = ctb
-                    .slice(s![.., x_idx])
-                    .iter()
-                    .position(|&x| x == 0)
-                    .unwrap_or_else(|| {
-                        panic!("The inverse of element index {x_idx} cannot be found.")
-                    });
-                let y_idx = ctb[[x_inv_idx, rep_z_idx]];
-                let s = self.element_to_conjugacy_classes[y_idx].unwrap_or_else(|| {
-                    panic!("Conjugacy class of element index {y_idx} not found.")
-                });
-                nmat_r[[s, t]] += 1;
-            }
-        }
-        nmat_r
     }
 }
 
@@ -485,20 +526,6 @@ where
     ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
     type ClassSymbol = ColSymbol;
-
-    fn class_structure(&self) -> &ClassStructure<Self::GroupElement, Self::ClassSymbol> {
-        self.class_structure
-            .as_ref()
-            .expect("Class structure not found for this group.")
-    }
-
-    fn class_structure_mut(
-        &mut self,
-    ) -> &mut ClassStructure<Self::GroupElement, Self::ClassSymbol> {
-        self.class_structure
-            .as_mut()
-            .expect("Class structure not found for this group.")
-    }
 
     /// Compute the class structure of this unitary-represented group that is induced by the
     /// following equivalence relation:
@@ -561,9 +588,91 @@ where
         };
 
         let class_structure =
-            ClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
+            EagerClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
         self.class_structure = Some(class_structure);
         log::debug!("Finding unitary conjugacy classes... Done.");
+    }
+
+    #[must_use]
+    fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_classes
+            .get(cc_idx)
+    }
+
+    #[must_use]
+    fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .element_to_conjugacy_classes[e_idx]
+    }
+
+    #[must_use]
+    fn get_cc_transversal(&self, cc_idx: usize) -> Option<Self::GroupElement> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_class_transversal
+            .get(cc_idx)
+            .map(|&i| self.get_index(i))
+            .flatten()
+    }
+
+    #[must_use]
+    fn get_index_of_cc_symbol(&self, cc_sym: &Self::ClassSymbol) -> Option<usize> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_class_symbols
+            .get_index_of(cc_sym)
+    }
+
+    #[must_use]
+    fn get_cc_symbol_of_index(&self, cc_idx: usize) -> Option<Self::ClassSymbol> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_class_symbols
+            .get_index(cc_idx)
+            .map(|(cc_sym, _)| cc_sym.clone())
+    }
+
+    fn set_class_symbols(&mut self, cc_symbols: &[Self::ClassSymbol]) {
+        self.class_structure
+            .as_mut()
+            .unwrap()
+            .set_class_symbols(cc_symbols);
+    }
+
+    #[must_use]
+    fn get_inverse_cc(&self, cc_idx: usize) -> Option<usize> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .inverse_conjugacy_classes
+            .get(cc_idx)
+            .cloned()
+    }
+
+    #[must_use]
+    fn class_number(&self) -> usize {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .class_number()
+    }
+
+    #[must_use]
+    fn class_size(&self, cc_idx: usize) -> Option<usize> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_classes
+            .get(cc_idx)
+            .map(|cc| cc.len())
     }
 }
 
@@ -580,20 +689,6 @@ where
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
 {
     type ClassSymbol = UG::ClassSymbol;
-
-    fn class_structure(&self) -> &ClassStructure<Self::GroupElement, Self::ClassSymbol> {
-        self.class_structure
-            .as_ref()
-            .expect("Class structure not found for this group.")
-    }
-
-    fn class_structure_mut(
-        &mut self,
-    ) -> &mut ClassStructure<Self::GroupElement, Self::ClassSymbol> {
-        self.class_structure
-            .as_mut()
-            .expect("Class structure not found for this group.")
-    }
 
     /// Compute the class structure of this magnetic-represented group that is induced by the
     /// following equivalence relation:
@@ -614,8 +709,9 @@ where
         let mut remaining_unitary_elements = self
             .elements()
             .iter()
+            .enumerate()
             .skip(1)
-            .filter_map(|(op, &i)| {
+            .filter_map(|(i, op)| {
                 if self.check_elem_antiunitary(op) {
                     None
                 } else {
@@ -642,7 +738,7 @@ where
                 .position(|&x| x == 0)
                 .unwrap_or_else(|| panic!("The inverse of `{g}` cannot be found."));
             let mut cur_cc = HashSet::from([g]);
-            for (op, &s) in self.elements().iter() {
+            for (s, op) in self.elements().iter().enumerate() {
                 let h = if self.check_elem_antiunitary(op) {
                     // s denotes a.
                     let sginv = ctb[[s, ginv]];
@@ -679,8 +775,90 @@ where
             .all(|x_opt| if let Some(x) = x_opt { *x > 0 } else { true }));
 
         let class_structure =
-            ClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
+            EagerClassStructure::<T, Self::ClassSymbol>::new(&self.abstract_group, ccs, e2ccs);
         self.class_structure = Some(class_structure);
         log::debug!("Finding magnetic conjugacy classes... Done.");
+    }
+
+    #[must_use]
+    fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_classes
+            .get(cc_idx)
+    }
+
+    #[must_use]
+    fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .element_to_conjugacy_classes[e_idx]
+    }
+
+    #[must_use]
+    fn get_cc_transversal(&self, cc_idx: usize) -> Option<Self::GroupElement> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_class_transversal
+            .get(cc_idx)
+            .map(|&i| self.get_index(i))
+            .flatten()
+    }
+
+    #[must_use]
+    fn get_index_of_cc_symbol(&self, cc_sym: &Self::ClassSymbol) -> Option<usize> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_class_symbols
+            .get_index_of(cc_sym)
+    }
+
+    #[must_use]
+    fn get_cc_symbol_of_index(&self, cc_idx: usize) -> Option<Self::ClassSymbol> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_class_symbols
+            .get_index(cc_idx)
+            .map(|(cc_sym, _)| cc_sym.clone())
+    }
+
+    fn set_class_symbols(&mut self, cc_symbols: &[Self::ClassSymbol]) {
+        self.class_structure
+            .as_mut()
+            .unwrap()
+            .set_class_symbols(cc_symbols);
+    }
+
+    #[must_use]
+    fn get_inverse_cc(&self, cc_idx: usize) -> Option<usize> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .inverse_conjugacy_classes
+            .get(cc_idx)
+            .cloned()
+    }
+
+    #[must_use]
+    fn class_number(&self) -> usize {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .class_number()
+    }
+
+    #[must_use]
+    fn class_size(&self, cc_idx: usize) -> Option<usize> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_classes
+            .get(cc_idx)
+            .map(|cc| cc.len())
     }
 }

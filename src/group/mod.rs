@@ -3,7 +3,7 @@ use std::hash::Hash;
 use std::ops::Mul;
 
 use derive_builder::Builder;
-use indexmap::IndexMap;
+use indexmap::IndexSet;
 use log;
 use ndarray::{Array2, Zip};
 use num::Integer;
@@ -14,7 +14,7 @@ use crate::chartab::chartab_symbols::{
     CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::{CharacterTable, CorepCharacterTable, RepCharacterTable};
-use crate::group::class::{ClassProperties, ClassStructure};
+use crate::group::class::{ClassProperties, EagerClassStructure};
 
 pub mod class;
 
@@ -22,7 +22,7 @@ pub mod class;
 // Trait definitions
 // =================
 
-/// A trait for order finiteness.
+/// A trait for order finiteness of group elements.
 pub trait FiniteOrder {
     /// The integer type for the order of the element.
     type Int: Integer;
@@ -45,9 +45,10 @@ where
 {
     /// The type of the elements in the group.
     type GroupElement;
+    type ElementCollection: Clone + IntoIterator<Item = Self::GroupElement>;
 
-    /// The underlying abstract group of the possibly concrete group.
-    fn abstract_group(&self) -> &Group<Self::GroupElement>;
+    // /// The underlying abstract group of the possibly concrete group.
+    // fn abstract_group(&self) -> &Group<Self::GroupElement>;
 
     /// The name of the group.
     fn name(&self) -> String;
@@ -55,30 +56,29 @@ where
     /// The finite subgroup name of this group, if any.
     fn finite_subgroup_name(&self) -> Option<&String>;
 
-    /// The elements in the group.
-    fn elements(&self) -> &IndexMap<Self::GroupElement, usize> {
-        &self.abstract_group().elements
-    }
+
+    /// A iterable collection of the elements in the group.
+    fn elements(&self) -> &Self::ElementCollection;
+
+    /// Given an index, returns the element associated with it, or `None` if the index is out of
+    /// range.
+    fn get_index(&self, index: usize) -> Option<Self::GroupElement>;
+
+    /// Given an element, returns its index in the group, or `None` if the element does not exist
+    /// in the group.
+    fn get_index_of(&self, g: &Self::GroupElement) -> Option<usize>;
+
+    /// Checks if an element is a member of the group.
+    fn contains(&self, g: &Self::GroupElement) -> bool;
 
     /// Checks if this group is abelian.
-    fn is_abelian(&self) -> bool {
-        let ctb = self
-            .abstract_group()
-            .cayley_table
-            .as_ref()
-            .expect("Cayley table not found for this group.");
-        ctb == ctb.t()
-    }
+    fn is_abelian(&self) -> bool;
 
     /// The order of the group.
-    fn order(&self) -> usize {
-        self.abstract_group().elements.len()
-    }
+    fn order(&self) -> usize;
 
     /// The Cayley table of the group.
-    fn cayley_table(&self) -> Option<&Array2<usize>> {
-        self.abstract_group().cayley_table.as_ref()
-    }
+    fn cayley_table(&self) -> Option<&Array2<usize>>;
 }
 
 /// A trait for indicating that a group can be partitioned into a unitary halving subgroup and and
@@ -158,19 +158,18 @@ pub const GRGRP: GroupType = GroupType::MagneticGrey(false);
 // Abstract group
 // --------------
 
-/// A structure for managing abstract groups.
+/// A structure for managing abstract groups eagerly, *i.e.* all group elements are stored.
 #[derive(Builder, Clone)]
-pub struct Group<T>
+pub struct EagerGroup<T>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
 {
     /// A name for the abstract group.
     name: String,
 
-    /// An ordered hash table containing the elements of the group. Each key is a group element,
-    /// and the associated value is its index.
+    /// An ordered hashset containing the elements of the group.
     #[builder(setter(custom))]
-    elements: IndexMap<T, usize>,
+    elements: IndexSet<T>,
 
     /// The Cayley table for this group w.r.t. the elements in [`Self::elements`].
     ///
@@ -179,29 +178,28 @@ where
     /// elements act on the function first, followed by row elements.
     ///
     /// Each element in this array contains the index of the resultant operation
-    /// from the composition, w.r.t. the array [`Self::elements`].
+    /// from the composition, w.r.t. the ordered hashset [`Self::elements`].
     #[builder(setter(skip), default = "None")]
     cayley_table: Option<Array2<usize>>,
 }
 
-impl<T> GroupBuilder<T>
+impl<T> EagerGroupBuilder<T>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     fn elements(&mut self, elems: Vec<T>) -> &mut Self {
-        self.elements = Some(
-            elems
-                .into_iter()
-                .enumerate()
-                .map(|(i, element)| (element, i))
-                .collect(),
-        );
+        self.elements = Some(elems.into_iter().collect());
+        self
+    }
+
+    fn elements_iter(&mut self, elems_iter: impl Iterator<Item = T>) -> &mut Self {
+        self.elements = Some(elems_iter.collect());
         self
     }
 }
 
-impl<T> Group<T>
+impl<T> EagerGroup<T>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
@@ -211,8 +209,8 @@ where
     /// # Returns
     ///
     /// A builder to construct a new abstract group.
-    fn builder() -> GroupBuilder<T> {
-        GroupBuilder::<T>::default()
+    fn builder() -> EagerGroupBuilder<T> {
+        EagerGroupBuilder::<T>::default()
     }
 
     /// Constructs an abstract group from its elements and calculate its Cayley table.
@@ -254,20 +252,61 @@ where
             .expect("Unable to construct a group.")
     }
 
+    /// Constructs an abstract group from an iterator of its elements and calculate its Cayley
+    /// table.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - A name to be given to the abstract group.
+    /// * `elements_iter` - An iterator yielding group elements.
+    ///
+    /// # Returns
+    ///
+    /// An abstract group with its Cayley table constructed.
+    #[must_use]
+    pub fn from_iter(name: &str, elements_iter: impl Iterator<Item = T>) -> Self {
+        let mut group = Self::builder()
+            .name(name.to_string())
+            .elements_iter(elements_iter)
+            .build()
+            .expect("Unable to construct a group.");
+        group.compute_cayley_table();
+        group
+    }
+
+    /// Constructs an abstract group from an iterator of its elements but without calculating its
+    /// Cayley table.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - A name to be given to the abstract group.
+    /// * `elements_iter` - An iterator yielding group elements.
+    ///
+    /// # Returns
+    ///
+    /// An abstract group without its Cayley table constructed.
+    pub fn from_iter_no_ctb(name: &str, elements_iter: impl Iterator<Item = T>) -> Self {
+        Self::builder()
+            .name(name.to_string())
+            .elements_iter(elements_iter)
+            .build()
+            .expect("Unable to construct a group.")
+    }
+
     /// Constructs the Cayley table for the abstract group.
     fn compute_cayley_table(&mut self) {
         log::debug!("Constructing Cayley table in parallel...");
         let mut ctb = Array2::<usize>::zeros((self.order(), self.order()));
         Zip::indexed(&mut ctb).par_for_each(|(i, j), k| {
-            let (op_i_ref, _) = self.elements
+            let op_i_ref = self.elements
                 .get_index(i)
                 .unwrap_or_else(|| panic!("Element with index {i} cannot be retrieved."));
-            let (op_j_ref, _) = self.elements
+            let op_j_ref = self.elements
                 .get_index(j)
                 .unwrap_or_else(|| panic!("Element with index {j} cannot be retrieved."));
             let op_k = op_i_ref * op_j_ref;
-            *k = *self.elements
-                .get(&op_k)
+            *k = self.elements
+                .get_index_of(&op_k)
                 .unwrap_or_else(||
                     panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try changing thresholds.",
                         op_i_ref,
@@ -280,12 +319,13 @@ where
     }
 }
 
-impl<T> GroupProperties for Group<T>
+impl<T> GroupProperties for EagerGroup<T>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
 {
     type GroupElement = T;
+    type ElementCollection = IndexSet<T>;
 
     fn name(&self) -> String {
         self.name.to_string()
@@ -295,8 +335,44 @@ where
         None
     }
 
-    fn abstract_group(&self) -> &Self {
-        self
+    fn get_index(&self, index: usize) -> Option<Self::GroupElement> {
+        self.elements.get_index(index).cloned()
+    }
+
+    fn get_index_of(&self, g: &Self::GroupElement) -> Option<usize> {
+        self.elements.get_index_of(g)
+    }
+
+    fn contains(&self, g: &Self::GroupElement) -> bool {
+        self.elements.contains(g)
+    }
+
+    fn elements(&self) -> &Self::ElementCollection {
+        &self.elements
+    }
+
+    fn is_abelian(&self) -> bool {
+        if let Some(ctb) = &self.cayley_table {
+            ctb == ctb.t()
+        } else {
+            self.elements.iter().enumerate().all(|(i, gi)| {
+                (0..i).all(|j| {
+                    let gj = self
+                        .elements
+                        .get_index(j)
+                        .unwrap_or_else(|| panic!("Element with index `{j}` not found."));
+                    gi * gj == gj * gi
+                })
+            })
+        }
+    }
+
+    fn order(&self) -> usize {
+        self.elements.len()
+    }
+
+    fn cayley_table(&self) -> Option<&Array2<usize>> {
+        self.cayley_table.as_ref()
     }
 }
 
@@ -321,7 +397,7 @@ where
     finite_subgroup_name: Option<String>,
 
     /// The underlying abstract group of this unitary-represented group.
-    abstract_group: Group<T>,
+    abstract_group: EagerGroup<T>,
 
     /// The class structure of this unitary-represented group that is induced by the following
     /// equivalence relation:
@@ -330,7 +406,7 @@ where
     ///     g \sim h \Leftrightarrow \exists u : h = u g u ^{-1}.
     /// ```
     #[builder(setter(skip), default = "None")]
-    class_structure: Option<ClassStructure<T, ColSymbol>>,
+    class_structure: Option<EagerClassStructure<T, ColSymbol>>,
 
     /// The character table for the irreducible representations of this group.
     #[builder(setter(skip), default = "None")]
@@ -409,7 +485,7 @@ where
     /// determined.
     #[must_use]
     pub fn new(name: &str, elements: Vec<T>) -> Self {
-        let abstract_group = Group::<T>::new(name, elements);
+        let abstract_group = EagerGroup::<T>::new(name, elements);
         let mut unitary_group = UnitaryRepresentedGroup::<T, RowSymbol, ColSymbol>::builder()
             .name(name.to_string())
             .abstract_group(abstract_group)
@@ -428,6 +504,7 @@ where
     ColSymbol: CollectionSymbol<CollectionElement = T>,
 {
     type GroupElement = T;
+    type ElementCollection = IndexSet<Self::GroupElement>;
 
     fn name(&self) -> String {
         self.name.to_string()
@@ -437,8 +514,32 @@ where
         self.finite_subgroup_name.as_ref()
     }
 
-    fn abstract_group(&self) -> &Group<Self::GroupElement> {
-        &self.abstract_group
+    fn get_index(&self, index: usize) -> Option<Self::GroupElement> {
+        self.abstract_group.get_index(index)
+    }
+
+    fn get_index_of(&self, g: &Self::GroupElement) -> Option<usize> {
+        self.abstract_group.get_index_of(g)
+    }
+
+    fn contains(&self, g: &Self::GroupElement) -> bool {
+        self.abstract_group.contains(g)
+    }
+
+    fn elements(&self) -> &Self::ElementCollection {
+        self.abstract_group.elements()
+    }
+
+    fn is_abelian(&self) -> bool {
+        self.abstract_group.is_abelian()
+    }
+
+    fn order(&self) -> usize {
+        self.abstract_group.order()
+    }
+
+    fn cayley_table(&self) -> Option<&Array2<usize>> {
+        self.abstract_group.cayley_table()
     }
 }
 
@@ -467,7 +568,7 @@ where
     finite_subgroup_name: Option<String>,
 
     /// The underlying abstract group of this magnetic-represented group.
-    abstract_group: Group<T>,
+    abstract_group: EagerGroup<T>,
 
     /// The subgroup consisting of the unitary-represented elements in the full group.
     #[builder(setter(custom))]
@@ -485,7 +586,7 @@ where
     /// $`a`$ is antiunitary-represented (*i.e.* $`a`$ is not in [`Self::unitary_subgroup`]).
     #[builder(setter(skip), default = "None")]
     class_structure: Option<
-        ClassStructure<T, <<UG as CharacterProperties>::CharTab as CharacterTable>::ColSymbol>,
+        EagerClassStructure<T, <<UG as CharacterProperties>::CharTab as CharacterTable>::ColSymbol>,
     >,
 
     /// The character table for the irreducible corepresentations of this group.
@@ -520,12 +621,11 @@ where
     }
 
     fn unitary_subgroup(&mut self, uni_subgrp: UG) -> &mut Self {
-        assert!(uni_subgrp.elements().iter().all(|(op, _)| self
+        assert!(uni_subgrp.elements().clone().into_iter().all(|op| self
             .abstract_group
             .as_ref()
             .expect("Abstract group not yet set for this magnetic-represented group.")
-            .elements()
-            .contains_key(op)));
+            .contains(&op)));
         self.unitary_subgroup = Some(uni_subgrp);
         self
     }
@@ -582,7 +682,7 @@ where
     /// A magnetic-represented group with its Cayley table constructed and conjugacy classes
     /// determined.
     pub fn new(name: &str, elements: Vec<T>, unitary_subgroup: UG) -> Self {
-        let abstract_group = Group::<T>::new(name, elements);
+        let abstract_group = EagerGroup::<T>::new(name, elements);
         let mut magnetic_group = MagneticRepresentedGroup::<T, UG, RowSymbol>::builder()
             .name(name.to_string())
             .abstract_group(abstract_group)
@@ -602,6 +702,7 @@ where
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
 {
     type GroupElement = T;
+    type ElementCollection = IndexSet<T>;
 
     fn name(&self) -> String {
         self.name.to_string()
@@ -611,8 +712,32 @@ where
         self.finite_subgroup_name.as_ref()
     }
 
-    fn abstract_group(&self) -> &Group<Self::GroupElement> {
-        &self.abstract_group
+    fn get_index(&self, index: usize) -> Option<Self::GroupElement> {
+        self.abstract_group.get_index(index)
+    }
+
+    fn get_index_of(&self, g: &Self::GroupElement) -> Option<usize> {
+        self.abstract_group.get_index_of(g)
+    }
+
+    fn contains(&self, g: &Self::GroupElement) -> bool {
+        self.abstract_group.contains(g)
+    }
+
+    fn elements(&self) -> &Self::ElementCollection {
+        self.abstract_group.elements()
+    }
+
+    fn is_abelian(&self) -> bool {
+        self.abstract_group.is_abelian()
+    }
+
+    fn order(&self) -> usize {
+        self.abstract_group.order()
+    }
+
+    fn cayley_table(&self) -> Option<&Array2<usize>> {
+        self.abstract_group.cayley_table()
     }
 }
 
@@ -643,8 +768,8 @@ where
     ///
     /// Panics if `element` is not in the group.
     fn check_elem_antiunitary(&self, element: &T) -> bool {
-        if self.abstract_group.elements().contains_key(element) {
-            !self.unitary_subgroup.elements().contains_key(element)
+        if self.abstract_group.contains(element) {
+            !self.unitary_subgroup.contains(element)
         } else {
             panic!("`{element:?}` is not an element of the group.")
         }
