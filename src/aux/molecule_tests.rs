@@ -226,23 +226,23 @@ fn test_molecule_perm() {
 
     assert_eq!(
         mol1.perm(&mol2),
-        Some(Permutation::from_image(&[0, 4, 1, 2, 3]))
+        Some(Permutation::<usize>::from_image(vec![0, 4, 1, 2, 3]))
     );
     assert_eq!(
         mol1.perm(&mol3),
-        Some(Permutation::from_image(&[0, 1, 4, 3, 2]))
+        Some(Permutation::<usize>::from_image(vec![0, 1, 4, 3, 2]))
     );
     assert_eq!(mol1.perm(&mol4), None);
     assert_eq!(
         mol2.perm(&mol1),
-        Some(Permutation::from_image(&[0, 2, 3, 4, 1]))
+        Some(Permutation::<usize>::from_image(vec![0, 2, 3, 4, 1]))
     );
     assert_eq!(
         mol2.perm(&mol2),
-        Some(Permutation::from_image(&[0, 1, 2, 3, 4]))
+        Some(Permutation::<usize>::from_image(vec![0, 1, 2, 3, 4]))
     );
     assert_eq!(
         mol2.perm(&mol3),
-        Some(Permutation::from_image(&[0, 4, 3, 2, 1]))
+        Some(Permutation::<usize>::from_image(vec![0, 4, 3, 2, 1]))
     );
 }

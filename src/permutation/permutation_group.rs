@@ -1,5 +1,6 @@
-use std::collections::HashSet;
+use std::collections::{VecDeque, HashSet};
 use std::ops::Range;
+use std::fmt;
 
 use derive_builder::Builder;
 use factorial::Factorial;
@@ -12,6 +13,7 @@ use crate::chartab::chartab_group::{CharacterProperties, IrrepCharTabConstructio
 use crate::chartab::{CharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
 use crate::group::{GroupProperties, UnitaryRepresentedGroup};
+use crate::permutation::PermutationRank;
 use crate::permutation::permutation_symbols::{
     deduce_permutation_irrep_symbols, sort_perm_irreps, PermutationClassSymbol,
     PermutationIrrepSymbol,
@@ -29,23 +31,32 @@ mod permutation_group_tests;
 /// A lazy iterator for permutations of a particular rank enumerated by their Lehmer encoding
 /// integers.
 #[derive(Clone)]
-pub struct PermutationIterator {
-    rank: u8,
+pub struct PermutationIterator<T: PermutationRank> {
+    rank: T,
     raw_perm_indices: Range<usize>,
 }
 
-impl Iterator for PermutationIterator {
-    type Item = Permutation;
+impl<T: PermutationRank> Iterator for PermutationIterator<T>
+where
+    std::ops::Range<T>: Iterator + DoubleEndedIterator,
+    Vec<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
+    VecDeque<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
+    <T as TryFrom<usize>>::Error: fmt::Debug,
+    IndexSet<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
+{
+    type Item = Permutation<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.raw_perm_indices
             .next()
-            .map(|index| Permutation::from_lehmer_index(index, self.rank))
+            .map(|index| Permutation::<T>::from_lehmer_index(index, self.rank))
             .flatten()
     }
 }
 
-/// A dedicated structure for managing permutation groups efficiently.
+/// A dedicated structure for managing permutation groups efficiently. Only permutation groups of
+/// ranks up to 20 are supported, as higher-rank permutation groups have too large orders not
+/// representable with `usize` which is `u64` on most modern machines.
 #[derive(Clone, Builder)]
 pub struct PermutationGroup {
     /// The rank of the permutation group.
@@ -53,7 +64,7 @@ pub struct PermutationGroup {
 
     /// The lazy iterator yielding all permutations in this group in their Lehmer-encoding-integer
     /// order.
-    perms_iter: PermutationIterator,
+    perms_iter: PermutationIterator<u8>,
 
     /// All possible cycle patterns of this group. These are the possible partitions of
     /// [`Self::rank`].
@@ -68,12 +79,12 @@ pub struct PermutationGroup {
 
     /// The symbols for the conjugacy classes.
     #[builder(setter(skip), default = "None")]
-    conjugacy_class_symbols: Option<IndexSet<PermutationClassSymbol>>,
+    conjugacy_class_symbols: Option<IndexSet<PermutationClassSymbol<u8>>>,
 
     /// The character table for the irreducible representations of this permutation group.
     #[builder(setter(skip), default = "None")]
     irrep_character_table:
-        Option<RepCharacterTable<PermutationIrrepSymbol, PermutationClassSymbol>>,
+        Option<RepCharacterTable<PermutationIrrepSymbol, PermutationClassSymbol<u8>>>,
 }
 
 impl PermutationGroup {
@@ -86,9 +97,11 @@ impl PermutationGroup {
 // Trait definitions
 // =================
 
-/// A trait for permutation groups.
+/// A trait for permutation groups. Only permutation groups of ranks up to 20 are supported, as
+/// higher-rank permutation groups have too large orders not representable with `usize` which is
+/// `u64` on most modern machines.
 pub trait PermutationGroupProperties:
-    ClassProperties<GroupElement = Permutation, ClassSymbol = PermutationClassSymbol>
+    ClassProperties<GroupElement = Permutation<u8>, ClassSymbol = PermutationClassSymbol<u8>>
     + CharacterProperties
 {
     /// Constructs a permutation group $`Sym(n)`$ from a given rank $`n`$ (*i.e.* the number of
@@ -171,11 +184,14 @@ pub trait PermutationGroupProperties:
 // -----------------------
 
 impl PermutationGroupProperties
-    for UnitaryRepresentedGroup<Permutation, PermutationIrrepSymbol, PermutationClassSymbol>
+    for UnitaryRepresentedGroup<Permutation<u8>, PermutationIrrepSymbol, PermutationClassSymbol<u8>>
 {
     fn from_rank(rank: u8) -> Self {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
-        assert!(rank <= 20, "Permutations of rank more than 20 will not be representable.");
+        assert!(
+            rank <= 20,
+            "Permutations of rank more than 20 will not be representable."
+        );
         log::debug!("Generating all permutations of rank {rank}...");
         let perms = (0..rank)
             .permutations(usize::from(rank))
@@ -184,9 +200,9 @@ impl PermutationGroupProperties
         log::debug!("Generating all permutations of rank {rank}... Done.");
         log::debug!("Collecting all permutations into a unitary-represented group...");
         let mut group = UnitaryRepresentedGroup::<
-            Permutation,
+            Permutation<u8>,
             PermutationIrrepSymbol,
-            PermutationClassSymbol,
+            PermutationClassSymbol<u8>,
         >::new(format!("Sym({rank})").as_str(), perms);
         log::debug!("Collecting all permutations into a unitary-represented group... Done.");
         group.set_class_symbols_from_cycle_patterns();
@@ -224,8 +240,8 @@ impl PermutationGroupProperties
 // ----------------
 
 impl GroupProperties for PermutationGroup {
-    type GroupElement = Permutation;
-    type ElementCollection = PermutationIterator;
+    type GroupElement = Permutation<u8>;
+    type ElementCollection = PermutationIterator<u8>;
 
     fn name(&self) -> String {
         format!("Sym({})", self.rank)
@@ -330,7 +346,7 @@ fn partitions(n: u8) -> IndexSet<Vec<u8>> {
 }
 
 impl ClassProperties for PermutationGroup {
-    type ClassSymbol = PermutationClassSymbol;
+    type ClassSymbol = PermutationClassSymbol<u8>;
 
     /// Computes the class structure of this permutation group based on cycle patterns.
     fn compute_class_structure(&mut self) {
@@ -355,8 +371,7 @@ impl ClassProperties for PermutationGroup {
                 });
                 let cycle_pattern = p_i.cycle_pattern();
                 let c_i = u16::try_from(
-                    self
-                        .cycle_patterns
+                    self.cycle_patterns
                         .as_ref()
                         .expect("Cycle patterns not found.")
                         .get_index_of(&cycle_pattern)
@@ -365,8 +380,9 @@ impl ClassProperties for PermutationGroup {
                                 "Cycle pattern {:?} is not valid in this group.",
                                 cycle_pattern
                             );
-                        })
-                ).expect("A class index cannot fit within a `u16`.");
+                        }),
+                )
+                .expect("A class index cannot fit within a `u16`.");
                 (i, c_i)
             })
             .collect_into_vec(&mut e2ccs);
@@ -477,7 +493,7 @@ impl ClassProperties for PermutationGroup {
 
 impl CharacterProperties for PermutationGroup {
     type RowSymbol = PermutationIrrepSymbol;
-    type CharTab = RepCharacterTable<PermutationIrrepSymbol, PermutationClassSymbol>;
+    type CharTab = RepCharacterTable<PermutationIrrepSymbol, PermutationClassSymbol<u8>>;
 
     fn character_table(&self) -> &Self::CharTab {
         self.irrep_character_table
@@ -495,7 +511,10 @@ impl IrrepCharTabConstruction for PermutationGroup {
 impl PermutationGroupProperties for PermutationGroup {
     fn from_rank(rank: u8) -> Self {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
-        assert!(rank <= 20, "Permutations of rank more than 20 will not be representable.");
+        assert!(
+            rank <= 20,
+            "Permutations of rank more than 20 will not be representable."
+        );
         log::debug!("Initialising lazy iterator for permutations of rank {rank}...");
         let perms_iter = PermutationIterator {
             rank,

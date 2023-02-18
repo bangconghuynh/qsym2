@@ -685,12 +685,10 @@ impl PartialEq for Molecule {
     }
 }
 
-impl PermutableCollection for Molecule {
-    type Item = Atom;
-
+impl PermutableCollection<usize> for Molecule {
     /// Determines the permutation of *ordinary* atoms to map `self` to `other`. Special fictitious
     /// atoms are not included.
-    fn perm(&self, other: &Self) -> Option<Permutation> {
+    fn perm(&self, other: &Self) -> Option<Permutation<usize>> {
         let o_atoms: HashMap<Atom, usize> = other
             .atoms
             .iter()
@@ -702,6 +700,6 @@ impl PermutableCollection for Molecule {
             .iter()
             .map(|s_atom| o_atoms.get(s_atom).copied())
             .collect();
-        image_opt.map(|image| Permutation::from_image(&image))
+        image_opt.map(|image| Permutation::from_image(image))
     }
 }
