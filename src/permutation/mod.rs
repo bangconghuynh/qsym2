@@ -8,7 +8,7 @@ use derive_builder::Builder;
 use factorial::Factorial;
 use indexmap::IndexSet;
 use log;
-use num::{integer::lcm, Unsigned, Integer};
+use num::{integer::lcm, Integer, Unsigned};
 use num_traits::{Inv, Pow, PrimInt};
 
 use crate::group::FiniteOrder;
@@ -32,21 +32,27 @@ pub trait PermutableCollection<T: PermutationRank> {
 
 /// A trait defining an action on a permutable collection that can be converted into an equivalent
 /// permutation acting on that collection.
-pub trait IntoPermutation<
-    T: PermutationRank,
-    C: PermutableCollection<T>,
->
-{
+pub trait IntoPermutation<T: PermutationRank, C: PermutableCollection<T>> {
     /// Determines the permutation of `rhs` considered as a collection induced by the action of
     /// `self` on `rhs` considered as an element in its domain.
     fn act_permute(&self, rhs: &C) -> Permutation<T>;
 }
 
-pub trait PermutationRank: Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize> {}
+/// A trait for generic permutation rank types.
+pub trait PermutationRank:
+    Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize>
+{
+}
 
+/// Blanket implementation of `PermutationRank`.
 impl<T> PermutationRank for T
 where
     T: Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize>,
+    <T as TryFrom<usize>>::Error: fmt::Debug,
+    std::ops::Range<T>: Iterator + DoubleEndedIterator,
+    Vec<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
+    VecDeque<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
+    IndexSet<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
 {
 }
 
@@ -75,14 +81,7 @@ impl<T: PermutationRank> PermutationBuilder<T> {
     }
 }
 
-impl<T: PermutationRank> Permutation<T>
-where
-    std::ops::Range<T>: Iterator + DoubleEndedIterator,
-    Vec<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
-    VecDeque<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
-    <T as TryFrom<usize>>::Error: fmt::Debug,
-    IndexSet<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
-{
+impl<T: PermutationRank> Permutation<T> {
     /// Returns a builder to construct a new permutation.
     #[must_use]
     fn builder() -> PermutationBuilder<T> {
@@ -159,7 +158,12 @@ where
     /// Constructs a permutation from its Lehmer encoding.
     ///
     /// See [here](https://en.wikipedia.org/wiki/Lehmer_code) for additional information.
-    pub fn from_lehmer(lehmer: Vec<T>) -> Self {
+    pub fn from_lehmer(lehmer: Vec<T>) -> Self
+    where
+        <T as TryFrom<usize>>::Error: fmt::Debug,
+        std::ops::Range<T>: Iterator,
+        VecDeque<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
+    {
         let n = T::try_from(lehmer.len()).expect("Unable to convert the `lehmer` length to `u8`.");
         let mut remaining = (T::zero()..n).collect::<VecDeque<T>>();
         let image = lehmer
@@ -188,7 +192,12 @@ where
     ///
     /// Returns the corresponding permutation, or `None` if `index` is not valid for a permutation
     /// of rank `rank`.
-    pub fn from_lehmer_index(index: usize, rank: T) -> Option<Self> {
+    pub fn from_lehmer_index(index: usize, rank: T) -> Option<Self>
+    where
+        <T as TryFrom<usize>>::Error: fmt::Debug,
+        std::ops::Range<T>: Iterator,
+        VecDeque<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
+    {
         let mut quotient = index;
         let mut lehmer: VecDeque<T> = VecDeque::new();
         let mut i = 1usize;
@@ -229,7 +238,12 @@ where
     }
 
     /// Obtains the cycle representation of the permutation.
-    pub fn cycles(&self) -> Vec<Vec<T>> {
+    pub fn cycles(&self) -> Vec<Vec<T>>
+    where
+        std::ops::Range<T>: Iterator + DoubleEndedIterator,
+        Vec<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
+        IndexSet<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
+    {
         let image = &self.image;
         let rank = self.rank();
         let mut remaining_indices = (T::zero()..rank).rev().collect::<IndexSet<T>>();
@@ -255,7 +269,13 @@ where
     }
 
     /// Returns the pattern of the cycle representation of the permutation.
-    pub fn cycle_pattern(&self) -> Vec<T> {
+    pub fn cycle_pattern(&self) -> Vec<T>
+    where
+        <T as TryFrom<usize>>::Error: fmt::Debug,
+        std::ops::Range<T>: Iterator + DoubleEndedIterator,
+        Vec<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
+        IndexSet<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
+    {
         self.cycles()
             .iter()
             .map(|cycle| {
@@ -265,7 +285,10 @@ where
     }
 
     /// Returns `true` if this permutation is the identity permutation for this rank.
-    pub fn is_identity(&self) -> bool {
+    pub fn is_identity(&self) -> bool
+    where
+        <T as TryFrom<usize>>::Error: fmt::Debug,
+    {
         self.lehmer_index(None) == 0
     }
 
@@ -280,7 +303,10 @@ where
     ///
     /// The Lehmer encoding of this permutation. See
     /// [here](https://en.wikipedia.org/wiki/Lehmer_code) for additional information.
-    pub fn lehmer(&self, count_ones_opt: Option<&HashMap<BitVec<T, Lsb0>, T>>) -> Vec<T> {
+    pub fn lehmer(&self, count_ones_opt: Option<&HashMap<BitVec<T, Lsb0>, T>>) -> Vec<T>
+    where
+        <T as TryFrom<usize>>::Error: fmt::Debug,
+    {
         let mut bv: BitVec<T, Lsb0> = bitvec![T, Lsb0; 0; self.rank().into()];
         let n = self.rank();
         self.image
@@ -323,7 +349,10 @@ where
     /// # Returns
     ///
     /// Returns the integer corresponding to the Lehmer encoding of this permutation.
-    pub fn lehmer_index(&self, count_ones_opt: Option<&HashMap<BitVec<T, Lsb0>, T>>) -> usize {
+    pub fn lehmer_index(&self, count_ones_opt: Option<&HashMap<BitVec<T, Lsb0>, T>>) -> usize
+    where
+        <T as TryFrom<usize>>::Error: fmt::Debug,
+    {
         let lehmer = self.lehmer(count_ones_opt);
         let n = self.rank().into() - 1;
         if n == 0 {
@@ -350,8 +379,7 @@ where
 // -------
 // Display
 // -------
-impl<T: PermutationRank + fmt::Display> fmt::Display for Permutation<T>
-{
+impl<T: PermutationRank + fmt::Display> fmt::Display for Permutation<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
