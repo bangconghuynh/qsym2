@@ -329,6 +329,11 @@ fn test_mr_magnetic_group(
     let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
     assert_eq!(group.group_type(), mag_group_type);
     verify_abstract_group(&group, name, order, class_number, abelian);
+
+    // IntoPermutation
+    group.elements().into_iter().for_each(|op| {
+        assert!(op.act_permute(mol).is_some());
+    });
 }
 
 fn test_ur_ordinary_group_from_infinite(
