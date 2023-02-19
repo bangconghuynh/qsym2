@@ -1200,9 +1200,11 @@ impl<M> IntoPermutation<M> for SymmetryOperation
 where
     M: Transform + PermutableCollection<Rank = usize>,
 {
-    fn act_permute(&self, rhs: &M) -> Permutation<usize> {
+    fn act_permute(&self, rhs: &M) -> Option<Permutation<usize>> {
+        // println!("Checking {self}...");
         let angle = self.total_proper_angle;
-        let axis = self.calc_pole().coords;
+        let axis = self.generating_element.axis;
+        // println!("angle, axis: {angle}, {axis}");
         let mut t_mol = if self.is_proper() {
             rhs.rotate(angle, &axis)
         } else {
@@ -1220,6 +1222,6 @@ where
         if self.is_antiunitary() {
             t_mol.reverse_time_mut();
         }
-        rhs.perm(&t_mol).expect("No atom permutation could be found for this symmetry action.")
+        rhs.perm(&t_mol)
     }
 }

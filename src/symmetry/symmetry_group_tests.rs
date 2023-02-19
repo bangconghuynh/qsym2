@@ -13,6 +13,7 @@ use crate::group::{
     EagerGroup, GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup,
     BWGRP, GRGRP, ORGRP,
 };
+use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, ROT};
@@ -276,6 +277,11 @@ fn test_ur_ordinary_group(
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     assert_eq!(group.group_type(), ORGRP);
     verify_abstract_group(&group, name, order, class_number, abelian);
+
+    // IntoPermutation
+    group.elements().into_iter().for_each(|op| {
+        assert!(op.act_permute(mol).is_some());
+    });
 }
 
 fn test_ur_magnetic_group(
@@ -297,6 +303,11 @@ fn test_ur_magnetic_group(
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
     assert_eq!(group.group_type(), mag_group_type);
     verify_abstract_group(&group, name, order, class_number, abelian);
+
+    // IntoPermutation
+    group.elements().into_iter().for_each(|op| {
+        assert!(op.act_permute(mol).is_some());
+    });
 }
 
 fn test_mr_magnetic_group(

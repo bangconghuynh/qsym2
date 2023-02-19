@@ -39,8 +39,9 @@ where
 /// permutation acting on that collection.
 pub trait IntoPermutation<C: PermutableCollection> {
     /// Determines the permutation of `rhs` considered as a collection induced by the action of
-    /// `self` on `rhs` considered as an element in its domain.
-    fn act_permute(&self, rhs: &C) -> Permutation<C::Rank>;
+    /// `self` on `rhs` considered as an element in its domain. If no such permutation could be
+    /// found, `None` is returned.
+    fn act_permute(&self, rhs: &C) -> Option<Permutation<C::Rank>>;
 }
 
 /// A trait for generic permutation rank types.

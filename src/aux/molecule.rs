@@ -700,16 +700,36 @@ impl PermutableCollection for Molecule {
     /// Returns a permutation that permutes the *ordinary* atoms of `self` to give `other`, or
     /// `None` if no such permutation exists.
     fn perm(&self, other: &Self) -> Option<Permutation<Self::Rank>> {
-        let o_atoms: HashMap<Atom, usize> = other
+        let self_recentred = self.recentre();
+        let other_recentred = other.recentre();
+        let o_atoms: HashMap<Atom, usize> = other_recentred
             .atoms
-            .iter()
+            .into_iter()
             .enumerate()
-            .map(|(i, atom)| (atom.clone(), i))
+            .map(|(i, atom)| (atom, i))
             .collect();
-        let image_opt: Option<Vec<Self::Rank>> = self
+        let image_opt: Option<Vec<Self::Rank>> = self_recentred
             .atoms
             .iter()
-            .map(|s_atom| o_atoms.get(s_atom).copied())
+            .map(|s_atom| {
+                o_atoms
+                    .get(s_atom)
+                    .or_else(|| {
+                        log::debug!("Unable to retrieve matching original atom by hash. Falling back on distance comparisons...");
+                        let thresh = s_atom.threshold;
+                        o_atoms.iter().find_map(|(o_atom, o_atom_idx)| {
+                            if s_atom.atomic_number == o_atom.atomic_number
+                                && s_atom.kind == o_atom.kind
+                                && (s_atom.coordinates - o_atom.coordinates).norm() < thresh
+                            {
+                                Some(o_atom_idx)
+                            } else {
+                                None
+                            }
+                        })
+                    })
+                    .copied()
+            })
             .collect();
         image_opt.map(|image| Permutation::from_image(image))
     }
