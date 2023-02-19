@@ -8,9 +8,10 @@ use fraction;
 use nalgebra::{Point3, Vector3};
 use num_traits::{Inv, Pow};
 
-use crate::aux::geometry;
+use crate::aux::geometry::{self, Transform};
 use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
+use crate::permutation::{Permutation, PermutableCollection, IntoPermutation};
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, INV};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
@@ -20,6 +21,10 @@ type Quaternion = (f64, Vector3<f64>);
 #[cfg(test)]
 #[path = "symmetry_operation_tests.rs"]
 mod symmetry_operation_tests;
+
+// =================
+// Trait definitions
+// =================
 
 /// A trait for special symmetry transformations.
 pub trait SpecialSymmetryTransformation {
@@ -93,6 +98,10 @@ pub trait SpecialSymmetryTransformation {
     /// A flag indicating if this symmetry operation is a reflection accompanied by a time reversal.
     fn is_tr_reflection(&self) -> bool;
 }
+
+// ======================================
+// Struct definitions and implementations
+// ======================================
 
 /// A struct for managing symmetry operations generated from symmetry elements.
 ///
@@ -462,6 +471,10 @@ impl SymmetryOperation {
         }
     }
 }
+
+// =====================
+// Trait implementations
+// =====================
 
 impl FiniteOrder for SymmetryOperation {
     type Int = u32;
@@ -1180,5 +1193,33 @@ impl Inv for SymmetryOperation {
 
     fn inv(self) -> Self::Output {
         (&self).inv()
+    }
+}
+
+impl<M> IntoPermutation<M> for SymmetryOperation
+where
+    M: Transform + PermutableCollection<Rank = usize>,
+{
+    fn act_permute(&self, rhs: &M) -> Permutation<usize> {
+        let angle = self.total_proper_angle;
+        let axis = self.calc_pole().coords;
+        let mut t_mol = if self.is_proper() {
+            rhs.rotate(angle, &axis)
+        } else {
+            rhs.improper_rotate(
+                angle,
+                &axis,
+                &self.generating_element.kind
+                    .try_into()
+                    .unwrap_or_else(|err| {
+                        log::error!("Error detected: {err}.");
+                        panic!("Error detected: {err}.")
+                    })
+            )
+        };
+        if self.is_antiunitary() {
+            t_mol.reverse_time_mut();
+        }
+        rhs.perm(&t_mol).expect("No atom permutation could be found for this symmetry action.")
     }
 }

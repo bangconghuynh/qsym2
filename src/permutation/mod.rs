@@ -25,17 +25,22 @@ mod permutation_tests;
 
 /// A trait defining a permutable collection consisting of discrete and distinguishable items that
 /// can be permuted.
-pub trait PermutableCollection<T: PermutationRank> {
+pub trait PermutableCollection
+where
+    Self::Rank: PermutationRank,
+{
+    type Rank;
+
     /// Determines the permutation, if any, that maps `self` to `other`.
-    fn perm(&self, other: &Self) -> Option<Permutation<T>>;
+    fn perm(&self, other: &Self) -> Option<Permutation<Self::Rank>>;
 }
 
 /// A trait defining an action on a permutable collection that can be converted into an equivalent
 /// permutation acting on that collection.
-pub trait IntoPermutation<T: PermutationRank, C: PermutableCollection<T>> {
+pub trait IntoPermutation<C: PermutableCollection> {
     /// Determines the permutation of `rhs` considered as a collection induced by the action of
     /// `self` on `rhs` considered as an element in its domain.
-    fn act_permute(&self, rhs: &C) -> Permutation<T>;
+    fn act_permute(&self, rhs: &C) -> Permutation<C::Rank>;
 }
 
 /// A trait for generic permutation rank types.

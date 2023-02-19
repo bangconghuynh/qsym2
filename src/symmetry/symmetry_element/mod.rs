@@ -25,7 +25,7 @@ pub mod symmetry_action;
 mod symmetry_element_tests;
 
 /// An enum to classify the types of symmetry element.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SymmetryElementKind {
     /// Proper symmetry element which consists of just a proper rotation axis.
     ///

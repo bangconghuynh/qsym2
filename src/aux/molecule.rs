@@ -685,17 +685,28 @@ impl PartialEq for Molecule {
     }
 }
 
-impl PermutableCollection<usize> for Molecule {
+impl PermutableCollection for Molecule {
+    type Rank = usize;
+
     /// Determines the permutation of *ordinary* atoms to map `self` to `other`. Special fictitious
     /// atoms are not included.
-    fn perm(&self, other: &Self) -> Option<Permutation<usize>> {
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another molecule to be compared with `self`.
+    ///
+    /// # Returns
+    ///
+    /// Returns a permutation that permutes the *ordinary* atoms of `self` to give `other`, or
+    /// `None` if no such permutation exists.
+    fn perm(&self, other: &Self) -> Option<Permutation<Self::Rank>> {
         let o_atoms: HashMap<Atom, usize> = other
             .atoms
             .iter()
             .enumerate()
             .map(|(i, atom)| (atom.clone(), i))
             .collect();
-        let image_opt: Option<Vec<usize>> = self
+        let image_opt: Option<Vec<Self::Rank>> = self
             .atoms
             .iter()
             .map(|s_atom| o_atoms.get(s_atom).copied())
