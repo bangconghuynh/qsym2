@@ -8,7 +8,7 @@ use num_traits::ToPrimitive;
 
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
 use crate::aux::geometry::{self, ImproperRotationKind, Transform};
-use crate::permutation::{PermutableCollection, Permutation};
+use crate::permutation::{PermutableCollection, Permutation, permute_inplace};
 
 #[cfg(test)]
 #[path = "sea_tests.rs"]
@@ -699,7 +699,7 @@ impl PermutableCollection for Molecule {
     ///
     /// Returns a permutation that permutes the *ordinary* atoms of `self` to give `other`, or
     /// `None` if no such permutation exists.
-    fn perm(&self, other: &Self) -> Option<Permutation<Self::Rank>> {
+    fn get_perm_of(&self, other: &Self) -> Option<Permutation<Self::Rank>> {
         let self_recentred = self.recentre();
         let other_recentred = other.recentre();
         let o_atoms: HashMap<Atom, usize> = other_recentred
@@ -732,5 +732,41 @@ impl PermutableCollection for Molecule {
             })
             .collect();
         image_opt.map(|image| Permutation::from_image(image))
+    }
+
+    /// Permutes the ordinary atoms in this molecule and places them in a new molecule to be
+    /// returned.
+    ///
+    /// # Arguments
+    ///
+    /// * `perm` - A permutation for the atoms.
+    ///
+    /// # Returns
+    ///
+    /// A new molecule with the permuted ordinary atoms.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the rank of `perm` does not match the number of atoms in this molecule.
+    fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
+        let mut p_mol = self.clone();
+        p_mol.permute_mut(perm);
+        p_mol
+    }
+
+    /// Permutes in-place the ordinary atoms in this molecule.
+    ///
+    /// The in-place rearrangement implementation is taken from
+    /// [here](https://stackoverflow.com/a/69774341/5112668).
+    ///
+    /// # Arguments
+    ///
+    /// * `perm` - A permutation for the atoms.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the rank of `perm` does not match the number of atoms in this molecule.
+    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
+        permute_inplace(&mut self.atoms, perm);
     }
 }

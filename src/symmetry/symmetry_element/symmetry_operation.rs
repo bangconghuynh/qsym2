@@ -1201,10 +1201,8 @@ where
     M: Transform + PermutableCollection<Rank = usize>,
 {
     fn act_permute(&self, rhs: &M) -> Option<Permutation<usize>> {
-        // println!("Checking {self}...");
         let angle = self.total_proper_angle;
         let axis = self.generating_element.axis;
-        // println!("angle, axis: {angle}, {axis}");
         let mut t_mol = if self.is_proper() {
             rhs.rotate(angle, &axis)
         } else {
@@ -1222,6 +1220,6 @@ where
         if self.is_antiunitary() {
             t_mol.reverse_time_mut();
         }
-        rhs.perm(&t_mol)
+        rhs.get_perm_of(&t_mol)
     }
 }

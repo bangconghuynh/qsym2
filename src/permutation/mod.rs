@@ -32,7 +32,14 @@ where
     type Rank;
 
     /// Determines the permutation, if any, that maps `self` to `other`.
-    fn perm(&self, other: &Self) -> Option<Permutation<Self::Rank>>;
+    fn get_perm_of(&self, other: &Self) -> Option<Permutation<Self::Rank>>;
+
+    /// Permutes the items in the current collection by `perm` and returns a new collection with
+    /// the permuted items.
+    fn permute(&self, perm: &Permutation<Self::Rank>) -> Self;
+
+    /// Permutes in-place the items in the current collection by `perm`.
+    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>);
 }
 
 /// A trait defining an action on a permutable collection that can be converted into an equivalent
@@ -583,5 +590,31 @@ where
                 }),
         )
         .expect("Unable to convert the permutation order to `u32`.")
+    }
+}
+
+// =========
+// Functions
+// =========
+pub(crate) fn permute_inplace<T>(vec: &mut Vec<T>, perm: &Permutation<usize>) {
+    assert_eq!(
+        perm.rank(),
+        vec.len(),
+        "The permutation rank does not match the number of items in the vector."
+    );
+    let mut image = perm.image().clone();
+    for idx in 0..vec.len() {
+        if image[idx] != idx {
+            let mut current_idx = idx;
+            loop {
+                let target_idx = image[current_idx];
+                image[current_idx] = current_idx;
+                if image[target_idx] == target_idx {
+                    break;
+                }
+                vec.swap(current_idx, target_idx);
+                current_idx = target_idx;
+            }
+        }
     }
 }

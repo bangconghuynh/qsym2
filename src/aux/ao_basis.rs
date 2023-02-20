@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::fmt;
 use std::slice::Iter;
@@ -10,6 +10,7 @@ use itertools::Itertools;
 
 use crate::aux::atom::Atom;
 use crate::aux::misc::ProductRepeat;
+use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
 
 #[cfg(test)]
 #[path = "ao_basis_tests.rs"]
@@ -130,7 +131,7 @@ impl CartOrder {
     pub fn verify(&self) -> bool {
         let cart_tuples_set = self.cart_tuples.iter().collect::<HashSet<_>>();
         let lcart = self.lcart;
-        cart_tuples_set.len() == ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize
+        cart_tuples_set.len() == self.ncomps()
             && cart_tuples_set
                 .iter()
                 .all(|(lx, ly, lz)| lx + ly + lz == lcart)
@@ -138,6 +139,16 @@ impl CartOrder {
 
     pub fn iter(&self) -> Iter<(u32, u32, u32)> {
         self.cart_tuples.iter()
+    }
+
+    pub fn ncomps(&self) -> usize {
+        let lcart = usize::try_from(self.lcart).unwrap_or_else(|_| {
+            panic!(
+                "Unable to convert the Cartesian degree {} to `usize`.",
+                self.lcart
+            )
+        });
+        ((lcart + 1) * (lcart + 2)).div_euclid(2)
     }
 }
 
@@ -160,6 +171,39 @@ impl fmt::Debug for CartOrder {
             writeln!(f, "  {cart_tuple:?}")?;
         }
         Ok(())
+    }
+}
+
+impl PermutableCollection for CartOrder {
+    type Rank = usize;
+
+    fn get_perm_of(&self, other: &Self) -> Option<Permutation<Self::Rank>> {
+        let o_cart_tuples: HashMap<&(u32, u32, u32), usize> = other
+            .cart_tuples
+            .iter()
+            .enumerate()
+            .map(|(i, o_cart_tuple)| (o_cart_tuple, i))
+            .collect();
+        let image_opt: Option<Vec<Self::Rank>> = self
+            .cart_tuples
+            .iter()
+            .map(|s_cart_tuple| {
+                o_cart_tuples
+                    .get(s_cart_tuple)
+                    .copied()
+            })
+            .collect();
+        image_opt.map(|image| Permutation::from_image(image))
+    }
+
+    fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
+        let mut p_cartorder = self.clone();
+        p_cartorder.permute_mut(perm);
+        p_cartorder
+    }
+
+    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
+        permute_inplace(&mut self.cart_tuples, perm);
     }
 }
 
@@ -216,11 +260,11 @@ pub enum ShellOrder {
 pub struct BasisShell {
     /// A non-negative integer indicating the rank of the shell.
     #[builder(setter(custom))]
-    l: u32,
+    pub l: u32,
 
     /// An enum indicating the type of the angular functions in a shell and how they are ordered.
     #[builder(setter(custom))]
-    shell_order: ShellOrder,
+    pub shell_order: ShellOrder,
 }
 
 impl BasisShellBuilder {
@@ -407,9 +451,74 @@ impl<'a> BasisAngularOrder<'a> {
             .collect::<Vec<_>>()
     }
 
-    fn basis_shells(&self) -> impl Iterator<Item = &BasisShell> + '_ {
+    pub fn basis_shells(&self) -> impl Iterator<Item = &BasisShell> + '_ {
         self.basis_atoms
             .iter()
             .flat_map(|basis_atom| basis_atom.basis_shells.iter())
+    }
+}
+
+impl<'a> PermutableCollection for BasisAngularOrder<'a> {
+    type Rank = usize;
+
+    /// Determines the permutation of `BasisAtom`s to map `self` to `other`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another `BasisAngularOrder` to be compared with `self`.
+    ///
+    /// # Returns
+    ///
+    /// Returns a permutation that permutes the *ordinary* atoms of `self` to give `other`, or
+    /// `None` if no such permutation exists.
+    fn get_perm_of(&self, other: &Self) -> Option<Permutation<Self::Rank>> {
+        let o_basis_atoms: HashMap<&BasisAtom, usize> = other
+            .basis_atoms
+            .iter()
+            .enumerate()
+            .map(|(i, basis_atom)| (basis_atom, i))
+            .collect();
+        let image_opt: Option<Vec<Self::Rank>> = self
+            .basis_atoms
+            .iter()
+            .map(|s_basis_atom| o_basis_atoms.get(s_basis_atom).copied())
+            .collect();
+        image_opt.map(|image| Permutation::from_image(image))
+    }
+
+    /// Permutes the ordinary atoms in this molecule and places them in a new molecule to be
+    /// returned.
+    ///
+    /// # Arguments
+    ///
+    /// * `perm` - A permutation for the atoms.
+    ///
+    /// # Returns
+    ///
+    /// A new molecule with the permuted ordinary atoms.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the rank of `perm` does not match the number of atoms in this molecule.
+    fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
+        let mut p_bao = self.clone();
+        p_bao.permute_mut(perm);
+        p_bao
+    }
+
+    /// Permutes in-place the ordinary atoms in this molecule.
+    ///
+    /// The in-place rearrangement implementation is taken from
+    /// [here](https://stackoverflow.com/a/69774341/5112668).
+    ///
+    /// # Arguments
+    ///
+    /// * `perm` - A permutation for the atoms.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the rank of `perm` does not match the number of atoms in this molecule.
+    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
+        permute_inplace(&mut self.basis_atoms, perm);
     }
 }
