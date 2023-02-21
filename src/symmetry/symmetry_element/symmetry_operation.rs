@@ -6,12 +6,13 @@ use approx;
 use derive_builder::Builder;
 use fraction;
 use nalgebra::{Point3, Vector3};
+use ndarray::{Axis, Array2, ShapeBuilder};
 use num_traits::{Inv, Pow};
 
-use crate::aux::geometry::{self, Transform};
+use crate::aux::geometry::{self, improper_rotation_matrix, proper_rotation_matrix, Transform};
 use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
-use crate::permutation::{Permutation, PermutableCollection, IntoPermutation};
+use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind, INV};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
@@ -468,6 +469,68 @@ impl SymmetryOperation {
                 self.generating_element.get_detailed_symbol(),
                 self.power
             )
+        }
+    }
+
+    /// Returns the representation matrix for the spatial part of this symmetry operation.
+    ///
+    /// This representation matrix is in the basis of coordinate *functions* $`(y, z, x)`$.
+    #[must_use]
+    pub fn get_3d_matrix(&self) -> Array2<f64> {
+        if self.is_proper() {
+            if self.is_identity() || self.is_time_reversal() {
+                Array2::<f64>::eye(3)
+            } else {
+                let angle = self.total_proper_angle;
+                let axis = &self.generating_element.axis;
+                let mat = proper_rotation_matrix(angle, axis, 1);
+
+                // nalgebra matrix iter is column-major.
+                Array2::<f64>::from_shape_vec(
+                    (3, 3).f(),
+                    mat.iter().copied().collect::<Vec<_>>(),
+                )
+                .unwrap_or_else(
+                    |_| panic!(
+                        "Unable to construct a three-dimensional rotation matrix for angle {angle} and axis {axis}."
+                    )
+                )
+                .select(Axis(0), &[1, 2, 0])
+                .select(Axis(1), &[1, 2, 0])
+            }
+        } else {
+            if self.is_inversion() || self.is_tr_inversion() {
+                -Array2::<f64>::eye(3)
+            } else {
+                let angle = self.total_proper_angle;
+                let axis = &self.generating_element.axis;
+                let mat = improper_rotation_matrix(
+                    angle,
+                    axis,
+                    1,
+                    &self
+                        .generating_element
+                        .kind
+                        .try_into()
+                        .unwrap_or_else(|err| {
+                            log::error!("{err}");
+                            panic!("Unable to obtain the improper rotation kind.");
+                        }),
+                );
+
+                // nalgebra matrix iter is column-major.
+                Array2::<f64>::from_shape_vec(
+                    (3, 3).f(),
+                    mat.iter().copied().collect::<Vec<_>>(),
+                )
+                .unwrap_or_else(
+                    |_| panic!(
+                        "Unable to construct a three-dimensional improper rotation matrix for angle {angle} and axis {axis}."
+                    )
+                )
+                .select(Axis(0), &[1, 2, 0])
+                .select(Axis(1), &[1, 2, 0])
+            }
         }
     }
 }
@@ -1209,12 +1272,14 @@ where
             rhs.improper_rotate(
                 angle,
                 &axis,
-                &self.generating_element.kind
+                &self
+                    .generating_element
+                    .kind
                     .try_into()
                     .unwrap_or_else(|err| {
                         log::error!("Error detected: {err}.");
                         panic!("Error detected: {err}.")
-                    })
+                    }),
             )
         };
         if self.is_antiunitary() {

@@ -11,6 +11,65 @@ use num_traits::ToPrimitive;
 #[path = "spinor_rotation_3d_tests.rs"]
 mod spinor_rotation_3d_tests;
 
+// ================
+// Enum definitions
+// ================
+
+/// An enum to manage spin constraints and spin space information.
+#[derive(Clone, PartialEq, Eq)]
+pub enum SpinConstraint {
+    /// Variant for restricted spin constraint: the spatial parts of all spin spaces are identical.
+    /// The associated value is the number of spin spaces.
+    Restricted(u16),
+
+    /// Variant for unrestricted spin constraint: the spatial parts of different spin spaces are
+    /// different, but spin collinearity is maintained. The associated value is the number of spin
+    /// spaces, and also the number of different spatial parts that are handled separately.
+    Unrestricted(u16),
+
+    /// Variant for generalised spin constraint: the spatial parts of different spin spaces are
+    /// different, and no spin collinearity is imposed. The associated value is the number of spin
+    /// spaces.
+    Generalised(u16),
+}
+
+impl SpinConstraint {
+    /// Returns the total number of units of consideration.
+    ///
+    /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
+    pub fn nunits(&self) -> u16 {
+        match self {
+            Self::Restricted(nspins) => *nspins,
+            Self::Unrestricted(nspins) => *nspins,
+            Self::Generalised(_) => 1,
+        }
+    }
+
+    /// Returns the number of spin spaces per 'unit' of consideration.
+    ///
+    /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
+    pub fn nspins_per_unit(&self) -> u16 {
+        match self {
+            Self::Restricted(_) => 1,
+            Self::Unrestricted(_) => 1,
+            Self::Generalised(nspins) => *nspins,
+        }
+    }
+
+    /// Returns the total number of spin spaces.
+    pub fn nspins(&self) -> u16 {
+        match self {
+            Self::Restricted(nspins) => *nspins,
+            Self::Unrestricted(nspins) => *nspins,
+            Self::Generalised(nspins) => *nspins,
+        }
+    }
+}
+
+// =========
+// Functions
+// =========
+
 /// Returns an element in the Wigner rotation matrix for $`j = 1/2`$ defined by
 ///
 /// ```math

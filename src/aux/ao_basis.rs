@@ -486,38 +486,12 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
         image_opt.map(|image| Permutation::from_image(image))
     }
 
-    /// Permutes the ordinary atoms in this molecule and places them in a new molecule to be
-    /// returned.
-    ///
-    /// # Arguments
-    ///
-    /// * `perm` - A permutation for the atoms.
-    ///
-    /// # Returns
-    ///
-    /// A new molecule with the permuted ordinary atoms.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the rank of `perm` does not match the number of atoms in this molecule.
     fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
         let mut p_bao = self.clone();
         p_bao.permute_mut(perm);
         p_bao
     }
 
-    /// Permutes in-place the ordinary atoms in this molecule.
-    ///
-    /// The in-place rearrangement implementation is taken from
-    /// [here](https://stackoverflow.com/a/69774341/5112668).
-    ///
-    /// # Arguments
-    ///
-    /// * `perm` - A permutation for the atoms.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the rank of `perm` does not match the number of atoms in this molecule.
     fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
         permute_inplace(&mut self.basis_atoms, perm);
     }

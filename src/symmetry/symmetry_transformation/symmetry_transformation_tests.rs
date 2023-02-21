@@ -3,10 +3,10 @@ use ndarray::{array, Axis};
 use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, ShellOrder};
 use crate::aux::atom::{Atom, ElementMap};
 use crate::permutation::Permutation;
-use crate::transformation::permute_array_by_atoms;
+use crate::symmetry::symmetry_transformation::permute_array_by_atoms;
 
 #[test]
-fn test_transformation_permute_array_by_atoms() {
+fn test_symmetry_transformation_permute_array_by_atoms() {
     let emap = ElementMap::new();
     let atm_c0 = Atom::from_xyz("C 1.0 0.0 0.0", &emap, 1e-7).unwrap();
     let atm_c1 = Atom::from_xyz("C 0.0 1.0 0.0", &emap, 1e-7).unwrap();

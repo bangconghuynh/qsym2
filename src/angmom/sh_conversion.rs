@@ -1081,7 +1081,7 @@ fn sh_cart2rl_mat(
 /// A vector of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ matrices with
 /// $`l_{\mathrm{cart}} \ge l \ge 0`$ and $`l \equiv l_{\mathrm{cart}} \mod 2`$ in decreasing
 /// $`l`$ order.
-fn sh_r2cart(
+pub(crate) fn sh_r2cart(
     lcart: u32,
     cartorder: &CartOrder,
     csphase: bool,
@@ -1122,7 +1122,7 @@ fn sh_r2cart(
 /// A vector of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ matrices with
 /// $`l_{\mathrm{cart}} \ge l \ge 0`$ and $`l \equiv l_{\mathrm{cart}} \mod 2`$ in decreasing
 /// $`l`$ order.
-fn sh_cart2r(
+pub(crate) fn sh_cart2r(
     lcart: u32,
     cartorder: &CartOrder,
     csphase: bool,
