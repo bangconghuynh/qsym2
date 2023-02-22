@@ -1,6 +1,9 @@
+use std::error::Error;
+use std::fmt;
+
 use nalgebra::Vector3;
 use ndarray::{Array, Array2, Axis, RemoveAxis};
-use num::Complex;
+use num_complex::Complex;
 
 use crate::angmom::sh_conversion::{sh_cart2r, sh_r2cart};
 use crate::angmom::sh_rotation_3d::rlmat;
@@ -21,21 +24,21 @@ mod symmetry_transformation_tests;
 // Trait definitions
 // =================
 
-pub trait SymmetryTransformable: Clone {
-    // Required methods
+#[derive(Debug, Clone)]
+pub struct TransformationError(pub String);
 
-    /// Determines the permutation of sites (*e.g.* atoms in molecules) due to the action of a
-    /// symmetry operation.
-    ///
-    /// # Arguments
-    ///
-    /// * `symop` - A symmetry operation.
-    ///
-    /// # Returns
-    ///
-    /// The resultant site permutation under the action of `symop`, or `None` if no such
-    /// permutation can be found.
-    fn permute_sites(&self, symop: &SymmetryOperation) -> Option<Permutation<usize>>;
+impl fmt::Display for TransformationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Transformation error: {}.", self.0)
+    }
+}
+
+impl Error for TransformationError {}
+
+pub trait SpatialUnitaryTransformable: Clone {
+    // ----------------
+    // Required methods
+    // ----------------
 
     /// Performs a spatial transformation in-place.
     ///
@@ -45,20 +48,16 @@ pub trait SymmetryTransformable: Clone {
     /// of coordinate *functions* $`(y, z, x)`$.
     /// * `perm` - An optional permutation describing how any off-origin sites are permuted amongst
     /// each other under the transformation.
-    fn transform_spatial_mut(&mut self, rmat: &Array2<f64>, perm: Option<&Permutation<usize>>);
+    fn transform_spatial_mut(
+        &mut self,
+        rmat: &Array2<f64>,
+        perm: Option<&Permutation<usize>>,
+    ) -> &mut Self;
 
-    /// Performs a spin transformation in-place.
-    ///
-    /// # Arguments
-    ///
-    /// * `dmat` - The two-dimensional representation matrix of the transformation in the basis of
-    /// the $`\{ \alpha, \beta \}`$ spinors (*i.e.* decreasing $`m`$ order).
-    fn transform_spin_mut(&mut self, dmat: &Array2<Complex<f64>>);
-
-    /// Performs a complex conjugation in-place.
-    fn transform_cc_mut(&mut self);
-
+    // ----------------
     // Provided methods
+    // ----------------
+
     /// Performs a spatial transformation and returns the transformed result.
     ///
     /// # Arguments
@@ -74,6 +73,19 @@ pub trait SymmetryTransformable: Clone {
         tself.transform_spatial_mut(rmat, perm);
         tself
     }
+}
+
+pub trait SpinUnitaryTransformable: Clone {
+    /// Performs a spin transformation in-place.
+    ///
+    /// # Arguments
+    ///
+    /// * `dmat` - The two-dimensional representation matrix of the transformation in the basis of
+    /// the $`\{ \alpha, \beta \}`$ spinors (*i.e.* decreasing $`m`$ order).
+    fn transform_spin_mut(
+        &mut self,
+        dmat: &Array2<Complex<f64>>,
+    ) -> Result<&mut Self, TransformationError>;
 
     /// Performs a spin transformation and returns the transformed result.
     ///
@@ -85,11 +97,16 @@ pub trait SymmetryTransformable: Clone {
     /// # Returns
     ///
     /// The transformed result.
-    fn transform_spin(&self, dmat: &Array2<Complex<f64>>) -> Self {
+    fn transform_spin(&self, dmat: &Array2<Complex<f64>>) -> Result<Self, TransformationError> {
         let mut tself = self.clone();
-        tself.transform_spin_mut(dmat);
-        tself
+        tself.transform_spin_mut(dmat)?;
+        Ok(tself)
     }
+}
+
+pub trait ComplexConjugationTransformable: Clone {
+    /// Performs a complex conjugation in-place.
+    fn transform_cc_mut(&mut self) -> &mut Self;
 
     /// Performs a complex conjugation and returns the complex-conjugated result.
     ///
@@ -101,15 +118,19 @@ pub trait SymmetryTransformable: Clone {
         tself.transform_cc_mut();
         tself
     }
+}
 
+pub trait TimeReversalTransformable:
+    SpinUnitaryTransformable + ComplexConjugationTransformable
+{
     /// Performs a time-reversal transformation in-place.
     ///
     /// The time-reversal transformation is a spin rotation by $`\pi`$ followed by a complex
     /// conjugation.
-    fn transform_timerev_mut(&mut self) {
+    fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
         let dmat_y = dmat_angleaxis(std::f64::consts::PI, Vector3::y(), false);
-        self.transform_spin_mut(&dmat_y);
-        self.transform_cc_mut();
+        self.transform_spin_mut(&dmat_y)?.transform_cc_mut();
+        Ok(self)
     }
 
     /// Performs a time-reversal transformation and returns the time-reversed result.
@@ -120,42 +141,61 @@ pub trait SymmetryTransformable: Clone {
     /// # Returns
     ///
     /// The time-reversed result.
-    fn transform_timerev(&self) -> Self {
+    fn transform_timerev(&self) -> Result<Self, TransformationError> {
         let mut tself = self.clone();
-        tself.transform_timerev_mut();
-        tself
-    }
-
-    /// Performs a transformation according to a specified symmetry operation in-place.
-    ///
-    /// # Arguments
-    ///
-    /// * `op` - A symmetry operation.
-    fn transform_mut(&mut self, symop: &SymmetryOperation) {
-        let rmat = symop.get_3d_matrix();
-        let perm = self.permute_sites(symop);
-        self.transform_spatial_mut(&rmat, perm.as_ref());
-        if symop.is_antiunitary() {
-            self.transform_timerev_mut();
-        }
-    }
-
-    /// Performs a transformation according to a specified symmetry operation and returns the
-    /// transformed result.
-    ///
-    /// # Arguments
-    ///
-    /// * `symop` - A symmetry operation.
-    ///
-    /// # Returns
-    ///
-    /// The transformed result.
-    fn transform(&self, symop: &SymmetryOperation) -> Self {
-        let mut tself = self.clone();
-        tself.transform_mut(symop);
-        tself
+        tself.transform_timerev_mut()?;
+        Ok(tself)
     }
 }
+
+/// Blanket implementation
+impl<T> TimeReversalTransformable for T where
+    T: SpinUnitaryTransformable + ComplexConjugationTransformable
+{
+}
+
+///// Determines the permutation of sites (*e.g.* atoms in molecules) due to the action of a
+///// symmetry operation.
+/////
+///// # Arguments
+/////
+///// * `symop` - A symmetry operation.
+/////
+///// # Returns
+/////
+///// The resultant site permutation under the action of `symop`, or `None` if no such
+///// permutation can be found.
+//fn permute_sites(&self, symop: &SymmetryOperation) -> Option<Permutation<usize>>;
+
+///// Performs a transformation according to a specified symmetry operation in-place.
+/////
+///// # Arguments
+/////
+///// * `op` - A symmetry operation.
+//fn transform_mut(&mut self, symop: &SymmetryOperation) {
+//    let rmat = symop.get_3d_matrix();
+//    let perm = self.permute_sites(symop);
+//    self.transform_spatial_mut(&rmat, perm.as_ref());
+//    if symop.is_antiunitary() {
+//        self.transform_timerev_mut();
+//    }
+//}
+
+///// Performs a transformation according to a specified symmetry operation and returns the
+///// transformed result.
+/////
+///// # Arguments
+/////
+///// * `symop` - A symmetry operation.
+/////
+///// # Returns
+/////
+///// The transformed result.
+//fn transform(&self, symop: &SymmetryOperation) -> Self {
+//    let mut tself = self.clone();
+//    tself.transform_mut(symop);
+//    tself
+//}
 
 // =========
 // Functions
