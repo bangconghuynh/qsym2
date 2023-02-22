@@ -242,8 +242,7 @@ where
 // ------------------------
 // SpinUnitaryTransformable
 // ------------------------
-impl<'a> SpinUnitaryTransformable for Determinant<'a, f64>
-{
+impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
     /// Performs a spin transformation in-place.
     ///
     /// # Arguments
