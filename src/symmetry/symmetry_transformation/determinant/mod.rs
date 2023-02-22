@@ -5,7 +5,8 @@ use std::ops::Mul;
 use approx;
 use derive_builder::Builder;
 use ndarray::{array, concatenate, s, Array1, Array2, Axis, LinalgScalar, ScalarOperand};
-use num_complex::{Complex, ComplexFloat, Float};
+use num_complex::{Complex, ComplexFloat};
+use num_traits::float::{Float, FloatConst};
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::BasisAngularOrder;
@@ -169,7 +170,7 @@ where
 // ----
 impl<'a, T> From<Determinant<'a, T>> for Determinant<'a, Complex<T>>
 where
-    T: Float,
+    T: Float + FloatConst,
 {
     fn from(value: Determinant<'a, T>) -> Self {
         Determinant::<'a, Complex<T>>::new(
@@ -241,7 +242,8 @@ where
 // ------------------------
 // SpinUnitaryTransformable
 // ------------------------
-impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
+impl<'a> SpinUnitaryTransformable for Determinant<'a, f64>
+{
     /// Performs a spin transformation in-place.
     ///
     /// # Arguments
@@ -406,6 +408,7 @@ where
     Complex<T>: ComplexFloat<Real = T>
         + LinalgScalar
         + ScalarOperand
+        + Mul<Complex<T>, Output = Complex<T>>
         + Mul<Complex<f64>, Output = Complex<T>>,
 {
     /// Performs a spin transformation in-place.
