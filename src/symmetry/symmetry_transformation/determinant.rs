@@ -2,7 +2,7 @@ use std::ops::Mul;
 
 use approx;
 use derive_builder::Builder;
-use ndarray::{concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
+use ndarray::{array, concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
 use num_complex::Complex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
@@ -93,24 +93,35 @@ where
     }
 }
 
-impl<'a> Into<Determinant<'a, Complex<f64>>> for Determinant<'a, f64> {
-    fn into(self) -> Determinant<'a, Complex<f64>> {
+// =====================
+// Trait implementations
+// =====================
+
+// ----
+// From
+// ----
+impl<'a> From<Determinant<'a, f64>> for Determinant<'a, Complex<f64>> {
+    fn from(value: Determinant<'a, f64>) -> Self {
         Determinant::<'a, Complex<f64>>::new(
-            &self
+            &value
                 .coefficients
                 .into_iter()
                 .map(|coeffs| coeffs.map(|x| Complex::from(x)))
                 .collect::<Vec<_>>(),
-            self.bao,
-            self.mol,
-            self.spin_constraint,
+            value.bao,
+            value.mol,
+            value.spin_constraint,
         )
     }
 }
 
+// ---------------------------
+// SpatialUnitaryTransformable
+// ---------------------------
 impl<'a, T> SpatialUnitaryTransformable for Determinant<'a, T>
 where
-    T: LinalgScalar + ScalarOperand + From<f64>,
+    T: LinalgScalar + ScalarOperand,
+    f64: Into<T>
 {
     // fn permute_sites(&self, symop: &SymmetryOperation) -> Option<Permutation<usize>> {
     //     symop.act_permute(self.mol)
@@ -123,7 +134,7 @@ where
     ) -> &mut Self {
         let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(&self.bao, rmat, perm)
             .iter()
-            .map(|tmat| tmat.map(|&x| <T as From<f64>>::from(x)))
+            .map(|tmat| tmat.map(|&x| x.into()))
             .collect();
         let pbao = if let Some(p) = perm {
             self.bao.permute(p)
@@ -154,6 +165,9 @@ where
     }
 }
 
+// ------------------------
+// SpinUnitaryTransformable
+// ------------------------
 impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
     /// Performs a spin transformation in-place.
     ///
@@ -165,28 +179,125 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
         &mut self,
         dmat: &Array2<Complex<f64>>,
     ) -> Result<&mut Self, TransformationError> {
-        match self.spin_constraint {
-            SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_) => {
-                Err(TransformationError(
-                    "Spin transformations can only be performed with generalised spin constraint."
-                        .to_string(),
-                ))
-            }
-            SpinConstraint::Generalised(nspins) => {
-                let cdmat = dmat.view().split_complex();
-                if approx::relative_eq!(
-                    cdmat.im.fold(0.0, |acc, x| acc + x.powi(2)).sqrt(),
-                    0.0,
-                    epsilon = 1e-14,
-                    max_relative = 1e-14,
-                ) {
+        let cdmat = dmat.view().split_complex();
+        if approx::relative_ne!(
+            cdmat.im.map(|x| x.powi(2)).sum().sqrt(),
+            0.0,
+            epsilon = 1e-14,
+            max_relative = 1e-14,
+        ) {
+            log::error!("Spin transformation matrix is complex-valued:\n{dmat}");
+            Err(TransformationError(
+                "Complex spin transformations cannot be performed with real coefficients."
+                    .to_string(),
+            ))
+        } else {
+            let rdmat = cdmat.re.to_owned();
+            match self.spin_constraint {
+                SpinConstraint::Restricted(_) => {
+                    if approx::relative_eq!(
+                        (rdmat - Array2::<f64>::eye(2))
+                            .map(|x| x.powi(2))
+                            .sum()
+                            .sqrt(),
+                        0.0,
+                        epsilon = 1e-14,
+                        max_relative = 1e-14,
+                    ) {
+                        // Identity spin rotation
+                        Ok(self)
+                    } else if approx::relative_eq!(
+                        (rdmat + Array2::<f64>::eye(2))
+                            .map(|x| x.powi(2))
+                            .sum()
+                            .sqrt(),
+                        0.0,
+                        epsilon = 1e-14,
+                        max_relative = 1e-14,
+                    ) {
+                        // Negative identity spin rotation
+                        self.coefficients
+                            .iter_mut()
+                            .for_each(|coeff| *coeff *= -1.0);
+                        Ok(self)
+                    } else {
+                        log::error!("Unsupported spin transformation matrix:\n{rdmat}");
+                        Err(TransformationError(
+                            "Only the identity or negative identity spin transformations are possible with restricted spin constraint."
+                                .to_string(),
+                        ))
+                    }
+                }
+                SpinConstraint::Unrestricted(nspins) => {
                     if nspins != 2 {
-                        panic!("Only two-component spinor transformations are supported for now.");
+                        return Err(TransformationError(
+                            "Only two-component spinor transformations are supported for now."
+                                .to_string(),
+                        ));
+                    }
+                    let dmat_y = array![[0.0, -1.0], [1.0, 0.0],];
+                    if approx::relative_eq!(
+                        (rdmat - Array2::<f64>::eye(2))
+                            .map(|x| x.powi(2))
+                            .sum()
+                            .sqrt(),
+                        0.0,
+                        epsilon = 1e-14,
+                        max_relative = 1e-14,
+                    ) {
+                        // Identity spin rotation
+                        Ok(self)
+                    } else if approx::relative_eq!(
+                        (rdmat + Array2::<f64>::eye(2))
+                            .map(|x| x.powi(2))
+                            .sum()
+                            .sqrt(),
+                        0.0,
+                        epsilon = 1e-14,
+                        max_relative = 1e-14,
+                    ) {
+                        // Negative identity spin rotation
+                        self.coefficients
+                            .iter_mut()
+                            .for_each(|coeff| *coeff *= -1.0);
+                        Ok(self)
+                    } else if approx::relative_eq!(
+                        (rdmat - dmat_y).map(|x| x.powi(2)).sum().sqrt(),
+                        0.0,
+                        epsilon = 1e-14,
+                        max_relative = 1e-14,
+                    ) {
+                        // π-rotation about y-axis, effectively spin-flip
+                        let new_coefficients = vec![-self.coefficients[1], self.coefficients[0]];
+                        self.coefficients = new_coefficients;
+                        Ok(self)
+                    } else if approx::relative_eq!(
+                        (rdmat + dmat_y).map(|x| x.powi(2)).sum().sqrt(),
+                        0.0,
+                        epsilon = 1e-14,
+                        max_relative = 1e-14,
+                    ) {
+                        // 3π-rotation about y-axis, effectively negative spin-flip
+                        let new_coefficients = vec![self.coefficients[1], -self.coefficients[0]];
+                        self.coefficients = new_coefficients;
+                        Ok(self)
+                    } else {
+                        log::error!("Unsupported spin transformation matrix:\n{rdmat}");
+                        Err(TransformationError(
+                            "Only the identity or πy spin transformations are possible with unrestricted spin constraint."
+                                .to_string(),
+                        ))
+                    }
+                }
+                SpinConstraint::Generalised(nspins) => {
+                    if nspins != 2 {
+                        return Err(TransformationError(
+                            "Only two-component spinor transformations are supported for now."
+                                .to_string(),
+                        ));
                     }
 
                     let nspatial = self.bao.n_funcs();
-
-                    let rdmat = cdmat.re;
                     let new_coefficients = self
                         .coefficients
                         .iter()
@@ -202,11 +313,6 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
                         .collect::<Vec<Array2<f64>>>();
                     self.coefficients = new_coefficients;
                     Ok(self)
-                } else {
-                    Err(TransformationError(
-                        "Complex spin transformations can only be performed with complex coefficients."
-                            .to_string(),
-                    ))
                 }
             }
         }

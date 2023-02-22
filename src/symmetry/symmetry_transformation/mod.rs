@@ -39,7 +39,6 @@ pub trait SpatialUnitaryTransformable: Clone {
     // ----------------
     // Required methods
     // ----------------
-
     /// Performs a spatial transformation in-place.
     ///
     /// # Arguments
@@ -57,7 +56,6 @@ pub trait SpatialUnitaryTransformable: Clone {
     // ----------------
     // Provided methods
     // ----------------
-
     /// Performs a spatial transformation and returns the transformed result.
     ///
     /// # Arguments
@@ -76,6 +74,9 @@ pub trait SpatialUnitaryTransformable: Clone {
 }
 
 pub trait SpinUnitaryTransformable: Clone {
+    // ----------------
+    // Required methods
+    // ----------------
     /// Performs a spin transformation in-place.
     ///
     /// # Arguments
@@ -87,6 +88,9 @@ pub trait SpinUnitaryTransformable: Clone {
         dmat: &Array2<Complex<f64>>,
     ) -> Result<&mut Self, TransformationError>;
 
+    // ----------------
+    // Provided methods
+    // ----------------
     /// Performs a spin transformation and returns the transformed result.
     ///
     /// # Arguments
@@ -105,9 +109,15 @@ pub trait SpinUnitaryTransformable: Clone {
 }
 
 pub trait ComplexConjugationTransformable: Clone {
+    // ----------------
+    // Required methods
+    // ----------------
     /// Performs a complex conjugation in-place.
     fn transform_cc_mut(&mut self) -> &mut Self;
 
+    // ----------------
+    // Provided methods
+    // ----------------
     /// Performs a complex conjugation and returns the complex-conjugated result.
     ///
     /// # Returns
@@ -123,6 +133,9 @@ pub trait ComplexConjugationTransformable: Clone {
 pub trait TimeReversalTransformable:
     SpinUnitaryTransformable + ComplexConjugationTransformable
 {
+    // ----------------
+    // Provided methods
+    // ----------------
     /// Performs a time-reversal transformation in-place.
     ///
     /// The time-reversal transformation is a spin rotation by $`\pi`$ followed by a complex
