@@ -10,9 +10,7 @@ use crate::angmom::sh_rotation_3d::rlmat;
 use crate::angmom::spinor_rotation_3d::dmat_angleaxis;
 use crate::aux::ao_basis::{BasisAngularOrder, CartOrder, ShellOrder};
 use crate::permutation::{PermutableCollection, Permutation};
-use crate::symmetry::symmetry_element::symmetry_operation::{
-    SpecialSymmetryTransformation, SymmetryOperation,
-};
+use crate::symmetry::symmetry_element::symmetry_operation::SymmetryOperation;
 
 mod determinant;
 
@@ -167,48 +165,55 @@ impl<T> TimeReversalTransformable for T where
 {
 }
 
-///// Determines the permutation of sites (*e.g.* atoms in molecules) due to the action of a
-///// symmetry operation.
-/////
-///// # Arguments
-/////
-///// * `symop` - A symmetry operation.
-/////
-///// # Returns
-/////
-///// The resultant site permutation under the action of `symop`, or `None` if no such
-///// permutation can be found.
-//fn permute_sites(&self, symop: &SymmetryOperation) -> Option<Permutation<usize>>;
+pub trait SymmetryTransformable: Clone {
+    // ----------------
+    // Required methods
+    // ----------------
+    /// Determines the permutation of sites (*e.g.* atoms in molecules) due to the action of a
+    /// symmetry operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `symop` - A symmetry operation.
+    ///
+    /// # Returns
+    ///
+    /// The resultant site permutation under the action of `symop`, or `None` if no such
+    /// permutation can be found.
+    fn permute_sites(
+        &self,
+        symop: &SymmetryOperation,
+    ) -> Result<Permutation<usize>, TransformationError>;
 
-///// Performs a transformation according to a specified symmetry operation in-place.
-/////
-///// # Arguments
-/////
-///// * `op` - A symmetry operation.
-//fn transform_mut(&mut self, symop: &SymmetryOperation) {
-//    let rmat = symop.get_3d_matrix();
-//    let perm = self.permute_sites(symop);
-//    self.transform_spatial_mut(&rmat, perm.as_ref());
-//    if symop.is_antiunitary() {
-//        self.transform_timerev_mut();
-//    }
-//}
+    /// Performs a transformation according to a specified symmetry operation in-place.
+    ///
+    /// # Arguments
+    ///
+    /// * `op` - A symmetry operation.
+    fn transform_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError>;
 
-///// Performs a transformation according to a specified symmetry operation and returns the
-///// transformed result.
-/////
-///// # Arguments
-/////
-///// * `symop` - A symmetry operation.
-/////
-///// # Returns
-/////
-///// The transformed result.
-//fn transform(&self, symop: &SymmetryOperation) -> Self {
-//    let mut tself = self.clone();
-//    tself.transform_mut(symop);
-//    tself
-//}
+    // ----------------
+    // Provided methods
+    // ----------------
+    /// Performs a transformation according to a specified symmetry operation and returns the
+    /// transformed result.
+    ///
+    /// # Arguments
+    ///
+    /// * `symop` - A symmetry operation.
+    ///
+    /// # Returns
+    ///
+    /// The transformed result.
+    fn transform(&self, symop: &SymmetryOperation) -> Result<Self, TransformationError> {
+        let mut tself = self.clone();
+        tself.transform_mut(symop)?;
+        Ok(tself)
+    }
+}
 
 // =========
 // Functions

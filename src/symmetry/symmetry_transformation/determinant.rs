@@ -2,16 +2,17 @@ use std::ops::Mul;
 
 use approx;
 use derive_builder::Builder;
-use ndarray::{array, concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
-use num_complex::Complex;
+use ndarray::{array, concatenate, s, Array1, Array2, Axis, LinalgScalar, ScalarOperand};
+use num_complex::{Complex, ComplexFloat};
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::molecule::Molecule;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
-use crate::symmetry::symmetry_element::SymmetryOperation;
+use crate::symmetry::symmetry_element::{SpecialSymmetryTransformation, SymmetryOperation};
 use crate::symmetry::symmetry_transformation::{
-    assemble_sh_rotation_3d_matrices, SpatialUnitaryTransformable, SpinUnitaryTransformable,
+    assemble_sh_rotation_3d_matrices, ComplexConjugationTransformable, SpatialUnitaryTransformable,
+    SpinUnitaryTransformable, SymmetryTransformable, TimeReversalTransformable,
     TransformationError,
 };
 
@@ -33,6 +34,9 @@ struct Determinant<'a, T> {
 
     /// The coefficients describing this determinant.
     coefficients: Vec<Array2<T>>,
+
+    /// the occupation patterns of the molecular orbitals in [`Self::coefficients`].
+    occupations: Vec<Array1<f64>>,
 }
 
 impl<'a, T> Determinant<'a, T>
@@ -45,12 +49,14 @@ where
 
     pub fn new(
         cs: &[Array2<T>],
+        occs: &[Array1<f64>],
         bao: BasisAngularOrder<'a>,
         mol: &'a Molecule,
         spincons: SpinConstraint,
     ) -> Self {
         let det = Self::builder()
             .coefficients(cs.to_vec())
+            .occupations(occs.to_vec())
             .bao(bao)
             .mol(mol)
             .spin_constraint(spincons)
@@ -88,8 +94,35 @@ where
                     && self.coefficients[0].shape()[0].div_euclid(nbas) == usize::from(nspins)
             }
         };
+        if !spincons {
+            log::error!("The coefficient matrices fail to satisfy the specified spin constraint.");
+        }
+        let occs = match self.spin_constraint {
+            SpinConstraint::Restricted(nspins) => {
+                self.occupations.len() == 1
+                    && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
+            }
+            SpinConstraint::Unrestricted(nspins) => {
+                self.occupations.len() == usize::from(nspins)
+                    && self
+                        .occupations
+                        .iter()
+                        .zip(self.coefficients.iter())
+                        .all(|(occs, coeffs)| occs.shape()[0] == coeffs.shape()[1])
+            }
+            SpinConstraint::Generalised(nspins) => {
+                self.occupations.len() == 1
+                    && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
+            }
+        };
+        if !occs {
+            log::error!("The occupation patterns fail to satisfy the specified spin constraint.");
+        }
         let natoms = self.mol.atoms.len() == self.bao.n_atoms();
-        spincons && natoms
+        if !natoms {
+            log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
+        }
+        spincons && occs && natoms
     }
 }
 
@@ -108,6 +141,7 @@ impl<'a> From<Determinant<'a, f64>> for Determinant<'a, Complex<f64>> {
                 .into_iter()
                 .map(|coeffs| coeffs.map(|x| Complex::from(x)))
                 .collect::<Vec<_>>(),
+            &value.occupations,
             value.bao,
             value.mol,
             value.spin_constraint,
@@ -121,12 +155,8 @@ impl<'a> From<Determinant<'a, f64>> for Determinant<'a, Complex<f64>> {
 impl<'a, T> SpatialUnitaryTransformable for Determinant<'a, T>
 where
     T: LinalgScalar + ScalarOperand,
-    f64: Into<T>
+    f64: Into<T>,
 {
-    // fn permute_sites(&self, symop: &SymmetryOperation) -> Option<Permutation<usize>> {
-    //     symop.act_permute(self.mol)
-    // }
-
     fn transform_spatial_mut(
         &mut self,
         rmat: &Array2<f64>,
@@ -269,7 +299,9 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
                     ) {
                         // π-rotation about y-axis, effectively spin-flip
                         let new_coefficients = vec![-self.coefficients[1], self.coefficients[0]];
+                        let new_occupations = vec![self.occupations[1], self.occupations[0]];
                         self.coefficients = new_coefficients;
+                        self.occupations = new_occupations;
                         Ok(self)
                     } else if approx::relative_eq!(
                         (rdmat + dmat_y).map(|x| x.powi(2)).sum().sqrt(),
@@ -279,7 +311,9 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
                     ) {
                         // 3π-rotation about y-axis, effectively negative spin-flip
                         let new_coefficients = vec![self.coefficients[1], -self.coefficients[0]];
+                        let new_occupations = vec![self.occupations[1], self.occupations[0]];
                         self.coefficients = new_coefficients;
+                        self.occupations = new_occupations;
                         Ok(self)
                     } else {
                         log::error!("Unsupported spin transformation matrix:\n{rdmat}");
@@ -372,11 +406,51 @@ where
     }
 }
 
-///// Performs a complex conjugation in-place.
-//fn transform_cc_mut(&mut self) {
-//    self.coefficients = self
-//        .coefficients
-//        .iter()
-//        .map(|coeff| coeff.map(|x| x.conj()))
-//        .collect();
-//}
+// -------------------------------
+// ComplexConjugationTransformable
+// -------------------------------
+
+impl<'a, T> ComplexConjugationTransformable for Determinant<'a, T>
+where
+    T: ComplexFloat,
+{
+    /// Performs a complex conjugation in-place.
+    fn transform_cc_mut(&mut self) -> &mut Self {
+        self.coefficients
+            .iter_mut()
+            .for_each(|coeff| coeff.mapv_inplace(|x| x.conj()));
+        self
+    }
+}
+
+// ---------------------
+// SymmetryTransformable
+// ---------------------
+impl<'a, T> SymmetryTransformable for Determinant<'a, T>
+where
+    Determinant<'a, T>: SpatialUnitaryTransformable + TimeReversalTransformable,
+{
+    fn permute_sites(
+        &self,
+        symop: &SymmetryOperation,
+    ) -> Result<Permutation<usize>, TransformationError> {
+        symop
+            .act_permute(self.mol)
+            .ok_or(TransformationError(format!(
+            "Unable to determine the atom permutation corresponding to the operation `{symop}`."
+        )))
+    }
+
+    fn transform_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        let rmat = symop.get_3d_matrix();
+        let perm = self.permute_sites(symop)?;
+        self.transform_spatial_mut(&rmat, Some(&perm));
+        if symop.is_antiunitary() {
+            self.transform_timerev_mut()?;
+        }
+        Ok(self)
+    }
+}
