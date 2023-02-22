@@ -16,7 +16,7 @@ mod spinor_rotation_3d_tests;
 // ================
 
 /// An enum to manage spin constraints and spin space information.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SpinConstraint {
     /// Variant for restricted spin constraint: the spatial parts of all spin spaces are identical.
     /// The associated value is the number of spin spaces.

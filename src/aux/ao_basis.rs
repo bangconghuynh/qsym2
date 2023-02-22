@@ -244,7 +244,7 @@ fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
 }
 
 /// An enum to indicate the type of the angular functions in a shell and how they are ordered.
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ShellOrder {
     /// This variant indicates that the angular functions are real solid harmonics. The associated
     /// value is a flag indicating if the functions are arranged in increasing $`m`$ order.
@@ -256,7 +256,7 @@ pub enum ShellOrder {
 }
 
 /// A struct representing a shell in an atomic-orbital basis set.
-#[derive(Clone, Builder, PartialEq, Eq, Hash)]
+#[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisShell {
     /// A non-negative integer indicating the rank of the shell.
     #[builder(setter(custom))]
@@ -318,7 +318,7 @@ impl BasisShell {
 // -----
 
 /// A struct containing the ordered sequence of the shells for an atom.
-#[derive(Clone, Builder, PartialEq, Eq, Hash)]
+#[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisAtom<'a> {
     /// An atom in the basis set.
     atom: &'a Atom,
@@ -378,7 +378,7 @@ impl<'a> BasisAtom<'a> {
 
 /// A struct containing the angular momentum information of an atomic-orbital basis set that is
 /// required for symmetry transformation to be performed.
-#[derive(Clone, Builder, PartialEq, Eq, Hash)]
+#[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisAngularOrder<'a> {
     /// An ordered sequence of [`BasisAtom`] in the order the atoms are defined in the molecule.
     #[builder(setter(custom))]

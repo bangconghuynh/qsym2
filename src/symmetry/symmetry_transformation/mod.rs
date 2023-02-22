@@ -243,14 +243,15 @@ pub trait SymmetryTransformable: Clone {
 /// Panics if the number of generalised rows along any of the dimensions in `axes` does not match
 /// the number of functions in the basis, or if the permutation rank does not match the number of
 /// atoms in the basis.
-fn permute_array_by_atoms<D>(
-    arr: &Array<f64, D>,
+fn permute_array_by_atoms<T, D>(
+    arr: &Array<T, D>,
     atom_perm: &Permutation<usize>,
     axes: &[Axis],
     bao: &BasisAngularOrder,
-) -> Array<f64, D>
+) -> Array<T, D>
 where
     D: RemoveAxis,
+    T: Clone,
 {
     assert_eq!(
         atom_perm.rank(),
@@ -348,13 +349,13 @@ fn assemble_sh_rotation_3d_matrices(
                 ShellOrder::Cart(cart_order) => {
                     // Cartesian functions. Convert them to real solid harmonics first, then
                     // applying the transformation, then convert back.
-                    let cart2rs = cart2rss[l];
-                    let r2carts = r2cartss[l];
+                    let cart2rs = &cart2rss[l];
+                    let r2carts = &r2cartss[l];
                     let rl = cart2rs.iter().zip(r2carts.iter()).enumerate().fold(
                         Array2::zeros((cart_order.ncomps(), cart_order.ncomps())),
-                        |acc, (i, (&xmat, &wmat))| {
+                        |acc, (i, (xmat, wmat))| {
                             let lpure = l - 2 * i;
-                            acc + wmat.dot(&rls[lpure]).dot(&xmat)
+                            acc + wmat.dot(&rls[lpure]).dot(xmat)
                         },
                     );
                     let lex_cart_order = CartOrder::lex(shl.l);
