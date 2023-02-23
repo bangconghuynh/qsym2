@@ -150,17 +150,6 @@ fn test_determinant_transformation_b3_timerev() {
         [ 0.0,  0.0],
         [-0.5,  0.0], [ sqr, -1.0], [0.0, 0.0]
     ];
-    let cgen = concatenate![Axis(0), calpha, cbeta];
-    let ogen = array![1.0, 1.0];
-
-    let det = Determinant::<f64>::new(
-        &[cgen],
-        &[ogen.clone()],
-        &bao_b3,
-        &mol_b3,
-        SpinConstraint::Generalised(2),
-        1e-14,
-    );
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
@@ -171,27 +160,86 @@ fn test_determinant_transformation_b3_timerev() {
     sym.analyse(&presym, false);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     let c3p1 = group.get_index(1).unwrap();
-    let tdet_c3p1 = det.transform(&c3p1).unwrap().transform_timerev().unwrap();
-    println!("{}", tdet_c3p1.coefficients()[0]);
-
     let tcalpha_ref = array![
         [ 0.0,  0.0],
-        [ 0.5,  1.0], [ sqr,  0.0], [0.0, 0.0],
+        [ 0.5, -sqr], [ sqr, -0.5], [0.0, 0.0],
         [ 0.0,  0.0],
-        [-1.0,  1.0], [ 0.0,  0.0], [0.0, 0.0],
+        [-1.0,  sqr], [ 0.0,  0.5], [0.0, 0.0],
         [ 0.0,  0.0],
-        [ 0.5, -1.0], [-sqr,  0.0], [0.0, 0.0]
+        [ 0.5,  sqr], [-sqr,  0.5], [0.0, 0.0]
     ];
     let tcbeta_ref = array![
         [ 1.0,  0.0],
-        [ sqr,  0.0], [-0.5,  1.0], [0.0, 0.0],
+        [ sqr,  0.5], [-0.5, -sqr], [0.0, 0.0],
         [ 1.0,  0.0],
-        [ 0.0,  0.0], [ 1.0,  1.0], [0.0, 0.0],
+        [ 0.0, -0.5], [ 1.0,  sqr], [0.0, 0.0],
         [ 1.0,  0.0],
-        [-sqr,  0.0], [-0.5, -1.0], [0.0, 0.0]
+        [-sqr, -0.5], [-0.5,  sqr], [0.0, 0.0]
     ];
+
+    // Unrestricted spin constraint, spin-projection-pure orbitals
+    let oalpha = array![0.5, 0.5];
+    let obeta = array![0.75, 0.25];
+
+    let detunres = Determinant::<f64>::new(
+        &[calpha.clone(), cbeta.clone()],
+        &[oalpha.clone(), obeta.clone()],
+        &bao_b3,
+        &mol_b3,
+        SpinConstraint::Unrestricted(2),
+        1e-14,
+    );
+
+    let tdetunres_tr = detunres.transform_timerev().unwrap();
+    let tdetunres_tr_ref = Determinant::<f64>::new(
+        &[-cbeta.clone(), calpha.clone()],
+        &[obeta.clone(), oalpha.clone()],
+        &bao_b3,
+        &mol_b3,
+        SpinConstraint::Unrestricted(2),
+        1e-14,
+    );
+    assert_eq!(tdetunres_tr, tdetunres_tr_ref);
+
+    let tdetunres_c3p1_tr = detunres.transform(&c3p1).unwrap().transform_timerev().unwrap();
+    let tdetunres_c3p1_tr_ref = Determinant::<f64>::new(
+        &[tcalpha_ref.clone(), tcbeta_ref.clone()],
+        &[obeta.clone(), oalpha.clone()],
+        &bao_b3,
+        &mol_b3,
+        SpinConstraint::Unrestricted(2),
+        1e-14,
+    );
+    assert_eq!(tdetunres_c3p1_tr, tdetunres_c3p1_tr_ref);
+
+    // Generalised spin constraint, spin-projection-mixed orbitals
+    let cgen = concatenate![Axis(0), calpha, cbeta];
+    let ogen = array![1.0, 1.0];
+
+    let detgen = Determinant::<f64>::new(
+        &[cgen],
+        &[ogen.clone()],
+        &bao_b3,
+        &mol_b3,
+        SpinConstraint::Generalised(2),
+        1e-14,
+    );
+
+    let tdetgen_tr = detgen.transform_timerev().unwrap();
+    let tcgen_ref = concatenate![Axis(0), -cbeta, calpha];
+    let tdetgen_tr_ref = Determinant::<f64>::new(
+        &[tcgen_ref],
+        &[ogen.clone()],
+        &bao_b3,
+        &mol_b3,
+        SpinConstraint::Generalised(2),
+        1e-14,
+    );
+    assert_eq!(tdetgen_tr, tdetgen_tr_ref);
+
+    let tdetgen_c3p1_tr = detgen.transform(&c3p1).unwrap().transform_timerev().unwrap();
     let tcgen_ref = concatenate![Axis(0), tcalpha_ref, tcbeta_ref];
-    let tdet_c3p1_ref = Determinant::<f64>::new(
+    let tdetgen_c3p1_tr_ref = Determinant::<f64>::new(
         &[tcgen_ref],
         &[ogen],
         &bao_b3,
@@ -199,6 +247,5 @@ fn test_determinant_transformation_b3_timerev() {
         SpinConstraint::Generalised(2),
         1e-14,
     );
-    assert_eq!(tdet_c3p1, tdet_c3p1_ref);
-
+    assert_eq!(tdetgen_c3p1_tr, tdetgen_c3p1_tr_ref);
 }
