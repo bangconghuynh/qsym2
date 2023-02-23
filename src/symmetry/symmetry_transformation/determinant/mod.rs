@@ -12,7 +12,7 @@ use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::molecule::Molecule;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
-use crate::symmetry::symmetry_element::{SpecialSymmetryTransformation, SymmetryOperation};
+use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
     assemble_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
     SpatialUnitaryTransformable, SpinUnitaryTransformable, SymmetryTransformable,
@@ -105,7 +105,7 @@ where
                         .map(|occ| occ.iter().copied().sum())
                         .sum()
             }
-            SpinConstraint::Unrestricted(_) | SpinConstraint::Generalised(_) => self
+            SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => self
                 .occupations
                 .iter()
                 .map(|occ| occ.iter().copied().sum())
@@ -119,11 +119,11 @@ where
             SpinConstraint::Restricted(_) => {
                 self.coefficients.len() == 1 && self.coefficients[0].shape()[0] == nbas
             }
-            SpinConstraint::Unrestricted(nspins) => {
+            SpinConstraint::Unrestricted(nspins, _) => {
                 self.coefficients.len() == usize::from(nspins)
                     && self.coefficients[0].shape()[0] == nbas
             }
-            SpinConstraint::Generalised(nspins) => {
+            SpinConstraint::Generalised(nspins, _) => {
                 self.coefficients.len() == 1
                     && self.coefficients[0].shape()[0].rem_euclid(nbas) == 0
                     && self.coefficients[0].shape()[0].div_euclid(nbas) == usize::from(nspins)
@@ -137,7 +137,7 @@ where
                 self.occupations.len() == 1
                     && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
             }
-            SpinConstraint::Unrestricted(nspins) => {
+            SpinConstraint::Unrestricted(nspins, _) => {
                 self.occupations.len() == usize::from(nspins)
                     && self
                         .occupations
@@ -145,7 +145,7 @@ where
                         .zip(self.coefficients.iter())
                         .all(|(occs, coeffs)| occs.shape()[0] == coeffs.shape()[1])
             }
-            SpinConstraint::Generalised(_) => {
+            SpinConstraint::Generalised(_, _) => {
                 self.occupations.len() == 1
                     && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
             }
@@ -214,7 +214,7 @@ where
             .coefficients
             .iter()
             .map(|old_coeff| match self.spin_constraint {
-                SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_) => {
+                SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
                     let p_coeff = if let Some(p) = perm {
                         permute_array_by_atoms(old_coeff, p, &[Axis(0)], &self.bao)
                     } else {
@@ -234,7 +234,7 @@ where
                     )
                     .expect("Unable to concatenate the transformed rows for the various shells.")
                 }
-                SpinConstraint::Generalised(nspins) => {
+                SpinConstraint::Generalised(nspins, _) => {
                     let nspatial = self.bao.n_funcs();
                     let t_p_spin_blocks = (0..nspins).map(|ispin| {
                         // Extract spin block ispin.
@@ -347,7 +347,9 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
                         ))
                     }
                 }
-                SpinConstraint::Unrestricted(nspins) => {
+                SpinConstraint::Unrestricted(nspins, _) => {
+                    // Only spin flip possible, so the order of the basis in which `dmat` is
+                    // expressed and the order of the spin blocks do not need to match.
                     if nspins != 2 {
                         return Err(TransformationError(
                             "Only two-component spinor transformations are supported for now."
@@ -416,7 +418,7 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
                         ))
                     }
                 }
-                SpinConstraint::Generalised(nspins) => {
+                SpinConstraint::Generalised(nspins, increasingm) => {
                     if nspins != 2 {
                         return Err(TransformationError(
                             "Only two-component spinor transformations are supported for now."
@@ -429,13 +431,23 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
                         .coefficients
                         .iter()
                         .map(|old_coeff| {
-                            let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
-                            let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
-                            let t_a_coeff = &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
-                            let t_b_coeff = &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
-                            concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
-                                "Unable to concatenate the transformed rows for the various shells.",
-                            )
+                            if !increasingm {
+                                let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
+                                let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
+                                let t_a_coeff = &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
+                                let t_b_coeff = &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
+                                concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
+                                    "Unable to concatenate the transformed rows for the various shells.",
+                                )
+                            } else {
+                                let b_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
+                                let a_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
+                                let t_a_coeff = &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
+                                let t_b_coeff = &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
+                                concatenate(Axis(0), &[t_b_coeff.view(), t_a_coeff.view()]).expect(
+                                    "Unable to concatenate the transformed rows for the various shells.",
+                                )
+                            }
                         })
                         .collect::<Vec<Array2<f64>>>();
                     self.coefficients = new_coefficients;
@@ -505,7 +517,9 @@ where
                     ))
                 }
             }
-            SpinConstraint::Unrestricted(nspins) => {
+            SpinConstraint::Unrestricted(nspins, _) => {
+                // Only spin flip possible, so the order of the basis in which `dmat` is
+                // expressed and the order of the spin blocks do not need to match.
                 if nspins != 2 {
                     return Err(TransformationError(
                         "Only two-component spinor transformations are supported for now."
@@ -577,7 +591,7 @@ where
                     ))
                 }
             }
-            SpinConstraint::Generalised(nspins) => {
+            SpinConstraint::Generalised(nspins, increasingm) => {
                 if nspins != 2 {
                     panic!("Only two-component spinor transformations are supported for now.");
                 }
@@ -588,13 +602,23 @@ where
                     .coefficients
                     .iter()
                     .map(|old_coeff| {
-                        let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
-                        let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
-                        let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
-                        let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
-                        concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
-                            "Unable to concatenate the transformed rows for the various shells.",
-                        )
+                        if !increasingm {
+                            let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
+                            let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
+                            let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
+                            let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
+                            concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
+                                "Unable to concatenate the transformed rows for the various shells.",
+                            )
+                        } else {
+                            let b_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
+                            let a_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
+                            let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
+                            let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
+                            concatenate(Axis(0), &[t_b_coeff.view(), t_a_coeff.view()]).expect(
+                                "Unable to concatenate the transformed rows for the various shells.",
+                            )
+                        }
                     })
                     .collect::<Vec<Array2<Complex<T>>>>();
                 self.coefficients = new_coefficients;
@@ -638,19 +662,6 @@ where
             .ok_or(TransformationError(format!(
             "Unable to determine the atom permutation corresponding to the operation `{symop}`."
         )))
-    }
-
-    fn transform_mut(
-        &mut self,
-        symop: &SymmetryOperation,
-    ) -> Result<&mut Self, TransformationError> {
-        let rmat = symop.get_3d_matrix();
-        let perm = self.permute_sites(symop)?;
-        self.transform_spatial_mut(&rmat, Some(&perm));
-        if symop.is_antiunitary() {
-            self.transform_timerev_mut()?;
-        }
-        Ok(self)
     }
 }
 

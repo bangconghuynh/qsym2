@@ -23,14 +23,15 @@ pub enum SpinConstraint {
     Restricted(u16),
 
     /// Variant for unrestricted spin constraint: the spatial parts of different spin spaces are
-    /// different, but spin collinearity is maintained. The associated value is the number of spin
-    /// spaces, and also the number of different spatial parts that are handled separately.
-    Unrestricted(u16),
+    /// different, but spin collinearity is maintained. The associated values are the number of spin
+    /// spaces (*i.e.* the number of different spatial parts that are handled separately) and a
+    /// boolean indicating if the spin spaces are arranged in increasing $`m`$ order.
+    Unrestricted(u16, bool),
 
     /// Variant for generalised spin constraint: the spatial parts of different spin spaces are
-    /// different, and no spin collinearity is imposed. The associated value is the number of spin
-    /// spaces.
-    Generalised(u16),
+    /// different, and no spin collinearity is imposed. The associated values are the number of spin
+    /// spaces and a boolean indicating if the spin spaces are arranged in increasing $`m`$ order.
+    Generalised(u16, bool),
 }
 
 impl SpinConstraint {
@@ -40,8 +41,8 @@ impl SpinConstraint {
     pub fn nunits(&self) -> u16 {
         match self {
             Self::Restricted(nspins) => *nspins,
-            Self::Unrestricted(nspins) => *nspins,
-            Self::Generalised(_) => 1,
+            Self::Unrestricted(nspins, _) => *nspins,
+            Self::Generalised(_, _) => 1,
         }
     }
 
@@ -51,8 +52,8 @@ impl SpinConstraint {
     pub fn nspins_per_unit(&self) -> u16 {
         match self {
             Self::Restricted(_) => 1,
-            Self::Unrestricted(_) => 1,
-            Self::Generalised(nspins) => *nspins,
+            Self::Unrestricted(_, _) => 1,
+            Self::Generalised(nspins, _) => *nspins,
         }
     }
 
@@ -60,8 +61,8 @@ impl SpinConstraint {
     pub fn nspins(&self) -> u16 {
         match self {
             Self::Restricted(nspins) => *nspins,
-            Self::Unrestricted(nspins) => *nspins,
-            Self::Generalised(nspins) => *nspins,
+            Self::Unrestricted(nspins, _) => *nspins,
+            Self::Generalised(nspins, _) => *nspins,
         }
     }
 }

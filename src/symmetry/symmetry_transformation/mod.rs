@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-use nalgebra::Vector3;
+use nalgebra::{Point3, Vector3};
 use ndarray::{Array, Array2, Axis, RemoveAxis};
 use num_complex::Complex;
 
@@ -10,7 +10,9 @@ use crate::angmom::sh_rotation_3d::rlmat;
 use crate::angmom::spinor_rotation_3d::dmat_angleaxis;
 use crate::aux::ao_basis::{BasisAngularOrder, CartOrder, ShellOrder};
 use crate::permutation::{PermutableCollection, Permutation};
-use crate::symmetry::symmetry_element::symmetry_operation::SymmetryOperation;
+use crate::symmetry::symmetry_element::symmetry_operation::{
+    SpecialSymmetryTransformation, SymmetryOperation,
+};
 
 mod determinant;
 
@@ -165,7 +167,7 @@ impl<T> TimeReversalTransformable for T where
 {
 }
 
-pub trait SymmetryTransformable: Clone {
+pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTransformable {
     // ----------------
     // Required methods
     // ----------------
@@ -185,6 +187,9 @@ pub trait SymmetryTransformable: Clone {
         symop: &SymmetryOperation,
     ) -> Result<Permutation<usize>, TransformationError>;
 
+    // ----------------
+    // Provided methods
+    // ----------------
     /// Performs a transformation according to a specified symmetry operation in-place.
     ///
     /// # Arguments
@@ -193,11 +198,16 @@ pub trait SymmetryTransformable: Clone {
     fn transform_mut(
         &mut self,
         symop: &SymmetryOperation,
-    ) -> Result<&mut Self, TransformationError>;
+    ) -> Result<&mut Self, TransformationError> {
+        let rmat = symop.get_3d_matrix();
+        let perm = self.permute_sites(symop)?;
+        self.transform_spatial_mut(&rmat, Some(&perm));
+        if symop.is_antiunitary() {
+            self.transform_timerev_mut()?;
+        }
+        Ok(self)
+    }
 
-    // ----------------
-    // Provided methods
-    // ----------------
     /// Performs a transformation according to a specified symmetry operation and returns the
     /// transformed result.
     ///
@@ -211,6 +221,46 @@ pub trait SymmetryTransformable: Clone {
     fn transform(&self, symop: &SymmetryOperation) -> Result<Self, TransformationError> {
         let mut tself = self.clone();
         tself.transform_mut(symop)?;
+        Ok(tself)
+    }
+
+    fn transform_spin_from_spatial_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        let angle = symop.calc_pole_angle();
+        let axis = symop.calc_pole().coords;
+        let dmat = dmat_angleaxis(angle, axis, false);
+        self.transform_spin_mut(&dmat)
+    }
+
+    fn transform_spin_from_spatial(
+        &self,
+        symop: &SymmetryOperation,
+    ) -> Result<Self, TransformationError> {
+        let mut tself = self.clone();
+        tself.transform_spin_from_spatial_mut(symop)?;
+        Ok(tself)
+    }
+
+    fn transform_coupled_spin_spatial_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        let angle = symop.calc_pole_angle();
+        let axis = symop.calc_pole().coords;
+        let dmat = dmat_angleaxis(angle, axis, false);
+        self
+            .transform_mut(symop)?
+            .transform_spin_mut(&dmat)
+    }
+
+    fn transform_coupled_spin_spatial(
+        &self,
+        symop: &SymmetryOperation,
+    ) -> Result<Self, TransformationError> {
+        let mut tself = self.clone();
+        tself.transform_coupled_spin_spatial_mut(symop)?;
         Ok(tself)
     }
 }
@@ -391,101 +441,3 @@ fn assemble_sh_rotation_3d_matrices(
         })
         .collect::<Vec<Array2<f64>>>()
 }
-
-///// Assembles spherical-harmonic rotation matrices for all shells.
-/////
-///// # Arguments
-/////
-///// * `bao` - A structure specifying the angular order of the underlying basis.
-///// * `rls` - A slice of precomputed representation matrices for a three-dimensional transformation
-///// in all spherical-harmonic bases with $`l \in [0, l_{\mathrm{max}}]`$ where $`l_{\mathrm{max}}`$
-///// is the maximum angular momentum order in `bao`. All bases *must* be in increasing $`m`$ order.
-///// * `cart2rss` - A slice of precomputed coefficient matrices for the expansion of Cartesian
-///// Gaussians as linear combinations of real solid harmonic Gaussians. See
-///// [`crate::angmom::sh_conversion::sh_cart2rl_mat`] and [`crate::angmom::sh_conversion::sh_cart2r`]
-///// for more information. Each inner slice with index $`l_{\mathrm{cart}}`$ contains all
-///// $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ matrices with $`l \equiv l_{\mathrm{cart}} \mod 2`$ in
-///// decreasing $`l`$ order. The Cartesian order must be lexicographic, and the spherical order must
-///// be increasing $`m`$.
-///// * `r2cartss` - A slice of precomputed coefficient matrices for the expansion of real solid
-///// harmonic Gaussians as linear combinations of Cartesian Gaussians. See
-///// [`crate::angmom::sh_conversion::sh_rl2cart_mat`] and [`crate::angmom::sh_conversion::sh_r2cart`]
-///// for more information. Each inner slice with index $`l_{\mathrm{cart}}`$ contains all
-///// $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ matrices with $`l_{\mathrm{cart}} \ge l \ge 0`$ and
-///// $`l \equiv l_{\mathrm{cart}} \mod 2`$ in decreasing $`l`$ order. The Cartesian order must be
-///// lexicographic, and the spherical order must be increasing $`m`$.
-/////
-///// # Returns
-/////
-///// A vector of spherical-harmonic rotation matrices, one for each shells in `bao`. Non-standard
-///// orderings of functions in shells are taken into account.
-//fn assemble_sh_rotation_3d_matrices_low(
-//    bao: &BasisAngularOrder,
-//    rls: &[Array2<f64>],
-//    cart2rss: &[Vec<Array2<f64>>],
-//    r2cartss: &[Vec<Array2<f64>>],
-//) -> Vec<Array2<f64>> {
-//    bao.basis_shells()
-//        .map(|shl| {
-//            let l = usize::try_from(shl.l).unwrap_or_else(|_| {
-//                panic!(
-//                    "Unable to concert the angular momentum order `{}` to `usize`.",
-//                    shl.l
-//                );
-//            });
-//            match &shl.shell_order {
-//                ShellOrder::Pure(increasingm) => {
-//                    // Spherical functions.
-//                    let mut rl = rls[l].clone();
-//                    if !increasingm {
-//                        // `rl` is in increasing-m order by default.
-//                        rl.invert_axis(Axis(0));
-//                        rl.invert_axis(Axis(1));
-//                    }
-//                    rl
-//                }
-//                ShellOrder::Cart(cart_order) => {
-//                    // Cartesian functions. Convert them to real solid harmonics first, then
-//                    // applying the transformation, then convert back.
-//                    let cart2rs = cart2rss[l];
-//                    let r2carts = r2cartss[l];
-//                    let rl = cart2rs.iter().zip(r2carts.iter()).enumerate().fold(
-//                        Array2::zeros((cart_order.ncomps(), cart_order.ncomps())),
-//                        |acc, (i, (&xmat, &wmat))| {
-//                            let lpure = l - 2 * i;
-//                            acc + wmat.dot(&rls[lpure]).dot(&xmat)
-//                        },
-//                    );
-//                    let lex_cart_order = CartOrder::lex(shl.l);
-//                    if *cart_order != lex_cart_order {
-//                        // `rl` is in lexicographic order (because of `wmat` and `xmat`) by default.
-//                        // Consider a transformation R and its representation matrix D in a
-//                        // lexicographically-ordered Cartesian basis b collected in a row vector.
-//                        // Then,
-//                        //      R b = b D.
-//                        // If we now permute the basis functions in b by a permutation π, then the
-//                        // representation matrix for R changes:
-//                        //      R πb = πb D(π).
-//                        // To relate D(π) to D, we first note the representation matrix for π, P:
-//                        //      πb = π b = b P,
-//                        // which, when acts on a left row vector, permutes its entry normally, but
-//                        // when acts on a right column vector, permutes its entry inversely.
-//                        // Then,
-//                        //      R πb = R b P = b P D(π) => R b = b PD(π)P^(-1).
-//                        // Thus,
-//                        //      D(π) = P^(-1)DP,
-//                        // i.e., to obtain D(π), we permute the rows and columns of D normally
-//                        // according to π.
-//                        let perm = lex_cart_order
-//                            .get_perm_of(cart_order)
-//                            .expect("Unable to find a permutation to ");
-//                        rl.select(Axis(0), &perm.image())
-//                            .select(Axis(1), &perm.image())
-//                    } else {
-//                        rl
-//                    }
-//                }
-//            }
-//        })
-//        .collect::<Vec<Array2<f64>>>()
-//}

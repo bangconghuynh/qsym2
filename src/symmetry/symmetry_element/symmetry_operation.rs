@@ -9,7 +9,7 @@ use nalgebra::{Point3, Vector3};
 use ndarray::{Axis, Array2, ShapeBuilder};
 use num_traits::{Inv, Pow};
 
-use crate::aux::geometry::{self, improper_rotation_matrix, proper_rotation_matrix, Transform};
+use crate::aux::geometry::{self, improper_rotation_matrix, proper_rotation_matrix, Transform, IMINV};
 use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
@@ -120,7 +120,7 @@ pub struct SymmetryOperation {
     /// [`Self::generating_element`] is applied to form the symmetry operation.
     pub power: i32,
 
-    /// The total proper rotation angle associated witrh this operation (after
+    /// The total proper rotation angle associated with this operation (after
     /// taking into account the power of the operation).
     ///
     /// This is simply the proper rotation angle of [`Self::generating_element`]
@@ -391,6 +391,35 @@ impl SymmetryOperation {
         }
     }
 
+    /// Finds the pole angle associated with this operation.
+    ///
+    /// This is the angle that, together with the pole, uniquely determines the proper part of this
+    /// operation.
+    ///
+    /// For improper elements, the inversion-centre convention is used to define
+    /// the pole angle. This allows a proper rotation and its improper partner to have the
+    /// same pole angle, thus facilitating the consistent specification of poles for the
+    /// identity / inversion and binary rotations / reflections.
+    ///
+    /// # Returns
+    ///
+    /// The pole angle associated with this operation.
+    ///
+    /// # Panics
+    ///
+    /// Panics when no total proper fractions could be found for this operation.
+    #[must_use]
+    pub fn calc_pole_angle(&self) -> f64 {
+        let c_self = match self.generating_element.kind {
+            SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
+                self.clone()
+            }
+            SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
+        };
+
+        c_self.total_proper_angle.abs()
+    }
+
     /// Finds the quaternion associated with this operation.
     ///
     /// The rotation angle encoded in the quaternion is taken to be non-negative
@@ -481,9 +510,9 @@ impl SymmetryOperation {
             if self.is_identity() || self.is_time_reversal() {
                 Array2::<f64>::eye(3)
             } else {
-                let angle = self.total_proper_angle;
-                let axis = &self.generating_element.axis;
-                let mat = proper_rotation_matrix(angle, axis, 1);
+                let angle = self.calc_pole_angle();
+                let axis = self.calc_pole().coords;
+                let mat = proper_rotation_matrix(angle, &axis, 1);
 
                 // nalgebra matrix iter is column-major.
                 Array2::<f64>::from_shape_vec(
@@ -502,20 +531,14 @@ impl SymmetryOperation {
             if self.is_inversion() || self.is_tr_inversion() {
                 -Array2::<f64>::eye(3)
             } else {
-                let angle = self.total_proper_angle;
-                let axis = &self.generating_element.axis;
+                // Pole and pole angle are obtained in the inversion-centre convention.
+                let angle = self.calc_pole_angle();
+                let axis = self.calc_pole().coords;
                 let mat = improper_rotation_matrix(
                     angle,
-                    axis,
+                    &axis,
                     1,
-                    &self
-                        .generating_element
-                        .kind
-                        .try_into()
-                        .unwrap_or_else(|err| {
-                            log::error!("{err}");
-                            panic!("Unable to obtain the improper rotation kind.");
-                        }),
+                    &IMINV,
                 );
 
                 // nalgebra matrix iter is column-major.
@@ -1264,22 +1287,15 @@ where
     M: Transform + PermutableCollection<Rank = usize>,
 {
     fn act_permute(&self, rhs: &M) -> Option<Permutation<usize>> {
-        let angle = self.total_proper_angle;
-        let axis = self.generating_element.axis;
+        let angle = self.calc_pole_angle();
+        let axis = self.calc_pole().coords;
         let mut t_mol = if self.is_proper() {
             rhs.rotate(angle, &axis)
         } else {
             rhs.improper_rotate(
                 angle,
                 &axis,
-                &self
-                    .generating_element
-                    .kind
-                    .try_into()
-                    .unwrap_or_else(|err| {
-                        log::error!("Error detected: {err}.");
-                        panic!("Error detected: {err}.")
-                    }),
+                &IMINV,
             )
         };
         if self.is_antiunitary() {
