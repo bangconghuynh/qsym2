@@ -228,9 +228,11 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         &mut self,
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
-        let angle = symop.calc_pole_angle();
+        let angle = symop.calc_pole_double_angle();
         let axis = symop.calc_pole().coords;
+        println!("Angle: {angle}");
         let dmat = dmat_angleaxis(angle, axis, false);
+        println!("dmat: {dmat}");
         self.transform_spin_mut(&dmat)
     }
 
@@ -247,7 +249,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         &mut self,
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
-        let angle = symop.calc_pole_angle();
+        let angle = symop.calc_pole_double_angle();
         let axis = symop.calc_pole().coords;
         let dmat = dmat_angleaxis(angle, axis, false);
         self

@@ -6,10 +6,12 @@ use approx;
 use derive_builder::Builder;
 use fraction;
 use nalgebra::{Point3, Vector3};
-use ndarray::{Axis, Array2, ShapeBuilder};
+use ndarray::{Array2, Axis, ShapeBuilder};
 use num_traits::{Inv, Pow};
 
-use crate::aux::geometry::{self, improper_rotation_matrix, proper_rotation_matrix, Transform, IMINV};
+use crate::aux::geometry::{
+    self, improper_rotation_matrix, proper_rotation_matrix, Transform, IMINV,
+};
 use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
@@ -297,7 +299,7 @@ impl SymmetryOperation {
     ///
     /// This is the point on the unit sphere that is left invariant by the operation.
     ///
-    /// For improper elements, the inversion-centre convention is used to define
+    /// For improper operations, the inversion-centre convention is used to define
     /// the pole. This allows a proper rotation and its improper partner to have the
     /// same pole, thus facilitating the consistent specification of poles for the
     /// identity / inversion and binary rotations / reflections.
@@ -394,9 +396,9 @@ impl SymmetryOperation {
     /// Finds the pole angle associated with this operation.
     ///
     /// This is the angle that, together with the pole, uniquely determines the proper part of this
-    /// operation.
+    /// operation. This angle lies in the interval $`[0, \pi]`$.
     ///
-    /// For improper elements, the inversion-centre convention is used to define
+    /// For improper operations, the inversion-centre convention is used to define
     /// the pole angle. This allows a proper rotation and its improper partner to have the
     /// same pole angle, thus facilitating the consistent specification of poles for the
     /// identity / inversion and binary rotations / reflections.
@@ -418,6 +420,43 @@ impl SymmetryOperation {
         };
 
         c_self.total_proper_angle.abs()
+    }
+
+    /// Finds the pole double-angle associated with this operation.
+    ///
+    /// This is the angle that, together with the pole, uniquely determines the proper part of this
+    /// operation in double groups. This angle lies in the interval $`[0, 2\pi]`$.
+    ///
+    /// For improper operations, the inversion-centre convention is used to define
+    /// the pole angle. This allows a proper rotation and its improper partner to have the
+    /// same pole angle, thus facilitating the consistent specification of poles for the
+    /// identity / inversion and binary rotations / reflections.
+    ///
+    /// # Returns
+    ///
+    /// The pole angle associated with this operation.
+    ///
+    /// # Panics
+    ///
+    /// Panics when no total proper fractions could be found for this operation.
+    #[must_use]
+    pub fn calc_pole_double_angle(&self) -> f64 {
+        let c_self = match self.generating_element.kind {
+            SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
+                self.clone()
+            }
+            SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
+        };
+
+        geometry::normalise_rotation_double_angle(
+            c_self
+                .generating_element
+                .proper_angle
+                .expect("Proper angle has not been set.")
+                * (f64::from(self.power)),
+            c_self.generating_element.threshold,
+        )
+        .abs()
     }
 
     /// Finds the quaternion associated with this operation.
@@ -534,12 +573,7 @@ impl SymmetryOperation {
                 // Pole and pole angle are obtained in the inversion-centre convention.
                 let angle = self.calc_pole_angle();
                 let axis = self.calc_pole().coords;
-                let mat = improper_rotation_matrix(
-                    angle,
-                    &axis,
-                    1,
-                    &IMINV,
-                );
+                let mat = improper_rotation_matrix(angle, &axis, 1, &IMINV);
 
                 // nalgebra matrix iter is column-major.
                 Array2::<f64>::from_shape_vec(
@@ -1292,11 +1326,7 @@ where
         let mut t_mol = if self.is_proper() {
             rhs.rotate(angle, &axis)
         } else {
-            rhs.improper_rotate(
-                angle,
-                &axis,
-                &IMINV,
-            )
+            rhs.improper_rotate(angle, &axis, &IMINV)
         };
         if self.is_antiunitary() {
             t_mol.reverse_time_mut();

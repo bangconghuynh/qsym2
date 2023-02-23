@@ -51,6 +51,30 @@ pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> f64 {
     norm_rot_ang
 }
 
+/// Returns the rotation angle adjusted to be in the interval $(-2\pi, +2\pi]$.
+///
+/// This is important to distinguish operations in double groups.
+///
+/// # Arguments
+///
+/// * `rot_ang` - A rotation angle.
+/// * `thresh` - A threshold for comparisons.
+///
+/// # Returns
+///
+/// The normalised double-rotation angle.
+#[must_use]
+pub fn normalise_rotation_double_angle(rot_ang: f64, thresh: f64) -> f64 {
+    let mut norm_rot_ang = rot_ang;
+    while norm_rot_ang > 2.0 * std::f64::consts::PI + thresh {
+        norm_rot_ang -= 4.0 * std::f64::consts::PI;
+    }
+    while norm_rot_ang <= -2.0 * std::f64::consts::PI + thresh {
+        norm_rot_ang += 4.0 * std::f64::consts::PI;
+    }
+    norm_rot_ang
+}
+
 /// Returns the positive pole of a rotation axis.
 ///
 /// The definition of positive poles can be found in S.L. Altmann, Rotations,
