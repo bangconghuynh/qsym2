@@ -76,7 +76,7 @@ where
             .threshold(thresh)
             .build()
             .expect("Unable to construct a single determinant structure.");
-        assert!(det.verify());
+        assert!(det.verify(), "Invalid determinant requested.");
         det
     }
 
@@ -133,7 +133,7 @@ where
             log::error!("The coefficient matrices fail to satisfy the specified spin constraint.");
         }
         let occs = match self.spin_constraint {
-            SpinConstraint::Restricted(nspins) => {
+            SpinConstraint::Restricted(_) => {
                 self.occupations.len() == 1
                     && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
             }
@@ -145,13 +145,13 @@ where
                         .zip(self.coefficients.iter())
                         .all(|(occs, coeffs)| occs.shape()[0] == coeffs.shape()[1])
             }
-            SpinConstraint::Generalised(nspins) => {
+            SpinConstraint::Generalised(_) => {
                 self.occupations.len() == 1
                     && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
             }
         };
         if !occs {
-            log::error!("The occupation patterns fail to satisfy the specified spin constraint.");
+            log::error!("The occupation patterns do not match the coefficient patterns.");
         }
         let natoms = self.mol.atoms.len() == self.bao.n_atoms();
         if !natoms {
