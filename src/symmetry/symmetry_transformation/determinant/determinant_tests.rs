@@ -1,19 +1,21 @@
-use ndarray::{array, Axis};
 use env_logger;
+use nalgebra::Point3;
+use ndarray::{array, concatenate, Axis};
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::aux::atom::{Atom, ElementMap};
+use crate::aux::geometry::Transform;
 use crate::aux::molecule::Molecule;
 use crate::group::{GroupProperties, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::determinant::Determinant;
-use crate::symmetry::symmetry_transformation::SymmetryTransformable;
+use crate::symmetry::symmetry_transformation::{SymmetryTransformable, TimeReversalTransformable};
 
 #[test]
 fn test_determinant_transformation_bf4_sqpl() {
-    env_logger::init();
+    // env_logger::init();
     let emap = ElementMap::new();
     let atm_b0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
     let atm_f0 = Atom::from_xyz("F 1.0 0.0 0.0", &emap, 1e-7).unwrap();
@@ -68,7 +70,7 @@ fn test_determinant_transformation_bf4_sqpl() {
         &bao_bf4,
         &mol_bf4,
         SpinConstraint::Restricted(2),
-        1e-14
+        1e-14,
     );
 
     let presym = PreSymmetry::builder()
@@ -79,10 +81,9 @@ fn test_determinant_transformation_bf4_sqpl() {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+
     let c4p1 = group.get_index(1).unwrap();
-
-    let tdet = det.transform(&c4p1).unwrap();
-
+    let tdet_c4p1 = det.transform(&c4p1).unwrap();
     #[rustfmt::skip]
     let tcalpha_ref = array![
         [1.0,  1.0],
@@ -100,13 +101,104 @@ fn test_determinant_transformation_bf4_sqpl() {
         [0.0,  0.0], [ 1.0, 0.0], [0.0,  0.0],
         [0.0,  0.0], [-1.0, 0.0], [0.0, -1.0], [ 0.0, 0.0], [0.0, 0.0], [0.0, 0.0]
     ];
-    let tdet_ref = Determinant::<f64>::new(
+    let tdet_c4p1_ref = Determinant::<f64>::new(
         &[tcalpha_ref],
         &[oalpha],
         &bao_bf4,
         &mol_bf4,
         SpinConstraint::Restricted(2),
-        1e-14
+        1e-14,
     );
-    assert_eq!(tdet, tdet_ref);
+    assert_eq!(tdet_c4p1, tdet_c4p1_ref);
+}
+
+#[test]
+fn test_determinant_transformation_b3_timerev() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_b0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_b1 = Atom::from_xyz("B 1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_b2 = Atom::new_ordinary("B", Point3::new(0.5, 3.0f64.sqrt() / 2.0, 0.0), &emap, 1e-7);
+
+    let bss_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bsp_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
+
+    let batm_b0 = BasisAtom::new(&atm_b0, &[bss_p.clone(), bsp_c.clone()]);
+    let batm_b1 = BasisAtom::new(&atm_b1, &[bss_p.clone(), bsp_c.clone()]);
+    let batm_b2 = BasisAtom::new(&atm_b2, &[bss_p.clone(), bsp_c.clone()]);
+
+    let bao_b3 = BasisAngularOrder::new(&[batm_b0, batm_b1, batm_b2]);
+    let mol_b3 =
+        Molecule::from_atoms(&[atm_b0.clone(), atm_b1.clone(), atm_b2.clone()], 1e-7).recentre();
+
+    let sqr = 3.0f64.sqrt() / 2.0;
+    #[rustfmt::skip]
+    let calpha = array![
+        [ 1.0,  0.0],
+        [ sqr,  1.0], [-0.5,  0.0], [0.0, 0.0],
+        [ 1.0,  0.0],
+        [ 0.0,  1.0], [ 1.0,  0.0], [0.0, 0.0],
+        [ 1.0,  0.0],
+        [-sqr, -1.0], [-0.5,  0.0], [0.0, 0.0]
+    ];
+    #[rustfmt::skip]
+    let cbeta = array![
+        [ 0.0,  0.0],
+        [-0.5,  0.0], [-sqr,  1.0], [0.0, 0.0],
+        [ 0.0,  0.0],
+        [ 1.0,  0.0], [ 0.0,  1.0], [0.0, 0.0],
+        [ 0.0,  0.0],
+        [-0.5,  0.0], [ sqr, -1.0], [0.0, 0.0]
+    ];
+    let cgen = concatenate![Axis(0), calpha, cbeta];
+    let ogen = array![1.0, 1.0];
+
+    let det = Determinant::<f64>::new(
+        &[cgen],
+        &[ogen.clone()],
+        &bao_b3,
+        &mol_b3,
+        SpinConstraint::Generalised(2),
+        1e-14,
+    );
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_b3, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let c3p1 = group.get_index(1).unwrap();
+    let tdet_c3p1 = det.transform(&c3p1).unwrap().transform_timerev().unwrap();
+    println!("{}", tdet_c3p1.coefficients()[0]);
+
+    let tcalpha_ref = array![
+        [ 0.0,  0.0],
+        [ 0.5,  1.0], [ sqr,  0.0], [0.0, 0.0],
+        [ 0.0,  0.0],
+        [-1.0,  1.0], [ 0.0,  0.0], [0.0, 0.0],
+        [ 0.0,  0.0],
+        [ 0.5, -1.0], [-sqr,  0.0], [0.0, 0.0]
+    ];
+    let tcbeta_ref = array![
+        [ 1.0,  0.0],
+        [ sqr,  0.0], [-0.5,  1.0], [0.0, 0.0],
+        [ 1.0,  0.0],
+        [ 0.0,  0.0], [ 1.0,  1.0], [0.0, 0.0],
+        [ 1.0,  0.0],
+        [-sqr,  0.0], [-0.5, -1.0], [0.0, 0.0]
+    ];
+    let tcgen_ref = concatenate![Axis(0), tcalpha_ref, tcbeta_ref];
+    let tdet_c3p1_ref = Determinant::<f64>::new(
+        &[tcgen_ref],
+        &[ogen],
+        &bao_b3,
+        &mol_b3,
+        SpinConstraint::Generalised(2),
+        1e-14,
+    );
+    assert_eq!(tdet_c3p1, tdet_c3p1_ref);
+
 }

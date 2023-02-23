@@ -213,25 +213,70 @@ where
         let new_coefficients = self
             .coefficients
             .iter()
-            .map(|old_coeff| {
-                let p_coeff = if let Some(p) = perm {
-                    permute_array_by_atoms(old_coeff, p, &[Axis(0)], &self.bao)
-                } else {
-                    old_coeff.clone()
-                };
-                let blocks = pbao
-                    .shell_boundary_indices()
-                    .into_iter()
-                    .zip(tmats.iter())
-                    .map(|((shl_start, shl_end), tmat)| {
-                        tmat.dot(&p_coeff.slice(s![shl_start..shl_end, ..]))
-                    })
-                    .collect::<Vec<_>>();
-                concatenate(
-                    Axis(0),
-                    &blocks.iter().map(|block| block.view()).collect::<Vec<_>>(),
-                )
-                .expect("Unable to concatenate the transformed rows for the various shells.")
+            .map(|old_coeff| match self.spin_constraint {
+                SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_) => {
+                    let p_coeff = if let Some(p) = perm {
+                        permute_array_by_atoms(old_coeff, p, &[Axis(0)], &self.bao)
+                    } else {
+                        old_coeff.clone()
+                    };
+                    let t_p_blocks = pbao
+                        .shell_boundary_indices()
+                        .into_iter()
+                        .zip(tmats.iter())
+                        .map(|((shl_start, shl_end), tmat)| {
+                            tmat.dot(&p_coeff.slice(s![shl_start..shl_end, ..]))
+                        })
+                        .collect::<Vec<_>>();
+                    concatenate(
+                        Axis(0),
+                        &t_p_blocks.iter().map(|t_p_block| t_p_block.view()).collect::<Vec<_>>(),
+                    )
+                    .expect("Unable to concatenate the transformed rows for the various shells.")
+                }
+                SpinConstraint::Generalised(nspins) => {
+                    let nspatial = self.bao.n_funcs();
+                    let t_p_spin_blocks = (0..nspins).map(|ispin| {
+                        // Extract spin block ispin.
+                        let spin_start = usize::from(ispin) * nspatial;
+                        let spin_end = (usize::from(ispin) + 1) * nspatial;
+                        let spin_block = old_coeff.slice(s![spin_start..spin_end, ..]).to_owned();
+
+                        // Permute within spin block ispin.
+                        let p_spin_block = if let Some(p) = perm {
+                            permute_array_by_atoms(&spin_block, p, &[Axis(0)], &self.bao)
+                        } else {
+                            spin_block
+                        };
+
+                        // Transform within spin block ispin.
+                        let t_p_blocks = pbao
+                            .shell_boundary_indices()
+                            .into_iter()
+                            .zip(tmats.iter())
+                            .map(|((shl_start, shl_end), tmat)| {
+                                tmat.dot(&p_spin_block.slice(s![shl_start..shl_end, ..]))
+                            })
+                            .collect::<Vec<_>>();
+
+                        // Concatenate blocks for various shells within spin block ispin.
+                        concatenate(
+                            Axis(0),
+                            &t_p_blocks.iter().map(|t_p_block| t_p_block.view()).collect::<Vec<_>>(),
+                        )
+                        .expect("Unable to concatenate the transformed rows for the various shells.")
+                    }).collect::<Vec<_>>();
+
+                    // Concatenate spin blocks.
+                    concatenate(
+                        Axis(0),
+                        &t_p_spin_blocks
+                            .iter()
+                            .map(|t_p_spin_block| t_p_spin_block.view())
+                            .collect::<Vec<_>>(),
+                    )
+                    .expect("Unable to concatenate the transformed spin blocks.")
+                }
             })
             .collect::<Vec<Array2<T>>>();
         self.coefficients = new_coefficients;
