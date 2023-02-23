@@ -1,6 +1,7 @@
 use env_logger;
 use nalgebra::Point3;
-use ndarray::{array, concatenate, stack, Axis, Array2};
+use ndarray::{array, concatenate, Array2, Axis};
+use num_complex::Complex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
@@ -12,6 +13,8 @@ use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::determinant::Determinant;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, TimeReversalTransformable};
+
+type C128 = Complex<f64>;
 
 #[test]
 fn test_determinant_transformation_bf4_sqpl() {
@@ -113,7 +116,182 @@ fn test_determinant_transformation_bf4_sqpl() {
 }
 
 #[test]
-fn test_determinant_transformation_b3_timerev() {
+fn test_determinant_transformation_s4_sqpl() {
+    env_logger::init();
+    let emap = ElementMap::new();
+    let atm_s0 = Atom::from_xyz("S +1.0 +1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s1 = Atom::from_xyz("S -1.0 +1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s2 = Atom::from_xyz("S -1.0 -1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s3 = Atom::from_xyz("S +1.0 -1.0 0.0", &emap, 1e-7).unwrap();
+
+    let bsd_p = BasisShell::new(2, ShellOrder::Pure(true));
+
+    let batm_s0 = BasisAtom::new(&atm_s0, &[bsd_p.clone()]);
+    let batm_s1 = BasisAtom::new(&atm_s1, &[bsd_p.clone()]);
+    let batm_s2 = BasisAtom::new(&atm_s2, &[bsd_p.clone()]);
+    let batm_s3 = BasisAtom::new(&atm_s3, &[bsd_p.clone()]);
+
+    let bao_s4 = BasisAngularOrder::new(&[batm_s0, batm_s1, batm_s2, batm_s3]);
+    let mol_s4 = Molecule::from_atoms(
+        &[
+            atm_s0.clone(),
+            atm_s1.clone(),
+            atm_s2.clone(),
+            atm_s3.clone(),
+        ],
+        1e-7,
+    )
+    .recentre();
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_s4, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+
+    // Unrestricted spin constraint
+    #[rustfmt::skip]
+    let calpha = array![
+        [ 1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0],
+        [-1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0],
+        [ 1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0],
+        [-1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0]
+    ];
+    #[rustfmt::skip]
+    let cbeta = array![
+        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0],
+        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0],
+        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0],
+        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0]
+    ];
+    let oalpha = array![1.0];
+    let obeta = array![0.5];
+    let detunres = Determinant::<f64>::new(
+        &[calpha.clone(), cbeta.clone()],
+        &[oalpha.clone(), obeta.clone()],
+        &bao_s4,
+        &mol_s4,
+        SpinConstraint::Unrestricted(2),
+        1e-14,
+    );
+
+    let c4p1 = group.get_index(1).unwrap();
+    let tcalpha_ref = array![
+        [1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [-1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [-1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [0.0]
+    ];
+    let tcbeta_ref = -array![
+        [0.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [0.0],
+        [1.0]
+    ];
+    let tdetunres_c4p1_ref = Determinant::<f64>::new(
+        &[tcalpha_ref.clone(), tcbeta_ref.clone()],
+        &[oalpha.clone(), obeta.clone()],
+        &bao_s4,
+        &mol_s4,
+        SpinConstraint::Unrestricted(2),
+        1e-14,
+    );
+    let tdetunres_c4p1 = detunres.transform(&c4p1).unwrap();
+    assert_eq!(tdetunres_c4p1, tdetunres_c4p1_ref);
+
+    // Generalised spin constraint
+    #[rustfmt::skip]
+    let calpha2 = array![
+        [0.0], [ 0.0], [0.0], [ 1.0], [0.0],
+        [0.0], [ 0.0], [0.0], [-1.0], [0.0],
+        [0.0], [ 0.0], [0.0], [-1.0], [0.0],
+        [0.0], [ 0.0], [0.0], [ 1.0], [0.0]
+    ];
+    let calpha2_gen = concatenate!(Axis(0), calpha2, Array2::zeros((20, 1)));
+    #[rustfmt::skip]
+    let cbeta2 = array![
+        [0.0], [ 1.0], [0.0], [ 0.0], [0.0],
+        [0.0], [ 1.0], [0.0], [ 0.0], [0.0],
+        [0.0], [-1.0], [0.0], [ 0.0], [0.0],
+        [0.0], [-1.0], [0.0], [ 0.0], [0.0]
+    ];
+    let cbeta2_gen = concatenate!(Axis(0), Array2::zeros((20, 1)), cbeta2);
+    let cgen = concatenate![Axis(1), calpha2_gen, cbeta2_gen];
+    let ogen = array![0.5, 1.0];
+    let detgen = Determinant::<f64>::new(
+        &[cgen.clone()],
+        &[ogen.clone()],
+        &bao_s4,
+        &mol_s4,
+        SpinConstraint::Generalised(2),
+        1e-14,
+    );
+
+    let tcalpha2_gen = concatenate!(Axis(0), cbeta2, Array2::zeros((20, 1)));
+    let tcbeta2_gen = concatenate!(Axis(0), Array2::zeros((20, 1)), calpha2);
+    let tcgen_ref = concatenate![Axis(1), tcalpha2_gen, tcbeta2_gen];
+    let tdetgen_c4p1_ref = Determinant::<f64>::new(
+        &[tcgen_ref],
+        &[ogen.clone()],
+        &bao_s4,
+        &mol_s4,
+        SpinConstraint::Generalised(2),
+        1e-14,
+    );
+    let tdetgen_c4p1 = detgen.transform(&c4p1).unwrap();
+    assert_eq!(tdetgen_c4p1, tdetgen_c4p1_ref);
+
+    // S1(+0.000, +0.000, +1.000)
+    let s1p1 = group.get_index(11).unwrap();
+    let tdetgen_s1p1_ref = Determinant::<f64>::new(
+        &[-cgen.clone()],
+        &[ogen.clone()],
+        &bao_s4,
+        &mol_s4,
+        SpinConstraint::Generalised(2),
+        1e-14,
+    );
+    let tdetgen_s1p1 = detgen.transform(&s1p1).unwrap();
+    assert_eq!(tdetgen_s1p1, tdetgen_s1p1_ref);
+}
+
+#[test]
+fn test_determinant_transformation_b3_real_timerev() {
     // env_logger::init();
     let emap = ElementMap::new();
     let atm_b0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
@@ -263,153 +441,55 @@ fn test_determinant_transformation_b3_timerev() {
 }
 
 #[test]
-fn test_determinant_transformation_s4_mixed() {
-    env_logger::init();
+fn test_determinant_transformation_c2_complex_timerev() {
+    // env_logger::init();
     let emap = ElementMap::new();
-    let atm_s0 = Atom::from_xyz("S +1.0 +1.0 0.0", &emap, 1e-7).unwrap();
-    let atm_s1 = Atom::from_xyz("S -1.0 +1.0 0.0", &emap, 1e-7).unwrap();
-    let atm_s2 = Atom::from_xyz("S -1.0 -1.0 0.0", &emap, 1e-7).unwrap();
-    let atm_s3 = Atom::from_xyz("S +1.0 -1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_c0 = Atom::from_xyz("C 1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_c1 = Atom::from_xyz("C 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bsd_p = BasisShell::new(2, ShellOrder::Pure(true));
+    let bsp_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
 
-    let batm_s0 = BasisAtom::new(&atm_s0, &[bsd_p.clone()]);
-    let batm_s1 = BasisAtom::new(&atm_s1, &[bsd_p.clone()]);
-    let batm_s2 = BasisAtom::new(&atm_s2, &[bsd_p.clone()]);
-    let batm_s3 = BasisAtom::new(&atm_s3, &[bsd_p.clone()]);
+    let batm_c0 = BasisAtom::new(&atm_c0, &[bsp_c.clone()]);
+    let batm_c1 = BasisAtom::new(&atm_c1, &[bsp_c.clone()]);
 
-    let bao_s4 = BasisAngularOrder::new(&[batm_s0, batm_s1, batm_s2, batm_s3]);
-    let mol_s4 = Molecule::from_atoms(
-        &[
-            atm_s0.clone(),
-            atm_s1.clone(),
-            atm_s2.clone(),
-            atm_s3.clone(),
-        ],
-        1e-7,
-    )
-    .recentre();
+    let bao_c2 = BasisAngularOrder::new(&[batm_c0, batm_c1]);
+    let mol_c2 = Molecule::from_atoms(&[atm_c0.clone(), atm_c1.clone()], 1e-7).recentre();
 
-    let presym = PreSymmetry::builder()
-        .moi_threshold(1e-7)
-        .molecule(&mol_s4, true)
-        .build()
-        .unwrap();
-    let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    let c4p1 = group.get_index(1).unwrap();
-
-    // Unrestricted spin constraint
     #[rustfmt::skip]
     let calpha = array![
-        [ 1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0],
-        [-1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0],
-        [ 1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0],
-        [-1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0]
+        [C128::new( 1.0, 0.0), C128::new(1.0,  2.5)], [C128::from(0.0), C128::new(0.0, -3.4)], [C128::from(0.0), C128::from(0.2)],
+        [C128::new(-1.0, 0.0), C128::new(1.0, -2.5)], [C128::from(0.0), C128::new(0.0, -3.4)], [C128::from(0.0), C128::from(0.2)]
     ];
+    let calpha_gen = concatenate!(Axis(0), calpha, Array2::zeros((6, 2)));
     #[rustfmt::skip]
     let cbeta = array![
-        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0],
-        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0],
-        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0],
-        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0]
+        [C128::new( 1.0, 2.0), C128::new(2.0,  3.9)], [C128::from(1.0), C128::new(0.0,  0.0)], [C128::from(0.0), C128::from(0.0)],
+        [C128::new( 2.0, 4.0), C128::new(2.0, -3.9)], [C128::from(1.0), C128::new(0.0,  0.0)], [C128::from(0.0), C128::from(0.0)]
     ];
-    let oalpha = array![1.0];
-    let obeta = array![0.5];
-    let detunres = Determinant::<f64>::new(
-        &[calpha.clone(), cbeta.clone()],
-        &[oalpha.clone(), obeta.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Unrestricted(2),
-        1e-14,
-    );
+    let cbeta_gen = concatenate!(Axis(0), Array2::zeros((6, 2)), cbeta);
+    let cgen = concatenate![Axis(1), calpha_gen, cbeta_gen];
+    let ogen = array![1.0, 1.0, 1.0, 1.0];
 
-    let c4p1 = group.get_index(1).unwrap();
-    let tcalpha_ref = array![
-        [ 1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0],
-        [-1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0],
-        [ 1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0],
-        [-1.0], [ 0.0], [ 0.0], [ 0.0], [ 0.0]
-    ];
-    let tcbeta_ref = -array![
-        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0],
-        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0],
-        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0],
-        [ 0.0], [ 0.0], [ 0.0], [ 0.0], [ 1.0]
-    ];
-    let tdetunres_c4p1_ref = Determinant::<f64>::new(
-        &[tcalpha_ref.clone(), tcbeta_ref.clone()],
-        &[oalpha.clone(), obeta.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Unrestricted(2),
-        1e-14,
-    );
-    let tdetunres_c4p1 = detunres.transform(&c4p1).unwrap();
-    assert_eq!(tdetunres_c4p1, tdetunres_c4p1_ref);
-
-    // Generalised spin constraint
-    #[rustfmt::skip]
-    let calpha2 = array![
-        [0.0], [ 0.0], [0.0], [ 1.0], [0.0],
-        [0.0], [ 0.0], [0.0], [-1.0], [0.0],
-        [0.0], [ 0.0], [0.0], [-1.0], [0.0],
-        [0.0], [ 0.0], [0.0], [ 1.0], [0.0]
-    ];
-    let calpha2_gen = concatenate!(
-        Axis(0), calpha2, Array2::zeros((20, 1))
-    );
-    #[rustfmt::skip]
-    let cbeta2 = array![
-        [0.0], [ 1.0], [0.0], [ 0.0], [0.0],
-        [0.0], [ 1.0], [0.0], [ 0.0], [0.0],
-        [0.0], [-1.0], [0.0], [ 0.0], [0.0],
-        [0.0], [-1.0], [0.0], [ 0.0], [0.0]
-    ];
-    let cbeta2_gen = concatenate!(
-        Axis(0), Array2::zeros((20, 1)), cbeta2
-    );
-    let cgen = concatenate![Axis(1), calpha2_gen, cbeta2_gen];
-    let ogen = array![0.5, 1.0];
-    let detgen = Determinant::<f64>::new(
-        &[cgen.clone()],
+    let detgen = Determinant::<C128>::new(
+        &[cgen],
         &[ogen.clone()],
-        &bao_s4,
-        &mol_s4,
+        &bao_c2,
+        &mol_c2,
         SpinConstraint::Generalised(2),
         1e-14,
     );
 
-    let tcalpha2_gen = concatenate!(
-        Axis(0), cbeta2, Array2::zeros((20, 1))
-    );
-    let tcbeta2_gen = concatenate!(
-        Axis(0), Array2::zeros((20, 1)), calpha2
-    );
-    let tcgen_ref = concatenate![Axis(1), tcalpha2_gen, tcbeta2_gen];
-    let tdetgen_c4p1_ref = Determinant::<f64>::new(
+    let tcalpha_gen_ref = concatenate!(Axis(0), Array2::zeros((6, 2)), calpha.map(|x| x.conj()));
+    let tcbeta_gen_ref = concatenate!(Axis(0), -cbeta.map(|x| x.conj()), Array2::zeros((6, 2)));
+    let tcgen_ref = concatenate![Axis(1), tcalpha_gen_ref, tcbeta_gen_ref];
+    let tdetgen_tr_ref = Determinant::<C128>::new(
         &[tcgen_ref],
         &[ogen.clone()],
-        &bao_s4,
-        &mol_s4,
+        &bao_c2,
+        &mol_c2,
         SpinConstraint::Generalised(2),
         1e-14,
     );
-    let tdetgen_c4p1 = detgen.transform(&c4p1).unwrap();
-    assert_eq!(tdetgen_c4p1, tdetgen_c4p1_ref);
-
-    // S1(+0.000, +0.000, +1.000)
-    let s1p1 = group.get_index(11).unwrap();
-    let tdetgen_s1p1_ref = Determinant::<f64>::new(
-        &[-cgen.clone()],
-        &[ogen.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Generalised(2),
-        1e-14,
-    );
-    let tdetgen_s1p1 = detgen.transform(&s1p1).unwrap();
-    assert_eq!(tdetgen_s1p1, tdetgen_s1p1_ref);
+    let tdetgen_tr = detgen.transform_timerev().unwrap();
+    assert_eq!(tdetgen_tr, tdetgen_tr_ref);
 }
