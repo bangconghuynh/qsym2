@@ -504,25 +504,32 @@ impl SymmetryElement {
     /// classify certain improper rotation axes into inversion centres or mirror
     /// planes.
     ///
+    /// Some additional symbols that can be unconventional include:
+    ///
+    /// * `θ`: time reversal,
+    /// * `Σ`: the normal spin rotation associated with the proper rotation of this element,
+    /// * `QΣ`: the inverse spin rotation associated with the proper rotation of this element.
+    ///
+    /// See [`AssociatedSpinRotation`] for further information.
+    ///
     /// # Returns
     ///
     /// The standard symbol for this symmetry element.
     #[must_use]
     pub fn get_standard_symbol(&self) -> String {
+        let tr_sym = if self.kind.contains_time_reversal() { "θ·" } else { "" };
         let main_symbol: String = match self.kind {
-            SymmetryElementKind::Proper(tr) => {
-                format!("{}C", if tr { "θ·" } else { "" })
+            SymmetryElementKind::Proper(_) => {
+                format!("{tr_sym}C")
             }
-            SymmetryElementKind::ImproperMirrorPlane(tr) => {
-                let tr_sym = if tr { "θ·" } else { "" };
+            SymmetryElementKind::ImproperMirrorPlane(_) => {
                 if self.proper_order != ElementOrder::Inf && self.proper_power == Some(1) {
                     format!("{tr_sym}S")
                 } else {
                     format!("{tr_sym}σC")
                 }
             }
-            SymmetryElementKind::ImproperInversionCentre(tr) => {
-                let tr_sym = if tr { "θ·" } else { "" };
+            SymmetryElementKind::ImproperInversionCentre(_) => {
                 if self.proper_order != ElementOrder::Inf && self.proper_power == Some(1) {
                     format!("{tr_sym}Ṡ")
                 } else {
@@ -539,7 +546,12 @@ impl SymmetryElement {
         } else {
             String::new()
         };
-        format!("{main_symbol}{}{proper_power}", self.proper_order)
+        let sr_sym = match self.spinrot {
+            AssociatedSpinRotation::Ignored => "",
+            AssociatedSpinRotation::Active(true) => "·Σ",
+            AssociatedSpinRotation::Active(false) => "·QΣ",
+        };
+        format!("{main_symbol}{}{proper_power}{sr_sym}", self.proper_order)
     }
 
     /// Returns the detailed symbol for this symmetry element, which classifies
@@ -619,11 +631,17 @@ impl SymmetryElement {
             String::new()
         };
 
+        let sr_sym = match self.spinrot {
+            AssociatedSpinRotation::Ignored => "",
+            AssociatedSpinRotation::Active(true) => "·Σ",
+            AssociatedSpinRotation::Active(false) => "·QΣ",
+        };
         main_symbol
             + &self.additional_superscript
             + &order_string
             + &proper_power
             + &self.additional_subscript
+            + sr_sym
     }
 
     /// Returns a copy of the current improper symmetry element that has been
@@ -751,6 +769,26 @@ impl SymmetryElement {
                         .expect("Unable to construct a symmetry element.")
                 }
             }
+        }
+    }
+
+    /// Adds spin rotation to the current element if none is present.
+    ///
+    /// # Arguments
+    ///
+    /// * `normal` - A boolean indicating whether the added spin rotation is normal or inverse.
+    ///
+    /// # Returns
+    ///
+    /// A symmetry element with the added spin rotation if none is present, or `None` if the
+    /// current symmetry element already has an associated spin rotation.
+    pub fn add_spin_rotation(&self, normal: bool) -> Option<Self> {
+        if self.contains_active_spin_rotation() {
+            None
+        } else {
+            let mut element = self.clone();
+            element.spinrot = AssociatedSpinRotation::Active(normal);
+            Some(element)
         }
     }
 
