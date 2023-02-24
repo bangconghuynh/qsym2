@@ -22,6 +22,10 @@ pub use symmetry_operation::*;
 #[cfg(test)]
 mod symmetry_element_tests;
 
+// ====================================
+// Enum definitions and implementations
+// ====================================
+
 /// An enum to classify the types of symmetry element.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SymmetryElementKind {
@@ -75,6 +79,43 @@ impl SymmetryElementKind {
         }
     }
 }
+
+/// An enumerated type to signify whether a spatial symmetry operation has an associated spin
+/// rotation.
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
+pub enum AssociatedSpinRotation {
+    /// Variant indicating that no associated spin rotation shall be taken into account.
+    Ignored,
+
+    /// Variant indicating that the associated spin rotation shall be taken into account, with the
+    /// accompanying boolean indicating whether the spin rotation is **normal** (*i.e.* its rotation
+    /// angle is the same as that of the proper rotation in the spatial symmetry operation), or
+    /// **inverse** (*i.e. its rotation angle is $`\theta + 2\pi`$, where $`\theta`$ is the proper
+    /// rotation angle renormalised to be in the $`[0, 2\pi)`$ range).
+    Active(bool),
+}
+
+impl AssociatedSpinRotation {
+    /// Indicates if the associated spin rotation is an active spin rotation.
+    fn is_active_spin_rotation(&self) -> bool {
+        match self {
+            AssociatedSpinRotation::Active(_) => true,
+            AssociatedSpinRotation::Ignored => false,
+        }
+    }
+
+    /// Indicates if the associated spin rotation is an inverse spin rotation.
+    fn is_inverse_spin_rotation(&self) -> bool {
+        match self {
+            AssociatedSpinRotation::Active(false) => true,
+            AssociatedSpinRotation::Active(true) | AssociatedSpinRotation::Ignored => false,
+        }
+    }
+}
+
+// ======================================
+// Struct definitions and implementations
+// ======================================
 
 pub struct SymmetryElementKindConversionError(String);
 
@@ -206,8 +247,8 @@ pub struct SymmetryElement {
     /// Note that the definitions of [`Self::proper_fraction`] and
     /// [`Self::proper_angle`] differ, so that [`Self::proper_fraction`] can facilitate
     /// positive-only comparisons, whereas [`Self::proper_angle`] gives the rotation
-    /// angle in the conventional range that puts the identity rotation at the centre
-    /// of the range.
+    /// angle in the conventional range of $`(-\pi, +\pi]`$ that puts the identity rotation at
+    /// the centre of the range.
     #[builder(setter(custom), default = "self.calc_proper_angle()")]
     proper_angle: Option<f64>,
 
@@ -215,9 +256,12 @@ pub struct SymmetryElement {
     #[builder(setter(custom))]
     pub axis: Vector3<f64>,
 
-    /// The kind of the symmetry element.
+    /// The spatial and time-reversal kind of the symmetry element.
     #[builder(default = "SymmetryElementKind::Proper(false)")]
     pub kind: SymmetryElementKind,
+
+    #[builder(default = "AssociatedSpinRotation::Ignored")]
+    pub spinrot: AssociatedSpinRotation,
 
     /// A flag indicating whether the symmetry element is a generator of the
     /// group to which it belongs.
@@ -359,7 +403,20 @@ impl SymmetryElement {
         self.kind.contains_time_reversal()
     }
 
-    /// Checks if the symmetry element is proper or not.
+    /// Checks if the symmetry element contains an active spin rotation.
+    #[must_use]
+    fn contains_active_spin_rotation(&self) -> bool {
+        self.spinrot.is_active_spin_rotation()
+    }
+
+    /// Checks if the symmetry element contains an inverse spin rotation.
+    #[must_use]
+    fn contains_inverse_spin_rotation(&self) -> bool {
+        self.spinrot.is_inverse_spin_rotation()
+    }
+
+    /// Checks if the spatial part of the symmetry element is proper and has the specified
+    /// time-reversal attribute.
     ///
     /// # Arguments
     ///
@@ -367,7 +424,8 @@ impl SymmetryElement {
     ///
     /// # Returns
     ///
-    /// A flag indicating if the symmetry element is proper.
+    /// A flag indicating if the symmetry element is proper and has the specified time-reversal
+    /// attribute.
     #[must_use]
     pub fn is_proper(&self, tr: bool) -> bool {
         self.kind == SymmetryElementKind::Proper(tr)
@@ -387,7 +445,8 @@ impl SymmetryElement {
         self.kind == SymmetryElementKind::Proper(tr) && self.proper_fraction == Some(F::from(1))
     }
 
-    /// Checks if the symmetry element is an inversion centre.
+    /// Checks if the symmetry element is an inversion centre and has the specified time-reversal
+    /// attribute.
     ///
     /// # Arguments
     ///
@@ -395,7 +454,8 @@ impl SymmetryElement {
     ///
     /// # Returns
     ///
-    /// A flag indicating if this symmetry element is an inversion centre.
+    /// A flag indicating if this symmetry element is an inversion centre and has the specified
+    /// time-reversal attribute.
     #[must_use]
     pub fn is_inversion_centre(&self, tr: bool) -> bool {
         (self.kind == SymmetryElementKind::ImproperMirrorPlane(tr)
@@ -404,7 +464,8 @@ impl SymmetryElement {
                 && self.proper_fraction == Some(F::from(1)))
     }
 
-    /// Checks if the symmetry element is a binary rotation axis.
+    /// Checks if the symmetry element is a binary rotation axis and has the specified time-reversal
+    /// attribute.
     ///
     /// # Arguments
     ///
@@ -412,14 +473,16 @@ impl SymmetryElement {
     ///
     /// # Returns
     ///
-    /// A flag indicating if this symmetry element is a binary rotation axis.
+    /// A flag indicating if this symmetry element is a binary rotation axis and has the specified
+    /// time-reversal attribute.
     #[must_use]
     pub fn is_binary_rotation_axis(&self, tr: bool) -> bool {
         self.kind == SymmetryElementKind::Proper(tr)
             && self.proper_fraction == Some(F::new(1u32, 2u32))
     }
 
-    /// Checks if the symmetry element is a mirror plane.
+    /// Checks if the symmetry element is a mirror plane and has the specified time-reversal
+    /// attribute.
     ///
     /// # Arguments
     ///
@@ -427,7 +490,8 @@ impl SymmetryElement {
     ///
     /// # Returns
     ///
-    /// A flag indicating if this symmetry element is a mirror plane.
+    /// A flag indicating if this symmetry element is a mirror plane and has the specified
+    /// time-reversal attribute.
     #[must_use]
     pub fn is_mirror_plane(&self, tr: bool) -> bool {
         (self.kind == SymmetryElementKind::ImproperMirrorPlane(tr)
@@ -797,6 +861,10 @@ impl PartialEq for SymmetryElement {
     /// centre convention.
     #[allow(clippy::too_many_lines)]
     fn eq(&self, other: &Self) -> bool {
+        if self.spinrot != other.spinrot {
+            return false;
+        }
+
         if self.contains_time_reversal() != other.contains_time_reversal() {
             return false;
         }
@@ -926,6 +994,7 @@ impl Eq for SymmetryElement {}
 
 impl Hash for SymmetryElement {
     fn hash<H: Hasher>(&self, state: &mut H) {
+        self.spinrot.hash(state);
         let tr = self.contains_time_reversal();
         tr.hash(state);
         self.is_proper(tr).hash(state);

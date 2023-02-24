@@ -29,7 +29,7 @@ pub enum ImproperRotationKind {
 pub const IMSIG: ImproperRotationKind = ImproperRotationKind::MirrorPlane;
 pub const IMINV: ImproperRotationKind = ImproperRotationKind::InversionCentre;
 
-/// Returns the rotation angle adjusted to be in the interval $(-\pi, +\pi]$.
+/// Returns the rotation angle adjusted to be in the interval $`(-\pi, +\pi]`$.
 ///
 /// # Arguments
 ///
