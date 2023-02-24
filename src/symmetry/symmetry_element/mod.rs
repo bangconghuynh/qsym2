@@ -548,10 +548,10 @@ impl SymmetryElement {
         };
         let sr_sym = match self.spinrot {
             AssociatedSpinRotation::Ignored => "",
-            AssociatedSpinRotation::Active(true) => "·Σ",
-            AssociatedSpinRotation::Active(false) => "·QΣ",
+            AssociatedSpinRotation::Active(true) => "Σ·",
+            AssociatedSpinRotation::Active(false) => "QΣ·",
         };
-        format!("{main_symbol}{}{proper_power}{sr_sym}", self.proper_order)
+        format!("{sr_sym}{main_symbol}{}{proper_power}", self.proper_order)
     }
 
     /// Returns the detailed symbol for this symmetry element, which classifies
@@ -633,15 +633,15 @@ impl SymmetryElement {
 
         let sr_sym = match self.spinrot {
             AssociatedSpinRotation::Ignored => "",
-            AssociatedSpinRotation::Active(true) => "·Σ",
-            AssociatedSpinRotation::Active(false) => "·QΣ",
+            AssociatedSpinRotation::Active(true) => "Σ·",
+            AssociatedSpinRotation::Active(false) => "QΣ·",
         };
-        main_symbol
+        sr_sym.to_owned()
+            + &main_symbol
             + &self.additional_superscript
             + &order_string
             + &proper_power
             + &self.additional_subscript
-            + sr_sym
     }
 
     /// Returns a copy of the current improper symmetry element that has been
