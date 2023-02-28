@@ -4350,122 +4350,141 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
     );
     assert_eq!(c7_isr_p7, c7_isr_p7_r);
 
-    // // ============================
-    // // Improper symmetry operations
-    // // ============================
-    // let s1_element = SymmetryElement::builder()
-    //     .threshold(1e-14)
-    //     .proper_order(ElementOrder::Int(1))
-    //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 2.0))
-    //     .kind(SIG)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
-    //     .build()
-    //     .unwrap();
+    // ============================
+    // Improper symmetry operations
+    // ============================
+    let s1_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 2.0))
+        .kind(SIG)
+        .spinrot(AssociatedSpinRotation::Active(true))
+        .build()
+        .unwrap();
 
-    // let s1 = SymmetryOperation::builder()
-    //     .generating_element(s1_element.clone())
-    //     .power(1)
-    //     .build()
-    //     .unwrap();
+    let s1_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
 
-    // let s1q = s1.calc_quaternion();
-    // let s1r =
-    //     SymmetryOperation::from_quaternion(s1q, s1.is_proper(), s1_element.threshold, 10, false, false);
-    // assert_eq!(s1, s1r);
+    let s1_nsr_p1_q = s1_nsr_p1.calc_quaternion();
+    let s1_nsr_p1_r = SymmetryOperation::from_quaternion(
+        s1_nsr_p1_q,
+        s1_nsr_p1.is_proper(),
+        s1_nsr_element.threshold,
+        10,
+        false,
+        true,
+    );
+    assert_eq!(s1_nsr_p1, s1_nsr_p1_r);
 
-    // let s1pm4 = SymmetryOperation::builder()
-    //     .generating_element(s1_element.clone())
-    //     .power(-4)
-    //     .build()
-    //     .unwrap();
+    let s1_nsr_pm4 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(-4)
+        .build()
+        .unwrap();
 
-    // let s1pm4q = s1pm4.calc_quaternion();
-    // let s1pm4r = SymmetryOperation::from_quaternion(
-    //     s1pm4q,
-    //     s1pm4.is_proper(),
-    //     s1_element.threshold,
-    //     10,
-    //     false,
-    //     false,
-    // );
-    // assert_eq!(s1pm4, s1pm4r);
+    let s1_nsr_pm4_q = s1_nsr_pm4.calc_quaternion();
+    let s1_nsr_pm4_r = SymmetryOperation::from_quaternion(
+        s1_nsr_pm4_q,
+        s1_nsr_pm4.is_proper(),
+        s1_nsr_element.threshold,
+        10,
+        false,
+        true,
+    );
+    assert_eq!(s1_nsr_pm4, s1_nsr_pm4_r);
 
-    // let s2_element = SymmetryElement::builder()
-    //     .threshold(1e-14)
-    //     .proper_order(ElementOrder::Int(2))
-    //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 2.0))
-    //     .kind(SIG)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
-    //     .build()
-    //     .unwrap();
+    let s2_isr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 2.0))
+        .kind(SIG)
+        .spinrot(AssociatedSpinRotation::Active(false))
+        .build()
+        .unwrap();
 
-    // let s2 = SymmetryOperation::builder()
-    //     .generating_element(s2_element.clone())
-    //     .power(1)
-    //     .build()
-    //     .unwrap();
+    let s2_isr_p1 = SymmetryOperation::builder()
+        .generating_element(s2_isr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
 
-    // let s2q = s2.calc_quaternion();
-    // let s2r =
-    //     SymmetryOperation::from_quaternion(s2q, s2.is_proper(), s2_element.threshold, 10, false, false);
-    // assert_eq!(s2, s2r);
+    let s2_isr_p1_q = s2_isr_p1.calc_quaternion();
+    let s2_isr_p1_r = SymmetryOperation::from_quaternion(
+        s2_isr_p1_q,
+        s2_isr_p1.is_proper(),
+        s2_isr_element.threshold,
+        10,
+        false,
+        true,
+    );
+    assert_eq!(s2_isr_p1, s2_isr_p1_r);
 
-    // let s2p2 = SymmetryOperation::builder()
-    //     .generating_element(s2_element.clone())
-    //     .power(2)
-    //     .build()
-    //     .unwrap();
+    let s2_isr_p2 = SymmetryOperation::builder()
+        .generating_element(s2_isr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
 
-    // let s2p2q = s2p2.calc_quaternion();
-    // let s2p2r = SymmetryOperation::from_quaternion(
-    //     s2p2q,
-    //     s2p2.is_proper(),
-    //     s2_element.threshold,
-    //     10,
-    //     false,
-    //     false,
-    // );
-    // assert_eq!(s2p2, s2p2r);
+    let s2_isr_p2_q = s2_isr_p2.calc_quaternion();
+    let s2_isr_p2_r = SymmetryOperation::from_quaternion(
+        s2_isr_p2_q,
+        s2_isr_p2.is_proper(),
+        s2_isr_element.threshold,
+        10,
+        false,
+        true,
+    );
+    assert_eq!(s2_isr_p2, s2_isr_p2_r);
+    assert!(!s2_isr_p2_r.contains_inverse_spin_rotation());
 
-    // let s3_element = SymmetryElement::builder()
-    //     .threshold(1e-14)
-    //     .proper_order(ElementOrder::new(3.0, 1e-14))
-    //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
-    //     .kind(SIG)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
-    //     .build()
-    //     .unwrap();
+    let s3_isr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::new(3.0, 1e-14))
+        .proper_power(1)
+        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SIG)
+        .spinrot(AssociatedSpinRotation::Active(false))
+        .build()
+        .unwrap();
 
-    // let s3 = SymmetryOperation::builder()
-    //     .generating_element(s3_element.clone())
-    //     .power(1)
-    //     .build()
-    //     .unwrap();
+    let s3_isr_p1 = SymmetryOperation::builder()
+        .generating_element(s3_isr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
 
-    // let s3q = s3.calc_quaternion();
-    // let s3r =
-    //     SymmetryOperation::from_quaternion(s3q, s3.is_proper(), s3_element.threshold, 10, false, false);
-    // assert_eq!(s3, s3r);
+    let s3_isr_p1_q = s3_isr_p1.calc_quaternion();
+    let s3_isr_p1_r = SymmetryOperation::from_quaternion(
+        s3_isr_p1_q,
+        s3_isr_p1.is_proper(),
+        s3_isr_element.threshold,
+        10,
+        false,
+        true,
+    );
+    assert_eq!(s3_isr_p1, s3_isr_p1_r);
 
-    // let s3p2 = SymmetryOperation::builder()
-    //     .generating_element(s3_element.clone())
-    //     .power(2)
-    //     .build()
-    //     .unwrap();
+    let s3_isr_p2 = SymmetryOperation::builder()
+        .generating_element(s3_isr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
 
-    // let s3p2q = s3p2.calc_quaternion();
-    // let s3p2r = SymmetryOperation::from_quaternion(
-    //     s3p2q,
-    //     s3p2.is_proper(),
-    //     s3_element.threshold,
-    //     10,
-    //     false,
-    //     false,
-    // );
-    // assert_eq!(s3p2, s3p2r);
+    let s3_isr_p2_q = s3_isr_p2.calc_quaternion();
+    let s3_isr_p2_r = SymmetryOperation::from_quaternion(
+        s3_isr_p2_q,
+        s3_isr_p2.is_proper(),
+        s3_isr_element.threshold,
+        10,
+        false,
+        true,
+    );
+    assert_eq!(s3_isr_p2, s3_isr_p2_r);
 
     // let s3pm1 = SymmetryOperation::builder()
     //     .generating_element(s3_element.clone())
@@ -4730,6 +4749,7 @@ fn test_symmetry_operation_spin_rotation_to_quaternion() {
         .power(1)
         .build()
         .unwrap();
+    assert!(s3_isr_p1.contains_inverse_spin_rotation());
 
     let (s3_isr_p1_sca, s3_isr_p1_vec) = s3_isr_p1.calc_quaternion();
     approx::assert_relative_eq!(
@@ -4750,17 +4770,18 @@ fn test_symmetry_operation_spin_rotation_to_quaternion() {
         .power(2)
         .build()
         .unwrap();
+    assert!(s3_isr_p2.contains_inverse_spin_rotation());
 
     let (s3_isr_p2_sca, s3_isr_p2_vec) = s3_isr_p2.calc_quaternion();
     approx::assert_relative_eq!(
         s3_isr_p2_sca,
-        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
+        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
         epsilon = s3_isr_element.threshold,
         max_relative = s3_isr_element.threshold
     );
     approx::assert_relative_eq!(
         s3_isr_p2_vec,
-        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
+        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
             / (6.0f64.sqrt()),
         epsilon = s3_isr_element.threshold,
         max_relative = s3_isr_element.threshold
@@ -4771,6 +4792,7 @@ fn test_symmetry_operation_spin_rotation_to_quaternion() {
         .power(3)
         .build()
         .unwrap();
+    assert!(s3_isr_p3.contains_inverse_spin_rotation());
 
     let (s3_isr_p3_sca, s3_isr_p3_vec) = s3_isr_p3.calc_quaternion();
     approx::assert_relative_eq!(
@@ -4785,6 +4807,19 @@ fn test_symmetry_operation_spin_rotation_to_quaternion() {
         epsilon = s3_isr_element.threshold,
         max_relative = s3_isr_element.threshold
     );
+
+    for i in 4..=12 {
+        let s3_isr_pi = SymmetryOperation::builder()
+            .generating_element(s3_isr_element.clone())
+            .power(i)
+            .build()
+            .unwrap();
+        if i <= 6 {
+            assert!(s3_isr_pi.contains_inverse_spin_rotation());
+        } else {
+            assert!(!s3_isr_pi.contains_inverse_spin_rotation());
+        }
+    }
 
     let sd3_nsr_element = SymmetryElement::builder()
         .threshold(1e-14)

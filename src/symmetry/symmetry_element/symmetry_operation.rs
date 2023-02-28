@@ -505,6 +505,10 @@ impl SymmetryOperation {
             }
             SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
         };
+        assert_eq!(
+            self.contains_inverse_spin_rotation(),
+            c_self.contains_inverse_spin_rotation(),
+        );
 
         // We only need the absolute value of the angle. Its sign information is
         // encoded in the pole.
@@ -668,6 +672,10 @@ impl SymmetryOperation {
         let c_element = self
             .generating_element
             .convert_to_improper_kind(improper_kind, true);
+        assert_eq!(
+            self.generating_element.contains_inverse_spin_rotation(),
+            c_element.contains_inverse_spin_rotation()
+        );
         Self::builder()
             .generating_element(c_element)
             .power(self.power)
@@ -799,10 +807,10 @@ impl FiniteOrder for SymmetryOperation {
             } else {
                 2 * denom
             };
-        if !self.contains_active_spin_rotation() {
-            spatial_order
+        if self.contains_active_spin_rotation() {
+            2 * spatial_order
         } else {
-            2 * denom
+            spatial_order
         }
     }
 }
@@ -1015,15 +1023,32 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     }
 
     fn contains_inverse_spin_rotation(&self) -> bool {
-        let c_self = if self.is_proper() {
-            self.clone()
-        } else {
-            self.convert_to_improper_kind(&INV)
+        // The following is wrong, because `self.is_proper()` takes into account the power applied
+        // to the spatial part, but not yet to the spin rotation part. Then, for example,
+        // [QΣ·S3(+0.816, -0.408, +0.408)]^2 would become Σ'·[C3(+0.816, -0.408, +0.408)]^2 where
+        // Σ' is the associated spin rotation of [C3(+0.816, -0.408, +0.408)]^2, which is not the
+        // same as Σ^2.
+        // let c_self = if self.is_proper() {
+        //     self.clone()
+        // } else {
+        //     self.convert_to_improper_kind(&INV)
+        // };
+        let c_self = match self.generating_element.kind {
+            SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
+                self.clone()
+            }
+            SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
         };
         if c_self.contains_active_spin_rotation() {
-            let inverse_from_spinrot = if c_self.generating_element.is_nonsr_identity(false)
+            let spatial_proper_identity = c_self.generating_element.is_nonsr_identity(false)
                 || c_self.generating_element.is_nonsr_identity(true)
-            {
+                || c_self.generating_element.is_nonsr_inversion_centre(false)
+                || c_self.generating_element.is_nonsr_inversion_centre(true);
+            let inverse_from_spinrot = if spatial_proper_identity {
+                // The proper part of the generating element is the spatial identity, for which the
+                // associated spin rotation is also the spin rotation identity. In this case, no
+                // matter the value of proper power, the associated spin rotation always remains
+                // the identity.
                 false
             } else {
                 c_self
