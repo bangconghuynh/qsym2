@@ -627,6 +627,10 @@ impl<R: Clone> CollectionSymbol for SymmetryClassSymbol<R> {
 impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
     for SymmetryClassSymbol<R>
 {
+    // ============
+    // Spatial part
+    // ============
+
     /// Checks if this class is proper.
     ///
     /// # Returns
@@ -638,6 +642,38 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
             .expect("No representative element found for this class.")
             .is_proper()
     }
+
+    fn is_spatial_identity(&self) -> bool {
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_spatial_identity()
+    }
+
+    fn is_spatial_binary_rotation(&self) -> bool {
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_spatial_binary_rotation()
+    }
+
+    fn is_spatial_inversion(&self) -> bool {
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_spatial_inversion()
+    }
+
+    fn is_spatial_reflection(&self) -> bool {
+        self.representative
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .is_spatial_reflection()
+    }
+
+    // ==================
+    // Time-reversal part
+    // ==================
 
     /// Checks if this class is antiunitary.
     ///
@@ -651,101 +687,129 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
             .is_antiunitary()
     }
 
-    /// Checks if this class is the identity class.
+    // ==================
+    // Spin rotation part
+    // ==================
+
+    /// Checks if this class contains an active associated spin rotation (normal or inverse).
     ///
     /// # Returns
     ///
-    /// A flag indicating if this class is the identity class.
-    fn is_identity(&self) -> bool {
+    /// A flag indicating if this class contains an active associated spin rotation.
+    fn contains_active_spin_rotation(&self) -> bool {
         self.representative
             .as_ref()
             .expect("No representative element found for this class.")
-            .is_identity()
+            .contains_active_spin_rotation()
     }
 
-    /// Checks if this class is the inversion class.
+    /// Checks if this class contains an active and inverse associated spin rotation.
     ///
     /// # Returns
     ///
-    /// A flag indicating if this class is the inversion class.
-    fn is_inversion(&self) -> bool {
+    /// A flag indicating if this class contains an active and inverse associated spin rotation.
+    fn contains_inverse_spin_rotation(&self) -> bool {
         self.representative
             .as_ref()
             .expect("No representative element found for this class.")
-            .is_inversion()
+            .contains_inverse_spin_rotation()
     }
 
-    /// Checks if this class is a binary rotation class.
-    ///
-    /// # Returns
-    ///
-    /// A flag indicating if this class is a binary rotation class.
-    fn is_binary_rotation(&self) -> bool {
-        self.representative
-            .as_ref()
-            .expect("No representative element found for this class.")
-            .is_binary_rotation()
-    }
+    ///// Checks if this class is the identity class.
+    /////
+    ///// # Returns
+    /////
+    ///// A flag indicating if this class is the identity class.
+    //fn is_identity(&self) -> bool {
+    //    self.representative
+    //        .as_ref()
+    //        .expect("No representative element found for this class.")
+    //        .is_identity()
+    //}
 
-    /// Checks if this class is a reflection class.
-    ///
-    /// # Returns
-    ///
-    /// A flag indicating if this class is a reflection class.
-    fn is_reflection(&self) -> bool {
-        self.representative
-            .as_ref()
-            .expect("No representative element found for this class.")
-            .is_reflection()
-    }
+    ///// Checks if this class is the inversion class.
+    /////
+    ///// # Returns
+    /////
+    ///// A flag indicating if this class is the inversion class.
+    //fn is_inversion(&self) -> bool {
+    //    self.representative
+    //        .as_ref()
+    //        .expect("No representative element found for this class.")
+    //        .is_inversion()
+    //}
 
-    /// Checks if this class is a pure time-reversal class.
-    ///
-    /// # Returns
-    ///
-    /// A flag indicating if this class is a pure time-reversal class.
-    fn is_time_reversal(&self) -> bool {
-        self.representative
-            .as_ref()
-            .expect("No representative element found for this class.")
-            .is_time_reversal()
-    }
+    ///// Checks if this class is a binary rotation class.
+    /////
+    ///// # Returns
+    /////
+    ///// A flag indicating if this class is a binary rotation class.
+    //fn is_binary_rotation(&self) -> bool {
+    //    self.representative
+    //        .as_ref()
+    //        .expect("No representative element found for this class.")
+    //        .is_binary_rotation()
+    //}
 
-    /// Checks if this class is the time-reversed inversion class.
-    ///
-    /// # Returns
-    ///
-    /// A flag indicating if this class is the time-reversed inversion class.
-    fn is_tr_inversion(&self) -> bool {
-        self.representative
-            .as_ref()
-            .expect("No representative element found for this class.")
-            .is_tr_inversion()
-    }
+    ///// Checks if this class is a reflection class.
+    /////
+    ///// # Returns
+    /////
+    ///// A flag indicating if this class is a reflection class.
+    //fn is_reflection(&self) -> bool {
+    //    self.representative
+    //        .as_ref()
+    //        .expect("No representative element found for this class.")
+    //        .is_reflection()
+    //}
 
-    /// Checks if this class is a time-reversed binary rotation class.
-    ///
-    /// # Returns
-    ///
-    /// A flag indicating if this class is a time-reversed binary rotation class.
-    fn is_tr_binary_rotation(&self) -> bool {
-        self.representative
-            .as_ref()
-            .expect("No representative element found for this class.")
-            .is_tr_binary_rotation()
-    }
+    ///// Checks if this class is a pure time-reversal class.
+    /////
+    ///// # Returns
+    /////
+    ///// A flag indicating if this class is a pure time-reversal class.
+    //fn is_time_reversal(&self) -> bool {
+    //    self.representative
+    //        .as_ref()
+    //        .expect("No representative element found for this class.")
+    //        .is_time_reversal()
+    //}
 
-    /// Checks if this class is a time-reversed reflection class.
-    ///
-    /// # Returns
-    ///
-    /// A flag indicating if this class is a time-reversed reflection class.
-    fn is_tr_reflection(&self) -> bool {
-        self.representative
-            .as_ref()
-            .expect("No representative element found for this class.")
-            .is_tr_reflection()
-    }
+    ///// Checks if this class is the time-reversed inversion class.
+    /////
+    ///// # Returns
+    /////
+    ///// A flag indicating if this class is the time-reversed inversion class.
+    //fn is_tr_inversion(&self) -> bool {
+    //    self.representative
+    //        .as_ref()
+    //        .expect("No representative element found for this class.")
+    //        .is_tr_inversion()
+    //}
+
+    ///// Checks if this class is a time-reversed binary rotation class.
+    /////
+    ///// # Returns
+    /////
+    ///// A flag indicating if this class is a time-reversed binary rotation class.
+    //fn is_tr_binary_rotation(&self) -> bool {
+    //    self.representative
+    //        .as_ref()
+    //        .expect("No representative element found for this class.")
+    //        .is_tr_binary_rotation()
+    //}
+
+    ///// Checks if this class is a time-reversed reflection class.
+    /////
+    ///// # Returns
+    /////
+    ///// A flag indicating if this class is a time-reversed reflection class.
+    //fn is_tr_reflection(&self) -> bool {
+    //    self.representative
+    //        .as_ref()
+    //        .expect("No representative element found for this class.")
+    //        .is_tr_reflection()
+    //}
 }
 
 impl<R: FiniteOrder + Clone> FiniteOrder for SymmetryClassSymbol<R> {

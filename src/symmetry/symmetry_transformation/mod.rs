@@ -199,7 +199,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         &mut self,
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
-        let rmat = symop.get_3d_matrix();
+        let rmat = symop.get_3d_spatial_matrix();
         let perm = self.permute_sites(symop)?;
         self.transform_spatial_mut(&rmat, Some(&perm));
         if symop.is_antiunitary() {
