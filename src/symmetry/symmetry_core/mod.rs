@@ -17,7 +17,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    SymmetryElement, SymmetryElementKind, ROT, SIG, TRROT, TRSIG,
+    AssociatedSpinRotation, SymmetryElement, SymmetryElementKind, ROT, SIG, TRROT, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
@@ -323,6 +323,7 @@ impl Symmetry {
             .proper_power(1)
             .axis(Vector3::new(0.0, 0.0, 1.0))
             .kind(SymmetryElementKind::Proper(false))
+            .spinrot(AssociatedSpinRotation::Ignored)
             .build()
             .expect("Unable to construct the identity element.");
         self.add_proper(ORDER_1, c1.axis, false, presym.dist_threshold, false);
@@ -449,6 +450,7 @@ impl Symmetry {
             .proper_power(1)
             .axis(positive_axis)
             .kind(SymmetryElementKind::Proper(tr))
+            .spinrot(AssociatedSpinRotation::Ignored)
             .generator(generator)
             .build()
             .expect("Unable to construct a proper element.");
@@ -569,6 +571,7 @@ impl Symmetry {
                 .proper_power(1)
                 .axis(positive_axis)
                 .kind(kind.to_tr(tr))
+                .spinrot(AssociatedSpinRotation::Ignored)
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
@@ -584,6 +587,7 @@ impl Symmetry {
                 .proper_power(1)
                 .axis(positive_axis)
                 .kind(kind.to_tr(tr))
+                .spinrot(AssociatedSpinRotation::Ignored)
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
@@ -1114,6 +1118,7 @@ impl Symmetry {
                             .proper_power(1)
                             .axis(proper_generator.axis)
                             .kind(proper_generator.kind.clone())
+                            .spinrot(proper_generator.spinrot.clone())
                             .additional_superscript(proper_generator.additional_superscript.clone())
                             .additional_subscript(proper_generator.additional_subscript.clone())
                             .build()
@@ -1194,6 +1199,7 @@ impl Symmetry {
                                 .proper_power(1)
                                 .axis(tr_proper_generator.axis)
                                 .kind(tr_proper_generator.kind.clone())
+                                .spinrot(tr_proper_generator.spinrot.clone())
                                 .additional_superscript(
                                     tr_proper_generator.additional_superscript.clone(),
                                 )
@@ -1276,6 +1282,7 @@ impl Symmetry {
                                 .proper_power(1)
                                 .axis(improper_generator.axis)
                                 .kind(improper_generator.kind.clone())
+                                .spinrot(improper_generator.spinrot.clone())
                                 .additional_superscript(
                                     improper_generator.additional_superscript.clone(),
                                 )
@@ -1361,6 +1368,7 @@ impl Symmetry {
                                 .proper_power(1)
                                 .axis(tr_improper_generator.axis)
                                 .kind(tr_improper_generator.kind.clone())
+                                .spinrot(tr_improper_generator.spinrot.clone())
                                 .additional_superscript(
                                     tr_improper_generator.additional_superscript.clone(),
                                 )
@@ -1509,14 +1517,8 @@ impl Symmetry {
             (
                 op.is_antiunitary(),
                 !op.is_proper(),
-                !(op.is_identity()
-                    || op.is_inversion()
-                    || op.is_time_reversal()
-                    || op.is_tr_inversion()),
-                op.is_binary_rotation()
-                    || op.is_tr_binary_rotation()
-                    || op.is_reflection()
-                    || op.is_tr_reflection(),
+                !(op.is_spatial_identity() || op.is_spatial_inversion()),
+                op.is_spatial_binary_rotation() || op.is_spatial_reflection(),
                 -(i64::try_from(
                     *op.total_proper_fraction
                         .expect("No total proper fractions found.")

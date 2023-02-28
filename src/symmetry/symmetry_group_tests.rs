@@ -16,7 +16,9 @@ use crate::group::{
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryOperation, ROT};
+use crate::symmetry::symmetry_element::{
+    AssociatedSpinRotation, SymmetryElement, SymmetryOperation, ROT,
+};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
@@ -33,6 +35,7 @@ fn test_abstract_group_creation() {
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 2.0))
         .kind(ROT)
+        .spinrot(AssociatedSpinRotation::Ignored)
         .build()
         .unwrap();
 
@@ -57,6 +60,7 @@ fn test_abstract_group_creation() {
         .proper_power(1)
         .axis(Vector3::new(1.0, 0.5, 2.0))
         .kind(ROT)
+        .spinrot(AssociatedSpinRotation::Ignored)
         .build()
         .unwrap();
 

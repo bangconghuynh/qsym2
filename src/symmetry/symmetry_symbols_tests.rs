@@ -5,7 +5,9 @@ use nalgebra::Vector3;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
-use crate::symmetry::symmetry_element::{SymmetryElement, SymmetryElementKind};
+use crate::symmetry::symmetry_element::{
+    AssociatedSpinRotation, SymmetryElement, SymmetryElementKind,
+};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_symbols::{
     MullikenIrcorepSymbol, MullikenIrrepSymbol, SymmetryClassSymbol,
@@ -36,6 +38,7 @@ fn test_symmetry_symbols_class() {
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::Proper(false))
+        .spinrot(AssociatedSpinRotation::Ignored)
         .build()
         .unwrap();
     let c3 = SymmetryOperation::builder()
@@ -54,6 +57,7 @@ fn test_symmetry_symbols_class() {
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane(false))
+        .spinrot(AssociatedSpinRotation::Ignored)
         .build()
         .unwrap();
     let i = SymmetryOperation::builder()
@@ -74,6 +78,7 @@ fn test_symmetry_symbols_class() {
         .proper_power(1)
         .axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane(false))
+        .spinrot(AssociatedSpinRotation::Ignored)
         .build()
         .unwrap();
     let s = SymmetryOperation::builder()

@@ -890,7 +890,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     fn is_spatial_inversion(&self) -> bool {
         !self.is_proper()
             && match self.generating_element.kind {
-                SymmetryElementKind::ImproperMirrorPlane(false) => {
+                SymmetryElementKind::ImproperMirrorPlane(_) => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
                         self.total_proper_fraction == Some(F::new(1u32, 2u32))
                     } else {
@@ -909,7 +909,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                         )
                     }
                 }
-                SymmetryElementKind::ImproperInversionCentre(false) => {
+                SymmetryElementKind::ImproperInversionCentre(_) => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
                         self.total_proper_fraction == Some(F::from(1u64))
                     } else {
@@ -947,7 +947,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     fn is_spatial_reflection(&self) -> bool {
         !self.is_proper()
             && match self.generating_element.kind {
-                SymmetryElementKind::ImproperMirrorPlane(false) => {
+                SymmetryElementKind::ImproperMirrorPlane(_) => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
                         self.total_proper_fraction == Some(F::from(1u64))
                     } else {
@@ -978,7 +978,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                         )
                     }
                 }
-                SymmetryElementKind::ImproperInversionCentre(false) => {
+                SymmetryElementKind::ImproperInversionCentre(_) => {
                     if let ElementOrder::Int(_) = self.generating_element.proper_order {
                         self.total_proper_fraction == Some(F::new(1u32, 2u32))
                     } else {
