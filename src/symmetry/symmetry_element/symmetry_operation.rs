@@ -520,8 +520,10 @@ impl SymmetryOperation {
                 && scalar_part <= 1.0 + self.generating_element.threshold
         );
         if self.contains_inverse_spin_rotation() {
+            println!("Calc Q for {self}: {abs_angle} {} => {}, {}", c_self.calc_pole().coords, -scalar_part, -vector_part);
             (-scalar_part, -vector_part)
         } else {
+            println!("Calc Q for {self}: {abs_angle} => {}, {}", scalar_part, vector_part);
             (scalar_part, vector_part)
         }
     }
@@ -1328,29 +1330,28 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
             rhs.contains_active_spin_rotation(),
             "`self` and `rhs` must both have or not have associated spin rotations."
         );
+        let sr = self.contains_active_spin_rotation();
         let (q1_s, q1_v) = self.calc_quaternion();
         let (q2_s, q2_v) = rhs.calc_quaternion();
 
         let q3_s = q1_s * q2_s - q1_v.dot(&q2_v);
         let q3_v = q1_s * q2_v + q2_s * q1_v + q1_v.cross(&q2_v);
 
-        let q3 = if q3_s >= 0.0 {
+        let q3 = if sr || q3_s >= 0.0 {
             (q3_s, q3_v)
         } else {
             (-q3_s, -q3_v)
         };
 
+        println!("Q1: {q1_s}, {q1_v:?}");
+        println!("Q2: {q2_s}, {q2_v:?}");
+        println!("Q3: {q3:?}");
+
         let proper = self.is_proper() == rhs.is_proper();
+        let tr = self.is_antiunitary() != rhs.is_antiunitary();
         let thresh = (self.generating_element.threshold * rhs.generating_element.threshold).sqrt();
         let max_trial_power = u32::MAX;
-        SymmetryOperation::from_quaternion(
-            q3,
-            proper,
-            thresh,
-            max_trial_power,
-            self.is_antiunitary() != rhs.is_antiunitary(),
-            self.contains_active_spin_rotation(),
-        )
+        SymmetryOperation::from_quaternion(q3, proper, thresh, max_trial_power, tr, sr)
     }
 }
 

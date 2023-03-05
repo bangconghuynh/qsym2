@@ -5425,6 +5425,330 @@ fn test_symmetry_operation_noncollinear_composition() {
 }
 
 #[test]
+fn test_symmetry_operation_spin_rotation_collinear_composition() {
+    // ==========================
+    // Proper symmetry operations
+    // ==========================
+    let c2_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .axis(Vector3::x())
+        .kind(ROT)
+        .spinrot(AssociatedSpinRotation::Active(true))
+        .build()
+        .unwrap();
+
+    let c2_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    println!("{}", &c2_nsr_p1 * &c2_nsr_p1);
+
+    // let c5_nsr_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(5))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(ROT)
+    //     .spinrot(AssociatedSpinRotation::Active(true))
+    //     .build()
+    //     .unwrap();
+
+    // let c5_nsr_p1 = SymmetryOperation::builder()
+    //     .generating_element(c5_nsr_element.clone())
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+
+    // let c5_nsr_pm1 = SymmetryOperation::builder()
+    //     .generating_element(c5_nsr_element.clone())
+    //     .power(-1)
+    //     .build()
+    //     .unwrap();
+    // let c5_nsr_p9 = SymmetryOperation::builder()
+    //     .generating_element(c5_nsr_element.clone())
+    //     .power(9)
+    //     .build()
+    //     .unwrap();
+    // let c5_nsr_p10 = SymmetryOperation::builder()
+    //     .generating_element(c5_nsr_element.clone())
+    //     .power(10)
+    //     .build()
+    //     .unwrap();
+    // // assert_eq!(c5_nsr_pm1, c5_nsr_p9);
+    // println!("{}", &c5_nsr_p1);
+    // println!("{}", &c5_nsr_pm1);
+    // println!("{}", &c5_nsr_p1 * &c5_nsr_p9);
+    // assert!((&c5_nsr_p1 * &c5_nsr_p9).is_identity());
+
+    // let c5_nsr_p2 = SymmetryOperation::builder()
+    //     .generating_element(c5_nsr_element.clone())
+    //     .power(2)
+    //     .build()
+    //     .unwrap();
+    // let c5_nsr_p4 = SymmetryOperation::builder()
+    //     .generating_element(c5_nsr_element.clone())
+    //     .power(4)
+    //     .build()
+    //     .unwrap();
+
+    // let c5_isr_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(5))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(ROT)
+    //     .spinrot(AssociatedSpinRotation::Active(false))
+    //     .build()
+    //     .unwrap();
+
+    // let c5_isr_p1 = SymmetryOperation::builder()
+    //     .generating_element(c5_isr_element.clone())
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+
+    // assert!((&c5_nsr_p2 * &c5_nsr_p4).contains_inverse_spin_rotation());
+    // assert_eq!(&c5_nsr_p2 * &c5_nsr_p4, c5_isr_p1);
+    // assert_eq!(&c5p2 * &c5pm1, c5);
+    // assert_eq!(&c5pm1 * &c5p2, c5);
+
+    // let c5p3 = SymmetryOperation::builder()
+    //     .generating_element(c5_element)
+    //     .power(3)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&c5pm1 * &c5pm1, c5p3);
+    // assert!((&c5p3 * &c5p2).is_identity());
+    // assert_eq!(&c5p3 * &c5p3, c5);
+
+    // let c7_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(7))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(ROT)
+    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .build()
+    //     .unwrap();
+
+    // let c7 = SymmetryOperation::builder()
+    //     .generating_element(c7_element.clone())
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+
+    // let c35_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(35))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(ROT)
+    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .build()
+    //     .unwrap();
+
+    // let c35p12 = SymmetryOperation::builder()
+    //     .generating_element(c35_element.clone())
+    //     .power(12)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&c5 * &c7, c35p12);
+
+    // let c7pm1 = SymmetryOperation::builder()
+    //     .generating_element(c7_element)
+    //     .power(-1)
+    //     .build()
+    //     .unwrap();
+
+    // let c35p2 = SymmetryOperation::builder()
+    //     .generating_element(c35_element)
+    //     .power(2)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&c5 * &c7pm1, c35p2);
+
+    // let c10_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(10))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(ROT)
+    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .build()
+    //     .unwrap();
+
+    // let c10 = SymmetryOperation::builder()
+    //     .generating_element(c10_element.clone())
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+
+    // let c10p3 = SymmetryOperation::builder()
+    //     .generating_element(c10_element)
+    //     .power(3)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&c5 * &c10, c10p3);
+
+    // // ============================
+    // // Improper symmetry operations
+    // // ============================
+    // let s5_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(5))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(SIG)
+    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .build()
+    //     .unwrap();
+
+    // let s5 = SymmetryOperation::builder()
+    //     .generating_element(s5_element.clone())
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&s5 * &s5, c5p2);
+
+    // let s5pp2_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(5))
+    //     .proper_power(2)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(SIG)
+    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .build()
+    //     .unwrap();
+
+    // let s5pp2 = SymmetryOperation::builder()
+    //     .generating_element(s5pp2_element)
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&s5 * &c5, s5pp2);
+    // assert_eq!(&s5pp2 * &s5pp2, c5pm1);
+
+    // let s5p3 = SymmetryOperation::builder()
+    //     .generating_element(s5_element.clone())
+    //     .power(3)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&s5 * &s5, c5p2);
+    // assert_eq!(&s5pp2 * &c5, s5p3);
+
+    // let s5p5 = SymmetryOperation::builder()
+    //     .generating_element(s5_element)
+    //     .power(5)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&(&s5pp2 * &s5pp2) * &s5, s5p5);
+
+    // let s8_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(8))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(SIG)
+    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .build()
+    //     .unwrap();
+
+    // let s8 = SymmetryOperation::builder()
+    //     .generating_element(s8_element)
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+
+    // let c40_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(40))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(ROT)
+    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .build()
+    //     .unwrap();
+
+    // let c40p13 = SymmetryOperation::builder()
+    //     .generating_element(c40_element)
+    //     .power(13)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&s5 * &s8, c40p13);
+
+    // let s40_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(40))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(SIG)
+    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .build()
+    //     .unwrap();
+
+    // let s40p21 = SymmetryOperation::builder()
+    //     .generating_element(s40_element)
+    //     .power(21)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&c40p13 * &s5, s40p21);
+
+    // let s1_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(1))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(SIG)
+    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .build()
+    //     .unwrap();
+
+    // let s1 = SymmetryOperation::builder()
+    //     .generating_element(s1_element)
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&s1 * &c5, s5);
+
+    // let s2_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(2))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(SIG)
+    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .build()
+    //     .unwrap();
+
+    // let s2 = SymmetryOperation::builder()
+    //     .generating_element(s2_element)
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+
+    // let sd5_element = SymmetryElement::builder()
+    //     .threshold(1e-12)
+    //     .proper_order(ElementOrder::Int(5))
+    //     .proper_power(1)
+    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .kind(INV)
+    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .build()
+    //     .unwrap();
+
+    // let sd5 = SymmetryOperation::builder()
+    //     .generating_element(sd5_element)
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(&s2 * &c5, sd5);
+}
+
+#[test]
 fn test_symmetry_operation_time_reversal() {
     let tc2x_element = SymmetryElement::builder()
         .threshold(1e-12)
