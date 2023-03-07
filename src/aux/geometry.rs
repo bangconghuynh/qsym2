@@ -107,6 +107,47 @@ pub fn get_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
     pole
 }
 
+/// Check if a rotation axis is in the positive hemisphere.
+///
+/// The definition of the positive hemisphere can be found in S.L. Altmann, Rotations,
+/// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005)
+/// (Chapter 9).
+///
+/// # Arguments
+///
+/// * axis - An axis of rotation.
+/// * thresh - Threshold for comparisons.
+///
+/// # Returns
+///
+/// Returns `true` if `axis` is in the positive hemisphere.
+///
+/// # Panics
+///
+/// Panics if the axis is a null vector.
+#[must_use]
+pub fn check_positive_pole(axis: &Vector3<f64>, thresh: f64) -> bool {
+    let normalised_axis = axis.normalize();
+    normalised_axis[2] > thresh
+        || (approx::relative_eq!(
+            normalised_axis[2],
+            0.0,
+            max_relative = thresh,
+            epsilon = thresh
+        ) && normalised_axis[0] > thresh)
+        || (approx::relative_eq!(
+            normalised_axis[2],
+            0.0,
+            max_relative = thresh,
+            epsilon = thresh
+        ) && approx::relative_eq!(
+            normalised_axis[0],
+            0.0,
+            max_relative = thresh,
+            epsilon = thresh
+        ) && normalised_axis[1] > thresh)
+}
+
 /// Determines the reduced fraction $`k/n`$ where $`k`$ and $`n`$ are both integers representing a
 /// proper rotation $`C_n^k`$ corresponding to a specified rotation angle.
 ///
