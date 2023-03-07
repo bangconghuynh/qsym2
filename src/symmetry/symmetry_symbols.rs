@@ -696,11 +696,11 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
     /// # Returns
     ///
     /// A flag indicating if this class contains an active associated spin rotation.
-    fn contains_active_spin_rotation(&self) -> bool {
+    fn is_su2(&self) -> bool {
         self.representative
             .as_ref()
             .expect("No representative element found for this class.")
-            .contains_active_spin_rotation()
+            .is_su2()
     }
 
     /// Checks if this class contains an active and inverse associated spin rotation.
@@ -708,11 +708,11 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
     /// # Returns
     ///
     /// A flag indicating if this class contains an active and inverse associated spin rotation.
-    fn contains_inverse_spin_rotation(&self) -> bool {
+    fn is_su2_class_1(&self) -> bool {
         self.representative
             .as_ref()
             .expect("No representative element found for this class.")
-            .contains_inverse_spin_rotation()
+            .is_su2_class_1()
     }
 
     ///// Checks if this class is the identity class.

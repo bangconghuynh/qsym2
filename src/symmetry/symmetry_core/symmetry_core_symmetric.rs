@@ -769,7 +769,7 @@ fn _add_sigmahcn(
     presym: &PreSymmetry,
     tr: bool,
 ) {
-    assert!(sigma_h.is_nonsr_mirror_plane(false) || sigma_h.is_nonsr_mirror_plane(true));
+    assert!(sigma_h.is_o3_mirror_plane(false) || sigma_h.is_o3_mirror_plane(true));
     for c_element in non_id_c_elements {
         if approx::relative_eq!(
             c_element.raw_axis.cross(&sigma_h.raw_axis).norm(),

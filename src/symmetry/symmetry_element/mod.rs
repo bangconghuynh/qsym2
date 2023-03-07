@@ -6,9 +6,9 @@ use approx;
 use derive_builder::Builder;
 use fraction;
 use log;
-use nalgebra::{Point3, Vector3};
+use nalgebra::Vector3;
 use num::integer::gcd;
-use num_traits::{ToPrimitive, Zero};
+use num_traits::Zero;
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
@@ -96,16 +96,17 @@ pub enum RotationGroup {
 }
 
 impl RotationGroup {
-    /// Indicates if the associated spin rotation is an active spin rotation.
-    fn is_active_spin_rotation(&self) -> bool {
+    /// Indicates if the rotation is in $`\mathsf{SU}(2)`$.
+    fn is_su2(&self) -> bool {
         match self {
             RotationGroup::SU2(_) => true,
             RotationGroup::SO3 => false,
         }
     }
 
-    /// Indicates if the associated spin rotation is an inverse spin rotation.
-    fn is_inverse_spin_rotation(&self) -> bool {
+    /// Indicates if the rotation is in $`\mathsf{SU}(2)`$ and connected to the
+    /// identity via a homotopy path of class 1.
+    fn is_su2_class_1(&self) -> bool {
         match self {
             RotationGroup::SU2(false) => true,
             RotationGroup::SU2(true) | RotationGroup::SO3 => false,
@@ -421,14 +422,14 @@ impl SymmetryElement {
 
     /// Checks if the symmetry element contains an active spin rotation.
     #[must_use]
-    fn contains_active_spin_rotation(&self) -> bool {
-        self.rotationgroup.is_active_spin_rotation()
+    fn is_su2(&self) -> bool {
+        self.rotationgroup.is_su2()
     }
 
     /// Checks if the symmetry element contains an inverse spin rotation.
     #[must_use]
-    fn contains_inverse_spin_rotation(&self) -> bool {
-        self.rotationgroup.is_inverse_spin_rotation()
+    fn is_su2_class_1(&self) -> bool {
+        self.rotationgroup.is_su2_class_1()
     }
 
     /// Checks if the spatial part of the symmetry element is proper and has the specified
@@ -443,7 +444,7 @@ impl SymmetryElement {
     /// A flag indicating if the symmetry element is proper and has the specified time-reversal
     /// attribute.
     #[must_use]
-    pub fn is_nonsr_proper(&self, tr: bool) -> bool {
+    pub fn is_o3_proper(&self, tr: bool) -> bool {
         self.kind == SymmetryElementKind::Proper(tr)
     }
 
@@ -459,7 +460,7 @@ impl SymmetryElement {
     /// A flag indicating if this symmetry element is spatially an identity element and has the
     /// specified time-reversal attribute.
     #[must_use]
-    pub fn is_nonsr_identity(&self, tr: bool) -> bool {
+    pub fn is_o3_identity(&self, tr: bool) -> bool {
         self.kind == SymmetryElementKind::Proper(tr) && self.proper_fraction == Some(F::zero())
     }
 
@@ -475,7 +476,7 @@ impl SymmetryElement {
     /// A flag indicating if this symmetry element is an inversion centre and has the specified
     /// time-reversal attribute.
     #[must_use]
-    pub fn is_nonsr_inversion_centre(&self, tr: bool) -> bool {
+    pub fn is_o3_inversion_centre(&self, tr: bool) -> bool {
         (self.kind == SymmetryElementKind::ImproperMirrorPlane(tr)
             && self.proper_fraction == Some(F::new(1u32, 2u32)))
             || (self.kind == SymmetryElementKind::ImproperInversionCentre(tr)
@@ -494,7 +495,7 @@ impl SymmetryElement {
     /// A flag indicating if this symmetry element is spatially a binary rotation axis and has the
     /// specified time-reversal attribute.
     #[must_use]
-    pub fn is_nonsr_binary_rotation_axis(&self, tr: bool) -> bool {
+    pub fn is_o3_binary_rotation_axis(&self, tr: bool) -> bool {
         self.kind == SymmetryElementKind::Proper(tr)
             && self.proper_fraction == Some(F::new(1u32, 2u32))
     }
@@ -511,7 +512,7 @@ impl SymmetryElement {
     /// A flag indicating if this symmetry element is spatially a mirror plane and has the
     /// specified time-reversal attribute.
     #[must_use]
-    pub fn is_nonsr_mirror_plane(&self, tr: bool) -> bool {
+    pub fn is_o3_mirror_plane(&self, tr: bool) -> bool {
         (self.kind == SymmetryElementKind::ImproperMirrorPlane(tr)
             && self.proper_fraction == Some(F::zero()))
             || (self.kind == SymmetryElementKind::ImproperInversionCentre(tr)
@@ -635,7 +636,7 @@ impl SymmetryElement {
     pub fn get_simplified_symbol(&self) -> String {
         let (main_symbol, needs_power) = match self.kind {
             SymmetryElementKind::Proper(tr) => {
-                if self.is_nonsr_identity(tr) {
+                if self.is_o3_identity(tr) {
                     if tr {
                         ("θ".to_owned(), false)
                     } else {
@@ -647,9 +648,9 @@ impl SymmetryElement {
             }
             SymmetryElementKind::ImproperMirrorPlane(tr) => {
                 let tr_sym = if tr { "θ·" } else { "" };
-                if self.is_nonsr_mirror_plane(tr) {
+                if self.is_o3_mirror_plane(tr) {
                     (format!("{tr_sym}σ"), false)
-                } else if self.is_nonsr_inversion_centre(tr) {
+                } else if self.is_o3_inversion_centre(tr) {
                     (format!("{tr_sym}i"), false)
                 } else if self.proper_order == ElementOrder::Inf
                     || *self
@@ -666,9 +667,9 @@ impl SymmetryElement {
             }
             SymmetryElementKind::ImproperInversionCentre(tr) => {
                 let tr_sym = if tr { "θ·" } else { "" };
-                if self.is_nonsr_mirror_plane(tr) {
+                if self.is_o3_mirror_plane(tr) {
                     (format!("{tr_sym}σ"), false)
-                } else if self.is_nonsr_inversion_centre(tr) {
+                } else if self.is_o3_inversion_centre(tr) {
                     (format!("{tr_sym}i"), false)
                 } else if self.proper_order == ElementOrder::Inf
                     || *self
@@ -693,9 +694,9 @@ impl SymmetryElement {
 
         if let Some(proper_fraction) = self.proper_fraction {
             let tr = self.contains_time_reversal();
-            let proper_order = if self.is_nonsr_identity(tr)
-                || self.is_nonsr_inversion_centre(tr)
-                || self.is_nonsr_mirror_plane(tr)
+            let proper_order = if self.is_o3_identity(tr)
+                || self.is_o3_inversion_centre(tr)
+                || self.is_o3_mirror_plane(tr)
             {
                 String::new()
             } else {
@@ -786,7 +787,7 @@ impl SymmetryElement {
         preserves_power: bool,
     ) -> Self {
         assert!(
-            !(self.is_nonsr_proper(false) || self.is_nonsr_proper(true)),
+            !(self.is_o3_proper(false) || self.is_o3_proper(true)),
             "Only improper elements can be converted."
         );
         let improper_kind = improper_kind.to_tr(self.contains_time_reversal());
@@ -903,8 +904,8 @@ impl SymmetryElement {
     ///
     /// A symmetry element with the added spin rotation if none is present, or `None` if the
     /// current symmetry element already has an associated spin rotation.
-    pub fn add_spin_rotation(&self, normal: bool) -> Option<Self> {
-        if self.contains_active_spin_rotation() {
+    pub fn to_su2(&self, normal: bool) -> Option<Self> {
+        if self.is_su2() {
             None
         } else {
             let mut element = self.clone();
@@ -964,7 +965,7 @@ impl fmt::Debug for SymmetryElement {
 impl fmt::Display for SymmetryElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let tr = self.contains_time_reversal();
-        if self.is_nonsr_identity(tr) || self.is_nonsr_inversion_centre(tr) {
+        if self.is_o3_identity(tr) || self.is_o3_inversion_centre(tr) {
             write!(f, "{}", self.get_simplified_symbol())
         } else {
             let pos_axis = self.positive_axis();
@@ -1011,12 +1012,12 @@ impl PartialEq for SymmetryElement {
 
         let tr = self.contains_time_reversal();
 
-        if self.is_nonsr_proper(tr) != other.is_nonsr_proper(tr) {
+        if self.is_o3_proper(tr) != other.is_o3_proper(tr) {
             // Different spatial parities.
             return false;
         }
 
-        if self.is_nonsr_identity(tr) && other.is_nonsr_identity(tr) {
+        if self.is_o3_identity(tr) && other.is_o3_identity(tr) {
             // Both are spatial identity.
             assert_eq!(
                 misc::calculate_hash(self),
@@ -1026,7 +1027,7 @@ impl PartialEq for SymmetryElement {
             return true;
         }
 
-        if self.is_nonsr_inversion_centre(tr) && other.is_nonsr_inversion_centre(tr) {
+        if self.is_o3_inversion_centre(tr) && other.is_o3_inversion_centre(tr) {
             // Both are spatial inversion centre.
             assert_eq!(
                 misc::calculate_hash(self),
@@ -1038,7 +1039,7 @@ impl PartialEq for SymmetryElement {
 
         let thresh = (self.threshold * other.threshold).sqrt();
 
-        let result = if self.is_nonsr_proper(tr) {
+        let result = if self.is_o3_proper(tr) {
             // Proper.
 
             // Parallel or anti-parallel axes.
@@ -1143,9 +1144,9 @@ impl Hash for SymmetryElement {
         let tr = self.contains_time_reversal();
         tr.hash(state);
 
-        self.is_nonsr_proper(tr).hash(state);
+        self.is_o3_proper(tr).hash(state);
 
-        if self.is_nonsr_identity(tr) || self.is_nonsr_inversion_centre(tr) {
+        if self.is_o3_identity(tr) || self.is_o3_inversion_centre(tr) {
             true.hash(state);
         } else if self.kind == SymmetryElementKind::ImproperMirrorPlane(tr) {
             let c_self = self

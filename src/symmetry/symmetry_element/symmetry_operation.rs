@@ -72,7 +72,7 @@ pub trait SpecialSymmetryTransformation {
     /// # Returns
     ///
     /// A flag indicating if this symmetry operation contains an active associated spin rotation.
-    fn contains_active_spin_rotation(&self) -> bool;
+    fn is_su2(&self) -> bool;
 
     /// Checks if the symmetry operation contains an active and inverse associated spin rotation.
     ///
@@ -80,7 +80,7 @@ pub trait SpecialSymmetryTransformation {
     ///
     /// A flag indicating if this symmetry operation contains an active and inverse associated
     /// spin rotation.
-    fn contains_inverse_spin_rotation(&self) -> bool;
+    fn is_su2_class_1(&self) -> bool;
 
     // ==================
     // Overall - provided
@@ -94,7 +94,7 @@ pub trait SpecialSymmetryTransformation {
     fn is_identity(&self) -> bool {
         self.is_spatial_identity()
             && !self.is_antiunitary()
-            && !self.contains_inverse_spin_rotation()
+            && !self.is_su2_class_1()
     }
 
     /// Checks if the symmetry operation is a pure time-reversal.
@@ -105,7 +105,7 @@ pub trait SpecialSymmetryTransformation {
     fn is_time_reversal(&self) -> bool {
         self.is_spatial_identity()
             && self.is_antiunitary()
-            && !self.contains_inverse_spin_rotation()
+            && !self.is_su2_class_1()
     }
 
     /// Checks if the symmetry operation is an inversion.
@@ -116,7 +116,7 @@ pub trait SpecialSymmetryTransformation {
     fn is_inversion(&self) -> bool {
         self.is_spatial_inversion()
             && !self.is_antiunitary()
-            && !self.contains_inverse_spin_rotation()
+            && !self.is_su2_class_1()
     }
 
     /// Checks if the symmetry operation is an inversion accompanied by a time reversal.
@@ -127,7 +127,7 @@ pub trait SpecialSymmetryTransformation {
     fn is_tr_inversion(&self) -> bool {
         self.is_spatial_inversion()
             && self.is_antiunitary()
-            && !self.contains_inverse_spin_rotation()
+            && !self.is_su2_class_1()
     }
 
     /// Checks if the symmetry operation is a binary rotation.
@@ -138,7 +138,7 @@ pub trait SpecialSymmetryTransformation {
     fn is_binary_rotation(&self) -> bool {
         self.is_spatial_binary_rotation()
             && !self.is_antiunitary()
-            && !self.contains_active_spin_rotation()
+            && !self.is_su2()
     }
 
     /// Checks if the symmetry operation is a binary rotation accompanied by a time reversal.
@@ -149,7 +149,7 @@ pub trait SpecialSymmetryTransformation {
     fn is_tr_binary_rotation(&self) -> bool {
         self.is_spatial_binary_rotation()
             && self.is_antiunitary()
-            && !self.contains_active_spin_rotation()
+            && !self.is_su2()
     }
 
     /// Checks if the symmetry operation is a reflection.
@@ -160,7 +160,7 @@ pub trait SpecialSymmetryTransformation {
     fn is_reflection(&self) -> bool {
         self.is_spatial_reflection()
             && !self.is_antiunitary()
-            && !self.contains_active_spin_rotation()
+            && !self.is_su2()
     }
 
     /// Checks if the symmetry operation is a reflection.
@@ -171,7 +171,7 @@ pub trait SpecialSymmetryTransformation {
     fn is_tr_reflection(&self) -> bool {
         self.is_spatial_reflection()
             && self.is_antiunitary()
-            && !self.contains_active_spin_rotation()
+            && !self.is_su2()
     }
 }
 
@@ -512,8 +512,8 @@ impl SymmetryOperation {
             SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
         };
         assert_eq!(
-            self.contains_inverse_spin_rotation(),
-            c_self.contains_inverse_spin_rotation(),
+            self.is_su2_class_1(),
+            c_self.is_su2_class_1(),
         );
 
         // We only need the absolute value of the angle. Its sign information is
@@ -525,7 +525,7 @@ impl SymmetryOperation {
             -self.generating_element.threshold <= scalar_part
                 && scalar_part <= 1.0 + self.generating_element.threshold
         );
-        if self.contains_inverse_spin_rotation() {
+        if self.is_su2_class_1() {
             println!(
                 "Calc Q for {self}: {abs_angle} {} => {}, {}",
                 c_self.calc_pole().coords,
@@ -689,8 +689,8 @@ impl SymmetryOperation {
             .generating_element
             .convert_to_improper_kind(improper_kind, true);
         assert_eq!(
-            self.generating_element.contains_inverse_spin_rotation(),
-            c_element.contains_inverse_spin_rotation()
+            self.generating_element.is_su2_class_1(),
+            c_element.is_su2_class_1()
         );
         Self::builder()
             .generating_element(c_element)
@@ -823,7 +823,7 @@ impl FiniteOrder for SymmetryOperation {
             } else {
                 2 * denom
             };
-        if self.contains_active_spin_rotation() {
+        if self.is_su2() {
             2 * spatial_order
         } else {
             spatial_order
@@ -842,8 +842,8 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A flag indicating if the spatial part of the symmetry operation is proper.
     fn is_proper(&self) -> bool {
-        self.generating_element.is_nonsr_proper(true)
-            || self.generating_element.is_nonsr_proper(false)
+        self.generating_element.is_o3_proper(true)
+            || self.generating_element.is_o3_proper(false)
             || (self.power.rem_euclid(2) == 0)
     }
 
@@ -1034,13 +1034,13 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     // Spin rotation part
     // ==================
 
-    fn contains_active_spin_rotation(&self) -> bool {
+    fn is_su2(&self) -> bool {
         self.generating_element
             .rotationgroup
-            .is_active_spin_rotation()
+            .is_su2()
     }
 
-    fn contains_inverse_spin_rotation(&self) -> bool {
+    fn is_su2_class_1(&self) -> bool {
         // The following is wrong, because `self.is_proper()` takes into account the power applied
         // to the spatial part, but not yet to the spin rotation part. Then, for example,
         // [QΣ·S3(+0.816, -0.408, +0.408)]^2 would become Σ'·[C3(+0.816, -0.408, +0.408)]^2 where
@@ -1057,11 +1057,11 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             }
             SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
         };
-        if c_self.contains_active_spin_rotation() {
-            let spatial_proper_identity = c_self.generating_element.is_nonsr_identity(false)
-                || c_self.generating_element.is_nonsr_identity(true)
-                || c_self.generating_element.is_nonsr_inversion_centre(false)
-                || c_self.generating_element.is_nonsr_inversion_centre(true);
+        if c_self.is_su2() {
+            let spatial_proper_identity = c_self.generating_element.is_o3_identity(false)
+                || c_self.generating_element.is_o3_identity(true)
+                || c_self.generating_element.is_o3_inversion_centre(false)
+                || c_self.generating_element.is_o3_inversion_centre(true);
             let inverse_from_rotationgroup = if spatial_proper_identity {
                 // The proper part of the generating element is the spatial identity, for which the
                 // associated spin rotation is also the spin rotation identity. In this case, no
@@ -1120,7 +1120,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             let intrinsic_inverse = c_self
                 .generating_element
                 .rotationgroup
-                .is_inverse_spin_rotation()
+                .is_su2_class_1()
                 && c_self.power.rem_euclid(2) == 1;
             inverse_from_rotationgroup != intrinsic_inverse
         } else {
@@ -1173,11 +1173,11 @@ impl PartialEq for SymmetryOperation {
             return false;
         }
 
-        if self.contains_active_spin_rotation() != other.contains_active_spin_rotation() {
+        if self.is_su2() != other.is_su2() {
             return false;
         }
 
-        if self.contains_inverse_spin_rotation() != other.contains_inverse_spin_rotation() {
+        if self.is_su2_class_1() != other.is_su2_class_1() {
             return false;
         }
 
@@ -1287,8 +1287,8 @@ impl Hash for SymmetryOperation {
         // ==========================
         c_self.is_proper().hash(state);
         c_self.is_antiunitary().hash(state);
-        c_self.contains_active_spin_rotation().hash(state);
-        c_self.contains_inverse_spin_rotation().hash(state);
+        c_self.is_su2().hash(state);
+        c_self.is_su2_class_1().hash(state);
 
         // ===========================
         // Special specific operations
@@ -1345,11 +1345,11 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
 
     fn mul(self, rhs: &SymmetryOperation) -> Self::Output {
         assert_eq!(
-            self.contains_active_spin_rotation(),
-            rhs.contains_active_spin_rotation(),
+            self.is_su2(),
+            rhs.is_su2(),
             "`self` and `rhs` must both have or not have associated spin rotations."
         );
-        let sr = self.contains_active_spin_rotation();
+        let sr = self.is_su2();
         let (q1_s, q1_v) = self.calc_quaternion();
         let (q2_s, q2_v) = rhs.calc_quaternion();
 

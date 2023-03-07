@@ -596,8 +596,8 @@ impl Symmetry {
         let order = element.proper_order;
         let simplified_symbol = element.get_simplified_symbol();
         let full_symbol = element.get_full_symbol();
-        let is_nonsr_mirror_plane = element.is_nonsr_mirror_plane(tr);
-        let is_nonsr_inversion_centre = element.is_nonsr_inversion_centre(tr);
+        let is_o3_mirror_plane = element.is_o3_mirror_plane(tr);
+        let is_o3_inversion_centre = element.is_o3_inversion_centre(tr);
         let improper_kind = if tr { TRSIG } else { SIG };
         let result = if generator {
             if let Vacant(improper_generators) = self.generators.entry(improper_kind.clone()) {
@@ -667,7 +667,7 @@ impl Symmetry {
             "element".to_owned()
         };
         if result {
-            if is_nonsr_mirror_plane {
+            if is_o3_mirror_plane {
                 log::debug!(
                     "Mirror plane {} ({}): {} axis along ({:+.3}, {:+.3}, {:+.3}) added.",
                     dest_str,
@@ -677,7 +677,7 @@ impl Symmetry {
                     positive_axis[1] + 0.0,
                     positive_axis[2] + 0.0,
                 );
-            } else if is_nonsr_inversion_centre {
+            } else if is_o3_inversion_centre {
                 log::debug!(
                     "Inversion centre {} ({}): {} axis along ({:+.3}, {:+.3}, {:+.3}) added.",
                     dest_str,

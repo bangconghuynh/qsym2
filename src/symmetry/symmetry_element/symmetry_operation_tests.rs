@@ -4267,7 +4267,7 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         true,
     );
     assert_eq!(c4_nsr_p6, c4_nsr_p6_r);
-    assert!(c4_nsr_p6_r.contains_inverse_spin_rotation());
+    assert!(c4_nsr_p6_r.is_su2_class_1());
 
     let c7_isr_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -4295,7 +4295,7 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         true,
     );
     assert_eq!(c7_isr_p1, c7_isr_p1_r);
-    assert!(c7_isr_p1_r.contains_inverse_spin_rotation());
+    assert!(c7_isr_p1_r.is_su2_class_1());
 
     let c7_isr_p2 = SymmetryOperation::builder()
         .generating_element(c7_isr_element.clone())
@@ -4313,7 +4313,7 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         true,
     );
     assert_eq!(c7_isr_p2, c7_isr_p2_r);
-    assert!(!c7_isr_p2_r.contains_inverse_spin_rotation());
+    assert!(!c7_isr_p2_r.is_su2_class_1());
 
     let c7_isr_p3 = SymmetryOperation::builder()
         .generating_element(c7_isr_element.clone())
@@ -4331,7 +4331,7 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         true,
     );
     assert_eq!(c7_isr_p3, c7_isr_p3_r);
-    assert!(c7_isr_p3_r.contains_inverse_spin_rotation());
+    assert!(c7_isr_p3_r.is_su2_class_1());
 
     let c7_isr_p7 = SymmetryOperation::builder()
         .generating_element(c7_isr_element.clone())
@@ -4440,7 +4440,7 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         true,
     );
     assert_eq!(s2_isr_p2, s2_isr_p2_r);
-    assert!(!s2_isr_p2_r.contains_inverse_spin_rotation());
+    assert!(!s2_isr_p2_r.is_su2_class_1());
 
     let s3_isr_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -4749,7 +4749,7 @@ fn test_symmetry_operation_spin_rotation_to_quaternion() {
         .power(1)
         .build()
         .unwrap();
-    assert!(s3_isr_p1.contains_inverse_spin_rotation());
+    assert!(s3_isr_p1.is_su2_class_1());
 
     let (s3_isr_p1_sca, s3_isr_p1_vec) = s3_isr_p1.calc_quaternion();
     approx::assert_relative_eq!(
@@ -4770,7 +4770,7 @@ fn test_symmetry_operation_spin_rotation_to_quaternion() {
         .power(2)
         .build()
         .unwrap();
-    assert!(s3_isr_p2.contains_inverse_spin_rotation());
+    assert!(s3_isr_p2.is_su2_class_1());
 
     let (s3_isr_p2_sca, s3_isr_p2_vec) = s3_isr_p2.calc_quaternion();
     approx::assert_relative_eq!(
@@ -4792,7 +4792,7 @@ fn test_symmetry_operation_spin_rotation_to_quaternion() {
         .power(3)
         .build()
         .unwrap();
-    assert!(s3_isr_p3.contains_inverse_spin_rotation());
+    assert!(s3_isr_p3.is_su2_class_1());
 
     let (s3_isr_p3_sca, s3_isr_p3_vec) = s3_isr_p3.calc_quaternion();
     approx::assert_relative_eq!(
@@ -4815,9 +4815,9 @@ fn test_symmetry_operation_spin_rotation_to_quaternion() {
             .build()
             .unwrap();
         if i <= 6 {
-            assert!(s3_isr_pi.contains_inverse_spin_rotation());
+            assert!(s3_isr_pi.is_su2_class_1());
         } else {
-            assert!(!s3_isr_pi.contains_inverse_spin_rotation());
+            assert!(!s3_isr_pi.is_su2_class_1());
         }
     }
 
@@ -5511,7 +5511,7 @@ fn test_symmetry_operation_noncollinear_composition() {
     //     .build()
     //     .unwrap();
 
-    // assert!((&c5_nsr_p2 * &c5_nsr_p4).contains_inverse_spin_rotation());
+    // assert!((&c5_nsr_p2 * &c5_nsr_p4).is_su2_class_1());
     // assert_eq!(&c5_nsr_p2 * &c5_nsr_p4, c5_isr_p1);
     // assert_eq!(&c5p2 * &c5pm1, c5);
     // assert_eq!(&c5pm1 * &c5p2, c5);
@@ -6185,28 +6185,28 @@ fn test_symmetry_operation_spin_rotation_comparison() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    let c5_nsr_element = c5_element.add_spin_rotation(true).unwrap();
+    let c5_nsr_element = c5_element.to_su2(true).unwrap();
 
     let c5_nsr_p1 = SymmetryOperation::builder()
         .generating_element(c5_nsr_element.clone())
         .power(1)
         .build()
         .unwrap();
-    assert!(!c5_nsr_p1.contains_inverse_spin_rotation());
+    assert!(!c5_nsr_p1.is_su2_class_1());
 
     let c5_nsr_p6 = SymmetryOperation::builder()
         .generating_element(c5_nsr_element.clone())
         .power(6)
         .build()
         .unwrap();
-    assert!(c5_nsr_p6.contains_inverse_spin_rotation());
+    assert!(c5_nsr_p6.is_su2_class_1());
 
     let c5_nsr_p11 = SymmetryOperation::builder()
         .generating_element(c5_nsr_element.clone())
         .power(11)
         .build()
         .unwrap();
-    assert!(!c5_nsr_p11.contains_inverse_spin_rotation());
+    assert!(!c5_nsr_p11.is_su2_class_1());
 
     assert_eq!(c5_nsr_p1, c5_nsr_p11);
     assert_ne!(c5_nsr_p1, c5_nsr_p6);
@@ -6223,9 +6223,9 @@ fn test_symmetry_operation_spin_rotation_comparison() {
         .power(-7)
         .build()
         .unwrap();
-    assert!(!c5_nsr_pm7.contains_inverse_spin_rotation());
+    assert!(!c5_nsr_pm7.is_su2_class_1());
 
-    let c5_isr_element = c5_element.add_spin_rotation(false).unwrap();
+    let c5_isr_element = c5_element.to_su2(false).unwrap();
     let c5_isr_p1 = SymmetryOperation::builder()
         .generating_element(c5_isr_element.clone())
         .power(1)
@@ -6249,7 +6249,7 @@ fn test_symmetry_operation_spin_rotation_comparison() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap()
-        .add_spin_rotation(true)
+        .to_su2(true)
         .unwrap();
     let c5_pp3_nsr_pm7 = SymmetryOperation::builder()
         .generating_element(c5_pp3_nsr_element.clone())
@@ -6272,7 +6272,7 @@ fn test_symmetry_operation_spin_rotation_comparison() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    let c7_nsr_element = c7_element.add_spin_rotation(true).unwrap();
+    let c7_nsr_element = c7_element.to_su2(true).unwrap();
 
     let c5_nsr_p5 = SymmetryOperation::builder()
         .generating_element(c5_nsr_element.clone())
@@ -6285,7 +6285,7 @@ fn test_symmetry_operation_spin_rotation_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_nsr_p5, c7_nsr_p7);
-    assert!(c5_nsr_p5.is_spatial_identity() && c5_nsr_p5.contains_inverse_spin_rotation());
+    assert!(c5_nsr_p5.is_spatial_identity() && c5_nsr_p5.is_su2_class_1());
 
     let c5_nsr_pm5 = SymmetryOperation::builder()
         .generating_element(c5_nsr_element.clone())
@@ -6298,7 +6298,7 @@ fn test_symmetry_operation_spin_rotation_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_nsr_pm5, c7_nsr_pm7);
-    assert!(c5_nsr_pm5.is_spatial_identity() && c5_nsr_pm5.contains_inverse_spin_rotation());
+    assert!(c5_nsr_pm5.is_spatial_identity() && c5_nsr_pm5.is_su2_class_1());
 
     let c5_nsr_p10 = SymmetryOperation::builder()
         .generating_element(c5_nsr_element.clone())
@@ -6311,5 +6311,5 @@ fn test_symmetry_operation_spin_rotation_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_nsr_p10, c7_nsr_p14);
-    assert!(c5_nsr_p10.is_identity() && !c5_nsr_p10.contains_inverse_spin_rotation());
+    assert!(c5_nsr_p10.is_identity() && !c5_nsr_p10.is_su2_class_1());
 }
