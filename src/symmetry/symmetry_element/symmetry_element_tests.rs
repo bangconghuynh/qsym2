@@ -1073,6 +1073,17 @@ fn test_symmetry_element_finite_comparison() {
         .unwrap();
     assert_eq!(c3, c3p);
 
+    let c3pp = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(2)
+        .raw_axis(Vector3::new(1.0, 2.0, 0.0))
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    assert_eq!(c3, c3pp);
+
     let tc3 = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
@@ -1092,6 +1103,17 @@ fn test_symmetry_element_finite_comparison() {
         .build()
         .unwrap();
     assert_eq!(tc3, tc3p);
+
+    let tc3pp = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(2)
+        .raw_axis(Vector3::new(1.0, 2.0, 0.0))
+        .kind(TRROT)
+        .rotationgroup(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    assert_eq!(tc3, tc3pp);
 
     // =============
     // Improper only
@@ -1698,8 +1720,6 @@ fn test_symmetry_element_finite_power_comparison() {
         .build()
         .unwrap();
     assert!(s3p3.is_nonsr_mirror_plane(false));
-    println!("BEGIN");
-    println!("{}", s3p2.proper_fraction.unwrap());
     assert_eq!(s3, s3p2);
     assert_eq!(s3, s3p4);
 
