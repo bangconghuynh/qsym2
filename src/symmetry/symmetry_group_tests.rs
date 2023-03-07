@@ -17,7 +17,7 @@ use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::{
-    AssociatedSpinRotation, SymmetryElement, SymmetryOperation, ROT,
+    RotationGroup, SymmetryElement, SymmetryOperation, ROT,
 };
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
@@ -33,9 +33,9 @@ fn test_abstract_group_creation() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 2.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 2.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -58,9 +58,9 @@ fn test_abstract_group_creation() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(29))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 0.5, 2.0))
+        .raw_axis(Vector3::new(1.0, 0.5, 2.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -140,7 +140,7 @@ fn test_ur_group_element_sort() {
             .get_index(2)
             .unwrap()
             .generating_element
-            .axis,
+            .raw_axis,
         Vector3::new(0.0, 1.0, 0.0)
     );
     approx::assert_relative_eq!(
@@ -149,7 +149,7 @@ fn test_ur_group_element_sort() {
             .get_index(3)
             .unwrap()
             .generating_element
-            .axis,
+            .raw_axis,
         Vector3::new(1.0, 0.0, 0.0)
     );
 
@@ -171,7 +171,7 @@ fn test_ur_group_element_sort() {
             .get_index(1)
             .unwrap()
             .generating_element
-            .axis,
+            .raw_axis,
         Vector3::new(0.0, 0.0, 1.0)
     );
     approx::assert_relative_eq!(
@@ -180,7 +180,7 @@ fn test_ur_group_element_sort() {
             .get_index(2)
             .unwrap()
             .generating_element
-            .axis,
+            .raw_axis,
         Vector3::new(0.0, 1.0, 0.0)
     );
     approx::assert_relative_eq!(
@@ -189,7 +189,7 @@ fn test_ur_group_element_sort() {
             .get_index(3)
             .unwrap()
             .generating_element
-            .axis,
+            .raw_axis,
         Vector3::new(1.0, 0.0, 0.0)
     );
     assert!(group.elements().get_index(4).unwrap().is_inversion());
@@ -199,7 +199,7 @@ fn test_ur_group_element_sort() {
             .get_index(5)
             .unwrap()
             .generating_element
-            .axis,
+            .raw_axis,
         Vector3::new(0.0, 0.0, 1.0)
     );
     approx::assert_relative_eq!(
@@ -208,7 +208,7 @@ fn test_ur_group_element_sort() {
             .get_index(6)
             .unwrap()
             .generating_element
-            .axis,
+            .raw_axis,
         Vector3::new(0.0, 1.0, 0.0)
     );
     approx::assert_relative_eq!(
@@ -217,7 +217,7 @@ fn test_ur_group_element_sort() {
             .get_index(7)
             .unwrap()
             .generating_element
-            .axis,
+            .raw_axis,
         Vector3::new(1.0, 0.0, 0.0)
     );
 }

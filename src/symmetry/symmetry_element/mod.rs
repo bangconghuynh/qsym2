@@ -1,4 +1,3 @@
-use std::cmp;
 use std::convert::TryInto;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -7,8 +6,9 @@ use approx;
 use derive_builder::Builder;
 use fraction;
 use log;
-use nalgebra::Vector3;
+use nalgebra::{Point3, Vector3};
 use num::integer::gcd;
+use num_traits::{ToPrimitive, Zero};
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
@@ -83,32 +83,32 @@ impl SymmetryElementKind {
 /// An enumerated type to signify whether a spatial symmetry operation has an associated spin
 /// rotation.
 #[derive(Clone, Hash, PartialEq, Eq, Debug)]
-pub enum AssociatedSpinRotation {
-    /// Variant indicating that no associated spin rotation shall be taken into account.
-    Ignored,
+pub enum RotationGroup {
+    /// Variant indicating that the proper part of the symmetry element generates rotations in
+    /// $`mathsf{SO}(3)`$.
+    SO3,
 
-    /// Variant indicating that the associated spin rotation shall be taken into account, with the
-    /// accompanying boolean indicating whether the spin rotation is **normal** (*i.e.* its rotation
-    /// angle is the same as that of the proper rotation in the spatial symmetry operation), or
-    /// **inverse** (*i.e. its rotation angle is $`\theta + 2\pi`$, where $`\theta`$ is the proper
-    /// rotation angle renormalised to be in the $`[0, 2\pi)`$ range).
-    Active(bool),
+    /// Variant indicating that the proper part of the symmetry element generates rotations in
+    /// $`\mathsf{SU}(2)`$. The associated boolean indicates whether the proper part of the element
+    /// itself is connected to the identity via a homotopy path of class 0 (`true`) or class 1
+    /// (`false`).
+    SU2(bool),
 }
 
-impl AssociatedSpinRotation {
+impl RotationGroup {
     /// Indicates if the associated spin rotation is an active spin rotation.
     fn is_active_spin_rotation(&self) -> bool {
         match self {
-            AssociatedSpinRotation::Active(_) => true,
-            AssociatedSpinRotation::Ignored => false,
+            RotationGroup::SU2(_) => true,
+            RotationGroup::SO3 => false,
         }
     }
 
     /// Indicates if the associated spin rotation is an inverse spin rotation.
     fn is_inverse_spin_rotation(&self) -> bool {
         match self {
-            AssociatedSpinRotation::Active(false) => true,
-            AssociatedSpinRotation::Active(true) | AssociatedSpinRotation::Ignored => false,
+            RotationGroup::SU2(false) => true,
+            RotationGroup::SU2(true) | RotationGroup::SO3 => false,
         }
     }
 }
@@ -226,7 +226,35 @@ pub struct SymmetryElement {
     /// The power $`k \in \mathbb{Z}/n\mathbb{Z} = \{1, \ldots, n\}`$ of the proper
     /// symmetry element. This is only defined if [`Self::proper_order`] is finite.
     #[builder(setter(custom), default = "None")]
-    pub proper_power: Option<u32>,
+    pub proper_power: Option<i32>,
+
+    /// The normalised axis of the symmetry element.
+    #[builder(setter(custom))]
+    pub raw_axis: Vector3<f64>,
+
+    /// The spatial and time-reversal kind of the symmetry element.
+    #[builder(default = "SymmetryElementKind::Proper(false)")]
+    pub kind: SymmetryElementKind,
+
+    /// The associated spin rotation of the symmetry element, if any.
+    pub rotationgroup: RotationGroup,
+
+    /// A flag indicating whether the symmetry element is a generator of the
+    /// group to which it belongs.
+    #[builder(default = "false")]
+    pub generator: bool,
+
+    /// A threshold for approximate equality comparisons.
+    #[builder(setter(custom))]
+    pub threshold: f64,
+
+    /// An additional superscript for distinguishing the symmetry element.
+    #[builder(default = "String::new()")]
+    pub additional_superscript: String,
+
+    /// An additional subscript for distinguishing the symmetry element.
+    #[builder(default = "String::new()")]
+    pub additional_subscript: String,
 
     /// The fraction $`k/n \in (0, 1]`$ of the proper rotation, represented exactly
     /// for hashing and comparison purposes.
@@ -251,51 +279,16 @@ pub struct SymmetryElement {
     /// the centre of the range.
     #[builder(setter(custom), default = "self.calc_proper_angle()")]
     proper_angle: Option<f64>,
-
-    /// The normalised axis of the symmetry element.
-    #[builder(setter(custom))]
-    pub axis: Vector3<f64>,
-
-    /// The spatial and time-reversal kind of the symmetry element.
-    #[builder(default = "SymmetryElementKind::Proper(false)")]
-    pub kind: SymmetryElementKind,
-
-    /// The associated spin rotation of the symmetry element, if any.
-    pub spinrot: AssociatedSpinRotation,
-
-    /// A flag indicating whether the symmetry element is a generator of the
-    /// group to which it belongs.
-    #[builder(default = "false")]
-    generator: bool,
-
-    /// A threshold for approximate equality comparisons.
-    #[builder(setter(custom))]
-    pub threshold: f64,
-
-    /// An additional superscript for distinguishing the symmetry element.
-    #[builder(default = "String::new()")]
-    pub additional_superscript: String,
-
-    /// An additional subscript for distinguishing the symmetry element.
-    #[builder(default = "String::new()")]
-    pub additional_subscript: String,
 }
 
 impl SymmetryElementBuilder {
-    pub fn proper_power(&mut self, prop_pow: u32) -> &mut Self {
+    pub fn proper_power(&mut self, prop_pow: i32) -> &mut Self {
         let proper_order = self
             .proper_order
             .as_ref()
             .expect("Proper order has not been set.");
         self.proper_power = match proper_order {
-            ElementOrder::Int(io) => {
-                let residual = prop_pow % io;
-                if residual == 0 {
-                    Some(Some(*io))
-                } else {
-                    Some(Some(residual))
-                }
-            }
+            ElementOrder::Int(_) => Some(Some(prop_pow)),
             ElementOrder::Inf => None,
         };
         self
@@ -327,12 +320,26 @@ impl SymmetryElementBuilder {
             .as_ref()
             .expect("Proper order has not been set.");
         match proper_order {
-            ElementOrder::Int(io) => Some(F::new(
-                self.proper_power
+            ElementOrder::Int(io) => {
+                let pp = self
+                    .proper_power
                     .expect("Proper power has not been set.")
-                    .expect("No proper powers found."),
-                *io,
-            )),
+                    .expect("No proper powers found.");
+                let mut residual = pp;
+                let io_i32 = i32::try_from(*io).unwrap();
+                while residual > io_i32.div_euclid(2) {
+                    residual -= io_i32;
+                }
+                while residual <= (-io_i32).div_euclid(2) {
+                    residual += io_i32;
+                }
+
+                if residual >= 0 {
+                    Some(F::new(residual.unsigned_abs(), *io))
+                } else {
+                    Some(F::new_neg(residual.unsigned_abs(), *io))
+                }
+            }
             ElementOrder::Inf => None,
         }
     }
@@ -343,27 +350,32 @@ impl SymmetryElementBuilder {
             .as_ref()
             .expect("Proper order has not been set.");
         match proper_order {
-            ElementOrder::Int(io) => Some(geometry::normalise_rotation_angle(
-                (f64::from(
-                    self.proper_power
-                        .expect("Proper power has not been set.")
-                        .expect("No proper powers found."),
-                ) / (f64::from(*io)))
-                    * 2.0
-                    * std::f64::consts::PI,
-                self.threshold.expect("Threshold value has not been set."),
-            )),
+            ElementOrder::Int(io) => {
+                let pp = self
+                    .proper_power
+                    .expect("Proper power has not been set.")
+                    .expect("No proper powers found.");
+                let mut residual = pp;
+                let io_i32 = i32::try_from(*io).unwrap();
+                while residual > io_i32.div_euclid(2) {
+                    residual -= io_i32;
+                }
+                while residual <= -io_i32.div_euclid(2) {
+                    residual += io_i32;
+                }
+                Some(f64::from(residual) / f64::from(*io) * 2.0 * std::f64::consts::PI)
+            }
             ElementOrder::Inf => self.proper_angle.unwrap_or(None),
         }
     }
 
-    pub fn axis(&mut self, axs: Vector3<f64>) -> &mut Self {
+    pub fn raw_axis(&mut self, axs: Vector3<f64>) -> &mut Self {
         let thresh = self.threshold.expect("Threshold value has not been set.");
         if approx::relative_eq!(axs.norm(), 1.0, epsilon = thresh, max_relative = thresh) {
-            self.axis = Some(axs);
+            self.raw_axis = Some(axs);
         } else {
             log::warn!("Axis not normalised. Normalising...");
-            self.axis = Some(axs.normalize());
+            self.raw_axis = Some(axs.normalize());
         }
         self
     }
@@ -393,6 +405,10 @@ impl SymmetryElement {
         SymmetryElementBuilder::default()
     }
 
+    pub fn positive_axis(&self) -> Vector3<f64> {
+        geometry::get_positive_pole(&self.raw_axis, self.threshold)
+    }
+
     /// Checks if the symmetry element contains a time-reversal operator.
     ///
     /// # Returns
@@ -406,13 +422,13 @@ impl SymmetryElement {
     /// Checks if the symmetry element contains an active spin rotation.
     #[must_use]
     fn contains_active_spin_rotation(&self) -> bool {
-        self.spinrot.is_active_spin_rotation()
+        self.rotationgroup.is_active_spin_rotation()
     }
 
     /// Checks if the symmetry element contains an inverse spin rotation.
     #[must_use]
     fn contains_inverse_spin_rotation(&self) -> bool {
-        self.spinrot.is_inverse_spin_rotation()
+        self.rotationgroup.is_inverse_spin_rotation()
     }
 
     /// Checks if the spatial part of the symmetry element is proper and has the specified
@@ -444,8 +460,7 @@ impl SymmetryElement {
     /// specified time-reversal attribute.
     #[must_use]
     pub fn is_nonsr_identity(&self, tr: bool) -> bool {
-        self.kind == SymmetryElementKind::Proper(tr)
-            && self.proper_fraction == Some(F::from(1))
+        self.kind == SymmetryElementKind::Proper(tr) && self.proper_fraction == Some(F::zero())
     }
 
     /// Checks if the symmetry element is spatially an inversion centre and has the specified
@@ -462,9 +477,9 @@ impl SymmetryElement {
     #[must_use]
     pub fn is_nonsr_inversion_centre(&self, tr: bool) -> bool {
         (self.kind == SymmetryElementKind::ImproperMirrorPlane(tr)
-         && self.proper_fraction == Some(F::new(1u32, 2u32)))
+            && self.proper_fraction == Some(F::new(1u32, 2u32)))
             || (self.kind == SymmetryElementKind::ImproperInversionCentre(tr)
-                && self.proper_fraction == Some(F::from(1)))
+                && self.proper_fraction == Some(F::zero()))
     }
 
     /// Checks if the symmetry element is spatially a binary rotation axis and has the specified
@@ -484,8 +499,8 @@ impl SymmetryElement {
             && self.proper_fraction == Some(F::new(1u32, 2u32))
     }
 
-    /// Checks if the symmetry element is spatially a mirror plane and has the specified time-reversal
-    /// attribute.
+    /// Checks if the symmetry element is spatially a mirror plane and has the specified
+    /// time-reversal attribute.
     ///
     /// # Arguments
     ///
@@ -493,19 +508,22 @@ impl SymmetryElement {
     ///
     /// # Returns
     ///
-    /// A flag indicating if this symmetry element is spatially a mirror plane and has the specified
-    /// time-reversal attribute.
+    /// A flag indicating if this symmetry element is spatially a mirror plane and has the
+    /// specified time-reversal attribute.
     #[must_use]
     pub fn is_nonsr_mirror_plane(&self, tr: bool) -> bool {
         (self.kind == SymmetryElementKind::ImproperMirrorPlane(tr)
-         && self.proper_fraction == Some(F::from(1)))
+            && self.proper_fraction == Some(F::zero()))
             || (self.kind == SymmetryElementKind::ImproperInversionCentre(tr)
                 && self.proper_fraction == Some(F::new(1u32, 2u32)))
     }
 
-    /// Returns the standard symbol for this symmetry element, which does not
+    /// Returns the full symbol for this symmetry element, which does not
     /// classify certain improper rotation axes into inversion centres or mirror
-    /// planes.
+    /// planes, but which does simplify the power/order ratio, and which displays only the absolute
+    /// value of the power since symmetry elements do not distinguish senses of rotations.
+    /// Rotations of oposite directions are inverses of each other, both of which must exist in the
+    /// group.
     ///
     /// Some additional symbols that can be unconventional include:
     ///
@@ -513,13 +531,13 @@ impl SymmetryElement {
     /// * `Σ`: the normal spin rotation associated with the proper rotation of this element,
     /// * `QΣ`: the inverse spin rotation associated with the proper rotation of this element.
     ///
-    /// See [`AssociatedSpinRotation`] for further information.
+    /// See [`RotationGroup`] for further information.
     ///
     /// # Returns
     ///
-    /// The standard symbol for this symmetry element.
+    /// The full symbol for this symmetry element.
     #[must_use]
-    pub fn get_standard_symbol(&self) -> String {
+    pub fn get_full_symbol(&self) -> String {
         let tr_sym = if self.kind.contains_time_reversal() {
             "θ·"
         } else {
@@ -530,45 +548,91 @@ impl SymmetryElement {
                 format!("{tr_sym}C")
             }
             SymmetryElementKind::ImproperMirrorPlane(_) => {
-                if self.proper_order != ElementOrder::Inf && self.proper_power == Some(1) {
+                if self.proper_order != ElementOrder::Inf
+                    && (*self
+                        .proper_fraction
+                        .expect("No proper fractions found for a finite-order element.")
+                        .numer()
+                        .expect("Unable to extract the numerator of the proper fraction.")
+                        == 1
+                        || self
+                            .proper_fraction
+                            .expect("No proper fractions found for a finite-order element.")
+                            .is_zero())
+                {
                     format!("{tr_sym}S")
                 } else {
                     format!("{tr_sym}σC")
                 }
             }
             SymmetryElementKind::ImproperInversionCentre(_) => {
-                if self.proper_order != ElementOrder::Inf && self.proper_power == Some(1) {
+                if self.proper_order != ElementOrder::Inf
+                    && (*self
+                        .proper_fraction
+                        .expect("No proper fractions found for a finite-order element.")
+                        .numer()
+                        .expect("Unable to extract the numerator of the proper fraction.")
+                        == 1
+                        || self
+                            .proper_fraction
+                            .expect("No proper fractions found for a finite-order element.")
+                            .is_zero())
+                {
                     format!("{tr_sym}Ṡ")
                 } else {
                     format!("{tr_sym}iC")
                 }
             }
         };
-        let proper_power = if let Some(pow) = self.proper_power {
-            if pow > 1 {
-                format!("^{pow}")
+
+        let sr_sym = match self.rotationgroup {
+            RotationGroup::SO3 => "",
+            RotationGroup::SU2(true) => "Σ·",
+            RotationGroup::SU2(false) => "QΣ·",
+        };
+
+        if let Some(proper_fraction) = self.proper_fraction {
+            if proper_fraction.is_zero() {
+                format!("{sr_sym}{main_symbol}1")
             } else {
-                String::new()
+                let proper_order = proper_fraction
+                    .denom()
+                    .expect("Unable to extract the denominator of the proper fraction.")
+                    .to_string();
+                let proper_power = {
+                    let pow = *proper_fraction
+                        .numer()
+                        .expect("Unable to extract the numerator of the proper fraction.");
+                    if pow > 1 {
+                        format!("^{pow}")
+                    } else {
+                        String::new()
+                    }
+                };
+                format!("{sr_sym}{main_symbol}{proper_order}{proper_power}")
             }
         } else {
-            String::new()
-        };
-        let sr_sym = match self.spinrot {
-            AssociatedSpinRotation::Ignored => "",
-            AssociatedSpinRotation::Active(true) => "Σ·",
-            AssociatedSpinRotation::Active(false) => "QΣ·",
-        };
-        format!("{sr_sym}{main_symbol}{}{proper_power}", self.proper_order)
+            assert_eq!(self.proper_order, ElementOrder::Inf);
+            let proper_angle = if let Some(proper_angle) = self.proper_angle {
+                format!("({:+.3})", proper_angle.abs())
+            } else {
+                String::new()
+            };
+            format!("{sr_sym}{main_symbol}{}{proper_angle}", self.proper_order)
+        }
     }
 
     /// Returns the detailed symbol for this symmetry element, which classifies
-    /// special symmetry elements (identity, inversion centre, mirror planes).
+    /// special symmetry elements (identity, inversion centre, mirror planes), and which simplifies
+    /// the power/order ratio and displays only the absolute value of the power since symmetry
+    /// elements do not distinguish senses of rotations. Rotations of oposite directions are
+    /// inverses of each other, both of which must exist in the group.
     ///
     /// # Returns
     ///
     /// The detailed symbol for this symmetry element.
     #[must_use]
-    pub fn get_detailed_symbol(&self) -> String {
+    pub fn get_simplified_symbol(&self) -> String {
         let (main_symbol, needs_power) = match self.kind {
             SymmetryElementKind::Proper(tr) => {
                 if self.is_nonsr_identity(tr) {
@@ -587,7 +651,14 @@ impl SymmetryElement {
                     (format!("{tr_sym}σ"), false)
                 } else if self.is_nonsr_inversion_centre(tr) {
                     (format!("{tr_sym}i"), false)
-                } else if self.proper_order == ElementOrder::Inf || self.proper_power == Some(1) {
+                } else if self.proper_order == ElementOrder::Inf
+                    || *self
+                        .proper_fraction
+                        .expect("No proper fractions found for a finite-order element.")
+                        .numer()
+                        .expect("Unable to extract the numerator of the proper fraction.")
+                        == 1
+                {
                     (format!("{tr_sym}S"), false)
                 } else {
                     (format!("{tr_sym}σC"), true)
@@ -599,7 +670,14 @@ impl SymmetryElement {
                     (format!("{tr_sym}σ"), false)
                 } else if self.is_nonsr_inversion_centre(tr) {
                     (format!("{tr_sym}i"), false)
-                } else if self.proper_order == ElementOrder::Inf || self.proper_power == Some(1) {
+                } else if self.proper_order == ElementOrder::Inf
+                    || *self
+                        .proper_fraction
+                        .expect("No proper fractions found for a finite-order element.")
+                        .numer()
+                        .expect("Unable to extract the numerator of the proper fraction.")
+                        == 1
+                {
                     (format!("{tr_sym}Ṡ"), false)
                 } else {
                     (format!("{tr_sym}iC"), true)
@@ -607,48 +685,54 @@ impl SymmetryElement {
             }
         };
 
-        let order_string: String = if self.is_nonsr_identity(false)
-            || self.is_nonsr_inversion_centre(false)
-            || self.is_nonsr_mirror_plane(false)
-            || self.is_nonsr_identity(true)
-            || self.is_nonsr_inversion_centre(true)
-            || self.is_nonsr_mirror_plane(true)
-        {
-            String::new()
-        } else {
-            format!("{}", self.proper_order)
+        let sr_sym = match self.rotationgroup {
+            RotationGroup::SO3 => "",
+            RotationGroup::SU2(true) => "Σ·",
+            RotationGroup::SU2(false) => "QΣ·",
         };
 
-        let proper_power = if needs_power {
-            match self.proper_order {
-                ElementOrder::Int(_) => {
-                    if let Some(pow) = self.proper_power {
-                        if pow > 1 {
-                            format!("^{pow}")
-                        } else {
-                            String::new()
-                        }
-                    } else {
-                        String::new()
-                    }
+        if let Some(proper_fraction) = self.proper_fraction {
+            let tr = self.contains_time_reversal();
+            let proper_order = if self.is_nonsr_identity(tr)
+                || self.is_nonsr_inversion_centre(tr)
+                || self.is_nonsr_mirror_plane(tr)
+            {
+                String::new()
+            } else {
+                proper_fraction
+                    .denom()
+                    .expect("Unable to extract the denominator of the proper fraction.")
+                    .to_string()
+            };
+
+            let proper_power = if needs_power {
+                let pow = *proper_fraction
+                    .numer()
+                    .expect("Unable to extract the numerator of the proper fraction.");
+                if pow > 1 {
+                    format!("^{pow}")
+                } else {
+                    String::new()
                 }
-                ElementOrder::Inf => String::new(),
-            }
+            } else {
+                String::new()
+            };
+            format!(
+                "{sr_sym}{main_symbol}{}{proper_order}{proper_power}{}",
+                self.additional_superscript, self.additional_subscript
+            )
         } else {
-            String::new()
-        };
-
-        let sr_sym = match self.spinrot {
-            AssociatedSpinRotation::Ignored => "",
-            AssociatedSpinRotation::Active(true) => "Σ·",
-            AssociatedSpinRotation::Active(false) => "QΣ·",
-        };
-        sr_sym.to_owned()
-            + &main_symbol
-            + &self.additional_superscript
-            + &order_string
-            + &proper_power
-            + &self.additional_subscript
+            assert_eq!(self.proper_order, ElementOrder::Inf);
+            let proper_angle = if let Some(proper_angle) = self.proper_angle {
+                format!("({:+.3})", proper_angle.abs())
+            } else {
+                String::new()
+            };
+            format!(
+                "{sr_sym}{main_symbol}{}{}{proper_angle}{}",
+                self.additional_superscript, self.proper_order, self.additional_subscript
+            )
+        }
     }
 
     /// Returns a copy of the current improper symmetry element that has been
@@ -715,40 +799,67 @@ impl SymmetryElement {
             return self.clone();
         }
 
-        let dest_order = match self.proper_order {
-            ElementOrder::Int(order_int) => ElementOrder::Int(
-                2 * order_int
-                    / (gcd(
-                        2 * order_int,
-                        order_int + 2 * self.proper_power.expect("No proper powers found."),
-                    )),
-            ),
-            ElementOrder::Inf => ElementOrder::Inf,
-        };
-        let dest_proper_power = if preserves_power {
-            match self.proper_order {
-                ElementOrder::Int(order_int) => {
-                    let pow = self.proper_power.expect("No proper powers found.");
-                    (order_int + 2 * pow) / (gcd(2 * order_int, order_int + 2 * pow))
+        let (dest_order, dest_proper_power) = match self.proper_order {
+            ElementOrder::Int(_) => {
+                let proper_fraction = self
+                    .proper_fraction
+                    .expect("No proper fractions found for an element with integer order.");
+                let n = *proper_fraction.denom().unwrap();
+                let k = if proper_fraction.is_sign_negative() {
+                    -i32::try_from(*proper_fraction.numer().unwrap_or_else(|| {
+                        panic!("Unable to retrieve the numerator of {proper_fraction:?}.")
+                    }))
+                    .expect("Unable to convert the numerator of the proper fraction to `i32`.")
+                } else {
+                    i32::try_from(*proper_fraction.numer().unwrap_or_else(|| {
+                        panic!("Unable to retrieve the numerator of {proper_fraction:?}.")
+                    }))
+                    .expect("Unable to convert the numerator of the proper fraction to `i32`.")
+                };
+
+                if k >= 0 {
+                    // k >= 0, k2 < 0
+                    let n_m_2k = n
+                        .checked_sub(2 * k.unsigned_abs())
+                        .expect("The value of `n + 2k` is negative.");
+                    let n2 = ElementOrder::Int(2 * n / (gcd(2 * n, n_m_2k)));
+                    let k2: i32 = if preserves_power {
+                        -i32::try_from(n_m_2k / gcd(2 * n, n_m_2k))
+                            .expect("Unable to convert `k'` to `i32`.")
+                    } else {
+                        1
+                    };
+                    (n2, k2)
+                } else {
+                    // k < 0, k2 >= 0
+                    let n_p_2k = n + 2 * k.unsigned_abs();
+                    let n2 = ElementOrder::Int(2 * n / (gcd(2 * n, n_p_2k)));
+                    let k2: i32 = if preserves_power {
+                        i32::try_from(n_p_2k / (gcd(2 * n, n_p_2k)))
+                            .expect("Unable to convert `k'` to `i32`.")
+                    } else {
+                        1
+                    };
+                    (n2, k2)
                 }
-                ElementOrder::Inf => 1,
             }
-        } else {
-            1
+            ElementOrder::Inf => (ElementOrder::Inf, 1),
         };
+
         match dest_order {
             ElementOrder::Int(_) => Self::builder()
                 .threshold(self.threshold)
                 .proper_order(dest_order)
                 .proper_power(dest_proper_power)
-                .axis(self.axis)
+                .raw_axis(self.raw_axis)
                 .kind(improper_kind)
-                .spinrot(self.spinrot.clone())
+                .rotationgroup(self.rotationgroup.clone())
                 .generator(self.generator)
                 .additional_superscript(self.additional_superscript.clone())
                 .additional_subscript(self.additional_subscript.clone())
                 .build()
                 .expect("Unable to construct a symmetry element."),
+
             ElementOrder::Inf => {
                 if let Some(ang) = self.proper_angle {
                     Self::builder()
@@ -756,9 +867,9 @@ impl SymmetryElement {
                         .proper_order(dest_order)
                         .proper_power(dest_proper_power)
                         .proper_angle(std::f64::consts::PI + ang)
-                        .axis(self.axis)
+                        .raw_axis(self.raw_axis)
                         .kind(improper_kind)
-                        .spinrot(self.spinrot.clone())
+                        .rotationgroup(self.rotationgroup.clone())
                         .generator(self.generator)
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())
@@ -769,9 +880,9 @@ impl SymmetryElement {
                         .threshold(self.threshold)
                         .proper_order(dest_order)
                         .proper_power(dest_proper_power)
-                        .axis(self.axis)
+                        .raw_axis(self.raw_axis)
                         .kind(improper_kind)
-                        .spinrot(self.spinrot.clone())
+                        .rotationgroup(self.rotationgroup.clone())
                         .generator(self.generator)
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())
@@ -797,7 +908,7 @@ impl SymmetryElement {
             None
         } else {
             let mut element = self.clone();
-            element.spinrot = AssociatedSpinRotation::Active(normal);
+            element.rotationgroup = RotationGroup::SU2(normal);
             Some(element)
         }
     }
@@ -820,13 +931,9 @@ impl SymmetryElement {
     /// more than the threshold value in `self`.
     #[must_use]
     pub fn closeness_to_cartesian_axes(&self) -> (f64, usize) {
-        let normalised_axis = self.axis.normalize();
-        let rev_normalised_axis = Vector3::new(
-            normalised_axis[(2)],
-            normalised_axis[(1)],
-            normalised_axis[(0)],
-        );
-        let (amax_arg, amax_val) = rev_normalised_axis.abs().argmax();
+        let pos_axis = self.positive_axis();
+        let rev_pos_axis = Vector3::new(pos_axis[(2)], pos_axis[(1)], pos_axis[(0)]);
+        let (amax_arg, amax_val) = rev_pos_axis.abs().argmax();
         let axis_closeness = 1.0 - amax_val;
         let thresh = self.threshold;
         assert!(
@@ -840,59 +947,36 @@ impl SymmetryElement {
     }
 }
 
-impl fmt::Display for SymmetryElement {
+impl fmt::Debug for SymmetryElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let proper_angle = match self.proper_order {
-            ElementOrder::Inf => {
-                if let Some(ang) = self.proper_angle {
-                    format!("({ang:+.3})")
-                } else {
-                    String::new()
-                }
-            }
-            ElementOrder::Int(_) => String::new(),
-        };
-        if self.is_nonsr_identity(false)
-            || self.is_nonsr_inversion_centre(false)
-            || self.is_nonsr_identity(true)
-            || self.is_nonsr_inversion_centre(true)
-        {
-            write!(f, "{}", self.get_detailed_symbol())
-        } else {
-            write!(
-                f,
-                "{}{}({:+.3}, {:+.3}, {:+.3})",
-                self.get_detailed_symbol(),
-                proper_angle,
-                self.axis[0] + 0.0,
-                self.axis[1] + 0.0,
-                self.axis[2] + 0.0,
-            )
-        }
+        let pos_axis = self.positive_axis();
+        write!(
+            f,
+            "{}({:+.3}, {:+.3}, {:+.3})",
+            self.get_full_symbol(),
+            pos_axis[0] + 0.0,
+            pos_axis[1] + 0.0,
+            pos_axis[2] + 0.0
+        )
     }
 }
 
-impl fmt::Debug for SymmetryElement {
+impl fmt::Display for SymmetryElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let proper_angle = match self.proper_order {
-            ElementOrder::Inf => {
-                if let Some(ang) = self.proper_angle {
-                    format!("({ang:+.3})")
-                } else {
-                    String::new()
-                }
-            }
-            ElementOrder::Int(_) => String::new(),
-        };
-        write!(
-            f,
-            "{}{}({:+.3}, {:+.3}, {:+.3})",
-            self.get_standard_symbol(),
-            proper_angle,
-            self.axis[0] + 0.0,
-            self.axis[1] + 0.0,
-            self.axis[2] + 0.0,
-        )
+        let tr = self.contains_time_reversal();
+        if self.is_nonsr_identity(tr) || self.is_nonsr_inversion_centre(tr) {
+            write!(f, "{}", self.get_simplified_symbol())
+        } else {
+            let pos_axis = self.positive_axis();
+            write!(
+                f,
+                "{}({:+.3}, {:+.3}, {:+.3})",
+                self.get_simplified_symbol(),
+                pos_axis[0] + 0.0,
+                pos_axis[1] + 0.0,
+                pos_axis[2] + 0.0
+            )
+        }
     }
 }
 
@@ -900,6 +984,7 @@ impl PartialEq for SymmetryElement {
     /// Two symmetry elements are equal if and only if the following conditions
     /// are all satisfied:
     ///
+    /// * they are both in the same rotation group and belong to the same homotopy class;
     /// * they are both proper or improper;
     /// * they both have the same time reversal properties;
     /// * their axes are either parallel or anti-parallel;
@@ -907,23 +992,32 @@ impl PartialEq for SymmetryElement {
     ///
     /// For improper elements, proper rotation angles are taken in the inversion
     /// centre convention.
+    ///
+    /// Thus, symmetry element equality is less strict than symmetry operation equality. This is so
+    /// that parallel or anti-parallel symmetry elements with the same spatial and time-reversal
+    /// parities and angle of rotation are deemed identical, thus facilitating symmetry detection
+    /// where one does not yet care much about directions of rotations.
     #[allow(clippy::too_many_lines)]
     fn eq(&self, other: &Self) -> bool {
-        if self.spinrot != other.spinrot {
+        if self.rotationgroup != other.rotationgroup {
+            // Different rotation groups or homotopy classes.
             return false;
         }
 
         if self.contains_time_reversal() != other.contains_time_reversal() {
+            // Different time-reversal parities.
             return false;
         }
 
         let tr = self.contains_time_reversal();
 
         if self.is_nonsr_proper(tr) != other.is_nonsr_proper(tr) {
+            // Different spatial parities.
             return false;
         }
 
         if self.is_nonsr_identity(tr) && other.is_nonsr_identity(tr) {
+            // Both are spatial identity.
             assert_eq!(
                 misc::calculate_hash(self),
                 misc::calculate_hash(other),
@@ -933,6 +1027,7 @@ impl PartialEq for SymmetryElement {
         }
 
         if self.is_nonsr_inversion_centre(tr) && other.is_nonsr_inversion_centre(tr) {
+            // Both are spatial inversion centre.
             assert_eq!(
                 misc::calculate_hash(self),
                 misc::calculate_hash(other),
@@ -943,95 +1038,96 @@ impl PartialEq for SymmetryElement {
 
         let thresh = (self.threshold * other.threshold).sqrt();
 
-        if self.kind != other.kind {
-            let converted_other = other.convert_to_improper_kind(&self.kind, false);
-            let result = approx::relative_eq!(
-                geometry::get_positive_pole(&self.axis, thresh),
-                geometry::get_positive_pole(&converted_other.axis, thresh),
+        let result = if self.is_nonsr_proper(tr) {
+            // Proper.
+
+            // Parallel or anti-parallel axes.
+            let similar_poles = approx::relative_eq!(
+                geometry::get_positive_pole(&self.raw_axis, thresh),
+                geometry::get_positive_pole(&other.raw_axis, thresh),
                 epsilon = thresh,
                 max_relative = thresh
-            ) && if let ElementOrder::Inf = self.proper_order {
-                if let ElementOrder::Inf = converted_other.proper_order {
-                    if let Some(s_angle) = self.proper_angle {
-                        if let Some(o_angle) = converted_other.proper_angle {
+            );
+
+            // Same angle of rotation (irrespective of signs).
+            let similar_angles = match (self.proper_order, other.proper_order) {
+                (ElementOrder::Inf, ElementOrder::Inf) => {
+                    match (self.proper_angle, other.proper_angle) {
+                        (Some(s_angle), Some(o_angle)) => {
                             approx::relative_eq!(
-                                s_angle,
-                                o_angle,
+                                s_angle.abs(),
+                                o_angle.abs(),
                                 epsilon = thresh,
                                 max_relative = thresh
                             )
-                        } else {
-                            false
                         }
-                    } else {
-                        converted_other.proper_angle.is_none()
+                        (None, None) => similar_poles,
+                        _ => false,
                     }
-                } else {
-                    false
                 }
-            } else if let ElementOrder::Inf = converted_other.proper_order {
-                false
-            } else {
-                (self.proper_fraction == converted_other.proper_fraction)
-                    || (self
+                (ElementOrder::Int(_), ElementOrder::Int(_)) => {
+                    let c_proper_fraction = self
                         .proper_fraction
-                        .expect("No proper fractions found for `self`.")
-                        + converted_other
-                            .proper_fraction
-                            .expect("No proper fractions found for `converted_other`.")
-                        == F::from(1u32))
+                        .expect("Proper fraction for `self` not found.");
+                    let o_proper_fraction = other
+                        .proper_fraction
+                        .expect("Proper fraction for `other` not found.");
+                    c_proper_fraction.abs() == o_proper_fraction.abs()
+                }
+                _ => false,
             };
-            if result {
-                assert_eq!(
-                    misc::calculate_hash(self),
-                    misc::calculate_hash(other),
-                    "{self} and {other} have unequal hashes."
-                );
-            }
-            return result;
-        }
 
-        let result = approx::relative_eq!(
-            geometry::get_positive_pole(&self.axis, thresh),
-            geometry::get_positive_pole(&other.axis, thresh),
-            epsilon = thresh,
-            max_relative = thresh
-        ) && if let ElementOrder::Inf = self.proper_order {
-            if let ElementOrder::Inf = other.proper_order {
-                if let Some(s_angle) = self.proper_angle {
-                    if let Some(o_angle) = other.proper_angle {
-                        approx::relative_eq!(
-                            s_angle.abs(),
-                            o_angle.abs(),
-                            epsilon = thresh,
-                            max_relative = thresh
-                        )
-                    } else {
-                        false
-                    }
-                } else {
-                    other.proper_angle.is_none()
-                }
-            } else {
-                false
-            }
-        } else if let ElementOrder::Inf = other.proper_order {
-            false
+            similar_poles && similar_angles
         } else {
-            (self.proper_fraction == other.proper_fraction)
-                || (self
-                    .proper_fraction
-                    .expect("No proper fractions found for `self`.")
-                    + other
+            // Improper => convert to inversion-centre convention.
+            let inv_tr = SymmetryElementKind::ImproperInversionCentre(tr);
+            let c_self = self.convert_to_improper_kind(&inv_tr, false);
+            let c_other = other.convert_to_improper_kind(&inv_tr, false);
+
+            // Parallel or anti-parallel axes.
+            let similar_poles = approx::relative_eq!(
+                geometry::get_positive_pole(&c_self.raw_axis, thresh),
+                geometry::get_positive_pole(&c_other.raw_axis, thresh),
+                epsilon = thresh,
+                max_relative = thresh
+            );
+
+            // Same angle of rotation (irrespective of signs).
+            let similar_angles = match (c_self.proper_order, c_other.proper_order) {
+                (ElementOrder::Inf, ElementOrder::Inf) => {
+                    match (c_self.proper_angle, c_other.proper_angle) {
+                        (Some(s_angle), Some(o_angle)) => {
+                            approx::relative_eq!(
+                                s_angle.abs(),
+                                o_angle.abs(),
+                                epsilon = thresh,
+                                max_relative = thresh
+                            )
+                        }
+                        (None, None) => similar_poles,
+                        _ => false,
+                    }
+                }
+                (ElementOrder::Int(_), ElementOrder::Int(_)) => {
+                    let c_proper_fraction = c_self
                         .proper_fraction
-                        .expect("No proper fractions found for `other`.")
-                    == F::from(1u64))
+                        .expect("Proper fraction for `c_self` not found.");
+                    let o_proper_fraction = c_other
+                        .proper_fraction
+                        .expect("Proper fraction for `c_other` not found.");
+                    c_proper_fraction.abs() == o_proper_fraction.abs()
+                }
+                _ => false,
+            };
+
+            similar_poles && similar_angles
         };
+
         if result {
             assert_eq!(
                 misc::calculate_hash(self),
                 misc::calculate_hash(other),
-                "{self} and {other} have unequal hashes."
+                "`{self}` and `{other}` have unequal hashes."
             );
         }
         result
@@ -1042,16 +1138,19 @@ impl Eq for SymmetryElement {}
 
 impl Hash for SymmetryElement {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.spinrot.hash(state);
+        self.rotationgroup.hash(state);
+
         let tr = self.contains_time_reversal();
         tr.hash(state);
+
         self.is_nonsr_proper(tr).hash(state);
+
         if self.is_nonsr_identity(tr) || self.is_nonsr_inversion_centre(tr) {
             true.hash(state);
         } else if self.kind == SymmetryElementKind::ImproperMirrorPlane(tr) {
             let c_self = self
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(tr), false);
-            let pole = geometry::get_positive_pole(&c_self.axis, c_self.threshold);
+            let pole = geometry::get_positive_pole(&c_self.raw_axis, c_self.threshold);
             pole[0]
                 .round_factor(self.threshold)
                 .integer_decode()
@@ -1075,18 +1174,14 @@ impl Hash for SymmetryElement {
                     0.hash(state);
                 }
             } else {
-                cmp::min_by(
-                    c_self.proper_fraction.expect("No proper fractions found."),
-                    F::from(1u64) - c_self.proper_fraction.expect("No proper fractions found."),
-                    |a, b| {
-                        a.partial_cmp(b)
-                            .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
-                    },
-                )
-                .hash(state);
+                c_self
+                    .proper_fraction
+                    .expect("No proper fractions for `c_self` found.")
+                    .abs()
+                    .hash(state);
             };
         } else {
-            let pole = geometry::get_positive_pole(&self.axis, self.threshold);
+            let pole = geometry::get_positive_pole(&self.raw_axis, self.threshold);
             pole[0]
                 .round_factor(self.threshold)
                 .integer_decode()
@@ -1110,15 +1205,10 @@ impl Hash for SymmetryElement {
                     0.hash(state);
                 }
             } else {
-                cmp::min_by(
-                    self.proper_fraction.expect("No proper fractions found."),
-                    F::from(1u64) - self.proper_fraction.expect("No proper fractions found."),
-                    |a, b| {
-                        a.partial_cmp(b)
-                            .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
-                    },
-                )
-                .hash(state);
+                self.proper_fraction
+                    .expect("No proper fractions for `self` found.")
+                    .abs()
+                    .hash(state);
             };
         };
     }

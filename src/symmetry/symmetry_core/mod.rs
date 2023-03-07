@@ -17,7 +17,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    AssociatedSpinRotation, SymmetryElement, SymmetryElementKind, ROT, SIG, TRROT, TRSIG,
+    RotationGroup, SymmetryElement, SymmetryElementKind, ROT, SIG, TRROT, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
@@ -321,12 +321,12 @@ impl Symmetry {
             .threshold(presym.dist_threshold)
             .proper_order(ORDER_1)
             .proper_power(1)
-            .axis(Vector3::new(0.0, 0.0, 1.0))
+            .raw_axis(Vector3::new(0.0, 0.0, 1.0))
             .kind(SymmetryElementKind::Proper(false))
-            .spinrot(AssociatedSpinRotation::Ignored)
+            .rotationgroup(RotationGroup::SO3)
             .build()
             .expect("Unable to construct the identity element.");
-        self.add_proper(ORDER_1, c1.axis, false, presym.dist_threshold, false);
+        self.add_proper(ORDER_1, c1.raw_axis, false, presym.dist_threshold, false);
 
         // Identify all symmetry elements and generators
         match &presym.rotational_symmetry {
@@ -374,7 +374,7 @@ impl Symmetry {
                     log::debug!("Time-reversed copies of all proper elements added.");
 
                     // Add the time-reversal element as a generator
-                    self.add_proper(ORDER_1, c1.axis, true, presym.dist_threshold, true);
+                    self.add_proper(ORDER_1, c1.raw_axis, true, presym.dist_threshold, true);
 
                     // Add time-reversed copies of improper elements, if any
                     if self.get_elements(&SIG).is_some() {
@@ -448,14 +448,14 @@ impl Symmetry {
             .threshold(threshold)
             .proper_order(order)
             .proper_power(1)
-            .axis(positive_axis)
+            .raw_axis(positive_axis)
             .kind(SymmetryElementKind::Proper(tr))
-            .spinrot(AssociatedSpinRotation::Ignored)
+            .rotationgroup(RotationGroup::SO3)
             .generator(generator)
             .build()
             .expect("Unable to construct a proper element.");
-        let detailed_symbol = element.get_detailed_symbol();
-        let standard_symbol = element.get_standard_symbol();
+        let simplified_symbol = element.get_simplified_symbol();
+        let full_symbol = element.get_full_symbol();
         let proper_kind = if tr { TRROT } else { ROT };
         let result = if generator {
             if let Vacant(proper_generators) = self.generators.entry(proper_kind.clone()) {
@@ -521,8 +521,8 @@ impl Symmetry {
             log::debug!(
                 "Proper rotation {} ({}): {} axis along ({:+.3}, {:+.3}, {:+.3}) added.",
                 dest_str,
-                detailed_symbol,
-                standard_symbol,
+                simplified_symbol,
+                full_symbol,
                 positive_axis[0] + 0.0,
                 positive_axis[1] + 0.0,
                 positive_axis[2] + 0.0,
@@ -569,9 +569,9 @@ impl Symmetry {
                 .threshold(threshold)
                 .proper_order(order)
                 .proper_power(1)
-                .axis(positive_axis)
+                .raw_axis(positive_axis)
                 .kind(kind.to_tr(tr))
-                .spinrot(AssociatedSpinRotation::Ignored)
+                .rotationgroup(RotationGroup::SO3)
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
@@ -585,17 +585,17 @@ impl Symmetry {
                 .threshold(threshold)
                 .proper_order(order)
                 .proper_power(1)
-                .axis(positive_axis)
+                .raw_axis(positive_axis)
                 .kind(kind.to_tr(tr))
-                .spinrot(AssociatedSpinRotation::Ignored)
+                .rotationgroup(RotationGroup::SO3)
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane(tr), false)
         };
         let order = element.proper_order;
-        let detailed_symbol = element.get_detailed_symbol();
-        let standard_symbol = element.get_standard_symbol();
+        let simplified_symbol = element.get_simplified_symbol();
+        let full_symbol = element.get_full_symbol();
         let is_nonsr_mirror_plane = element.is_nonsr_mirror_plane(tr);
         let is_nonsr_inversion_centre = element.is_nonsr_inversion_centre(tr);
         let improper_kind = if tr { TRSIG } else { SIG };
@@ -671,8 +671,8 @@ impl Symmetry {
                 log::debug!(
                     "Mirror plane {} ({}): {} axis along ({:+.3}, {:+.3}, {:+.3}) added.",
                     dest_str,
-                    detailed_symbol,
-                    standard_symbol,
+                    simplified_symbol,
+                    full_symbol,
                     positive_axis[0] + 0.0,
                     positive_axis[1] + 0.0,
                     positive_axis[2] + 0.0,
@@ -681,8 +681,8 @@ impl Symmetry {
                 log::debug!(
                     "Inversion centre {} ({}): {} axis along ({:+.3}, {:+.3}, {:+.3}) added.",
                     dest_str,
-                    detailed_symbol,
-                    standard_symbol,
+                    simplified_symbol,
+                    full_symbol,
                     positive_axis[0] + 0.0,
                     positive_axis[1] + 0.0,
                     positive_axis[2] + 0.0,
@@ -691,8 +691,8 @@ impl Symmetry {
                 log::debug!(
                     "Improper rotation {} ({}): {} axis along ({:+.3}, {:+.3}, {:+.3}) added.",
                     dest_str,
-                    detailed_symbol,
-                    standard_symbol,
+                    simplified_symbol,
+                    full_symbol,
                     positive_axis[0] + 0.0,
                     positive_axis[1] + 0.0,
                     positive_axis[2] + 0.0,
@@ -1116,9 +1116,9 @@ impl Symmetry {
                             .threshold(proper_generator.threshold)
                             .proper_order(ElementOrder::Int(finite_order))
                             .proper_power(1)
-                            .axis(proper_generator.axis)
+                            .raw_axis(proper_generator.raw_axis)
                             .kind(proper_generator.kind.clone())
-                            .spinrot(proper_generator.spinrot.clone())
+                            .rotationgroup(proper_generator.rotationgroup.clone())
                             .additional_superscript(proper_generator.additional_superscript.clone())
                             .additional_subscript(proper_generator.additional_subscript.clone())
                             .build()
@@ -1197,9 +1197,9 @@ impl Symmetry {
                                 .threshold(tr_proper_generator.threshold)
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
-                                .axis(tr_proper_generator.axis)
+                                .raw_axis(tr_proper_generator.raw_axis)
                                 .kind(tr_proper_generator.kind.clone())
-                                .spinrot(tr_proper_generator.spinrot.clone())
+                                .rotationgroup(tr_proper_generator.rotationgroup.clone())
                                 .additional_superscript(
                                     tr_proper_generator.additional_superscript.clone(),
                                 )
@@ -1280,9 +1280,9 @@ impl Symmetry {
                                 .threshold(improper_generator.threshold)
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
-                                .axis(improper_generator.axis)
+                                .raw_axis(improper_generator.raw_axis)
                                 .kind(improper_generator.kind.clone())
-                                .spinrot(improper_generator.spinrot.clone())
+                                .rotationgroup(improper_generator.rotationgroup.clone())
                                 .additional_superscript(
                                     improper_generator.additional_superscript.clone(),
                                 )
@@ -1366,9 +1366,9 @@ impl Symmetry {
                                 .threshold(tr_improper_generator.threshold)
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
-                                .axis(tr_improper_generator.axis)
+                                .raw_axis(tr_improper_generator.raw_axis)
                                 .kind(tr_improper_generator.kind.clone())
-                                .spinrot(tr_improper_generator.spinrot.clone())
+                                .rotationgroup(tr_improper_generator.rotationgroup.clone())
                                 .additional_superscript(
                                     tr_improper_generator.additional_superscript.clone(),
                                 )
@@ -1479,7 +1479,7 @@ impl Symmetry {
                             && op_k.generating_element.additional_subscript.is_empty()
                         {
                             if let Some(sigma_symbol) = deduce_sigma_symbol(
-                                &op_k.generating_element.axis,
+                                &op_k.generating_element.raw_axis,
                                 principal_element,
                                 op_k.generating_element.threshold,
                                 false,
@@ -1699,11 +1699,11 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                             {
                                 for proper_element in proper_elements {
                                     if let Some(proper_kind) =
-                                        presym.check_proper(order, &proper_element.axis, tr)
+                                        presym.check_proper(order, &proper_element.raw_axis, tr)
                                     {
                                         sym.add_proper(
                                             *order,
-                                            proper_element.axis,
+                                            proper_element.raw_axis,
                                             false,
                                             presym.dist_threshold,
                                             proper_kind.contains_time_reversal(),
@@ -1711,46 +1711,6 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                     }
                                 }
                             }
-
-                            // BCH Jan 2023: The following shouldn't be here as this function is
-                            // only to locate proper rotations. Including the following results in
-                            // premature additions of mirror planes in
-                            // adamantane_magnetic_field_bw_c3v case that cause the main symmetric
-                            // algorithm to later fail to register these mirror planes.
-                            // for (order, improper_elements) in sea_sym
-                            //     .get_elements(&SIG)
-                            //     .unwrap_or(&HashMap::new())
-                            //     .iter()
-                            //     .chain(
-                            //         sea_sym
-                            //             .get_elements(&TRSIG)
-                            //             .unwrap_or(&HashMap::new())
-                            //             .iter(),
-                            //     )
-                            // {
-                            //     for improper_element in improper_elements {
-                            //         if let Some(improper_kind) = presym.check_improper(
-                            //             order,
-                            //             &improper_element.axis,
-                            //             &SIG,
-                            //             tr,
-                            //         ) {
-                            //             log::debug!(
-                            //                 "Check improper passed for {}.",
-                            //                 improper_element
-                            //             );
-                            //             sym.add_improper(
-                            //                 *order,
-                            //                 improper_element.axis,
-                            //                 false,
-                            //                 SIG.clone(),
-                            //                 None,
-                            //                 presym.dist_threshold,
-                            //                 improper_kind.contains_time_reversal(),
-                            //             );
-                            //         }
-                            //     }
-                            // }
                         } else {
                             // Prolate symmetric top
                             log::debug!("A prolate symmetric top SEA set detected.");

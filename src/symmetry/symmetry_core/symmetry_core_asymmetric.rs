@@ -80,7 +80,7 @@ impl Symmetry {
             let c2 = c2s.next().expect(" No C2 elements found.");
             self.add_proper(
                 max_ord,
-                c2.axis,
+                c2.raw_axis,
                 true,
                 presym.dist_threshold,
                 c2.contains_time_reversal(),
@@ -90,7 +90,7 @@ impl Symmetry {
             let another_c2 = c2s.next().expect("No more C2s found.");
             self.add_proper(
                 max_ord,
-                another_c2.axis,
+                another_c2.raw_axis,
                 true,
                 presym.dist_threshold,
                 another_c2.contains_time_reversal(),
@@ -120,11 +120,11 @@ impl Symmetry {
                     .cloned()
                     .collect_vec();
                 for c2 in &c2s {
-                    let improper_check = presym.check_improper(&ORDER_1, &c2.axis, &SIG, tr);
+                    let improper_check = presym.check_improper(&ORDER_1, &c2.raw_axis, &SIG, tr);
                     assert!(improper_check.is_some());
                     self.add_improper(
                         ORDER_1,
-                        c2.axis,
+                        c2.raw_axis,
                         false,
                         SIG.clone(),
                         None,
@@ -133,7 +133,7 @@ impl Symmetry {
                             .unwrap_or_else(|| {
                                 panic!(
                                     "Expected mirror plane perpendicular to `{}` not found.",
-                                    c2.axis
+                                    c2.raw_axis
                                 )
                             })
                             .contains_time_reversal(),
@@ -143,11 +143,11 @@ impl Symmetry {
                 // let sigma = sigmas.iter().next().expect("No σ found.");
                 let principal_element = self.get_proper_principal_element();
                 let improper_check =
-                    presym.check_improper(&ORDER_1, &principal_element.axis, &SIG, tr);
+                    presym.check_improper(&ORDER_1, &principal_element.raw_axis, &SIG, tr);
                 assert!(improper_check.is_some());
                 self.add_improper(
                     ORDER_1,
-                    principal_element.axis,
+                    principal_element.raw_axis,
                     true,
                     SIG.clone(),
                     None,
@@ -172,7 +172,7 @@ impl Symmetry {
             let c2 = (*c2s.iter().next().expect(" No C2 elements found.")).clone();
             self.add_proper(
                 max_ord,
-                c2.axis,
+                c2.raw_axis,
                 true,
                 presym.dist_threshold,
                 c2.contains_time_reversal(),
@@ -202,11 +202,11 @@ impl Symmetry {
                     .expect(" No C2 elements found."))
                 .clone();
 
-                let improper_check = presym.check_improper(&ORDER_1, &c2.axis, &SIG, tr);
+                let improper_check = presym.check_improper(&ORDER_1, &c2.raw_axis, &SIG, tr);
                 assert!(improper_check.is_some());
                 self.add_improper(
                     ORDER_1,
-                    c2.axis,
+                    c2.raw_axis,
                     false,
                     SIG.clone(),
                     Some("h".to_owned()),
@@ -216,14 +216,14 @@ impl Symmetry {
                         .unwrap_or_else(|| {
                             panic!(
                                 "Expected mirror plane perpendicular to {} not found.",
-                                c2.axis
+                                c2.raw_axis
                             )
                         })
                         .contains_time_reversal(),
                 );
                 self.add_improper(
                     ORDER_1,
-                    c2.axis,
+                    c2.raw_axis,
                     true,
                     SIG.clone(),
                     Some("h".to_owned()),
@@ -232,7 +232,7 @@ impl Symmetry {
                         .unwrap_or_else(|| {
                             panic!(
                                 "Expected mirror plane perpendicular to {} not found.",
-                                c2.axis
+                                c2.raw_axis
                             )
                         })
                         .contains_time_reversal(),
@@ -339,7 +339,7 @@ impl Symmetry {
                     let sigma = sigmas.first().expect("No σv or σh found.");
                     self.add_improper(
                         ORDER_1,
-                        sigma.axis,
+                        sigma.raw_axis,
                         true,
                         SIG.clone(),
                         Some(sigma.additional_subscript.clone()),
@@ -489,7 +489,7 @@ impl Symmetry {
                     let old_sigma = old_sigmas.into_iter().next().expect("No σ found.");
                     self.add_improper(
                         ORDER_1,
-                        old_sigma.axis,
+                        old_sigma.raw_axis,
                         false,
                         SIG.clone(),
                         Some("h".to_owned()),
@@ -498,7 +498,7 @@ impl Symmetry {
                     );
                     self.add_improper(
                         ORDER_1,
-                        old_sigma.axis,
+                        old_sigma.raw_axis,
                         true,
                         SIG.clone(),
                         Some("h".to_owned()),
@@ -516,7 +516,7 @@ impl Symmetry {
                         .expect("No identity found."))
                     .clone();
 
-                    self.add_proper(ORDER_1, identity.axis, true, presym.dist_threshold, false);
+                    self.add_proper(ORDER_1, identity.raw_axis, true, presym.dist_threshold, false);
                     self.set_group_name("C1".to_owned());
                 }
             }

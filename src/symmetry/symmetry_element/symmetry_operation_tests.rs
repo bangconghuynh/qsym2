@@ -7,7 +7,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    AssociatedSpinRotation, ElementOrder, SymmetryElement, F, INV, ROT, SIG, TRINV, TRROT, TRSIG,
+    RotationGroup, ElementOrder, SymmetryElement, F, INV, ROT, SIG, TRINV, TRROT, TRSIG,
 };
 
 #[test]
@@ -19,9 +19,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -57,9 +57,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -90,9 +90,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
-        .axis(Vector3::new(1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -114,9 +114,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -152,9 +152,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(2)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -176,9 +176,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(4.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -213,10 +213,10 @@ fn test_symmetry_operation_constructor() {
     let ci_element = SymmetryElement::builder()
         .threshold(1e-7)
         .proper_order(ElementOrder::Inf)
-        .axis(Vector3::new(1.0, 0.0, -1.0))
+        .raw_axis(Vector3::new(1.0, 0.0, -1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_6)
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -266,9 +266,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -304,9 +304,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -342,9 +342,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
-        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -380,9 +380,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -418,9 +418,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -456,9 +456,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -494,9 +494,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -532,9 +532,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -570,9 +570,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -608,9 +608,9 @@ fn test_symmetry_operation_constructor() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -645,10 +645,10 @@ fn test_symmetry_operation_constructor() {
     let si_element = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Inf)
-        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -716,9 +716,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -742,9 +742,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -768,9 +768,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
-        .axis(Vector3::new(1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -786,9 +786,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -844,9 +844,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(2)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -862,9 +862,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(4.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -912,9 +912,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 2.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 2.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -965,9 +965,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -991,9 +991,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1017,9 +1017,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
-        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1043,9 +1043,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1069,9 +1069,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1095,9 +1095,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1121,9 +1121,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1173,9 +1173,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1199,9 +1199,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1225,9 +1225,9 @@ fn test_symmetry_operation_total_proper_fraction() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1258,10 +1258,10 @@ fn test_symmetry_operation_total_proper_fraction() {
     let si_element = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Inf)
-        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1282,9 +1282,9 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1336,9 +1336,9 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1390,9 +1390,9 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
-        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1444,9 +1444,9 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1498,9 +1498,9 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1552,9 +1552,9 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1654,9 +1654,9 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1708,9 +1708,9 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1740,9 +1740,9 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.5, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.5, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1816,9 +1816,9 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(7))
         .proper_power(2)
-        .axis(Vector3::new(2.0, 2.5, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.5, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1847,10 +1847,10 @@ fn test_symmetry_operation_finite_improper_conversion() {
     let si_element = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Inf)
-        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1930,9 +1930,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1954,9 +1954,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1988,9 +1988,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2015,9 +2015,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2086,9 +2086,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(2)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2116,9 +2116,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(4.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, -1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, -1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2170,9 +2170,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, -2.0))
+        .raw_axis(Vector3::new(1.0, 1.0, -2.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2223,10 +2223,10 @@ fn test_symmetry_operation_poles() {
     let ci_element = SymmetryElement::builder()
         .threshold(1e-7)
         .proper_order(ElementOrder::Inf)
-        .axis(Vector3::new(1.0, 0.0, -1.0))
+        .raw_axis(Vector3::new(1.0, 0.0, -1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_6)
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2291,9 +2291,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, -2.0, 0.0))
+        .raw_axis(Vector3::new(0.0, -2.0, 0.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2321,9 +2321,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2351,9 +2351,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
-        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2371,9 +2371,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2401,9 +2401,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2431,9 +2431,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2461,9 +2461,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2565,9 +2565,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2596,9 +2596,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2620,9 +2620,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2654,9 +2654,9 @@ fn test_symmetry_operation_poles() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.0, -1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, -1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2723,10 +2723,10 @@ fn test_symmetry_operation_poles() {
     let si_element = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Inf)
-        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::PI / 5.0)
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2747,10 +2747,10 @@ fn test_symmetry_operation_poles() {
     let sdi_element = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Inf)
-        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::PI / 5.0)
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2781,9 +2781,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 2.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2804,9 +2804,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2834,9 +2834,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(-1.0, -1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, -1.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2851,9 +2851,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2911,9 +2911,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(2)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2942,9 +2942,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(4.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, -1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, -1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2999,9 +2999,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(4.0, 1e-14))
         .proper_power(1)
-        .axis(-Vector3::new(1.0, 1.0, -1.0))
+        .raw_axis(-Vector3::new(1.0, 1.0, -1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3024,9 +3024,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(6))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3061,10 +3061,10 @@ fn test_symmetry_operation_comparisons() {
     let ci_element = SymmetryElement::builder()
         .threshold(1e-7)
         .proper_order(ElementOrder::Inf)
-        .axis(-Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(-Vector3::new(1.0, 1.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_6)
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3143,9 +3143,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, -2.0, 0.0))
+        .raw_axis(Vector3::new(0.0, -2.0, 0.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3186,9 +3186,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3215,9 +3215,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
-        .axis(Vector3::new(-1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3234,9 +3234,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3263,9 +3263,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(2)
-        .axis(Vector3::new(0.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3293,9 +3293,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3323,9 +3323,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3411,9 +3411,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(2)
-        .axis(-Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(-Vector3::new(1.0, 1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3437,9 +3437,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(3)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3461,9 +3461,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3477,9 +3477,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(6))
         .proper_power(5)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3508,9 +3508,9 @@ fn test_symmetry_operation_comparisons() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
-        .axis(Vector3::new(2.0, 2.0, -1.0))
+        .raw_axis(Vector3::new(2.0, 2.0, -1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3601,10 +3601,10 @@ fn test_symmetry_operation_comparisons() {
     let si_element = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Inf)
-        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::PI / 5.0)
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3652,9 +3652,9 @@ fn test_symmetry_operation_to_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3727,9 +3727,9 @@ fn test_symmetry_operation_to_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3799,9 +3799,9 @@ fn test_symmetry_operation_to_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3877,9 +3877,9 @@ fn test_symmetry_operation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(4))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3904,9 +3904,9 @@ fn test_symmetry_operation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -2.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3985,9 +3985,9 @@ fn test_symmetry_operation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 2.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 2.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4029,9 +4029,9 @@ fn test_symmetry_operation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 2.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 2.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4073,9 +4073,9 @@ fn test_symmetry_operation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4151,9 +4151,9 @@ fn test_symmetry_operation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(17))
         .proper_power(3)
-        .axis(Vector3::new(5.0, -1.0, 2.0))
+        .raw_axis(Vector3::new(5.0, -1.0, 2.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4178,9 +4178,9 @@ fn test_symmetry_operation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(11))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4228,9 +4228,9 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(4))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Active(true))
+        .rotationgroup(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -4273,9 +4273,9 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -2.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Active(false))
+        .rotationgroup(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -4357,9 +4357,9 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 2.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 2.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Active(true))
+        .rotationgroup(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -4401,9 +4401,9 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 2.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 2.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Active(false))
+        .rotationgroup(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -4446,9 +4446,9 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Active(false))
+        .rotationgroup(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -4524,9 +4524,9 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(17))
         .proper_power(3)
-        .axis(Vector3::new(5.0, -1.0, 2.0))
+        .raw_axis(Vector3::new(5.0, -1.0, 2.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Active(true))
+        .rotationgroup(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -4551,9 +4551,9 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(11))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Active(false))
+        .rotationgroup(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -4601,9 +4601,9 @@ fn test_symmetry_operation_spin_rotation_to_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Active(true))
+        .rotationgroup(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -4738,9 +4738,9 @@ fn test_symmetry_operation_spin_rotation_to_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Active(false))
+        .rotationgroup(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -4825,9 +4825,9 @@ fn test_symmetry_operation_spin_rotation_to_quaternion() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Active(true))
+        .rotationgroup(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -4882,9 +4882,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4923,9 +4923,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4939,9 +4939,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(35))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4969,9 +4969,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(10))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4995,9 +4995,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5012,9 +5012,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(2)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5045,9 +5045,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(8))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5061,9 +5061,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(40))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5078,9 +5078,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(40))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5095,9 +5095,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5112,9 +5112,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5128,9 +5128,9 @@ fn test_symmetry_operation_collinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5151,9 +5151,9 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5167,9 +5167,9 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5183,9 +5183,9 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 0.0, 1.0))
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5202,9 +5202,9 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5218,9 +5218,9 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 0.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5234,9 +5234,9 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(4))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 0.0, 1.0))
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5254,9 +5254,9 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5270,9 +5270,9 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5286,9 +5286,9 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 0.0, 1.0))
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5306,9 +5306,9 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-10)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5322,13 +5322,13 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-10)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(
+        .raw_axis(Vector3::new(
             (2.0 * std::f64::consts::PI * 3.0 / 17.0).cos(),
             (2.0 * std::f64::consts::PI * 3.0 / 17.0).sin(),
             0.0,
         ))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5338,8 +5338,8 @@ fn test_symmetry_operation_noncollinear_composition() {
         .build()
         .unwrap();
 
-    let kaleidoscope_angle = s1a_element.axis.dot(&s1b_element.axis).acos();
-    let rotation_axis = s1a_element.axis.cross(&s1b_element.axis);
+    let kaleidoscope_angle = s1a_element.raw_axis.dot(&s1b_element.raw_axis).acos();
+    let rotation_axis = s1a_element.raw_axis.cross(&s1b_element.raw_axis);
     let fract =
         geometry::get_proper_fraction(2.0 * kaleidoscope_angle, 1e-10, 20).unwrap_or_else(|| {
             panic!(
@@ -5350,10 +5350,10 @@ fn test_symmetry_operation_noncollinear_composition() {
     let c_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(*fract.denom().unwrap()))
-        .proper_power(*fract.numer().unwrap())
-        .axis(rotation_axis)
+        .proper_power((*fract.numer().unwrap()).try_into().unwrap())
+        .raw_axis(rotation_axis)
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5368,13 +5368,13 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-10)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(
+        .raw_axis(Vector3::new(
             (std::f64::consts::PI * 3.0).sin(),
             -(std::f64::consts::PI * 3.0).cos(),
             0.0,
         ))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5388,9 +5388,9 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-10)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 0.0, 1.0))
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5406,13 +5406,13 @@ fn test_symmetry_operation_noncollinear_composition() {
         .threshold(1e-10)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(
+        .raw_axis(Vector3::new(
             (std::f64::consts::PI * 3.0).sin(),
             -(std::f64::consts::PI * 3.0).cos(),
             0.0,
         ))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5424,36 +5424,36 @@ fn test_symmetry_operation_noncollinear_composition() {
     assert_eq!(s1cc1, s2d);
 }
 
-#[test]
-fn test_symmetry_operation_spin_rotation_collinear_composition() {
-    // ==========================
-    // Proper symmetry operations
-    // ==========================
-    let c2_nsr_element = SymmetryElement::builder()
-        .threshold(1e-12)
-        .proper_order(ElementOrder::Int(2))
-        .proper_power(1)
-        .axis(Vector3::x())
-        .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Active(true))
-        .build()
-        .unwrap();
+// #[test]
+// fn test_symmetry_operation_spin_rotation_collinear_composition() {
+//     // ==========================
+//     // Proper symmetry operations
+//     // ==========================
+//     let c2_nsr_element = SymmetryElement::builder()
+//         .threshold(1e-12)
+//         .proper_order(ElementOrder::Int(2))
+//         .proper_power(1)
+//         .raw_axis(Vector3::x())
+//         .kind(ROT)
+//         .rotationgroup(RotationGroup::SU2(true))
+//         .build()
+//         .unwrap();
 
-    let c2_nsr_p1 = SymmetryOperation::builder()
-        .generating_element(c2_nsr_element.clone())
-        .power(1)
-        .build()
-        .unwrap();
+//     let c2_nsr_p1 = SymmetryOperation::builder()
+//         .generating_element(c2_nsr_element.clone())
+//         .power(1)
+//         .build()
+//         .unwrap();
 
-    println!("{}", &c2_nsr_p1 * &c2_nsr_p1);
+//     println!("{}", &c2_nsr_p1 * &c2_nsr_p1);
 
     // let c5_nsr_element = SymmetryElement::builder()
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(5))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(ROT)
-    //     .spinrot(AssociatedSpinRotation::Active(true))
+    //     .rotationgroup(RotationGroup::SU2(true))
     //     .build()
     //     .unwrap();
 
@@ -5499,9 +5499,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(5))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(ROT)
-    //     .spinrot(AssociatedSpinRotation::Active(false))
+    //     .rotationgroup(RotationGroup::SU2(false))
     //     .build()
     //     .unwrap();
 
@@ -5529,9 +5529,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(7))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(ROT)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .rotationgroup(RotationGroup::SO3)
     //     .build()
     //     .unwrap();
 
@@ -5545,9 +5545,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(35))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(ROT)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .rotationgroup(RotationGroup::SO3)
     //     .build()
     //     .unwrap();
 
@@ -5575,9 +5575,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(10))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(ROT)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .rotationgroup(RotationGroup::SO3)
     //     .build()
     //     .unwrap();
 
@@ -5601,9 +5601,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(5))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(SIG)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .rotationgroup(RotationGroup::SO3)
     //     .build()
     //     .unwrap();
 
@@ -5618,9 +5618,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(5))
     //     .proper_power(2)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(SIG)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .rotationgroup(RotationGroup::SO3)
     //     .build()
     //     .unwrap();
 
@@ -5651,9 +5651,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(8))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(SIG)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .rotationgroup(RotationGroup::SO3)
     //     .build()
     //     .unwrap();
 
@@ -5667,9 +5667,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(40))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(ROT)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .rotationgroup(RotationGroup::SO3)
     //     .build()
     //     .unwrap();
 
@@ -5684,9 +5684,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(40))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(SIG)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .rotationgroup(RotationGroup::SO3)
     //     .build()
     //     .unwrap();
 
@@ -5701,9 +5701,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(1))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(SIG)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .rotationgroup(RotationGroup::SO3)
     //     .build()
     //     .unwrap();
 
@@ -5718,9 +5718,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(2))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(SIG)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .rotationgroup(RotationGroup::SO3)
     //     .build()
     //     .unwrap();
 
@@ -5734,9 +5734,9 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .threshold(1e-12)
     //     .proper_order(ElementOrder::Int(5))
     //     .proper_power(1)
-    //     .axis(Vector3::new(2.0, -1.0, 1.0))
+    //     .raw_axis(Vector3::new(2.0, -1.0, 1.0))
     //     .kind(INV)
-    //     .spinrot(AssociatedSpinRotation::Ignored)
+    //     .rotationgroup(RotationGroup::SO3)
     //     .build()
     //     .unwrap();
 
@@ -5746,7 +5746,7 @@ fn test_symmetry_operation_spin_rotation_collinear_composition() {
     //     .build()
     //     .unwrap();
     // assert_eq!(&s2 * &c5, sd5);
-}
+// }
 
 #[test]
 fn test_symmetry_operation_time_reversal() {
@@ -5754,9 +5754,9 @@ fn test_symmetry_operation_time_reversal() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(TRROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5773,9 +5773,9 @@ fn test_symmetry_operation_time_reversal() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
     let c2x = SymmetryOperation::builder()
@@ -5796,9 +5796,9 @@ fn test_symmetry_operation_time_reversal() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
         .kind(TRROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5812,9 +5812,9 @@ fn test_symmetry_operation_time_reversal() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(0.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
     let c2y = SymmetryOperation::builder()
@@ -5837,9 +5837,9 @@ fn test_symmetry_operation_time_reversal() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(INV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5855,9 +5855,9 @@ fn test_symmetry_operation_time_reversal() {
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(1))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 0.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(TRINV)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5883,9 +5883,9 @@ fn test_symmetry_operation_exponentiation() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5917,9 +5917,9 @@ fn test_symmetry_operation_exponentiation() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(6))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5934,9 +5934,9 @@ fn test_symmetry_operation_exponentiation() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(3))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5952,9 +5952,9 @@ fn test_symmetry_operation_exponentiation() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 0.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5982,9 +5982,9 @@ fn test_symmetry_operation_exponentiation() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -2.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -2.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6013,9 +6013,9 @@ fn test_symmetry_operation_exponentiation() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -2.0, 2.0))
+        .raw_axis(Vector3::new(2.0, -2.0, 2.0))
         .kind(TRSIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6033,9 +6033,9 @@ fn test_symmetry_operation_exponentiation() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -2.0, 2.0))
+        .raw_axis(Vector3::new(2.0, -2.0, 2.0))
         .kind(TRROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6055,9 +6055,9 @@ fn test_symmetry_operation_invertibility() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6079,9 +6079,9 @@ fn test_symmetry_operation_invertibility() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -2.0, 2.0))
+        .raw_axis(Vector3::new(2.0, -2.0, 2.0))
         .kind(TRROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6102,9 +6102,9 @@ fn test_symmetry_operation_hashability() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(8))
         .proper_power(1)
-        .axis(Vector3::new(1.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6121,9 +6121,9 @@ fn test_symmetry_operation_hashability() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(4))
         .proper_power(1)
-        .axis(Vector3::new(-1.0, 1.0, -1.0))
+        .raw_axis(Vector3::new(-1.0, 1.0, -1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6141,9 +6141,9 @@ fn test_symmetry_operation_hashability() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(8))
         .proper_power(1)
-        .axis(Vector3::new(1.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, -1.0, 1.0))
         .kind(SIG)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6159,9 +6159,9 @@ fn test_symmetry_operation_hashability() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(12))
         .proper_power(1)
-        .axis(Vector3::new(1.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, -1.0, 1.0))
         .kind(TRROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6180,9 +6180,9 @@ fn test_symmetry_operation_spin_rotation_comparison() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
     let c5_nsr_element = c5_element.add_spin_rotation(true).unwrap();
@@ -6244,9 +6244,9 @@ fn test_symmetry_operation_spin_rotation_comparison() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(3)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap()
         .add_spin_rotation(true)
@@ -6267,9 +6267,9 @@ fn test_symmetry_operation_spin_rotation_comparison() {
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(7))
         .proper_power(1)
-        .axis(Vector3::new(2.0, -1.0, 1.0))
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
     let c7_nsr_element = c7_element.add_spin_rotation(true).unwrap();

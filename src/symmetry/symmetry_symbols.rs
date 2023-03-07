@@ -1315,7 +1315,7 @@ pub(super) fn deduce_sigma_symbol(
     force_d: bool,
 ) -> Option<String> {
     if approx::relative_eq!(
-        principal_element.axis.dot(sigma_axis).abs(),
+        principal_element.raw_axis.dot(sigma_axis).abs(),
         0.0,
         epsilon = thresh,
         max_relative = thresh
@@ -1328,7 +1328,7 @@ pub(super) fn deduce_sigma_symbol(
             Some("v".to_owned())
         }
     } else if approx::relative_eq!(
-        principal_element.axis.cross(sigma_axis).norm(),
+        principal_element.raw_axis.cross(sigma_axis).norm(),
         0.0,
         epsilon = thresh,
         max_relative = thresh

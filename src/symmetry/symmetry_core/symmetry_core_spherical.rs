@@ -195,11 +195,11 @@ impl Symmetry {
                         .cloned()
                         .collect_vec()
                         .into_iter();
-                    let normal = c2s.next().expect("No C2 elements found.").axis
+                    let normal = c2s.next().expect("No C2 elements found.").raw_axis
                         + c2s
                             .next()
                             .expect("Two C2 elements expected, but only one found.")
-                            .axis;
+                            .raw_axis;
                     if presym.check_improper(&ORDER_1, &normal, &SIG, tr).is_some() {
                         // σd
                         log::debug!("Located σd.");
@@ -212,7 +212,7 @@ impl Symmetry {
                                 .iter()
                                 .combinations(2)
                             {
-                                let axis_p = c2s[0].axis + c2s[1].axis;
+                                let axis_p = c2s[0].raw_axis + c2s[1].raw_axis;
                                 let p_improper_check =
                                     presym.check_improper(&ORDER_1, &axis_p, &SIG, tr);
                                 assert!(p_improper_check.is_some());
@@ -223,7 +223,7 @@ impl Symmetry {
                                         .contains_time_reversal(),
                                 ));
 
-                                let axis_m = c2s[0].axis - c2s[1].axis;
+                                let axis_m = c2s[0].raw_axis - c2s[1].raw_axis;
                                 let m_improper_check =
                                     presym.check_improper(&ORDER_1, &axis_m, &SIG, tr);
                                 assert!(m_improper_check.is_some());
@@ -392,7 +392,7 @@ impl Symmetry {
             for c3 in &c3s {
                 self.add_proper(
                     order_3,
-                    c3.axis,
+                    c3.raw_axis,
                     true,
                     presym.molecule.threshold,
                     c3.contains_time_reversal(),
@@ -451,7 +451,7 @@ impl Symmetry {
                 .expect("Expected C4 not found.");
             self.add_proper(
                 order_4,
-                c4.axis,
+                c4.raw_axis,
                 true,
                 presym.molecule.threshold,
                 c4.contains_time_reversal(),
@@ -518,8 +518,8 @@ impl Symmetry {
                     .expect("Expected C2 elements not found.")
                     .iter()
                     .filter_map(|c2_ele| {
-                        presym.check_improper(&order_4, &c2_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c2_ele.axis, improper_kind.contains_time_reversal()),
+                        presym.check_improper(&order_4, &c2_ele.raw_axis, &SIG, tr).map(
+                            |improper_kind| (c2_ele.raw_axis, improper_kind.contains_time_reversal()),
                         )
                     })
                     .collect()
@@ -557,8 +557,8 @@ impl Symmetry {
                     .expect("Expected C2 elements not found.")
                     .iter()
                     .filter_map(|c2_ele| {
-                        presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c2_ele.axis, improper_kind.contains_time_reversal()),
+                        presym.check_improper(&ORDER_1, &c2_ele.raw_axis, &SIG, tr).map(
+                            |improper_kind| (c2_ele.raw_axis, improper_kind.contains_time_reversal()),
                         )
                     })
                     .collect()
@@ -584,8 +584,8 @@ impl Symmetry {
                     .expect("Expected C3 elements not found.")
                     .iter()
                     .filter_map(|c3_ele| {
-                        presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c3_ele.axis, improper_kind.contains_time_reversal()),
+                        presym.check_improper(&order_6, &c3_ele.raw_axis, &SIG, tr).map(
+                            |improper_kind| (c3_ele.raw_axis, improper_kind.contains_time_reversal()),
                         )
                     })
                     .collect()
@@ -613,8 +613,8 @@ impl Symmetry {
                     .expect("Expected C2 elements not found.")
                     .iter()
                     .filter_map(|c2_ele| {
-                        presym.check_improper(&order_4, &c2_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c2_ele.axis, improper_kind.contains_time_reversal()),
+                        presym.check_improper(&order_4, &c2_ele.raw_axis, &SIG, tr).map(
+                            |improper_kind| (c2_ele.raw_axis, improper_kind.contains_time_reversal()),
                         )
                     })
                     .collect()
@@ -664,12 +664,12 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym
-                            .check_improper(&order_4, &c2_ele.axis, &SIG, tr)
+                            .check_improper(&order_4, &c2_ele.raw_axis, &SIG, tr)
                             .is_none()
                         {
-                            presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG, tr).map(
+                            presym.check_improper(&ORDER_1, &c2_ele.raw_axis, &SIG, tr).map(
                                 |improper_kind| {
-                                    (c2_ele.axis, improper_kind.contains_time_reversal())
+                                    (c2_ele.raw_axis, improper_kind.contains_time_reversal())
                                 },
                             )
                         } else {
@@ -699,8 +699,8 @@ impl Symmetry {
                     .expect("Expected C3 elements not found.")
                     .iter()
                     .filter_map(|c3_ele| {
-                        presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c3_ele.axis, improper_kind.contains_time_reversal()),
+                        presym.check_improper(&order_6, &c3_ele.raw_axis, &SIG, tr).map(
+                            |improper_kind| (c3_ele.raw_axis, improper_kind.contains_time_reversal()),
                         )
                     })
                     .collect()
@@ -730,9 +730,9 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c5_ele| {
                         presym
-                            .check_improper(&order_10, &c5_ele.axis, &SIG, tr)
+                            .check_improper(&order_10, &c5_ele.raw_axis, &SIG, tr)
                             .map(|improper_kind| {
-                                (c5_ele.axis, improper_kind.contains_time_reversal())
+                                (c5_ele.raw_axis, improper_kind.contains_time_reversal())
                             })
                     })
                     .collect()
@@ -758,8 +758,8 @@ impl Symmetry {
                     .expect("Expected C3 elements not found.")
                     .iter()
                     .filter_map(|c3_ele| {
-                        presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c3_ele.axis, improper_kind.contains_time_reversal()),
+                        presym.check_improper(&order_6, &c3_ele.raw_axis, &SIG, tr).map(
+                            |improper_kind| (c3_ele.raw_axis, improper_kind.contains_time_reversal()),
                         )
                     })
                     .collect()
@@ -784,8 +784,8 @@ impl Symmetry {
                     .expect("Expected C2 elements not found.")
                     .iter()
                     .filter_map(|c2_ele| {
-                        presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c2_ele.axis, improper_kind.contains_time_reversal()),
+                        presym.check_improper(&ORDER_1, &c2_ele.raw_axis, &SIG, tr).map(
+                            |improper_kind| (c2_ele.raw_axis, improper_kind.contains_time_reversal()),
                         )
                     })
                     .collect()

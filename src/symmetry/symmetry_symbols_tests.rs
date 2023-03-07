@@ -6,7 +6,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    AssociatedSpinRotation, SymmetryElement, SymmetryElementKind,
+    RotationGroup, SymmetryElement, SymmetryElementKind,
 };
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_symbols::{
@@ -36,9 +36,9 @@ fn test_symmetry_symbols_class() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::Proper(false))
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
     let c3 = SymmetryOperation::builder()
@@ -55,9 +55,9 @@ fn test_symmetry_symbols_class() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(2.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane(false))
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
     let i = SymmetryOperation::builder()
@@ -76,9 +76,9 @@ fn test_symmetry_symbols_class() {
         .threshold(1e-14)
         .proper_order(ElementOrder::new(1.0, 1e-14))
         .proper_power(1)
-        .axis(Vector3::new(1.0, 1.0, 1.0))
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane(false))
-        .spinrot(AssociatedSpinRotation::Ignored)
+        .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
     let s = SymmetryOperation::builder()

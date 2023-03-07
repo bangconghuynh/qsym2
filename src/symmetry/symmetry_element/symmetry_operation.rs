@@ -16,9 +16,7 @@ use crate::aux::geometry::{
 use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
-use crate::symmetry::symmetry_element::{
-    AssociatedSpinRotation, SymmetryElement, SymmetryElementKind, INV,
-};
+use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SymmetryElementKind, INV};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
 type F = fraction::GenericFraction<u32>;
@@ -415,10 +413,14 @@ impl SymmetryOperation {
             SymmetryElement::builder()
                 .threshold(thresh)
                 .proper_order(ElementOrder::Int(order))
-                .proper_power(power)
-                .axis(axis)
+                .proper_power(
+                    power
+                        .try_into()
+                        .expect("Unable to convert the proper power to `i32`."),
+                )
+                .raw_axis(axis)
                 .kind(kind)
-                .spinrot(AssociatedSpinRotation::Active(normal))
+                .rotationgroup(RotationGroup::SU2(normal))
                 .build()
                 .expect("Unable to construct a symmetry element with an associated spin rotation.")
         } else {
@@ -460,10 +462,14 @@ impl SymmetryOperation {
             SymmetryElement::builder()
                 .threshold(thresh)
                 .proper_order(ElementOrder::Int(order))
-                .proper_power(power)
-                .axis(axis)
+                .proper_power(
+                    power
+                        .try_into()
+                        .expect("Unable to convert the proper power to `i32`."),
+                )
+                .raw_axis(axis)
                 .kind(kind)
-                .spinrot(AssociatedSpinRotation::Ignored)
+                .rotationgroup(RotationGroup::SO3)
                 .build()
                 .expect(
                     "Unable to construct a symmetry element without an associated spin rotation.",
@@ -520,10 +526,18 @@ impl SymmetryOperation {
                 && scalar_part <= 1.0 + self.generating_element.threshold
         );
         if self.contains_inverse_spin_rotation() {
-            println!("Calc Q for {self}: {abs_angle} {} => {}, {}", c_self.calc_pole().coords, -scalar_part, -vector_part);
+            println!(
+                "Calc Q for {self}: {abs_angle} {} => {}, {}",
+                c_self.calc_pole().coords,
+                -scalar_part,
+                -vector_part
+            );
             (-scalar_part, -vector_part)
         } else {
-            println!("Calc Q for {self}: {abs_angle} => {}, {}", scalar_part, vector_part);
+            println!(
+                "Calc Q for {self}: {abs_angle} => {}, {}",
+                scalar_part, vector_part
+            );
             (scalar_part, vector_part)
         }
     }
@@ -568,7 +582,7 @@ impl SymmetryOperation {
                 {
                     // Binary rotations or reflections
                     Point3::from(geometry::get_positive_pole(
-                        &op.generating_element.axis,
+                        &op.generating_element.raw_axis,
                         op.generating_element.threshold,
                     ))
                 } else if op
@@ -577,14 +591,14 @@ impl SymmetryOperation {
                     < frac_1_2
                 {
                     // Positive rotation angles
-                    Point3::from(op.generating_element.axis)
+                    Point3::from(op.generating_element.raw_axis)
                 } else if op
                     .total_proper_fraction
                     .expect("No total proper fractions found.")
                     < F::from(1u64)
                 {
                     // Negative rotation angles
-                    Point3::from(-op.generating_element.axis)
+                    Point3::from(-op.generating_element.raw_axis)
                 } else {
                     // Identity or inversion
                     assert_eq!(
@@ -604,7 +618,7 @@ impl SymmetryOperation {
                 ) {
                     // Binary rotations or reflections
                     Point3::from(geometry::get_positive_pole(
-                        &op.generating_element.axis,
+                        &op.generating_element.raw_axis,
                         op.generating_element.threshold,
                     ))
                 } else if approx::relative_ne!(
@@ -613,7 +627,7 @@ impl SymmetryOperation {
                     max_relative = op.generating_element.threshold,
                     epsilon = op.generating_element.threshold
                 ) {
-                    Point3::from(op.total_proper_angle.signum() * op.generating_element.axis)
+                    Point3::from(op.total_proper_angle.signum() * op.generating_element.raw_axis)
                 } else {
                     approx::assert_relative_eq!(
                         op.total_proper_angle,
@@ -690,11 +704,11 @@ impl SymmetryOperation {
     #[must_use]
     pub fn get_abbreviated_symbol(&self) -> String {
         if self.power == 1 {
-            self.generating_element.get_detailed_symbol()
+            self.generating_element.get_simplified_symbol()
         } else {
             format!(
                 "[{}]^{}",
-                self.generating_element.get_detailed_symbol(),
+                self.generating_element.get_simplified_symbol(),
                 self.power
             )
         }
@@ -1021,7 +1035,9 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     // ==================
 
     fn contains_active_spin_rotation(&self) -> bool {
-        self.generating_element.spinrot.is_active_spin_rotation()
+        self.generating_element
+            .rotationgroup
+            .is_active_spin_rotation()
     }
 
     fn contains_inverse_spin_rotation(&self) -> bool {
@@ -1046,7 +1062,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                 || c_self.generating_element.is_nonsr_identity(true)
                 || c_self.generating_element.is_nonsr_inversion_centre(false)
                 || c_self.generating_element.is_nonsr_inversion_centre(true);
-            let inverse_from_spinrot = if spatial_proper_identity {
+            let inverse_from_rotationgroup = if spatial_proper_identity {
                 // The proper part of the generating element is the spatial identity, for which the
                 // associated spin rotation is also the spin rotation identity. In this case, no
                 // matter the value of proper power, the associated spin rotation always remains
@@ -1101,9 +1117,12 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                         == 1
                 })
             };
-            let intrinsic_inverse = c_self.generating_element.spinrot.is_inverse_spin_rotation()
+            let intrinsic_inverse = c_self
+                .generating_element
+                .rotationgroup
+                .is_inverse_spin_rotation()
                 && c_self.power.rem_euclid(2) == 1;
-            inverse_from_spinrot != intrinsic_inverse
+            inverse_from_rotationgroup != intrinsic_inverse
         } else {
             false
         }

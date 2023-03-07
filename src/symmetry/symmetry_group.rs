@@ -163,13 +163,13 @@ pub trait SymmetryGroupProperties:
     /// Sets the conjugacy class symbols in this group based on molecular symmetry.
     fn class_symbols_from_symmetry(&mut self) -> Vec<SymmetryClassSymbol<SymmetryOperation>> {
         log::debug!("Assigning class symbols from symmetry operations...");
-        let mut proper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+        let mut proper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
             HashMap::new();
-        let mut improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+        let mut improper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
             HashMap::new();
-        let mut tr_proper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+        let mut tr_proper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
             HashMap::new();
-        let mut tr_improper_class_orders: HashMap<(ElementOrder, Option<u32>, i32, String), usize> =
+        let mut tr_improper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
             HashMap::new();
         let symmetry_class_symbols = (0..self.class_number())
             .map(|i| {
