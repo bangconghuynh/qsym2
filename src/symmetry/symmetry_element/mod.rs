@@ -529,8 +529,8 @@ impl SymmetryElement {
     /// Some additional symbols that can be unconventional include:
     ///
     /// * `θ`: time reversal,
-    /// * `Σ`: the normal spin rotation associated with the proper rotation of this element,
-    /// * `QΣ`: the inverse spin rotation associated with the proper rotation of this element.
+    /// * `(Σ)`: the spatial part is in homotopy class 0 of $`\mathsf{SU}'(2)`$,
+    /// * `(QΣ)`: the spatial part is in homotopy class 1 of $`\mathsf{SU}'(2)`$.
     ///
     /// See [`RotationGroup`] for further information.
     ///
@@ -586,15 +586,17 @@ impl SymmetryElement {
             }
         };
 
-        let sr_sym = match self.rotationgroup {
-            RotationGroup::SO3 => "",
-            RotationGroup::SU2(true) => "Σ·",
-            RotationGroup::SU2(false) => "QΣ·",
+        let su2_sym = if self.is_su2_class_1() {
+            "(QΣ)"
+        } else if self.is_su2() {
+            "(Σ)"
+        } else {
+            ""
         };
 
         if let Some(proper_fraction) = self.proper_fraction {
             if proper_fraction.is_zero() {
-                format!("{sr_sym}{main_symbol}1")
+                format!("{main_symbol}1{su2_sym}")
             } else {
                 let proper_order = proper_fraction
                     .denom()
@@ -610,7 +612,7 @@ impl SymmetryElement {
                         String::new()
                     }
                 };
-                format!("{sr_sym}{main_symbol}{proper_order}{proper_power}")
+                format!("{main_symbol}{proper_order}{proper_power}{su2_sym}")
             }
         } else {
             assert_eq!(self.proper_order, ElementOrder::Inf);
@@ -619,7 +621,7 @@ impl SymmetryElement {
             } else {
                 String::new()
             };
-            format!("{sr_sym}{main_symbol}{}{proper_angle}", self.proper_order)
+            format!("{main_symbol}{}{proper_angle}{su2_sym}", self.proper_order)
         }
     }
 
@@ -686,10 +688,12 @@ impl SymmetryElement {
             }
         };
 
-        let sr_sym = match self.rotationgroup {
-            RotationGroup::SO3 => "",
-            RotationGroup::SU2(true) => "Σ·",
-            RotationGroup::SU2(false) => "QΣ·",
+        let su2_sym = if self.is_su2_class_1() {
+            "(QΣ)"
+        } else if self.is_su2() {
+            "(Σ)"
+        } else {
+            ""
         };
 
         if let Some(proper_fraction) = self.proper_fraction {
@@ -719,7 +723,7 @@ impl SymmetryElement {
                 String::new()
             };
             format!(
-                "{sr_sym}{main_symbol}{}{proper_order}{proper_power}{}",
+                "{main_symbol}{}{proper_order}{proper_power}{su2_sym}{}",
                 self.additional_superscript, self.additional_subscript
             )
         } else {
@@ -730,7 +734,7 @@ impl SymmetryElement {
                 String::new()
             };
             format!(
-                "{sr_sym}{main_symbol}{}{}{proper_angle}{}",
+                "{main_symbol}{}{}{proper_angle}{su2_sym}{}",
                 self.additional_superscript, self.proper_order, self.additional_subscript
             )
         }
@@ -822,7 +826,7 @@ impl SymmetryElement {
                     // k >= 0, k2 < 0
                     let n_m_2k = n
                         .checked_sub(2 * k.unsigned_abs())
-                        .expect("The value of `n + 2k` is negative.");
+                        .expect("The value of `n - 2k` is negative.");
                     let n2 = ElementOrder::Int(2 * n / (gcd(2 * n, n_m_2k)));
                     let k2: i32 = if preserves_power {
                         -i32::try_from(n_m_2k / gcd(2 * n, n_m_2k))
@@ -833,7 +837,9 @@ impl SymmetryElement {
                     (n2, k2)
                 } else {
                     // k < 0, k2 >= 0
-                    let n_p_2k = n + 2 * k.unsigned_abs();
+                    let n_p_2k = n
+                        .checked_sub(2 * k.unsigned_abs())
+                        .expect("The value of `n + 2k` is negative.");
                     let n2 = ElementOrder::Int(2 * n / (gcd(2 * n, n_p_2k)));
                     let k2: i32 = if preserves_power {
                         i32::try_from(n_p_2k / (gcd(2 * n, n_p_2k)))
@@ -867,7 +873,7 @@ impl SymmetryElement {
                         .threshold(self.threshold)
                         .proper_order(dest_order)
                         .proper_power(dest_proper_power)
-                        .proper_angle(std::f64::consts::PI + ang)
+                        .proper_angle(-std::f64::consts::PI + ang)
                         .raw_axis(self.raw_axis)
                         .kind(improper_kind)
                         .rotationgroup(self.rotationgroup.clone())

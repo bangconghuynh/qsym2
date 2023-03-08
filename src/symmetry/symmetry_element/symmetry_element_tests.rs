@@ -2263,7 +2263,7 @@ fn test_infinite_symmetry_element_comparison() {
 }
 
 #[test]
-fn test_symmetry_element_spin_rotation_construction() {
+fn test_symmetry_element_su2_construction() {
     // ========================
     // Proper symmetry elements
     // ========================
@@ -2278,8 +2278,9 @@ fn test_symmetry_element_spin_rotation_construction() {
         .unwrap();
 
     let n_sr_c1 = c1.to_su2(true).unwrap();
-    assert_eq!(n_sr_c1.to_string(), "Σ·E");
-    assert_eq!(format!("{:?}", n_sr_c1), "Σ·C1(+0.000, +1.000, +0.000)");
+    assert!(!n_sr_c1.is_su2_class_1());
+    assert_eq!(n_sr_c1.to_string(), "E(Σ)");
+    assert_eq!(format!("{:?}", n_sr_c1), "C1(Σ)(+0.000, +1.000, +0.000)");
 
     let tc1 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2291,8 +2292,9 @@ fn test_symmetry_element_spin_rotation_construction() {
         .build()
         .unwrap();
     let i_sr_tc1 = tc1.to_su2(false).unwrap();
-    assert_eq!(i_sr_tc1.to_string(), "QΣ·θ");
-    assert_eq!(format!("{:?}", i_sr_tc1), "QΣ·θ·C1(+0.000, +1.000, +0.000)");
+    assert!(i_sr_tc1.is_su2_class_1());
+    assert_eq!(i_sr_tc1.to_string(), "θ(QΣ)");
+    assert_eq!(format!("{:?}", i_sr_tc1), "θ·C1(QΣ)(+0.000, +1.000, +0.000)");
     assert!(i_sr_tc1.to_su2(true).is_none());
 
     let c3 = SymmetryElement::builder()
@@ -2305,8 +2307,9 @@ fn test_symmetry_element_spin_rotation_construction() {
         .build()
         .unwrap();
     let i_sr_c3 = c3.to_su2(false).unwrap();
-    assert_eq!(i_sr_c3.to_string(), "QΣ·C3(+0.707, +0.707, +0.000)");
-    assert_eq!(format!("{:?}", i_sr_c3), "QΣ·C3(+0.707, +0.707, +0.000)");
+    assert!(i_sr_c3.is_su2_class_1());
+    assert_eq!(i_sr_c3.to_string(), "C3(QΣ)(+0.707, +0.707, +0.000)");
+    assert_eq!(format!("{:?}", i_sr_c3), "C3(QΣ)(+0.707, +0.707, +0.000)");
 
     let tc3 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2318,8 +2321,9 @@ fn test_symmetry_element_spin_rotation_construction() {
         .build()
         .unwrap();
     let n_sr_tc3 = tc3.to_su2(true).unwrap();
-    assert_eq!(n_sr_tc3.to_string(), "Σ·θ·C3(+0.707, +0.707, +0.000)");
-    assert_eq!(format!("{:?}", n_sr_tc3), "Σ·θ·C3(+0.707, +0.707, +0.000)");
+    assert!(!n_sr_tc3.is_su2_class_1());
+    assert_eq!(n_sr_tc3.to_string(), "θ·C3(Σ)(+0.707, +0.707, +0.000)");
+    assert_eq!(format!("{:?}", n_sr_tc3), "θ·C3(Σ)(+0.707, +0.707, +0.000)");
 
     // ==========================
     // Improper symmetry elements
@@ -2334,8 +2338,123 @@ fn test_symmetry_element_spin_rotation_construction() {
         .build()
         .unwrap();
     let i_sr_s1 = s1.to_su2(false).unwrap();
-    assert_eq!(i_sr_s1.to_string(), "QΣ·σ(+0.000, +1.000, +0.000)");
-    assert_eq!(format!("{:?}", i_sr_s1), "QΣ·S1(+0.000, +1.000, +0.000)");
+    assert!(i_sr_s1.is_su2_class_1());
+    assert_eq!(i_sr_s1.to_string(), "σ(QΣ)(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", i_sr_s1), "S1(QΣ)(+0.000, +1.000, +0.000)");
+
+    let i_sr_s1p = i_sr_s1.convert_to_improper_kind(&INV, true);
+    assert!(i_sr_s1p.is_su2_class_1());
+    assert_eq!(i_sr_s1p.to_string(), "σ(QΣ)(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", i_sr_s1p), "Ṡ2(QΣ)(+0.000, +1.000, +0.000)");
+
+    let n_sr_s1 = s1.to_su2(true).unwrap();
+    assert!(!n_sr_s1.is_su2_class_1());
+    assert_eq!(n_sr_s1.to_string(), "σ(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", n_sr_s1), "S1(Σ)(+0.000, +1.000, +0.000)");
+
+    let n_sr_s1p = n_sr_s1.convert_to_improper_kind(&INV, true);
+    assert!(!n_sr_s1p.is_su2_class_1());
+    assert_eq!(n_sr_s1p.to_string(), "σ(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", n_sr_s1p), "Ṡ2(Σ)(+0.000, +1.000, +0.000)");
+
+    let s2 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 1.0))
+        .kind(SIG)
+        .rotationgroup(RotationGroup::SO3)
+        .build()
+        .unwrap();
+    let n_sr_s2 = s2.to_su2(true).unwrap();
+    assert!(!n_sr_s2.is_su2_class_1());
+    assert_eq!(n_sr_s2.to_string(), "i(Σ)");
+    assert_eq!(format!("{:?}", n_sr_s2), "S2(Σ)(+0.000, +0.707, +0.707)");
+
+    let n_sr_s2p = n_sr_s2.convert_to_improper_kind(&INV, true);
+    assert!(!n_sr_s2p.is_su2_class_1());
+    assert_eq!(n_sr_s2p.to_string(), "i(Σ)");
+    assert_eq!(format!("{:?}", n_sr_s2p), "Ṡ1(Σ)(+0.000, +0.707, +0.707)");
+
+    let s3 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 1.0))
+        .kind(SIG)
+        .rotationgroup(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let n_sr_s3 = s3.to_su2(true).unwrap();
+    assert!(!n_sr_s3.is_su2_class_1());
+    assert_eq!(n_sr_s3.to_string(), "S3(Σ)(+0.000, +0.707, +0.707)");
+    assert_eq!(format!("{:?}", n_sr_s3), "S3(Σ)(+0.000, +0.707, +0.707)");
+
+    let n_sr_s3p = n_sr_s3.convert_to_improper_kind(&INV, true);
+    assert!(!n_sr_s3p.is_su2_class_1());
+    assert_eq!(n_sr_s3p.to_string(), "Ṡ6(Σ)(+0.000, +0.707, +0.707)");
+    assert_eq!(format!("{:?}", n_sr_s3p), "Ṡ6(Σ)(+0.000, +0.707, +0.707)");
+
+    let sd1 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(INV)
+        .rotationgroup(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let n_sr_sd1 = sd1.to_su2(true).unwrap();
+    assert!(!n_sr_sd1.is_su2_class_1());
+    assert_eq!(n_sr_sd1.to_string(), "i(Σ)");
+    assert_eq!(format!("{:?}", n_sr_sd1), "Ṡ1(Σ)(+0.000, +1.000, +0.000)");
+
+    let n_sr_sd1p = n_sr_sd1.convert_to_improper_kind(&SIG, true);
+    assert!(!n_sr_sd1p.is_su2_class_1());
+    assert_eq!(n_sr_sd1p.to_string(), "i(Σ)");
+    assert_eq!(format!("{:?}", n_sr_sd1p), "S2(Σ)(+0.000, +1.000, +0.000)");
+
+    let sd2 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(INV)
+        .rotationgroup(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let n_sr_sd2 = sd2.to_su2(true).unwrap();
+    assert!(!n_sr_sd2.is_su2_class_1());
+    assert_eq!(n_sr_sd2.to_string(), "σ(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", n_sr_sd2), "Ṡ2(Σ)(+0.000, +1.000, +0.000)");
+
+    let n_sr_sd2p = n_sr_sd2.convert_to_improper_kind(&SIG, true);
+    assert!(!n_sr_sd2p.is_su2_class_1());
+    assert_eq!(n_sr_sd2p.to_string(), "σ(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", n_sr_sd2p), "S1(Σ)(+0.000, +1.000, +0.000)");
+
+    let sd3 = SymmetryElement::builder()
+        .threshold(1e-3)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(INV)
+        .rotationgroup(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let n_sr_sd3 = sd3.to_su2(true).unwrap();
+    assert!(!n_sr_sd3.is_su2_class_1());
+    assert_eq!(n_sr_sd3.to_string(), "Ṡ3(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", n_sr_sd3), "Ṡ3(Σ)(+0.000, +1.000, +0.000)");
+
+    let n_sr_sd3p = n_sr_sd3.convert_to_improper_kind(&SIG, true);
+    assert!(!n_sr_sd3p.is_su2_class_1());
+    assert_eq!(n_sr_sd3p.to_string(), "S6(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", n_sr_sd3p), "S6(Σ)(+0.000, +1.000, +0.000)");
 
     let tsd2p2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2347,9 +2466,10 @@ fn test_symmetry_element_spin_rotation_construction() {
         .build()
         .unwrap();
     let n_sr_tsd2p2 = tsd2p2.to_su2(true).unwrap();
-    assert_eq!(n_sr_tsd2p2.to_string(), "Σ·θ·i");
+    assert!(!n_sr_tsd2p2.is_su2_class_1());
+    assert_eq!(n_sr_tsd2p2.to_string(), "θ·i(Σ)");
     assert_eq!(
         format!("{:?}", &n_sr_tsd2p2),
-        "Σ·θ·Ṡ1(+0.707, -0.707, +0.000)"
+        "θ·Ṡ1(Σ)(+0.707, -0.707, +0.000)"
     );
 }
