@@ -132,7 +132,7 @@ fn test_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &c2p2), "E");
-    assert_eq!(format!("{:?}", &c2p2), "C1(+0.707, -0.707, +0.000)");
+    assert_eq!(format!("{:?}", &c2p2), "C1(-0.707, +0.707, +0.000)");
 
     let tc2p2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -179,8 +179,8 @@ fn test_symmetry_element_constructor() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &c3p2), "C3(+0.577, +0.577, +0.577)");
-    assert_eq!(format!("{:?}", &c3p2), "C3(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{}", &c3p2), "C3(-0.577, -0.577, -0.577)");
+    assert_eq!(format!("{:?}", &c3p2), "C3(-0.577, -0.577, -0.577)");
 
     let tc3p2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -191,8 +191,8 @@ fn test_symmetry_element_constructor() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &tc3p2), "θ·C3(+0.577, +0.577, +0.577)");
-    assert_eq!(format!("{:?}", &tc3p2), "θ·C3(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{}", &tc3p2), "θ·C3(-0.577, -0.577, -0.577)");
+    assert_eq!(format!("{:?}", &tc3p2), "θ·C3(-0.577, -0.577, -0.577)");
 
     let c3p3 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -227,8 +227,8 @@ fn test_symmetry_element_constructor() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &c4), "C4(+0.577, +0.577, +0.577)");
-    assert_eq!(format!("{:?}", &c4), "C4(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{}", &c4), "C4(-0.577, -0.577, -0.577)");
+    assert_eq!(format!("{:?}", &c4), "C4(-0.577, -0.577, -0.577)");
 
     let c4p2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -275,8 +275,8 @@ fn test_symmetry_element_constructor() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &c7p2), "C7^2(+0.577, +0.577, +0.577)");
-    assert_eq!(format!("{:?}", &c7p2), "C7^2(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{}", &c7p2), "C7^2(-0.577, -0.577, -0.577)");
+    assert_eq!(format!("{:?}", &c7p2), "C7^2(-0.577, -0.577, -0.577)");
 
     let c7pm2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -360,8 +360,8 @@ fn test_symmetry_element_constructor() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &ci3), "C∞(+3.123)(+0.707, +0.000, +0.707)");
-    assert_eq!(format!("{:?}", &ci3), "C∞(+3.123)(+0.707, +0.000, +0.707)");
+    assert_eq!(format!("{}", &ci3), "C∞(+3.123)(-0.707, +0.000, -0.707)");
+    assert_eq!(format!("{:?}", &ci3), "C∞(+3.123)(-0.707, +0.000, -0.707)");
 
     let tci3 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -372,10 +372,10 @@ fn test_symmetry_element_constructor() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &tci3), "θ·C∞(+3.123)(+0.707, +0.000, +0.707)");
+    assert_eq!(format!("{}", &tci3), "θ·C∞(+3.123)(-0.707, +0.000, -0.707)");
     assert_eq!(
         format!("{:?}", &tci3),
-        "θ·C∞(+3.123)(+0.707, +0.000, +0.707)"
+        "θ·C∞(+3.123)(-0.707, +0.000, -0.707)"
     );
 
     // ==========================
@@ -439,7 +439,7 @@ fn test_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &sd2p2), "i");
-    assert_eq!(format!("{:?}", &sd2p2), "Ṡ1(+0.707, -0.707, +0.000)");
+    assert_eq!(format!("{:?}", &sd2p2), "Ṡ1(-0.707, +0.707, +0.000)");
 
     let tsd2p2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -451,7 +451,7 @@ fn test_symmetry_element_constructor() {
         .build()
         .unwrap();
     assert_eq!(format!("{}", &tsd2p2), "θ·i");
-    assert_eq!(format!("{:?}", &tsd2p2), "θ·Ṡ1(+0.707, -0.707, +0.000)");
+    assert_eq!(format!("{:?}", &tsd2p2), "θ·Ṡ1(-0.707, +0.707, +0.000)");
 
     let s2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -560,8 +560,8 @@ fn test_symmetry_element_constructor() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &s3p2), "S3(+0.667, +0.667, +0.333)");
-    assert_eq!(format!("{:?}", &s3p2), "S3(+0.667, +0.667, +0.333)");
+    assert_eq!(format!("{}", &s3p2), "S3(-0.667, -0.667, -0.333)");
+    assert_eq!(format!("{:?}", &s3p2), "S3(-0.667, -0.667, -0.333)");
 
     let ts3p2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -572,8 +572,8 @@ fn test_symmetry_element_constructor() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &ts3p2), "θ·S3(+0.667, +0.667, +0.333)");
-    assert_eq!(format!("{:?}", &ts3p2), "θ·S3(+0.667, +0.667, +0.333)");
+    assert_eq!(format!("{}", &ts3p2), "θ·S3(-0.667, -0.667, -0.333)");
+    assert_eq!(format!("{:?}", &ts3p2), "θ·S3(-0.667, -0.667, -0.333)");
 
     let s3p3 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -632,8 +632,8 @@ fn test_symmetry_element_constructor() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &sd3p2), "Ṡ3(+0.577, +0.577, +0.577)");
-    assert_eq!(format!("{:?}", &sd3p2), "Ṡ3(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{}", &sd3p2), "Ṡ3(-0.577, -0.577, -0.577)");
+    assert_eq!(format!("{:?}", &sd3p2), "Ṡ3(-0.577, -0.577, -0.577)");
 
     let tsd3p2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -644,8 +644,8 @@ fn test_symmetry_element_constructor() {
         .rotationgroup(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert_eq!(format!("{}", &tsd3p2), "θ·Ṡ3(+0.577, +0.577, +0.577)");
-    assert_eq!(format!("{:?}", &tsd3p2), "θ·Ṡ3(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{}", &tsd3p2), "θ·Ṡ3(-0.577, -0.577, -0.577)");
+    assert_eq!(format!("{:?}", &tsd3p2), "θ·Ṡ3(-0.577, -0.577, -0.577)");
 
     let sd3p3 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -735,30 +735,30 @@ fn test_symmetry_element_constructor() {
     );
 
     let si2b = si2.convert_to_improper_kind(&INV, false);
-    assert_eq!(format!("{}", &si2b), "Ṡ∞(+3.021)(+0.707, +0.000, +0.707)");
+    assert_eq!(format!("{}", &si2b), "Ṡ∞(+3.021)(-0.707, +0.000, -0.707)");
     assert_eq!(
         format!("{:?}", &si2b),
-        "iC∞(+3.021)(+0.707, +0.000, +0.707)"
+        "iC∞(+3.021)(-0.707, +0.000, -0.707)"
     );
 
     let tsi2b = tsi2.convert_to_improper_kind(&INV, false);
     assert_eq!(
         format!("{}", &tsi2b),
-        "θ·Ṡ∞(+3.021)(+0.707, +0.000, +0.707)"
+        "θ·Ṡ∞(+3.021)(-0.707, +0.000, -0.707)"
     );
     assert_eq!(
         format!("{:?}", &tsi2b),
-        "θ·iC∞(+3.021)(+0.707, +0.000, +0.707)"
+        "θ·iC∞(+3.021)(-0.707, +0.000, -0.707)"
     );
 
     let tsi2c = tsi2.convert_to_improper_kind(&TRINV, false);
     assert_eq!(
         format!("{}", &tsi2c),
-        "θ·Ṡ∞(+3.021)(+0.707, +0.000, +0.707)"
+        "θ·Ṡ∞(+3.021)(-0.707, +0.000, -0.707)"
     );
     assert_eq!(
         format!("{:?}", &tsi2c),
-        "θ·iC∞(+3.021)(+0.707, +0.000, +0.707)"
+        "θ·iC∞(+3.021)(-0.707, +0.000, -0.707)"
     );
 }
 
@@ -833,7 +833,7 @@ fn test_symmetry_element_finite_improper_conversion() {
     assert_eq!(format!("{}", &sd6), "Ṡ6(+0.667, +0.667, +0.333)");
 
     let sd6p = s3.convert_to_improper_kind(&INV, true);
-    assert_eq!(format!("{}", &sd6p), "Ṡ6(+0.667, +0.667, +0.333)");
+    assert_eq!(format!("{}", &sd6p), "Ṡ6(-0.667, -0.667, -0.333)");
     assert_eq!(sd6p.proper_fraction, Some(F::new_neg(1u32, 6u32)));
 
     let ts3 = SymmetryElement::builder()
@@ -863,7 +863,7 @@ fn test_symmetry_element_finite_improper_conversion() {
 
     let sd4p = s4.convert_to_improper_kind(&INV, true);
     assert_eq!(sd4p.proper_order, ElementOrder::Int(4));
-    assert_eq!(format!("{}", &sd4p), "Ṡ4(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{}", &sd4p), "Ṡ4(-0.577, -0.577, -0.577)");
     assert_eq!(sd4p.proper_fraction, Some(F::new_neg(1u32, 4u32)));
 
     let ts4 = SymmetryElement::builder()
@@ -895,7 +895,7 @@ fn test_symmetry_element_finite_improper_conversion() {
 
     let s10p = sd5.convert_to_improper_kind(&SIG, true);
     assert_eq!(s10p.proper_order, ElementOrder::Int(10));
-    assert_eq!(format!("{}", &s10p), "σC10^3(+0.408, +0.816, +0.408)");
+    assert_eq!(format!("{}", &s10p), "σC10^3(-0.408, -0.816, -0.408)");
     assert_eq!(s10p.proper_fraction, Some(F::new_neg(3u32, 10u32)));
 
     let tsd5 = SymmetryElement::builder()
@@ -926,7 +926,7 @@ fn test_symmetry_element_finite_improper_conversion() {
 
     let s14p = sd7.convert_to_improper_kind(&SIG, true);
     assert_eq!(s14p.proper_order, ElementOrder::Int(14));
-    assert_eq!(format!("{}", &s14p), "σC14^5(+0.577, +0.577, +0.577)");
+    assert_eq!(format!("{}", &s14p), "σC14^5(-0.577, -0.577, -0.577)");
     assert_eq!(s14p.proper_fraction, Some(F::new_neg(5u32, 14u32)));
 
     let tsd7 = SymmetryElement::builder()
@@ -2393,8 +2393,8 @@ fn test_symmetry_element_su2_construction() {
 
     let n_sr_s3p = n_sr_s3.convert_to_improper_kind(&INV, true);
     assert!(!n_sr_s3p.is_su2_class_1());
-    assert_eq!(n_sr_s3p.to_string(), "Ṡ6(Σ)(+0.000, +0.707, +0.707)");
-    assert_eq!(format!("{:?}", n_sr_s3p), "Ṡ6(Σ)(+0.000, +0.707, +0.707)");
+    assert_eq!(n_sr_s3p.to_string(), "Ṡ6(Σ)(+0.000, -0.707, -0.707)");
+    assert_eq!(format!("{:?}", n_sr_s3p), "Ṡ6(Σ)(+0.000, -0.707, -0.707)");
 
     let sd1 = SymmetryElement::builder()
         .threshold(1e-3)
@@ -2453,8 +2453,8 @@ fn test_symmetry_element_su2_construction() {
 
     let n_sr_sd3p = n_sr_sd3.convert_to_improper_kind(&SIG, true);
     assert!(!n_sr_sd3p.is_su2_class_1());
-    assert_eq!(n_sr_sd3p.to_string(), "S6(Σ)(+0.000, +1.000, +0.000)");
-    assert_eq!(format!("{:?}", n_sr_sd3p), "S6(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(n_sr_sd3p.to_string(), "S6(Σ)(+0.000, -1.000, +0.000)");
+    assert_eq!(format!("{:?}", n_sr_sd3p), "S6(Σ)(+0.000, -1.000, +0.000)");
 
     let tsd2p2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2470,6 +2470,6 @@ fn test_symmetry_element_su2_construction() {
     assert_eq!(n_sr_tsd2p2.to_string(), "θ·i(Σ)");
     assert_eq!(
         format!("{:?}", &n_sr_tsd2p2),
-        "θ·Ṡ1(Σ)(+0.707, -0.707, +0.000)"
+        "θ·Ṡ1(Σ)(-0.707, +0.707, +0.000)"
     );
 }

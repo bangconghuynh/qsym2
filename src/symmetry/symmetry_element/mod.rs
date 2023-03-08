@@ -8,7 +8,7 @@ use fraction;
 use log;
 use nalgebra::Vector3;
 use num::integer::gcd;
-use num_traits::Zero;
+use num_traits::{ToPrimitive, Zero};
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
@@ -408,6 +408,26 @@ impl SymmetryElement {
 
     pub fn positive_axis(&self) -> Vector3<f64> {
         geometry::get_positive_pole(&self.raw_axis, self.threshold)
+    }
+
+    pub fn signed_axis(&self) -> Vector3<f64> {
+        let tr = self.contains_time_reversal();
+        if self.is_o3_binary_rotation_axis(tr) || self.is_o3_mirror_plane(tr) {
+            self.positive_axis()
+        } else {
+            self.proper_fraction
+                .map(|frac| {
+                    frac.signum()
+                        .to_f64()
+                        .expect("Unable to obtain the sign of the proper fraction.")
+                })
+                .or_else(|| self.proper_angle.map(|proper_angle| proper_angle.signum()))
+                .and_then(|signum| Some(signum * self.raw_axis))
+                .unwrap_or_else(|| {
+                    log::warn!("No rotation signs could be obtained. The positive axis will be used for the signed axis.");
+                    self.positive_axis()
+                })
+        }
     }
 
     /// Checks if the symmetry element contains a time-reversal operator.
@@ -956,14 +976,14 @@ impl SymmetryElement {
 
 impl fmt::Debug for SymmetryElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let pos_axis = self.positive_axis();
+        let signed_axis = self.signed_axis();
         write!(
             f,
             "{}({:+.3}, {:+.3}, {:+.3})",
             self.get_full_symbol(),
-            pos_axis[0] + 0.0,
-            pos_axis[1] + 0.0,
-            pos_axis[2] + 0.0
+            signed_axis[0] + 0.0,
+            signed_axis[1] + 0.0,
+            signed_axis[2] + 0.0
         )
     }
 }
@@ -974,14 +994,14 @@ impl fmt::Display for SymmetryElement {
         if self.is_o3_identity(tr) || self.is_o3_inversion_centre(tr) {
             write!(f, "{}", self.get_simplified_symbol())
         } else {
-            let pos_axis = self.positive_axis();
+            let signed_axis = self.signed_axis();
             write!(
                 f,
                 "{}({:+.3}, {:+.3}, {:+.3})",
                 self.get_simplified_symbol(),
-                pos_axis[0] + 0.0,
-                pos_axis[1] + 0.0,
-                pos_axis[2] + 0.0
+                signed_axis[0] + 0.0,
+                signed_axis[1] + 0.0,
+                signed_axis[2] + 0.0
             )
         }
     }
