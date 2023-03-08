@@ -86,7 +86,7 @@ pub trait SpecialSymmetryTransformation {
     // Overall - provided methods
     // ==========================
 
-    /// Checks if the symmetry operation is the identity.
+    /// Checks if the symmetry operation is the identity in $`\mathsf{O}(3)`$ or $`\mathsf{SU}(2)`$.
     ///
     /// # Returns
     ///
@@ -104,41 +104,41 @@ pub trait SpecialSymmetryTransformation {
         self.is_spatial_identity() && self.is_antiunitary() && !self.is_su2_class_1()
     }
 
-    /// Checks if the symmetry operation is an inversion.
+    /// Checks if the symmetry operation is an inversion in $`\mathsf{O}(3)`$.
     ///
     /// # Returns
     ///
     /// A flag indicating if this symmetry operation is an inversion.
     fn is_inversion(&self) -> bool {
-        self.is_spatial_inversion() && !self.is_antiunitary() && !self.is_su2_class_1()
+        self.is_spatial_inversion() && !self.is_antiunitary() && !self.is_su2()
     }
 
-    /// Checks if the symmetry operation is an inversion accompanied by a time reversal.
-    ///
-    /// # Returns
-    ///
-    /// A flag indicating if this symmetry operation is an inversion accompanied by a time reversal.
-    fn is_tr_inversion(&self) -> bool {
-        self.is_spatial_inversion() && self.is_antiunitary() && !self.is_su2_class_1()
-    }
+    // /// Checks if the symmetry operation is an inversion accompanied by a time reversal.
+    // ///
+    // /// # Returns
+    // ///
+    // /// A flag indicating if this symmetry operation is an inversion accompanied by a time reversal.
+    // fn is_tr_inversion(&self) -> bool {
+    //     self.is_spatial_inversion() && self.is_antiunitary() && !self.is_su2_class_1()
+    // }
 
-    /// Checks if the symmetry operation is a binary rotation.
-    ///
-    /// # Returns
-    ///
-    /// A flag indicating if this symmetry operation is a binary rotation.
-    fn is_binary_rotation(&self) -> bool {
-        self.is_spatial_binary_rotation() && !self.is_antiunitary() && !self.is_su2()
-    }
+    // /// Checks if the symmetry operation is a binary rotation.
+    // ///
+    // /// # Returns
+    // ///
+    // /// A flag indicating if this symmetry operation is a binary rotation.
+    // fn is_binary_rotation(&self) -> bool {
+    //     self.is_spatial_binary_rotation() && !self.is_antiunitary() && !self.is_su2()
+    // }
 
-    /// Checks if the symmetry operation is a binary rotation accompanied by a time reversal.
-    ///
-    /// # Returns
-    ///
-    /// A flag indicating if this symmetry operation is a binary rotation.
-    fn is_tr_binary_rotation(&self) -> bool {
-        self.is_spatial_binary_rotation() && self.is_antiunitary() && !self.is_su2()
-    }
+    // /// Checks if the symmetry operation is a binary rotation accompanied by a time reversal.
+    // ///
+    // /// # Returns
+    // ///
+    // /// A flag indicating if this symmetry operation is a binary rotation.
+    // fn is_tr_binary_rotation(&self) -> bool {
+    //     self.is_spatial_binary_rotation() && self.is_antiunitary() && !self.is_su2()
+    // }
 
     /// Checks if the symmetry operation is a reflection.
     ///
@@ -149,14 +149,14 @@ pub trait SpecialSymmetryTransformation {
         self.is_spatial_reflection() && !self.is_antiunitary() && !self.is_su2()
     }
 
-    /// Checks if the symmetry operation is a reflection.
-    ///
-    /// # Returns
-    ///
-    /// A flag indicating if this symmetry operation is a reflection accompanied by a time reversal.
-    fn is_tr_reflection(&self) -> bool {
-        self.is_spatial_reflection() && self.is_antiunitary() && !self.is_su2()
-    }
+    ///// Checks if the symmetry operation is a reflection.
+    /////
+    ///// # Returns
+    /////
+    ///// A flag indicating if this symmetry operation is a reflection accompanied by a time reversal.
+    //fn is_tr_reflection(&self) -> bool {
+    //    self.is_spatial_reflection() && self.is_antiunitary() && !self.is_su2()
+    //}
 }
 
 // ======================================
@@ -524,10 +524,17 @@ impl SymmetryOperation {
             -self.generating_element.threshold <= scalar_part
                 && scalar_part <= 1.0 + self.generating_element.threshold
         );
-        assert!(geometry::check_positive_pole(
-            &vector_part,
-            self.generating_element.threshold
-        ));
+        if approx::relative_eq!(
+            scalar_part,
+            0.0,
+            max_relative = c_self.generating_element.threshold,
+            epsilon = c_self.generating_element.threshold
+        ) {
+            assert!(geometry::check_positive_pole(
+                &vector_part,
+                c_self.generating_element.threshold
+            ));
+        }
 
         if self.is_su2_class_1() {
             println!(
@@ -580,37 +587,24 @@ impl SymmetryOperation {
         match op.generating_element.proper_order {
             ElementOrder::Int(_) => {
                 let frac_1_2 = F::new(1u32, 2u32);
-                if op
+                let total_proper_fraction = op
                     .total_proper_fraction
-                    .expect("No total proper fractions found.")
-                    == frac_1_2
-                {
+                    .expect("No total proper fractions found.");
+                if total_proper_fraction == frac_1_2 {
                     // Binary rotations or reflections
                     Point3::from(geometry::get_positive_pole(
                         &op.generating_element.raw_axis,
                         op.generating_element.threshold,
                     ))
-                } else if op
-                    .total_proper_fraction
-                    .expect("No total proper fractions found.")
-                    < frac_1_2
-                {
+                } else if total_proper_fraction > F::zero() {
                     // Positive rotation angles
                     Point3::from(op.generating_element.raw_axis)
-                } else if op
-                    .total_proper_fraction
-                    .expect("No total proper fractions found.")
-                    < F::from(1u64)
-                {
+                } else if total_proper_fraction < F::zero() {
                     // Negative rotation angles
                     Point3::from(-op.generating_element.raw_axis)
                 } else {
                     // Identity or inversion
-                    assert_eq!(
-                        op.total_proper_fraction
-                            .expect("No total proper fractions found."),
-                        F::from(1u64)
-                    );
+                    assert!(total_proper_fraction.is_zero());
                     Point3::origin()
                 }
             }
@@ -746,7 +740,7 @@ impl SymmetryOperation {
                 .select(Axis(1), &[1, 2, 0])
             }
         } else {
-            if self.is_inversion() || self.is_tr_inversion() {
+            if self.is_spatial_inversion() {
                 -Array2::<f64>::eye(3)
             } else {
                 // Pole and pole angle are obtained in the inversion-centre convention.
@@ -871,9 +865,11 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     fn is_spatial_binary_rotation(&self) -> bool {
         self.is_proper()
             && match self.generating_element.proper_order {
-                ElementOrder::Int(_) => self.total_proper_fraction
-                    .expect("Total proper fraction not found for a finite-order operation.")
-                    == F::new(1u32, 2u32),
+                ElementOrder::Int(_) => {
+                    self.total_proper_fraction
+                        .expect("Total proper fraction not found for a finite-order operation.")
+                        == F::new(1u32, 2u32)
+                }
                 ElementOrder::Inf => {
                     approx::relative_eq!(
                         self.total_proper_angle,
@@ -982,17 +978,20 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
         // [QΣ·S3(+0.816, -0.408, +0.408)]^2 would become Σ'·[C3(+0.816, -0.408, +0.408)]^2 where
         // Σ' is the associated spin rotation of [C3(+0.816, -0.408, +0.408)]^2, which is not the
         // same as Σ^2.
-        let c_self = if self.is_proper() {
-            self.clone()
-        } else {
-            self.convert_to_improper_kind(&INV)
-        };
-        // let c_self = match self.generating_element.kind {
-        //     SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
-        //         self.clone()
-        //     }
-        //     SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
+        // let c_self = if self.is_proper() {
+        //     self.clone()
+        // } else {
+        //     self.convert_to_improper_kind(&INV)
         // };
+        let c_self = match self.generating_element.kind {
+            SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
+                self.clone()
+            }
+            SymmetryElementKind::ImproperMirrorPlane(tr) => {
+                self.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(tr))
+            }
+        };
+        println!("{self:?} -> {c_self:?}");
         if c_self.is_su2() {
             let generating_element_tr = c_self.generating_element.contains_time_reversal();
             let spatial_proper_identity = c_self

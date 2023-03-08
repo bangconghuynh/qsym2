@@ -7,7 +7,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    RotationGroup, ElementOrder, SymmetryElement, F, INV, ROT, SIG, TRINV, TRROT, TRSIG,
+    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, TRINV, TRROT, TRSIG,
 };
 
 #[test]
@@ -68,7 +68,7 @@ fn test_symmetry_operation_constructor() {
         .power(1)
         .build()
         .unwrap();
-    assert!(c2.is_binary_rotation());
+    assert!(c2.is_spatial_binary_rotation());
     assert_eq!(c2.order(), 2);
     approx::assert_relative_eq!(c2.total_proper_angle, std::f64::consts::PI);
 
@@ -187,7 +187,7 @@ fn test_symmetry_operation_constructor() {
         .power(2)
         .build()
         .unwrap();
-    assert!(c4p2.is_binary_rotation());
+    assert!(c4p2.is_spatial_binary_rotation());
     assert_eq!(c4p2.order(), 2);
     approx::assert_relative_eq!(
         c4p2.total_proper_angle,
@@ -225,7 +225,7 @@ fn test_symmetry_operation_constructor() {
         .power(-3)
         .build()
         .unwrap();
-    assert!(cip3.is_binary_rotation());
+    assert!(cip3.is_spatial_binary_rotation());
     approx::assert_relative_eq!(
         cip3.total_proper_angle,
         std::f64::consts::PI,
@@ -657,7 +657,7 @@ fn test_symmetry_operation_constructor() {
         .power(2)
         .build()
         .unwrap();
-    assert!(sip2.is_binary_rotation());
+    assert!(sip2.is_spatial_binary_rotation());
     approx::assert_relative_eq!(
         sip2.total_proper_angle,
         std::f64::consts::PI,
@@ -685,7 +685,7 @@ fn test_symmetry_operation_constructor() {
         .power(2)
         .build()
         .unwrap();
-    assert!(sibp2.is_binary_rotation());
+    assert!(sibp2.is_spatial_binary_rotation());
     approx::assert_relative_eq!(
         sibp2.total_proper_angle,
         std::f64::consts::PI,
@@ -4220,7 +4220,828 @@ fn test_symmetry_operation_from_quaternion() {
 }
 
 #[test]
-fn test_symmetry_operation_spin_rotation_from_quaternion() {
+fn test_symmetry_operation_su2_to_quaternion() {
+    // ==========================
+    // Proper symmetry operations
+    // ==========================
+    let c2_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::new(2.0, 1e-14))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, -1.0))
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c2_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(c2_nsr_p1.is_spatial_binary_rotation());
+
+    let (c2_nsr_p1_sca, c2_nsr_p1_vec) = c2_nsr_p1.calc_quaternion();
+    approx::assert_relative_eq!(
+        c2_nsr_p1_sca,
+        0.0,
+        epsilon = c2_nsr_element.threshold,
+        max_relative = c2_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        c2_nsr_p1_vec,
+        Vector3::new(-2.0, 1.0, 1.0).normalize(),
+        epsilon = c2_nsr_element.threshold,
+        max_relative = c2_nsr_element.threshold
+    );
+
+    let c2_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert!(c2_nsr_p2.is_spatial_identity());
+
+    let (c2_nsr_p2_sca, c2_nsr_p2_vec) = c2_nsr_p2.calc_quaternion();
+    approx::assert_relative_eq!(
+        c2_nsr_p2_sca,
+        -1.0,
+        epsilon = c2_nsr_element.threshold,
+        max_relative = c2_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        c2_nsr_p2_vec,
+        Vector3::zeros(),
+        epsilon = c2_nsr_element.threshold,
+        max_relative = c2_nsr_element.threshold
+    );
+
+    let c2_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert!(c2_nsr_p3.is_spatial_binary_rotation());
+
+    let (c2_nsr_p3_sca, c2_nsr_p3_vec) = c2_nsr_p3.calc_quaternion();
+    approx::assert_relative_eq!(
+        c2_nsr_p3_sca,
+        -c2_nsr_p1_sca,
+        epsilon = c2_nsr_element.threshold,
+        max_relative = c2_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        c2_nsr_p3_vec,
+        -c2_nsr_p1_vec,
+        epsilon = c2_nsr_element.threshold,
+        max_relative = c2_nsr_element.threshold
+    );
+
+    let c2_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert!(c2_nsr_p4.is_identity());
+
+    let (c2_nsr_p4_sca, c2_nsr_p4_vec) = c2_nsr_p4.calc_quaternion();
+    approx::assert_relative_eq!(
+        c2_nsr_p4_sca,
+        1.0,
+        epsilon = c2_nsr_element.threshold,
+        max_relative = c2_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        c2_nsr_p4_vec,
+        Vector3::zeros(),
+        epsilon = c2_nsr_element.threshold,
+        max_relative = c2_nsr_element.threshold
+    );
+
+    let c3_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::new(3.0, 1e-14))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c3_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let (c3_nsr_p1_sca, c3_nsr_p1_vec) = c3_nsr_p1.calc_quaternion();
+    approx::assert_relative_eq!(
+        c3_nsr_p1_sca,
+        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        c3_nsr_p1_vec,
+        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
+            / (6.0f64.sqrt()),
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+
+    let c3_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+
+    let (c3_nsr_p2_sca, c3_nsr_p2_vec) = c3_nsr_p2.calc_quaternion();
+    approx::assert_relative_eq!(
+        c3_nsr_p2_sca,
+        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        c3_nsr_p2_vec,
+        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
+            / (6.0f64.sqrt()),
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+
+    let c3_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert!(c3_nsr_p3.is_spatial_identity());
+
+    let (c3_nsr_p3_sca, c3_nsr_p3_vec) = c3_nsr_p3.calc_quaternion();
+    approx::assert_relative_eq!(
+        c3_nsr_p3_sca,
+        -1.0,
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        c3_nsr_p3_vec,
+        Vector3::zeros(),
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+
+    let c3_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+
+    let (c3_nsr_p4_sca, c3_nsr_p4_vec) = c3_nsr_p4.calc_quaternion();
+    approx::assert_relative_eq!(
+        c3_nsr_p4_sca,
+        -c3_nsr_p1_sca,
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        c3_nsr_p4_vec,
+        -c3_nsr_p1_vec,
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+
+    let c3_nsr_p5 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+
+    let (c3_nsr_p5_sca, c3_nsr_p5_vec) = c3_nsr_p5.calc_quaternion();
+    approx::assert_relative_eq!(
+        c3_nsr_p5_sca,
+        -c3_nsr_p2_sca,
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        c3_nsr_p5_vec,
+        -c3_nsr_p2_vec,
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+
+    let c3_nsr_p6 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert!(c3_nsr_p6.is_identity());
+
+    let (c3_nsr_p6_sca, c3_nsr_p6_vec) = c3_nsr_p6.calc_quaternion();
+    approx::assert_relative_eq!(
+        c3_nsr_p6_sca,
+        1.0,
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        c3_nsr_p6_vec,
+        Vector3::zeros(),
+        epsilon = c3_nsr_element.threshold,
+        max_relative = c3_nsr_element.threshold
+    );
+
+    // ============================
+    // Improper symmetry operations
+    // ============================
+    let s1_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::new(1.0, 1e-14))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SIG)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let s1_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!s1_nsr_p1.is_su2_class_1());
+    assert!(s1_nsr_p1.is_spatial_reflection());
+
+    let (s1_nsr_p1_sca, s1_nsr_p1_vec) = s1_nsr_p1.calc_quaternion();
+    approx::assert_relative_eq!(
+        s1_nsr_p1_sca,
+        0.0,
+        epsilon = s1_nsr_element.threshold,
+        max_relative = s1_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s1_nsr_p1_vec,
+        Vector3::new(2.0, -1.0, 1.0) / 6.0f64.sqrt(),
+        epsilon = s1_nsr_element.threshold,
+        max_relative = s1_nsr_element.threshold
+    );
+
+    let s1_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert!(s1_nsr_p2.is_su2_class_1());
+    assert!(s1_nsr_p2.is_spatial_identity());
+
+    let (s1_nsr_p2_sca, s1_nsr_p2_vec) = s1_nsr_p2.calc_quaternion();
+    approx::assert_relative_eq!(
+        s1_nsr_p2_sca,
+        -1.0,
+        epsilon = s1_nsr_element.threshold,
+        max_relative = s1_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s1_nsr_p2_vec,
+        Vector3::zeros(),
+        epsilon = s1_nsr_element.threshold,
+        max_relative = s1_nsr_element.threshold
+    );
+
+    let s1_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert!(s1_nsr_p3.is_su2_class_1());
+    assert!(s1_nsr_p3.is_spatial_reflection());
+
+    let (s1_nsr_p3_sca, s1_nsr_p3_vec) = s1_nsr_p3.calc_quaternion();
+    approx::assert_relative_eq!(
+        s1_nsr_p3_sca,
+        -s1_nsr_p1_sca,
+        epsilon = s1_nsr_element.threshold,
+        max_relative = s1_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s1_nsr_p3_vec,
+        -s1_nsr_p1_vec,
+        epsilon = s1_nsr_element.threshold,
+        max_relative = s1_nsr_element.threshold
+    );
+
+    let s1_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert!(!s1_nsr_p4.is_su2_class_1());
+    assert!(s1_nsr_p4.is_identity());
+
+    let (s1_nsr_p4_sca, s1_nsr_p4_vec) = s1_nsr_p4.calc_quaternion();
+    approx::assert_relative_eq!(
+        s1_nsr_p4_sca,
+        1.0,
+        epsilon = s1_nsr_element.threshold,
+        max_relative = s1_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s1_nsr_p4_vec,
+        Vector3::zeros(),
+        epsilon = s1_nsr_element.threshold,
+        max_relative = s1_nsr_element.threshold
+    );
+
+    let s2_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::new(2.0, 1e-14))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SIG)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let s2_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s2_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!s2_nsr_p1.is_su2_class_1());
+    assert!(s2_nsr_p1.is_spatial_inversion());
+    assert!(!s2_nsr_p1.is_identity());
+
+    let (s2_nsr_p1_sca, s2_nsr_p1_vec) = s2_nsr_p1.calc_quaternion();
+    approx::assert_relative_eq!(
+        s2_nsr_p1_sca,
+        1.0,
+        epsilon = s2_nsr_element.threshold,
+        max_relative = s2_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s2_nsr_p1_vec,
+        Vector3::zeros(),
+        epsilon = s2_nsr_element.threshold,
+        max_relative = s2_nsr_element.threshold
+    );
+
+    let s2_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(s2_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert!(!s2_nsr_p2.is_su2_class_1());
+    assert!(s2_nsr_p2.is_identity());
+
+    let (s2_nsr_p2_sca, s2_nsr_p2_vec) = s2_nsr_p2.calc_quaternion();
+    approx::assert_relative_eq!(
+        s2_nsr_p2_sca,
+        1.0,
+        epsilon = s2_nsr_element.threshold,
+        max_relative = s2_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s2_nsr_p2_vec,
+        Vector3::zeros(),
+        epsilon = s2_nsr_element.threshold,
+        max_relative = s2_nsr_element.threshold
+    );
+
+    // ---------------
+    // S3(n) = iC6(-n)
+    // ---------------
+    let s3_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::new(3.0, 1e-14))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(SIG)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let s3_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!s3_nsr_p1.is_su2_class_1());
+
+    let (s3_nsr_p1_sca, s3_nsr_p1_vec) = s3_nsr_p1.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p1_sca,
+        (0.5 * (std::f64::consts::PI / 3.0)).cos(),
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p1_vec,
+        -(0.5 * (std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
+            / (6.0f64.sqrt()),
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    let s3_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert!(!s3_nsr_p2.is_su2_class_1());
+    assert!(s3_nsr_p2.is_proper());
+
+    let (s3_nsr_p2_sca, s3_nsr_p2_vec) = s3_nsr_p2.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p2_sca,
+        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p2_vec,
+        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
+            / (6.0f64.sqrt()),
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    let s3_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert!(s3_nsr_p3.is_su2_class_1());
+    assert!(!s3_nsr_p3.is_proper());
+    assert!(s3_nsr_p3.is_spatial_reflection());
+
+    let (s3_nsr_p3_sca, s3_nsr_p3_vec) = s3_nsr_p3.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p3_sca,
+        0.0,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p3_vec,
+        -Vector3::new(2.0, -1.0, 1.0) / (6.0f64.sqrt()),
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    let s3_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert!(s3_nsr_p4.is_su2_class_1());
+    assert!(s3_nsr_p4.is_proper());
+
+    let (s3_nsr_p4_sca, s3_nsr_p4_vec) = s3_nsr_p4.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p4_sca,
+        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p4_vec,
+        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
+            / (6.0f64.sqrt()),
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    let s3_nsr_p5 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert!(s3_nsr_p5.is_su2_class_1());
+    assert!(!s3_nsr_p5.is_proper());
+
+    let (s3_nsr_p5_sca, s3_nsr_p5_vec) = s3_nsr_p5.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p5_sca,
+        -(0.5 * (std::f64::consts::PI / 3.0)).cos(),
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p5_vec,
+        -(0.5 * (std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
+            / (6.0f64.sqrt()),
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    let s3_nsr_p6 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert!(s3_nsr_p6.is_su2_class_1());
+    assert!(s3_nsr_p6.is_proper());
+    assert!(s3_nsr_p6.is_spatial_identity());
+
+    let (s3_nsr_p6_sca, s3_nsr_p6_vec) = s3_nsr_p6.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p6_sca,
+        -1.0,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p6_vec,
+        Vector3::zeros(),
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    let s3_nsr_p7 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(7)
+        .build()
+        .unwrap();
+    assert!(s3_nsr_p7.is_su2_class_1());
+    assert!(!s3_nsr_p7.is_proper());
+
+    let (s3_nsr_p7_sca, s3_nsr_p7_vec) = s3_nsr_p7.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p7_sca,
+        -s3_nsr_p1_sca,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p7_vec,
+        -s3_nsr_p1_vec,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    let s3_nsr_p8 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(8)
+        .build()
+        .unwrap();
+    assert!(s3_nsr_p8.is_su2_class_1());
+    assert!(s3_nsr_p8.is_proper());
+
+    let (s3_nsr_p8_sca, s3_nsr_p8_vec) = s3_nsr_p8.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p8_sca,
+        -s3_nsr_p2_sca,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p8_vec,
+        -s3_nsr_p2_vec,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    let s3_nsr_p9 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(9)
+        .build()
+        .unwrap();
+    assert!(!s3_nsr_p9.is_su2_class_1());
+    assert!(!s3_nsr_p9.is_proper());
+
+    let (s3_nsr_p9_sca, s3_nsr_p9_vec) = s3_nsr_p9.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p9_sca,
+        -s3_nsr_p3_sca,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p9_vec,
+        -s3_nsr_p3_vec,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    let s3_nsr_p10 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(10)
+        .build()
+        .unwrap();
+    assert!(!s3_nsr_p10.is_su2_class_1());
+    assert!(s3_nsr_p10.is_proper());
+
+    let (s3_nsr_p10_sca, s3_nsr_p10_vec) = s3_nsr_p10.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p10_sca,
+        -s3_nsr_p4_sca,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p10_vec,
+        -s3_nsr_p4_vec,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    let s3_nsr_p11 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(11)
+        .build()
+        .unwrap();
+    assert!(!s3_nsr_p11.is_su2_class_1());
+    assert!(!s3_nsr_p11.is_proper());
+
+    let (s3_nsr_p11_sca, s3_nsr_p11_vec) = s3_nsr_p11.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p11_sca,
+        -s3_nsr_p5_sca,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p11_vec,
+        -s3_nsr_p5_vec,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    let s3_nsr_p12 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(12)
+        .build()
+        .unwrap();
+    assert!(!s3_nsr_p12.is_su2_class_1());
+    assert!(s3_nsr_p12.is_proper());
+    assert!(s3_nsr_p12.is_identity());
+
+    let (s3_nsr_p12_sca, s3_nsr_p12_vec) = s3_nsr_p12.calc_quaternion();
+    approx::assert_relative_eq!(
+        s3_nsr_p12_sca,
+        1.0,
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        s3_nsr_p12_vec,
+        Vector3::zeros(),
+        epsilon = s3_nsr_element.threshold,
+        max_relative = s3_nsr_element.threshold
+    );
+
+    // --------------
+    // Ṡ3(n) = iC3(n)
+    // --------------
+    let sd3_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::new(3.0, 1e-14))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(INV)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let sd3_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(sd3_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!sd3_nsr_p1.is_su2_class_1());
+    assert!(!sd3_nsr_p1.is_proper());
+
+    let (sd3_nsr_p1_sca, sd3_nsr_p1_vec) = sd3_nsr_p1.calc_quaternion();
+    approx::assert_relative_eq!(
+        sd3_nsr_p1_sca,
+        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        sd3_nsr_p1_vec,
+        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
+            / (6.0f64.sqrt()),
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+
+    let sd3_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(sd3_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert!(sd3_nsr_p2.is_su2_class_1());
+    assert!(sd3_nsr_p2.is_proper());
+
+    let (sd3_nsr_p2_sca, sd3_nsr_p2_vec) = sd3_nsr_p2.calc_quaternion();
+    approx::assert_relative_eq!(
+        sd3_nsr_p2_sca,
+        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        sd3_nsr_p2_vec,
+        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
+            / (6.0f64.sqrt()),
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+
+    let sd3_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(sd3_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert!(sd3_nsr_p3.is_su2_class_1());
+    assert!(!sd3_nsr_p3.is_proper());
+    assert!(sd3_nsr_p3.is_spatial_inversion());
+
+    let (sd3_nsr_p3_sca, sd3_nsr_p3_vec) = sd3_nsr_p3.calc_quaternion();
+    approx::assert_relative_eq!(
+        sd3_nsr_p3_sca,
+        -1.0,
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        sd3_nsr_p3_vec,
+        Vector3::zeros(),
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+
+    let sd3_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(sd3_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert!(sd3_nsr_p4.is_su2_class_1());
+    assert!(sd3_nsr_p4.is_proper());
+
+    let (sd3_nsr_p4_sca, sd3_nsr_p4_vec) = sd3_nsr_p4.calc_quaternion();
+    approx::assert_relative_eq!(
+        sd3_nsr_p4_sca,
+        -sd3_nsr_p1_sca,
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        sd3_nsr_p4_vec,
+        -sd3_nsr_p1_vec,
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+
+    let sd3_nsr_p5 = SymmetryOperation::builder()
+        .generating_element(sd3_nsr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert!(!sd3_nsr_p5.is_su2_class_1());
+    assert!(!sd3_nsr_p5.is_proper());
+
+    let (sd3_nsr_p5_sca, sd3_nsr_p5_vec) = sd3_nsr_p5.calc_quaternion();
+    approx::assert_relative_eq!(
+        sd3_nsr_p5_sca,
+        -sd3_nsr_p2_sca,
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        sd3_nsr_p5_vec,
+        -sd3_nsr_p2_vec,
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+
+    let sd3_nsr_p6 = SymmetryOperation::builder()
+        .generating_element(sd3_nsr_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert!(!sd3_nsr_p6.is_su2_class_1());
+    assert!(sd3_nsr_p6.is_identity());
+
+    let (sd3_nsr_p6_sca, sd3_nsr_p6_vec) = sd3_nsr_p6.calc_quaternion();
+    approx::assert_relative_eq!(
+        sd3_nsr_p6_sca,
+        1.0,
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+    approx::assert_relative_eq!(
+        sd3_nsr_p6_vec,
+        Vector3::zeros(),
+        epsilon = sd3_nsr_element.threshold,
+        max_relative = sd3_nsr_element.threshold
+    );
+}
+
+#[test]
+fn test_symmetry_operation_su2_from_quaternion() {
     // ==========================
     // Proper symmetry operations
     // ==========================
@@ -4250,6 +5071,46 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         true,
     );
     assert_eq!(c4_nsr_p2, c4_nsr_p2_r);
+    assert!(!c4_nsr_p2.is_su2_class_1());
+    assert!(!c4_nsr_p2_r.is_su2_class_1());
+
+    let c4_nsr_pm2 = SymmetryOperation::builder()
+        .generating_element(c4_nsr_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+
+    let c4_nsr_pm2_q = c4_nsr_pm2.calc_quaternion();
+    let c4_nsr_pm2_r = SymmetryOperation::from_quaternion(
+        c4_nsr_pm2_q,
+        c4_nsr_pm2.is_proper(),
+        c4_nsr_element.threshold,
+        10,
+        false,
+        true,
+    );
+    assert_eq!(c4_nsr_pm2, c4_nsr_pm2_r);
+    assert!(c4_nsr_pm2.is_su2_class_1());
+    assert!(c4_nsr_pm2_r.is_su2_class_1());
+
+    let c4_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c4_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+
+    let c4_nsr_p4_q = c4_nsr_p4.calc_quaternion();
+    let c4_nsr_p4_r = SymmetryOperation::from_quaternion(
+        c4_nsr_p4_q,
+        c4_nsr_p4.is_proper(),
+        c4_nsr_element.threshold,
+        10,
+        false,
+        true,
+    );
+    assert_eq!(c4_nsr_p4, c4_nsr_p4_r);
+    assert!(c4_nsr_p4.is_su2_class_1());
+    assert!(c4_nsr_p4_r.is_su2_class_1());
 
     let c4_nsr_p6 = SymmetryOperation::builder()
         .generating_element(c4_nsr_element.clone())
@@ -4590,287 +5451,6 @@ fn test_symmetry_operation_spin_rotation_from_quaternion() {
         true,
     );
     assert_eq!(sd11_isr_p6, sd11_isr_p6_r);
-}
-
-#[test]
-fn test_symmetry_operation_spin_rotation_to_quaternion() {
-    // ==========================
-    // Proper symmetry operations
-    // ==========================
-    let c3_nsr_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::new(3.0, 1e-14))
-        .proper_power(1)
-        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(ROT)
-        .rotationgroup(RotationGroup::SU2(true))
-        .build()
-        .unwrap();
-
-    let c3_nsr_p1 = SymmetryOperation::builder()
-        .generating_element(c3_nsr_element.clone())
-        .power(1)
-        .build()
-        .unwrap();
-
-    let (c3_nsr_p1_sca, c3_nsr_p1_vec) = c3_nsr_p1.calc_quaternion();
-    approx::assert_relative_eq!(
-        c3_nsr_p1_sca,
-        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-    approx::assert_relative_eq!(
-        c3_nsr_p1_vec,
-        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
-            / (6.0f64.sqrt()),
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-
-    let c3_nsr_p4 = SymmetryOperation::builder()
-        .generating_element(c3_nsr_element.clone())
-        .power(4)
-        .build()
-        .unwrap();
-
-    let (c3_nsr_p4_sca, c3_nsr_p4_vec) = c3_nsr_p4.calc_quaternion();
-    approx::assert_relative_eq!(
-        c3_nsr_p4_sca,
-        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-    approx::assert_relative_eq!(
-        c3_nsr_p4_vec,
-        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
-            / (6.0f64.sqrt()),
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-
-    let c3_nsr_p2 = SymmetryOperation::builder()
-        .generating_element(c3_nsr_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-
-    let (c3_nsr_p2_sca, c3_nsr_p2_vec) = c3_nsr_p2.calc_quaternion();
-    approx::assert_relative_eq!(
-        c3_nsr_p2_sca,
-        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-    approx::assert_relative_eq!(
-        c3_nsr_p2_vec,
-        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
-            / (6.0f64.sqrt()),
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-
-    let c3_nsr_p5 = SymmetryOperation::builder()
-        .generating_element(c3_nsr_element.clone())
-        .power(5)
-        .build()
-        .unwrap();
-
-    let (c3_nsr_p5_sca, c3_nsr_p5_vec) = c3_nsr_p5.calc_quaternion();
-    approx::assert_relative_eq!(
-        c3_nsr_p5_sca,
-        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-    approx::assert_relative_eq!(
-        c3_nsr_p5_vec,
-        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
-            / (6.0f64.sqrt()),
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-
-    let c3_nsr_p3 = SymmetryOperation::builder()
-        .generating_element(c3_nsr_element.clone())
-        .power(3)
-        .build()
-        .unwrap();
-
-    let (c3_nsr_p3_sca, c3_nsr_p3_vec) = c3_nsr_p3.calc_quaternion();
-    approx::assert_relative_eq!(
-        c3_nsr_p3_sca,
-        -1.0,
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-    approx::assert_relative_eq!(
-        c3_nsr_p3_vec,
-        Vector3::zeros(),
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-
-    let c3_nsr_p6 = SymmetryOperation::builder()
-        .generating_element(c3_nsr_element.clone())
-        .power(6)
-        .build()
-        .unwrap();
-
-    let (c3_nsr_p6_sca, c3_nsr_p6_vec) = c3_nsr_p6.calc_quaternion();
-    approx::assert_relative_eq!(
-        c3_nsr_p6_sca,
-        1.0,
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-    approx::assert_relative_eq!(
-        c3_nsr_p6_vec,
-        Vector3::zeros(),
-        epsilon = c3_nsr_element.threshold,
-        max_relative = c3_nsr_element.threshold
-    );
-
-    // ============================
-    // Improper symmetry operations
-    // ============================
-    let s3_isr_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::new(3.0, 1e-14))
-        .proper_power(1)
-        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(SIG)
-        .rotationgroup(RotationGroup::SU2(false))
-        .build()
-        .unwrap();
-
-    let s3_isr_p1 = SymmetryOperation::builder()
-        .generating_element(s3_isr_element.clone())
-        .power(1)
-        .build()
-        .unwrap();
-    assert!(s3_isr_p1.is_su2_class_1());
-
-    let (s3_isr_p1_sca, s3_isr_p1_vec) = s3_isr_p1.calc_quaternion();
-    approx::assert_relative_eq!(
-        s3_isr_p1_sca,
-        -(0.5 * (std::f64::consts::PI / 3.0)).cos(),
-        epsilon = s3_isr_element.threshold,
-        max_relative = s3_isr_element.threshold
-    );
-    approx::assert_relative_eq!(
-        s3_isr_p1_vec,
-        (0.5 * (std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0) / (6.0f64.sqrt()),
-        epsilon = s3_isr_element.threshold,
-        max_relative = s3_isr_element.threshold
-    );
-
-    let s3_isr_p2 = SymmetryOperation::builder()
-        .generating_element(s3_isr_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert!(s3_isr_p2.is_su2_class_1());
-
-    let (s3_isr_p2_sca, s3_isr_p2_vec) = s3_isr_p2.calc_quaternion();
-    approx::assert_relative_eq!(
-        s3_isr_p2_sca,
-        -(0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
-        epsilon = s3_isr_element.threshold,
-        max_relative = s3_isr_element.threshold
-    );
-    approx::assert_relative_eq!(
-        s3_isr_p2_vec,
-        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
-            / (6.0f64.sqrt()),
-        epsilon = s3_isr_element.threshold,
-        max_relative = s3_isr_element.threshold
-    );
-
-    let s3_isr_p3 = SymmetryOperation::builder()
-        .generating_element(s3_isr_element.clone())
-        .power(3)
-        .build()
-        .unwrap();
-    assert!(s3_isr_p3.is_su2_class_1());
-
-    let (s3_isr_p3_sca, s3_isr_p3_vec) = s3_isr_p3.calc_quaternion();
-    approx::assert_relative_eq!(
-        s3_isr_p3_sca,
-        -std::f64::consts::FRAC_PI_2.cos(),
-        epsilon = s3_isr_element.threshold,
-        max_relative = s3_isr_element.threshold
-    );
-    approx::assert_relative_eq!(
-        s3_isr_p3_vec,
-        -std::f64::consts::FRAC_PI_2.sin() * Vector3::new(2.0, -1.0, 1.0) / (6.0f64.sqrt()),
-        epsilon = s3_isr_element.threshold,
-        max_relative = s3_isr_element.threshold
-    );
-
-    for i in 4..=12 {
-        let s3_isr_pi = SymmetryOperation::builder()
-            .generating_element(s3_isr_element.clone())
-            .power(i)
-            .build()
-            .unwrap();
-        if i <= 6 {
-            assert!(s3_isr_pi.is_su2_class_1());
-        } else {
-            assert!(!s3_isr_pi.is_su2_class_1());
-        }
-    }
-
-    let sd3_nsr_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::new(3.0, 1e-14))
-        .proper_power(1)
-        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
-        .kind(INV)
-        .rotationgroup(RotationGroup::SU2(true))
-        .build()
-        .unwrap();
-
-    let sd3_nsr_p1 = SymmetryOperation::builder()
-        .generating_element(sd3_nsr_element.clone())
-        .power(1)
-        .build()
-        .unwrap();
-
-    let (sd3_nsr_p1_sca, sd3_nsr_p1_vec) = sd3_nsr_p1.calc_quaternion();
-    approx::assert_relative_eq!(
-        sd3_nsr_p1_sca,
-        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).cos(),
-        epsilon = sd3_nsr_element.threshold,
-        max_relative = sd3_nsr_element.threshold
-    );
-    approx::assert_relative_eq!(
-        sd3_nsr_p1_vec,
-        (0.5 * (2.0 * std::f64::consts::PI / 3.0)).sin() * Vector3::new(2.0, -1.0, 1.0)
-            / (6.0f64.sqrt()),
-        epsilon = sd3_nsr_element.threshold,
-        max_relative = sd3_nsr_element.threshold
-    );
-
-    let sd3_nsr_p3 = SymmetryOperation::builder()
-        .generating_element(sd3_nsr_element.clone())
-        .power(3)
-        .build()
-        .unwrap();
-
-    let (sd3_nsr_p3_sca, sd3_nsr_p3_vec) = sd3_nsr_p3.calc_quaternion();
-    approx::assert_relative_eq!(
-        sd3_nsr_p3_sca,
-        -1.0,
-        epsilon = sd3_nsr_element.threshold,
-        max_relative = sd3_nsr_element.threshold
-    );
-    approx::assert_relative_eq!(
-        sd3_nsr_p3_vec,
-        Vector3::zeros(),
-        epsilon = sd3_nsr_element.threshold,
-        max_relative = sd3_nsr_element.threshold
-    );
 }
 
 #[test]
@@ -5424,28 +6004,77 @@ fn test_symmetry_operation_noncollinear_composition() {
     assert_eq!(s1cc1, s2d);
 }
 
-// #[test]
-// fn test_symmetry_operation_spin_rotation_collinear_composition() {
-//     // ==========================
-//     // Proper symmetry operations
-//     // ==========================
-//     let c2_nsr_element = SymmetryElement::builder()
-//         .threshold(1e-12)
-//         .proper_order(ElementOrder::Int(2))
-//         .proper_power(1)
-//         .raw_axis(Vector3::x())
-//         .kind(ROT)
-//         .rotationgroup(RotationGroup::SU2(true))
-//         .build()
-//         .unwrap();
+#[test]
+fn test_symmetry_operation_su2_collinear_composition() {
+    // ==========================
+    // Proper symmetry operations
+    // ==========================
+    let c2_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::x())
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
 
-//     let c2_nsr_p1 = SymmetryOperation::builder()
-//         .generating_element(c2_nsr_element.clone())
-//         .power(1)
-//         .build()
-//         .unwrap();
+    let c2_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
 
-//     println!("{}", &c2_nsr_p1 * &c2_nsr_p1);
+    let c2_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+
+    assert!((&c2_nsr_p1 * &c2_nsr_p1).is_su2_class_1());
+    assert_eq!(&c2_nsr_p1 * &c2_nsr_p1, c2_nsr_p2);
+
+    assert!(!(&c2_nsr_p2 * &c2_nsr_p2).is_su2_class_1());
+    assert!((&c2_nsr_p2 * &c2_nsr_p2).is_identity());
+
+    let c3_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c3_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let c3_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+
+    let c3_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+
+    assert!((&c3_nsr_p1 * &c3_nsr_p2).is_su2_class_1());
+    assert!((&c3_nsr_p1 * &c3_nsr_p2).is_spatial_identity());
+
+    assert!((&c3_nsr_p2 * &c3_nsr_p2).is_su2_class_1());
+    assert_eq!(&c3_nsr_p2 * &c3_nsr_p2, c3_nsr_p4);
+
+    assert!(!(&c3_nsr_p4 * &c3_nsr_p1).is_su2_class_1());
+    assert!((&c3_nsr_p4 * &c3_nsr_p2).is_identity());
+
+    assert!((&c3_nsr_p4 * &c3_nsr_p2).is_identity());
 
     // let c5_nsr_element = SymmetryElement::builder()
     //     .threshold(1e-12)
@@ -5746,7 +6375,7 @@ fn test_symmetry_operation_noncollinear_composition() {
     //     .build()
     //     .unwrap();
     // assert_eq!(&s2 * &c5, sd5);
-// }
+}
 
 #[test]
 fn test_symmetry_operation_time_reversal() {
@@ -6175,70 +6804,208 @@ fn test_symmetry_operation_hashability() {
 }
 
 #[test]
-fn test_symmetry_operation_spin_rotation_comparison() {
-    let c5_element = SymmetryElement::builder()
+fn test_symmetry_operation_su2_comparison() {
+    let c5_nsr_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(5))
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotationgroup(RotationGroup::SO3)
+        .rotationgroup(RotationGroup::SU2(true))
         .build()
         .unwrap();
-    let c5_nsr_element = c5_element.to_su2(true).unwrap();
 
-    let c5_nsr_p1 = SymmetryOperation::builder()
-        .generating_element(c5_nsr_element.clone())
-        .power(1)
+    let c5_isr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, -1.0, 1.0))
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(false))
         .build()
         .unwrap();
-    assert!(!c5_nsr_p1.is_su2_class_1());
 
-    let c5_nsr_p6 = SymmetryOperation::builder()
-        .generating_element(c5_nsr_element.clone())
-        .power(6)
-        .build()
-        .unwrap();
-    assert!(c5_nsr_p6.is_su2_class_1());
-
-    let c5_nsr_p11 = SymmetryOperation::builder()
-        .generating_element(c5_nsr_element.clone())
-        .power(11)
-        .build()
-        .unwrap();
-    assert!(!c5_nsr_p11.is_su2_class_1());
-
-    assert_eq!(c5_nsr_p1, c5_nsr_p11);
-    assert_ne!(c5_nsr_p1, c5_nsr_p6);
-
-    let c5_nsr_pm9 = SymmetryOperation::builder()
-        .generating_element(c5_nsr_element.clone())
-        .power(-9)
-        .build()
-        .unwrap();
-    assert_eq!(c5_nsr_pm9, c5_nsr_p1);
-
-    let c5_nsr_pm7 = SymmetryOperation::builder()
-        .generating_element(c5_nsr_element.clone())
-        .power(-7)
-        .build()
-        .unwrap();
-    assert!(!c5_nsr_pm7.is_su2_class_1());
-
-    let c5_isr_element = c5_element.to_su2(false).unwrap();
     let c5_isr_p1 = SymmetryOperation::builder()
         .generating_element(c5_isr_element.clone())
         .power(1)
         .build()
         .unwrap();
+    let c5_nsr_p6 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
     assert_eq!(c5_isr_p1, c5_nsr_p6);
+    assert!(c5_isr_p1.is_su2_class_1());
+    assert!(c5_nsr_p6.is_su2_class_1());
+
+    let c5_isr_p2 = SymmetryOperation::builder()
+        .generating_element(c5_isr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    let c5_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(c5_isr_p2, c5_nsr_p2);
+    assert!(!c5_isr_p2.is_su2_class_1());
+    assert!(!c5_nsr_p2.is_su2_class_1());
+
+    let c5_isr_p3 = SymmetryOperation::builder()
+        .generating_element(c5_isr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    let c5_nsr_p8 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(8)
+        .build()
+        .unwrap();
+    assert_eq!(c5_isr_p3, c5_nsr_p8);
+    assert!(!c5_isr_p3.is_su2_class_1());
+    assert!(!c5_nsr_p8.is_su2_class_1());
+
+    let c5_isr_p4 = SymmetryOperation::builder()
+        .generating_element(c5_isr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    let c5_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(c5_isr_p4, c5_nsr_p4);
+    assert!(c5_isr_p4.is_su2_class_1());
+    assert!(c5_nsr_p4.is_su2_class_1());
+
+    let c5_isr_p5 = SymmetryOperation::builder()
+        .generating_element(c5_isr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    let c5_nsr_p10 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(10)
+        .build()
+        .unwrap();
+    assert_eq!(c5_isr_p5, c5_nsr_p10);
+    assert!(c5_isr_p5.is_identity());
+    assert!(c5_nsr_p10.is_identity());
 
     let c5_isr_p6 = SymmetryOperation::builder()
         .generating_element(c5_isr_element.clone())
         .power(6)
         .build()
         .unwrap();
+    let c5_nsr_p6 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
     assert_eq!(c5_isr_p6, c5_nsr_p6);
+    assert!(c5_isr_p6.is_su2_class_1());
+    assert!(c5_nsr_p6.is_su2_class_1());
+
+    let c5_isr_p7 = SymmetryOperation::builder()
+        .generating_element(c5_isr_element.clone())
+        .power(7)
+        .build()
+        .unwrap();
+    let c5_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(c5_isr_p7, c5_nsr_p2);
+    assert!(!c5_isr_p7.is_su2_class_1());
+    assert!(!c5_nsr_p2.is_su2_class_1());
+
+    let c5_isr_p8 = SymmetryOperation::builder()
+        .generating_element(c5_isr_element.clone())
+        .power(8)
+        .build()
+        .unwrap();
+    let c5_nsr_p8 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(8)
+        .build()
+        .unwrap();
+    assert_eq!(c5_isr_p8, c5_nsr_p8);
+    assert!(!c5_isr_p8.is_su2_class_1());
+    assert!(!c5_nsr_p8.is_su2_class_1());
+
+    let c5_isr_p9 = SymmetryOperation::builder()
+        .generating_element(c5_isr_element.clone())
+        .power(9)
+        .build()
+        .unwrap();
+    let c5_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(c5_isr_p9, c5_nsr_p4);
+    assert!(c5_isr_p9.is_su2_class_1());
+    assert!(c5_nsr_p4.is_su2_class_1());
+
+    let c5_isr_p10 = SymmetryOperation::builder()
+        .generating_element(c5_isr_element.clone())
+        .power(10)
+        .build()
+        .unwrap();
+    let c5_nsr_p0 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(0)
+        .build()
+        .unwrap();
+    assert_eq!(c5_isr_p10, c5_nsr_p0);
+    assert!(c5_isr_p10.is_identity());
+    assert!(c5_nsr_p0.is_identity());
+
+    let c5_nsr_pm1 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    let c5_nsr_p9 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(9)
+        .build()
+        .unwrap();
+    assert_eq!(c5_nsr_pm1, c5_nsr_p9);
+    assert!(!c5_nsr_pm1.is_su2_class_1());
+
+    let c5_nsr_pm3 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    let c5_nsr_p7 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(7)
+        .build()
+        .unwrap();
+    assert_eq!(c5_nsr_pm3, c5_nsr_p7);
+    assert!(c5_nsr_pm3.is_su2_class_1());
+    assert!(c5_nsr_p7.is_su2_class_1());
+
+    let c5_nsr_pm5 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(-5)
+        .build()
+        .unwrap();
+    let c5_nsr_p5 = SymmetryOperation::builder()
+        .generating_element(c5_nsr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(c5_nsr_pm5, c5_nsr_p5);
+    assert!(c5_nsr_pm5.is_spatial_identity());
+    assert!(c5_nsr_pm5.is_su2_class_1());
+    assert!(c5_nsr_p5.is_su2_class_1());
 
     let c5_pp3_nsr_element = SymmetryElement::builder()
         .threshold(1e-12)
@@ -6251,17 +7018,26 @@ fn test_symmetry_operation_spin_rotation_comparison() {
         .unwrap()
         .to_su2(true)
         .unwrap();
-    let c5_pp3_nsr_pm7 = SymmetryOperation::builder()
+    let c5_pp3_nsr_p2 = SymmetryOperation::builder()
         .generating_element(c5_pp3_nsr_element.clone())
-        .power(-7)
+        .power(2)
         .build()
         .unwrap();
-    let c5_pp3_nsr_p3 = SymmetryOperation::builder()
+    let c5_pp3_nsr_p7 = SymmetryOperation::builder()
         .generating_element(c5_pp3_nsr_element.clone())
-        .power(3)
+        .power(7)
         .build()
         .unwrap();
-    assert_eq!(c5_pp3_nsr_p3, c5_pp3_nsr_pm7);
+    let c5_pp3_nsr_pm8 = SymmetryOperation::builder()
+        .generating_element(c5_pp3_nsr_element.clone())
+        .power(-8)
+        .build()
+        .unwrap();
+    assert_eq!(c5_pp3_nsr_p2, c5_pp3_nsr_p7);
+    assert_eq!(c5_pp3_nsr_p2, c5_pp3_nsr_pm8);
+    assert!(c5_pp3_nsr_p2.is_su2_class_1());
+    assert!(c5_pp3_nsr_p7.is_su2_class_1());
+    assert!(c5_pp3_nsr_pm8.is_su2_class_1());
 
     let c7_element = SymmetryElement::builder()
         .threshold(1e-12)
