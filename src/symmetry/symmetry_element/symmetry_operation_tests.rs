@@ -6263,6 +6263,324 @@ fn test_symmetry_operation_su2_collinear_composition() {
 }
 
 #[test]
+fn test_symmetry_operation_su2_noncollinear_composition() {
+    // ----------------------------------------------------------------------------------------
+    // D2*
+    //
+    // Reference: Table 8-6.2, Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
+    // Publications, Inc., 2005).
+    // ----------------------------------------------------------------------------------------
+    let c2x_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::x())
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let e_nsr = SymmetryOperation::builder()
+        .generating_element(c2x_nsr_element.clone())
+        .power(0)
+        .build()
+        .unwrap();
+    let e_isr = SymmetryOperation::builder()
+        .generating_element(c2x_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    let c2x_nsr = SymmetryOperation::builder()
+        .generating_element(c2x_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c2x_isr = SymmetryOperation::builder()
+        .generating_element(c2x_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    let c2y_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::y())
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c2y_nsr = SymmetryOperation::builder()
+        .generating_element(c2y_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c2y_isr = SymmetryOperation::builder()
+        .generating_element(c2y_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    let c2z_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c2z_nsr = SymmetryOperation::builder()
+        .generating_element(c2z_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c2z_isr = SymmetryOperation::builder()
+        .generating_element(c2z_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    // e_nsr
+    assert_eq!(&e_nsr * &e_nsr, e_nsr);
+    assert_eq!(&e_nsr * &c2x_nsr, c2x_nsr);
+    assert_eq!(&e_nsr * &c2y_nsr, c2y_nsr);
+    assert_eq!(&e_nsr * &c2z_nsr, c2z_nsr);
+    assert_eq!(&e_nsr * &e_isr, e_isr);
+    assert_eq!(&e_nsr * &c2x_isr, c2x_isr);
+    assert_eq!(&e_nsr * &c2y_isr, c2y_isr);
+    assert_eq!(&e_nsr * &c2z_isr, c2z_isr);
+
+    // c2x_nsr
+    assert_eq!(&c2x_nsr * &e_nsr, c2x_nsr);
+    assert_eq!(&c2x_nsr * &c2x_nsr, e_isr);
+    assert_eq!(&c2x_nsr * &c2y_nsr, c2z_nsr);
+    assert_eq!(&c2x_nsr * &c2z_nsr, c2y_isr);
+    assert_eq!(&c2x_nsr * &e_isr, c2x_isr);
+    assert_eq!(&c2x_nsr * &c2x_isr, e_nsr);
+    assert_eq!(&c2x_nsr * &c2y_isr, c2z_isr);
+    assert_eq!(&c2x_nsr * &c2z_isr, c2y_nsr);
+
+    // c2y_nsr
+    assert_eq!(&c2y_nsr * &e_nsr, c2y_nsr);
+    assert_eq!(&c2y_nsr * &c2x_nsr, c2z_isr);
+    assert_eq!(&c2y_nsr * &c2y_nsr, e_isr);
+    assert_eq!(&c2y_nsr * &c2z_nsr, c2x_nsr);
+    assert_eq!(&c2y_nsr * &e_isr, c2y_isr);
+    assert_eq!(&c2y_nsr * &c2x_isr, c2z_nsr);
+    assert_eq!(&c2y_nsr * &c2y_isr, e_nsr);
+    assert_eq!(&c2y_nsr * &c2z_isr, c2x_isr);
+
+    // c2z_nsr
+    assert_eq!(&c2z_nsr * &e_nsr, c2z_nsr);
+    assert_eq!(&c2z_nsr * &c2x_nsr, c2y_nsr);
+    assert_eq!(&c2z_nsr * &c2y_nsr, c2x_isr);
+    assert_eq!(&c2z_nsr * &c2z_nsr, e_isr);
+    assert_eq!(&c2z_nsr * &e_isr, c2z_isr);
+    assert_eq!(&c2z_nsr * &c2x_isr, c2y_isr);
+    assert_eq!(&c2z_nsr * &c2y_isr, c2x_nsr);
+    assert_eq!(&c2z_nsr * &c2z_isr, e_nsr);
+
+    // e_isr
+    assert_eq!(&e_isr * &e_nsr, e_isr);
+    assert_eq!(&e_isr * &c2x_nsr, c2x_isr);
+    assert_eq!(&e_isr * &c2y_nsr, c2y_isr);
+    assert_eq!(&e_isr * &c2z_nsr, c2z_isr);
+    assert_eq!(&e_isr * &e_isr, e_nsr);
+    assert_eq!(&e_isr * &c2x_isr, c2x_nsr);
+    assert_eq!(&e_isr * &c2y_isr, c2y_nsr);
+    assert_eq!(&e_isr * &c2z_isr, c2z_nsr);
+
+    // c2x_isr
+    assert_eq!(&c2x_isr * &e_nsr, c2x_isr);
+    assert_eq!(&c2x_isr * &c2x_nsr, e_nsr);
+    assert_eq!(&c2x_isr * &c2y_nsr, c2z_isr);
+    assert_eq!(&c2x_isr * &c2z_nsr, c2y_nsr);
+    assert_eq!(&c2x_isr * &e_isr, c2x_nsr);
+    assert_eq!(&c2x_isr * &c2x_isr, e_isr);
+    assert_eq!(&c2x_isr * &c2y_isr, c2z_nsr);
+    assert_eq!(&c2x_isr * &c2z_isr, c2y_isr);
+
+    // c2y_isr
+    assert_eq!(&c2y_isr * &e_nsr, c2y_isr);
+    assert_eq!(&c2y_isr * &c2x_nsr, c2z_nsr);
+    assert_eq!(&c2y_isr * &c2y_nsr, e_nsr);
+    assert_eq!(&c2y_isr * &c2z_nsr, c2x_isr);
+    assert_eq!(&c2y_isr * &e_isr, c2y_nsr);
+    assert_eq!(&c2y_isr * &c2x_isr, c2z_isr);
+    assert_eq!(&c2y_isr * &c2y_isr, e_isr);
+    assert_eq!(&c2y_isr * &c2z_isr, c2x_nsr);
+
+    // c2z_isr
+    assert_eq!(&c2z_isr * &e_nsr, c2z_isr);
+    assert_eq!(&c2z_isr * &c2x_nsr, c2y_isr);
+    assert_eq!(&c2z_isr * &c2y_nsr, c2x_nsr);
+    assert_eq!(&c2z_isr * &c2z_nsr, e_nsr);
+    assert_eq!(&c2z_isr * &e_isr, c2z_nsr);
+    assert_eq!(&c2z_isr * &c2x_isr, c2y_nsr);
+    assert_eq!(&c2z_isr * &c2y_isr, c2x_isr);
+    assert_eq!(&c2z_isr * &c2z_isr, e_isr);
+
+    // -----------------------------------------------------------------------------------------
+    // D3*
+    //
+    // Reference: Table 15-5.2, Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
+    // Publications, Inc., 2005).
+    // -----------------------------------------------------------------------------------------
+    let c3_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c3p1_nsr = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c3pm1_nsr = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    let c3p1_isr = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    let c3pm1_isr = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element)
+        .power(-4)
+        .build()
+        .unwrap();
+
+    let c21_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::x())
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c21_nsr = SymmetryOperation::builder()
+        .generating_element(c21_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c21_isr = SymmetryOperation::builder()
+        .generating_element(c21_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    let c22_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.5, -3.0f64.sqrt() / 2.0, 0.0))
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c22_nsr = SymmetryOperation::builder()
+        .generating_element(c22_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c22_isr = SymmetryOperation::builder()
+        .generating_element(c22_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    let c23_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.5, 3.0f64.sqrt() / 2.0, 0.0))
+        .kind(ROT)
+        .rotationgroup(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c23_nsr = SymmetryOperation::builder()
+        .generating_element(c23_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c23_isr = SymmetryOperation::builder()
+        .generating_element(c23_nsr_element)
+        .power(3)
+        .build()
+        .unwrap();
+
+    // e_nsr
+    assert_eq!(&e_nsr * &e_nsr, e_nsr);
+    assert_eq!(&e_nsr * &c3p1_nsr, c3p1_nsr);
+    assert_eq!(&e_nsr * &c3pm1_nsr, c3pm1_nsr);
+    assert_eq!(&e_nsr * &c21_nsr, c21_nsr);
+    assert_eq!(&e_nsr * &c22_nsr, c22_nsr);
+    assert_eq!(&e_nsr * &c23_nsr, c23_nsr);
+    assert_eq!(&e_nsr * &e_isr, e_isr);
+    assert_eq!(&e_nsr * &c3p1_isr, c3p1_isr);
+    assert_eq!(&e_nsr * &c3pm1_isr, c3pm1_isr);
+    assert_eq!(&e_nsr * &c21_isr, c21_isr);
+    assert_eq!(&e_nsr * &c22_isr, c22_isr);
+    assert_eq!(&e_nsr * &c23_isr, c23_isr);
+
+    use crate::group::UnitaryRepresentedGroup;
+    use crate::group::class::ClassProperties;
+    use crate::chartab::chartab_group::{IrrepCharTabConstruction, CharacterProperties};
+    use crate::symmetry::symmetry_group::SymmetryGroupProperties;
+    use crate::symmetry::symmetry_symbols::{MullikenIrrepSymbol, SymmetryClassSymbol};
+    let mut group = UnitaryRepresentedGroup::<
+        SymmetryOperation,
+        MullikenIrrepSymbol,
+        SymmetryClassSymbol<SymmetryOperation>,
+    >::new(
+        "D3*",
+        vec![
+            e_nsr, c3p1_nsr, c3pm1_nsr, c21_nsr, c22_nsr, c23_nsr, e_isr, c3p1_isr, c3pm1_isr,
+            c21_isr, c22_isr, c23_isr,
+        ],
+    );
+    let symbols = group.class_symbols_from_symmetry();
+    group.set_class_symbols(&symbols);
+    group.construct_irrep_character_table();
+    group.canonicalise_character_table();
+    println!("{:?}", group.character_table());
+
+    // // c3p1_nsr
+    // println!("{}", &c3p1_nsr * &e_nsr);
+    // println!("{}", &c3p1_nsr * &c3p1_nsr);
+    // println!("{}", &c3p1_nsr * &c3pm1_nsr);
+    // println!("{}", &c3p1_nsr * &c21_nsr);
+    // println!("{}", &c3p1_nsr * &c22_nsr);
+    // println!("{}", &c3p1_nsr * &c23_nsr);
+    // println!("{}", &c3p1_nsr * &e_isr);
+    // println!("{}", &c3p1_nsr * &c3p1_isr);
+    // println!("{}", &c3p1_nsr * &c3pm1_isr);
+    // println!("{}", &c3p1_nsr * &c21_isr);
+    // println!("{}", &c3p1_nsr * &c22_isr);
+    // println!("{}", &c3p1_nsr * &c23_isr);
+
+    // assert_eq!(&c3p1_nsr * &e_nsr, c3p1_nsr);
+    // assert_eq!(&c3p1_nsr * &c3p1_nsr, c3pm1_isr);
+    // assert_eq!(&c3p1_nsr * &c3pm1_nsr, e_nsr);
+    // assert_eq!(&c3p1_nsr * &c21_nsr, c23_isr);
+    // assert_eq!(&c3p1_nsr * &c22_nsr, c21_isr);
+    // assert_eq!(&c3p1_nsr * &c23_nsr, c22_isr);
+    // assert_eq!(&c3p1_nsr * &e_isr, c3p1_isr);
+    // assert_eq!(&c3p1_nsr * &c3p1_isr, c3pm1_nsr);
+    // assert_eq!(&c3p1_nsr * &c3pm1_isr, e_isr);
+    // assert_eq!(&c3p1_nsr * &c21_isr, c23_nsr);
+    // assert_eq!(&c3p1_nsr * &c22_isr, c21_nsr);
+    // assert_eq!(&c3p1_nsr * &c23_isr, c22_nsr);
+}
+
+#[test]
 fn test_symmetry_operation_time_reversal() {
     let tc2x_element = SymmetryElement::builder()
         .threshold(1e-12)

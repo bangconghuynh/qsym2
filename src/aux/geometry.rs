@@ -15,6 +15,10 @@ type F32 = fraction::GenericFraction<u32>;
 #[path = "geometry_tests.rs"]
 mod geometry_tests;
 
+// ================
+// Enum definitions
+// ================
+
 /// An enum to classify the type of improper rotation given an angle and axis.
 pub enum ImproperRotationKind {
     /// The improper rotation is a rotation by the specified angle and axis followed by a
@@ -28,6 +32,10 @@ pub enum ImproperRotationKind {
 
 pub const IMSIG: ImproperRotationKind = ImproperRotationKind::MirrorPlane;
 pub const IMINV: ImproperRotationKind = ImproperRotationKind::InversionCentre;
+
+// =================
+// Utility functions
+// =================
 
 /// Returns the rotation angle adjusted to be in the interval $`(-\pi, +\pi]`$.
 ///

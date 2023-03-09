@@ -537,18 +537,18 @@ impl SymmetryOperation {
         }
 
         if self.is_su2_class_1() {
-            println!(
-                "Calc Q for {self}: {abs_angle} {} => {}, {}",
-                c_self.calc_pole().coords,
-                -scalar_part,
-                -vector_part
-            );
+            // println!(
+            //     "Calc Q for {self}: {abs_angle} {} => {}, {}",
+            //     c_self.calc_pole().coords,
+            //     -scalar_part,
+            //     -vector_part
+            // );
             (-scalar_part, -vector_part)
         } else {
-            println!(
-                "Calc Q for {self}: {abs_angle} => {}, {}",
-                scalar_part, vector_part
-            );
+            // println!(
+            //     "Calc Q for {self}: {abs_angle} => {}, {}",
+            //     scalar_part, vector_part
+            // );
             (scalar_part, vector_part)
         }
     }
@@ -991,7 +991,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                 self.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(tr))
             }
         };
-        println!("{self:?} -> {c_self:?}");
+        // println!("{self:?} -> {c_self:?}");
         if c_self.is_su2() {
             let generating_element_tr = c_self.generating_element.contains_time_reversal();
             let spatial_proper_identity = c_self
@@ -1092,8 +1092,8 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             };
             let intrinsic_inverse = c_self.generating_element.rotationgroup.is_su2_class_1()
                 && c_self.power.rem_euclid(2) == 1;
-            println!("Inv from rot : {inverse_from_rotationgroup}");
-            println!("Intrinsic inv: {intrinsic_inverse}");
+            // println!("Inv from rot : {inverse_from_rotationgroup}");
+            // println!("Intrinsic inv: {intrinsic_inverse}");
             inverse_from_rotationgroup != intrinsic_inverse
         } else {
             false
@@ -1312,9 +1312,9 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
             (-q3_s, -q3_v)
         };
 
-        println!("Q1: {q1_s}, {q1_v:?}");
-        println!("Q2: {q2_s}, {q2_v:?}");
-        println!("Q3: {q3:?}");
+        // println!("Q1: {q1_s}, {q1_v:?}");
+        // println!("Q2: {q2_s}, {q2_v:?}");
+        // println!("Q3: {q3:?}");
 
         let proper = self.is_proper() == rhs.is_proper();
         let tr = self.is_antiunitary() != rhs.is_antiunitary();

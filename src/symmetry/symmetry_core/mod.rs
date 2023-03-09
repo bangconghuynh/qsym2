@@ -1475,7 +1475,7 @@ impl Symmetry {
                             None
                         } else if op_k.is_proper() {
                             Some(op_k)
-                        } else if (op_k.is_reflection() || op_k.is_tr_reflection())
+                        } else if op_k.is_spatial_reflection()
                             && op_k.generating_element.additional_subscript.is_empty()
                         {
                             if let Some(sigma_symbol) = deduce_sigma_symbol(
