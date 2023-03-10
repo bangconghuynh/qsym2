@@ -8,7 +8,7 @@ use fraction;
 use log;
 use nalgebra::Vector3;
 use num::integer::gcd;
-use num_traits::{ToPrimitive, Zero};
+use num_traits::{One, ToPrimitive, Zero};
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
@@ -322,23 +322,48 @@ impl SymmetryElementBuilder {
             .expect("Proper order has not been set.");
         match proper_order {
             ElementOrder::Int(io) => {
+                // The generating element has a proper fraction, pp/n.
+                //
+                // If pp/n > 1/2, we seek a positive integer x such that
+                //  -1/2 < pp/n - x <= 1/2.
+                // It turns out that x ∈ [pp/n - 1/2, pp/n + 1/2).
+                //
+                // If pp/n <= -1/2, we seek a positive integer x such that
+                //  -1/2 < pp/n + x <= 1/2.
+                // It turns out that x ∈ (-pp/n - 1/2, -pp/n + 1/2].
+                //
+                // x is then used to bring pp/n back into the (-1/2, 1/2] interval.
+                //
+                // See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover
+                // Publications, Inc., New York, 2005) for further information.
                 let pp = self
                     .proper_power
                     .expect("Proper power has not been set.")
                     .expect("No proper powers found.");
-                let mut residual = pp;
-                let io_i32 = i32::try_from(*io).unwrap();
-                while residual > io_i32.div_euclid(2) {
-                    residual -= io_i32;
-                }
-                while residual <= (-io_i32).div_euclid(2) {
-                    residual += io_i32;
-                }
-
-                if residual >= 0 {
-                    Some(F::new(residual.unsigned_abs(), *io))
+                let total_proper_fraction = if pp >= 0 {
+                    F::new(pp.unsigned_abs(), *io)
                 } else {
-                    Some(F::new_neg(residual.unsigned_abs(), *io))
+                    F::new_neg(pp.unsigned_abs(), *io)
+                };
+                let frac_1_2 = F::new(1u32, 2u32);
+                if total_proper_fraction > frac_1_2 {
+                    let integer_part = total_proper_fraction.trunc();
+                    let x = if total_proper_fraction.fract() <= frac_1_2 {
+                        integer_part
+                    } else {
+                        integer_part + F::one()
+                    };
+                    Some(total_proper_fraction - x)
+                } else if total_proper_fraction <= -frac_1_2 {
+                    let integer_part = (-total_proper_fraction).trunc();
+                    let x = if (-total_proper_fraction).fract() < frac_1_2 {
+                        integer_part
+                    } else {
+                        integer_part + F::one()
+                    };
+                    Some(total_proper_fraction + x)
+                } else {
+                    Some(total_proper_fraction)
                 }
             }
             ElementOrder::Inf => None,
@@ -356,15 +381,38 @@ impl SymmetryElementBuilder {
                     .proper_power
                     .expect("Proper power has not been set.")
                     .expect("No proper powers found.");
-                let mut residual = pp;
-                let io_i32 = i32::try_from(*io).unwrap();
-                while residual > io_i32.div_euclid(2) {
-                    residual -= io_i32;
-                }
-                while residual <= -io_i32.div_euclid(2) {
-                    residual += io_i32;
-                }
-                Some(f64::from(residual) / f64::from(*io) * 2.0 * std::f64::consts::PI)
+                let total_proper_fraction = if pp >= 0 {
+                    F::new(pp.unsigned_abs(), *io)
+                } else {
+                    F::new_neg(pp.unsigned_abs(), *io)
+                };
+                let frac_1_2 = F::new(1u32, 2u32);
+                let proper_fraction = if total_proper_fraction > frac_1_2 {
+                    let integer_part = total_proper_fraction.trunc();
+                    let x = if total_proper_fraction.fract() <= frac_1_2 {
+                        integer_part
+                    } else {
+                        integer_part + F::one()
+                    };
+                    total_proper_fraction - x
+                } else if total_proper_fraction <= -frac_1_2 {
+                    let integer_part = (-total_proper_fraction).trunc();
+                    let x = if (-total_proper_fraction).fract() < frac_1_2 {
+                        integer_part
+                    } else {
+                        integer_part + F::one()
+                    };
+                    total_proper_fraction + x
+                } else {
+                    total_proper_fraction
+                };
+                Some(
+                    proper_fraction
+                        .to_f64()
+                        .expect("Unable to convert the proper fraction to `f64`.")
+                        * 2.0
+                        * std::f64::consts::PI,
+                )
             }
             ElementOrder::Inf => self.proper_angle.unwrap_or(None),
         }
