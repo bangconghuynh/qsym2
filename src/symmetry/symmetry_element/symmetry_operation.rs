@@ -497,19 +497,13 @@ impl SymmetryOperation {
     /// $`[0, 1]`$ by more than the threshold value stored in the generating element in `self`.
     #[must_use]
     pub fn calc_quaternion(&self) -> Quaternion {
-        // let c_self = match self.generating_element.kind {
-        //     SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
-        //         self.clone()
-        //     }
-        //     SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
-        // };
         let c_self = if self.is_proper() {
             self.clone()
         } else {
             // Time-reversal does not matter here.
             self.convert_to_improper_kind(&INV)
         };
-        assert_eq!(self.is_su2_class_1(), c_self.is_su2_class_1());
+        debug_assert_eq!(self.is_su2_class_1(), c_self.is_su2_class_1());
 
         // We only need the absolute value of the angle. Its sign information is
         // encoded in the pole. `abs_angle` thus lies in [0, π], and so
@@ -520,21 +514,25 @@ impl SymmetryOperation {
         let abs_angle = c_self.total_proper_angle.abs();
         let scalar_part = (0.5 * abs_angle).cos();
         let vector_part = (0.5 * abs_angle).sin() * c_self.calc_pole().coords;
-        assert!(
+        debug_assert!(
             -self.generating_element.threshold <= scalar_part
                 && scalar_part <= 1.0 + self.generating_element.threshold
         );
-        if approx::relative_eq!(
-            scalar_part,
-            0.0,
-            max_relative = c_self.generating_element.threshold,
-            epsilon = c_self.generating_element.threshold
-        ) {
-            assert!(geometry::check_positive_pole(
-                &vector_part,
-                c_self.generating_element.threshold
-            ));
-        }
+        debug_assert!(
+            if approx::relative_eq!(
+                scalar_part,
+                0.0,
+                max_relative = c_self.generating_element.threshold,
+                epsilon = c_self.generating_element.threshold
+            ) {
+                geometry::check_positive_pole(
+                    &vector_part,
+                    c_self.generating_element.threshold
+                )
+            } else {
+                true
+            }
+        );
 
         if self.is_su2_class_1() {
             (-scalar_part, -vector_part)
@@ -1081,8 +1079,6 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             };
             let intrinsic_inverse = c_self.generating_element.rotationgroup.is_su2_class_1()
                 && c_self.power.rem_euclid(2) == 1;
-            // println!("Inv from rot : {inverse_from_rotationgroup}");
-            // println!("Intrinsic inv: {intrinsic_inverse}");
             inverse_from_rotationgroup != intrinsic_inverse
         } else {
             false
@@ -1300,10 +1296,6 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
         } else {
             (-q3_s, -q3_v)
         };
-
-        // println!("Q1: {q1_s}, {q1_v:?}");
-        // println!("Q2: {q2_s}, {q2_v:?}");
-        // println!("Q3: {q3:?}");
 
         let proper = self.is_proper() == rhs.is_proper();
         let tr = self.is_antiunitary() != rhs.is_antiunitary();
