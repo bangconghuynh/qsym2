@@ -19,6 +19,8 @@ use crate::symmetry::symmetry_symbols::{
     MullikenIrrepSymbol, SymmetryClassSymbol, FORCED_PRINCIPAL_GROUPS,
 };
 
+type F = fraction::GenericFraction<u32>;
+
 #[cfg(test)]
 #[path = "symmetry_group_tests.rs"]
 mod symmetry_group_tests;
@@ -163,13 +165,21 @@ pub trait SymmetryGroupProperties:
     /// Sets the conjugacy class symbols in this group based on molecular symmetry.
     fn class_symbols_from_symmetry(&mut self) -> Vec<SymmetryClassSymbol<SymmetryOperation>> {
         log::debug!("Assigning class symbols from symmetry operations...");
-        let mut proper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
+        // let mut proper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
+        //     HashMap::new();
+        // let mut improper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
+        //     HashMap::new();
+        // let mut tr_proper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
+        //     HashMap::new();
+        // let mut tr_improper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
+        //     HashMap::new();
+        let mut proper_class_orders: HashMap<(Option<F>, i32, String), usize> =
             HashMap::new();
-        let mut improper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
+        let mut improper_class_orders: HashMap<(Option<F>, i32, String), usize> =
             HashMap::new();
-        let mut tr_proper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
+        let mut tr_proper_class_orders: HashMap<(Option<F>, i32, String), usize> =
             HashMap::new();
-        let mut tr_improper_class_orders: HashMap<(ElementOrder, Option<i32>, i32, String), usize> =
+        let mut tr_improper_class_orders: HashMap<(Option<F>, i32, String), usize> =
             HashMap::new();
         let symmetry_class_symbols = (0..self.class_number())
             .map(|i| {
@@ -224,6 +234,7 @@ pub trait SymmetryGroupProperties:
                 } else {
                     let rep_proper_order = rep_ele.generating_element.proper_order;
                     let rep_proper_power = rep_ele.generating_element.proper_power;
+                    let rep_proper_fraction = rep_ele.generating_element.proper_fraction().cloned();
                     let rep_power = rep_ele.power;
                     let rep_sub = rep_ele.generating_element.additional_subscript.clone();
                     let class_orders = match (rep_ele.is_antiunitary(), rep_ele.is_proper()) {
@@ -233,8 +244,8 @@ pub trait SymmetryGroupProperties:
                         (true, false) => &mut tr_improper_class_orders,
                     };
                     let dash = if let Some(v) = class_orders.get_mut(&(
-                        rep_proper_order,
-                        rep_proper_power,
+                        rep_proper_fraction,
+                        // rep_proper_power,
                         rep_power,
                         rep_sub.clone(),
                     )) {
@@ -242,7 +253,8 @@ pub trait SymmetryGroupProperties:
                         "'".repeat(*v)
                     } else {
                         class_orders
-                            .insert((rep_proper_order, rep_proper_power, rep_power, rep_sub), 0);
+                            // .insert((rep_proper_order, rep_proper_power, rep_power, rep_sub), 0);
+                            .insert((rep_proper_fraction, rep_power, rep_sub), 0);
                         String::new()
                     };
                     let size = old_symbol.size();
@@ -266,6 +278,9 @@ pub trait SymmetryGroupProperties:
             })
             .collect::<Vec<_>>();
         log::debug!("Assigning class symbols from symmetry operations... Done.");
+        // for sym in symmetry_class_symbols.iter() {
+        //     log::debug!("Symbol: {sym}");
+        // }
         symmetry_class_symbols
     }
 }

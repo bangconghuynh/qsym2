@@ -973,26 +973,25 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     }
 
     fn is_su2_class_1(&self) -> bool {
-        // The following is wrong, because `self.is_proper()` takes into account the power applied
-        // to the spatial part, but not yet to the spin rotation part. Then, for example,
-        // [QΣ·S3(+0.816, -0.408, +0.408)]^2 would become Σ'·[C3(+0.816, -0.408, +0.408)]^2 where
-        // Σ' is the associated spin rotation of [C3(+0.816, -0.408, +0.408)]^2, which is not the
-        // same as Σ^2.
-        // let c_self = if self.is_proper() {
-        //     self.clone()
-        // } else {
-        //     self.convert_to_improper_kind(&INV)
-        // };
-        let c_self = match self.generating_element.kind {
-            SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
-                self.clone()
-            }
-            SymmetryElementKind::ImproperMirrorPlane(tr) => {
-                self.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(tr))
-            }
-        };
-        // println!("{self:?} -> {c_self:?}");
-        if c_self.is_su2() {
+        if self.is_su2() {
+            // The following is wrong, because `self.is_proper()` takes into account the power applied
+            // to the spatial part, but not yet to the spin rotation part. Then, for example,
+            // [QΣ·S3(+0.816, -0.408, +0.408)]^2 would become Σ'·[C3(+0.816, -0.408, +0.408)]^2 where
+            // Σ' is the associated spin rotation of [C3(+0.816, -0.408, +0.408)]^2, which is not the
+            // same as Σ^2.
+            // let c_self = if self.is_proper() {
+            //     self.clone()
+            // } else {
+            //     self.convert_to_improper_kind(&INV)
+            // };
+            let c_self = match self.generating_element.kind {
+                SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
+                    self.clone()
+                }
+                SymmetryElementKind::ImproperMirrorPlane(tr) => {
+                    self.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(tr))
+                }
+            };
             let generating_element_tr = c_self.generating_element.contains_time_reversal();
             let spatial_proper_identity = c_self
                 .generating_element

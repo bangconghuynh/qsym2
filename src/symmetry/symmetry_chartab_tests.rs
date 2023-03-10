@@ -1899,6 +1899,7 @@ fn test_chartab_linear_atom_electric_field_cinfv() {
 
 #[test]
 fn test_chartab_linear_atom_electric_field_grey_cinfv() {
+    env_logger::init();
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.

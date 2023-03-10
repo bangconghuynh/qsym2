@@ -546,7 +546,14 @@ where
         let ccsyms = (0..self.class_number())
             .map(|i| {
                 self.get_cc_symbol_of_index(i)
-                    .expect("Unable to obtain all class symbols.")
+                    .unwrap_or_else(|| {
+                        let rep = self
+                            .get_cc_transversal(i)
+                            .unwrap_or_else(||
+                                panic!("Unable to obtain a representative for conjugacy class `{i}`.")
+                            );
+                        panic!("Class symbol for conjugacy class `{i}` with representative element `{rep:?}` cannot be found.")
+                    })
                     .clone()
             })
             .collect::<Vec<_>>();
