@@ -537,18 +537,8 @@ impl SymmetryOperation {
         }
 
         if self.is_su2_class_1() {
-            // println!(
-            //     "Calc Q for {self}: {abs_angle} {} => {}, {}",
-            //     c_self.calc_pole().coords,
-            //     -scalar_part,
-            //     -vector_part
-            // );
             (-scalar_part, -vector_part)
         } else {
-            // println!(
-            //     "Calc Q for {self}: {abs_angle} => {}, {}",
-            //     scalar_part, vector_part
-            // );
             (scalar_part, vector_part)
         }
     }
@@ -841,9 +831,9 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A flag indicating if the spatial part of the symmetry operation is proper.
     fn is_proper(&self) -> bool {
-        self.generating_element.is_o3_proper(true)
-            || self.generating_element.is_o3_proper(false)
-            || (self.power.rem_euclid(2) == 0)
+        let tr = self.generating_element.contains_time_reversal();
+        self.generating_element.is_o3_proper(tr)
+            || self.power.rem_euclid(2) == 0
     }
 
     fn is_spatial_identity(&self) -> bool {
