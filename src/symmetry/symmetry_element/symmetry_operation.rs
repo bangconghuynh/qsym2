@@ -16,7 +16,9 @@ use crate::aux::geometry::{
 use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
-use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SymmetryElementKind, INV};
+use crate::symmetry::symmetry_element::{
+    SymmetryElement, SymmetryElementKind, INV, SO3, SU2_0, SU2_1,
+};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
 type F = fraction::GenericFraction<u32>;
@@ -317,14 +319,14 @@ impl SymmetryOperation {
                 -1.0 - thresh <= scalar_part && scalar_part <= 1.0 + thresh,
                 "The scalar part of the quaternion must be in the interval [-1, +1]."
             );
-            let (axis, order, power, normal) = if approx::relative_eq!(
+            let (axis, order, power, su2_grp) = if approx::relative_eq!(
                 scalar_part,
                 1.0,
                 epsilon = thresh,
                 max_relative = thresh
             ) {
                 // Zero-degree rotation, i.e. identity or inversion, class 0
-                (Vector3::new(0.0, 0.0, 1.0), 1u32, 1u32, true)
+                (Vector3::new(0.0, 0.0, 1.0), 1u32, 1u32, SU2_0)
             } else if approx::relative_eq!(
                 scalar_part,
                 -1.0,
@@ -332,7 +334,7 @@ impl SymmetryOperation {
                 max_relative = thresh
             ) {
                 // 360-degree rotation, i.e. identity or inversion, class 1
-                (Vector3::new(0.0, 0.0, 1.0), 1u32, 1u32, false)
+                (Vector3::new(0.0, 0.0, 1.0), 1u32, 1u32, SU2_1)
             } else if approx::relative_eq!(
                 scalar_part,
                 0.0,
@@ -347,7 +349,11 @@ impl SymmetryOperation {
                     positive_axis,
                     2u32,
                     1u32,
-                    geometry::check_positive_pole(&vector_part, thresh),
+                    if geometry::check_positive_pole(&vector_part, thresh) {
+                        SU2_0
+                    } else {
+                        SU2_1
+                    },
                 )
             } else {
                 // scalar_part != 0, 1, or -1
@@ -370,11 +376,11 @@ impl SymmetryOperation {
                 // .unwrap_or_else(|| {
                 //     panic!("No proper fraction could be found for angle `{spatial_positive_normalised_angle}`.")
                 // });
-                let (standardised_scalar_part, standardised_vector_part, normal) =
+                let (standardised_scalar_part, standardised_vector_part, su2_grp) =
                     if scalar_part > 0.0 {
-                        (scalar_part, vector_part, true)
+                        (scalar_part, vector_part, SU2_0)
                     } else {
-                        (-scalar_part, -vector_part, false)
+                        (-scalar_part, -vector_part, SU2_1)
                     };
                 let half_proper_angle = standardised_scalar_part.acos();
                 let proper_angle = 2.0 * half_proper_angle;
@@ -392,7 +398,7 @@ impl SymmetryOperation {
                     *proper_fraction.numer().unwrap_or_else(|| {
                         panic!("Unable to extract the numerator of `{proper_fraction}`.")
                     }),
-                    normal,
+                    su2_grp,
                 )
             };
             SymmetryElement::builder()
@@ -405,7 +411,7 @@ impl SymmetryOperation {
                 )
                 .raw_axis(axis)
                 .kind(kind)
-                .rotationgroup(RotationGroup::SU2(normal))
+                .rotationgroup(su2_grp)
                 .build()
                 .unwrap_or_else(|_|
                     panic!("Unable to construct a symmetry element of kind `{kind}` with the proper part in SU(2).")
@@ -456,7 +462,7 @@ impl SymmetryOperation {
                 )
                 .raw_axis(axis)
                 .kind(kind)
-                .rotationgroup(RotationGroup::SO3)
+                .rotationgroup(SO3)
                 .build()
                 .expect(
                     "Unable to construct a symmetry element without an associated spin rotation.",
@@ -518,21 +524,16 @@ impl SymmetryOperation {
             -self.generating_element.threshold <= scalar_part
                 && scalar_part <= 1.0 + self.generating_element.threshold
         );
-        debug_assert!(
-            if approx::relative_eq!(
-                scalar_part,
-                0.0,
-                max_relative = c_self.generating_element.threshold,
-                epsilon = c_self.generating_element.threshold
-            ) {
-                geometry::check_positive_pole(
-                    &vector_part,
-                    c_self.generating_element.threshold
-                )
-            } else {
-                true
-            }
-        );
+        debug_assert!(if approx::relative_eq!(
+            scalar_part,
+            0.0,
+            max_relative = c_self.generating_element.threshold,
+            epsilon = c_self.generating_element.threshold
+        ) {
+            geometry::check_positive_pole(&vector_part, c_self.generating_element.threshold)
+        } else {
+            true
+        });
 
         if self.is_su2_class_1() {
             (-scalar_part, -vector_part)
@@ -830,8 +831,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     /// A flag indicating if the spatial part of the symmetry operation is proper.
     fn is_proper(&self) -> bool {
         let tr = self.generating_element.contains_time_reversal();
-        self.generating_element.is_o3_proper(tr)
-            || self.power.rem_euclid(2) == 0
+        self.generating_element.is_o3_proper(tr) || self.power.rem_euclid(2) == 0
     }
 
     fn is_spatial_identity(&self) -> bool {
@@ -973,9 +973,8 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             //     self.convert_to_improper_kind(&INV)
             // };
             let c_self = match self.generating_element.kind {
-                SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
-                    self.clone()
-                }
+                SymmetryElementKind::Proper(_)
+                | SymmetryElementKind::ImproperInversionCentre(_) => self.clone(),
                 SymmetryElementKind::ImproperMirrorPlane(tr) => {
                     self.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(tr))
                 }

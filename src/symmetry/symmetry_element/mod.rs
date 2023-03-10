@@ -1303,3 +1303,6 @@ pub const INV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentr
 pub const TRROT: SymmetryElementKind = SymmetryElementKind::Proper(true);
 pub const TRSIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane(true);
 pub const TRINV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre(true);
+pub const SO3: RotationGroup = RotationGroup::SO3;
+pub const SU2_0: RotationGroup = RotationGroup::SU2(true);
+pub const SU2_1: RotationGroup = RotationGroup::SU2(false);
