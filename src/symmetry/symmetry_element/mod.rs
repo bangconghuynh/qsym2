@@ -430,6 +430,14 @@ impl SymmetryElement {
         }
     }
 
+    pub fn proper_fraction(&self) -> Option<&F> {
+        self.proper_fraction.as_ref()
+    }
+
+    pub fn proper_angle(&self) -> Option<f64> {
+        self.proper_angle
+    }
+
     /// Checks if the symmetry element contains a time-reversal operator.
     ///
     /// # Returns

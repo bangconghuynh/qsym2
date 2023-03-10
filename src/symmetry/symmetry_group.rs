@@ -184,7 +184,29 @@ pub trait SymmetryGroupProperties:
                         let op = self.get_index(j).unwrap_or_else(|| {
                             panic!("Element with index {j} cannot be retrieved.")
                         });
-                        (op.power, op.generating_element.proper_power)
+                        // (op.power, op.generating_element.proper_power)
+                        (
+                            op.power < 0,
+                            op.power,
+                            op.generating_element
+                                .proper_fraction()
+                                .map(|frac| frac.is_sign_negative())
+                                .or_else(|| {
+                                    op.generating_element
+                                        .proper_power
+                                        .map(|pp| pp < 0)
+                                })
+                                .unwrap(),
+                            op.generating_element
+                                .proper_fraction()
+                                .map(|frac| *frac.numer().unwrap())
+                                .or_else(|| {
+                                    op.generating_element
+                                        .proper_power
+                                        .map(|pp| pp.unsigned_abs())
+                                })
+                                .unwrap(),
+                        )
                     })
                     .expect("Unable to obtain a representative element index.");
                 let rep_ele = self.get_index(rep_ele_index).unwrap_or_else(|| {

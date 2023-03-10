@@ -6420,12 +6420,19 @@ fn test_symmetry_operation_su2_noncollinear_composition() {
     assert_eq!(&c2z_isr * &c2y_isr, c2x_isr);
     assert_eq!(&c2z_isr * &c2z_isr, e_isr);
 
-    // -----------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------
     // D3*
     //
-    // Reference: Table 15-5.2, Altmann, S. L. Rotations, Quaternions, and Double Groups. (Dover
-    // Publications, Inc., 2005).
-    // -----------------------------------------------------------------------------------------
+    // We stick to the standard definition of the positive hemisphere here, instead of the modified
+    // one used for Table 15-5.2 in Altmann, S. L. Rotations, Quaternions, and Double Groups.
+    // (Dover Publications, Inc., 2005). The multiplications that we obtain will therefore be
+    // different from the reference results in the homotopy classes of some of the the resultant C2
+    // operations.
+    //
+    // The following tests are for development monitoring purposes. Should we manage to implement a
+    // way to determine positive hemispheres consistently in the future, these tests can be used to
+    // verify how the implementation changes the multiplication structure.
+    // --------------------------------------------------------------------------------------------
     let c3_nsr_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(3))
@@ -6530,54 +6537,75 @@ fn test_symmetry_operation_su2_noncollinear_composition() {
     assert_eq!(&e_nsr * &c22_isr, c22_isr);
     assert_eq!(&e_nsr * &c23_isr, c23_isr);
 
-    use crate::group::UnitaryRepresentedGroup;
-    use crate::group::class::ClassProperties;
-    use crate::chartab::chartab_group::{IrrepCharTabConstruction, CharacterProperties};
-    use crate::symmetry::symmetry_group::SymmetryGroupProperties;
-    use crate::symmetry::symmetry_symbols::{MullikenIrrepSymbol, SymmetryClassSymbol};
-    let mut group = UnitaryRepresentedGroup::<
-        SymmetryOperation,
-        MullikenIrrepSymbol,
-        SymmetryClassSymbol<SymmetryOperation>,
-    >::new(
-        "D3*",
-        vec![
-            e_nsr, c3p1_nsr, c3pm1_nsr, c21_nsr, c22_nsr, c23_nsr, e_isr, c3p1_isr, c3pm1_isr,
-            c21_isr, c22_isr, c23_isr,
-        ],
-    );
-    let symbols = group.class_symbols_from_symmetry();
-    group.set_class_symbols(&symbols);
-    group.construct_irrep_character_table();
-    group.canonicalise_character_table();
-    println!("{:?}", group.character_table());
+    // c3p1_nsr
+    assert_eq!(&c3p1_nsr * &e_nsr, c3p1_nsr);
+    assert_eq!(&c3p1_nsr * &c3p1_nsr, c3pm1_isr);
+    assert_eq!(&c3p1_nsr * &c3pm1_nsr, e_nsr);
+    assert_eq!(&c3p1_nsr * &c21_nsr, c23_nsr);
+    assert_eq!(&c3p1_nsr * &c22_nsr, c21_nsr);
+    assert_eq!(&c3p1_nsr * &c23_nsr, c22_isr);
+    assert_eq!(&c3p1_nsr * &e_isr, c3p1_isr);
+    assert_eq!(&c3p1_nsr * &c3p1_isr, c3pm1_nsr);
+    assert_eq!(&c3p1_nsr * &c3pm1_isr, e_isr);
+    assert_eq!(&c3p1_nsr * &c21_isr, c23_isr);
+    assert_eq!(&c3p1_nsr * &c22_isr, c21_isr);
+    assert_eq!(&c3p1_nsr * &c23_isr, c22_nsr);
 
-    // // c3p1_nsr
-    // println!("{}", &c3p1_nsr * &e_nsr);
-    // println!("{}", &c3p1_nsr * &c3p1_nsr);
-    // println!("{}", &c3p1_nsr * &c3pm1_nsr);
-    // println!("{}", &c3p1_nsr * &c21_nsr);
-    // println!("{}", &c3p1_nsr * &c22_nsr);
-    // println!("{}", &c3p1_nsr * &c23_nsr);
-    // println!("{}", &c3p1_nsr * &e_isr);
-    // println!("{}", &c3p1_nsr * &c3p1_isr);
-    // println!("{}", &c3p1_nsr * &c3pm1_isr);
-    // println!("{}", &c3p1_nsr * &c21_isr);
-    // println!("{}", &c3p1_nsr * &c22_isr);
-    // println!("{}", &c3p1_nsr * &c23_isr);
+    // c3pm1_nsr
+    assert_eq!(&c3pm1_nsr * &e_nsr, c3pm1_nsr);
+    assert_eq!(&c3pm1_nsr * &c3p1_nsr, e_nsr);
+    assert_eq!(&c3pm1_nsr * &c3pm1_nsr, c3p1_isr);
+    assert_eq!(&c3pm1_nsr * &c21_nsr, c22_nsr);
+    assert_eq!(&c3pm1_nsr * &c22_nsr, c23_isr);
+    assert_eq!(&c3pm1_nsr * &c23_nsr, c21_nsr);
+    assert_eq!(&c3pm1_nsr * &e_isr, c3pm1_isr);
+    assert_eq!(&c3pm1_nsr * &c3p1_isr, e_isr);
+    assert_eq!(&c3pm1_nsr * &c3pm1_isr, c3p1_nsr);
+    assert_eq!(&c3pm1_nsr * &c21_isr, c22_isr);
+    assert_eq!(&c3pm1_nsr * &c22_isr, c23_nsr);
+    assert_eq!(&c3pm1_nsr * &c23_isr, c21_isr);
 
-    // assert_eq!(&c3p1_nsr * &e_nsr, c3p1_nsr);
-    // assert_eq!(&c3p1_nsr * &c3p1_nsr, c3pm1_isr);
-    // assert_eq!(&c3p1_nsr * &c3pm1_nsr, e_nsr);
-    // assert_eq!(&c3p1_nsr * &c21_nsr, c23_isr);
-    // assert_eq!(&c3p1_nsr * &c22_nsr, c21_isr);
-    // assert_eq!(&c3p1_nsr * &c23_nsr, c22_isr);
-    // assert_eq!(&c3p1_nsr * &e_isr, c3p1_isr);
-    // assert_eq!(&c3p1_nsr * &c3p1_isr, c3pm1_nsr);
-    // assert_eq!(&c3p1_nsr * &c3pm1_isr, e_isr);
-    // assert_eq!(&c3p1_nsr * &c21_isr, c23_nsr);
-    // assert_eq!(&c3p1_nsr * &c22_isr, c21_nsr);
-    // assert_eq!(&c3p1_nsr * &c23_isr, c22_nsr);
+    // c21_nsr
+    assert_eq!(&c21_nsr * &e_nsr, c21_nsr);
+    assert_eq!(&c21_nsr * &c3p1_nsr, c22_nsr);
+    assert_eq!(&c21_nsr * &c3pm1_nsr, c23_nsr);
+    assert_eq!(&c21_nsr * &c21_nsr, e_isr);
+    assert_eq!(&c21_nsr * &c22_nsr, c3p1_isr);
+    assert_eq!(&c21_nsr * &c23_nsr, c3pm1_isr);
+    assert_eq!(&c21_nsr * &e_isr, c21_isr);
+    assert_eq!(&c21_nsr * &c3p1_isr, c22_isr);
+    assert_eq!(&c21_nsr * &c3pm1_isr, c23_isr);
+    assert_eq!(&c21_nsr * &c21_isr, e_nsr);
+    assert_eq!(&c21_nsr * &c22_isr, c3p1_nsr);
+    assert_eq!(&c21_nsr * &c23_isr, c3pm1_nsr);
+
+    // c22_nsr
+    assert_eq!(&c22_nsr * &e_nsr, c22_nsr);
+    assert_eq!(&c22_nsr * &c3p1_nsr, c23_isr);
+    assert_eq!(&c22_nsr * &c3pm1_nsr, c21_nsr);
+    assert_eq!(&c22_nsr * &c21_nsr, c3pm1_isr);
+    assert_eq!(&c22_nsr * &c22_nsr, e_isr);
+    assert_eq!(&c22_nsr * &c23_nsr, c3p1_nsr);
+    assert_eq!(&c22_nsr * &e_isr, c22_isr);
+    assert_eq!(&c22_nsr * &c3p1_isr, c23_nsr);
+    assert_eq!(&c22_nsr * &c3pm1_isr, c21_isr);
+    assert_eq!(&c22_nsr * &c21_isr, c3pm1_nsr);
+    assert_eq!(&c22_nsr * &c22_isr, e_nsr);
+    assert_eq!(&c22_nsr * &c23_isr, c3p1_isr);
+
+    // c23_nsr
+    assert_eq!(&c23_nsr * &e_nsr, c23_nsr);
+    assert_eq!(&c23_nsr * &c3p1_nsr, c21_nsr);
+    assert_eq!(&c23_nsr * &c3pm1_nsr, c22_isr);
+    assert_eq!(&c23_nsr * &c21_nsr, c3p1_isr);
+    assert_eq!(&c23_nsr * &c22_nsr, c3pm1_nsr);
+    assert_eq!(&c23_nsr * &c23_nsr, e_isr);
+    assert_eq!(&c23_nsr * &e_isr, c23_isr);
+    assert_eq!(&c23_nsr * &c3p1_isr, c21_isr);
+    assert_eq!(&c23_nsr * &c3pm1_isr, c22_nsr);
+    assert_eq!(&c23_nsr * &c21_isr, c3p1_nsr);
+    assert_eq!(&c23_nsr * &c22_isr, c3pm1_isr);
+    assert_eq!(&c23_nsr * &c23_isr, e_nsr);
 }
 
 #[test]
