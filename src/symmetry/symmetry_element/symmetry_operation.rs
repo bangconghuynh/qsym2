@@ -218,7 +218,7 @@ pub struct SymmetryOperation {
 
 impl SymmetryOperationBuilder {
     fn calc_total_proper_angle(&self) -> f64 {
-        geometry::normalise_rotation_angle(
+        let (total_proper_angle, _) = geometry::normalise_rotation_angle(
             self.generating_element
                 .as_ref()
                 .expect("Generating element has not been set.")
@@ -229,7 +229,8 @@ impl SymmetryOperationBuilder {
                 .as_ref()
                 .expect("Generating element has not been set.")
                 .threshold,
-        )
+        );
+        total_proper_angle
     }
 
     fn calc_total_proper_fraction(&self) -> Option<F> {
@@ -241,15 +242,29 @@ impl SymmetryOperationBuilder {
         {
             Some(frac) => {
                 let pow = self.power.expect("Power has not been set.");
-                let mut normalised_frac = frac * F::from(pow);
-                let frac_1_2 = F::new(1u32, 2u32);
-                while normalised_frac > frac_1_2 {
-                    normalised_frac -= F::one();
-                }
-                while normalised_frac <= -frac_1_2 {
-                    normalised_frac += F::one();
-                }
-                Some(normalised_frac)
+                let (total_proper_fraction, _) =
+                    geometry::normalise_rotation_fraction(frac * F::from(pow));
+                Some(total_proper_fraction)
+                // let frac_1_2 = F::new(1u32, 2u32);
+                // if total_proper_fraction > frac_1_2 {
+                //     let integer_part = total_proper_fraction.trunc();
+                //     let x = if total_proper_fraction.fract() <= frac_1_2 {
+                //         integer_part
+                //     } else {
+                //         integer_part + F::one()
+                //     };
+                //     Some(total_proper_fraction - x)
+                // } else if total_proper_fraction <= -frac_1_2 {
+                //     let integer_part = (-total_proper_fraction).trunc();
+                //     let x = if (-total_proper_fraction).fract() < frac_1_2 {
+                //         integer_part
+                //     } else {
+                //         integer_part + F::one()
+                //     };
+                //     Some(total_proper_fraction + x)
+                // } else {
+                //     Some(total_proper_fraction)
+                // }
             }
             None => None,
         }
@@ -312,9 +327,7 @@ impl SymmetryOperation {
             SymmetryElementKind::ImproperInversionCentre(tr)
         };
         let element = if su2 {
-            log::debug!(
-                "Constructing a symmetry element of kind `{kind}` with the proper part in SU(3)..."
-            );
+            // SU(2)
             assert!(
                 -1.0 - thresh <= scalar_part && scalar_part <= 1.0 + thresh,
                 "The scalar part of the quaternion must be in the interval [-1, +1]."
@@ -357,25 +370,6 @@ impl SymmetryOperation {
                 )
             } else {
                 // scalar_part != 0, 1, or -1
-                // scalar_part = cos(ϕ/2) = λ
-                // If scalar_part > 0, ϕ/2 = argcos(|λ|)
-                // If scalar_part < 0, ϕ/2 = argcos(|λ|) + π
-                // Once ϕ has been found, the vector_part can be used to work out the axis.
-                // let half_spatial_angle = scalar_part.abs().acos();
-                // let spatial_positive_normalised_angle = 2.0 * half_spatial_angle;
-                // let spatial_axis = if scalar_part > 0.0 {
-                //     vector_part / half_spatial_angle.sin()
-                // } else {
-                //     vector_part / (half_spatial_angle + std::f64::consts::PI).sin()
-                // };
-                // let spatial_proper_fraction = geometry::get_proper_fraction(
-                //     spatial_positive_normalised_angle,
-                //     thresh,
-                //     max_trial_power,
-                // )
-                // .unwrap_or_else(|| {
-                //     panic!("No proper fraction could be found for angle `{spatial_positive_normalised_angle}`.")
-                // });
                 let (standardised_scalar_part, standardised_vector_part, su2_grp) =
                     if scalar_part > 0.0 {
                         (scalar_part, vector_part, SU2_0)
@@ -417,9 +411,7 @@ impl SymmetryOperation {
                     panic!("Unable to construct a symmetry element of kind `{kind}` with the proper part in SU(2).")
                 )
         } else {
-            log::debug!(
-                "Constructing a symmetry element of kind `{kind}` with the proper part in SO(3)..."
-            );
+            // SO(3)
             assert!(
                 -thresh <= scalar_part && scalar_part <= 1.0 + thresh,
                 "The scalar part of the quaternion must be in the interval [0, +1] when only SO(3) rotations are considered."
@@ -431,7 +423,7 @@ impl SymmetryOperation {
                 max_relative = thresh
             ) {
                 // Zero-degree rotation, i.e. identity or inversion
-                (Vector3::new(0.0, 0.0, 1.0), 1u32, 1u32)
+                (Vector3::new(0.0, 0.0, 1.0), 1u32, 1i32)
             } else {
                 let half_proper_angle = scalar_part.acos(); // acos returns values in [0, π]
                 let proper_angle = 2.0 * half_proper_angle;
@@ -441,25 +433,30 @@ impl SymmetryOperation {
                         .unwrap_or_else(|| {
                             panic!("No proper fraction could be found for angle `{proper_angle}`.")
                         });
+                let proper_power = if proper_fraction.is_sign_positive() {
+                    i32::try_from(*proper_fraction.numer().unwrap_or_else(|| {
+                        panic!("Unable to extract the numerator of `{proper_fraction}`.")
+                    }))
+                    .expect("Unable to convert the numerator of the proper fraction to `i32`.")
+                } else {
+                    -i32::try_from(*proper_fraction.numer().unwrap_or_else(|| {
+                        panic!("Unable to extract the numerator of `{proper_fraction}`.")
+                    }))
+                    .expect("Unable to convert the numerator of the proper fraction to `i32`.")
+                };
                 (
                     axis,
                     *proper_fraction.denom().unwrap_or_else(|| {
                         panic!("Unable to extract the denominator of `{proper_fraction}`.")
                     }),
-                    *proper_fraction.numer().unwrap_or_else(|| {
-                        panic!("Unable to extract the numerator of `{proper_fraction}`.")
-                    }),
+                    proper_power,
                 )
             };
 
             SymmetryElement::builder()
                 .threshold(thresh)
                 .proper_order(ElementOrder::Int(order))
-                .proper_power(
-                    power
-                        .try_into()
-                        .expect("Unable to convert the proper power to `i32`."),
-                )
+                .proper_power(power)
                 .raw_axis(axis)
                 .kind(kind)
                 .rotationgroup(SO3)
@@ -676,7 +673,7 @@ impl SymmetryOperation {
         let c_element = self
             .generating_element
             .convert_to_improper_kind(improper_kind, true);
-        assert_eq!(
+        debug_assert_eq!(
             self.generating_element.is_su2_class_1(),
             c_element.is_su2_class_1()
         );
@@ -1015,30 +1012,31 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     // Publications, Inc., New York, 2005) for further information.
                     let pow = c_self.power;
                     let total_proper_fraction = frac * F::from(pow);
-                    let frac_1_2 = F::new(1u32, 2u32);
-                    let x = if total_proper_fraction > frac_1_2 {
-                        let integer_part = total_proper_fraction
-                                .trunc()
-                                .to_u32()
-                                .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
-                        if total_proper_fraction.fract() <= frac_1_2 {
-                            integer_part
-                        } else {
-                            integer_part + 1
-                        }
-                    } else if total_proper_fraction <= -frac_1_2 {
-                        let integer_part = (-total_proper_fraction)
-                                .trunc()
-                                .to_u32()
-                                .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
-                        if (-total_proper_fraction).fract() < frac_1_2 {
-                            integer_part
-                        } else {
-                            integer_part + 1
-                        }
-                    } else {
-                        0
-                    };
+                    let (_, x) = geometry::normalise_rotation_fraction(total_proper_fraction);
+                    // let frac_1_2 = F::new(1u32, 2u32);
+                    // let x = if total_proper_fraction > frac_1_2 {
+                    //     let integer_part = total_proper_fraction
+                    //             .trunc()
+                    //             .to_u32()
+                    //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
+                    //     if total_proper_fraction.fract() <= frac_1_2 {
+                    //         integer_part
+                    //     } else {
+                    //         integer_part + 1
+                    //     }
+                    // } else if total_proper_fraction <= -frac_1_2 {
+                    //     let integer_part = (-total_proper_fraction)
+                    //             .trunc()
+                    //             .to_u32()
+                    //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
+                    //     if (-total_proper_fraction).fract() < frac_1_2 {
+                    //         integer_part
+                    //     } else {
+                    //         integer_part + 1
+                    //     }
+                    // } else {
+                    //     0
+                    // };
                     x.rem_euclid(2) == 1
                 })
                 .unwrap_or_else(|| {
@@ -1048,31 +1046,32 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                         .expect("Proper angle of generating element not found.")
                         * f64::from(c_self.power);
                     let thresh = c_self.generating_element.threshold;
-                    let total_proper_fraction = total_proper_angle / 2.0 * std::f64::consts::PI;
-                    let frac_1_2 = 1.0 / 2.0;
-                    let x = if total_proper_fraction > frac_1_2 + thresh {
-                        let integer_part = total_proper_fraction
-                                .trunc()
-                                .to_u32()
-                                .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
-                        if total_proper_fraction.fract() <= frac_1_2 + thresh {
-                            integer_part
-                        } else {
-                            integer_part + 1
-                        }
-                    } else if total_proper_fraction <= -frac_1_2 + thresh {
-                        let integer_part = (-total_proper_fraction)
-                                .trunc()
-                                .to_u32()
-                                .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
-                        if (-total_proper_fraction).fract() < frac_1_2 - thresh {
-                            integer_part
-                        } else {
-                            integer_part + 1
-                        }
-                    } else {
-                        0
-                    };
+                    let (_, x) = geometry::normalise_rotation_angle(total_proper_angle, thresh);
+                    // let total_proper_fraction = total_proper_angle / 2.0 * std::f64::consts::PI;
+                    // let frac_1_2 = 1.0 / 2.0;
+                    // let x = if total_proper_fraction > frac_1_2 + thresh {
+                    //     let integer_part = total_proper_fraction
+                    //             .trunc()
+                    //             .to_u32()
+                    //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
+                    //     if total_proper_fraction.fract() <= frac_1_2 + thresh {
+                    //         integer_part
+                    //     } else {
+                    //         integer_part + 1
+                    //     }
+                    // } else if total_proper_fraction <= -frac_1_2 + thresh {
+                    //     let integer_part = (-total_proper_fraction)
+                    //             .trunc()
+                    //             .to_u32()
+                    //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
+                    //     if (-total_proper_fraction).fract() < frac_1_2 - thresh {
+                    //         integer_part
+                    //     } else {
+                    //         integer_part + 1
+                    //     }
+                    // } else {
+                    //     0
+                    // };
                     x.rem_euclid(2) == 1
                 })
             };

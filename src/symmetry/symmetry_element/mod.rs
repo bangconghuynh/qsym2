@@ -8,7 +8,7 @@ use fraction;
 use log;
 use nalgebra::Vector3;
 use num::integer::gcd;
-use num_traits::{One, ToPrimitive, Zero};
+use num_traits::{ToPrimitive, Zero};
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
@@ -98,19 +98,13 @@ pub enum RotationGroup {
 impl RotationGroup {
     /// Indicates if the rotation is in $`\mathsf{SU}(2)`$.
     fn is_su2(&self) -> bool {
-        match self {
-            RotationGroup::SU2(_) => true,
-            RotationGroup::SO3 => false,
-        }
+        matches!(self, RotationGroup::SU2(_))
     }
 
     /// Indicates if the rotation is in $`\mathsf{SU}(2)`$ and connected to the
     /// identity via a homotopy path of class 1.
     fn is_su2_class_1(&self) -> bool {
-        match self {
-            RotationGroup::SU2(false) => true,
-            RotationGroup::SU2(true) | RotationGroup::SO3 => false,
-        }
+        matches!(self, RotationGroup::SU2(false))
     }
 }
 
@@ -289,7 +283,16 @@ impl SymmetryElementBuilder {
             .as_ref()
             .expect("Proper order has not been set.");
         self.proper_power = match proper_order {
-            ElementOrder::Int(_) => Some(Some(prop_pow)),
+            ElementOrder::Int(io) => {
+                let io_i32 =
+                    i32::try_from(*io).expect("Unable to convert the integer order to `i32`.");
+                let residual = prop_pow.rem_euclid(io_i32);
+                if residual > io_i32.div_euclid(2) {
+                    Some(Some(residual - io_i32))
+                } else {
+                    Some(Some(residual))
+                }
+            }
             ElementOrder::Inf => None,
         };
         self
@@ -307,10 +310,13 @@ impl SymmetryElementBuilder {
             ElementOrder::Int(_) => panic!(
                 "Arbitrary proper rotation angles can only be set for infinite-order elements."
             ),
-            ElementOrder::Inf => Some(Some(geometry::normalise_rotation_angle(
-                ang,
-                self.threshold.expect("Threshold value has not been set."),
-            ))),
+            ElementOrder::Inf => {
+                let (normalised_rotation_angle, _) = geometry::normalise_rotation_angle(
+                    ang,
+                    self.threshold.expect("Threshold value has not been set."),
+                );
+                Some(Some(normalised_rotation_angle))
+            },
         };
         self
     }
@@ -345,26 +351,27 @@ impl SymmetryElementBuilder {
                 } else {
                     F::new_neg(pp.unsigned_abs(), *io)
                 };
-                let frac_1_2 = F::new(1u32, 2u32);
-                if total_proper_fraction > frac_1_2 {
-                    let integer_part = total_proper_fraction.trunc();
-                    let x = if total_proper_fraction.fract() <= frac_1_2 {
-                        integer_part
-                    } else {
-                        integer_part + F::one()
-                    };
-                    Some(total_proper_fraction - x)
-                } else if total_proper_fraction <= -frac_1_2 {
-                    let integer_part = (-total_proper_fraction).trunc();
-                    let x = if (-total_proper_fraction).fract() < frac_1_2 {
-                        integer_part
-                    } else {
-                        integer_part + F::one()
-                    };
-                    Some(total_proper_fraction + x)
-                } else {
-                    Some(total_proper_fraction)
-                }
+                Some(total_proper_fraction)
+                // let frac_1_2 = F::new(1u32, 2u32);
+                // if total_proper_fraction > frac_1_2 {
+                //     let integer_part = total_proper_fraction.trunc();
+                //     let x = if total_proper_fraction.fract() <= frac_1_2 {
+                //         integer_part
+                //     } else {
+                //         integer_part + F::one()
+                //     };
+                //     Some(total_proper_fraction - x)
+                // } else if total_proper_fraction <= -frac_1_2 {
+                //     let integer_part = (-total_proper_fraction).trunc();
+                //     let x = if (-total_proper_fraction).fract() < frac_1_2 {
+                //         integer_part
+                //     } else {
+                //         integer_part + F::one()
+                //     };
+                //     Some(total_proper_fraction + x)
+                // } else {
+                //     Some(total_proper_fraction)
+                // }
             }
             ElementOrder::Inf => None,
         }
@@ -386,28 +393,28 @@ impl SymmetryElementBuilder {
                 } else {
                     F::new_neg(pp.unsigned_abs(), *io)
                 };
-                let frac_1_2 = F::new(1u32, 2u32);
-                let proper_fraction = if total_proper_fraction > frac_1_2 {
-                    let integer_part = total_proper_fraction.trunc();
-                    let x = if total_proper_fraction.fract() <= frac_1_2 {
-                        integer_part
-                    } else {
-                        integer_part + F::one()
-                    };
-                    total_proper_fraction - x
-                } else if total_proper_fraction <= -frac_1_2 {
-                    let integer_part = (-total_proper_fraction).trunc();
-                    let x = if (-total_proper_fraction).fract() < frac_1_2 {
-                        integer_part
-                    } else {
-                        integer_part + F::one()
-                    };
-                    total_proper_fraction + x
-                } else {
-                    total_proper_fraction
-                };
+                // let frac_1_2 = F::new(1u32, 2u32);
+                // let proper_fraction = if total_proper_fraction > frac_1_2 {
+                //     let integer_part = total_proper_fraction.trunc();
+                //     let x = if total_proper_fraction.fract() <= frac_1_2 {
+                //         integer_part
+                //     } else {
+                //         integer_part + F::one()
+                //     };
+                //     total_proper_fraction - x
+                // } else if total_proper_fraction <= -frac_1_2 {
+                //     let integer_part = (-total_proper_fraction).trunc();
+                //     let x = if (-total_proper_fraction).fract() < frac_1_2 {
+                //         integer_part
+                //     } else {
+                //         integer_part + F::one()
+                //     };
+                //     total_proper_fraction + x
+                // } else {
+                //     total_proper_fraction
+                // };
                 Some(
-                    proper_fraction
+                    total_proper_fraction
                         .to_f64()
                         .expect("Unable to convert the proper fraction to `f64`.")
                         * 2.0
@@ -537,7 +544,21 @@ impl SymmetryElement {
     /// specified time-reversal attribute.
     #[must_use]
     pub fn is_o3_identity(&self, tr: bool) -> bool {
-        self.kind == SymmetryElementKind::Proper(tr) && self.proper_fraction == Some(F::zero())
+        self.kind == SymmetryElementKind::Proper(tr)
+            && self
+                .proper_fraction
+                .map(|frac| frac.is_zero())
+                .or_else(|| {
+                    self.proper_angle.map(|proper_angle| {
+                        approx::relative_eq!(
+                            proper_angle,
+                            0.0,
+                            epsilon = self.threshold,
+                            max_relative = self.threshold
+                        )
+                    })
+                })
+                .unwrap_or(false)
     }
 
     /// Checks if the symmetry element is spatially an inversion centre and has the specified
@@ -553,10 +574,43 @@ impl SymmetryElement {
     /// time-reversal attribute.
     #[must_use]
     pub fn is_o3_inversion_centre(&self, tr: bool) -> bool {
-        (self.kind == SymmetryElementKind::ImproperMirrorPlane(tr)
-            && self.proper_fraction == Some(F::new(1u32, 2u32)))
-            || (self.kind == SymmetryElementKind::ImproperInversionCentre(tr)
-                && self.proper_fraction == Some(F::zero()))
+        match self.kind {
+            SymmetryElementKind::ImproperMirrorPlane(sig_tr) => {
+                sig_tr == tr
+                    && self
+                        .proper_fraction
+                        .map(|frac| frac == F::new(1u32, 2u32))
+                        .or_else(|| {
+                            self.proper_angle.map(|proper_angle| {
+                                approx::relative_eq!(
+                                    proper_angle,
+                                    std::f64::consts::PI,
+                                    epsilon = self.threshold,
+                                    max_relative = self.threshold
+                                )
+                            })
+                        })
+                        .unwrap_or(false)
+            }
+            SymmetryElementKind::ImproperInversionCentre(inv_tr) => {
+                inv_tr == tr
+                    && self
+                        .proper_fraction
+                        .map(|frac| frac.is_zero())
+                        .or_else(|| {
+                            self.proper_angle.map(|proper_angle| {
+                                approx::relative_eq!(
+                                    proper_angle,
+                                    0.0,
+                                    epsilon = self.threshold,
+                                    max_relative = self.threshold
+                                )
+                            })
+                        })
+                        .unwrap_or(false)
+            }
+            _ => false,
+        }
     }
 
     /// Checks if the symmetry element is spatially a binary rotation axis and has the specified
@@ -573,7 +627,20 @@ impl SymmetryElement {
     #[must_use]
     pub fn is_o3_binary_rotation_axis(&self, tr: bool) -> bool {
         self.kind == SymmetryElementKind::Proper(tr)
-            && self.proper_fraction == Some(F::new(1u32, 2u32))
+            && self
+                .proper_fraction
+                .map(|frac| frac == F::new(1u32, 2u32))
+                .or_else(|| {
+                    self.proper_angle.map(|proper_angle| {
+                        approx::relative_eq!(
+                            proper_angle,
+                            std::f64::consts::PI,
+                            epsilon = self.threshold,
+                            max_relative = self.threshold
+                        )
+                    })
+                })
+                .unwrap_or(false)
     }
 
     /// Checks if the symmetry element is spatially a mirror plane and has the specified
@@ -589,10 +656,43 @@ impl SymmetryElement {
     /// specified time-reversal attribute.
     #[must_use]
     pub fn is_o3_mirror_plane(&self, tr: bool) -> bool {
-        (self.kind == SymmetryElementKind::ImproperMirrorPlane(tr)
-            && self.proper_fraction == Some(F::zero()))
-            || (self.kind == SymmetryElementKind::ImproperInversionCentre(tr)
-                && self.proper_fraction == Some(F::new(1u32, 2u32)))
+        match self.kind {
+            SymmetryElementKind::ImproperMirrorPlane(sig_tr) => {
+                sig_tr == tr
+                    && self
+                        .proper_fraction
+                        .map(|frac| frac.is_zero())
+                        .or_else(|| {
+                            self.proper_angle.map(|proper_angle| {
+                                approx::relative_eq!(
+                                    proper_angle,
+                                    0.0,
+                                    epsilon = self.threshold,
+                                    max_relative = self.threshold
+                                )
+                            })
+                        })
+                        .unwrap_or(false)
+            }
+            SymmetryElementKind::ImproperInversionCentre(inv_tr) => {
+                inv_tr == tr
+                    && self
+                        .proper_fraction
+                        .map(|frac| frac == F::new(1u32, 2u32))
+                        .or_else(|| {
+                            self.proper_angle.map(|proper_angle| {
+                                approx::relative_eq!(
+                                    proper_angle,
+                                    std::f64::consts::PI,
+                                    epsilon = self.threshold,
+                                    max_relative = self.threshold
+                                )
+                            })
+                        })
+                        .unwrap_or(false)
+            }
+            _ => false,
+        }
     }
 
     /// Returns the full symbol for this symmetry element, which does not
@@ -866,11 +966,12 @@ impl SymmetryElement {
         improper_kind: &SymmetryElementKind,
         preserves_power: bool,
     ) -> Self {
+        let tr = self.contains_time_reversal();
         assert!(
-            !(self.is_o3_proper(false) || self.is_o3_proper(true)),
+            !self.is_o3_proper(tr),
             "Only improper elements can be converted."
         );
-        let improper_kind = improper_kind.to_tr(self.contains_time_reversal());
+        let improper_kind = improper_kind.to_tr(tr);
         assert!(
             !matches!(improper_kind, SymmetryElementKind::Proper(_)),
             "`improper_kind` must be one of the improper variants."

@@ -232,8 +232,6 @@ pub trait SymmetryGroupProperties:
                     SymmetryClassSymbol::new("1||θ||", Some(rep_ele.clone()))
                         .expect("Unable to construct a class symbol from `1||θ||`.")
                 } else {
-                    let rep_proper_order = rep_ele.generating_element.proper_order;
-                    let rep_proper_power = rep_ele.generating_element.proper_power;
                     let rep_proper_fraction = rep_ele.generating_element.proper_fraction().cloned();
                     let rep_power = rep_ele.power;
                     let rep_sub = rep_ele.generating_element.additional_subscript.clone();
@@ -245,7 +243,6 @@ pub trait SymmetryGroupProperties:
                     };
                     let dash = if let Some(v) = class_orders.get_mut(&(
                         rep_proper_fraction,
-                        // rep_proper_power,
                         rep_power,
                         rep_sub.clone(),
                     )) {
@@ -253,7 +250,6 @@ pub trait SymmetryGroupProperties:
                         "'".repeat(*v)
                     } else {
                         class_orders
-                            // .insert((rep_proper_order, rep_proper_power, rep_power, rep_sub), 0);
                             .insert((rep_proper_fraction, rep_power, rep_sub), 0);
                         String::new()
                     };

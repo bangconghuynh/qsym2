@@ -4435,6 +4435,7 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_dnd() {
 
 #[test]
 fn test_ur_group_symmetric_arbitrary_staggered_sandwich_grey_dnd() {
+    env_logger::init();
     let thresh = 1e-7;
     for n in 3..=20 {
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);

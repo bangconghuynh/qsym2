@@ -17,7 +17,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    RotationGroup, SymmetryElement, SymmetryElementKind, ROT, SIG, TRROT, TRSIG,
+    SymmetryElement, SymmetryElementKind, ROT, SIG, TRROT, TRSIG, SO3
 };
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
@@ -323,7 +323,7 @@ impl Symmetry {
             .proper_power(1)
             .raw_axis(Vector3::new(0.0, 0.0, 1.0))
             .kind(SymmetryElementKind::Proper(false))
-            .rotationgroup(RotationGroup::SO3)
+            .rotationgroup(SO3)
             .build()
             .expect("Unable to construct the identity element.");
         self.add_proper(ORDER_1, c1.raw_axis, false, presym.dist_threshold, false);
@@ -450,7 +450,7 @@ impl Symmetry {
             .proper_power(1)
             .raw_axis(positive_axis)
             .kind(SymmetryElementKind::Proper(tr))
-            .rotationgroup(RotationGroup::SO3)
+            .rotationgroup(SO3)
             .generator(generator)
             .build()
             .expect("Unable to construct a proper element.");
@@ -571,7 +571,7 @@ impl Symmetry {
                 .proper_power(1)
                 .raw_axis(positive_axis)
                 .kind(kind.to_tr(tr))
-                .rotationgroup(RotationGroup::SO3)
+                .rotationgroup(SO3)
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
@@ -587,7 +587,7 @@ impl Symmetry {
                 .proper_power(1)
                 .raw_axis(positive_axis)
                 .kind(kind.to_tr(tr))
-                .rotationgroup(RotationGroup::SO3)
+                .rotationgroup(SO3)
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")

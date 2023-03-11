@@ -4,7 +4,7 @@ use approx;
 use fraction;
 use itertools::{self, Itertools};
 use nalgebra::{ClosedMul, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vector3};
-use num_traits::ToPrimitive;
+use num_traits::{One, ToPrimitive};
 
 use crate::aux::atom::Atom;
 use crate::aux::misc::HashableFloat;
@@ -48,15 +48,88 @@ pub const IMINV: ImproperRotationKind = ImproperRotationKind::InversionCentre;
 ///
 /// The normalised rotation angle.
 #[must_use]
-pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> f64 {
-    let mut norm_rot_ang = rot_ang;
-    while norm_rot_ang > std::f64::consts::PI + thresh {
-        norm_rot_ang -= 2.0 * std::f64::consts::PI;
+pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> (f64, u32) {
+    // let mut norm_rot_ang = rot_ang;
+    // while norm_rot_ang > std::f64::consts::PI + thresh {
+    //     norm_rot_ang -= 2.0 * std::f64::consts::PI;
+    // }
+    // while norm_rot_ang <= -std::f64::consts::PI + thresh {
+    //     norm_rot_ang += 2.0 * std::f64::consts::PI;
+    // }
+    // norm_rot_ang
+    let frac_1_2 = 1.0 / 2.0;
+    let fraction = rot_ang / (2.0 * std::f64::consts::PI);
+    if fraction > frac_1_2 + thresh {
+        let integer_part = fraction.trunc().to_u32().unwrap_or_else(|| {
+            panic!("Unable to convert the integer part of `{fraction}` to `u32`.")
+        });
+        let x = if fraction.fract() <= frac_1_2 + thresh {
+            integer_part
+        } else {
+            integer_part + 1
+        };
+        (rot_ang - 2.0 * std::f64::consts::PI * f64::from(x), x)
+    } else if fraction <= -frac_1_2 + thresh {
+        let integer_part = (-fraction).trunc().to_u32().unwrap_or_else(|| {
+            panic!("Unable to convert the integer part of `{fraction}` to `u32`.")
+        });
+        let x = if (-fraction).fract() < frac_1_2 - thresh {
+            integer_part
+        } else {
+            integer_part + 1
+        };
+        (rot_ang + 2.0 * std::f64::consts::PI * f64::from(x), x)
+    } else {
+        (rot_ang, 0)
     }
-    while norm_rot_ang <= -std::f64::consts::PI + thresh {
-        norm_rot_ang += 2.0 * std::f64::consts::PI;
+}
+
+pub fn normalise_rotation_fraction(fraction: F32) -> (F32, u32) {
+    // Consider a fraction f.
+    //
+    // If f > 1/2, we seek a positive integer x such that
+    //  -1/2 < f - x <= 1/2.
+    // It turns out that x ∈ [f - 1/2, f + 1/2).
+    //
+    // If f <= -1/2, we seek a positive integer x such that
+    //  -1/2 < f + x <= 1/2.
+    // It turns out that x ∈ (-f - 1/2, -f + 1/2].
+    //
+    // If the proper rotation corresponding to f is reached from the identity
+    // via a continuous path in the parametric ball, x gives the number of times
+    // this path goes through a podal-antipodal jump, and thus whether x is even
+    // corresponds to whether this homotopy path is of class 0.
+    //
+    // See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover
+    // Publications, Inc., New York, 2005) for further information.
+    let frac_1_2 = F32::new(1u32, 2u32);
+    if fraction > frac_1_2 {
+        let integer_part = fraction.trunc();
+        let x = if fraction.fract() <= frac_1_2 {
+            integer_part
+        } else {
+            integer_part + F32::one()
+        };
+        (
+            fraction - x,
+            x.to_u32()
+                .expect("Unable to convert the 2π-turn number to `u32`."),
+        )
+    } else if fraction <= -frac_1_2 {
+        let integer_part = (-fraction).trunc();
+        let x = if (-fraction).fract() < frac_1_2 {
+            integer_part
+        } else {
+            integer_part + F32::one()
+        };
+        (
+            fraction + x,
+            x.to_u32()
+                .expect("Unable to convert the 2π-turn number to `u32`."),
+        )
+    } else {
+        (fraction, 0)
     }
-    norm_rot_ang
 }
 
 /// Returns the rotation angle adjusted to be in the interval $(-2\pi, +2\pi]$.
@@ -174,13 +247,13 @@ pub fn check_positive_pole(axis: &Vector3<f64>, thresh: f64) -> bool {
 /// Panics if the deduced order $`n`$ is negative.
 #[must_use]
 pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> Option<F32> {
-    let normalised_angle = normalise_rotation_angle(angle, thresh);
-    let positive_normalised_angle = if normalised_angle >= 0.0 {
-        normalised_angle
-    } else {
-        2.0 * std::f64::consts::PI + normalised_angle
-    };
-    let rational_order = (2.0 * std::f64::consts::PI) / positive_normalised_angle;
+    let (normalised_angle, _) = normalise_rotation_angle(angle, thresh);
+    // let positive_normalised_angle = if normalised_angle >= 0.0 {
+    //     normalised_angle
+    // } else {
+    //     2.0 * std::f64::consts::PI + normalised_angle
+    // };
+    let rational_order = (2.0 * std::f64::consts::PI) / normalised_angle.abs();
     let mut power: u32 = 1;
     while approx::relative_ne!(
         rational_order * (f64::from(power)),
@@ -202,10 +275,40 @@ pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> Opt
         assert!(orderf64 <= f64::from(u32::MAX));
         #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         let order = orderf64 as u32;
-        Some(F32::new(power, order))
+        if normalised_angle > 0.0 {
+            Some(F32::new(power, order))
+        } else {
+            Some(F32::new_neg(power, order))
+        }
     } else {
         None
     }
+    // let rational_order = (2.0 * std::f64::consts::PI) / positive_normalised_angle;
+    // let mut power: u32 = 1;
+    // while approx::relative_ne!(
+    //     rational_order * (f64::from(power)),
+    //     (rational_order * (f64::from(power))).round(),
+    //     max_relative = thresh,
+    //     epsilon = thresh
+    // ) && power < max_trial_power
+    // {
+    //     power += 1;
+    // }
+    // if approx::relative_eq!(
+    //     rational_order * (f64::from(power)),
+    //     (rational_order * (f64::from(power))).round(),
+    //     max_relative = thresh,
+    //     epsilon = thresh
+    // ) {
+    //     let orderf64 = (rational_order * (f64::from(power))).round();
+    //     assert!(orderf64.is_sign_positive());
+    //     assert!(orderf64 <= f64::from(u32::MAX));
+    //     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+    //     let order = orderf64 as u32;
+    //     Some(F32::new(power, order))
+    // } else {
+    //     None
+    // }
 }
 
 /// Computes the outer product between two three-dimensional vectors.
