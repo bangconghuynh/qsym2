@@ -1223,7 +1223,7 @@ pub(super) fn deduce_sigma_symbol(
         0.0,
         epsilon = thresh,
         max_relative = thresh
-    ) && principal_element.proper_order != ORDER_1
+    ) && *principal_element.raw_proper_order() != ORDER_1
     {
         // Vertical plane containing principal axis
         if force_d {
@@ -1236,7 +1236,7 @@ pub(super) fn deduce_sigma_symbol(
         0.0,
         epsilon = thresh,
         max_relative = thresh
-    ) && principal_element.proper_order != ORDER_1
+    ) && *principal_element.raw_proper_order() != ORDER_1
     {
         // Horizontal plane perpendicular to principal axis
         Some("h".to_owned())

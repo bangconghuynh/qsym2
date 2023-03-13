@@ -186,7 +186,7 @@ impl Symmetry {
                             .chain(
                                 c_eles
                                     .iter()
-                                    .filter(|ele| ele.proper_order != ORDER_1)
+                                    .filter(|ele| *ele.raw_proper_order() != ORDER_1)
                                     .cloned(),
                             )
                             .collect()
@@ -218,14 +218,14 @@ impl Symmetry {
                         );
                         // iCn
                         let icn_check = presym.check_improper(
-                            &c_element.proper_order,
+                            c_element.raw_proper_order(),
                             &c_element.raw_axis,
                             &INV,
                             tr,
                         );
                         assert!(icn_check.is_some());
                         self.add_improper(
-                            c_element.proper_order,
+                            *c_element.raw_proper_order(),
                             c_element.raw_axis,
                             false,
                             INV.clone(),
@@ -330,14 +330,14 @@ impl Symmetry {
                                     .chain(
                                         c_eles
                                             .iter()
-                                            .filter(|ele| ele.proper_order != ORDER_1)
+                                            .filter(|ele| *ele.raw_proper_order() != ORDER_1)
                                             .cloned(),
                                     )
                                     .collect()
                             });
                         for c_element in non_id_c_elements {
                             let double_order = ElementOrder::new(
-                                2.0 * c_element.proper_order.to_float(),
+                                2.0 * c_element.raw_proper_order().to_float(),
                                 f64::EPSILON,
                             );
                             if let Some(improper_kind) =
@@ -384,7 +384,7 @@ impl Symmetry {
                                     .chain(
                                         c_eles
                                             .iter()
-                                            .filter(|ele| ele.proper_order != ORDER_1)
+                                            .filter(|ele| *ele.raw_proper_order() != ORDER_1)
                                             .cloned(),
                                     )
                                     .collect()
@@ -398,14 +398,14 @@ impl Symmetry {
                                 true, // sigma_v forced to become sigma_d
                             );
                             let icn_check = presym.check_improper(
-                                &c_element.proper_order,
+                                c_element.raw_proper_order(),
                                 &c_element.raw_axis,
                                 &INV,
                                 tr,
                             );
                             assert!(icn_check.is_some());
                             self.add_improper(
-                                c_element.proper_order,
+                                *c_element.raw_proper_order(),
                                 c_element.raw_axis,
                                 false,
                                 INV.clone(),
@@ -623,7 +623,7 @@ impl Symmetry {
                                 .chain(
                                     c_eles
                                         .iter()
-                                        .filter(|ele| ele.proper_order != ORDER_1)
+                                        .filter(|ele| *ele.raw_proper_order() != ORDER_1)
                                         .cloned(),
                                 )
                                 .collect()
@@ -654,14 +654,14 @@ impl Symmetry {
                             );
                             // iCn
                             let icn_check = presym.check_improper(
-                                &c_element.proper_order,
+                                &c_element.raw_proper_order(),
                                 &c_element.raw_axis,
                                 &INV,
                                 tr,
                             );
                             assert!(icn_check.is_some());
                             self.add_improper(
-                                c_element.proper_order,
+                                *c_element.raw_proper_order(),
                                 c_element.raw_axis,
                                 false,
                                 INV.clone(),
@@ -780,15 +780,15 @@ fn _add_sigmahcn(
             // Cn is orthogonal to σh. The product Cn * σh is Sn.
             log::debug!("Cn is orthogonal to σh.");
             let sn_check =
-                presym.check_improper(&c_element.proper_order, &c_element.raw_axis, &SIG, tr);
+                presym.check_improper(c_element.raw_proper_order(), &c_element.raw_axis, &SIG, tr);
             assert!(sn_check.is_some());
-            let sigma_symbol = if c_element.proper_order == ORDER_1 {
+            let sigma_symbol = if *c_element.raw_proper_order() == ORDER_1 {
                 Some("h".to_owned())
             } else {
                 None
             };
             sym.add_improper(
-                c_element.proper_order,
+                *c_element.raw_proper_order(),
                 c_element.raw_axis,
                 false,
                 SIG.clone(),
@@ -807,7 +807,7 @@ fn _add_sigmahcn(
                 epsilon = presym.dist_threshold,
                 max_relative = presym.dist_threshold
             );
-            assert_eq!(c_element.proper_order, ORDER_2);
+            assert_eq!(*c_element.raw_proper_order(), ORDER_2);
             log::debug!("Cn is C2 and must therefore be contained in σh.");
             let s_axis = c_element.raw_axis.cross(&sigma_h.raw_axis).normalize();
             let sigmav_check = presym.check_improper(&ORDER_1, &s_axis, &SIG, tr);

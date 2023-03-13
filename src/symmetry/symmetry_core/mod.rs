@@ -576,7 +576,7 @@ impl Symmetry {
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane(tr), false);
-            if sym_ele.proper_order == ElementOrder::Int(1) {
+            if *sym_ele.raw_proper_order() == ElementOrder::Int(1) {
                 sym_ele.additional_subscript = sigma_str;
             }
             sym_ele
@@ -593,7 +593,7 @@ impl Symmetry {
                 .expect("Unable to construct an improper symmetry element.")
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane(tr), false)
         };
-        let order = element.proper_order;
+        let order = *element.raw_proper_order();
         let simplified_symbol = element.get_simplified_symbol();
         let full_symbol = element.get_full_symbol();
         let is_o3_mirror_plane = element.is_o3_mirror_plane(tr);

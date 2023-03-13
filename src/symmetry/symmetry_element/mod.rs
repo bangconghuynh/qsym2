@@ -65,11 +65,11 @@ impl SymmetryElementKind {
     ///
     /// # Arguments
     ///
-    /// * `tr` - A flag indicating whether time reversal is included or not.
+    /// * `tr` - A boolean indicating whether time reversal is included or not.
     ///
     /// # Returns
     ///
-    /// A copy of the current kind with the desired time-reversal flag.
+    /// A copy of the current kind with the desired time-reversal boolean.
     #[must_use]
     pub fn to_tr(&self, tr: bool) -> Self {
         match self {
@@ -192,38 +192,41 @@ impl fmt::Display for SymmetryElementKind {
 /// \hat{g} = \hat{\gamma} \hat{C}_n^k,
 /// ```
 ///
-/// where $`n \in \mathbb{N}_{+}`$, $`k \in \mathbb{Z}/n\mathbb{Z} = \{1, \ldots, n\}`$,
-/// and $`\hat{\gamma}`$ is either the identity $`\hat{e}`$, the inversion operation
-/// $`\hat{i}`$, or a reflection operation $`\hat{\sigma}`$. With this definition,
-/// the three pieces of information required to specify a geometrical symmetry
-/// element are given as follows:
+/// where $`n \in \mathbb{N}_{+}`$, $`k \in \mathbb{Z}/n\mathbb{Z}`$ such that
+/// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$, and $`\hat{\gamma}`$ is either the
+/// identity $`\hat{e}`$, the inversion operation $`\hat{i}`$, or a reflection operation
+/// $`\hat{\sigma}`$. With this definition, the three pieces of information required to specify a
+/// geometrical symmetry element are given as follows:
 ///
 /// * the axis of rotation $`\hat{\mathbf{n}}`$ is given by the axis of $`\hat{C}_n^k`$,
-/// * the angle of rotation $`\phi = 2\pi k/n \in (0, \pi] \cup \lbrace2\pi\rbrace`$, and
+/// * the angle of rotation $`\phi = 2\pi k/n \in (-`pi, \pi], and
 /// * whether the element is proper or improper is given by $`\hat{\gamma}`$.
 ///
-/// This definition, however, also allows $`\hat{g}`$ to be interpreted as
-/// an element of $`O(3)`$, which means that $`\hat{g}`$ is also a symmetry
-/// operation, and a rather special one that can be used to generate other
-/// symmetry operations of the group. $`\hat{g}`$ thus serves as a bridge between
-/// molecular symmetry and abstract group theory.
+/// This definition also allows $`\hat{g}`$ to be interpreted as an element of either
+/// $`\mathsf{O}(3)`$ or $`\mathsf{SU}'(2)`$, which means that $`\hat{g}`$ is also a symmetry
+/// operation in the corresponding group, and a rather special one that can be used to generate
+/// other symmetry operations of the group. $`\hat{g}`$ thus serves as a bridge between molecular
+/// symmetry and abstract group theory.
 ///
-/// There is one small caveat: for infinite-order elements, $`n`$ and $`k`$ can
-/// no longer be used to give the angle of rotation. There must thus be a
-/// mechanism to allow for infinite-order elements to be interpreted as an
-/// arbitrary finite-order one. An explicit specification of the angle of rotation
-/// seems to be the best way to do this.
+/// There is one small caveat: for infinite-order elements, $`n`$ and $`k`$ can no longer be used
+/// to give the angle of rotation. There must thus be a mechanism to allow for infinite-order
+/// elements to be interpreted as an arbitrary finite-order one. An explicit specification of the
+/// angle of rotation $`\phi`$ seems to be the best way to do this. In other words, the angle of
+/// rotation of each element is specified by either a tuple of integers $`(k, n)`$ or a
+/// floating-point number $`\phi`$.
 #[derive(Builder, Clone)]
 pub struct SymmetryElement {
-    /// The rotational order $`n`$ of the proper symmetry element.
-    pub proper_order: ElementOrder,
+    /// The rotational order $`n`$ of the proper rotation part of the symmetry element.
+    proper_order: ElementOrder,
 
-    /// The power $`k \in \mathbb{Z}/n\mathbb{Z} = \{1, \ldots, n\}`$ of the proper
-    /// symmetry element. This is only defined if [`Self::proper_order`] is finite.
+    /// The power $`k \in \mathbb{Z}/n\mathbb{Z}`$ such that
+    /// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$ of the proper symmetry element. This
+    /// is only defined if [`Self::proper_order`] is finite.
     #[builder(setter(custom), default = "None")]
     pub proper_power: Option<i32>,
 
-    /// The normalised axis of the symmetry element.
+    /// The normalised axis of the symmetry element whose direction is as specified when the
+    /// element was constructed.
     #[builder(setter(custom))]
     pub raw_axis: Vector3<f64>,
 
@@ -231,7 +234,8 @@ pub struct SymmetryElement {
     #[builder(default = "SymmetryElementKind::Proper(false)")]
     pub kind: SymmetryElementKind,
 
-    /// The associated spin rotation of the symmetry element, if any.
+    /// The rotation group in which the proper rotation part of the symmetry element shall be
+    /// interpreted.
     pub rotationgroup: RotationGroup,
 
     /// A flag indicating whether the symmetry element is a generator of the
@@ -316,7 +320,7 @@ impl SymmetryElementBuilder {
                     self.threshold.expect("Threshold value has not been set."),
                 );
                 Some(Some(normalised_rotation_angle))
-            },
+            }
         };
         self
     }
@@ -459,6 +463,10 @@ impl SymmetryElement {
     #[must_use]
     pub fn builder() -> SymmetryElementBuilder {
         SymmetryElementBuilder::default()
+    }
+
+    pub fn raw_proper_order(&self) -> &ElementOrder {
+        &self.proper_order
     }
 
     pub fn positive_axis(&self) -> Vector3<f64> {
