@@ -217,13 +217,14 @@ impl fmt::Display for SymmetryElementKind {
 #[derive(Builder, Clone)]
 pub struct SymmetryElement {
     /// The rotational order $`n`$ of the proper rotation part of the symmetry element.
-    proper_order: ElementOrder,
+    #[builder(setter(name = "proper_order"))]
+    raw_proper_order: ElementOrder,
 
     /// The power $`k \in \mathbb{Z}/n\mathbb{Z}`$ such that
     /// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$ of the proper symmetry element. This
     /// is only defined if [`Self::proper_order`] is finite.
-    #[builder(setter(custom), default = "None")]
-    proper_power: Option<i32>,
+    #[builder(setter(custom, name = "proper_power"), default = "None")]
+    raw_proper_power: Option<i32>,
 
     /// The normalised axis of the symmetry element whose direction is as specified when the
     /// element was constructed.
@@ -282,11 +283,11 @@ pub struct SymmetryElement {
 
 impl SymmetryElementBuilder {
     pub fn proper_power(&mut self, prop_pow: i32) -> &mut Self {
-        let proper_order = self
-            .proper_order
+        let raw_proper_order = self
+            .raw_proper_order
             .as_ref()
             .expect("Proper order has not been set.");
-        self.proper_power = match proper_order {
+        self.raw_proper_power = match raw_proper_order {
             ElementOrder::Int(io) => {
                 let io_i32 =
                     i32::try_from(*io).expect("Unable to convert the integer order to `i32`.");
@@ -307,7 +308,7 @@ impl SymmetryElementBuilder {
     /// Panics when `self` is of finite order.
     pub fn proper_angle(&mut self, ang: f64) -> &mut Self {
         let proper_order = self
-            .proper_order
+            .raw_proper_order
             .as_ref()
             .expect("Proper order has not been set.");
         self.proper_angle = match proper_order {
@@ -326,11 +327,11 @@ impl SymmetryElementBuilder {
     }
 
     fn calc_proper_fraction(&self) -> Option<F> {
-        let proper_order = self
-            .proper_order
+        let raw_proper_order = self
+            .raw_proper_order
             .as_ref()
             .expect("Proper order has not been set.");
-        match proper_order {
+        match raw_proper_order {
             ElementOrder::Int(io) => {
                 // The generating element has a proper fraction, pp/n.
                 //
@@ -347,7 +348,7 @@ impl SymmetryElementBuilder {
                 // See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover
                 // Publications, Inc., New York, 2005) for further information.
                 let pp = self
-                    .proper_power
+                    .raw_proper_power
                     .expect("Proper power has not been set.")
                     .expect("No proper powers found.");
                 let total_proper_fraction = if pp >= 0 {
@@ -382,14 +383,14 @@ impl SymmetryElementBuilder {
     }
 
     fn calc_proper_angle(&self) -> Option<f64> {
-        let proper_order = self
-            .proper_order
+        let raw_proper_order = self
+            .raw_proper_order
             .as_ref()
             .expect("Proper order has not been set.");
-        match proper_order {
+        match raw_proper_order {
             ElementOrder::Int(io) => {
                 let pp = self
-                    .proper_power
+                    .raw_proper_power
                     .expect("Proper power has not been set.")
                     .expect("No proper powers found.");
                 let total_proper_fraction = if pp >= 0 {
@@ -468,13 +469,13 @@ impl SymmetryElement {
     /// Returns the raw order of the proper rotation. This might not be equal to the value of $`n`$
     /// if the fraction $`k/n`$ has been reduced.
     pub fn raw_proper_order(&self) -> &ElementOrder {
-        &self.proper_order
+        &self.raw_proper_order
     }
 
     /// Returns the raw power of the proper rotation. This might not be equal to the value of $`k`$
     /// if the fraction $`k/n`$ has been reduced.
     pub fn raw_proper_power(&self) -> Option<&i32> {
-        self.proper_power.as_ref()
+        self.raw_proper_power.as_ref()
     }
 
     /// Returns the axis of the proper rotation in the positive hemisphere.
@@ -750,7 +751,7 @@ impl SymmetryElement {
                 format!("{tr_sym}C")
             }
             SymmetryElementKind::ImproperMirrorPlane(_) => {
-                if self.proper_order != ElementOrder::Inf
+                if *self.raw_proper_order() != ElementOrder::Inf
                     && (*self
                         .proper_fraction
                         .expect("No proper fractions found for a finite-order element.")
@@ -768,7 +769,7 @@ impl SymmetryElement {
                 }
             }
             SymmetryElementKind::ImproperInversionCentre(_) => {
-                if self.proper_order != ElementOrder::Inf
+                if *self.raw_proper_order() != ElementOrder::Inf
                     && (*self
                         .proper_fraction
                         .expect("No proper fractions found for a finite-order element.")
@@ -816,13 +817,16 @@ impl SymmetryElement {
                 format!("{main_symbol}{proper_order}{proper_power}{su2_sym}")
             }
         } else {
-            assert_eq!(self.proper_order, ElementOrder::Inf);
+            assert_eq!(*self.raw_proper_order(), ElementOrder::Inf);
             let proper_angle = if let Some(proper_angle) = self.proper_angle {
                 format!("({:+.3})", proper_angle.abs())
             } else {
                 String::new()
             };
-            format!("{main_symbol}{}{proper_angle}{su2_sym}", self.proper_order)
+            format!(
+                "{main_symbol}{}{proper_angle}{su2_sym}",
+                self.raw_proper_order()
+            )
         }
     }
 
@@ -855,7 +859,7 @@ impl SymmetryElement {
                     (format!("{tr_sym}σ"), false)
                 } else if self.is_o3_inversion_centre(tr) {
                     (format!("{tr_sym}i"), false)
-                } else if self.proper_order == ElementOrder::Inf
+                } else if *self.raw_proper_order() == ElementOrder::Inf
                     || *self
                         .proper_fraction
                         .expect("No proper fractions found for a finite-order element.")
@@ -874,7 +878,7 @@ impl SymmetryElement {
                     (format!("{tr_sym}σ"), false)
                 } else if self.is_o3_inversion_centre(tr) {
                     (format!("{tr_sym}i"), false)
-                } else if self.proper_order == ElementOrder::Inf
+                } else if *self.raw_proper_order() == ElementOrder::Inf
                     || *self
                         .proper_fraction
                         .expect("No proper fractions found for a finite-order element.")
@@ -928,7 +932,7 @@ impl SymmetryElement {
                 self.additional_superscript, self.additional_subscript
             )
         } else {
-            assert_eq!(self.proper_order, ElementOrder::Inf);
+            assert_eq!(*self.raw_proper_order(), ElementOrder::Inf);
             let proper_angle = if let Some(proper_angle) = self.proper_angle {
                 format!("({:+.3})", proper_angle.abs())
             } else {
@@ -936,7 +940,9 @@ impl SymmetryElement {
             };
             format!(
                 "{main_symbol}{}{}{proper_angle}{su2_sym}{}",
-                self.additional_superscript, self.proper_order, self.additional_subscript
+                self.additional_superscript,
+                *self.raw_proper_order(),
+                self.additional_subscript
             )
         }
     }
@@ -1006,7 +1012,7 @@ impl SymmetryElement {
             return self.clone();
         }
 
-        let (dest_order, dest_proper_power) = match self.proper_order {
+        let (dest_order, dest_proper_power) = match *self.raw_proper_order() {
             ElementOrder::Int(_) => {
                 let proper_fraction = self
                     .proper_fraction
@@ -1259,7 +1265,7 @@ impl PartialEq for SymmetryElement {
             );
 
             // Same angle of rotation (irrespective of signs).
-            let similar_angles = match (self.proper_order, other.proper_order) {
+            let similar_angles = match (*self.raw_proper_order(), *other.raw_proper_order()) {
                 (ElementOrder::Inf, ElementOrder::Inf) => {
                     match (self.proper_angle, other.proper_angle) {
                         (Some(s_angle), Some(o_angle)) => {
@@ -1302,7 +1308,7 @@ impl PartialEq for SymmetryElement {
             );
 
             // Same angle of rotation (irrespective of signs).
-            let similar_angles = match (c_self.proper_order, c_other.proper_order) {
+            let similar_angles = match (*c_self.raw_proper_order(), *c_other.raw_proper_order()) {
                 (ElementOrder::Inf, ElementOrder::Inf) => {
                     match (c_self.proper_angle, c_other.proper_angle) {
                         (Some(s_angle), Some(o_angle)) => {
@@ -1372,7 +1378,7 @@ impl Hash for SymmetryElement {
                 .round_factor(self.threshold)
                 .integer_decode()
                 .hash(state);
-            if let ElementOrder::Inf = c_self.proper_order {
+            if let ElementOrder::Inf = *c_self.raw_proper_order() {
                 if let Some(angle) = c_self.proper_angle {
                     angle
                         .abs()
@@ -1403,7 +1409,7 @@ impl Hash for SymmetryElement {
                 .round_factor(self.threshold)
                 .integer_decode()
                 .hash(state);
-            if let ElementOrder::Inf = self.proper_order {
+            if let ElementOrder::Inf = *self.raw_proper_order() {
                 if let Some(angle) = self.proper_angle {
                     angle
                         .abs()

@@ -570,7 +570,7 @@ impl SymmetryOperation {
             // Time-reversal does not matter here.
             self.convert_to_improper_kind(&INV)
         };
-        match op.generating_element.proper_order {
+        match *op.generating_element.raw_proper_order() {
             ElementOrder::Int(_) => {
                 let frac_1_2 = F::new(1u32, 2u32);
                 let total_proper_fraction = op
@@ -833,7 +833,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
 
     fn is_spatial_identity(&self) -> bool {
         self.is_proper()
-            && match self.generating_element.proper_order {
+            && match *self.generating_element.raw_proper_order() {
                 ElementOrder::Int(_) => self
                     .total_proper_fraction
                     .expect("Total proper fraction not found for a finite-order operation.")
@@ -849,7 +849,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
 
     fn is_spatial_binary_rotation(&self) -> bool {
         self.is_proper()
-            && match self.generating_element.proper_order {
+            && match *self.generating_element.raw_proper_order() {
                 ElementOrder::Int(_) => {
                     self.total_proper_fraction
                         .expect("Total proper fraction not found for a finite-order operation.")
@@ -870,7 +870,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
         !self.is_proper()
             && match self.generating_element.kind {
                 SymmetryElementKind::ImproperMirrorPlane(_) => {
-                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                    if let ElementOrder::Int(_) = *self.generating_element.raw_proper_order() {
                         self.total_proper_fraction
                             .expect("Total proper fraction not found for a finite-order operation.")
                             == F::new(1u32, 2u32)
@@ -884,7 +884,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     }
                 }
                 SymmetryElementKind::ImproperInversionCentre(_) => {
-                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                    if let ElementOrder::Int(_) = *self.generating_element.raw_proper_order() {
                         self.total_proper_fraction
                             .expect("Total proper fraction not found for a finite-order operation.")
                             .is_zero()
@@ -905,7 +905,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
         !self.is_proper()
             && match self.generating_element.kind {
                 SymmetryElementKind::ImproperMirrorPlane(_) => {
-                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                    if let ElementOrder::Int(_) = *self.generating_element.raw_proper_order() {
                         self.total_proper_fraction
                             .expect("Total proper fraction not found for a finite-order operation.")
                             .is_zero()
@@ -919,7 +919,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     }
                 }
                 SymmetryElementKind::ImproperInversionCentre(_) => {
-                    if let ElementOrder::Int(_) = self.generating_element.proper_order {
+                    if let ElementOrder::Int(_) = self.generating_element.raw_proper_order() {
                         self.total_proper_fraction
                             .expect("Total proper fraction not found for a finite-order operation.")
                             == F::new(1u32, 2u32)
@@ -989,91 +989,91 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                 false
             } else {
                 c_self
-                .generating_element
-                .proper_fraction
-                .map(|frac| {
-                    // The generating element has a proper fraction, k/n, which becomes kp/n when
-                    // raised to the proper power p.
-                    //
-                    // If kp/n > 1/2, we seek a positive integer x such that
-                    //  -1/2 < kp/n - x <= 1/2.
-                    // It turns out that x ∈ [kp/n - 1/2, kp/n + 1/2).
-                    //
-                    // If kp/n <= -1/2, we seek a positive integer x such that
-                    //  -1/2 < kp/n + x <= 1/2.
-                    // It turns out that x ∈ (-kp/n - 1/2, -kp/n + 1/2].
-                    //
-                    // If the proper rotation corresponding to kp/n is reached from the identity
-                    // via a continuous path in the parametric ball, x gives the number of times
-                    // this path goes through a podal-antipodal jump, and thus whether x is even
-                    // corresponds to whether this homotopy path is of class 0.
-                    //
-                    // See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover
-                    // Publications, Inc., New York, 2005) for further information.
-                    let pow = c_self.power;
-                    let total_proper_fraction = frac * F::from(pow);
-                    let (_, x) = geometry::normalise_rotation_fraction(total_proper_fraction);
-                    // let frac_1_2 = F::new(1u32, 2u32);
-                    // let x = if total_proper_fraction > frac_1_2 {
-                    //     let integer_part = total_proper_fraction
-                    //             .trunc()
-                    //             .to_u32()
-                    //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
-                    //     if total_proper_fraction.fract() <= frac_1_2 {
-                    //         integer_part
-                    //     } else {
-                    //         integer_part + 1
-                    //     }
-                    // } else if total_proper_fraction <= -frac_1_2 {
-                    //     let integer_part = (-total_proper_fraction)
-                    //             .trunc()
-                    //             .to_u32()
-                    //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
-                    //     if (-total_proper_fraction).fract() < frac_1_2 {
-                    //         integer_part
-                    //     } else {
-                    //         integer_part + 1
-                    //     }
-                    // } else {
-                    //     0
-                    // };
-                    x.rem_euclid(2) == 1
-                })
-                .unwrap_or_else(|| {
-                    let total_proper_angle = c_self
-                        .generating_element
-                        .proper_angle
-                        .expect("Proper angle of generating element not found.")
-                        * f64::from(c_self.power);
-                    let thresh = c_self.generating_element.threshold;
-                    let (_, x) = geometry::normalise_rotation_angle(total_proper_angle, thresh);
-                    // let total_proper_fraction = total_proper_angle / 2.0 * std::f64::consts::PI;
-                    // let frac_1_2 = 1.0 / 2.0;
-                    // let x = if total_proper_fraction > frac_1_2 + thresh {
-                    //     let integer_part = total_proper_fraction
-                    //             .trunc()
-                    //             .to_u32()
-                    //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
-                    //     if total_proper_fraction.fract() <= frac_1_2 + thresh {
-                    //         integer_part
-                    //     } else {
-                    //         integer_part + 1
-                    //     }
-                    // } else if total_proper_fraction <= -frac_1_2 + thresh {
-                    //     let integer_part = (-total_proper_fraction)
-                    //             .trunc()
-                    //             .to_u32()
-                    //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
-                    //     if (-total_proper_fraction).fract() < frac_1_2 - thresh {
-                    //         integer_part
-                    //     } else {
-                    //         integer_part + 1
-                    //     }
-                    // } else {
-                    //     0
-                    // };
-                    x.rem_euclid(2) == 1
-                })
+                    .generating_element
+                    .proper_fraction
+                    .map(|frac| {
+                        // The generating element has a proper fraction, k/n, which becomes kp/n when
+                        // raised to the proper power p.
+                        //
+                        // If kp/n > 1/2, we seek a positive integer x such that
+                        //  -1/2 < kp/n - x <= 1/2.
+                        // It turns out that x ∈ [kp/n - 1/2, kp/n + 1/2).
+                        //
+                        // If kp/n <= -1/2, we seek a positive integer x such that
+                        //  -1/2 < kp/n + x <= 1/2.
+                        // It turns out that x ∈ (-kp/n - 1/2, -kp/n + 1/2].
+                        //
+                        // If the proper rotation corresponding to kp/n is reached from the identity
+                        // via a continuous path in the parametric ball, x gives the number of times
+                        // this path goes through a podal-antipodal jump, and thus whether x is even
+                        // corresponds to whether this homotopy path is of class 0.
+                        //
+                        // See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover
+                        // Publications, Inc., New York, 2005) for further information.
+                        let pow = c_self.power;
+                        let total_proper_fraction = frac * F::from(pow);
+                        let (_, x) = geometry::normalise_rotation_fraction(total_proper_fraction);
+                        // let frac_1_2 = F::new(1u32, 2u32);
+                        // let x = if total_proper_fraction > frac_1_2 {
+                        //     let integer_part = total_proper_fraction
+                        //             .trunc()
+                        //             .to_u32()
+                        //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
+                        //     if total_proper_fraction.fract() <= frac_1_2 {
+                        //         integer_part
+                        //     } else {
+                        //         integer_part + 1
+                        //     }
+                        // } else if total_proper_fraction <= -frac_1_2 {
+                        //     let integer_part = (-total_proper_fraction)
+                        //             .trunc()
+                        //             .to_u32()
+                        //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
+                        //     if (-total_proper_fraction).fract() < frac_1_2 {
+                        //         integer_part
+                        //     } else {
+                        //         integer_part + 1
+                        //     }
+                        // } else {
+                        //     0
+                        // };
+                        x.rem_euclid(2) == 1
+                    })
+                    .unwrap_or_else(|| {
+                        let total_proper_angle = c_self
+                            .generating_element
+                            .proper_angle
+                            .expect("Proper angle of generating element not found.")
+                            * f64::from(c_self.power);
+                        let thresh = c_self.generating_element.threshold;
+                        let (_, x) = geometry::normalise_rotation_angle(total_proper_angle, thresh);
+                        // let total_proper_fraction = total_proper_angle / 2.0 * std::f64::consts::PI;
+                        // let frac_1_2 = 1.0 / 2.0;
+                        // let x = if total_proper_fraction > frac_1_2 + thresh {
+                        //     let integer_part = total_proper_fraction
+                        //             .trunc()
+                        //             .to_u32()
+                        //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
+                        //     if total_proper_fraction.fract() <= frac_1_2 + thresh {
+                        //         integer_part
+                        //     } else {
+                        //         integer_part + 1
+                        //     }
+                        // } else if total_proper_fraction <= -frac_1_2 + thresh {
+                        //     let integer_part = (-total_proper_fraction)
+                        //             .trunc()
+                        //             .to_u32()
+                        //             .unwrap_or_else(|| panic!("Unable to convert the integer part of `{total_proper_fraction}` to `u32`."));
+                        //     if (-total_proper_fraction).fract() < frac_1_2 - thresh {
+                        //         integer_part
+                        //     } else {
+                        //         integer_part + 1
+                        //     }
+                        // } else {
+                        //     0
+                        // };
+                        x.rem_euclid(2) == 1
+                    })
             };
             let intrinsic_inverse = c_self.generating_element.rotationgroup.is_su2_class_1()
                 && c_self.power.rem_euclid(2) == 1;
@@ -1106,8 +1106,8 @@ impl fmt::Display for SymmetryOperation {
 
 impl PartialEq for SymmetryOperation {
     fn eq(&self, other: &Self) -> bool {
-        if (self.generating_element.proper_order == ElementOrder::Inf)
-            != (other.generating_element.proper_order == ElementOrder::Inf)
+        if (*self.generating_element.raw_proper_order() == ElementOrder::Inf)
+            != (*other.generating_element.raw_proper_order() == ElementOrder::Inf)
         {
             // We disable comparisons between operations with infinite-order and
             // finite-order generating elements, because they cannot be made to

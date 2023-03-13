@@ -858,11 +858,11 @@ fn test_symmetry_element_finite_improper_conversion() {
         .build()
         .unwrap();
     let sd4 = s4.convert_to_improper_kind(&INV, false);
-    assert_eq!(sd4.proper_order, ElementOrder::Int(4));
+    assert_eq!(*sd4.raw_proper_order(), ElementOrder::Int(4));
     assert_eq!(format!("{}", &sd4), "Ṡ4(+0.577, +0.577, +0.577)");
 
     let sd4p = s4.convert_to_improper_kind(&INV, true);
-    assert_eq!(sd4p.proper_order, ElementOrder::Int(4));
+    assert_eq!(*sd4p.raw_proper_order(), ElementOrder::Int(4));
     assert_eq!(format!("{}", &sd4p), "Ṡ4(-0.577, -0.577, -0.577)");
     assert_eq!(sd4p.proper_fraction, Some(F::new_neg(1u32, 4u32)));
 
@@ -876,7 +876,7 @@ fn test_symmetry_element_finite_improper_conversion() {
         .build()
         .unwrap();
     let tsd4 = ts4.convert_to_improper_kind(&INV, false);
-    assert_eq!(tsd4.proper_order, ElementOrder::Int(4));
+    assert_eq!(*tsd4.raw_proper_order(), ElementOrder::Int(4));
     assert_eq!(format!("{}", &tsd4), "θ·Ṡ4(+0.577, +0.577, +0.577)");
 
     let sd5 = SymmetryElement::builder()
@@ -889,12 +889,12 @@ fn test_symmetry_element_finite_improper_conversion() {
         .build()
         .unwrap();
     let s10 = sd5.convert_to_improper_kind(&SIG, false);
-    assert_eq!(s10.proper_order, ElementOrder::Int(10));
+    assert_eq!(*s10.raw_proper_order(), ElementOrder::Int(10));
     assert_eq!(format!("{}", &s10), "S10(+0.408, +0.816, +0.408)");
     assert_eq!(s10.proper_fraction, Some(F::new(1u32, 10u32)));
 
     let s10p = sd5.convert_to_improper_kind(&SIG, true);
-    assert_eq!(s10p.proper_order, ElementOrder::Int(10));
+    assert_eq!(*s10p.raw_proper_order(), ElementOrder::Int(10));
     assert_eq!(format!("{}", &s10p), "σC10^3(-0.408, -0.816, -0.408)");
     assert_eq!(s10p.proper_fraction, Some(F::new_neg(3u32, 10u32)));
 
@@ -908,7 +908,7 @@ fn test_symmetry_element_finite_improper_conversion() {
         .build()
         .unwrap();
     let ts10 = tsd5.convert_to_improper_kind(&SIG, false);
-    assert_eq!(ts10.proper_order, ElementOrder::Int(10));
+    assert_eq!(*ts10.raw_proper_order(), ElementOrder::Int(10));
     assert_eq!(format!("{}", &ts10), "θ·S10(+0.408, +0.816, +0.408)");
 
     let sd7 = SymmetryElement::builder()
@@ -921,11 +921,11 @@ fn test_symmetry_element_finite_improper_conversion() {
         .build()
         .unwrap();
     let s14 = sd7.convert_to_improper_kind(&SIG, false);
-    assert_eq!(s14.proper_order, ElementOrder::Int(14));
+    assert_eq!(*s14.raw_proper_order(), ElementOrder::Int(14));
     assert_eq!(format!("{}", &s14), "S14(+0.577, +0.577, +0.577)");
 
     let s14p = sd7.convert_to_improper_kind(&SIG, true);
-    assert_eq!(s14p.proper_order, ElementOrder::Int(14));
+    assert_eq!(*s14p.raw_proper_order(), ElementOrder::Int(14));
     assert_eq!(format!("{}", &s14p), "σC14^5(-0.577, -0.577, -0.577)");
     assert_eq!(s14p.proper_fraction, Some(F::new_neg(5u32, 14u32)));
 
@@ -939,7 +939,7 @@ fn test_symmetry_element_finite_improper_conversion() {
         .build()
         .unwrap();
     let ts14 = tsd7.convert_to_improper_kind(&SIG, false);
-    assert_eq!(ts14.proper_order, ElementOrder::Int(14));
+    assert_eq!(*ts14.raw_proper_order(), ElementOrder::Int(14));
     assert_eq!(format!("{}", &ts14), "θ·S14(+0.577, +0.577, +0.577)");
 }
 
@@ -1179,7 +1179,7 @@ fn test_symmetry_element_finite_comparison() {
         .build()
         .unwrap();
     let sd6 = s3.convert_to_improper_kind(&INV, false);
-    assert_eq!(sd6.proper_order, ElementOrder::Int(6));
+    assert_eq!(*sd6.raw_proper_order(), ElementOrder::Int(6));
     assert_eq!(s3, sd6);
 
     let ts3 = SymmetryElement::builder()
@@ -1192,7 +1192,7 @@ fn test_symmetry_element_finite_comparison() {
         .build()
         .unwrap();
     let tsd6 = ts3.convert_to_improper_kind(&INV, false);
-    assert_eq!(tsd6.proper_order, ElementOrder::Int(6));
+    assert_eq!(*tsd6.raw_proper_order(), ElementOrder::Int(6));
     assert_eq!(ts3, tsd6);
 
     let s3p = SymmetryElement::builder()
