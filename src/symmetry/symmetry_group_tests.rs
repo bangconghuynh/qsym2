@@ -135,21 +135,21 @@ fn test_ur_group_element_sort() {
     sym.analyse(&presym, false);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
-        group
+        *group
             .elements()
             .get_index(2)
             .unwrap()
             .generating_element
-            .raw_axis,
+            .raw_axis(),
         Vector3::new(0.0, 1.0, 0.0)
     );
     approx::assert_relative_eq!(
-        group
+        *group
             .elements()
             .get_index(3)
             .unwrap()
             .generating_element
-            .raw_axis,
+            .raw_axis(),
         Vector3::new(1.0, 0.0, 0.0)
     );
 
@@ -166,58 +166,58 @@ fn test_ur_group_element_sort() {
     sym.analyse(&presym, false);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
-        group
+        *group
             .elements()
             .get_index(1)
             .unwrap()
             .generating_element
-            .raw_axis,
+            .raw_axis(),
         Vector3::new(0.0, 0.0, 1.0)
     );
     approx::assert_relative_eq!(
-        group
+        *group
             .elements()
             .get_index(2)
             .unwrap()
             .generating_element
-            .raw_axis,
+            .raw_axis(),
         Vector3::new(0.0, 1.0, 0.0)
     );
     approx::assert_relative_eq!(
-        group
+        *group
             .elements()
             .get_index(3)
             .unwrap()
             .generating_element
-            .raw_axis,
+            .raw_axis(),
         Vector3::new(1.0, 0.0, 0.0)
     );
     assert!(group.elements().get_index(4).unwrap().is_inversion());
     approx::assert_relative_eq!(
-        group
+        *group
             .elements()
             .get_index(5)
             .unwrap()
             .generating_element
-            .raw_axis,
+            .raw_axis(),
         Vector3::new(0.0, 0.0, 1.0)
     );
     approx::assert_relative_eq!(
-        group
+        *group
             .elements()
             .get_index(6)
             .unwrap()
             .generating_element
-            .raw_axis,
+            .raw_axis(),
         Vector3::new(0.0, 1.0, 0.0)
     );
     approx::assert_relative_eq!(
-        group
+        *group
             .elements()
             .get_index(7)
             .unwrap()
             .generating_element
-            .raw_axis,
+            .raw_axis(),
         Vector3::new(1.0, 0.0, 0.0)
     );
 }

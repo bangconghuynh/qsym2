@@ -229,7 +229,7 @@ pub struct SymmetryElement {
     /// The normalised axis of the symmetry element whose direction is as specified when the
     /// element was constructed.
     #[builder(setter(custom))]
-    pub raw_axis: Vector3<f64>,
+    raw_axis: Vector3<f64>,
 
     /// The spatial and time-reversal kind of the symmetry element.
     #[builder(default = "SymmetryElementKind::Proper(false)")]
@@ -476,6 +476,10 @@ impl SymmetryElement {
     /// if the fraction $`k/n`$ has been reduced.
     pub fn raw_proper_power(&self) -> Option<&i32> {
         self.raw_proper_power.as_ref()
+    }
+
+    pub fn raw_axis(&self) -> &Vector3<f64> {
+        &self.raw_axis
     }
 
     /// Returns the axis of the proper rotation in the positive hemisphere.

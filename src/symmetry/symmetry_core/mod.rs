@@ -17,7 +17,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    SymmetryElement, SymmetryElementKind, ROT, SIG, TRROT, TRSIG, SO3
+    SymmetryElement, SymmetryElementKind, ROT, SIG, SO3, TRROT, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
@@ -326,7 +326,7 @@ impl Symmetry {
             .rotationgroup(SO3)
             .build()
             .expect("Unable to construct the identity element.");
-        self.add_proper(ORDER_1, c1.raw_axis, false, presym.dist_threshold, false);
+        self.add_proper(ORDER_1, c1.raw_axis(), false, presym.dist_threshold, false);
 
         // Identify all symmetry elements and generators
         match &presym.rotational_symmetry {
@@ -374,7 +374,7 @@ impl Symmetry {
                     log::debug!("Time-reversed copies of all proper elements added.");
 
                     // Add the time-reversal element as a generator
-                    self.add_proper(ORDER_1, c1.raw_axis, true, presym.dist_threshold, true);
+                    self.add_proper(ORDER_1, c1.raw_axis(), true, presym.dist_threshold, true);
 
                     // Add time-reversed copies of improper elements, if any
                     if self.get_elements(&SIG).is_some() {
@@ -438,12 +438,12 @@ impl Symmetry {
     fn add_proper(
         &mut self,
         order: ElementOrder,
-        axis: Vector3<f64>,
+        axis: &Vector3<f64>,
         generator: bool,
         threshold: f64,
         tr: bool,
     ) -> bool {
-        let positive_axis = geometry::get_positive_pole(&axis, threshold).normalize();
+        let positive_axis = geometry::get_positive_pole(axis, threshold).normalize();
         let element = SymmetryElement::builder()
             .threshold(threshold)
             .proper_order(order)
@@ -555,14 +555,14 @@ impl Symmetry {
     fn add_improper(
         &mut self,
         order: ElementOrder,
-        axis: Vector3<f64>,
+        axis: &Vector3<f64>,
         generator: bool,
         kind: SymmetryElementKind,
         sigma: Option<String>,
         threshold: f64,
         tr: bool,
     ) -> bool {
-        let positive_axis = geometry::get_positive_pole(&axis, threshold).normalize();
+        let positive_axis = geometry::get_positive_pole(axis, threshold).normalize();
         let element = if let Some(sigma_str) = sigma {
             assert!(sigma_str == "d" || sigma_str == "v" || sigma_str == "h");
             let mut sym_ele = SymmetryElement::builder()
@@ -1116,7 +1116,7 @@ impl Symmetry {
                             .threshold(proper_generator.threshold)
                             .proper_order(ElementOrder::Int(finite_order))
                             .proper_power(1)
-                            .raw_axis(proper_generator.raw_axis)
+                            .raw_axis(proper_generator.raw_axis().clone())
                             .kind(proper_generator.kind.clone())
                             .rotationgroup(proper_generator.rotationgroup.clone())
                             .additional_superscript(proper_generator.additional_superscript.clone())
@@ -1197,7 +1197,7 @@ impl Symmetry {
                                 .threshold(tr_proper_generator.threshold)
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
-                                .raw_axis(tr_proper_generator.raw_axis)
+                                .raw_axis(tr_proper_generator.raw_axis().clone())
                                 .kind(tr_proper_generator.kind.clone())
                                 .rotationgroup(tr_proper_generator.rotationgroup.clone())
                                 .additional_superscript(
@@ -1280,7 +1280,7 @@ impl Symmetry {
                                 .threshold(improper_generator.threshold)
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
-                                .raw_axis(improper_generator.raw_axis)
+                                .raw_axis(improper_generator.raw_axis().clone())
                                 .kind(improper_generator.kind.clone())
                                 .rotationgroup(improper_generator.rotationgroup.clone())
                                 .additional_superscript(
@@ -1366,7 +1366,7 @@ impl Symmetry {
                                 .threshold(tr_improper_generator.threshold)
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
-                                .raw_axis(tr_improper_generator.raw_axis)
+                                .raw_axis(tr_improper_generator.raw_axis().clone())
                                 .kind(tr_improper_generator.kind.clone())
                                 .rotationgroup(tr_improper_generator.rotationgroup.clone())
                                 .additional_superscript(
@@ -1479,7 +1479,7 @@ impl Symmetry {
                             && op_k.generating_element.additional_subscript.is_empty()
                         {
                             if let Some(sigma_symbol) = deduce_sigma_symbol(
-                                &op_k.generating_element.raw_axis,
+                                &op_k.generating_element.raw_axis(),
                                 principal_element,
                                 op_k.generating_element.threshold,
                                 false,
@@ -1633,7 +1633,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                         ElementOrder::Int((*k_fac).try_into().unwrap_or_else(
                                             |_| panic!("Unable to convert {k_fac} to `u32`."),
                                         )),
-                                        sea_axes[2],
+                                        &sea_axes[2],
                                         false,
                                         presym.dist_threshold,
                                         proper_kind.contains_time_reversal(),
@@ -1644,7 +1644,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                         ElementOrder::Int((*k_fac).try_into().unwrap_or_else(
                                             |_| panic!("Unable to convert {k_fac} to `u32`."),
                                         )),
-                                        sea_axes[2],
+                                        &sea_axes[2],
                                         false,
                                         presym.dist_threshold,
                                         proper_kind.contains_time_reversal(),
@@ -1699,11 +1699,11 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                             {
                                 for proper_element in proper_elements {
                                     if let Some(proper_kind) =
-                                        presym.check_proper(order, &proper_element.raw_axis, tr)
+                                        presym.check_proper(order, &proper_element.raw_axis(), tr)
                                     {
                                         sym.add_proper(
                                             *order,
-                                            proper_element.raw_axis,
+                                            proper_element.raw_axis(),
                                             false,
                                             presym.dist_threshold,
                                             proper_kind.contains_time_reversal(),
@@ -1728,7 +1728,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                     if *k_fac == 2 {
                                         count_c2 += usize::from(sym.add_proper(
                                             k_fac_order,
-                                            sea_axes[0],
+                                            &sea_axes[0],
                                             false,
                                             presym.dist_threshold,
                                             proper_kind.contains_time_reversal(),
@@ -1736,7 +1736,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                     } else {
                                         sym.add_proper(
                                             k_fac_order,
-                                            sea_axes[0],
+                                            &sea_axes[0],
                                             false,
                                             presym.dist_threshold,
                                             proper_kind.contains_time_reversal(),
@@ -1768,7 +1768,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                 if *k_fac == 2 {
                                     count_c2 += usize::from(sym.add_proper(
                                         k_fac_order,
-                                        sea_axes[2],
+                                        &sea_axes[2],
                                         false,
                                         presym.dist_threshold,
                                         proper_kind.contains_time_reversal(),
@@ -1776,7 +1776,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                                 } else {
                                     sym.add_proper(
                                         k_fac_order,
-                                        sea_axes[2],
+                                        &sea_axes[2],
                                         false,
                                         presym.dist_threshold,
                                         proper_kind.contains_time_reversal(),
@@ -1791,7 +1791,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                             if let Some(proper_kind) = presym.check_proper(&ORDER_2, sea_axis, tr) {
                                 count_c2 += usize::from(sym.add_proper(
                                     ORDER_2,
-                                    *sea_axis,
+                                    sea_axis,
                                     false,
                                     presym.dist_threshold,
                                     proper_kind.contains_time_reversal(),
@@ -1815,7 +1815,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
             if let Some(proper_kind) = presym.check_proper(&ORDER_2, &atom_i_pos.coords, tr) {
                 count_c2 += usize::from(sym.add_proper(
                     ORDER_2,
-                    atom_i_pos.coords,
+                    &atom_i_pos.coords,
                     false,
                     presym.dist_threshold,
                     proper_kind.contains_time_reversal(),
@@ -1829,7 +1829,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                 count_c2 += usize::from(
                     sym.add_proper(
                         ORDER_2,
-                        midvec,
+                        &midvec,
                         false,
                         presym.dist_threshold,
                         c2_check
@@ -1843,7 +1843,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                 if let Some(proper_kind) = presym.check_proper(&ORDER_2, &e_vector, tr) {
                     count_c2 += usize::from(sym.add_proper(
                         ORDER_2,
-                        e_vector,
+                        &e_vector,
                         false,
                         presym.dist_threshold,
                         proper_kind.contains_time_reversal(),
@@ -1875,7 +1875,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                 if let Some(proper_kind) = presym.check_proper(&ORDER_2, &normal, tr) {
                     sym.add_proper(
                         ORDER_2,
-                        normal,
+                        &normal,
                         false,
                         presym.dist_threshold,
                         proper_kind.contains_time_reversal(),
