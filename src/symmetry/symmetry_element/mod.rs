@@ -223,7 +223,7 @@ pub struct SymmetryElement {
     /// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$ of the proper symmetry element. This
     /// is only defined if [`Self::proper_order`] is finite.
     #[builder(setter(custom), default = "None")]
-    pub proper_power: Option<i32>,
+    proper_power: Option<i32>,
 
     /// The normalised axis of the symmetry element whose direction is as specified when the
     /// element was constructed.
@@ -238,7 +238,7 @@ pub struct SymmetryElement {
     /// interpreted.
     pub rotationgroup: RotationGroup,
 
-    /// A flag indicating whether the symmetry element is a generator of the
+    /// A boolean indicating whether the symmetry element is a generator of the
     /// group to which it belongs.
     #[builder(default = "false")]
     pub generator: bool,
@@ -465,14 +465,25 @@ impl SymmetryElement {
         SymmetryElementBuilder::default()
     }
 
+    /// Returns the raw order of the proper rotation. This might not be equal to the value of $`n`$
+    /// if the fraction $`k/n`$ has been reduced.
     pub fn raw_proper_order(&self) -> &ElementOrder {
         &self.proper_order
     }
 
+    /// Returns the raw power of the proper rotation. This might not be equal to the value of $`k`$
+    /// if the fraction $`k/n`$ has been reduced.
+    pub fn raw_proper_power(&self) -> Option<&i32> {
+        self.proper_power.as_ref()
+    }
+
+    /// Returns the axis of the proper rotation in the positive hemisphere.
     pub fn positive_axis(&self) -> Vector3<f64> {
         geometry::get_positive_pole(&self.raw_axis, self.threshold)
     }
 
+    /// Returns the axis of the proper rotation multiplied by the sign of the rotation angle. If
+    /// the proper rotation is a binary rotation, then the positive axis is always returned.
     pub fn signed_axis(&self) -> Vector3<f64> {
         let tr = self.contains_time_reversal();
         if self.is_o3_binary_rotation_axis(tr) || self.is_o3_mirror_plane(tr) {
@@ -493,10 +504,16 @@ impl SymmetryElement {
         }
     }
 
+    /// Returns the proper fraction for this element, if any.
+    ///
+    /// The element lacks a proper fraction if it is infinite-order.
     pub fn proper_fraction(&self) -> Option<&F> {
         self.proper_fraction.as_ref()
     }
 
+    /// Returns the proper angle for this element, if any.
+    ///
+    /// The element lacks a proper angle if it is infinite-order and the rotation angle
     pub fn proper_angle(&self) -> Option<f64> {
         self.proper_angle
     }
@@ -505,7 +522,7 @@ impl SymmetryElement {
     ///
     /// # Returns
     ///
-    /// A flag indicating if the symmetry element contains a time-reversal operator.
+    /// A boolean indicating if the symmetry element contains a time-reversal operator.
     #[must_use]
     pub fn contains_time_reversal(&self) -> bool {
         self.kind.contains_time_reversal()
@@ -528,11 +545,11 @@ impl SymmetryElement {
     ///
     /// # Arguments
     ///
-    /// * `tr` - A flag indicating if time reversal is to be considered.
+    /// * `tr` - A boolean indicating if time reversal is to be considered.
     ///
     /// # Returns
     ///
-    /// A flag indicating if the symmetry element is proper and has the specified time-reversal
+    /// A boolean indicating if the symmetry element is proper and has the specified time-reversal
     /// attribute.
     #[must_use]
     pub fn is_o3_proper(&self, tr: bool) -> bool {
@@ -544,11 +561,11 @@ impl SymmetryElement {
     ///
     /// # Arguments
     ///
-    /// * `tr` - A flag indicating if time reversal is to be considered.
+    /// * `tr` - A boolean indicating if time reversal is to be considered.
     ///
     /// # Returns
     ///
-    /// A flag indicating if this symmetry element is spatially an identity element and has the
+    /// A boolean indicating if this symmetry element is spatially an identity element and has the
     /// specified time-reversal attribute.
     #[must_use]
     pub fn is_o3_identity(&self, tr: bool) -> bool {
@@ -574,11 +591,11 @@ impl SymmetryElement {
     ///
     /// # Arguments
     ///
-    /// * `tr` - A flag indicating if time reversal is to be considered.
+    /// * `tr` - A boolean indicating if time reversal is to be considered.
     ///
     /// # Returns
     ///
-    /// A flag indicating if this symmetry element is an inversion centre and has the specified
+    /// A boolean indicating if this symmetry element is an inversion centre and has the specified
     /// time-reversal attribute.
     #[must_use]
     pub fn is_o3_inversion_centre(&self, tr: bool) -> bool {
@@ -626,11 +643,11 @@ impl SymmetryElement {
     ///
     /// # Arguments
     ///
-    /// * `tr` - A flag indicating if time reversal is to be considered.
+    /// * `tr` - A boolean indicating if time reversal is to be considered.
     ///
     /// # Returns
     ///
-    /// A flag indicating if this symmetry element is spatially a binary rotation axis and has the
+    /// A boolean indicating if this symmetry element is spatially a binary rotation axis and has the
     /// specified time-reversal attribute.
     #[must_use]
     pub fn is_o3_binary_rotation_axis(&self, tr: bool) -> bool {
@@ -656,11 +673,11 @@ impl SymmetryElement {
     ///
     /// # Arguments
     ///
-    /// * `tr` - A flag indicating if time reversal is to be considered.
+    /// * `tr` - A boolean indicating if time reversal is to be considered.
     ///
     /// # Returns
     ///
-    /// A flag indicating if this symmetry element is spatially a mirror plane and has the
+    /// A boolean indicating if this symmetry element is spatially a mirror plane and has the
     /// specified time-reversal attribute.
     #[must_use]
     pub fn is_o3_mirror_plane(&self, tr: bool) -> bool {

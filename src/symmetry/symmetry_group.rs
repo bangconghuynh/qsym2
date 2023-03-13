@@ -203,8 +203,8 @@ pub trait SymmetryGroupProperties:
                                 .map(|frac| frac.is_sign_negative())
                                 .or_else(|| {
                                     op.generating_element
-                                        .proper_power
-                                        .map(|pp| pp < 0)
+                                        .raw_proper_power()
+                                        .map(|&pp| pp < 0)
                                 })
                                 .unwrap(),
                             op.generating_element
@@ -212,7 +212,7 @@ pub trait SymmetryGroupProperties:
                                 .map(|frac| *frac.numer().unwrap())
                                 .or_else(|| {
                                     op.generating_element
-                                        .proper_power
+                                        .raw_proper_power()
                                         .map(|pp| pp.unsigned_abs())
                                 })
                                 .unwrap(),
