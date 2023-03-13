@@ -220,14 +220,13 @@ pub struct SymmetryElement {
     #[builder(setter(name = "proper_order"))]
     raw_proper_order: ElementOrder,
 
-    /// The power $`k \in \mathbb{Z}/n\mathbb{Z}`$ such that
-    /// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$ of the proper symmetry element. This
-    /// is only defined if [`Self::proper_order`] is finite.
+    /// The power $`k \in \mathbb{Z}/n\mathbb{Z}`$ of the proper symmetry element such that
+    /// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$. This is only defined if [`Self::proper_order`]
+    /// is finite.
     #[builder(setter(custom, name = "proper_power"), default = "None")]
     raw_proper_power: Option<i32>,
 
-    /// The normalised axis of the symmetry element whose direction is as specified when the
-    /// element was constructed.
+    /// The normalised axis of the symmetry element whose direction is as specified at construction.
     #[builder(setter(custom))]
     raw_axis: Vector3<f64>,
 
@@ -239,8 +238,8 @@ pub struct SymmetryElement {
     /// interpreted.
     rotation_group: RotationGroup,
 
-    /// A boolean indicating whether the symmetry element is a generator of the
-    /// group to which it belongs.
+    /// A boolean indicating whether the symmetry element is a generator of the group to which it
+    /// belongs.
     #[builder(default = "false")]
     generator: bool,
 
@@ -248,35 +247,24 @@ pub struct SymmetryElement {
     #[builder(setter(custom))]
     threshold: f64,
 
-    /// An additional superscript for distinguishing the symmetry element.
+    /// An additional superscript for distinguishing symmetry elements.
     #[builder(default = "String::new()")]
     pub additional_superscript: String,
 
-    /// An additional subscript for distinguishing the symmetry element.
+    /// An additional subscript for distinguishing symmetry elements.
     #[builder(default = "String::new()")]
     pub additional_subscript: String,
 
-    /// The fraction $`k/n \in (0, 1]`$ of the proper rotation, represented exactly
+    /// The fraction $`k/n \in (-1/2, 1/2]`$ of the proper rotation, represented exactly
     /// for hashing and comparison purposes.
     ///
-    /// This is not defined for infinite-order elements.
-    ///
-    /// Note that the definitions of [`Self::proper_fraction`] and
-    /// [`Self::proper_angle`] differ, so that [`Self::proper_fraction`] can facilitate
-    /// positive-only comparisons, whereas [`Self::proper_angle`] gives the rotation
-    /// angle in the conventional range that puts the identity rotation at the centre
-    /// of the range.
+    /// This is not defined for infinite-order elements and cannot be set arbitrarily.
     #[builder(setter(skip), default = "self.calc_proper_fraction()")]
     proper_fraction: Option<F>,
 
-    /// The normalised proper angle corresponding to the proper rotation
-    /// $`\hat{C}_n^k`$.
+    /// The normalised proper angle $`\phi \in (-\pi, \pi]`$ corresponding to the proper rotation.
     ///
-    /// Note that the definitions of [`Self::proper_fraction`] and
-    /// [`Self::proper_angle`] differ, so that [`Self::proper_fraction`] can facilitate
-    /// positive-only comparisons, whereas [`Self::proper_angle`] gives the rotation
-    /// angle in the conventional range of $`(-\pi, +\pi]`$ that puts the identity rotation at
-    /// the centre of the range.
+    /// This can be set arbitrarily only for infinite-order elements.
     #[builder(setter(custom), default = "self.calc_proper_angle()")]
     proper_angle: Option<f64>,
 }
@@ -357,26 +345,6 @@ impl SymmetryElementBuilder {
                     F::new_neg(pp.unsigned_abs(), *io)
                 };
                 Some(total_proper_fraction)
-                // let frac_1_2 = F::new(1u32, 2u32);
-                // if total_proper_fraction > frac_1_2 {
-                //     let integer_part = total_proper_fraction.trunc();
-                //     let x = if total_proper_fraction.fract() <= frac_1_2 {
-                //         integer_part
-                //     } else {
-                //         integer_part + F::one()
-                //     };
-                //     Some(total_proper_fraction - x)
-                // } else if total_proper_fraction <= -frac_1_2 {
-                //     let integer_part = (-total_proper_fraction).trunc();
-                //     let x = if (-total_proper_fraction).fract() < frac_1_2 {
-                //         integer_part
-                //     } else {
-                //         integer_part + F::one()
-                //     };
-                //     Some(total_proper_fraction + x)
-                // } else {
-                //     Some(total_proper_fraction)
-                // }
             }
             ElementOrder::Inf => None,
         }
@@ -398,26 +366,6 @@ impl SymmetryElementBuilder {
                 } else {
                     F::new_neg(pp.unsigned_abs(), *io)
                 };
-                // let frac_1_2 = F::new(1u32, 2u32);
-                // let proper_fraction = if total_proper_fraction > frac_1_2 {
-                //     let integer_part = total_proper_fraction.trunc();
-                //     let x = if total_proper_fraction.fract() <= frac_1_2 {
-                //         integer_part
-                //     } else {
-                //         integer_part + F::one()
-                //     };
-                //     total_proper_fraction - x
-                // } else if total_proper_fraction <= -frac_1_2 {
-                //     let integer_part = (-total_proper_fraction).trunc();
-                //     let x = if (-total_proper_fraction).fract() < frac_1_2 {
-                //         integer_part
-                //     } else {
-                //         integer_part + F::one()
-                //     };
-                //     total_proper_fraction + x
-                // } else {
-                //     total_proper_fraction
-                // };
                 Some(
                     total_proper_fraction
                         .to_f64()
@@ -478,6 +426,7 @@ impl SymmetryElement {
         self.raw_proper_power.as_ref()
     }
 
+    /// Returns the raw axis of the proper rotation.
     pub fn raw_axis(&self) -> &Vector3<f64> {
         &self.raw_axis
     }
@@ -523,18 +472,23 @@ impl SymmetryElement {
         self.proper_angle
     }
 
+    /// Returns the spatial and time-reversal kind of this element.
     pub fn kind(&self) -> &SymmetryElementKind {
         &self.kind
     }
 
+    /// Returns the rotation group and possibly identity-connected homotopy class in which the
+    /// proper rotation part of this element is to be interpreted.
     pub fn rotation_group(&self) -> &RotationGroup {
         &self.rotation_group
     }
 
+    /// Returns a boolean indicating if the element is a generator of a group.
     pub fn is_generator(&self) -> bool {
         self.generator
     }
 
+    /// Returns the threshold for approximate comparisons.
     pub fn threshold(&self) -> f64 {
         self.threshold
     }
@@ -549,13 +503,16 @@ impl SymmetryElement {
         self.kind.contains_time_reversal()
     }
 
-    /// Checks if the symmetry element contains an active spin rotation.
+    /// Checks if the proper rotation of the element is in $`\mathsf{SU}(2)`$.
     #[must_use]
     fn is_su2(&self) -> bool {
         self.rotation_group.is_su2()
     }
 
-    /// Checks if the symmetry element contains an inverse spin rotation.
+    /// Checks if the proper rotation of the element is in $`\mathsf{SU}(2)`$ and connected to the
+    /// identity via a homotopy path of class 1.
+    /// See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover Publications, Inc., New
+    /// York, 2005) for further information.
     #[must_use]
     fn is_su2_class_1(&self) -> bool {
         self.rotation_group.is_su2_class_1()
@@ -741,12 +698,11 @@ impl SymmetryElement {
         }
     }
 
-    /// Returns the full symbol for this symmetry element, which does not
-    /// classify certain improper rotation axes into inversion centres or mirror
-    /// planes, but which does simplify the power/order ratio, and which displays only the absolute
-    /// value of the power since symmetry elements do not distinguish senses of rotations.
-    /// Rotations of oposite directions are inverses of each other, both of which must exist in the
-    /// group.
+    /// Returns the full symbol for this symmetry element, which does not classify certain
+    /// improper rotation axes into inversion centres or mirror planes, but which does simplify
+    /// the power/order ratio, and which displays only the absolute value of the power since
+    /// symmetry elements do not distinguish senses of rotations. Rotations of oposite directions
+    /// are inverses of each other, both of which must exist in the group.
     ///
     /// Some additional symbols that can be unconventional include:
     ///
@@ -850,15 +806,15 @@ impl SymmetryElement {
         }
     }
 
-    /// Returns the detailed symbol for this symmetry element, which classifies
-    /// special symmetry elements (identity, inversion centre, mirror planes), and which simplifies
-    /// the power/order ratio and displays only the absolute value of the power since symmetry
-    /// elements do not distinguish senses of rotations. Rotations of oposite directions are
-    /// inverses of each other, both of which must exist in the group.
+    /// Returns the simplified symbol for this symmetry element, which classifies special symmetry
+    /// elements (identity, inversion centre, mirror planes), and which simplifies the power/order
+    /// ratio and displays only the absolute value of the power since symmetry elements do not
+    /// distinguish senses of rotations. Rotations of oposite directions are inverses of each
+    /// other, both of which must exist in the group.
     ///
     /// # Returns
     ///
-    /// The detailed symbol for this symmetry element.
+    /// The simplified symbol for this symmetry element.
     #[must_use]
     pub fn get_simplified_symbol(&self) -> String {
         let (main_symbol, needs_power) = match self.kind {
@@ -967,8 +923,8 @@ impl SymmetryElement {
         }
     }
 
-    /// Returns a copy of the current improper symmetry element that has been
-    /// converted to the required improper kind.
+    /// Returns a copy of the current improper symmetry element that has been converted to the
+    /// required improper kind.
     ///
     /// To convert between the two improper kinds, we essentially seek integers
     /// $`n, n' \in \mathbb{N}_{+}`$ and $`k \in \mathbb{Z}/n\mathbb{Z}`$,
@@ -979,20 +935,29 @@ impl SymmetryElement {
     /// ```
     ///
     /// where the axes of all involved elements are parallel. By noting that
-    /// $`\sigma = i C_2`$, we can easily show that
+    /// $`\sigma = i C_2`$ and that $`k`$ and $`k'`$ must have opposite signs, we can easily show
+    /// that, for $`k \ge 0, k' < 0`$,
+    ///
+    /// ```math
+    /// \begin{aligned}
+    ///     n' &= \frac{2n}{\operatorname{gcd}(2n, n - 2k)},\\
+    ///     k' &= -\frac{n - 2k}{\operatorname{gcd}(2n, n - 2k)},
+    /// \end{aligned}
+    /// ```
+    ///
+    /// whereas for $`k < 0, k' \ge 0`$,
     ///
     /// ```math
     /// \begin{aligned}
     ///     n' &= \frac{2n}{\operatorname{gcd}(2n, n + 2k)},\\
-    ///     k' &= \frac{n + 2k}{\operatorname{gcd}(2n, n + 2k)} \mod n'.
+    ///     k' &= \frac{n + 2k}{\operatorname{gcd}(2n, n + 2k)}.
     /// \end{aligned}
     /// ```
     ///
     /// The above relations are self-inverse. It can be further shown that
-    /// $`\operatorname{gcd}(n', k') = 1`$. Hence, for symmetry *element*
-    /// conversions, we can simply take $`k' = 1`$. This is because a symmetry
-    /// element plays the role of a generator, and the coprimality of $`n'`$ and
-    /// $`k'`$ means that $`i C_{n'}^{1}`$ is as valid a generator as
+    /// $`\operatorname{gcd}(n', k') = 1`$. Hence, for symmetry *element* conversions, we can simply
+    /// take $`k' = 1`$. This is because a symmetry element plays the role of a generator, and the
+    /// coprimality of $`n'`$ and $`k'`$ means that $`i C_{n'}^{1}`$ is as valid a generator as
     /// $`i C_{n'}^{k'}`$.
     ///
     /// # Arguments
@@ -1000,8 +965,8 @@ impl SymmetryElement {
     /// * `improper_kind` - The improper kind to which `self` is to be converted. There is no need
     /// to make sure the time reversal specification in `improper_kind` matches that of `self` as
     /// the conversion will take care of this.
-    /// * `preserves_power` - Flag indicating if the proper rotation power $`k'`$
-    /// should be preserved or should be set to $`1`$.
+    /// * `preserves_power` - Boolean indicating if the proper rotation power $`k'`$ should be
+    /// preserved or should be set to $`1`$.
     ///
     /// # Returns
     ///
@@ -1128,13 +1093,22 @@ impl SymmetryElement {
         }
     }
 
+    /// Converts the symmetry element to one with the desired time-reversal property.
+    ///
+    /// # Arguments
+    ///
+    /// * `tr` - A boolean indicating if time reversal is to be included.
+    ///
+    /// # Returns
+    ///
+    /// A new symmetry element with or without time reversal as indicated by `tr`.
     pub fn to_tr(&self, tr: bool) -> Self {
         let mut c_self = self.clone();
         c_self.kind = c_self.kind.to_tr(tr);
         c_self
     }
 
-    /// Adds spin rotation to the current element if none is present.
+    /// Convert the proper rotation of the current element to one in $`\mathsf{SU}(2)`$.
     ///
     /// # Arguments
     ///
@@ -1142,8 +1116,8 @@ impl SymmetryElement {
     ///
     /// # Returns
     ///
-    /// A symmetry element with the added spin rotation if none is present, or `None` if the
-    /// current symmetry element already has an associated spin rotation.
+    /// A symmetry element in $`\mathsf{SU}(2)`$, or `None` if the current symmetry element
+    /// is already in $`\mathsf{SU}(2)`$.
     pub fn to_su2(&self, normal: bool) -> Option<Self> {
         if self.is_su2() {
             None
@@ -1154,17 +1128,14 @@ impl SymmetryElement {
         }
     }
 
-    /// The closeness of the symmetry element's axis to one of the
-    /// three space-fixed Cartesian axes.
+    /// The closeness of the symmetry element's axis to one of the three space-fixed Cartesian axes.
     ///
     /// # Returns
     ///
     /// A tuple of two values:
-    /// - A value $`\gamma \in [0, 1-1/\sqrt{3}]`$ indicating how
-    /// close the axis is to one of the three Cartesian axes. The closer
-    /// $`\gamma`$ is to $`0`$, the closer the alignment.
-    /// - An index for the closest axis: `0` for $`z`$, `1` for $`y`$, `2`
-    /// for $`x`$.
+    /// - A value $`\gamma \in [0, 1-1/\sqrt{3}]`$ indicating how close the axis is to one of the
+    /// three Cartesian axes. The closer $`\gamma`$ is to $`0`$, the closer the alignment.
+    /// - An index for the closest axis: `0` for $`z`$, `1` for $`y`$, `2` for $`x`$.
     ///
     /// # Panics
     ///
@@ -1222,8 +1193,7 @@ impl fmt::Display for SymmetryElement {
 }
 
 impl PartialEq for SymmetryElement {
-    /// Two symmetry elements are equal if and only if the following conditions
-    /// are all satisfied:
+    /// Two symmetry elements are equal if and only if the following conditions are all satisfied:
     ///
     /// * they are both in the same rotation group and belong to the same homotopy class;
     /// * they are both proper or improper;
