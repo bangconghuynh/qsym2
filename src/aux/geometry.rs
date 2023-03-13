@@ -49,14 +49,6 @@ pub const IMINV: ImproperRotationKind = ImproperRotationKind::InversionCentre;
 /// The normalised rotation angle.
 #[must_use]
 pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> (f64, u32) {
-    // let mut norm_rot_ang = rot_ang;
-    // while norm_rot_ang > std::f64::consts::PI + thresh {
-    //     norm_rot_ang -= 2.0 * std::f64::consts::PI;
-    // }
-    // while norm_rot_ang <= -std::f64::consts::PI + thresh {
-    //     norm_rot_ang += 2.0 * std::f64::consts::PI;
-    // }
-    // norm_rot_ang
     let frac_1_2 = 1.0 / 2.0;
     let fraction = rot_ang / (2.0 * std::f64::consts::PI);
     if fraction > frac_1_2 + thresh {
