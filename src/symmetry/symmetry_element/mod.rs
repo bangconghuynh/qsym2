@@ -237,7 +237,7 @@ pub struct SymmetryElement {
 
     /// The rotation group in which the proper rotation part of the symmetry element shall be
     /// interpreted.
-    pub rotationgroup: RotationGroup,
+    rotation_group: RotationGroup,
 
     /// A boolean indicating whether the symmetry element is a generator of the
     /// group to which it belongs.
@@ -527,6 +527,10 @@ impl SymmetryElement {
         &self.kind
     }
 
+    pub fn rotation_group(&self) -> &RotationGroup {
+        &self.rotation_group
+    }
+
     /// Checks if the symmetry element contains a time-reversal operator.
     ///
     /// # Returns
@@ -540,13 +544,13 @@ impl SymmetryElement {
     /// Checks if the symmetry element contains an active spin rotation.
     #[must_use]
     fn is_su2(&self) -> bool {
-        self.rotationgroup.is_su2()
+        self.rotation_group.is_su2()
     }
 
     /// Checks if the symmetry element contains an inverse spin rotation.
     #[must_use]
     fn is_su2_class_1(&self) -> bool {
-        self.rotationgroup.is_su2_class_1()
+        self.rotation_group.is_su2_class_1()
     }
 
     /// Checks if the spatial part of the symmetry element is proper and has the specified
@@ -1076,7 +1080,7 @@ impl SymmetryElement {
                 .proper_power(dest_proper_power)
                 .raw_axis(self.raw_axis)
                 .kind(improper_kind)
-                .rotationgroup(self.rotationgroup.clone())
+                .rotation_group(self.rotation_group.clone())
                 .generator(self.generator)
                 .additional_superscript(self.additional_superscript.clone())
                 .additional_subscript(self.additional_subscript.clone())
@@ -1092,7 +1096,7 @@ impl SymmetryElement {
                         .proper_angle(-std::f64::consts::PI + ang)
                         .raw_axis(self.raw_axis)
                         .kind(improper_kind)
-                        .rotationgroup(self.rotationgroup.clone())
+                        .rotation_group(self.rotation_group.clone())
                         .generator(self.generator)
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())
@@ -1105,7 +1109,7 @@ impl SymmetryElement {
                         .proper_power(dest_proper_power)
                         .raw_axis(self.raw_axis)
                         .kind(improper_kind)
-                        .rotationgroup(self.rotationgroup.clone())
+                        .rotation_group(self.rotation_group.clone())
                         .generator(self.generator)
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())
@@ -1137,7 +1141,7 @@ impl SymmetryElement {
             None
         } else {
             let mut element = self.clone();
-            element.rotationgroup = RotationGroup::SU2(normal);
+            element.rotation_group = RotationGroup::SU2(normal);
             Some(element)
         }
     }
@@ -1228,7 +1232,7 @@ impl PartialEq for SymmetryElement {
     /// where one does not yet care much about directions of rotations.
     #[allow(clippy::too_many_lines)]
     fn eq(&self, other: &Self) -> bool {
-        if self.rotationgroup != other.rotationgroup {
+        if self.rotation_group != other.rotation_group {
             // Different rotation groups or homotopy classes.
             return false;
         }
@@ -1367,7 +1371,7 @@ impl Eq for SymmetryElement {}
 
 impl Hash for SymmetryElement {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.rotationgroup.hash(state);
+        self.rotation_group.hash(state);
 
         let tr = self.contains_time_reversal();
         tr.hash(state);

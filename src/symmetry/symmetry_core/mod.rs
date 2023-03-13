@@ -323,7 +323,7 @@ impl Symmetry {
             .proper_power(1)
             .raw_axis(Vector3::new(0.0, 0.0, 1.0))
             .kind(SymmetryElementKind::Proper(false))
-            .rotationgroup(SO3)
+            .rotation_group(SO3)
             .build()
             .expect("Unable to construct the identity element.");
         self.add_proper(ORDER_1, c1.raw_axis(), false, presym.dist_threshold, false);
@@ -452,7 +452,7 @@ impl Symmetry {
             .proper_power(1)
             .raw_axis(positive_axis)
             .kind(SymmetryElementKind::Proper(tr))
-            .rotationgroup(SO3)
+            .rotation_group(SO3)
             .generator(generator)
             .build()
             .expect("Unable to construct a proper element.");
@@ -573,7 +573,7 @@ impl Symmetry {
                 .proper_power(1)
                 .raw_axis(positive_axis)
                 .kind(kind.to_tr(tr))
-                .rotationgroup(SO3)
+                .rotation_group(SO3)
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
@@ -589,7 +589,7 @@ impl Symmetry {
                 .proper_power(1)
                 .raw_axis(positive_axis)
                 .kind(kind.to_tr(tr))
-                .rotationgroup(SO3)
+                .rotation_group(SO3)
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
@@ -1120,7 +1120,7 @@ impl Symmetry {
                             .proper_power(1)
                             .raw_axis(proper_generator.raw_axis().clone())
                             .kind(proper_generator.kind().clone())
-                            .rotationgroup(proper_generator.rotationgroup.clone())
+                            .rotation_group(proper_generator.rotation_group().clone())
                             .additional_superscript(proper_generator.additional_superscript.clone())
                             .additional_subscript(proper_generator.additional_subscript.clone())
                             .build()
@@ -1201,7 +1201,7 @@ impl Symmetry {
                                 .proper_power(1)
                                 .raw_axis(tr_proper_generator.raw_axis().clone())
                                 .kind(tr_proper_generator.kind().clone())
-                                .rotationgroup(tr_proper_generator.rotationgroup.clone())
+                                .rotation_group(tr_proper_generator.rotation_group().clone())
                                 .additional_superscript(
                                     tr_proper_generator.additional_superscript.clone(),
                                 )
@@ -1284,7 +1284,7 @@ impl Symmetry {
                                 .proper_power(1)
                                 .raw_axis(improper_generator.raw_axis().clone())
                                 .kind(improper_generator.kind().clone())
-                                .rotationgroup(improper_generator.rotationgroup.clone())
+                                .rotation_group(improper_generator.rotation_group().clone())
                                 .additional_superscript(
                                     improper_generator.additional_superscript.clone(),
                                 )
@@ -1370,7 +1370,7 @@ impl Symmetry {
                                 .proper_power(1)
                                 .raw_axis(tr_improper_generator.raw_axis().clone())
                                 .kind(tr_improper_generator.kind().clone())
-                                .rotationgroup(tr_improper_generator.rotationgroup.clone())
+                                .rotation_group(tr_improper_generator.rotation_group().clone())
                                 .additional_superscript(
                                     tr_improper_generator.additional_superscript.clone(),
                                 )

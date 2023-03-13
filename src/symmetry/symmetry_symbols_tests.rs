@@ -38,7 +38,7 @@ fn test_symmetry_symbols_class() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::Proper(false))
-        .rotationgroup(RotationGroup::SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
     let c3 = SymmetryOperation::builder()
@@ -57,7 +57,7 @@ fn test_symmetry_symbols_class() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane(false))
-        .rotationgroup(RotationGroup::SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
     let i = SymmetryOperation::builder()
@@ -78,7 +78,7 @@ fn test_symmetry_symbols_class() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SymmetryElementKind::ImproperMirrorPlane(false))
-        .rotationgroup(RotationGroup::SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
     let s = SymmetryOperation::builder()

@@ -35,7 +35,7 @@ fn test_abstract_group_creation() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 2.0))
         .kind(ROT)
-        .rotationgroup(RotationGroup::SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -60,7 +60,7 @@ fn test_abstract_group_creation() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.5, 2.0))
         .kind(ROT)
-        .rotationgroup(RotationGroup::SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
