@@ -233,7 +233,7 @@ pub struct SymmetryElement {
 
     /// The spatial and time-reversal kind of the symmetry element.
     #[builder(default = "SymmetryElementKind::Proper(false)")]
-    pub kind: SymmetryElementKind,
+    kind: SymmetryElementKind,
 
     /// The rotation group in which the proper rotation part of the symmetry element shall be
     /// interpreted.
@@ -521,6 +521,10 @@ impl SymmetryElement {
     /// The element lacks a proper angle if it is infinite-order and the rotation angle
     pub fn proper_angle(&self) -> Option<f64> {
         self.proper_angle
+    }
+
+    pub fn kind(&self) -> &SymmetryElementKind {
+        &self.kind
     }
 
     /// Checks if the symmetry element contains a time-reversal operator.
@@ -1110,6 +1114,12 @@ impl SymmetryElement {
                 }
             }
         }
+    }
+
+    pub fn to_tr(&self, tr: bool) -> Self {
+        let mut c_self = self.clone();
+        c_self.kind = c_self.kind.to_tr(tr);
+        c_self
     }
 
     /// Adds spin rotation to the current element if none is present.

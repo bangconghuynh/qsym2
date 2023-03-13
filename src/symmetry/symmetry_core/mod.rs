@@ -362,9 +362,10 @@ impl Symmetry {
                                 let tr_proper_elements = proper_elements
                                     .iter()
                                     .map(|proper_element| {
-                                        let mut tr_proper_element = proper_element.clone();
-                                        tr_proper_element.kind = proper_element.kind.to_tr(true);
-                                        tr_proper_element
+                                        proper_element.to_tr(true)
+                                        // let mut tr_proper_element = proper_element.clone();
+                                        // tr_proper_element.kind = proper_element.kind.to_tr(true);
+                                        // tr_proper_element
                                     })
                                     .collect::<IndexSet<_>>();
                                 (*order, tr_proper_elements)
@@ -387,10 +388,11 @@ impl Symmetry {
                                     let tr_improper_elements = improper_elements
                                         .iter()
                                         .map(|improper_element| {
-                                            let mut tr_improper_element = improper_element.clone();
-                                            tr_improper_element.kind =
-                                                improper_element.kind.to_tr(true);
-                                            tr_improper_element
+                                            improper_element.to_tr(true)
+                                            // let mut tr_improper_element = improper_element.clone();
+                                            // tr_improper_element.kind =
+                                            //     improper_element.kind.to_tr(true);
+                                            // tr_improper_element
                                         })
                                         .collect::<IndexSet<_>>();
                                     (*order, tr_improper_elements)
@@ -1117,7 +1119,7 @@ impl Symmetry {
                             .proper_order(ElementOrder::Int(finite_order))
                             .proper_power(1)
                             .raw_axis(proper_generator.raw_axis().clone())
-                            .kind(proper_generator.kind.clone())
+                            .kind(proper_generator.kind().clone())
                             .rotationgroup(proper_generator.rotationgroup.clone())
                             .additional_superscript(proper_generator.additional_superscript.clone())
                             .additional_subscript(proper_generator.additional_subscript.clone())
@@ -1198,7 +1200,7 @@ impl Symmetry {
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
                                 .raw_axis(tr_proper_generator.raw_axis().clone())
-                                .kind(tr_proper_generator.kind.clone())
+                                .kind(tr_proper_generator.kind().clone())
                                 .rotationgroup(tr_proper_generator.rotationgroup.clone())
                                 .additional_superscript(
                                     tr_proper_generator.additional_superscript.clone(),
@@ -1281,7 +1283,7 @@ impl Symmetry {
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
                                 .raw_axis(improper_generator.raw_axis().clone())
-                                .kind(improper_generator.kind.clone())
+                                .kind(improper_generator.kind().clone())
                                 .rotationgroup(improper_generator.rotationgroup.clone())
                                 .additional_superscript(
                                     improper_generator.additional_superscript.clone(),
@@ -1367,7 +1369,7 @@ impl Symmetry {
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
                                 .raw_axis(tr_improper_generator.raw_axis().clone())
-                                .kind(tr_improper_generator.kind.clone())
+                                .kind(tr_improper_generator.kind().clone())
                                 .rotationgroup(tr_improper_generator.rotationgroup.clone())
                                 .additional_superscript(
                                     tr_improper_generator.additional_superscript.clone(),
