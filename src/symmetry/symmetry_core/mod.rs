@@ -1115,7 +1115,7 @@ impl Symmetry {
                             ElementOrder::Inf => fin_ord,
                         };
                         let finite_proper_element = SymmetryElement::builder()
-                            .threshold(proper_generator.threshold)
+                            .threshold(proper_generator.threshold())
                             .proper_order(ElementOrder::Int(finite_order))
                             .proper_power(1)
                             .raw_axis(proper_generator.raw_axis().clone())
@@ -1196,7 +1196,7 @@ impl Symmetry {
                                 ElementOrder::Inf => fin_ord,
                             };
                             let finite_tr_proper_element = SymmetryElement::builder()
-                                .threshold(tr_proper_generator.threshold)
+                                .threshold(tr_proper_generator.threshold())
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
                                 .raw_axis(tr_proper_generator.raw_axis().clone())
@@ -1279,7 +1279,7 @@ impl Symmetry {
                                 ElementOrder::Inf => fin_ord,
                             };
                             let finite_improper_element = SymmetryElement::builder()
-                                .threshold(improper_generator.threshold)
+                                .threshold(improper_generator.threshold())
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
                                 .raw_axis(improper_generator.raw_axis().clone())
@@ -1365,7 +1365,7 @@ impl Symmetry {
                                 ElementOrder::Inf => fin_ord,
                             };
                             let finite_tr_improper_element = SymmetryElement::builder()
-                                .threshold(tr_improper_generator.threshold)
+                                .threshold(tr_improper_generator.threshold())
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
                                 .raw_axis(tr_improper_generator.raw_axis().clone())
@@ -1483,7 +1483,7 @@ impl Symmetry {
                             if let Some(sigma_symbol) = deduce_sigma_symbol(
                                 &op_k.generating_element.raw_axis(),
                                 principal_element,
-                                op_k.generating_element.threshold,
+                                op_k.generating_element.threshold(),
                                 false,
                             ) {
                                 let mut op_k_sym = op_k.convert_to_improper_kind(&SIG);

@@ -242,11 +242,11 @@ pub struct SymmetryElement {
     /// A boolean indicating whether the symmetry element is a generator of the
     /// group to which it belongs.
     #[builder(default = "false")]
-    pub generator: bool,
+    generator: bool,
 
     /// A threshold for approximate equality comparisons.
     #[builder(setter(custom))]
-    pub threshold: f64,
+    threshold: f64,
 
     /// An additional superscript for distinguishing the symmetry element.
     #[builder(default = "String::new()")]
@@ -529,6 +529,14 @@ impl SymmetryElement {
 
     pub fn rotation_group(&self) -> &RotationGroup {
         &self.rotation_group
+    }
+
+    pub fn is_generator(&self) -> bool {
+        self.generator
+    }
+
+    pub fn threshold(&self) -> f64 {
+        self.threshold
     }
 
     /// Checks if the symmetry element contains a time-reversal operator.
