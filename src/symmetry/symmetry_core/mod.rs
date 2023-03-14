@@ -14,7 +14,7 @@ use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    SpecialSymmetryTransformation, SymmetryOperation,
+    SpecialSymmetryTransformation, SymmetryOperation, sort_operations
 };
 use crate::symmetry::symmetry_element::{
     SymmetryElement, SymmetryElementKind, ROT, SIG, SO3, TRROT, TRSIG,
@@ -1513,33 +1513,7 @@ impl Symmetry {
         };
 
         let mut sorted_operations: Vec<SymmetryOperation> = operations.into_iter().collect();
-        sorted_operations.sort_by_key(|op| {
-            let (axis_closeness, closest_axis) =
-                op.generating_element.closeness_to_cartesian_axes();
-            (
-                op.is_antiunitary(),
-                !op.is_proper(),
-                !(op.is_spatial_identity() || op.is_spatial_inversion()),
-                op.is_spatial_binary_rotation() || op.is_spatial_reflection(),
-                -(i64::try_from(
-                    *op.total_proper_fraction
-                        .expect("No total proper fractions found.")
-                        .denom()
-                        .expect(
-                            "The denominator of the total proper fraction cannot be extracted.",
-                        ),
-                )
-                .unwrap_or_else(|_| {
-                    panic!(
-                        "Unable to convert the denominator of `{:?}` to `i64`.",
-                        op.total_proper_fraction
-                    )
-                })),
-                op.power,
-                OrderedFloat(axis_closeness),
-                closest_axis,
-            )
-        });
+        sort_operations(&mut sorted_operations);
         sorted_operations
     }
 }

@@ -8,6 +8,7 @@ use fraction;
 use nalgebra::{Point3, Vector3};
 use ndarray::{Array2, Axis, ShapeBuilder};
 use num_traits::{Inv, Pow, Zero};
+use ordered_float::OrderedFloat;
 
 use crate::aux::geometry::{
     self, improper_rotation_matrix, proper_rotation_matrix, Transform, IMINV,
@@ -738,6 +739,34 @@ impl SymmetryOperation {
         )
         .abs()
     }
+
+    /// Convert the proper rotation of the current operation to one in hopotopy class 0 of
+    /// $`\mathsf{SU}(2)`$.
+    ///
+    /// # Returns
+    ///
+    /// A symmetry element in $`\mathsf{SU}(2)`$.
+    pub fn to_su2_class_0(&self) -> Self {
+        if self.is_su2() {
+            if self.is_su2_class_1() {
+                let identity_1 = Self::from_quaternion(
+                    (-1.0, -Vector3::z()),
+                    true,
+                    self.generating_element.threshold(),
+                    1,
+                    false,
+                    true,
+                );
+                self * identity_1
+            } else {
+                self.clone()
+            }
+        } else {
+            let mut op = self.clone();
+            op.generating_element.rotation_group = SU2_0;
+            op
+        }
+    }
 }
 
 // =====================
@@ -1305,4 +1334,34 @@ where
         }
         rhs.get_perm_of(&t_mol)
     }
+}
+
+// =================
+// Utility functions
+// =================
+pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
+    operations.sort_by_key(|op| {
+        let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
+        (
+            op.is_antiunitary(),
+            !op.is_proper(),
+            !(op.is_spatial_identity() || op.is_spatial_inversion()),
+            op.is_spatial_binary_rotation() || op.is_spatial_reflection(),
+            -(i64::try_from(
+                *op.total_proper_fraction
+                    .expect("No total proper fractions found.")
+                    .denom()
+                    .expect("The denominator of the total proper fraction cannot be extracted."),
+            )
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Unable to convert the denominator of `{:?}` to `i64`.",
+                    op.total_proper_fraction
+                )
+            })),
+            op.power,
+            OrderedFloat(axis_closeness),
+            closest_axis,
+        )
+    });
 }

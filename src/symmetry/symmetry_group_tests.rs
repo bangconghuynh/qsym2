@@ -11,14 +11,12 @@ use crate::aux::template_molecules;
 use crate::group::class::ClassProperties;
 use crate::group::{
     EagerGroup, GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup,
-    BWGRP, GRGRP, ORGRP,
+    BWGRP, GRGRP, ORGRP, ORGRP2,
 };
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
-use crate::symmetry::symmetry_element::{
-    RotationGroup, SymmetryElement, SymmetryOperation, ROT,
-};
+use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SymmetryOperation, ROT};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
@@ -288,6 +286,26 @@ fn test_ur_ordinary_group(
     });
 }
 
+fn test_ur_ordinary_double_group(
+    mol: &Molecule,
+    thresh: f64,
+    name: &str,
+    order: usize,
+    class_number: usize,
+    abelian: bool,
+) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
+    assert_eq!(group.group_type(), ORGRP2);
+    verify_abstract_group(&group, name, order, class_number, abelian);
+}
+
 fn test_ur_magnetic_group(
     mol: &Molecule,
     thresh: f64,
@@ -440,6 +458,30 @@ fn test_ur_ordinary_group_class_order(mol: &Molecule, thresh: f64, class_order_s
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let classes = (0..group.class_number())
+        .map(|i| {
+            group
+                .get_cc_symbol_of_index(i)
+                .expect("Unable to retrieve all class symbols.")
+                .to_string()
+        })
+        .collect_vec();
+    assert_eq!(&classes, class_order_str);
+}
+
+fn test_ur_ordinary_double_group_class_order(
+    mol: &Molecule,
+    thresh: f64,
+    class_order_str: &[&str],
+) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
     let classes = (0..group.class_number())
         .map(|i| {
             group
@@ -6641,4 +6683,24 @@ fn test_ur_group_symmetric_c60_electric_field_c1() {
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
     test_ur_ordinary_group(&mol, thresh, "C1", 1, 1, true);
+}
+
+/***
+C1*
+***/
+
+#[test]
+fn test_ur_group_asymmetric_butan1ol_c1_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "C1*", 2, 2, true);
+}
+
+#[test]
+fn test_ur_group_asymmetric_butan1ol_c1_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(&mol, thresh, &["|E(Σ)|", "|E(QΣ)|"]);
 }
