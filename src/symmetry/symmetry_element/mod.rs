@@ -923,6 +923,123 @@ impl SymmetryElement {
         }
     }
 
+    /// Returns the simplified symbol for this symmetry element, which classifies special symmetry
+    /// elements (identity, inversion centre, mirror planes), and which simplifies the power/order
+    /// ratio and displays only the absolute value of the power since symmetry elements do not
+    /// distinguish senses of rotations. Rotations of oposite directions are inverses of each
+    /// other, both of which must exist in the group.
+    ///
+    /// # Returns
+    ///
+    /// The simplified symbol for this symmetry element.
+    #[must_use]
+    pub fn get_simplified_symbol_signed_power(&self) -> String {
+        let (main_symbol, needs_power) = match self.kind {
+            SymmetryElementKind::Proper(tr) => {
+                if self.is_o3_identity(tr) {
+                    if tr {
+                        ("θ".to_owned(), false)
+                    } else {
+                        ("E".to_owned(), false)
+                    }
+                } else {
+                    (format!("{}C", if tr { "θ·" } else { "" }), true)
+                }
+            }
+            SymmetryElementKind::ImproperMirrorPlane(tr) => {
+                let tr_sym = if tr { "θ·" } else { "" };
+                if self.is_o3_mirror_plane(tr) {
+                    (format!("{tr_sym}σ"), false)
+                } else if self.is_o3_inversion_centre(tr) {
+                    (format!("{tr_sym}i"), false)
+                } else if *self.raw_proper_order() == ElementOrder::Inf
+                    || *self
+                        .proper_fraction
+                        .expect("No proper fractions found for a finite-order element.")
+                        .numer()
+                        .expect("Unable to extract the numerator of the proper fraction.")
+                        == 1
+                {
+                    (format!("{tr_sym}S"), true)
+                } else {
+                    (format!("{tr_sym}σC"), true)
+                }
+            }
+            SymmetryElementKind::ImproperInversionCentre(tr) => {
+                let tr_sym = if tr { "θ·" } else { "" };
+                if self.is_o3_mirror_plane(tr) {
+                    (format!("{tr_sym}σ"), false)
+                } else if self.is_o3_inversion_centre(tr) {
+                    (format!("{tr_sym}i"), false)
+                } else if *self.raw_proper_order() == ElementOrder::Inf
+                    || *self
+                        .proper_fraction
+                        .expect("No proper fractions found for a finite-order element.")
+                        .numer()
+                        .expect("Unable to extract the numerator of the proper fraction.")
+                        == 1
+                {
+                    (format!("{tr_sym}Ṡ"), true)
+                } else {
+                    (format!("{tr_sym}iC"), true)
+                }
+            }
+        };
+
+        let su2_sym = if self.is_su2_class_1() {
+            "(QΣ)"
+        } else if self.is_su2() {
+            "(Σ)"
+        } else {
+            ""
+        };
+
+        if let Some(proper_fraction) = self.proper_fraction {
+            let tr = self.contains_time_reversal();
+            let proper_order = if self.is_o3_identity(tr)
+                || self.is_o3_inversion_centre(tr)
+                || self.is_o3_mirror_plane(tr)
+            {
+                String::new()
+            } else {
+                proper_fraction
+                    .denom()
+                    .expect("Unable to extract the denominator of the proper fraction.")
+                    .to_string()
+            };
+
+            let pow = *proper_fraction
+                .numer()
+                .expect("Unable to extract the numerator of the proper fraction.");
+            let neg = proper_fraction.is_sign_negative()
+                != !geometry::check_positive_pole(&self.raw_axis, self.threshold);
+            let proper_power = if neg {
+                format!("^(-{pow})")
+            } else if pow > 1 {
+                format!("^{pow}")
+            } else {
+                String::new()
+            };
+            format!(
+                "{main_symbol}{}{proper_order}{proper_power}{}{su2_sym}",
+                self.additional_superscript, self.additional_subscript
+            )
+        } else {
+            assert_eq!(*self.raw_proper_order(), ElementOrder::Inf);
+            let proper_angle = if let Some(proper_angle) = self.proper_angle {
+                format!("({:+.3})", proper_angle.abs())
+            } else {
+                String::new()
+            };
+            format!(
+                "{main_symbol}{}{}{proper_angle}{}{su2_sym}",
+                self.additional_superscript,
+                *self.raw_proper_order(),
+                self.additional_subscript
+            )
+        }
+    }
+
     /// Returns a copy of the current improper symmetry element that has been converted to the
     /// required improper kind.
     ///

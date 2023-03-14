@@ -614,9 +614,9 @@ impl SymmetryOperation {
     ///
     /// # Arguments
     ///
-    /// * `improper_kind` - The improper kind to which `self` is to be converted. There is no need to
-    /// make sure the time reversal specification in `improper_kind` matches that of the generating
-    /// element of `self` as the conversion will take care of this.
+    /// * `improper_kind` - The improper kind to which `self` is to be converted. There is no need
+    /// to make sure the time reversal specification in `improper_kind` matches that of the
+    /// generating element of `self` as the conversion will take care of this.
     ///
     /// # Panics
     ///
@@ -642,11 +642,17 @@ impl SymmetryOperation {
     #[must_use]
     pub fn get_abbreviated_symbol(&self) -> String {
         if self.power == 1 {
-            self.generating_element.get_simplified_symbol()
-        } else {
+            self.generating_element.get_simplified_symbol_signed_power()
+        } else if self.power >= 0 {
             format!(
                 "[{}]^{}",
-                self.generating_element.get_simplified_symbol(),
+                self.generating_element.get_simplified_symbol_signed_power(),
+                self.power
+            )
+        } else {
+            format!(
+                "[{}]^({})",
+                self.generating_element.get_simplified_symbol_signed_power(),
                 self.power
             )
         }
@@ -747,24 +753,32 @@ impl SymmetryOperation {
     ///
     /// A symmetry element in $`\mathsf{SU}(2)`$.
     pub fn to_su2_class_0(&self) -> Self {
+        let q_identity = Self::from_quaternion(
+            (-1.0, -Vector3::z()),
+            true,
+            self.generating_element.threshold(),
+            1,
+            false,
+            true,
+        );
         if self.is_su2() {
             if self.is_su2_class_1() {
-                let identity_1 = Self::from_quaternion(
-                    (-1.0, -Vector3::z()),
-                    true,
-                    self.generating_element.threshold(),
-                    1,
-                    false,
-                    true,
-                );
-                self * identity_1
+                self * q_identity
             } else {
                 self.clone()
             }
         } else {
             let mut op = self.clone();
             op.generating_element.rotation_group = SU2_0;
-            op
+            if op.is_su2_class_1() {
+                let mut q_op = op * q_identity;
+                if !q_op.is_proper() {
+                    q_op = q_op.convert_to_improper_kind(&SIG);
+                }
+                q_op
+            } else {
+                op
+            }
         }
     }
 }
@@ -1038,8 +1052,10 @@ impl fmt::Debug for SymmetryOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.power == 1 {
             write!(f, "{:?}", self.generating_element)
-        } else {
+        } else if self.power >= 0 {
             write!(f, "[{:?}]^{}", self.generating_element, self.power)
+        } else {
+            write!(f, "[{:?}]^({})", self.generating_element, self.power)
         }
     }
 }
@@ -1048,8 +1064,10 @@ impl fmt::Display for SymmetryOperation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.power == 1 {
             write!(f, "{}", self.generating_element)
-        } else {
+        } else if self.power >= 0 {
             write!(f, "[{}]^{}", self.generating_element, self.power)
+        } else {
+            write!(f, "[{}]^({})", self.generating_element, self.power)
         }
     }
 }

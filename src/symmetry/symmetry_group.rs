@@ -14,7 +14,7 @@ use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     sort_operations, SpecialSymmetryTransformation,
 };
-use crate::symmetry::symmetry_element::SymmetryOperation;
+use crate::symmetry::symmetry_element::{SIG, SymmetryOperation};
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, MullikenIrcorepSymbol,
     MullikenIrrepSymbol, SymmetryClassSymbol, FORCED_PRINCIPAL_GROUPS,
@@ -431,6 +431,11 @@ impl SymmetryGroupProperties
             .iter()
             .map(|op| {
                 let mut q_op = op * &q_identity;
+                if !q_op.is_proper() {
+                    println!("Converting {q_op}");
+                    q_op = q_op.convert_to_improper_kind(&SIG);
+                    println!("Got {q_op}");
+                }
 
                 // Multiplying by q_identity does not change subscript/superscript information
                 // such as inversion parity or mirror plane type.
@@ -679,6 +684,11 @@ impl SymmetryGroupProperties
             .iter()
             .map(|op| {
                 let mut q_op = op * &q_identity;
+                if !q_op.is_proper() {
+                    println!("Converting {q_op}");
+                    q_op = q_op.convert_to_improper_kind(&SIG);
+                    println!("Got {q_op}");
+                }
 
                 // Multiplying by q_identity does not change subscript/superscript information
                 // such as inversion parity or mirror plane type.

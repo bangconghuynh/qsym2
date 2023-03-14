@@ -6037,6 +6037,30 @@ fn test_symmetry_operation_su2_collinear_composition() {
     assert!(!(&c2_nsr_p2 * &c2_nsr_p2).is_su2_class_1());
     assert!((&c2_nsr_p2 * &c2_nsr_p2).is_identity());
 
+    let c2_isr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::x())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(false))
+        .build()
+        .unwrap();
+
+    let c2_isr_p1 = SymmetryOperation::builder()
+        .generating_element(c2_isr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!(&c2_nsr_p1 * &c2_isr_p1).is_su2_class_1());
+    assert!((&c2_nsr_p1 * &c2_isr_p1).is_identity());
+
+    // let c2_isr_p2 = SymmetryOperation::builder()
+    //     .generating_element(c2_isr_element.clone())
+    //     .power(2)
+    //     .build()
+    //     .unwrap();
+
     let c3_nsr_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(3))
@@ -6256,6 +6280,40 @@ fn test_symmetry_operation_su2_collinear_composition() {
 
     let s5_pp2_nsr_p1 = SymmetryOperation::builder()
         .generating_element(s5_pp2_nsr_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s5_nsr_p1 * &c5_nsr_p1, s5_pp2_nsr_p1);
+
+    // =======================================
+    // Proper and improper symmetry operations
+    // =====================-----------=======
+    let c2z_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let c2z_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c2z_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let s4z_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(SIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+    let s4z_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s4z_nsr_element.clone())
         .power(1)
         .build()
         .unwrap();

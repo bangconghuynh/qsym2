@@ -437,11 +437,14 @@ pub struct GramSchmidtError<'a, T> {
 
 impl<'a, T: Display + Debug> fmt::Display for GramSchmidtError<'a, T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
+        writeln!(
             f,
-            "Unable to perform Gram--Schmidt orthogonalisation of the vectors {:#?}.",
-            self.vecs
-        )
+            "Unable to perform Gram--Schmidt orthogonalisation on:",
+        )?;
+        for vec in self.vecs {
+            writeln!(f, "{vec}")?;
+        }
+        Ok(())
     }
 }
 
@@ -488,6 +491,7 @@ where
         // Project vi onto all uj (0 <= j < i)
         for j in 0..i {
             if Zero::is_zero(&us_sq_norm[j]) {
+                log::warn!("A zero-norm vector found: {}", us[j]);
                 return Err(GramSchmidtError { vecs: vs });
             }
             let p_uj_vi =
@@ -504,16 +508,6 @@ where
         ));
     }
 
-    // let mut ov: Array2<T> = Array2::zeros((us.len(), us.len()));
-    // for (i, ui) in us.iter().enumerate() {
-    //     for (j, uj) in us.iter().enumerate() {
-    //         ov[[i, j]] =
-    //             weighted_hermitian_inprod((ui, uj), class_sizes, perm_for_conj);
-    //         if i != j {
-    //             assert!(Zero::is_zero(&ov[[i, j]]));
-    //         }
-    //     }
-    // }
     debug_assert!({
         us.iter().enumerate().all(|(i, ui)| {
             us.iter().enumerate().all(|(j, uj)| {

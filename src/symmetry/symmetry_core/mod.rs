@@ -6,7 +6,6 @@ use indexmap::IndexSet;
 use itertools::Itertools;
 use log;
 use nalgebra::{Point3, Vector3};
-use ordered_float::OrderedFloat;
 use rayon::prelude::*;
 
 use crate::aux::atom::Atom;
