@@ -6485,6 +6485,41 @@ fn test_ur_group_asymmetric_distorted_vf6_d2h() {
 }
 
 /***
+D2h*
+***/
+
+#[test]
+fn test_ur_group_asymmetric_b2h6_d2h_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D2h*", 16, 10, false);
+}
+
+#[test]
+fn test_ur_group_asymmetric_b2h6_d2h_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2h6.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "2|C2(Σ)|",
+            "2|C2(Σ)|^(')",
+            "2|C2(Σ)|^('')",
+            "|i(Σ)|",
+            "2|σ(Σ)|",
+            "2|σ(Σ)|^(')",
+            "2|σ(Σ)|^('')",
+            "|E(QΣ)|",
+            "|i(QΣ)|",
+        ],
+    );
+}
+
+/***
 Ci
 ***/
 
@@ -6600,6 +6635,30 @@ fn test_ur_group_symmetric_c60_magnetic_field_ci() {
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
     test_ur_ordinary_group(&mol, thresh, "Ci", 2, 2, true);
+}
+
+/***
+Ci*
+***/
+
+#[test]
+fn test_ur_group_asymmetric_meso_tartaricacid_ci_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "Ci*", 4, 4, true);
+}
+
+#[test]
+fn test_ur_group_asymmetric_meso_tartaricacid_ci_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &["|E(Σ)|", "|i(Σ)|", "|E(QΣ)|", "|i(QΣ)|"],
+    );
 }
 
 /***

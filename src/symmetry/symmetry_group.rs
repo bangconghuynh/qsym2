@@ -196,6 +196,12 @@ pub trait SymmetryGroupProperties:
         let mut improper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
         let mut tr_proper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
         let mut tr_improper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
+        let mut q_proper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
+        let mut q_improper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
+        let mut q_tr_proper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
+        let mut q_tr_improper_class_orders: HashMap<(Option<F>, i32, String), usize> =
+            HashMap::new();
+
         let symmetry_class_symbols = (0..self.class_number())
             .map(|i| {
                 let old_symbol = self.get_cc_symbol_of_index(i).unwrap_or_else(|| {
@@ -210,6 +216,7 @@ pub trait SymmetryGroupProperties:
                             panic!("Element with index {j} cannot be retrieved.")
                         });
                         (
+                            op.is_su2_class_1(),
                             op.power < 0,
                             op.power,
                             op.generating_element
@@ -260,11 +267,19 @@ pub trait SymmetryGroupProperties:
                     let rep_proper_fraction = rep_ele.generating_element.proper_fraction().cloned();
                     let rep_power = rep_ele.power;
                     let rep_sub = rep_ele.generating_element.additional_subscript.clone();
-                    let class_orders = match (rep_ele.is_antiunitary(), rep_ele.is_proper()) {
-                        (false, true) => &mut proper_class_orders,
-                        (false, false) => &mut improper_class_orders,
-                        (true, true) => &mut tr_proper_class_orders,
-                        (true, false) => &mut tr_improper_class_orders,
+                    let class_orders = match (
+                        rep_ele.is_su2_class_1(),
+                        rep_ele.is_antiunitary(),
+                        rep_ele.is_proper(),
+                    ) {
+                        (false, false, true) => &mut proper_class_orders,
+                        (false, false, false) => &mut improper_class_orders,
+                        (false, true, true) => &mut tr_proper_class_orders,
+                        (false, true, false) => &mut tr_improper_class_orders,
+                        (true, false, true) => &mut q_proper_class_orders,
+                        (true, false, false) => &mut q_improper_class_orders,
+                        (true, true, true) => &mut q_tr_proper_class_orders,
+                        (true, true, false) => &mut q_tr_improper_class_orders,
                     };
                     let dash = if let Some(v) =
                         class_orders.get_mut(&(rep_proper_fraction, rep_power, rep_sub.clone()))
@@ -296,9 +311,6 @@ pub trait SymmetryGroupProperties:
             })
             .collect::<Vec<_>>();
         log::debug!("Assigning class symbols from symmetry operations... Done.");
-        // for sym in symmetry_class_symbols.iter() {
-        //     log::debug!("Symbol: {sym}");
-        // }
         symmetry_class_symbols
     }
 }
@@ -415,8 +427,9 @@ impl SymmetryGroupProperties
                     .as_str(),
             ) {
             let c3_cc: SymmetryClassSymbol<SymmetryOperation> =
-                SymmetryClassSymbol::new("8||C3||", None)
-                    .expect("Unable to construct a class symbol from `8||C3||`.");
+                SymmetryClassSymbol::new(format!("8||C3{su2_0}||").as_str(), None).unwrap_or_else(
+                    |_| panic!("Unable to construct a class symbol from `8||C3{su2_0}||`."),
+                );
             log::debug!(
                 "Group is {}. Principal-axis classes will be forced to be {}. This is to obtain non-standard Mulliken symbols that are in line with conventions in the literature.",
                 self.name(),

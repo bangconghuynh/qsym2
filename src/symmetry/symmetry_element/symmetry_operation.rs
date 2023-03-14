@@ -1343,6 +1343,7 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
     operations.sort_by_key(|op| {
         let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
         (
+            op.is_su2_class_1(),
             op.is_antiunitary(),
             !op.is_proper(),
             !(op.is_spatial_identity() || op.is_spatial_inversion()),
