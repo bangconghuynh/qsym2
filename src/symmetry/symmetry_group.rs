@@ -275,9 +275,11 @@ pub trait SymmetryGroupProperties:
                     assert!(undashed_class_symbols.insert(trev_sym.clone(), 1).is_none());
                     trev_sym
                 } else {
-                    let (mult, main_symbol, reps) = if rep_ele.is_su2() && !rep_ele.is_su2_class_1() {
+                    let (mult, main_symbol, reps) = if rep_ele.is_su2() && !rep_ele.is_su2_class_1()
+                    {
                         // This class might contain both class-0 and class-1 elements, in which
-                        // case we show one of each in the main symbol, and .
+                        // case we show one of each in the main symbol, and set the multiplicity to
+                        // be half the class size.
                         let alt_rep_ele_option = self
                             .get_cc_index(i)
                             .unwrap_or_else(|| {
@@ -306,21 +308,27 @@ pub trait SymmetryGroupProperties:
                                 vec![rep_ele, alt_rep_ele],
                             )
                         } else {
-                            (old_symbol.size(), rep_ele.get_abbreviated_symbol(), vec![rep_ele])
+                            (
+                                old_symbol.size(),
+                                rep_ele.get_abbreviated_symbol(),
+                                vec![rep_ele],
+                            )
                         }
                     } else {
-                        (old_symbol.size(), rep_ele.get_abbreviated_symbol(), vec![rep_ele])
-                    };
-                    let undashed_sym = SymmetryClassSymbol::new(
-                        format!("1||{}||", main_symbol).as_str(),
-                        None,
-                    )
-                    .unwrap_or_else(|_| {
-                        panic!(
-                            "Unable to construct a coarse class symbol from `1||{}||`",
-                            main_symbol
+                        (
+                            old_symbol.size(),
+                            rep_ele.get_abbreviated_symbol(),
+                            vec![rep_ele],
                         )
-                    });
+                    };
+                    let undashed_sym =
+                        SymmetryClassSymbol::new(format!("1||{}||", main_symbol).as_str(), None)
+                            .unwrap_or_else(|_| {
+                                panic!(
+                                    "Unable to construct a coarse class symbol from `1||{}||`",
+                                    main_symbol
+                                )
+                            });
                     undashed_class_symbols
                         .entry(undashed_sym.clone())
                         .and_modify(|counter| *counter += 1)
@@ -411,7 +419,7 @@ impl SymmetryGroupProperties
             .into_iter()
             .map(|op| op.to_su2_class_0())
             .collect_vec();
-        let identity_1 = SymmetryOperation::from_quaternion(
+        let q_identity = SymmetryOperation::from_quaternion(
             (-1.0, -Vector3::z()),
             true,
             su2_operations[0].generating_element.threshold(),
@@ -421,10 +429,21 @@ impl SymmetryGroupProperties
         );
         let su2_1_operations = su2_operations
             .iter()
-            .map(|op| op * &identity_1)
+            .map(|op| {
+                let mut q_op = op * &q_identity;
+
+                // Multiplying by q_identity does not change subscript/superscript information
+                // such as inversion parity or mirror plane type.
+                q_op.generating_element.additional_subscript =
+                    op.generating_element.additional_subscript.clone();
+                q_op.generating_element.additional_superscript =
+                    op.generating_element.additional_superscript.clone();
+                q_op
+            })
             .collect_vec();
         su2_operations.extend(su2_1_operations.into_iter());
         sort_operations(&mut su2_operations);
+
         let group_name = self.name().clone() + "*";
         let finite_group_name = self.finite_subgroup_name().map(|name| name.clone() + "*");
         let mut group = Self::new(group_name.as_str(), su2_operations);
@@ -648,7 +667,7 @@ impl SymmetryGroupProperties
             .into_iter()
             .map(|op| op.to_su2_class_0())
             .collect_vec();
-        let identity_1 = SymmetryOperation::from_quaternion(
+        let q_identity = SymmetryOperation::from_quaternion(
             (-1.0, -Vector3::z()),
             true,
             su2_operations[0].generating_element.threshold(),
@@ -658,7 +677,17 @@ impl SymmetryGroupProperties
         );
         let su2_1_operations = su2_operations
             .iter()
-            .map(|op| op * &identity_1)
+            .map(|op| {
+                let mut q_op = op * &q_identity;
+
+                // Multiplying by q_identity does not change subscript/superscript information
+                // such as inversion parity or mirror plane type.
+                q_op.generating_element.additional_subscript =
+                    op.generating_element.additional_subscript.clone();
+                q_op.generating_element.additional_superscript =
+                    op.generating_element.additional_superscript.clone();
+                q_op
+            })
             .collect_vec();
         su2_operations.extend(su2_1_operations.into_iter());
         sort_operations(&mut su2_operations);

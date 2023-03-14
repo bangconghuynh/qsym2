@@ -17,7 +17,7 @@ use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::{
-    SymmetryElement, SymmetryElementKind, INV, SO3, SU2_0, SU2_1,
+    SymmetryElement, SymmetryElementKind, INV, SIG, SO3, SU2_0, SU2_1, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
@@ -1342,13 +1342,26 @@ where
 pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
     operations.sort_by_key(|op| {
         let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
+        let c_op = if op.is_proper()
+            || op.generating_element.kind == SIG
+            || op.generating_element.kind == TRSIG
+        {
+            op.clone()
+        } else {
+            if op.is_antiunitary() {
+                op.convert_to_improper_kind(&TRSIG)
+            } else {
+                op.convert_to_improper_kind(&SIG)
+            }
+        };
         (
-            op.is_antiunitary(),
-            !op.is_proper(),
-            !(op.is_spatial_identity() || op.is_spatial_inversion()),
-            op.is_spatial_binary_rotation() || op.is_spatial_reflection(),
+            c_op.is_antiunitary(),
+            !c_op.is_proper(),
+            !(c_op.is_spatial_identity() || c_op.is_spatial_inversion()),
+            c_op.is_spatial_binary_rotation() || c_op.is_spatial_reflection(),
             -(i64::try_from(
-                *op.total_proper_fraction
+                *c_op
+                    .total_proper_fraction
                     .expect("No total proper fractions found.")
                     .denom()
                     .expect("The denominator of the total proper fraction cannot be extracted."),
@@ -1356,13 +1369,13 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             .unwrap_or_else(|_| {
                 panic!(
                     "Unable to convert the denominator of `{:?}` to `i64`.",
-                    op.total_proper_fraction
+                    c_op.total_proper_fraction
                 )
             })),
-            op.power,
+            c_op.power,
             OrderedFloat(axis_closeness),
             closest_axis,
-            op.is_su2_class_1(),
+            c_op.is_su2_class_1(),
         )
     });
 }

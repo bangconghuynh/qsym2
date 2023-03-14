@@ -904,7 +904,7 @@ impl SymmetryElement {
                 String::new()
             };
             format!(
-                "{main_symbol}{}{proper_order}{proper_power}{su2_sym}{}",
+                "{main_symbol}{}{proper_order}{proper_power}{}{su2_sym}",
                 self.additional_superscript, self.additional_subscript
             )
         } else {
@@ -915,7 +915,7 @@ impl SymmetryElement {
                 String::new()
             };
             format!(
-                "{main_symbol}{}{}{proper_angle}{su2_sym}{}",
+                "{main_symbol}{}{}{proper_angle}{}{su2_sym}",
                 self.additional_superscript,
                 *self.raw_proper_order(),
                 self.additional_subscript
