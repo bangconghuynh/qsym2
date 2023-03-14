@@ -6266,6 +6266,36 @@ fn test_ur_group_asymmetric_22_paracyclophane_d2() {
     test_ur_ordinary_group(&mol, thresh, "D2", 4, 4, true);
 }
 
+/*
+D2*
+*/
+
+#[test]
+fn test_ur_group_asymmetric_i4_biphenyl_d2_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D2*", 8, 5, false);
+}
+
+#[test]
+fn test_ur_group_asymmetric_i4_biphenyl_d2_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "|C2(Σ), C2(QΣ)|^(')",
+            "|C2(Σ), C2(QΣ)|^('')",
+        ],
+    );
+}
+
 /***
 D2h
 ***/
@@ -6506,15 +6536,15 @@ fn test_ur_group_asymmetric_b2h6_d2h_double_class_order() {
         thresh,
         &[
             "|E(Σ)|",
+            "|E(QΣ)|",
             "2|C2(Σ)|",
             "2|C2(Σ)|^(')",
             "2|C2(Σ)|^('')",
             "|i(Σ)|",
+            "|i(QΣ)|",
             "2|σ(Σ)|",
             "2|σ(Σ)|^(')",
             "2|σ(Σ)|^('')",
-            "|E(QΣ)|",
-            "|i(QΣ)|",
         ],
     );
 }
@@ -6657,7 +6687,7 @@ fn test_ur_group_asymmetric_meso_tartaricacid_ci_double_class_order() {
     test_ur_ordinary_double_group_class_order(
         &mol,
         thresh,
-        &["|E(Σ)|", "|i(Σ)|", "|E(QΣ)|", "|i(QΣ)|"],
+        &["|E(Σ)|", "|E(QΣ)|", "|i(Σ)|", "|i(QΣ)|"],
     );
 }
 

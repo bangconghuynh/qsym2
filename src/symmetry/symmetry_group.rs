@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use counter::Counter;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use nalgebra::Vector3;
@@ -12,7 +13,9 @@ use crate::chartab::{CharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
 use crate::group::{GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::Symmetry;
-use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
+use crate::symmetry::symmetry_element::symmetry_operation::{
+    sort_operations, SpecialSymmetryTransformation,
+};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, MullikenIrcorepSymbol,
@@ -192,15 +195,8 @@ pub trait SymmetryGroupProperties:
     /// Sets the conjugacy class symbols in this group based on molecular symmetry.
     fn class_symbols_from_symmetry(&mut self) -> Vec<SymmetryClassSymbol<SymmetryOperation>> {
         log::debug!("Assigning class symbols from symmetry operations...");
-        let mut proper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
-        let mut improper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
-        let mut tr_proper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
-        let mut tr_improper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
-        let mut q_proper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
-        let mut q_improper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
-        let mut q_tr_proper_class_orders: HashMap<(Option<F>, i32, String), usize> = HashMap::new();
-        let mut q_tr_improper_class_orders: HashMap<(Option<F>, i32, String), usize> =
-            HashMap::new();
+        let mut undashed_class_symbols: Counter<SymmetryClassSymbol<SymmetryOperation>, usize> =
+            Counter::new();
 
         let symmetry_class_symbols = (0..self.class_number())
             .map(|i| {
@@ -241,6 +237,7 @@ pub trait SymmetryGroupProperties:
                 let rep_ele = self.get_index(rep_ele_index).unwrap_or_else(|| {
                     panic!("Unable to retrieve group element with index `{rep_ele_index}`.")
                 });
+
                 let su2 = if rep_ele.is_su2_class_1() {
                     "(QΣ)"
                 } else if rep_ele.is_su2() {
@@ -249,56 +246,94 @@ pub trait SymmetryGroupProperties:
                     ""
                 };
                 if rep_ele.is_identity() {
-                    SymmetryClassSymbol::new(format!("1||E{su2}||").as_str(), Some(rep_ele.clone()))
-                        .unwrap_or_else(|_| {
-                            panic!("Unable to construct a class symbol from `1||E{su2}||`.")
-                        })
+                    // E(Σ) and E(QΣ) cannot be in the same conjugacy class.
+                    let id_sym = SymmetryClassSymbol::new(
+                        format!("1||E{su2}||").as_str(),
+                        Some(rep_ele.clone()),
+                    )
+                    .unwrap_or_else(|_| {
+                        panic!("Unable to construct a class symbol from `1||E{su2}||`.")
+                    });
+                    assert!(undashed_class_symbols.insert(id_sym.clone(), 1).is_none());
+                    id_sym
                 } else if rep_ele.is_inversion() {
-                    SymmetryClassSymbol::new(format!("1||i{su2}||").as_str(), Some(rep_ele.clone()))
-                        .unwrap_or_else(|_| {
-                            panic!("Unable to construct a class symbol from `1||i{su2}||`.")
-                        })
+                    // i(Σ) and i(QΣ) cannot be in the same conjugacy class.
+                    let inv_sym = SymmetryClassSymbol::new(
+                        format!("1||i{su2}||").as_str(),
+                        Some(rep_ele.clone()),
+                    )
+                    .unwrap_or_else(|_| {
+                        panic!("Unable to construct a class symbol from `1||i{su2}||`.")
+                    });
+                    assert!(undashed_class_symbols.insert(inv_sym.clone(), 1).is_none());
+                    inv_sym
                 } else if rep_ele.is_time_reversal() {
-                    SymmetryClassSymbol::new(format!("1||θ{su2}||").as_str(), Some(rep_ele.clone()))
-                        .unwrap_or_else(|_| {
-                            panic!("Unable to construct a class symbol from `1||θ{su2}||`.")
-                        })
+                    // θ(Σ) and θ(QΣ) cannot be in the same conjugacy class.
+                    let trev_sym = SymmetryClassSymbol::new(
+                        format!("1||θ{su2}||").as_str(),
+                        Some(rep_ele.clone()),
+                    )
+                    .unwrap_or_else(|_| {
+                        panic!("Unable to construct a class symbol from `1||θ{su2}||`.")
+                    });
+                    assert!(undashed_class_symbols.insert(trev_sym.clone(), 1).is_none());
+                    trev_sym
                 } else {
-                    let rep_proper_fraction = rep_ele.generating_element.proper_fraction().cloned();
-                    let rep_power = rep_ele.power;
-                    let rep_sub = rep_ele.generating_element.additional_subscript.clone();
-                    let class_orders = match (
-                        rep_ele.is_su2_class_1(),
-                        rep_ele.is_antiunitary(),
-                        rep_ele.is_proper(),
-                    ) {
-                        (false, false, true) => &mut proper_class_orders,
-                        (false, false, false) => &mut improper_class_orders,
-                        (false, true, true) => &mut tr_proper_class_orders,
-                        (false, true, false) => &mut tr_improper_class_orders,
-                        (true, false, true) => &mut q_proper_class_orders,
-                        (true, false, false) => &mut q_improper_class_orders,
-                        (true, true, true) => &mut q_tr_proper_class_orders,
-                        (true, true, false) => &mut q_tr_improper_class_orders,
-                    };
-                    let dash = if let Some(v) =
-                        class_orders.get_mut(&(rep_proper_fraction, rep_power, rep_sub.clone()))
-                    {
-                        *v += 1;
-                        "'".repeat(*v)
+                    let (size, main_symbol) = if rep_ele.is_su2() && !rep_ele.is_su2_class_1() {
+                        // This class might contain both class-0 and class-1 elements.
+                        let alt_rep_ele_option = self
+                            .get_cc_index(i)
+                            .unwrap_or_else(|| {
+                                panic!("No conjugacy class index `{i}` can be found.")
+                            })
+                            .iter()
+                            .find_map(|&j| {
+                                let op = self.get_index(j).unwrap_or_else(|| {
+                                    panic!("Element with index {j} cannot be retrieved.")
+                                });
+                                if op.is_su2_class_1() {
+                                    Some(op)
+                                } else {
+                                    None
+                                }
+                            });
+                        if let Some(alt_rep_ele) = alt_rep_ele_option {
+                            assert_eq!(old_symbol.size().rem_euclid(2), 0);
+                            (
+                                old_symbol.size().div_euclid(2),
+                                format!(
+                                    "{}, {}",
+                                    rep_ele.get_abbreviated_symbol(),
+                                    alt_rep_ele.get_abbreviated_symbol()
+                                ),
+                            )
+                        } else {
+                            (old_symbol.size(), rep_ele.get_abbreviated_symbol())
+                        }
                     } else {
-                        class_orders.insert((rep_proper_fraction, rep_power, rep_sub), 0);
-                        String::new()
+                        (old_symbol.size(), rep_ele.get_abbreviated_symbol())
                     };
-                    let size = old_symbol.size();
-                    SymmetryClassSymbol::new(
-                        format!(
-                            "{}||{}|^({})|",
-                            size,
-                            rep_ele.get_abbreviated_symbol(),
-                            dash
+                    let undashed_sym = SymmetryClassSymbol::new(
+                        format!("1||{}||", main_symbol).as_str(),
+                        Some(rep_ele.clone()),
+                    )
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "Unable to construct a class symbol from `1||{}||`",
+                            rep_ele.get_abbreviated_symbol()
                         )
-                        .as_str(),
+                    });
+                    undashed_class_symbols
+                        .entry(undashed_sym.clone())
+                        .and_modify(|counter| *counter += 1)
+                        .or_insert(1);
+                    let dash = undashed_class_symbols
+                        .get(&undashed_sym)
+                        .map(|&counter| "'".repeat(counter - 1))
+                        .unwrap();
+
+                    SymmetryClassSymbol::new(
+                        format!("{size}||{}|^({dash})|", main_symbol,).as_str(),
                         Some(rep_ele.clone()),
                     )
                     .unwrap_or_else(|_| {
@@ -391,6 +426,7 @@ impl SymmetryGroupProperties
             .map(|op| op * &identity_1)
             .collect_vec();
         su2_operations.extend(su2_1_operations.into_iter());
+        sort_operations(&mut su2_operations);
         let group_name = self.name().clone() + "*";
         let finite_group_name = self.finite_subgroup_name().map(|name| name.clone() + "*");
         let mut group = Self::new(group_name.as_str(), su2_operations);
@@ -627,6 +663,7 @@ impl SymmetryGroupProperties
             .map(|op| op * &identity_1)
             .collect_vec();
         su2_operations.extend(su2_1_operations.into_iter());
+        sort_operations(&mut su2_operations);
 
         let double_unitary_subgroup = self.unitary_subgroup().to_double_group();
 
