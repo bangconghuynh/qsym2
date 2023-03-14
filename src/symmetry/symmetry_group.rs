@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use counter::Counter;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -21,8 +19,6 @@ use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, MullikenIrcorepSymbol,
     MullikenIrrepSymbol, SymmetryClassSymbol, FORCED_PRINCIPAL_GROUPS,
 };
-
-type F = fraction::GenericFraction<u32>;
 
 #[cfg(test)]
 #[path = "symmetry_group_tests.rs"]
@@ -249,7 +245,7 @@ pub trait SymmetryGroupProperties:
                     // E(Σ) and E(QΣ) cannot be in the same conjugacy class.
                     let id_sym = SymmetryClassSymbol::new(
                         format!("1||E{su2}||").as_str(),
-                        Some(rep_ele.clone()),
+                        Some(vec![rep_ele.clone()]),
                     )
                     .unwrap_or_else(|_| {
                         panic!("Unable to construct a class symbol from `1||E{su2}||`.")
@@ -260,7 +256,7 @@ pub trait SymmetryGroupProperties:
                     // i(Σ) and i(QΣ) cannot be in the same conjugacy class.
                     let inv_sym = SymmetryClassSymbol::new(
                         format!("1||i{su2}||").as_str(),
-                        Some(rep_ele.clone()),
+                        Some(vec![rep_ele.clone()]),
                     )
                     .unwrap_or_else(|_| {
                         panic!("Unable to construct a class symbol from `1||i{su2}||`.")
@@ -271,7 +267,7 @@ pub trait SymmetryGroupProperties:
                     // θ(Σ) and θ(QΣ) cannot be in the same conjugacy class.
                     let trev_sym = SymmetryClassSymbol::new(
                         format!("1||θ{su2}||").as_str(),
-                        Some(rep_ele.clone()),
+                        Some(vec![rep_ele.clone()]),
                     )
                     .unwrap_or_else(|_| {
                         panic!("Unable to construct a class symbol from `1||θ{su2}||`.")
@@ -279,8 +275,9 @@ pub trait SymmetryGroupProperties:
                     assert!(undashed_class_symbols.insert(trev_sym.clone(), 1).is_none());
                     trev_sym
                 } else {
-                    let (size, main_symbol) = if rep_ele.is_su2() && !rep_ele.is_su2_class_1() {
-                        // This class might contain both class-0 and class-1 elements.
+                    let (mult, main_symbol, reps) = if rep_ele.is_su2() && !rep_ele.is_su2_class_1() {
+                        // This class might contain both class-0 and class-1 elements, in which
+                        // case we show one of each in the main symbol, and .
                         let alt_rep_ele_option = self
                             .get_cc_index(i)
                             .unwrap_or_else(|| {
@@ -306,21 +303,22 @@ pub trait SymmetryGroupProperties:
                                     rep_ele.get_abbreviated_symbol(),
                                     alt_rep_ele.get_abbreviated_symbol()
                                 ),
+                                vec![rep_ele, alt_rep_ele],
                             )
                         } else {
-                            (old_symbol.size(), rep_ele.get_abbreviated_symbol())
+                            (old_symbol.size(), rep_ele.get_abbreviated_symbol(), vec![rep_ele])
                         }
                     } else {
-                        (old_symbol.size(), rep_ele.get_abbreviated_symbol())
+                        (old_symbol.size(), rep_ele.get_abbreviated_symbol(), vec![rep_ele])
                     };
                     let undashed_sym = SymmetryClassSymbol::new(
                         format!("1||{}||", main_symbol).as_str(),
-                        Some(rep_ele.clone()),
+                        None,
                     )
                     .unwrap_or_else(|_| {
                         panic!(
-                            "Unable to construct a class symbol from `1||{}||`",
-                            rep_ele.get_abbreviated_symbol()
+                            "Unable to construct a coarse class symbol from `1||{}||`",
+                            main_symbol
                         )
                     });
                     undashed_class_symbols
@@ -333,13 +331,13 @@ pub trait SymmetryGroupProperties:
                         .unwrap();
 
                     SymmetryClassSymbol::new(
-                        format!("{size}||{}|^({dash})|", main_symbol,).as_str(),
-                        Some(rep_ele.clone()),
+                        format!("{mult}||{}|^({dash})|", main_symbol,).as_str(),
+                        Some(reps),
                     )
                     .unwrap_or_else(|_| {
                         panic!(
-                            "Unable to construct a class symbol from `{size}||{}|^({dash})|`",
-                            rep_ele.get_abbreviated_symbol()
+                            "Unable to construct a class symbol from `{mult}||{}|^({dash})|`",
+                            main_symbol
                         )
                     })
                 }

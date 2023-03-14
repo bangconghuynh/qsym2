@@ -30,7 +30,7 @@ pub struct PermutationClassSymbol<T: PermutationRank> {
     generic_symbol: GenericSymbol,
 
     /// A representative element in the class.
-    representative: Option<Permutation<T>>,
+    representatives: Option<Vec<Permutation<T>>>,
 }
 
 impl<T: PermutationRank> PartialEq for PermutationClassSymbol<T> {
@@ -50,10 +50,6 @@ impl<T: PermutationRank> Hash for PermutationClassSymbol<T> {
 impl<T: PermutationRank> PermutationClassSymbol<T> {
     fn builder() -> PermutationClassSymbolBuilder<T> {
         PermutationClassSymbolBuilder::default()
-    }
-
-    pub fn representative(&self) -> Option<Permutation<T>> {
-        self.representative.clone()
     }
 
     /// Creates a class symbol from a string and a representative element.
@@ -87,7 +83,7 @@ impl<T: PermutationRank> PermutationClassSymbol<T> {
     /// be parsed as a generic symbol.
     pub fn new(
         symstr: &str,
-        rep: Option<Permutation<T>>,
+        reps: Option<Vec<Permutation<T>>>,
     ) -> Result<Self, GenericSymbolParsingError> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
         if generic_symbol.multiplicity().is_none() {
@@ -97,7 +93,7 @@ impl<T: PermutationRank> PermutationClassSymbol<T> {
         } else {
             Ok(Self::builder()
                 .generic_symbol(generic_symbol)
-                .representative(rep)
+                .representatives(reps)
                 .build()
                 .unwrap_or_else(|_| panic!("Unable to construct a class symbol from `{symstr}`.")))
         }
@@ -140,7 +136,8 @@ impl<T: PermutationRank> MathematicalSymbol for PermutationClassSymbol<T> {
         String::new()
     }
 
-    /// This is a synonym for the size of the conjugacy class.
+    /// The number of times the representative elements are 'duplicated' to give the size of the
+    /// class.
     fn multiplicity(&self) -> Option<usize> {
         self.generic_symbol.multiplicity()
     }
@@ -149,24 +146,19 @@ impl<T: PermutationRank> MathematicalSymbol for PermutationClassSymbol<T> {
 impl<T: PermutationRank> CollectionSymbol for PermutationClassSymbol<T> {
     type CollectionElement = Permutation<T>;
 
-    fn size(&self) -> usize {
-        self.multiplicity().unwrap_or_else(|| {
-            panic!(
-                "Unable to deduce the size of the class from the prefactor {}.",
-                self.prefactor()
-            )
-        })
-    }
-
-    fn from_rep(
+    fn from_reps(
         symstr: &str,
-        rep: Option<Self::CollectionElement>,
+        reps: Option<Vec<Self::CollectionElement>>,
     ) -> Result<Self, GenericSymbolParsingError> {
-        Self::new(symstr, rep)
+        Self::new(symstr, reps)
     }
 
-    fn representative(&self) -> Option<Self::CollectionElement> {
-        self.representative.clone()
+    fn representative(&self) -> Option<&Self::CollectionElement> {
+        self.representatives.as_ref().map(|reps| &reps[0])
+    }
+
+    fn representatives(&self) -> Option<&Vec<Self::CollectionElement>> {
+        self.representatives.as_ref()
     }
 }
 

@@ -176,16 +176,12 @@ pub struct SymmetryClassSymbol<R: Clone> {
     generic_symbol: GenericSymbol,
 
     /// A representative element in the class.
-    representative: Option<R>,
+    representatives: Option<Vec<R>>,
 }
 
 impl<R: Clone> SymmetryClassSymbol<R> {
     fn builder() -> SymmetryClassSymbolBuilder<R> {
         SymmetryClassSymbolBuilder::default()
-    }
-
-    pub fn representative(&self) -> Option<R> {
-        self.representative.clone()
     }
 
     /// Creates a class symbol from a string and a representative element.
@@ -218,16 +214,16 @@ impl<R: Clone> SymmetryClassSymbol<R> {
     ///
     /// Errors when the string contains no parsable class size prefactor, or when the string cannot
     /// be parsed as a generic symbol.
-    pub fn new(symstr: &str, rep: Option<R>) -> Result<Self, GenericSymbolParsingError> {
+    pub fn new(symstr: &str, rep: Option<Vec<R>>) -> Result<Self, GenericSymbolParsingError> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
         if generic_symbol.multiplicity().is_none() {
             Err(GenericSymbolParsingError(format!(
-                "{symstr} contains no class size prefactor."
+                "{symstr} contains no class multiplicity prefactor."
             )))
         } else {
             Ok(Self::builder()
                 .generic_symbol(generic_symbol)
-                .representative(rep)
+                .representatives(rep)
                 .build()
                 .unwrap_or_else(|_| panic!("Unable to construct a class symbol from `{symstr}`.")))
         }
@@ -594,7 +590,8 @@ impl<R: Clone> MathematicalSymbol for SymmetryClassSymbol<R> {
         String::new()
     }
 
-    /// This is a synonym for the size of the conjugacy class.
+    /// The number of times the representative elements are 'duplicated' to give the size of the
+    /// class.
     fn multiplicity(&self) -> Option<usize> {
         self.generic_symbol.multiplicity()
     }
@@ -603,24 +600,19 @@ impl<R: Clone> MathematicalSymbol for SymmetryClassSymbol<R> {
 impl<R: Clone> CollectionSymbol for SymmetryClassSymbol<R> {
     type CollectionElement = R;
 
-    fn size(&self) -> usize {
-        self.multiplicity().unwrap_or_else(|| {
-            panic!(
-                "Unable to deduce the size of the class from the prefactor {}.",
-                self.prefactor()
-            )
-        })
-    }
-
-    fn from_rep(
+    fn from_reps(
         symstr: &str,
-        rep: Option<Self::CollectionElement>,
+        reps: Option<Vec<Self::CollectionElement>>,
     ) -> Result<Self, GenericSymbolParsingError> {
-        Self::new(symstr, rep)
+        Self::new(symstr, reps)
     }
 
-    fn representative(&self) -> Option<Self::CollectionElement> {
-        self.representative.clone()
+    fn representative(&self) -> Option<&Self::CollectionElement> {
+        self.representatives.as_ref().map(|reps| &reps[0])
+    }
+
+    fn representatives(&self) -> Option<&Vec<Self::CollectionElement>> {
+        self.representatives.as_ref()
     }
 }
 
@@ -637,35 +629,35 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
     ///
     /// A flag indicating if this class is proper.
     fn is_proper(&self) -> bool {
-        self.representative
+        self.representative()
             .as_ref()
             .expect("No representative element found for this class.")
             .is_proper()
     }
 
     fn is_spatial_identity(&self) -> bool {
-        self.representative
+        self.representative()
             .as_ref()
             .expect("No representative element found for this class.")
             .is_spatial_identity()
     }
 
     fn is_spatial_binary_rotation(&self) -> bool {
-        self.representative
+        self.representative()
             .as_ref()
             .expect("No representative element found for this class.")
             .is_spatial_binary_rotation()
     }
 
     fn is_spatial_inversion(&self) -> bool {
-        self.representative
+        self.representative()
             .as_ref()
             .expect("No representative element found for this class.")
             .is_spatial_inversion()
     }
 
     fn is_spatial_reflection(&self) -> bool {
-        self.representative
+        self.representative()
             .as_ref()
             .expect("No representative element found for this class.")
             .is_spatial_reflection()
@@ -681,7 +673,7 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
     ///
     /// A flag indicating if this class is antiunitary.
     fn is_antiunitary(&self) -> bool {
-        self.representative
+        self.representative()
             .as_ref()
             .expect("No representative element found for this class.")
             .is_antiunitary()
@@ -697,7 +689,7 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
     ///
     /// A flag indicating if this class contains an active associated spin rotation.
     fn is_su2(&self) -> bool {
-        self.representative
+        self.representative()
             .as_ref()
             .expect("No representative element found for this class.")
             .is_su2()
@@ -709,10 +701,10 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
     ///
     /// A flag indicating if this class contains an active and inverse associated spin rotation.
     fn is_su2_class_1(&self) -> bool {
-        self.representative
-            .as_ref()
+        self.representatives()
             .expect("No representative element found for this class.")
-            .is_su2_class_1()
+            .iter()
+            .all(|rep| rep.is_su2_class_1())
     }
 }
 
@@ -720,7 +712,7 @@ impl<R: FiniteOrder + Clone> FiniteOrder for SymmetryClassSymbol<R> {
     type Int = R::Int;
 
     fn order(&self) -> Self::Int {
-        self.representative
+        self.representative()
             .as_ref()
             .expect("No representative element found for this class.")
             .order()

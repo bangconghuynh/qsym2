@@ -82,26 +82,39 @@ where
 pub trait CollectionSymbol: MathematicalSymbol {
     type CollectionElement;
 
-    /// Constructs a collection symbol from a string and a representative collection element.
+    /// Constructs a collection symbol from a string and one or more representative collection
+    /// elements.
     ///
     /// # Arguments
     ///
     /// * `symstr` - A string to be parsed.
-    /// * `rep` - A representative collection element.
+    /// * `reps` - A vector of one or more representative collection elements.
     ///
     /// # Errors
     ///
     /// Returns an error if `symstr` cannot be parsed.
-    fn from_rep(
+    fn from_reps(
         symstr: &str,
-        rep: Option<Self::CollectionElement>,
+        reps: Option<Vec<Self::CollectionElement>>,
     ) -> Result<Self, GenericSymbolParsingError>;
 
-    /// The size of the collection.
-    fn size(&self) -> usize;
+    /// The first representative element of the collection.
+    fn representative(&self) -> Option<&Self::CollectionElement>;
 
-    /// The representative element of the collection.
-    fn representative(&self) -> Option<Self::CollectionElement>;
+    /// All representative elements of the collection.
+    fn representatives(&self) -> Option<&Vec<Self::CollectionElement>>;
+
+    /// The size of the collection which is given by the number of representative elements
+    /// multiplied by the multiplicity of the symbol. If no representative elements exist, then the
+    /// size is taken to be the multiplicity of the symbol itself.
+    fn size(&self) -> usize {
+        self.multiplicity().unwrap_or_else(|| {
+            panic!(
+                "Unable to deduce the multiplicity of the class from the prefactor {}.",
+                self.prefactor()
+            )
+        }) * self.representatives().map(|reps| reps.len()).unwrap_or(1)
+    }
 }
 
 // =======

@@ -157,7 +157,7 @@ pub trait PermutationGroupProperties:
                     .unwrap_or_else(|| panic!("Unknown size for conjugacy class index `{i}`."));
                 PermutationClassSymbol::new(
                     format!("{size}||{cycle_pattern_str}||").as_str(),
-                    Some(rep_ele.clone()),
+                    Some(vec![rep_ele.clone()]),
                 )
                 .unwrap_or_else(|_| {
                     panic!(

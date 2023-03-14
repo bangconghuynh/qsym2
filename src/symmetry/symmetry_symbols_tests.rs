@@ -2,12 +2,11 @@ use std::collections::HashSet;
 
 use nalgebra::Vector3;
 
+use crate::chartab::chartab_symbols::{CollectionSymbol, MathematicalSymbol};
 use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
-use crate::symmetry::symmetry_element::{
-    RotationGroup, SymmetryElement, SymmetryElementKind,
-};
+use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SymmetryElementKind};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_symbols::{
     MullikenIrcorepSymbol, MullikenIrrepSymbol, SymmetryClassSymbol,
@@ -46,10 +45,23 @@ fn test_symmetry_symbols_class() {
         .power(1)
         .build()
         .unwrap();
+    let c3pm1 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
 
-    let c3_cls = SymmetryClassSymbol::new("2||C3||", Some(c3)).unwrap();
+    let c3_cls = SymmetryClassSymbol::new("2||C3||", Some(vec![c3.clone()])).unwrap();
     assert_eq!(c3_cls.to_string(), "2|C3|");
     assert!(c3_cls.is_proper());
+    assert_eq!(c3_cls.multiplicity(), Some(2));
+    assert_eq!(c3_cls.size(), 2);
+
+    let c3_cls2 = SymmetryClassSymbol::new("1||C3, C3^(-1)||", Some(vec![c3, c3pm1])).unwrap();
+    assert_eq!(c3_cls2.to_string(), "|C3, C3^(-1)|");
+    assert!(c3_cls2.is_proper());
+    assert_eq!(c3_cls2.multiplicity(), Some(1));
+    assert_eq!(c3_cls2.size(), 2);
 
     let i_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -66,7 +78,7 @@ fn test_symmetry_symbols_class() {
         .build()
         .unwrap();
 
-    let i_cls = SymmetryClassSymbol::new("1||i||", Some(i)).unwrap();
+    let i_cls = SymmetryClassSymbol::new("1||i||", Some(vec![i])).unwrap();
     assert_eq!(i_cls.to_string(), "|i|");
     assert!(!i_cls.is_proper());
     assert!(i_cls.is_inversion());
@@ -87,7 +99,7 @@ fn test_symmetry_symbols_class() {
         .build()
         .unwrap();
 
-    let s_cls = SymmetryClassSymbol::new("1||σ|_(h)|", Some(s)).unwrap();
+    let s_cls = SymmetryClassSymbol::new("1||σ|_(h)|", Some(vec![s])).unwrap();
     assert_eq!(s_cls.to_string(), "|σ|_(h)");
     assert!(!s_cls.is_proper());
     assert!(s_cls.is_reflection());
