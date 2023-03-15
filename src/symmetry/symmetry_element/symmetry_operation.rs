@@ -544,7 +544,7 @@ impl SymmetryOperation {
                 } else {
                     // Identity or inversion
                     assert!(total_proper_fraction.is_zero());
-                    Point3::origin()
+                    Point3::from(Vector3::z())
                 }
             }
             ElementOrder::Inf => {
@@ -573,7 +573,86 @@ impl SymmetryOperation {
                         max_relative = op.generating_element.threshold,
                         epsilon = op.generating_element.threshold
                     );
-                    Point3::origin()
+                    Point3::from(Vector3::z())
+                }
+            }
+        }
+    }
+
+    /// Finds the pole associated with the proper rotation of this operation.
+    ///
+    /// This is the point on the unit sphere that is left invariant by the proper rotation part of
+    /// the operation.
+    ///
+    /// For improper operations, no conversions will be performed, unlike in [`calc_pole`].
+    ///
+    /// Note that binary rotations have unique poles on the positive hemisphere (*i.e.*,
+    /// $`C_2(\hat{\mathbf{n}}) = C_2^{-1}(\hat{\mathbf{n}})`$ and
+    /// $`\sigma(\hat{\mathbf{n}}) = \sigma^{-1}(\hat{\mathbf{n}})`$).
+    ///
+    /// See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover
+    /// Publications, Inc., New York, 2005) (Chapter 9) for further information.
+    ///
+    /// # Returns
+    ///
+    /// The pole associated with the proper rotation of this operation.
+    ///
+    /// # Panics
+    ///
+    /// Panics when no total proper fractions could be found for this operation.
+    #[must_use]
+    pub fn calc_proper_rotation_pole(&self) -> Point3<f64> {
+        match *self.generating_element.raw_proper_order() {
+            ElementOrder::Int(_) => {
+                let frac_1_2 = F::new(1u32, 2u32);
+                let total_proper_fraction = self
+                    .total_proper_fraction
+                    .expect("No total proper fractions found.");
+                if total_proper_fraction == frac_1_2 {
+                    // Binary rotations or reflections
+                    Point3::from(geometry::get_positive_pole(
+                        &self.generating_element.raw_axis,
+                        self.generating_element.threshold,
+                    ))
+                } else if total_proper_fraction > F::zero() {
+                    // Positive rotation angles
+                    Point3::from(self.generating_element.raw_axis)
+                } else if total_proper_fraction < F::zero() {
+                    // Negative rotation angles
+                    Point3::from(-self.generating_element.raw_axis)
+                } else {
+                    // Identity or inversion
+                    assert!(total_proper_fraction.is_zero());
+                    Point3::from(Vector3::z())
+                }
+            }
+            ElementOrder::Inf => {
+                if approx::relative_eq!(
+                    self.total_proper_angle,
+                    std::f64::consts::PI,
+                    max_relative = self.generating_element.threshold,
+                    epsilon = self.generating_element.threshold
+                ) {
+                    // Binary rotations or reflections
+                    Point3::from(geometry::get_positive_pole(
+                        &self.generating_element.raw_axis,
+                        self.generating_element.threshold,
+                    ))
+                } else if approx::relative_ne!(
+                    self.total_proper_angle,
+                    0.0,
+                    max_relative = self.generating_element.threshold,
+                    epsilon = self.generating_element.threshold
+                ) {
+                    Point3::from(self.total_proper_angle.signum() * self.generating_element.raw_axis)
+                } else {
+                    approx::assert_relative_eq!(
+                        self.total_proper_angle,
+                        0.0,
+                        max_relative = self.generating_element.threshold,
+                        epsilon = self.generating_element.threshold
+                    );
+                    Point3::from(Vector3::z())
                 }
             }
         }
@@ -637,25 +716,69 @@ impl SymmetryOperation {
             .expect("Unable to construct a symmetry operation.")
     }
 
+    /// Converts the current symmetry operation $`O`$ to an equivalent symmetry element $`E`$ such
+    /// that $`O = E^1`$.
+    ///
+    /// The proper rotation axis of $`E`$ is the proper rotation pole (*not* the overall pole) of
+    /// $`O`$, and the proper rotation angle of $`E`$ is the total proper rotation angle of $`O`$,
+    /// either as an (order, power) integer tuple or an angle floating-point number.
+    ///
+    /// If $`O`$ is improper, then the improper generating element for $`E`$ is the same as that in
+    /// the generating element of $`O`$.
+    ///
+    /// # Returns
+    ///
+    /// The equivalent symmetry element $`E`$.
+    pub fn to_symmetry_element(&self) -> SymmetryElement {
+        let kind = if self.is_proper() {
+            let tr = self.is_antiunitary();
+            SymmetryElementKind::Proper(tr)
+        } else {
+            self.generating_element.kind.clone()
+        };
+        let rotation_group = if self.is_su2_class_1() {
+            SU2_1
+        } else if self.is_su2() {
+            SU2_0
+        } else {
+            SO3
+        };
+        if let Some(total_proper_fraction) = self.total_proper_fraction {
+            let proper_order = *total_proper_fraction
+                .denom()
+                .expect("Unable to extract the denominator of the total proper fraction.");
+            let numer = *total_proper_fraction
+                .numer()
+                .expect("Unable to extract the numerator of the total proper fraction.");
+            let proper_power = i32::try_from(numer).expect("Unable to convert the numerator to `i32`.");
+            SymmetryElement::builder()
+                .threshold(self.generating_element.threshold())
+                .proper_order(ElementOrder::Int(proper_order))
+                .proper_power(proper_power)
+                .raw_axis(self.calc_proper_rotation_pole().coords)
+                .kind(kind)
+                .rotation_group(rotation_group)
+                .build()
+                .unwrap()
+        } else {
+            let proper_angle = self.total_proper_angle;
+            SymmetryElement::builder()
+                .threshold(self.generating_element.threshold())
+                .proper_order(ElementOrder::Inf)
+                .proper_angle(proper_angle)
+                .raw_axis(self.calc_proper_rotation_pole().coords)
+                .kind(kind)
+                .rotation_group(rotation_group)
+                .build()
+                .unwrap()
+        }
+    }
+
     /// Generates the abbreviated symbol for this symmetry operation, which classifies
     /// certain improper axes into inversion centres or mirror planes,
     #[must_use]
     pub fn get_abbreviated_symbol(&self) -> String {
-        if self.power == 1 {
-            self.generating_element.get_simplified_symbol_signed_power()
-        } else if self.power >= 0 {
-            format!(
-                "[{}]^{}",
-                self.generating_element.get_simplified_symbol_signed_power(),
-                self.power
-            )
-        } else {
-            format!(
-                "[{}]^({})",
-                self.generating_element.get_simplified_symbol_signed_power(),
-                self.power
-            )
-        }
+        self.to_symmetry_element().get_simplified_symbol_signed_power()
     }
 
     /// Returns the representation matrix for the spatial part of this symmetry operation.

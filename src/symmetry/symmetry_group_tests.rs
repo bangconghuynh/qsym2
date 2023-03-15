@@ -1879,39 +1879,39 @@ fn test_ur_group_symmetric_arbitrary_half_sandwich_magnetic_field_bw_cnv_cn() {
     }
 }
 
-// /***
-// Cn*
-// ***/
+/***
+Cn*
+***/
 
-// #[test]
-// fn test_ur_group_symmetric_ch4_magnetic_field_c3_double() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
-//     let thresh = 1e-6;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-//     test_ur_ordinary_double_group(&mol, thresh, "C3*", 6, 6, true);
-// }
+#[test]
+fn test_ur_group_symmetric_ch4_magnetic_field_c3_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    test_ur_ordinary_double_group(&mol, thresh, "C3*", 6, 6, true);
+}
 
-// #[test]
-// fn test_ur_group_symmetric_ch4_magnetic_field_c3_double_class_order() {
-//     env_logger::init();
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
-//     let thresh = 1e-6;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-//     test_ur_ordinary_double_group_class_order(
-//         &mol,
-//         thresh,
-//         &[
-//             "|E(Σ)|",
-//             "|E(QΣ)|",
-//             "|C3(Σ)|",
-//             "|C3(QΣ)|",
-//             "|[C3]^2|",
-//             "|[C3]^2|",
-//         ],
-//     );
-// }
+#[test]
+fn test_ur_group_symmetric_ch4_magnetic_field_c3_double_class_order() {
+    env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C3(Σ)|",
+            "|C3^(-1)(Σ)|",
+            "|C3(QΣ)|",
+            "|C3^(-1)(QΣ)|",
+        ],
+    );
+}
 
 /*
 Cnv

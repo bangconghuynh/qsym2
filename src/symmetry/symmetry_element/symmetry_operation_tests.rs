@@ -1941,14 +1941,14 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c1.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(c1.calc_pole(), Point3::from(Vector3::z()));
 
     let c1b = SymmetryOperation::builder()
         .generating_element(c1_element)
         .power(-3)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c1b.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(c1b.calc_pole(), Point3::from(Vector3::z()));
 
     let c2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1982,7 +1982,7 @@ fn test_symmetry_operation_poles() {
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c2p2.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(c2p2.calc_pole(), Point3::from(Vector3::z()));
 
     let c2b_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2063,7 +2063,7 @@ fn test_symmetry_operation_poles() {
         .power(3)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c3p3.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(c3p3.calc_pole(), Point3::from(Vector3::z()));
 
     let c3p4 = SymmetryOperation::builder()
         .generating_element(c3_element.clone())
@@ -2164,7 +2164,7 @@ fn test_symmetry_operation_poles() {
         .power(4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c4p4.calc_pole(), -Point3::origin());
+    approx::assert_relative_eq!(c4p4.calc_pole(), Point3::from(Vector3::z()));
 
     let c7_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2218,7 +2218,7 @@ fn test_symmetry_operation_poles() {
         .power(7)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c7p7.calc_pole(), -Point3::origin());
+    approx::assert_relative_eq!(c7p7.calc_pole(), Point3::from(Vector3::z()));
 
     let ci_element = SymmetryElement::builder()
         .threshold(1e-7)
@@ -2282,7 +2282,7 @@ fn test_symmetry_operation_poles() {
         .power(6)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(cip6.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(cip6.calc_pole(), Point3::from(Vector3::z()));
 
     // ============================
     // Improper symmetry operations
@@ -2312,7 +2312,7 @@ fn test_symmetry_operation_poles() {
         .power(-2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s1pm2.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(s1pm2.calc_pole(), Point3::from(Vector3::z()));
 
     let s1pm2c = s1pm2.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s1pm2.calc_pole(), s1pm2c.calc_pole());
@@ -2342,7 +2342,7 @@ fn test_symmetry_operation_poles() {
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd2p2.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(sd2p2.calc_pole(), Point3::from(Vector3::z()));
 
     let sd2p2c = sd2p2.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(sd2p2.calc_pole(), sd2p2c.calc_pole());
@@ -2362,7 +2362,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd2pp2.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(sd2pp2.calc_pole(), Point3::from(Vector3::z()));
 
     let sd2pp2c = sd2pp2.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(sd2pp2.calc_pole(), sd2pp2c.calc_pole());
@@ -2382,7 +2382,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s2.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(s2.calc_pole(), Point3::from(Vector3::z()));
 
     let s2c = s2.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s2.calc_pole(), s2c.calc_pole());
@@ -2392,7 +2392,7 @@ fn test_symmetry_operation_poles() {
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s2p2.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(s2p2.calc_pole(), Point3::from(Vector3::z()));
 
     let s2p2c = s2p2.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s2p2.calc_pole(), s2p2c.calc_pole());
@@ -2422,7 +2422,7 @@ fn test_symmetry_operation_poles() {
         .power(4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s2pp2p4.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(s2pp2p4.calc_pole(), Point3::from(Vector3::z()));
 
     let s2pp2p4c = s2pp2p4.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(s2pp2p4.calc_pole(), s2pp2p4c.calc_pole());
@@ -2442,7 +2442,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd1.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(sd1.calc_pole(), Point3::from(Vector3::z()));
 
     let sd1c = sd1.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(sd1.calc_pole(), sd1c.calc_pole());
@@ -2452,7 +2452,7 @@ fn test_symmetry_operation_poles() {
         .power(-2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd1pm2.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(sd1pm2.calc_pole(), Point3::from(Vector3::z()));
 
     let sd1pm2c = sd1pm2.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(sd1pm2.calc_pole(), sd1pm2c.calc_pole());
@@ -2552,14 +2552,14 @@ fn test_symmetry_operation_poles() {
         .power(6)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3p6.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(s3p6.calc_pole(), Point3::from(Vector3::z()));
 
     let s3pm6 = SymmetryOperation::builder()
         .generating_element(s3_element)
         .power(-6)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pm6.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(s3pm6.calc_pole(), Point3::from(Vector3::z()));
 
     let s3pp2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2614,7 +2614,7 @@ fn test_symmetry_operation_poles() {
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pp3p2.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(s3pp3p2.calc_pole(), Point3::from(Vector3::z()));
 
     let sd3_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2648,7 +2648,7 @@ fn test_symmetry_operation_poles() {
         .power(3)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd3p3.calc_pole(), Point3::origin());
+    approx::assert_relative_eq!(sd3p3.calc_pole(), Point3::from(Vector3::z()));
 
     let s7_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -7377,4 +7377,1543 @@ fn test_symmetry_operation_su2_comparison() {
         .unwrap();
     assert_eq!(c5_nsr_p10, c7_nsr_p14);
     assert!(c5_nsr_p10.is_identity() && !c5_nsr_p10.is_su2_class_1());
+}
+
+#[test]
+fn test_symmetry_operation_abbreviated_symbols() {
+    // ==========================
+    // Proper symmetry operations
+    // ==========================
+    let c1_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let c1p1 = SymmetryOperation::builder()
+        .generating_element(c1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c1p1.get_abbreviated_symbol(), "E");
+
+    let c1pm1 = SymmetryOperation::builder()
+        .generating_element(c1_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&c1pm1.get_abbreviated_symbol(), "E");
+
+    let c1p2 = SymmetryOperation::builder()
+        .generating_element(c1_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c1p2.get_abbreviated_symbol(), "E");
+
+    let c2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let c2p1 = SymmetryOperation::builder()
+        .generating_element(c2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c2p1.get_abbreviated_symbol(), "C2");
+
+    let c2pm1 = SymmetryOperation::builder()
+        .generating_element(c2_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&c2pm1.get_abbreviated_symbol(), "C2");
+
+    let c2p2 = SymmetryOperation::builder()
+        .generating_element(c2_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c2p2.get_abbreviated_symbol(), "E");
+
+    let c2pm2 = SymmetryOperation::builder()
+        .generating_element(c2_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&c2pm2.get_abbreviated_symbol(), "E");
+
+    let c2b_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, -1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let c2bp1 = SymmetryOperation::builder()
+        .generating_element(c2b_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c2bp1.get_abbreviated_symbol(), "C2");
+
+    let c2bpm1 = SymmetryOperation::builder()
+        .generating_element(c2b_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&c2bpm1.get_abbreviated_symbol(), "C2");
+
+    let c3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let c3p1 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c3p1.get_abbreviated_symbol(), "C3");
+
+    let c3pm1 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&c3pm1.get_abbreviated_symbol(), "C3^(-1)");
+
+    let c3p2 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c3p2.get_abbreviated_symbol(), "C3^(-1)");
+
+    let c3pm2 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&c3pm2.get_abbreviated_symbol(), "C3");
+
+    let c3b_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, -1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let c3bp1 = SymmetryOperation::builder()
+        .generating_element(c3b_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c3bp1.get_abbreviated_symbol(), "C3^(-1)");
+
+    let c3bpm1 = SymmetryOperation::builder()
+        .generating_element(c3b_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&c3bpm1.get_abbreviated_symbol(), "C3");
+
+    let c3bp2 = SymmetryOperation::builder()
+        .generating_element(c3b_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c3bp2.get_abbreviated_symbol(), "C3");
+
+    let c3bpm2 = SymmetryOperation::builder()
+        .generating_element(c3b_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&c3bpm2.get_abbreviated_symbol(), "C3^(-1)");
+
+    let c4_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let c4p1 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c4p1.get_abbreviated_symbol(), "C4");
+
+    let c4pm1 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&c4pm1.get_abbreviated_symbol(), "C4^(-1)");
+
+    let c4p2 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c4p2.get_abbreviated_symbol(), "C2");
+
+    let c4pm2 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&c4pm2.get_abbreviated_symbol(), "C2");
+
+    let c4p3 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&c4p3.get_abbreviated_symbol(), "C4^(-1)");
+
+    let c4pm3 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(&c4pm3.get_abbreviated_symbol(), "C4");
+
+    // ============================
+    // Improper symmetry operations
+    // ============================
+    let s1_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let s1p1 = SymmetryOperation::builder()
+        .generating_element(s1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s1p1.get_abbreviated_symbol(), "σ");
+
+    let s1pm1 = SymmetryOperation::builder()
+        .generating_element(s1_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&s1pm1.get_abbreviated_symbol(), "σ");
+
+    let s1p2 = SymmetryOperation::builder()
+        .generating_element(s1_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&s1p2.get_abbreviated_symbol(), "E");
+
+    let s1pm2 = SymmetryOperation::builder()
+        .generating_element(s1_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&s1pm2.get_abbreviated_symbol(), "E");
+
+    let sd1_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(INV)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let sd1p1 = SymmetryOperation::builder()
+        .generating_element(sd1_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd1p1.get_abbreviated_symbol(), "i");
+
+    let sd1pm1 = SymmetryOperation::builder()
+        .generating_element(sd1_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd1pm1.get_abbreviated_symbol(), "i");
+
+    let sd1p2 = SymmetryOperation::builder()
+        .generating_element(sd1_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd1p2.get_abbreviated_symbol(), "E");
+
+    let sd1pm2 = SymmetryOperation::builder()
+        .generating_element(sd1_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd1pm2.get_abbreviated_symbol(), "E");
+
+    let s2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, -1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let s2p1 = SymmetryOperation::builder()
+        .generating_element(s2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s2p1.get_abbreviated_symbol(), "i");
+
+    let s2pm1 = SymmetryOperation::builder()
+        .generating_element(s2_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&s2pm1.get_abbreviated_symbol(), "i");
+
+    let s2p2 = SymmetryOperation::builder()
+        .generating_element(s2_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&s2p2.get_abbreviated_symbol(), "E");
+
+    let s2pm2 = SymmetryOperation::builder()
+        .generating_element(s2_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&s2pm2.get_abbreviated_symbol(), "E");
+
+    let sd2_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, -1.0))
+        .kind(INV)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let sd2p1 = SymmetryOperation::builder()
+        .generating_element(sd2_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2p1.get_abbreviated_symbol(), "σ");
+
+    let sd2pm1 = SymmetryOperation::builder()
+        .generating_element(sd2_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2pm1.get_abbreviated_symbol(), "σ");
+
+    let sd2p2 = SymmetryOperation::builder()
+        .generating_element(sd2_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2p2.get_abbreviated_symbol(), "E");
+
+    let sd2pm2 = SymmetryOperation::builder()
+        .generating_element(sd2_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2pm2.get_abbreviated_symbol(), "E");
+
+    let s3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let s3p1 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s3p1.get_abbreviated_symbol(), "S3");
+
+    let s3pm1 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&s3pm1.get_abbreviated_symbol(), "S3^(-1)");
+
+    let s3p2 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&s3p2.get_abbreviated_symbol(), "C3^(-1)");
+
+    let s3pm2 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&s3pm2.get_abbreviated_symbol(), "C3");
+
+    let s3p3 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&s3p3.get_abbreviated_symbol(), "σ");
+
+    let s3pm3 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(&s3pm3.get_abbreviated_symbol(), "σ");
+
+    let s3p4 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&s3p4.get_abbreviated_symbol(), "C3");
+
+    let s3pm4 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(-4)
+        .build()
+        .unwrap();
+    assert_eq!(&s3pm4.get_abbreviated_symbol(), "C3^(-1)");
+
+    let s3p5 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(&s3p5.get_abbreviated_symbol(), "S3^(-1)");
+
+    let s3pm5 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(-5)
+        .build()
+        .unwrap();
+    assert_eq!(&s3pm5.get_abbreviated_symbol(), "S3");
+
+    let sd3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(INV)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let sd3p1 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3p1.get_abbreviated_symbol(), "Ṡ3");
+
+    let sd3pm1 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3pm1.get_abbreviated_symbol(), "Ṡ3^(-1)");
+
+    let sd3p2 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3p2.get_abbreviated_symbol(), "C3^(-1)");
+
+    let sd3pm2 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3pm2.get_abbreviated_symbol(), "C3");
+
+    let sd3p3 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3p3.get_abbreviated_symbol(), "i");
+
+    let sd3pm3 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3pm3.get_abbreviated_symbol(), "i");
+
+    let sd3p4 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3p4.get_abbreviated_symbol(), "C3");
+
+    let sd3pm4 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(-4)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3pm4.get_abbreviated_symbol(), "C3^(-1)");
+
+    let sd3p5 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3p5.get_abbreviated_symbol(), "Ṡ3^(-1)");
+
+    let sd3pm5 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(-5)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3pm5.get_abbreviated_symbol(), "Ṡ3");
+
+    let sd3p6 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3p6.get_abbreviated_symbol(), "E");
+
+    let sd3pm6 = SymmetryOperation::builder()
+        .generating_element(sd3_element.clone())
+        .power(-6)
+        .build()
+        .unwrap();
+    assert_eq!(&sd3pm6.get_abbreviated_symbol(), "E");
+
+    let s4_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let s4p1 = SymmetryOperation::builder()
+        .generating_element(s4_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s4p1.get_abbreviated_symbol(), "S4");
+
+    let s4pm1 = SymmetryOperation::builder()
+        .generating_element(s4_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&s4pm1.get_abbreviated_symbol(), "S4^(-1)");
+
+    let s4p2 = SymmetryOperation::builder()
+        .generating_element(s4_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&s4p2.get_abbreviated_symbol(), "C2");
+
+    let s4pm2 = SymmetryOperation::builder()
+        .generating_element(s4_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&s4pm2.get_abbreviated_symbol(), "C2");
+
+    let s4p3 = SymmetryOperation::builder()
+        .generating_element(s4_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&s4p3.get_abbreviated_symbol(), "S4^(-1)");
+
+    let s4pm3 = SymmetryOperation::builder()
+        .generating_element(s4_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(&s4pm3.get_abbreviated_symbol(), "S4");
+
+    let s4p4 = SymmetryOperation::builder()
+        .generating_element(s4_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&s4p4.get_abbreviated_symbol(), "E");
+
+    let s4pm4 = SymmetryOperation::builder()
+        .generating_element(s4_element.clone())
+        .power(-4)
+        .build()
+        .unwrap();
+    assert_eq!(&s4pm4.get_abbreviated_symbol(), "E");
+
+    let sd4_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(INV)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let sd4p1 = SymmetryOperation::builder()
+        .generating_element(sd4_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd4p1.get_abbreviated_symbol(), "Ṡ4");
+
+    let sd4pm1 = SymmetryOperation::builder()
+        .generating_element(sd4_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd4pm1.get_abbreviated_symbol(), "Ṡ4^(-1)");
+
+    let sd4p2 = SymmetryOperation::builder()
+        .generating_element(sd4_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd4p2.get_abbreviated_symbol(), "C2");
+
+    let sd4pm2 = SymmetryOperation::builder()
+        .generating_element(sd4_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd4pm2.get_abbreviated_symbol(), "C2");
+
+    let sd4p3 = SymmetryOperation::builder()
+        .generating_element(sd4_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&sd4p3.get_abbreviated_symbol(), "Ṡ4^(-1)");
+
+    let sd4pm3 = SymmetryOperation::builder()
+        .generating_element(sd4_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(&sd4pm3.get_abbreviated_symbol(), "Ṡ4");
+
+    let sd4p4 = SymmetryOperation::builder()
+        .generating_element(sd4_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&sd4p4.get_abbreviated_symbol(), "E");
+
+    let sd4pm4 = SymmetryOperation::builder()
+        .generating_element(sd4_element.clone())
+        .power(-4)
+        .build()
+        .unwrap();
+    assert_eq!(&sd4pm4.get_abbreviated_symbol(), "E");
+
+    let s7_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(7))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 0.0, 1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SO3)
+        .build()
+        .unwrap();
+
+    let s7p1 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s7p1.get_abbreviated_symbol(), "S7");
+
+    let s7pm1 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&s7pm1.get_abbreviated_symbol(), "S7^(-1)");
+
+    let s7p2 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&s7p2.get_abbreviated_symbol(), "C7^2");
+
+    let s7pm2 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&s7pm2.get_abbreviated_symbol(), "C7^(-2)");
+
+    let s7p3 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&s7p3.get_abbreviated_symbol(), "σC7^3");
+
+    let s7pm3 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(&s7pm3.get_abbreviated_symbol(), "σC7^(-3)");
+
+    let s7p4 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&s7p4.get_abbreviated_symbol(), "C7^(-3)");
+
+    let s7pm4 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(-4)
+        .build()
+        .unwrap();
+    assert_eq!(&s7pm4.get_abbreviated_symbol(), "C7^3");
+
+    let s7p5 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(&s7p5.get_abbreviated_symbol(), "σC7^(-2)");
+
+    let s7pm5 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(-5)
+        .build()
+        .unwrap();
+    assert_eq!(&s7pm5.get_abbreviated_symbol(), "σC7^2");
+
+    let s7p6 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(&s7p6.get_abbreviated_symbol(), "C7^(-1)");
+
+    let s7pm6 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(-6)
+        .build()
+        .unwrap();
+    assert_eq!(&s7pm6.get_abbreviated_symbol(), "C7");
+
+    let s7p7 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(7)
+        .build()
+        .unwrap();
+    assert_eq!(&s7p7.get_abbreviated_symbol(), "σ");
+
+    let s7pm7 = SymmetryOperation::builder()
+        .generating_element(s7_element.clone())
+        .power(-7)
+        .build()
+        .unwrap();
+    assert_eq!(&s7pm7.get_abbreviated_symbol(), "σ");
+}
+
+#[test]
+fn test_symmetry_operation_su2_abbreviated_symbols() {
+    // ==========================
+    // Proper symmetry operations
+    // ==========================
+    let c1_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c1_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c1_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c1_nsr_p1.get_abbreviated_symbol(), "E(Σ)");
+
+    let c1_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c1_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c1_nsr_p2.get_abbreviated_symbol(), "E(Σ)");
+
+    let c1_isr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(false))
+        .build()
+        .unwrap();
+
+    let c1_isr_p1 = SymmetryOperation::builder()
+        .generating_element(c1_isr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c1_isr_p1.get_abbreviated_symbol(), "E(QΣ)");
+
+    let c1_isr_p2 = SymmetryOperation::builder()
+        .generating_element(c1_isr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c1_isr_p2.get_abbreviated_symbol(), "E(Σ)");
+
+    let c2_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c2_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c2_nsr_p1.get_abbreviated_symbol(), "C2(Σ)");
+
+    let c2_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c2_nsr_p2.get_abbreviated_symbol(), "E(QΣ)");
+
+    let c2_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&c2_nsr_p3.get_abbreviated_symbol(), "C2(QΣ)");
+
+    let c2_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&c2_nsr_p4.get_abbreviated_symbol(), "E(Σ)");
+
+    let c2_isr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, -2.0, 0.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(false))
+        .build()
+        .unwrap();
+
+    let c2_isr_p1 = SymmetryOperation::builder()
+        .generating_element(c2_isr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c2_isr_p1.get_abbreviated_symbol(), "C2(QΣ)");
+
+    let c2_isr_p2 = SymmetryOperation::builder()
+        .generating_element(c2_isr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c2_isr_p2.get_abbreviated_symbol(), "E(QΣ)");
+
+    let c2_isr_p3 = SymmetryOperation::builder()
+        .generating_element(c2_isr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&c2_isr_p3.get_abbreviated_symbol(), "C2(Σ)");
+
+    let c2_isr_p4 = SymmetryOperation::builder()
+        .generating_element(c2_isr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&c2_isr_p4.get_abbreviated_symbol(), "E(Σ)");
+
+    let c3_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, -1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c3_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c3_nsr_p1.get_abbreviated_symbol(), "C3^(-1)(Σ)");
+
+    let c3_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c3_nsr_p2.get_abbreviated_symbol(), "C3(QΣ)");
+
+    let c3_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&c3_nsr_p3.get_abbreviated_symbol(), "E(QΣ)");
+
+    let c3_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&c3_nsr_p4.get_abbreviated_symbol(), "C3^(-1)(QΣ)");
+
+    let c3_nsr_p5 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(&c3_nsr_p5.get_abbreviated_symbol(), "C3(Σ)");
+
+    let c3_nsr_p6 = SymmetryOperation::builder()
+        .generating_element(c3_nsr_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(&c3_nsr_p6.get_abbreviated_symbol(), "E(Σ)");
+
+    let c7_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(7))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 1.0))
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c7_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p1.get_abbreviated_symbol(), "C7(Σ)");
+
+    let c7_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p2.get_abbreviated_symbol(), "C7^2(Σ)");
+
+    let c7_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p3.get_abbreviated_symbol(), "C7^3(Σ)");
+
+    let c7_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p4.get_abbreviated_symbol(), "C7^(-3)(QΣ)");
+
+    let c7_nsr_p5 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p5.get_abbreviated_symbol(), "C7^(-2)(QΣ)");
+
+    let c7_nsr_p6 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p6.get_abbreviated_symbol(), "C7^(-1)(QΣ)");
+
+    let c7_nsr_p7 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(7)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p7.get_abbreviated_symbol(), "E(QΣ)");
+
+    let c7_nsr_p8 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(8)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p8.get_abbreviated_symbol(), "C7(QΣ)");
+
+    let c7_nsr_p9 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(9)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p9.get_abbreviated_symbol(), "C7^2(QΣ)");
+
+    let c7_nsr_p10 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(10)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p10.get_abbreviated_symbol(), "C7^3(QΣ)");
+
+    let c7_nsr_p11 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(11)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p11.get_abbreviated_symbol(), "C7^(-3)(Σ)");
+
+    let c7_nsr_p12 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(12)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p12.get_abbreviated_symbol(), "C7^(-2)(Σ)");
+
+    let c7_nsr_p13 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(13)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p13.get_abbreviated_symbol(), "C7^(-1)(Σ)");
+
+    let c7_nsr_p14 = SymmetryOperation::builder()
+        .generating_element(c7_nsr_element.clone())
+        .power(14)
+        .build()
+        .unwrap();
+    assert_eq!(&c7_nsr_p14.get_abbreviated_symbol(), "E(Σ)");
+
+    // ============================
+    // Improper symmetry operations
+    // ============================
+    let s1_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let s1_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s1_nsr_p1.get_abbreviated_symbol(), "σ(Σ)");
+
+    let s1_nsr_pm1 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&s1_nsr_pm1.get_abbreviated_symbol(), "σ(QΣ)");
+
+    let s1_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&s1_nsr_p2.get_abbreviated_symbol(), "E(QΣ)");
+
+    let s1_nsr_pm2 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&s1_nsr_pm2.get_abbreviated_symbol(), "E(QΣ)");
+
+    let s1_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&s1_nsr_p3.get_abbreviated_symbol(), "σ(QΣ)");
+
+    let s1_nsr_pm3 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(&s1_nsr_pm3.get_abbreviated_symbol(), "σ(Σ)");
+
+    let s1_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&s1_nsr_p4.get_abbreviated_symbol(), "E(Σ)");
+
+    let s1_nsr_pm4 = SymmetryOperation::builder()
+        .generating_element(s1_nsr_element.clone())
+        .power(-4)
+        .build()
+        .unwrap();
+    assert_eq!(&s1_nsr_pm4.get_abbreviated_symbol(), "E(Σ)");
+
+    let sd1_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 1.0))
+        .kind(INV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let sd1_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(sd1_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd1_nsr_p1.get_abbreviated_symbol(), "i(Σ)");
+
+    let sd1_nsr_pm1 = SymmetryOperation::builder()
+        .generating_element(sd1_nsr_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd1_nsr_pm1.get_abbreviated_symbol(), "i(Σ)");
+
+    let sd1_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(sd1_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd1_nsr_p2.get_abbreviated_symbol(), "E(Σ)");
+
+    let sd1_nsr_pm2 = SymmetryOperation::builder()
+        .generating_element(sd1_nsr_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd1_nsr_pm2.get_abbreviated_symbol(), "E(Σ)");
+
+    let s2_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let s2_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s2_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s2_nsr_p1.get_abbreviated_symbol(), "i(Σ)");
+
+    let s2_nsr_pm1 = SymmetryOperation::builder()
+        .generating_element(s2_nsr_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&s2_nsr_pm1.get_abbreviated_symbol(), "i(Σ)");
+
+    let s2_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(s2_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&s2_nsr_p2.get_abbreviated_symbol(), "E(Σ)");
+
+    let s2_nsr_pm2 = SymmetryOperation::builder()
+        .generating_element(s2_nsr_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&s2_nsr_pm2.get_abbreviated_symbol(), "E(Σ)");
+
+    let sd2_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 1.0))
+        .kind(INV)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let sd2_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(sd2_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2_nsr_p1.get_abbreviated_symbol(), "σ(Σ)");
+
+    let sd2_nsr_pm1 = SymmetryOperation::builder()
+        .generating_element(sd2_nsr_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2_nsr_pm1.get_abbreviated_symbol(), "σ(QΣ)");
+
+    let sd2_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(sd2_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2_nsr_p2.get_abbreviated_symbol(), "E(QΣ)");
+
+    let sd2_nsr_pm2 = SymmetryOperation::builder()
+        .generating_element(sd2_nsr_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2_nsr_pm2.get_abbreviated_symbol(), "E(QΣ)");
+
+    let sd2_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(sd2_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2_nsr_p3.get_abbreviated_symbol(), "σ(QΣ)");
+
+    let sd2_nsr_pm3 = SymmetryOperation::builder()
+        .generating_element(sd2_nsr_element.clone())
+        .power(-3)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2_nsr_pm3.get_abbreviated_symbol(), "σ(Σ)");
+
+    let sd2_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(sd2_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2_nsr_p4.get_abbreviated_symbol(), "E(Σ)");
+
+    let sd2_nsr_pm4 = SymmetryOperation::builder()
+        .generating_element(sd2_nsr_element.clone())
+        .power(-4)
+        .build()
+        .unwrap();
+    assert_eq!(&sd2_nsr_pm4.get_abbreviated_symbol(), "E(Σ)");
+
+    let s3_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let s3_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p1.get_abbreviated_symbol(), "S3(Σ)");
+
+    let s3_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p2.get_abbreviated_symbol(), "C3^(-1)(Σ)");
+
+    let s3_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p3.get_abbreviated_symbol(), "σ(QΣ)");
+
+    let s3_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p4.get_abbreviated_symbol(), "C3(QΣ)");
+
+    let s3_nsr_p5 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p5.get_abbreviated_symbol(), "S3^(-1)(QΣ)");
+
+    let s3_nsr_p6 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p6.get_abbreviated_symbol(), "E(QΣ)");
+
+    let s3_nsr_p7 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(7)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p7.get_abbreviated_symbol(), "S3(QΣ)");
+
+    let s3_nsr_p8 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(8)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p8.get_abbreviated_symbol(), "C3^(-1)(QΣ)");
+
+    let s3_nsr_p9 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(9)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p9.get_abbreviated_symbol(), "σ(Σ)");
+
+    let s3_nsr_p10 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(10)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p10.get_abbreviated_symbol(), "C3(Σ)");
+
+    let s3_nsr_p11 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(11)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p11.get_abbreviated_symbol(), "S3^(-1)(Σ)");
+
+    let s3_nsr_p12 = SymmetryOperation::builder()
+        .generating_element(s3_nsr_element.clone())
+        .power(12)
+        .build()
+        .unwrap();
+    assert_eq!(&s3_nsr_p12.get_abbreviated_symbol(), "E(Σ)");
+
+    let s4_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 1.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let s4_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s4_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s4_nsr_p1.get_abbreviated_symbol(), "S4(Σ)");
+
+    let s4_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(s4_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&s4_nsr_p2.get_abbreviated_symbol(), "C2(QΣ)");
+
+    let s4_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(s4_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&s4_nsr_p3.get_abbreviated_symbol(), "S4^(-1)(QΣ)");
+
+    let s4_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(s4_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&s4_nsr_p4.get_abbreviated_symbol(), "E(QΣ)");
+
+    let s4_nsr_p5 = SymmetryOperation::builder()
+        .generating_element(s4_nsr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(&s4_nsr_p5.get_abbreviated_symbol(), "S4(QΣ)");
+
+    let s4_nsr_p6 = SymmetryOperation::builder()
+        .generating_element(s4_nsr_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(&s4_nsr_p6.get_abbreviated_symbol(), "C2(Σ)");
+
+    let s4_nsr_p7 = SymmetryOperation::builder()
+        .generating_element(s4_nsr_element.clone())
+        .power(7)
+        .build()
+        .unwrap();
+    assert_eq!(&s4_nsr_p7.get_abbreviated_symbol(), "S4^(-1)(Σ)");
+
+    let s4_nsr_p8 = SymmetryOperation::builder()
+        .generating_element(s4_nsr_element.clone())
+        .power(8)
+        .build()
+        .unwrap();
+    assert_eq!(&s4_nsr_p8.get_abbreviated_symbol(), "E(Σ)");
+
+    let s5_nsr_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 0.0, 0.0))
+        .kind(SIG)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let s5_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(s5_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(&s5_nsr_p1.get_abbreviated_symbol(), "S5(Σ)");
+
+    let s5_nsr_p2 = SymmetryOperation::builder()
+        .generating_element(s5_nsr_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(&s5_nsr_p2.get_abbreviated_symbol(), "C5^2(QΣ)");
+
+    let s5_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(s5_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(&s5_nsr_p3.get_abbreviated_symbol(), "σC5^(-2)(QΣ)");
+
+    let s5_nsr_p4 = SymmetryOperation::builder()
+        .generating_element(s5_nsr_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(&s5_nsr_p4.get_abbreviated_symbol(), "C5^(-1)(QΣ)");
+
+    let s5_nsr_p5 = SymmetryOperation::builder()
+        .generating_element(s5_nsr_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(&s5_nsr_p5.get_abbreviated_symbol(), "σ(Σ)");
+
+    let s5_nsr_p6 = SymmetryOperation::builder()
+        .generating_element(s5_nsr_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(&s5_nsr_p6.get_abbreviated_symbol(), "C5(Σ)");
+
+    let s5_nsr_p7 = SymmetryOperation::builder()
+        .generating_element(s5_nsr_element.clone())
+        .power(7)
+        .build()
+        .unwrap();
+    assert_eq!(&s5_nsr_p7.get_abbreviated_symbol(), "σC5^2(Σ)");
+
+    let s5_nsr_p8 = SymmetryOperation::builder()
+        .generating_element(s5_nsr_element.clone())
+        .power(8)
+        .build()
+        .unwrap();
+    assert_eq!(&s5_nsr_p8.get_abbreviated_symbol(), "C5^(-2)(Σ)");
+
+    let s5_nsr_p9 = SymmetryOperation::builder()
+        .generating_element(s5_nsr_element.clone())
+        .power(9)
+        .build()
+        .unwrap();
+    assert_eq!(&s5_nsr_p9.get_abbreviated_symbol(), "S5^(-1)(QΣ)");
+
+    let s5_nsr_p10 = SymmetryOperation::builder()
+        .generating_element(s5_nsr_element.clone())
+        .power(10)
+        .build()
+        .unwrap();
+    assert_eq!(&s5_nsr_p10.get_abbreviated_symbol(), "E(QΣ)");
+
+    assert_eq!(s5_nsr_p1.order(), 20);
 }
