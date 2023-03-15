@@ -1895,7 +1895,6 @@ fn test_ur_group_symmetric_ch4_magnetic_field_c3_double() {
 
 #[test]
 fn test_ur_group_symmetric_ch4_magnetic_field_c3_double_class_order() {
-    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -1907,8 +1906,8 @@ fn test_ur_group_symmetric_ch4_magnetic_field_c3_double_class_order() {
             "|E(Σ)|",
             "|E(QΣ)|",
             "|C3(Σ)|",
-            "|C3^(-1)(Σ)|",
             "|C3(QΣ)|",
+            "|C3^(-1)(Σ)|",
             "|C3^(-1)(QΣ)|",
         ],
     );
@@ -1916,7 +1915,6 @@ fn test_ur_group_symmetric_ch4_magnetic_field_c3_double_class_order() {
 
 #[test]
 fn test_ur_group_symmetric_h8_twisted_magnetic_field_c4_double() {
-    // env_logger::init();
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
@@ -1925,7 +1923,6 @@ fn test_ur_group_symmetric_h8_twisted_magnetic_field_c4_double() {
 
 #[test]
 fn test_ur_group_symmetric_h8_twisted_magnetic_field_c4_double_class_order() {
-    // env_logger::init();
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
@@ -1936,14 +1933,49 @@ fn test_ur_group_symmetric_h8_twisted_magnetic_field_c4_double_class_order() {
             "|E(Σ)|",
             "|E(QΣ)|",
             "|C4(Σ)|",
-            "|C4^(-1)(Σ)|",
             "|C4(QΣ)|",
+            "|C4^(-1)(Σ)|",
             "|C4^(-1)(QΣ)|",
             "|C2(Σ)|",
             "|C2(QΣ)|",
         ],
     );
 }
+
+#[test]
+fn test_ur_group_symmetric_cpnico_magnetic_field_c5_double() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -0.2)));
+    test_ur_ordinary_double_group(&mol, thresh, "C5*", 10, 10, true);
+}
+
+#[test]
+fn test_ur_group_symmetric_cpnico_magnetic_field_c5_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -0.2)));
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C5(Σ)|",
+            "|C5(QΣ)|",
+            "|C5^2(Σ)|",
+            "|C5^2(QΣ)|",
+            "|C5^(-2)(Σ)|",
+            "|C5^(-2)(QΣ)|",
+            "|C5^(-1)(Σ)|",
+            "|C5^(-1)(QΣ)|"
+        ],
+    );
+}
+
 
 /*
 Cnv
@@ -3086,8 +3118,8 @@ fn test_ur_group_symmetric_eclipsed_ferrocene_magnetic_field_c5h_class_order() {
             "|C5^(-2)|",
             "|C5^(-1)|",
             "|S5|",
-            "|σC5^(-2)|",
             "|σC5^2|",
+            "|σC5^(-2)|",
             "|S5^(-1)|",
             "|σh|",
         ],

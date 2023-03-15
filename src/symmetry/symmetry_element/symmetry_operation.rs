@@ -1508,6 +1508,7 @@ where
 // Utility functions
 // =================
 pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
+    println!("");
     operations.sort_by_key(|op| {
         let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
         let c_op = if op.is_proper()
@@ -1522,25 +1523,48 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
                 op.convert_to_improper_kind(&SIG)
             }
         };
+
+        let total_proper_fraction = c_op
+            .total_proper_fraction
+            .expect("No total proper fractions found.");
+        let denom = i64::try_from(
+            *total_proper_fraction
+                .denom()
+                .expect("The denominator of the total proper fraction cannot be extracted."),
+        )
+        .unwrap_or_else(|_| {
+            panic!(
+                "Unable to convert the denominator of `{:?}` to `i64`.",
+                total_proper_fraction
+            )
+        });
+        let numer = i64::try_from(
+            *total_proper_fraction
+                .numer()
+                .expect("The numerator of the total proper fraction cannot be extracted."),
+        )
+        .unwrap_or_else(|_| {
+            panic!(
+                "Unable to convert the numerator of `{:?}` to `i64`.",
+                total_proper_fraction
+            )
+        });
+
+        let negative_rotation = total_proper_fraction.is_sign_negative()
+            || !geometry::check_positive_pole(
+                &c_op.calc_proper_rotation_pole().coords,
+                c_op.generating_element.threshold(),
+            );
+
         (
             c_op.is_antiunitary(),
             !c_op.is_proper(),
             !(c_op.is_spatial_identity() || c_op.is_spatial_inversion()),
             c_op.is_spatial_binary_rotation() || c_op.is_spatial_reflection(),
-            -(i64::try_from(
-                *c_op
-                    .total_proper_fraction
-                    .expect("No total proper fractions found.")
-                    .denom()
-                    .expect("The denominator of the total proper fraction cannot be extracted."),
-            )
-            .unwrap_or_else(|_| {
-                panic!(
-                    "Unable to convert the denominator of `{:?}` to `i64`.",
-                    c_op.total_proper_fraction
-                )
-            })),
-            c_op.power,
+            -denom,
+            negative_rotation,
+            if negative_rotation { -numer } else { numer },
+            // c_op.power,
             OrderedFloat(axis_closeness),
             closest_axis,
             c_op.is_su2_class_1(),

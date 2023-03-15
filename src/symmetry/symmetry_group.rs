@@ -455,9 +455,6 @@ impl SymmetryGroupProperties
             .collect_vec();
         su2_operations.extend(su2_1_operations.into_iter());
         sort_operations(&mut su2_operations);
-        for (i, op) in su2_operations.iter().enumerate() {
-            println!("Sorted op {i}: {op}");
-        }
 
         let group_name = self.name().clone() + "*";
         let finite_group_name = self.finite_subgroup_name().map(|name| name.clone() + "*");
