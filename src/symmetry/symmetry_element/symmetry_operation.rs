@@ -736,6 +736,16 @@ impl SymmetryOperation {
         } else {
             self.generating_element.kind.clone()
         };
+        let additional_superscript = if self.is_proper() {
+            String::new()
+        } else {
+            self.generating_element.additional_superscript.clone()
+        };
+        let additional_subscript = if self.is_proper() {
+            String::new()
+        } else {
+            self.generating_element.additional_subscript.clone()
+        };
         let rotation_group = if self.is_su2_class_1() {
             SU2_1
         } else if self.is_su2() {
@@ -758,6 +768,8 @@ impl SymmetryOperation {
                 .raw_axis(self.calc_proper_rotation_pole().coords)
                 .kind(kind)
                 .rotation_group(rotation_group)
+                .additional_superscript(additional_superscript)
+                .additional_subscript(additional_subscript)
                 .build()
                 .unwrap()
         } else {
@@ -769,6 +781,8 @@ impl SymmetryOperation {
                 .raw_axis(self.calc_proper_rotation_pole().coords)
                 .kind(kind)
                 .rotation_group(rotation_group)
+                .additional_superscript(additional_superscript)
+                .additional_subscript(additional_subscript)
                 .build()
                 .unwrap()
         }

@@ -565,7 +565,7 @@ impl SymmetryElement {
 
     /// Checks if the proper rotation of the element is in $`\mathsf{SU}(2)`$.
     #[must_use]
-    fn is_su2(&self) -> bool {
+    pub fn is_su2(&self) -> bool {
         self.rotation_group.is_su2()
     }
 
@@ -574,7 +574,7 @@ impl SymmetryElement {
     /// See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover Publications, Inc., New
     /// York, 2005) for further information.
     #[must_use]
-    fn is_su2_class_1(&self) -> bool {
+    pub fn is_su2_class_1(&self) -> bool {
         self.rotation_group.is_su2_class_1()
     }
 

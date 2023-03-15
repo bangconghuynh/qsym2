@@ -620,12 +620,12 @@ fn test_ur_group_spherical_c60_ih_class_order() {
         &[
             "|E|",
             "12|C5|",
-            "12|[C5]^2|",
+            "12|C5^2|",
             "20|C3|",
             "15|C2|",
             "|i|",
             "12|S10|",
-            "12|[S10]^3|",
+            "12|σC10^3|",
             "20|S6|",
             "15|σ|",
         ],
@@ -651,22 +651,22 @@ fn test_ur_group_spherical_c60_grey_ih_class_order() {
         &[
             "|E|",
             "12|C5|",
-            "12|[C5]^2|",
+            "12|C5^2|",
             "20|C3|",
             "15|C2|",
             "|i|",
             "12|S10|",
-            "12|[S10]^3|",
+            "12|σC10^3|",
             "20|S6|",
             "15|σ|",
             "|θ|",
             "12|θ·C5|",
-            "12|[θ·C5]^3|",
+            "12|θ·C5^(-2)|",
             "20|θ·C3|",
             "15|θ·C2|",
             "|θ·i|",
             "12|θ·S10|",
-            "12|[θ·S10]^3|",
+            "12|θ·σC10^3|",
             "20|θ·S6|",
             "15|θ·σ|",
         ],
@@ -1524,7 +1524,7 @@ fn test_ur_group_symmetric_ch4_magnetic_field_c3_class_order() {
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C3|", "|C3^(-1)|"]);
 }
 
 #[test]
@@ -1560,7 +1560,7 @@ fn test_ur_group_symmetric_adamantane_magnetic_field_c3_class_order() {
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.1)));
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C3|", "|C3^(-1)|"]);
 }
 
 #[test]
@@ -1596,7 +1596,7 @@ fn test_ur_group_symmetric_vh2o6_electric_field_c3_class_order() {
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(-0.2, -0.2, -0.2)));
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C3|", "|C3^(-1)|"]);
 }
 
 #[test]
@@ -1617,7 +1617,7 @@ fn test_ur_group_symmetric_vh2o6_electric_field_grey_c3_class_order() {
     test_ur_magnetic_group_class_order(
         &mol,
         thresh,
-        &["|E|", "|C3|", "|[C3]^2|", "|θ|", "|θ·C3|", "|[θ·C3]^5|"],
+        &["|E|", "|C3|", "|C3^(-1)|", "|θ|", "|θ·C3|", "|θ·C3^(-1)|"],
     );
 }
 
@@ -1636,7 +1636,7 @@ fn test_ur_group_symmetric_65coronane_electric_field_c3_class_order() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -1.0)));
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C3|", "|[C3]^2|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C3|", "|C3^(-1)|"]);
 }
 
 #[test]
@@ -1657,7 +1657,7 @@ fn test_ur_group_symmetric_65coronane_electric_field_grey_c3_class_order() {
     test_ur_magnetic_group_class_order(
         &mol,
         thresh,
-        &["|E|", "|C3|", "|[C3]^2|", "|θ|", "|θ·C3|", "|[θ·C3]^5|"],
+        &["|E|", "|C3|", "|C3^(-1)|", "|θ|", "|θ·C3|", "|θ·C3^(-1)|"],
     );
 }
 
@@ -1675,7 +1675,7 @@ fn test_ur_group_symmetric_h8_twisted_magnetic_field_c4_class_order() {
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C4|", "|[C4]^3|", "|C2|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C4|", "|C4^(-1)|", "|C2|"]);
 }
 
 #[test]
@@ -1712,7 +1712,7 @@ fn test_ur_group_symmetric_h8_twisted_electric_field_c4_class_order() {
     let thresh = 1e-7;
     let mut mol = template_molecules::gen_twisted_h8(0.1);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -0.1)));
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C4|", "|[C4]^3|", "|C2|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C4|", "|C4^(-1)|", "|C2|"]);
 }
 
 #[test]
@@ -1734,11 +1734,11 @@ fn test_ur_group_symmetric_h8_twisted_electric_field_grey_c4_class_order() {
         &[
             "|E|",
             "|C4|",
-            "|[C4]^3|",
+            "|C4^(-1)|",
             "|C2|",
             "|θ|",
             "|θ·C4|",
-            "|[θ·C4]^3|",
+            "|θ·C4^(-1)|",
             "|θ·C2|",
         ],
     );
@@ -1763,7 +1763,7 @@ fn test_ur_group_symmetric_cpnico_magnetic_field_c5_class_order() {
     test_ur_ordinary_group_class_order(
         &mol,
         thresh,
-        &["|E|", "|C5|", "|[C5]^2|", "|[C5]^3|", "|[C5]^4|"],
+        &["|E|", "|C5|", "|C5^2|", "|C5^(-2)|", "|C5^(-1)|"],
     );
 }
 
@@ -1783,7 +1783,7 @@ fn test_ur_group_symmetric_cpnico_magnetic_field_bw_c5v_c5_class_order() {
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -0.2)));
-    test_ur_magnetic_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|θ·σv|"]);
+    test_ur_magnetic_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|C5^2|", "5|θ·σv|"]);
 }
 
 #[test]
@@ -1805,7 +1805,7 @@ fn test_ur_group_symmetric_b7_magnetic_field_c6_class_order() {
     test_ur_ordinary_group_class_order(
         &mol,
         thresh,
-        &["|E|", "|C6|", "|[C6]^5|", "|C3|", "|[C3]^2|", "|C2|"],
+        &["|E|", "|C6|", "|C6^(-1)|", "|C3|", "|C3^(-1)|", "|C2|"],
     );
 }
 
@@ -2349,7 +2349,7 @@ fn test_ur_group_symmetric_cpnico_c5v_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|σv|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|C5^2|", "5|σv|"]);
 }
 
 #[test]
@@ -2372,11 +2372,11 @@ fn test_ur_group_symmetric_cpnico_grey_c5v_class_order() {
         &[
             "|E|",
             "2|C5|",
-            "2|[C5]^2|",
+            "2|C5^2|",
             "5|σv|",
             "|θ|",
             "2|θ·C5|",
-            "2|[θ·C5]^3|",
+            "2|θ·C5^2|",
             "5|θ·σv|",
         ],
     );
@@ -2398,7 +2398,7 @@ fn test_ur_group_symmetric_staggered_ferrocene_electric_field_c5v_class_order() 
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|σv|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|C5^2|", "5|σv|"]);
 }
 
 #[test]
@@ -2423,11 +2423,11 @@ fn test_ur_group_symmetric_staggered_ferrocene_electric_field_grey_c5v_class_ord
         &[
             "|E|",
             "2|C5|",
-            "2|[C5]^2|",
+            "2|C5^2|",
             "5|σv|",
             "|θ|",
             "2|θ·C5|",
-            "2|[θ·C5]^3|",
+            "2|θ·C5^2|",
             "5|θ·σv|",
         ],
     );
@@ -2448,7 +2448,7 @@ fn test_ur_group_symmetric_c60_electric_field_c5v_class_order() {
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|σv|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|C5^2|", "5|σv|"]);
 }
 
 #[test]
@@ -2472,11 +2472,11 @@ fn test_ur_group_symmetric_c60_electric_field_grey_c5v_class_order() {
         &[
             "|E|",
             "2|C5|",
-            "2|[C5]^2|",
+            "2|C5^2|",
             "5|σv|",
             "|θ|",
             "2|θ·C5|",
-            "2|[θ·C5]^3|",
+            "2|θ·C5^2|",
             "5|θ·σv|",
         ],
     );
@@ -2809,7 +2809,7 @@ fn test_ur_group_symmetric_bf3_magnetic_field_c3h_class_order() {
     test_ur_ordinary_group_class_order(
         &mol,
         thresh,
-        &["|E|", "|C3|", "|[C3]^2|", "|S3|", "|[S3]^5|", "|σh|"],
+        &["|E|", "|C3|", "|C3^(-1)|", "|S3|", "|S3^(-1)|", "|σh|"],
     );
 }
 
@@ -2854,7 +2854,14 @@ fn test_ur_group_symmetric_xef4_magnetic_field_c4h_class_order() {
         &mol,
         thresh,
         &[
-            "|E|", "|C4|", "|[C4]^3|", "|C2|", "|i|", "|S4|", "|[S4]^3|", "|σh|",
+            "|E|",
+            "|C4|",
+            "|C4^(-1)|",
+            "|C2|",
+            "|i|",
+            "|S4|",
+            "|S4^(-1)|",
+            "|σh|",
         ],
     );
 }
@@ -2911,7 +2918,14 @@ fn test_ur_group_symmetric_vf6_magnetic_field_c4h_class_order() {
         &mol,
         thresh,
         &[
-            "|E|", "|C4|", "|[C4]^3|", "|C2|", "|i|", "|S4|", "|[S4]^3|", "|σh|",
+            "|E|",
+            "|C4|",
+            "|C4^(-1)|",
+            "|C2|",
+            "|i|",
+            "|S4|",
+            "|S4^(-1)|",
+            "|σh|",
         ],
     );
 }
@@ -2969,7 +2983,14 @@ fn test_ur_group_symmetric_h8_magnetic_field_c4h_class_order() {
         &mol,
         thresh,
         &[
-            "|E|", "|C4|", "|[C4]^3|", "|C2|", "|i|", "|S4|", "|[S4]^3|", "|σh|",
+            "|E|",
+            "|C4|",
+            "|C4^(-1)|",
+            "|C2|",
+            "|i|",
+            "|S4|",
+            "|S4^(-1)|",
+            "|σh|",
         ],
     );
 }
@@ -3027,8 +3048,16 @@ fn test_ur_group_symmetric_eclipsed_ferrocene_magnetic_field_c5h_class_order() {
         &mol,
         thresh,
         &[
-            "|E|", "|C5|", "|[C5]^2|", "|[C5]^3|", "|[C5]^4|", "|S5|", "|[S5]^3|", "|[S5]^7|",
-            "|[S5]^9|", "|σh|",
+            "|E|",
+            "|C5|",
+            "|C5^2|",
+            "|C5^(-2)|",
+            "|C5^(-1)|",
+            "|S5|",
+            "|σC5^(-2)|",
+            "|σC5^2|",
+            "|S5^(-1)|",
+            "|σh|",
         ],
     );
 }
@@ -3054,9 +3083,9 @@ fn test_ur_group_symmetric_eclipsed_ferrocene_magnetic_field_bw_d5h_c5h_class_or
         &[
             "|E|",
             "2|C5|",
-            "2|[C5]^2|",
+            "2|C5^2|",
             "2|S5|",
-            "2|[S5]^3|",
+            "2|σC5^2|",
             "|σh|",
             "5|θ·C2|",
             "5|θ·σv|",
@@ -3084,8 +3113,18 @@ fn test_ur_group_symmetric_benzene_magnetic_field_c6h_class_order() {
         &mol,
         thresh,
         &[
-            "|E|", "|C6|", "|[C6]^5|", "|C3|", "|[C3]^2|", "|C2|", "|i|", "|S6|", "|[S6]^5|",
-            "|S3|", "|[S3]^5|", "|σh|",
+            "|E|",
+            "|C6|",
+            "|C6^(-1)|",
+            "|C3|",
+            "|C3^(-1)|",
+            "|C2|",
+            "|i|",
+            "|S6|",
+            "|S6^(-1)|",
+            "|S3|",
+            "|S3^(-1)|",
+            "|σh|",
         ],
     );
 }
@@ -3275,7 +3314,7 @@ fn test_ur_group_symmetric_c5ph5_d5_class_order() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c5ph5.xyz");
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|[C5]^2|", "5|C2|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "2|C5|", "2|C5^2|", "5|C2|"]);
 }
 
 #[test]
@@ -3297,11 +3336,11 @@ fn test_ur_group_symmetric_c5ph5_grey_d5_class_order() {
         &[
             "|E|",
             "2|C5|",
-            "2|[C5]^2|",
+            "2|C5^2|",
             "5|C2|",
             "|θ|",
             "2|θ·C5|",
-            "2|[θ·C5]^3|",
+            "2|θ·C5^2|",
             "5|θ·C2|",
         ],
     );
@@ -3647,10 +3686,10 @@ fn test_ur_group_symmetric_eclipsed_ferrocene_d5h_class_order() {
         &[
             "|E|",
             "2|C5|",
-            "2|[C5]^2|",
+            "2|C5^2|",
             "5|C2|",
             "2|S5|",
-            "2|[S5]^3|",
+            "2|σC5^2|",
             "|σh|",
             "5|σv|",
         ],
@@ -3676,18 +3715,18 @@ fn test_ur_group_symmetric_eclipsed_ferrocene_grey_d5h_class_order() {
         &[
             "|E|",
             "2|C5|",
-            "2|[C5]^2|",
+            "2|C5^2|",
             "5|C2|",
             "2|S5|",
-            "2|[S5]^3|",
+            "2|σC5^2|",
             "|σh|",
             "5|σv|",
             "|θ|",
             "2|θ·C5|",
-            "2|[θ·C5]^3|",
+            "2|θ·C5^2|",
             "5|θ·C2|",
             "2|θ·S5|",
-            "2|[θ·S5]^3|",
+            "2|θ·σC5^2|",
             "|θ·σh|",
             "5|θ·σv|",
         ],
@@ -4193,7 +4232,7 @@ fn test_ur_group_symmetric_s8_d4d_class_order() {
             "|C2|",
             "4|C2|^(')",
             "2|S8|",
-            "2|[S8]^3|",
+            "2|σC8^3|",
             "4|σd|",
         ],
     );
@@ -4221,14 +4260,14 @@ fn test_ur_group_symmetric_s8_grey_d4d_class_order() {
             "|C2|",
             "4|C2|^(')",
             "2|S8|",
-            "2|[S8]^3|",
+            "2|σC8^3|",
             "4|σd|",
             "|θ|",
             "2|θ·C4|",
             "|θ·C2|",
             "4|θ·C2|^(')",
             "2|θ·S8|",
-            "2|[θ·S8]^3|",
+            "2|θ·σC8^3|",
             "4|θ·σd|",
         ],
     );
@@ -4254,7 +4293,7 @@ fn test_ur_group_symmetric_antiprism_h8_d4d_class_order() {
             "|C2|",
             "4|C2|^(')",
             "2|S8|",
-            "2|[S8]^3|",
+            "2|σC8^3|",
             "4|σd|",
         ],
     );
@@ -4280,14 +4319,14 @@ fn test_ur_group_symmetric_antiprism_h8_grey_d4d_class_order() {
             "|C2|",
             "4|C2|^(')",
             "2|S8|",
-            "2|[S8]^3|",
+            "2|σC8^3|",
             "4|σd|",
             "|θ|",
             "2|θ·C4|",
             "|θ·C2|",
             "4|θ·C2|^(')",
             "2|θ·S8|",
-            "2|[θ·S8]^3|",
+            "2|θ·σC8^3|",
             "4|θ·σd|",
         ],
     );
@@ -4315,7 +4354,7 @@ fn test_ur_group_symmetric_antiprism_pb10_d4d_class_order() {
             "|C2|",
             "4|C2|^(')",
             "2|S8|",
-            "2|[S8]^3|",
+            "2|σC8^3|",
             "4|σd|",
         ],
     );
@@ -4343,14 +4382,14 @@ fn test_ur_group_symmetric_antiprism_pb10_grey_d4d_class_order() {
             "|C2|",
             "4|C2|^(')",
             "2|S8|",
-            "2|[S8]^3|",
+            "2|σC8^3|",
             "4|σd|",
             "|θ|",
             "2|θ·C4|",
             "|θ·C2|",
             "4|θ·C2|^(')",
             "2|θ·S8|",
-            "2|[θ·S8]^3|",
+            "2|θ·σC8^3|",
             "4|θ·σd|",
         ],
     );
@@ -4376,11 +4415,11 @@ fn test_ur_group_symmetric_staggered_ferrocene_d5d_class_order() {
         &[
             "|E|",
             "2|C5|",
-            "2|[C5]^2|",
+            "2|C5^2|",
             "5|C2|",
             "|i|",
             "2|S10|",
-            "2|[S10]^3|",
+            "2|σC10^3|",
             "5|σd|",
         ],
     );
@@ -4406,19 +4445,19 @@ fn test_ur_group_symmetric_staggered_ferrocene_grey_d5d_class_order() {
         &[
             "|E|",
             "2|C5|",
-            "2|[C5]^2|",
+            "2|C5^2|",
             "5|C2|",
             "|i|",
             "2|S10|",
-            "2|[S10]^3|",
+            "2|σC10^3|",
             "5|σd|",
             "|θ|",
             "2|θ·C5|",
-            "2|[θ·C5]^3|",
+            "2|θ·C5^2|",
             "5|θ·C2|",
             "|θ·i|",
             "2|θ·S10|",
-            "2|[θ·S10]^3|",
+            "2|θ·σC10^3|",
             "5|θ·σd|",
         ],
     );
@@ -4447,7 +4486,7 @@ fn test_ur_group_symmetric_au26_d6d_class_order() {
             "|C2|",
             "6|C2|^(')",
             "2|S12|",
-            "2|[S12]^5|",
+            "2|σC12^5|",
             "2|S4|",
             "6|σd|",
         ],
@@ -4477,7 +4516,7 @@ fn test_ur_group_symmetric_au26_grey_d6d_class_order() {
             "|C2|",
             "6|C2|^(')",
             "2|S12|",
-            "2|[S12]^5|",
+            "2|σC12^5|",
             "2|S4|",
             "6|σd|",
             "|θ|",
@@ -4486,7 +4525,7 @@ fn test_ur_group_symmetric_au26_grey_d6d_class_order() {
             "|θ·C2|",
             "6|θ·C2|^(')",
             "2|θ·S12|",
-            "2|[θ·S12]^5|",
+            "2|θ·σC12^5|",
             "2|θ·S4|",
             "6|θ·σd|",
         ],
@@ -4545,7 +4584,7 @@ fn test_ur_group_symmetric_b2cl4_magnetic_field_s4_class_order() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|[S4]^3|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|S4^(-1)|"]);
 }
 
 #[test]
@@ -4585,7 +4624,7 @@ fn test_ur_group_symmetric_adamantane_magnetic_field_s4_class_order() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(-0.1, 0.0, 0.0)));
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|[S4]^3|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|S4^(-1)|"]);
 }
 
 #[test]
@@ -4625,7 +4664,7 @@ fn test_ur_group_symmetric_ch4_magnetic_field_s4_class_order() {
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|[S4]^3|"]);
+    test_ur_ordinary_group_class_order(&mol, thresh, &["|E|", "|C2|", "|S4|", "|S4^(-1)|"]);
 }
 
 #[test]
@@ -4666,7 +4705,7 @@ fn test_ur_group_symmetric_65coronane_s6_class_order() {
     test_ur_ordinary_group_class_order(
         &mol,
         thresh,
-        &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
+        &["|E|", "|C3|", "|C3^(-1)|", "|i|", "|S6|", "|S6^(-1)|"],
     );
 }
 
@@ -4689,16 +4728,16 @@ fn test_ur_group_symmetric_65coronane_grey_s6_class_order() {
         &[
             "|E|",
             "|C3|",
-            "|[C3]^2|",
+            "|C3^(-1)|",
             "|i|",
             "|S6|",
-            "|[S6]^5|",
+            "|S6^(-1)|",
             "|θ|",
             "|θ·C3|",
-            "|[θ·C3]^5|",
+            "|θ·C3^(-1)|",
             "|θ·i|",
             "|θ·S6|",
-            "|[θ·S6]^5|",
+            "|θ·S6^(-1)|",
         ],
     );
 }
@@ -4721,7 +4760,7 @@ fn test_ur_group_symmetric_65coronane_magnetic_field_s6_class_order() {
     test_ur_ordinary_group_class_order(
         &mol,
         thresh,
-        &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
+        &["|E|", "|C3|", "|C3^(-1)|", "|i|", "|S6|", "|S6^(-1)|"],
     );
 }
 
@@ -4743,7 +4782,7 @@ fn test_ur_group_symmetric_staggered_c2h6_magnetic_field_s6_class_order() {
     test_ur_ordinary_group_class_order(
         &mol,
         thresh,
-        &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
+        &["|E|", "|C3|", "|C3^(-1)|", "|i|", "|S6|", "|S6^(-1)|"],
     );
 }
 
@@ -4795,7 +4834,7 @@ fn test_ur_group_symmetric_c60_magnetic_field_s6_class_order() {
     test_ur_ordinary_group_class_order(
         &mol,
         thresh,
-        &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
+        &["|E|", "|C3|", "|C3^(-1)|", "|i|", "|S6|", "|S6^(-1)|"],
     );
 }
 
@@ -4847,7 +4886,7 @@ fn test_ur_group_symmetric_vh2o6_magnetic_field_s6_class_order() {
     test_ur_ordinary_group_class_order(
         &mol,
         thresh,
-        &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
+        &["|E|", "|C3|", "|C3^(-1)|", "|i|", "|S6|", "|S6^(-1)|"],
     );
 }
 
@@ -4869,7 +4908,7 @@ fn test_ur_group_symmetric_vf6_magnetic_field_s6_class_order() {
     test_ur_ordinary_group_class_order(
         &mol,
         thresh,
-        &["|E|", "|C3|", "|[C3]^2|", "|i|", "|S6|", "|[S6]^5|"],
+        &["|E|", "|C3|", "|C3^(-1)|", "|i|", "|S6|", "|S6^(-1)|"],
     );
 }
 
@@ -4914,7 +4953,7 @@ fn test_ur_group_symmetric_s8_magnetic_field_s8_class_order() {
         &mol,
         thresh,
         &[
-            "|E|", "|C4|", "|[C4]^3|", "|C2|", "|S8|", "|[S8]^3|", "|[S8]^5|", "|[S8]^7|",
+            "|E|", "|C4|", "|C4^(-1)|", "|C2|", "|S8|", "|σC8^3|", "|σC8^(-3)|", "|S8^(-1)|",
         ],
     );
 }
@@ -4942,7 +4981,7 @@ fn test_ur_group_symmetric_s8_magnetic_field_bw_d4d_s8_class_order() {
             "2|C4|",
             "|C2|",
             "2|S8|",
-            "2|[S8]^3|",
+            "2|σC8^3|",
             "4|θ·C2|",
             "4|θ·σd|",
         ],
@@ -4968,7 +5007,7 @@ fn test_ur_group_symmetric_antiprism_pb10_magnetic_field_s8_class_order() {
         &mol,
         thresh,
         &[
-            "|E|", "|C4|", "|[C4]^3|", "|C2|", "|S8|", "|[S8]^3|", "|[S8]^5|", "|[S8]^7|",
+            "|E|", "|C4|", "|C4^(-1)|", "|C2|", "|S8|", "|σC8^3|", "|σC8^(-3)|", "|S8^(-1)|",
         ],
     );
 }
@@ -4996,7 +5035,7 @@ fn test_ur_group_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8_class_order()
             "2|C4|",
             "|C2|",
             "2|S8|",
-            "2|[S8]^3|",
+            "2|σC8^3|",
             "4|θ·C2|",
             "4|θ·σd|",
         ],
@@ -5024,14 +5063,14 @@ fn test_ur_group_symmetric_staggered_ferrocene_magnetic_field_s10_class_order() 
         &[
             "|E|",
             "|C5|",
-            "|[C5]^2|",
-            "|[C5]^3|",
-            "|[C5]^4|",
+            "|C5^2|",
+            "|C5^(-2)|",
+            "|C5^(-1)|",
             "|i|",
             "|S10|",
-            "|[S10]^3|",
-            "|[S10]^7|",
-            "|[S10]^9|",
+            "|σC10^3|",
+            "|σC10^(-3)|",
+            "|S10^(-1)|",
         ],
     );
 }
@@ -5057,10 +5096,10 @@ fn test_ur_group_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10_class_o
         &[
             "|E|",
             "2|C5|",
-            "2|[C5]^2|",
+            "2|C5^2|",
             "|i|",
             "2|S10|",
-            "2|[S10]^3|",
+            "2|σC10^3|",
             "5|θ·C2|",
             "5|θ·σd|",
         ],
@@ -5088,14 +5127,14 @@ fn test_ur_group_symmetric_c60_magnetic_field_s10_class_order() {
         &[
             "|E|",
             "|C5|",
-            "|[C5]^2|",
-            "|[C5]^3|",
-            "|[C5]^4|",
+            "|C5^2|",
+            "|C5^(-2)|",
+            "|C5^(-1)|",
             "|i|",
             "|S10|",
-            "|[S10]^3|",
-            "|[S10]^7|",
-            "|[S10]^9|",
+            "|σC10^3|",
+            "|σC10^(-3)|",
+            "|S10^(-1)|",
         ],
     );
 }
@@ -5121,16 +5160,16 @@ fn test_ur_group_symmetric_au26_magnetic_field_s12_class_order() {
         &[
             "|E|",
             "|C6|",
-            "|[C6]^5|",
+            "|C6^(-1)|",
             "|C3|",
-            "|[C3]^2|",
+            "|C3^(-1)|",
             "|C2|",
             "|S12|",
-            "|[S12]^5|",
-            "|[S12]^7|",
-            "|[S12]^11|",
-            "|[S12]^3|",
-            "|[S12]^9|",
+            "|σC12^5|",
+            "|σC12^(-5)|",
+            "|S12^(-1)|",
+            "|S4|",
+            "|S4^(-1)|",
         ],
     );
 }
@@ -5159,7 +5198,7 @@ fn test_ur_group_symmetric_au26_magnetic_field_bw_d6d_s12_class_order() {
             "2|C3|",
             "|C2|",
             "2|S12|",
-            "2|[S12]^5|",
+            "2|σC12^5|",
             "2|S4|",
             "6|θ·C2|",
             "6|θ·σd|",

@@ -3,12 +3,12 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use nalgebra::Vector3;
 
+use crate::aux::geometry;
 use crate::chartab::chartab_group::{
     CharacterProperties, IrcorepCharTabConstruction, IrrepCharTabConstruction,
 };
 use crate::chartab::chartab_symbols::CollectionSymbol;
 use crate::chartab::{CharacterTable, RepCharacterTable};
-use crate::aux::geometry;
 use crate::group::class::ClassProperties;
 use crate::group::{GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::Symmetry;
@@ -205,34 +205,61 @@ pub trait SymmetryGroupProperties:
                     .unwrap_or_else(|| panic!("No conjugacy class index `{i}` can be found."))
                     .iter()
                     .min_by_key(|&&j| {
-                        let op = self.get_index(j).unwrap_or_else(|| {
-                            panic!("Element with index {j} cannot be retrieved.")
-                        });
+                        let op = self
+                            .get_index(j)
+                            .unwrap_or_else(|| {
+                                panic!("Element with index {j} cannot be retrieved.")
+                            })
+                            .to_symmetry_element();
                         (
                             op.is_su2_class_1(),
-                            op.power < 0,
-                            op.power,
-                            op.generating_element
-                                .proper_fraction()
+                            op.proper_fraction()
                                 .map(|frac| frac.is_sign_negative())
-                                .or_else(|| {
-                                    op.generating_element.raw_proper_power().map(|&pp| pp < 0)
-                                })
-                                .unwrap(),
+                                .or_else(|| op.proper_angle().map(|angle| angle < 0.0))
+                                .or_else(|| op.raw_proper_power().map(|&pp| pp < 0))
+                                .expect(
+                                    "No sign information for the proper rotation can be found.",
+                                ),
                             !geometry::check_positive_pole(
-                                &op.generating_element.proper_rotation_pole(),
-                                op.generating_element.threshold(),
+                                &op.proper_rotation_pole(),
+                                op.threshold(),
                             ),
-                            op.generating_element
-                                .proper_fraction()
-                                .map(|frac| *frac.numer().unwrap())
-                                .or_else(|| {
-                                    op.generating_element
-                                        .raw_proper_power()
-                                        .map(|pp| pp.unsigned_abs())
+                            op.proper_fraction()
+                                .map(|frac| {
+                                    *frac.numer().expect(
+                                        "The numerator of the proper fraction cannot be retrieved.",
+                                    )
                                 })
-                                .unwrap(),
+                                .or_else(|| op.raw_proper_power().map(|pp| pp.unsigned_abs()))
+                                .expect(
+                                    "No angle information for the proper rotation can be found.",
+                                ),
                         )
+                        // (
+                        //     op.is_su2_class_1(),
+                        //     op.power < 0,
+                        //     op.power,
+                        //     op.generating_element
+                        //         .proper_fraction()
+                        //         .map(|frac| frac.is_sign_negative())
+                        //         .or_else(|| {
+                        //             op.generating_element.raw_proper_power().map(|&pp| pp < 0)
+                        //         })
+                        //         .unwrap(),
+                        //     !geometry::check_positive_pole(
+                        //         &op.generating_element.proper_rotation_pole(),
+                        //         op.generating_element.threshold(),
+                        //     ),
+                        //     op.generating_element
+                        //         .proper_fraction()
+                        //         .map(|frac| *frac.numer().unwrap())
+                        //         .or_else(|| {
+                        //             op.generating_element
+                        //                 .raw_proper_power()
+                        //                 .map(|pp| pp.unsigned_abs())
+                        //         })
+                        //         .unwrap(),
+                        // )
                     })
                     .expect("Unable to obtain a representative element index.");
                 let rep_ele = self.get_index(rep_ele_index).unwrap_or_else(|| {
