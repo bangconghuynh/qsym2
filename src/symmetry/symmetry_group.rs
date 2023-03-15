@@ -213,17 +213,17 @@ pub trait SymmetryGroupProperties:
                             .to_symmetry_element();
                         (
                             op.is_su2_class_1(), // prioritise class 0
-                            op.proper_fraction()
-                                .map(|frac| frac.is_sign_negative())
-                                .or_else(|| op.proper_angle().map(|angle| angle < 0.0))
-                                .or_else(|| op.raw_proper_power().map(|&pp| pp < 0))
-                                .expect(
-                                    "No sign information for the proper rotation can be found.",
-                                ), // prioritise positive rotation
+                            // op.proper_fraction()
+                            //     .map(|frac| frac.is_sign_negative())
+                            //     .or_else(|| op.proper_angle().map(|angle| angle < 0.0))
+                            //     .or_else(|| op.raw_proper_power().map(|&pp| pp < 0))
+                            //     .expect(
+                            //         "No sign information for the proper rotation can be found.",
+                            //     ), // prioritise positive rotation
                             !geometry::check_positive_pole(
                                 &op.proper_rotation_pole(),
                                 op.threshold(),
-                            ), // prioritise positive proper rotation pole
+                            ), // prioritise positive rotation
                             op.proper_fraction()
                                 .map(|frac| {
                                     *frac.numer().expect(

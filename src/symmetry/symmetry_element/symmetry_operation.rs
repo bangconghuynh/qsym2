@@ -1550,13 +1550,17 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             )
         });
 
-        let negative_rotation = total_proper_fraction.is_sign_negative()
-            || !geometry::check_positive_pole(
-                &c_op.calc_proper_rotation_pole().coords,
-                c_op.generating_element.threshold(),
-            );
+        // let negative_rotation = total_proper_fraction.is_sign_negative()
+        //     || !geometry::check_positive_pole(
+        //         &c_op.calc_proper_rotation_pole().coords,
+        //         c_op.generating_element.threshold(),
+        //     );
+        let negative_rotation = !geometry::check_positive_pole(
+            &c_op.calc_proper_rotation_pole().coords,
+            c_op.generating_element.threshold(),
+        );
 
-        (
+        let keys = (
             c_op.is_antiunitary(),
             !c_op.is_proper(),
             !(c_op.is_spatial_identity() || c_op.is_spatial_inversion()),
@@ -1568,6 +1572,15 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             OrderedFloat(axis_closeness),
             closest_axis,
             c_op.is_su2_class_1(),
-        )
+        );
+        // println!(
+        //     "{} - {op} - {c_op} - {} - {total_proper_fraction} - {keys:?}",
+        //     op.get_abbreviated_symbol(),
+        //     op.calc_proper_rotation_pole()
+        // );
+        keys
     });
+    // for op in operations.iter() {
+    //     println!("Sorted: {op}, {}", op.get_abbreviated_symbol());
+    // }
 }
