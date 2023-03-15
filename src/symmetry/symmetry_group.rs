@@ -8,13 +8,14 @@ use crate::chartab::chartab_group::{
 };
 use crate::chartab::chartab_symbols::CollectionSymbol;
 use crate::chartab::{CharacterTable, RepCharacterTable};
+use crate::aux::geometry;
 use crate::group::class::ClassProperties;
 use crate::group::{GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     sort_operations, SpecialSymmetryTransformation,
 };
-use crate::symmetry::symmetry_element::{SIG, SymmetryOperation};
+use crate::symmetry::symmetry_element::{SymmetryOperation, SIG};
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, MullikenIrcorepSymbol,
     MullikenIrrepSymbol, SymmetryClassSymbol, FORCED_PRINCIPAL_GROUPS,
@@ -218,6 +219,10 @@ pub trait SymmetryGroupProperties:
                                     op.generating_element.raw_proper_power().map(|&pp| pp < 0)
                                 })
                                 .unwrap(),
+                            !geometry::check_positive_pole(
+                                &op.generating_element.proper_rotation_pole(),
+                                op.generating_element.threshold(),
+                            ),
                             op.generating_element
                                 .proper_fraction()
                                 .map(|frac| *frac.numer().unwrap())

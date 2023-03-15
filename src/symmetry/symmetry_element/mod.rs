@@ -458,6 +458,66 @@ impl SymmetryElement {
         }
     }
 
+    pub fn proper_rotation_pole(&self) -> Vector3<f64> {
+        // let c_ele = if self.is_o3_proper(tr) {
+        //     self.clone()
+        // } else if tr {
+        //     self.convert_to_improper_kind(&TRINV, true)
+        // } else {
+        //     self.convert_to_improper_kind(&INV, true)
+        // };
+        match *self.raw_proper_order() {
+            ElementOrder::Int(_) => {
+                let frac_1_2 = F::new(1u32, 2u32);
+                let proper_fraction = self.proper_fraction.expect("No proper fractions found.");
+                if proper_fraction == frac_1_2 {
+                    // Binary rotations or reflections
+                    geometry::get_positive_pole(&self.raw_axis, self.threshold)
+                } else if proper_fraction > F::zero() {
+                    // Positive rotation angles
+                    self.raw_axis
+                } else if proper_fraction < F::zero() {
+                    // Negative rotation angles
+                    -self.raw_axis
+                } else {
+                    // Identity or inversion
+                    assert!(proper_fraction.is_zero());
+                    Vector3::zeros()
+                }
+            }
+            ElementOrder::Inf => {
+                if approx::relative_eq!(
+                    self.proper_angle.expect("No proper angles found."),
+                    std::f64::consts::PI,
+                    max_relative = self.threshold,
+                    epsilon = self.threshold
+                ) {
+                    // Binary rotations or reflections
+                    geometry::get_positive_pole(&self.raw_axis, self.threshold)
+                } else if approx::relative_ne!(
+                    self.proper_angle.expect("No proper angles found."),
+                    0.0,
+                    max_relative = self.threshold,
+                    epsilon = self.threshold
+                ) {
+                    self
+                        .proper_angle
+                        .expect("No proper angles found.")
+                        .signum()
+                        * self.raw_axis
+                } else {
+                    approx::assert_relative_eq!(
+                        self.proper_angle.expect("No proper angles found."),
+                        0.0,
+                        max_relative = self.threshold,
+                        epsilon = self.threshold
+                    );
+                    Vector3::zeros()
+                }
+            }
+        }
+    }
+
     /// Returns the proper fraction for this element, if any.
     ///
     /// The element lacks a proper fraction if it is infinite-order.
@@ -1008,15 +1068,17 @@ impl SymmetryElement {
                     .to_string()
             };
 
-            let pow = *proper_fraction
-                .numer()
-                .expect("Unable to extract the numerator of the proper fraction.");
-            let neg = proper_fraction.is_sign_negative()
-                != !geometry::check_positive_pole(&self.raw_axis, self.threshold);
-            let proper_power = if neg {
-                format!("^(-{pow})")
-            } else if pow > 1 {
-                format!("^{pow}")
+            let proper_power = if needs_power {
+                let pow = *proper_fraction
+                    .numer()
+                    .expect("Unable to extract the numerator of the proper fraction.");
+                if !geometry::check_positive_pole(&self.proper_rotation_pole(), self.threshold) {
+                    format!("^(-{pow})")
+                } else if pow > 1 {
+                    format!("^{pow}")
+                } else {
+                    String::new()
+                }
             } else {
                 String::new()
             };
