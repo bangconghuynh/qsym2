@@ -661,7 +661,7 @@ fn test_ur_group_spherical_c60_grey_ih_class_order() {
             "15|σ|",
             "|θ|",
             "12|θ·C5|",
-            "12|θ·C5^(-2)|",
+            "12|θ·C5^2|",
             "20|θ·C3|",
             "15|θ·C2|",
             "|θ·i|",
@@ -1894,7 +1894,7 @@ fn test_ur_group_symmetric_ch4_magnetic_field_c3_double() {
 
 #[test]
 fn test_ur_group_symmetric_ch4_magnetic_field_c3_double_class_order() {
-    env_logger::init();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
