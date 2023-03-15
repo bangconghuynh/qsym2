@@ -4240,6 +4240,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .build()
         .unwrap();
     assert!(c2_nsr_p1.is_spatial_binary_rotation());
+    assert!(c2_nsr_p1.is_su2_class_1());
 
     let (c2_nsr_p1_sca, c2_nsr_p1_vec) = c2_nsr_p1.calc_quaternion();
     approx::assert_relative_eq!(
@@ -4250,7 +4251,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
     );
     approx::assert_relative_eq!(
         c2_nsr_p1_vec,
-        Vector3::new(-2.0, 1.0, 1.0).normalize(),
+        Vector3::new(2.0, -1.0, -1.0).normalize(),
         epsilon = c2_nsr_element.threshold,
         max_relative = c2_nsr_element.threshold
     );
@@ -4261,6 +4262,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .build()
         .unwrap();
     assert!(c2_nsr_p2.is_spatial_identity());
+    assert!(c2_nsr_p2.is_su2_class_1());
 
     let (c2_nsr_p2_sca, c2_nsr_p2_vec) = c2_nsr_p2.calc_quaternion();
     approx::assert_relative_eq!(
@@ -4282,6 +4284,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .build()
         .unwrap();
     assert!(c2_nsr_p3.is_spatial_binary_rotation());
+    assert!(!c2_nsr_p3.is_su2_class_1());
 
     let (c2_nsr_p3_sca, c2_nsr_p3_vec) = c2_nsr_p3.calc_quaternion();
     approx::assert_relative_eq!(
@@ -6055,12 +6058,6 @@ fn test_symmetry_operation_su2_collinear_composition() {
     assert!(!(&c2_nsr_p1 * &c2_isr_p1).is_su2_class_1());
     assert!((&c2_nsr_p1 * &c2_isr_p1).is_identity());
 
-    // let c2_isr_p2 = SymmetryOperation::builder()
-    //     .generating_element(c2_isr_element.clone())
-    //     .power(2)
-    //     .build()
-    //     .unwrap();
-
     let c3_nsr_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(3))
@@ -6099,6 +6096,55 @@ fn test_symmetry_operation_su2_collinear_composition() {
     assert!((&c3_nsr_p4 * &c3_nsr_p2).is_identity());
 
     assert!((&c3_nsr_p4 * &c3_nsr_p2).is_identity());
+
+    let c4_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::x())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c4_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c4_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c4_nsr_pm1 = SymmetryOperation::builder()
+        .generating_element(c4_nsr_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    let c2_nsr_p3 = SymmetryOperation::builder()
+        .generating_element(c2_nsr_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    let c4_nsr_p2 = c4_nsr_p1.pow(2);
+    let c4_nsr_pm2 = c4_nsr_pm1.pow(2);
+    assert_eq!(c4_nsr_p2, c2_nsr_p1);
+    assert_eq!(c4_nsr_pm2, c2_nsr_p3);
+
+    let c4b_nsr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(-Vector3::x())
+        .kind(ROT)
+        .rotation_group(RotationGroup::SU2(true))
+        .build()
+        .unwrap();
+
+    let c4b_nsr_p1 = SymmetryOperation::builder()
+        .generating_element(c4b_nsr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c4b_nsr_p2 = c4b_nsr_p1.pow(2);
+    assert!(c4b_nsr_p2.is_su2_class_1());
+    assert_eq!(c4b_nsr_p2, c2_nsr_p3);
 
     let c5_nsr_element = SymmetryElement::builder()
         .threshold(1e-12)
@@ -8281,7 +8327,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .power(1)
         .build()
         .unwrap();
-    assert_eq!(&c2_isr_p1.get_abbreviated_symbol(), "C2(QΣ)");
+    assert_eq!(&c2_isr_p1.get_abbreviated_symbol(), "C2(Σ)");
 
     let c2_isr_p2 = SymmetryOperation::builder()
         .generating_element(c2_isr_element.clone())
@@ -8295,7 +8341,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .power(3)
         .build()
         .unwrap();
-    assert_eq!(&c2_isr_p3.get_abbreviated_symbol(), "C2(Σ)");
+    assert_eq!(&c2_isr_p3.get_abbreviated_symbol(), "C2(QΣ)");
 
     let c2_isr_p4 = SymmetryOperation::builder()
         .generating_element(c2_isr_element.clone())

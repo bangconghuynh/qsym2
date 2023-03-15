@@ -1834,6 +1834,7 @@ fn test_ur_group_symmetric_b7_magnetic_field_bw_c6v_c6_class_order() {
 
 #[test]
 fn test_ur_group_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
+    env_logger::init();
     let thresh = 1e-7;
     for n in 3..=32 {
         let mut mol = template_molecules::gen_arbitrary_half_sandwich(n);
@@ -1909,6 +1910,37 @@ fn test_ur_group_symmetric_ch4_magnetic_field_c3_double_class_order() {
             "|C3^(-1)(Σ)|",
             "|C3(QΣ)|",
             "|C3^(-1)(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_h8_twisted_magnetic_field_c4_double() {
+    // env_logger::init();
+    let thresh = 1e-7;
+    let mut mol = template_molecules::gen_twisted_h8(0.1);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
+    test_ur_ordinary_double_group(&mol, thresh, "C4*", 8, 8, true);
+}
+
+#[test]
+fn test_ur_group_symmetric_h8_twisted_magnetic_field_c4_double_class_order() {
+    // env_logger::init();
+    let thresh = 1e-7;
+    let mut mol = template_molecules::gen_twisted_h8(0.1);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C4(Σ)|",
+            "|C4^(-1)(Σ)|",
+            "|C4(QΣ)|",
+            "|C4^(-1)(QΣ)|",
+            "|C2(Σ)|",
+            "|C2(QΣ)|",
         ],
     );
 }
@@ -4953,7 +4985,14 @@ fn test_ur_group_symmetric_s8_magnetic_field_s8_class_order() {
         &mol,
         thresh,
         &[
-            "|E|", "|C4|", "|C4^(-1)|", "|C2|", "|S8|", "|σC8^3|", "|σC8^(-3)|", "|S8^(-1)|",
+            "|E|",
+            "|C4|",
+            "|C4^(-1)|",
+            "|C2|",
+            "|S8|",
+            "|σC8^3|",
+            "|σC8^(-3)|",
+            "|S8^(-1)|",
         ],
     );
 }
@@ -5007,7 +5046,14 @@ fn test_ur_group_symmetric_antiprism_pb10_magnetic_field_s8_class_order() {
         &mol,
         thresh,
         &[
-            "|E|", "|C4|", "|C4^(-1)|", "|C2|", "|S8|", "|σC8^3|", "|σC8^(-3)|", "|S8^(-1)|",
+            "|E|",
+            "|C4|",
+            "|C4^(-1)|",
+            "|C2|",
+            "|S8|",
+            "|σC8^3|",
+            "|σC8^(-3)|",
+            "|S8^(-1)|",
         ],
     );
 }

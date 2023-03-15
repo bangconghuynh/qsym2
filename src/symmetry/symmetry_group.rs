@@ -212,18 +212,18 @@ pub trait SymmetryGroupProperties:
                             })
                             .to_symmetry_element();
                         (
-                            op.is_su2_class_1(),
+                            op.is_su2_class_1(), // prioritise class 0
                             op.proper_fraction()
                                 .map(|frac| frac.is_sign_negative())
                                 .or_else(|| op.proper_angle().map(|angle| angle < 0.0))
                                 .or_else(|| op.raw_proper_power().map(|&pp| pp < 0))
                                 .expect(
                                     "No sign information for the proper rotation can be found.",
-                                ),
+                                ), // prioritise positive rotation
                             !geometry::check_positive_pole(
                                 &op.proper_rotation_pole(),
                                 op.threshold(),
-                            ),
+                            ), // prioritise positive proper rotation pole
                             op.proper_fraction()
                                 .map(|frac| {
                                     *frac.numer().expect(
@@ -233,33 +233,8 @@ pub trait SymmetryGroupProperties:
                                 .or_else(|| op.raw_proper_power().map(|pp| pp.unsigned_abs()))
                                 .expect(
                                     "No angle information for the proper rotation can be found.",
-                                ),
+                                ), // prioritise small rotation angle
                         )
-                        // (
-                        //     op.is_su2_class_1(),
-                        //     op.power < 0,
-                        //     op.power,
-                        //     op.generating_element
-                        //         .proper_fraction()
-                        //         .map(|frac| frac.is_sign_negative())
-                        //         .or_else(|| {
-                        //             op.generating_element.raw_proper_power().map(|&pp| pp < 0)
-                        //         })
-                        //         .unwrap(),
-                        //     !geometry::check_positive_pole(
-                        //         &op.generating_element.proper_rotation_pole(),
-                        //         op.generating_element.threshold(),
-                        //     ),
-                        //     op.generating_element
-                        //         .proper_fraction()
-                        //         .map(|frac| *frac.numer().unwrap())
-                        //         .or_else(|| {
-                        //             op.generating_element
-                        //                 .raw_proper_power()
-                        //                 .map(|pp| pp.unsigned_abs())
-                        //         })
-                        //         .unwrap(),
-                        // )
                     })
                     .expect("Unable to obtain a representative element index.");
                 let rep_ele = self.get_index(rep_ele_index).unwrap_or_else(|| {
@@ -480,6 +455,9 @@ impl SymmetryGroupProperties
             .collect_vec();
         su2_operations.extend(su2_1_operations.into_iter());
         sort_operations(&mut su2_operations);
+        for (i, op) in su2_operations.iter().enumerate() {
+            println!("Sorted op {i}: {op}");
+        }
 
         let group_name = self.name().clone() + "*";
         let finite_group_name = self.finite_subgroup_name().map(|name| name.clone() + "*");

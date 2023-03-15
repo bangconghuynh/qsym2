@@ -644,7 +644,9 @@ impl SymmetryOperation {
                     max_relative = self.generating_element.threshold,
                     epsilon = self.generating_element.threshold
                 ) {
-                    Point3::from(self.total_proper_angle.signum() * self.generating_element.raw_axis)
+                    Point3::from(
+                        self.total_proper_angle.signum() * self.generating_element.raw_axis,
+                    )
                 } else {
                     approx::assert_relative_eq!(
                         self.total_proper_angle,
@@ -760,7 +762,8 @@ impl SymmetryOperation {
             let numer = *total_proper_fraction
                 .numer()
                 .expect("Unable to extract the numerator of the total proper fraction.");
-            let proper_power = i32::try_from(numer).expect("Unable to convert the numerator to `i32`.");
+            let proper_power =
+                i32::try_from(numer).expect("Unable to convert the numerator to `i32`.");
             SymmetryElement::builder()
                 .threshold(self.generating_element.threshold())
                 .proper_order(ElementOrder::Int(proper_order))
@@ -792,7 +795,8 @@ impl SymmetryOperation {
     /// certain improper axes into inversion centres or mirror planes,
     #[must_use]
     pub fn get_abbreviated_symbol(&self) -> String {
-        self.to_symmetry_element().get_simplified_symbol_signed_power()
+        self.to_symmetry_element()
+            .get_simplified_symbol_signed_power()
     }
 
     /// Returns the representation matrix for the spatial part of this symmetry operation.
@@ -1156,25 +1160,34 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                 // matter the value of proper power, the result is always the identity.
                 false
             } else {
-                c_self
+                let thresh = c_self.generating_element.threshold;
+                let odd_jumps_from_angle = c_self
                     .generating_element
                     .proper_fraction
                     .map(|frac| {
                         let pow = c_self.power;
-                        let total_proper_fraction = frac * F::from(pow);
-                        let (_, x) = geometry::normalise_rotation_fraction(total_proper_fraction);
+                        let total_unormalised_proper_fraction = frac * F::from(pow);
+                        let (_, x) = geometry::normalise_rotation_fraction(
+                            total_unormalised_proper_fraction,
+                        );
                         x.rem_euclid(2) == 1
                     })
                     .unwrap_or_else(|| {
-                        let total_proper_angle = c_self
+                        let total_unormalised_proper_angle = c_self
                             .generating_element
                             .proper_angle
                             .expect("Proper angle of generating element not found.")
                             * f64::from(c_self.power);
-                        let thresh = c_self.generating_element.threshold;
-                        let (_, x) = geometry::normalise_rotation_angle(total_proper_angle, thresh);
+                        let (_, x) = geometry::normalise_rotation_angle(
+                            total_unormalised_proper_angle,
+                            thresh,
+                        );
                         x.rem_euclid(2) == 1
-                    })
+                    });
+                let single_jump_from_c2 = (c_self.is_spatial_binary_rotation()
+                    || c_self.is_spatial_reflection())
+                    && !geometry::check_positive_pole(c_self.generating_element.raw_axis(), thresh);
+                odd_jumps_from_angle != single_jump_from_c2
             };
             let intrinsic_inverse = c_self.generating_element.rotation_group().is_su2_class_1()
                 && c_self.power.rem_euclid(2) == 1;

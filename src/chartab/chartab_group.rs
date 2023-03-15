@@ -520,6 +520,7 @@ where
         let group_order_u32 = u32::try_from(group_order).unwrap_or_else(|_| {
             panic!("Unable to convert the group order {group_order} to `u32`.")
         });
+        log::debug!("Indices of squared conjugacy classes: {sq_indices:?}");
         let frobenius_schur_indicators: Vec<i8> = eigvecs_1d
             .par_iter()
             .map(|vec_i| {
