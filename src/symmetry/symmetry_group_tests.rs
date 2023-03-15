@@ -1971,7 +1971,7 @@ fn test_ur_group_symmetric_cpnico_magnetic_field_c5_double_class_order() {
             "|C5^(-2)(Σ)|",
             "|C5^(-2)(QΣ)|",
             "|C5^(-1)(Σ)|",
-            "|C5^(-1)(QΣ)|"
+            "|C5^(-1)(QΣ)|",
         ],
     );
 }
@@ -2006,7 +2006,7 @@ fn test_ur_group_symmetric_b7_magnetic_field_c6_double_class_order() {
             "|C3^(-1)(Σ)|",
             "|C3^(-1)(QΣ)|",
             "|C2(Σ)|",
-            "|C2(QΣ)|"
+            "|C2(QΣ)|",
         ],
     );
 }
@@ -5270,18 +5270,18 @@ fn test_ur_group_symmetric_au26_magnetic_field_s12_class_order() {
         &mol,
         thresh,
         &[
-            "|E|",
-            "|C6|",
-            "|C6^(-1)|",
-            "|C3|",
-            "|C3^(-1)|",
-            "|C2|",
-            "|S12|",
-            "|σC12^5|",
-            "|σC12^(-5)|",
-            "|S12^(-1)|",
-            "|S4|",
-            "|S4^(-1)|",
+            "|E(Σ)|",
+            "|C6(Σ)|",
+            "|C6^(-1)(Σ)|",
+            "|C3(Σ)|",
+            "|C3^(-1)(Σ)|",
+            "|C2(Σ)|",
+            "|S12(Σ)|",
+            "|σC12^5(Σ)|",
+            "|σC12^(-5)(Σ)|",
+            "|S12^(-1)(Σ)|",
+            "|S4(Σ)|",
+            "|S4^(-1)(Σ)|",
         ],
     );
 }
@@ -5379,6 +5379,170 @@ fn test_ur_group_symmetric_b2cl4_magnetic_field_s4_double_class_order() {
             "|E(QΣ)|",
             "|C2(Σ)|",
             "|C2(QΣ)|",
+            "|S4(Σ)|",
+            "|S4(QΣ)|",
+            "|S4^(-1)(Σ)|",
+            "|S4^(-1)(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_vf6_magnetic_field_s6_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    test_ur_ordinary_double_group(&mol, thresh, "S6*", 12, 12, true);
+}
+
+#[test]
+fn test_ur_group_symmetric_vf6_magnetic_field_s6_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C3(Σ)|",
+            "|C3(QΣ)|",
+            "|C3^(-1)(Σ)|",
+            "|C3^(-1)(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "|S6(Σ)|",
+            "|S6(QΣ)|",
+            "|S6^(-1)(Σ)|",
+            "|S6^(-1)(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_antiprism_pb10_magnetic_field_s8_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_ordinary_double_group(&mol, thresh, "S8*", 16, 16, true);
+}
+
+#[test]
+fn test_ur_group_symmetric_antiprism_pb10_magnetic_field_s8_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C4(Σ)|",
+            "|C4(QΣ)|",
+            "|C4^(-1)(Σ)|",
+            "|C4^(-1)(QΣ)|",
+            "|C2(Σ)|",
+            "|C2(QΣ)|",
+            "|S8(Σ)|",
+            "|S8(QΣ)|",
+            "|σC8^3(Σ)|",
+            "|σC8^3(QΣ)|",
+            "|σC8^(-3)(Σ)|",
+            "|σC8^(-3)(QΣ)|",
+            "|S8^(-1)(Σ)|",
+            "|S8^(-1)(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_c60_magnetic_field_s10_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-5;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_ordinary_double_group(&mol, thresh, "S10*", 20, 20, true);
+}
+
+#[test]
+fn test_ur_group_symmetric_c60_magnetic_field_s10_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-5;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C5(Σ)|",
+            "|C5(QΣ)|",
+            "|C5^2(Σ)|",
+            "|C5^2(QΣ)|",
+            "|C5^(-2)(Σ)|",
+            "|C5^(-2)(QΣ)|",
+            "|C5^(-1)(Σ)|",
+            "|C5^(-1)(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "|S10(Σ)|",
+            "|S10(QΣ)|",
+            "|σC10^3(Σ)|",
+            "|σC10^3(QΣ)|",
+            "|σC10^(-3)(Σ)|",
+            "|σC10^(-3)(QΣ)|",
+            "|S10^(-1)(Σ)|",
+            "|S10^(-1)(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_au26_magnetic_field_s12_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_ordinary_double_group(&mol, thresh, "S12*", 24, 24, true);
+}
+
+#[test]
+fn test_ur_group_symmetric_au26_magnetic_field_s12_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C6(Σ)|",
+            "|C6(QΣ)|",
+            "|C6^(-1)(Σ)|",
+            "|C6^(-1)(QΣ)|",
+            "|C3(Σ)|",
+            "|C3(QΣ)|",
+            "|C3^(-1)(Σ)|",
+            "|C3^(-1)(QΣ)|",
+            "|C2(Σ)|",
+            "|C2(QΣ)|",
+            "|S12(Σ)|",
+            "|S12(QΣ)|",
+            "|σC12^5(Σ)|",
+            "|σC12^5(QΣ)|",
+            "|σC12^(-5)(Σ)|",
+            "|σC12^(-5)(QΣ)|",
+            "|S12^(-1)(Σ)|",
+            "|S12^(-1)(QΣ)|",
             "|S4(Σ)|",
             "|S4(QΣ)|",
             "|S4^(-1)(Σ)|",

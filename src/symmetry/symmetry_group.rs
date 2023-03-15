@@ -439,9 +439,7 @@ impl SymmetryGroupProperties
             .map(|op| {
                 let mut q_op = op * &q_identity;
                 if !q_op.is_proper() {
-                    println!("Converting {q_op}");
                     q_op = q_op.convert_to_improper_kind(&SIG);
-                    println!("Got {q_op}");
                 }
 
                 // Multiplying by q_identity does not change subscript/superscript information
@@ -692,9 +690,7 @@ impl SymmetryGroupProperties
             .map(|op| {
                 let mut q_op = op * &q_identity;
                 if !q_op.is_proper() {
-                    println!("Converting {q_op}");
                     q_op = q_op.convert_to_improper_kind(&SIG);
-                    println!("Got {q_op}");
                 }
 
                 // Multiplying by q_identity does not change subscript/superscript information
