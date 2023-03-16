@@ -213,13 +213,6 @@ pub trait SymmetryGroupProperties:
                             .to_symmetry_element();
                         (
                             op.is_su2_class_1(), // prioritise class 0
-                            // op.proper_fraction()
-                            //     .map(|frac| frac.is_sign_negative())
-                            //     .or_else(|| op.proper_angle().map(|angle| angle < 0.0))
-                            //     .or_else(|| op.raw_proper_power().map(|&pp| pp < 0))
-                            //     .expect(
-                            //         "No sign information for the proper rotation can be found.",
-                            //     ), // prioritise positive rotation
                             !geometry::check_positive_pole(
                                 &op.proper_rotation_pole(),
                                 op.threshold(),
@@ -304,35 +297,35 @@ pub trait SymmetryGroupProperties:
                                 }
                             });
                         if let Some(alt_rep_ele) = alt_rep_ele_option {
-                            if old_symbol.size().rem_euclid(2) == 0 {
-                                (
-                                    old_symbol.size().div_euclid(2),
-                                    format!(
-                                        "{}, {}",
-                                        rep_ele.get_abbreviated_symbol(),
-                                        alt_rep_ele.get_abbreviated_symbol()
-                                    ),
-                                    vec![rep_ele, alt_rep_ele],
-                                )
-                            } else {
-                                let mut reps = self
-                                    .get_cc_index(i)
-                                    .unwrap_or_else(|| {
-                                        panic!("No conjugacy class index `{i}` can be found.")
-                                    })
-                                    .iter()
-                                    .map(|&j| {
-                                        self.get_index(j).unwrap_or_else(|| {
-                                            panic!("Element with index {j} cannot be retrieved.")
-                                        })
-                                    }).collect_vec();
-                                reps.sort_by_key(|op| op.is_su2_class_1());
-                                (
-                                    1,
-                                    reps.iter().map(|op| op.get_abbreviated_symbol()).join(", "),
-                                    reps,
-                                )
-                            }
+                            // if old_symbol.size().rem_eulid(2) == 0 {
+                            (
+                                old_symbol.size(),
+                                format!(
+                                    "{}/{}",
+                                    rep_ele.get_abbreviated_symbol(),
+                                    alt_rep_ele.get_abbreviated_symbol()
+                                ),
+                                vec![rep_ele],
+                            )
+                            // } else {
+                            //     let mut reps = self
+                            //         .get_cc_index(i)
+                            //         .unwrap_or_else(|| {
+                            //             panic!("No conjugacy class index `{i}` can be found.")
+                            //         })
+                            //         .iter()
+                            //         .map(|&j| {
+                            //             self.get_index(j).unwrap_or_else(|| {
+                            //                 panic!("Element with index {j} cannot be retrieved.")
+                            //             })
+                            //         }).collect_vec();
+                            //     reps.sort_by_key(|op| op.is_su2_class_1());
+                            //     (
+                            //         1,
+                            //         reps.iter().map(|op| op.get_abbreviated_symbol()).join(", "),
+                            //         reps,
+                            //     )
+                            // }
                         } else {
                             (
                                 old_symbol.size(),

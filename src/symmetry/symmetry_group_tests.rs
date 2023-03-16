@@ -4760,6 +4760,44 @@ fn test_ur_group_symmetric_antiprism_pb10_d4d_double_class_order() {
     );
 }
 
+#[test]
+fn test_ur_group_symmetric_staggered_ferrocene_d5d_double() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D5d*", 40, 16, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_staggered_ferrocene_d5d_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C5(Σ)|",
+            "2|C5(QΣ)|",
+            "2|C5^2(Σ)|",
+            "2|C5^2(QΣ)|",
+            "5|C2(Σ)|",
+            "5|C2(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "2|S10(Σ)|",
+            "2|S10(QΣ)|",
+            "2|σC10^3(Σ)|",
+            "2|σC10^3(QΣ)|",
+            "5|σd(Σ)|",
+            "5|σd(QΣ)|",
+        ],
+    );
+}
+
 /*
 S2n
 */

@@ -1,6 +1,9 @@
+use std::cmp::Ordering;
 use std::collections::HashSet;
+use std::fmt;
 
 use approx;
+use derive_builder::Builder;
 use fraction;
 use itertools::{self, Itertools};
 use nalgebra::{ClosedMul, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vector3};
@@ -613,4 +616,322 @@ pub trait Transform {
     /// A time-reversed copy.
     #[must_use]
     fn reverse_time(&self) -> Self;
+}
+
+// ===================
+// Positive Hemisphere
+// ===================
+
+#[derive(Debug, Clone)]
+enum CartesianCoordinate {
+    X,
+    Y,
+    Z,
+}
+
+impl CartesianCoordinate {
+    fn to_index(&self) -> usize {
+        match self {
+            CartesianCoordinate::X => 0,
+            CartesianCoordinate::Y => 1,
+            CartesianCoordinate::Z => 2,
+        }
+    }
+}
+
+impl fmt::Display for CartesianCoordinate {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            CartesianCoordinate::X => write!(f, "x"),
+            CartesianCoordinate::Y => write!(f, "y"),
+            CartesianCoordinate::Z => write!(f, "z"),
+        }
+    }
+}
+
+pub struct CartesianConditions {
+    conditions: Vec<Vec<(CartesianCoordinate, Ordering, f64)>>,
+}
+
+impl CartesianConditions {
+    fn check(&self, vec: &Vector3<f64>) -> bool {
+        self.conditions.iter().any(|condition_set| {
+            condition_set.iter().all(|(i, order, target)| {
+                vec[i.to_index()].partial_cmp(target).unwrap_or_else(|| {
+                    panic!("Unable to compare the {i}-component of `{vec}` with `{target}`.")
+                }) == *order
+            })
+        })
+    }
+
+    fn new_standard(thresh: f64) -> Self {
+        assert!(thresh >= 0.0);
+        Self {
+            conditions: vec![
+                vec![(CartesianCoordinate::Z, Ordering::Greater, 0.0 + thresh)],
+                vec![
+                    (CartesianCoordinate::Z, Ordering::Greater, 0.0 - thresh),
+                    (CartesianCoordinate::Z, Ordering::Less, 0.0 + thresh),
+                    (CartesianCoordinate::X, Ordering::Greater, 0.0 + thresh),
+                ],
+                vec![
+                    (CartesianCoordinate::Z, Ordering::Greater, 0.0 - thresh),
+                    (CartesianCoordinate::Z, Ordering::Less, 0.0 + thresh),
+                    (CartesianCoordinate::X, Ordering::Greater, 0.0 - thresh),
+                    (CartesianCoordinate::X, Ordering::Less, 0.0 + thresh),
+                    (CartesianCoordinate::Y, Ordering::Greater, 0.0 + thresh),
+                ],
+            ],
+        }
+    }
+
+    fn new(conditions: &[Vec<(CartesianCoordinate, Ordering, f64)>]) -> Self {
+        Self {
+            conditions: conditions.to_vec(),
+        }
+    }
+}
+
+impl Default for CartesianConditions {
+    fn default() -> Self {
+        Self::new_standard(1e-7)
+    }
+}
+
+#[derive(Clone)]
+pub enum SphericalCoordinate {
+    Theta,
+    Phi,
+}
+
+impl fmt::Display for SphericalCoordinate {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SphericalCoordinate::Theta => write!(f, "θ"),
+            SphericalCoordinate::Phi => write!(f, "φ"),
+        }
+    }
+}
+
+#[derive(Clone, Builder)]
+pub struct SphericalConditions {
+    #[builder(setter(custom))]
+    z_basis: Vector3<f64>,
+
+    #[builder(setter(custom))]
+    x_basis: Vector3<f64>,
+
+    #[builder(setter(custom))]
+    conditions: Vec<Vec<(SphericalCoordinate, Ordering, f64)>>,
+
+    #[builder(setter(custom))]
+    threshold: f64,
+}
+
+impl SphericalConditionsBuilder {
+    fn z_basis(&mut self, z_bas: Vector3<f64>) -> &mut Self {
+        self.z_basis = Some(z_bas.normalize());
+        self
+    }
+
+    fn x_basis(&mut self, x_bas: Vector3<f64>) -> &mut Self {
+        self.x_basis = Some(x_bas.normalize());
+        self
+    }
+
+    fn conditions(&mut self, conds: &[Vec<(SphericalCoordinate, Ordering, f64)>]) -> &mut Self {
+        self.conditions = Some(conds.to_vec());
+        self
+    }
+
+    fn threshold(&mut self, thresh: f64) -> &mut Self {
+        assert!(thresh >= 0.0);
+        self.threshold = Some(thresh);
+        self
+    }
+}
+
+impl SphericalConditions {
+    fn builder() -> SphericalConditionsBuilder {
+        SphericalConditionsBuilder::default()
+    }
+
+    fn get_component(&self, vec: &Vector3<f64>, coord: &SphericalCoordinate) -> f64 {
+        match coord {
+            SphericalCoordinate::Theta => {
+                let cos_theta = vec.dot(&self.z_basis) / (vec.norm() * self.z_basis.norm());
+                if approx::relative_eq!(
+                    cos_theta,
+                    1.0,
+                    epsilon = self.threshold,
+                    max_relative = self.threshold
+                ) {
+                    1.0f64.acos()
+                } else if approx::relative_eq!(
+                    cos_theta,
+                    -1.0,
+                    epsilon = self.threshold,
+                    max_relative = self.threshold
+                ) {
+                    (-1.0f64).acos()
+                } else {
+                    cos_theta.acos()
+                }
+            }
+            SphericalCoordinate::Phi => {
+                let y_vector = self.z_basis.cross(&self.x_basis).normalize();
+                let xy_vec = vec - vec.dot(&self.z_basis) / self.z_basis.norm() * self.z_basis;
+                let sgn_y = xy_vec.dot(&y_vector).signum();
+                let cos_phi = xy_vec.dot(&self.x_basis) / (xy_vec.norm() * self.x_basis.norm());
+                if approx::relative_eq!(
+                    cos_phi,
+                    1.0,
+                    epsilon = self.threshold,
+                    max_relative = self.threshold
+                ) {
+                    sgn_y * 1.0f64.acos()
+                } else if approx::relative_eq!(
+                    cos_phi,
+                    -1.0,
+                    epsilon = self.threshold,
+                    max_relative = self.threshold
+                ) {
+                    sgn_y * (-1.0f64).acos()
+                } else {
+                    sgn_y * cos_phi.acos()
+                }
+            }
+        }
+    }
+
+    fn check(&self, vec: &Vector3<f64>) -> bool {
+        self.conditions.iter().any(|condition_set| {
+            condition_set.iter().all(|(i, order, target)| {
+                let component = self.get_component(vec, i);
+                component.partial_cmp(target).unwrap_or_else(|| {
+                    panic!(
+                        "Unable to compare with `{target}` the {i}-component of `{vec}` (= {component}) relative to the x-basis {} and z-basis {}.",
+                        self.x_basis, self.z_basis
+                    )
+                }) == *order
+            })
+        })
+    }
+
+    fn new_standard(thresh: f64) -> Self {
+        assert!(thresh >= 0.0);
+        let half_pi = 0.5 * std::f64::consts::PI;
+        let conditions = vec![
+            vec![
+                (SphericalCoordinate::Theta, Ordering::Greater, 0.0 - thresh),
+                (SphericalCoordinate::Theta, Ordering::Less, half_pi - thresh),
+            ],
+            vec![
+                (
+                    SphericalCoordinate::Theta,
+                    Ordering::Greater,
+                    half_pi - thresh,
+                ),
+                (SphericalCoordinate::Theta, Ordering::Less, half_pi + thresh),
+                (
+                    SphericalCoordinate::Phi,
+                    Ordering::Greater,
+                    -half_pi + thresh,
+                ),
+                (SphericalCoordinate::Phi, Ordering::Less, half_pi + thresh),
+            ],
+        ];
+        Self::builder()
+            .z_basis(Vector3::z())
+            .x_basis(Vector3::x())
+            .conditions(&conditions)
+            .threshold(thresh)
+            .build()
+            .expect("Unable to construct a set of spherical-coordinate conditions.")
+    }
+
+    fn new_disjoint_equatorial_arcs(
+        z_basis: Vector3<f64>,
+        x_basis: Vector3<f64>,
+        n: usize,
+        thresh: f64,
+    ) -> Self {
+        assert!(n > 0);
+        let n_f64 = n
+            .to_f64()
+            .expect("Unable to convert the number of arcs to `f64`.");
+        let half_arc = std::f64::consts::PI / (2.0 * n_f64);
+        let sep = 2.0 * std::f64::consts::PI / n_f64;
+        let half_pi = 0.5 * std::f64::consts::PI;
+
+        let mut conditions = vec![vec![
+            (SphericalCoordinate::Theta, Ordering::Greater, 0.0 - thresh),
+            (SphericalCoordinate::Theta, Ordering::Less, half_pi - thresh),
+        ]];
+
+        let phi_conditions = (0..n)
+            .map(|i| {
+                let (centre, _) = normalise_rotation_angle(i.to_f64().unwrap() * sep, thresh);
+                let min_exc = centre - half_arc + thresh;
+                let max_inc = centre + half_arc + thresh;
+                vec![
+                    (SphericalCoordinate::Theta, Ordering::Greater, half_pi - thresh),
+                    (SphericalCoordinate::Theta, Ordering::Less, half_pi + thresh),
+                    (SphericalCoordinate::Phi, Ordering::Greater, min_exc),
+                    (SphericalCoordinate::Phi, Ordering::Less, max_inc),
+                ]
+            })
+            .collect_vec();
+
+        conditions.extend(phi_conditions.into_iter());
+        Self::builder()
+            .z_basis(z_basis)
+            .x_basis(x_basis)
+            .conditions(&conditions)
+            .threshold(thresh)
+            .build()
+            .expect("Unable to construct a set of spherical-coordinate conditions.")
+    }
+}
+
+pub enum PositiveHemisphere {
+    Cartesian(CartesianConditions),
+    Spherical(SphericalConditions),
+}
+
+impl PositiveHemisphere {
+    pub fn check_positive_pole(&self, axis: &Vector3<f64>) -> bool {
+        match self {
+            PositiveHemisphere::Cartesian(cart_conditions) => cart_conditions.check(axis),
+            PositiveHemisphere::Spherical(sph_conditions) => sph_conditions.check(axis),
+        }
+    }
+
+    pub fn get_positive_pole(&self, axis: &Vector3<f64>) -> Vector3<f64> {
+        let normalised_axis = axis.normalize();
+        if self.check_positive_pole(&normalised_axis) {
+            normalised_axis
+        } else {
+            -normalised_axis
+        }
+    }
+
+    pub fn new_standard_cartesian(thresh: f64) -> Self {
+        Self::Cartesian(CartesianConditions::new_standard(thresh))
+    }
+
+    pub fn new_standard_spherical(thresh: f64) -> Self {
+        Self::Spherical(SphericalConditions::new_standard(thresh))
+    }
+
+    pub fn new_spherical_disjoint_equatorial_arcs(
+        z_basis: Vector3<f64>,
+        x_basis: Vector3<f64>,
+        n: usize,
+        thresh: f64,
+    ) -> Self {
+        Self::Spherical(SphericalConditions::new_disjoint_equatorial_arcs(
+            z_basis, x_basis, n, thresh,
+        ))
+    }
 }
