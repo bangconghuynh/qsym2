@@ -185,8 +185,8 @@ pub struct SymmetryOperation {
     #[builder(setter(skip), default = "self.calc_total_proper_fraction()")]
     pub total_proper_fraction: Option<F>,
 
-    #[builder(setter(skip), default = "PositiveHemisphere::default()")]
-    positive_hemisphere: PositiveHemisphere,
+    #[builder(setter(skip), default = "None")]
+    positive_hemisphere: Option<PositiveHemisphere>,
 }
 
 impl SymmetryOperationBuilder {
@@ -540,6 +540,9 @@ impl SymmetryOperation {
                     // Binary rotations or reflections
                     Point3::from(
                         self.positive_hemisphere
+                            .as_ref()
+                            .cloned()
+                            .unwrap_or_default()
                             .get_positive_pole(
                                 &op.generating_element.raw_axis,
                                 op.generating_element.threshold,
@@ -567,6 +570,9 @@ impl SymmetryOperation {
                     // Binary rotations or reflections
                     Point3::from(
                         self.positive_hemisphere
+                            .as_ref()
+                            .cloned()
+                            .unwrap_or_default()
                             .get_positive_pole(
                                 &op.generating_element.raw_axis,
                                 op.generating_element.threshold,
