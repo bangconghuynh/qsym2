@@ -1508,7 +1508,6 @@ where
 // Utility functions
 // =================
 pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
-    println!("");
     operations.sort_by_key(|op| {
         let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
         let c_op = if op.is_proper()
@@ -1550,11 +1549,6 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             )
         });
 
-        // let negative_rotation = total_proper_fraction.is_sign_negative()
-        //     || !geometry::check_positive_pole(
-        //         &c_op.calc_proper_rotation_pole().coords,
-        //         c_op.generating_element.threshold(),
-        //     );
         let negative_rotation = !geometry::check_positive_pole(
             &c_op.calc_proper_rotation_pole().coords,
             c_op.generating_element.threshold(),
@@ -1568,7 +1562,6 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             -denom,
             negative_rotation,
             if negative_rotation { -numer } else { numer },
-            // c_op.power,
             OrderedFloat(axis_closeness),
             closest_axis,
             c_op.is_su2_class_1(),

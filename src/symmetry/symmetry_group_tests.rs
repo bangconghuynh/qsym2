@@ -4728,6 +4728,38 @@ fn test_ur_group_symmetric_staggered_c2h6_d3d_double_class_order() {
     );
 }
 
+#[test]
+fn test_ur_group_symmetric_antiprism_pb10_d4d_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D4d*", 32, 11, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_antiprism_pb10_d4d_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C4(Σ)|",
+            "2|C4(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "4|C2(Σ), C2(QΣ)|^(')",
+            "2|S8(Σ)|",
+            "2|S8(QΣ)|",
+            "2|σC8^3(Σ)|",
+            "2|σC8^3(QΣ)|",
+            "4|σd(Σ), σd(QΣ)|",
+        ],
+    );
+}
+
 /*
 S2n
 */
