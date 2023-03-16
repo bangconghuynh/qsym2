@@ -683,8 +683,10 @@ impl CartesianConditions {
             })
         })
     }
+}
 
-    fn new_standard() -> Self {
+impl Default for CartesianConditions {
+    fn default() -> Self {
         Self {
             conditions: vec![
                 vec![(
@@ -703,12 +705,6 @@ impl CartesianConditions {
                 ],
             ],
         }
-    }
-}
-
-impl Default for CartesianConditions {
-    fn default() -> Self {
-        Self::new_standard()
     }
 }
 
@@ -822,39 +818,6 @@ impl SphericalConditions {
         })
     }
 
-    fn new_standard() -> Self {
-        let half_pi = 0.5 * std::f64::consts::PI;
-        let conditions = vec![
-            vec![
-                (
-                    SphericalCoordinate::Theta,
-                    ImproperOrdering::GreaterEqual,
-                    0.0,
-                ),
-                (SphericalCoordinate::Theta, ImproperOrdering::Less, half_pi),
-            ],
-            vec![
-                (SphericalCoordinate::Theta, ImproperOrdering::Equal, half_pi),
-                (
-                    SphericalCoordinate::Phi,
-                    ImproperOrdering::Greater,
-                    -half_pi,
-                ),
-                (
-                    SphericalCoordinate::Phi,
-                    ImproperOrdering::LessEqual,
-                    half_pi,
-                ),
-            ],
-        ];
-        Self::builder()
-            .z_basis(Vector3::z())
-            .x_basis(Vector3::x())
-            .conditions(&conditions)
-            .build()
-            .expect("Unable to construct a set of spherical-coordinate conditions.")
-    }
-
     fn new_disjoint_equatorial_arcs(
         z_basis: Vector3<f64>,
         x_basis: Vector3<f64>,
@@ -904,6 +867,41 @@ impl SphericalConditions {
     }
 }
 
+impl Default for SphericalConditions {
+    fn default() -> Self {
+        let half_pi = 0.5 * std::f64::consts::PI;
+        let conditions = vec![
+            vec![
+                (
+                    SphericalCoordinate::Theta,
+                    ImproperOrdering::GreaterEqual,
+                    0.0,
+                ),
+                (SphericalCoordinate::Theta, ImproperOrdering::Less, half_pi),
+            ],
+            vec![
+                (SphericalCoordinate::Theta, ImproperOrdering::Equal, half_pi),
+                (
+                    SphericalCoordinate::Phi,
+                    ImproperOrdering::Greater,
+                    -half_pi,
+                ),
+                (
+                    SphericalCoordinate::Phi,
+                    ImproperOrdering::LessEqual,
+                    half_pi,
+                ),
+            ],
+        ];
+        Self::builder()
+            .z_basis(Vector3::z())
+            .x_basis(Vector3::x())
+            .conditions(&conditions)
+            .build()
+            .expect("Unable to construct a set of spherical-coordinate conditions.")
+    }
+}
+
 #[derive(Clone)]
 pub enum PositiveHemisphere {
     Cartesian(CartesianConditions),
@@ -933,11 +931,11 @@ impl PositiveHemisphere {
     }
 
     pub fn new_standard_cartesian() -> Self {
-        Self::Cartesian(CartesianConditions::new_standard())
+        Self::Cartesian(CartesianConditions::default())
     }
 
     pub fn new_standard_spherical() -> Self {
-        Self::Spherical(SphericalConditions::new_standard())
+        Self::Spherical(SphericalConditions::default())
     }
 
     pub fn new_spherical_disjoint_equatorial_arcs(
@@ -948,5 +946,11 @@ impl PositiveHemisphere {
         Self::Spherical(SphericalConditions::new_disjoint_equatorial_arcs(
             z_basis, x_basis, n,
         ))
+    }
+}
+
+impl Default for PositiveHemisphere {
+    fn default() -> Self {
+        Self::Cartesian(CartesianConditions::default())
     }
 }

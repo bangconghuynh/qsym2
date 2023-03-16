@@ -11,7 +11,7 @@ use num_traits::{Inv, Pow, Zero};
 use ordered_float::OrderedFloat;
 
 use crate::aux::geometry::{
-    self, improper_rotation_matrix, proper_rotation_matrix, Transform, IMINV,
+    self, improper_rotation_matrix, proper_rotation_matrix, PositiveHemisphere, Transform, IMINV,
 };
 use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
@@ -184,6 +184,9 @@ pub struct SymmetryOperation {
     /// elements.
     #[builder(setter(skip), default = "self.calc_total_proper_fraction()")]
     pub total_proper_fraction: Option<F>,
+
+    #[builder(setter(skip), default = "PositiveHemisphere::default()")]
+    positive_hemisphere: PositiveHemisphere,
 }
 
 impl SymmetryOperationBuilder {
@@ -469,7 +472,7 @@ impl SymmetryOperation {
         // the vector part still lies in the positive hemisphere.
         let abs_angle = c_self.total_proper_angle.abs();
         let scalar_part = (0.5 * abs_angle).cos();
-        let vector_part = (0.5 * abs_angle).sin() * c_self.calc_standard_pole().coords;
+        let vector_part = (0.5 * abs_angle).sin() * c_self.calc_pole().coords;
         debug_assert!(
             -self.generating_element.threshold <= scalar_part
                 && scalar_part <= 1.0 + self.generating_element.threshold
@@ -495,7 +498,8 @@ impl SymmetryOperation {
         }
     }
 
-    /// Finds the pole associated with this operation.
+    /// Finds the pole associated with this operation with respect to the positive hemisphere
+    /// defined in [`Self::positive_hemisphere`].
     ///
     /// This is the point on the unit sphere that is left invariant by the operation.
     ///
@@ -519,7 +523,7 @@ impl SymmetryOperation {
     ///
     /// Panics when no total proper fractions could be found for this operation.
     #[must_use]
-    pub fn calc_standard_pole(&self) -> Point3<f64> {
+    pub fn calc_pole(&self) -> Point3<f64> {
         let op = if self.is_proper() {
             self.clone()
         } else {
@@ -534,10 +538,13 @@ impl SymmetryOperation {
                     .expect("No total proper fractions found.");
                 if total_proper_fraction == frac_1_2 {
                     // Binary rotations or reflections
-                    Point3::from(geometry::get_standard_positive_pole(
-                        &op.generating_element.raw_axis,
-                        op.generating_element.threshold,
-                    ))
+                    Point3::from(
+                        self.positive_hemisphere
+                            .get_positive_pole(
+                                &op.generating_element.raw_axis,
+                                op.generating_element.threshold,
+                            ),
+                    )
                 } else if total_proper_fraction > F::zero() {
                     // Positive rotation angles
                     Point3::from(op.generating_element.raw_axis)
@@ -558,10 +565,13 @@ impl SymmetryOperation {
                     epsilon = op.generating_element.threshold
                 ) {
                     // Binary rotations or reflections
-                    Point3::from(geometry::get_standard_positive_pole(
-                        &op.generating_element.raw_axis,
-                        op.generating_element.threshold,
-                    ))
+                    Point3::from(
+                        self.positive_hemisphere
+                            .get_positive_pole(
+                                &op.generating_element.raw_axis,
+                                op.generating_element.threshold,
+                            ),
+                    )
                 } else if approx::relative_ne!(
                     op.total_proper_angle,
                     0.0,
@@ -587,7 +597,7 @@ impl SymmetryOperation {
     /// This is the point on the unit sphere that is left invariant by the proper rotation part of
     /// the operation.
     ///
-    /// For improper operations, no conversions will be performed, unlike in [`calc_standard_pole`].
+    /// For improper operations, no conversions will be performed, unlike in [`calc_pole`].
     ///
     /// Note that binary rotations have unique poles on the positive hemisphere (*i.e.*,
     /// $`C_2(\hat{\mathbf{n}}) = C_2^{-1}(\hat{\mathbf{n}})`$ and
@@ -681,7 +691,7 @@ impl SymmetryOperation {
     ///
     /// Panics when no total proper fractions could be found for this operation.
     #[must_use]
-    pub fn calc_standard_pole_angle(&self) -> f64 {
+    pub fn calc_pole_angle(&self) -> f64 {
         let c_self = match self.generating_element.kind {
             SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
                 self.clone()
@@ -811,8 +821,8 @@ impl SymmetryOperation {
             if self.is_identity() || self.is_time_reversal() {
                 Array2::<f64>::eye(3)
             } else {
-                let angle = self.calc_standard_pole_angle();
-                let axis = self.calc_standard_pole().coords;
+                let angle = self.calc_pole_angle();
+                let axis = self.calc_pole().coords;
                 let mat = proper_rotation_matrix(angle, &axis, 1);
 
                 // nalgebra matrix iter is column-major.
@@ -833,8 +843,8 @@ impl SymmetryOperation {
                 -Array2::<f64>::eye(3)
             } else {
                 // Pole and pole angle are obtained in the inversion-centre convention.
-                let angle = self.calc_standard_pole_angle();
-                let axis = self.calc_standard_pole().coords;
+                let angle = self.calc_pole_angle();
+                let axis = self.calc_pole().coords;
                 let mat = improper_rotation_matrix(angle, &axis, 1, &IMINV);
 
                 // nalgebra matrix iter is column-major.
@@ -1286,8 +1296,8 @@ impl PartialEq for SymmetryOperation {
             || (self.is_spatial_reflection() && other.is_spatial_reflection())
         {
             approx::relative_eq!(
-                self.calc_standard_pole(),
-                other.calc_standard_pole(),
+                self.calc_pole(),
+                other.calc_pole(),
                 epsilon = thresh,
                 max_relative = thresh
             )
@@ -1320,8 +1330,8 @@ impl PartialEq for SymmetryOperation {
 
             angle_comparison
                 && approx::relative_eq!(
-                    self.calc_standard_pole(),
-                    other.calc_standard_pole(),
+                    self.calc_pole(),
+                    other.calc_pole(),
                     epsilon = thresh,
                     max_relative = thresh
                 )
@@ -1362,7 +1372,7 @@ impl Hash for SymmetryOperation {
         if c_self.is_spatial_identity() {
             true.hash(state);
         } else {
-            let pole = c_self.calc_standard_pole();
+            let pole = c_self.calc_pole();
             pole[0]
                 .round_factor(c_self.generating_element.threshold)
                 .integer_decode()
@@ -1496,8 +1506,8 @@ where
     M: Transform + PermutableCollection<Rank = usize>,
 {
     fn act_permute(&self, rhs: &M) -> Option<Permutation<usize>> {
-        let angle = self.calc_standard_pole_angle();
-        let axis = self.calc_standard_pole().coords;
+        let angle = self.calc_pole_angle();
+        let axis = self.calc_pole().coords;
         let mut t_mol = if self.is_proper() {
             rhs.rotate(angle, &axis)
         } else {
@@ -1560,7 +1570,7 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             c_op.generating_element.threshold(),
         );
 
-        let keys = (
+        (
             c_op.is_antiunitary(),
             !c_op.is_proper(),
             !(c_op.is_spatial_identity() || c_op.is_spatial_inversion()),
@@ -1571,15 +1581,6 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             OrderedFloat(axis_closeness),
             closest_axis,
             c_op.is_su2_class_1(),
-        );
-        // println!(
-        //     "{} - {op} - {c_op} - {} - {total_proper_fraction} - {keys:?}",
-        //     op.get_abbreviated_symbol(),
-        //     op.calc_proper_rotation_pole()
-        // );
-        keys
+        )
     });
-    // for op in operations.iter() {
-    //     println!("Sorted: {op}, {}", op.get_abbreviated_symbol());
-    // }
 }

@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-use nalgebra::{Point3, Vector3};
+use nalgebra::Vector3;
 use ndarray::{Array, Array2, Axis, RemoveAxis};
 use num_complex::Complex;
 
@@ -229,8 +229,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
         let angle = symop.calc_pole_double_angle();
-        let axis = symop.calc_standard_pole().coords;
-        println!("Angle: {angle}");
+        let axis = symop.calc_pole().coords;
         let dmat = dmat_angleaxis(angle, axis, false);
         println!("dmat: {dmat}");
         self.transform_spin_mut(&dmat)
@@ -250,7 +249,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
         let angle = symop.calc_pole_double_angle();
-        let axis = symop.calc_standard_pole().coords;
+        let axis = symop.calc_pole().coords;
         let dmat = dmat_angleaxis(angle, axis, false);
         self
             .transform_mut(symop)?
