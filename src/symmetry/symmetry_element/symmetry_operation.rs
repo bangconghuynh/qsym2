@@ -469,7 +469,7 @@ impl SymmetryOperation {
         // the vector part still lies in the positive hemisphere.
         let abs_angle = c_self.total_proper_angle.abs();
         let scalar_part = (0.5 * abs_angle).cos();
-        let vector_part = (0.5 * abs_angle).sin() * c_self.calc_pole().coords;
+        let vector_part = (0.5 * abs_angle).sin() * c_self.calc_standard_pole().coords;
         debug_assert!(
             -self.generating_element.threshold <= scalar_part
                 && scalar_part <= 1.0 + self.generating_element.threshold
@@ -519,7 +519,7 @@ impl SymmetryOperation {
     ///
     /// Panics when no total proper fractions could be found for this operation.
     #[must_use]
-    pub fn calc_pole(&self) -> Point3<f64> {
+    pub fn calc_standard_pole(&self) -> Point3<f64> {
         let op = if self.is_proper() {
             self.clone()
         } else {
@@ -587,7 +587,7 @@ impl SymmetryOperation {
     /// This is the point on the unit sphere that is left invariant by the proper rotation part of
     /// the operation.
     ///
-    /// For improper operations, no conversions will be performed, unlike in [`calc_pole`].
+    /// For improper operations, no conversions will be performed, unlike in [`calc_standard_pole`].
     ///
     /// Note that binary rotations have unique poles on the positive hemisphere (*i.e.*,
     /// $`C_2(\hat{\mathbf{n}}) = C_2^{-1}(\hat{\mathbf{n}})`$ and
@@ -681,7 +681,7 @@ impl SymmetryOperation {
     ///
     /// Panics when no total proper fractions could be found for this operation.
     #[must_use]
-    pub fn calc_pole_angle(&self) -> f64 {
+    pub fn calc_standard_pole_angle(&self) -> f64 {
         let c_self = match self.generating_element.kind {
             SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
                 self.clone()
@@ -811,8 +811,8 @@ impl SymmetryOperation {
             if self.is_identity() || self.is_time_reversal() {
                 Array2::<f64>::eye(3)
             } else {
-                let angle = self.calc_pole_angle();
-                let axis = self.calc_pole().coords;
+                let angle = self.calc_standard_pole_angle();
+                let axis = self.calc_standard_pole().coords;
                 let mat = proper_rotation_matrix(angle, &axis, 1);
 
                 // nalgebra matrix iter is column-major.
@@ -833,8 +833,8 @@ impl SymmetryOperation {
                 -Array2::<f64>::eye(3)
             } else {
                 // Pole and pole angle are obtained in the inversion-centre convention.
-                let angle = self.calc_pole_angle();
-                let axis = self.calc_pole().coords;
+                let angle = self.calc_standard_pole_angle();
+                let axis = self.calc_standard_pole().coords;
                 let mat = improper_rotation_matrix(angle, &axis, 1, &IMINV);
 
                 // nalgebra matrix iter is column-major.
@@ -1286,8 +1286,8 @@ impl PartialEq for SymmetryOperation {
             || (self.is_spatial_reflection() && other.is_spatial_reflection())
         {
             approx::relative_eq!(
-                self.calc_pole(),
-                other.calc_pole(),
+                self.calc_standard_pole(),
+                other.calc_standard_pole(),
                 epsilon = thresh,
                 max_relative = thresh
             )
@@ -1320,8 +1320,8 @@ impl PartialEq for SymmetryOperation {
 
             angle_comparison
                 && approx::relative_eq!(
-                    self.calc_pole(),
-                    other.calc_pole(),
+                    self.calc_standard_pole(),
+                    other.calc_standard_pole(),
                     epsilon = thresh,
                     max_relative = thresh
                 )
@@ -1362,7 +1362,7 @@ impl Hash for SymmetryOperation {
         if c_self.is_spatial_identity() {
             true.hash(state);
         } else {
-            let pole = c_self.calc_pole();
+            let pole = c_self.calc_standard_pole();
             pole[0]
                 .round_factor(c_self.generating_element.threshold)
                 .integer_decode()
@@ -1496,8 +1496,8 @@ where
     M: Transform + PermutableCollection<Rank = usize>,
 {
     fn act_permute(&self, rhs: &M) -> Option<Permutation<usize>> {
-        let angle = self.calc_pole_angle();
-        let axis = self.calc_pole().coords;
+        let angle = self.calc_standard_pole_angle();
+        let axis = self.calc_standard_pole().coords;
         let mut t_mol = if self.is_proper() {
             rhs.rotate(angle, &axis)
         } else {

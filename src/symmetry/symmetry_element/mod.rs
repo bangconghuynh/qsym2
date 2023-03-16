@@ -432,7 +432,7 @@ impl SymmetryElement {
     }
 
     /// Returns the axis of the proper rotation in the positive hemisphere.
-    pub fn positive_axis(&self) -> Vector3<f64> {
+    pub fn standard_positive_axis(&self) -> Vector3<f64> {
         geometry::get_standard_positive_pole(&self.raw_axis, self.threshold)
     }
 
@@ -441,7 +441,7 @@ impl SymmetryElement {
     pub fn signed_axis(&self) -> Vector3<f64> {
         let tr = self.contains_time_reversal();
         if self.is_o3_binary_rotation_axis(tr) || self.is_o3_mirror_plane(tr) {
-            self.positive_axis()
+            self.standard_positive_axis()
         } else {
             self.proper_fraction
                 .map(|frac| {
@@ -453,7 +453,7 @@ impl SymmetryElement {
                 .and_then(|signum| Some(signum * self.raw_axis))
                 .unwrap_or_else(|| {
                     log::warn!("No rotation signs could be obtained. The positive axis will be used for the signed axis.");
-                    self.positive_axis()
+                    self.standard_positive_axis()
                 })
         }
     }
@@ -1321,7 +1321,7 @@ impl SymmetryElement {
     /// more than the threshold value in `self`.
     #[must_use]
     pub fn closeness_to_cartesian_axes(&self) -> (f64, usize) {
-        let pos_axis = self.positive_axis();
+        let pos_axis = self.standard_positive_axis();
         let rev_pos_axis = Vector3::new(pos_axis[(2)], pos_axis[(1)], pos_axis[(0)]);
         let (amax_arg, amax_val) = rev_pos_axis.abs().argmax();
         let axis_closeness = 1.0 - amax_val;

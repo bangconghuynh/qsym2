@@ -1941,14 +1941,14 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c1.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(c1.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let c1b = SymmetryOperation::builder()
         .generating_element(c1_element)
         .power(-3)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c1b.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(c1b.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let c2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1965,7 +1965,10 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c2.calc_pole(), Point3::new(1.0, 1.0, 0.0) / 2.0f64.sqrt());
+    approx::assert_relative_eq!(
+        c2.calc_standard_pole(),
+        Point3::new(1.0, 1.0, 0.0) / 2.0f64.sqrt()
+    );
 
     let c2pm1 = SymmetryOperation::builder()
         .generating_element(c2_element.clone())
@@ -1973,7 +1976,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c2pm1.calc_pole(),
+        c2pm1.calc_standard_pole(),
         Point3::new(1.0, 1.0, 0.0) / 2.0f64.sqrt()
     );
 
@@ -1982,7 +1985,7 @@ fn test_symmetry_operation_poles() {
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c2p2.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(c2p2.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let c2b_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1999,7 +2002,10 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c2b.calc_pole(), Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt());
+    approx::assert_relative_eq!(
+        c2b.calc_standard_pole(),
+        Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt()
+    );
 
     let c2bpm1 = SymmetryOperation::builder()
         .generating_element(c2b_element)
@@ -2007,7 +2013,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c2bpm1.calc_pole(),
+        c2bpm1.calc_standard_pole(),
         Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt()
     );
 
@@ -2026,7 +2032,10 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c3.calc_pole(), Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt());
+    approx::assert_relative_eq!(
+        c3.calc_standard_pole(),
+        Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
+    );
 
     let c3p2 = SymmetryOperation::builder()
         .generating_element(c3_element.clone())
@@ -2034,7 +2043,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c3p2.calc_pole(),
+        c3p2.calc_standard_pole(),
         -Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
     );
 
@@ -2044,7 +2053,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c3pm1.calc_pole(),
+        c3pm1.calc_standard_pole(),
         -Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
     );
 
@@ -2054,7 +2063,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c3pm2.calc_pole(),
+        c3pm2.calc_standard_pole(),
         Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
     );
 
@@ -2063,14 +2072,17 @@ fn test_symmetry_operation_poles() {
         .power(3)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c3p3.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(c3p3.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let c3p4 = SymmetryOperation::builder()
         .generating_element(c3_element.clone())
         .power(4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c3p4.calc_pole(), Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt());
+    approx::assert_relative_eq!(
+        c3p4.calc_standard_pole(),
+        Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
+    );
 
     let c3pm4 = SymmetryOperation::builder()
         .generating_element(c3_element)
@@ -2078,7 +2090,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c3pm4.calc_pole(),
+        c3pm4.calc_standard_pole(),
         -Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
     );
 
@@ -2098,7 +2110,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c3pp2.calc_pole(),
+        c3pp2.calc_standard_pole(),
         -Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
     );
 
@@ -2108,7 +2120,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c3pp2p2.calc_pole(),
+        c3pp2p2.calc_standard_pole(),
         Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
     );
 
@@ -2127,7 +2139,10 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c4.calc_pole(), Point3::new(1.0, 1.0, -1.0) / 3.0f64.sqrt());
+    approx::assert_relative_eq!(
+        c4.calc_standard_pole(),
+        Point3::new(1.0, 1.0, -1.0) / 3.0f64.sqrt()
+    );
 
     let c4p2 = SymmetryOperation::builder()
         .generating_element(c4_element.clone())
@@ -2135,7 +2150,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c4p2.calc_pole(),
+        c4p2.calc_standard_pole(),
         -Point3::new(1.0, 1.0, -1.0) / 3.0f64.sqrt()
     );
 
@@ -2145,7 +2160,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c4pm2.calc_pole(),
+        c4pm2.calc_standard_pole(),
         -Point3::new(1.0, 1.0, -1.0) / 3.0f64.sqrt()
     );
 
@@ -2155,7 +2170,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c4p3.calc_pole(),
+        c4p3.calc_standard_pole(),
         -Point3::new(1.0, 1.0, -1.0) / 3.0f64.sqrt()
     );
 
@@ -2164,7 +2179,7 @@ fn test_symmetry_operation_poles() {
         .power(4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c4p4.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(c4p4.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let c7_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2181,7 +2196,10 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c7.calc_pole(), Point3::new(1.0, 1.0, -2.0) / 6.0f64.sqrt());
+    approx::assert_relative_eq!(
+        c7.calc_standard_pole(),
+        Point3::new(1.0, 1.0, -2.0) / 6.0f64.sqrt()
+    );
 
     let c7p2 = SymmetryOperation::builder()
         .generating_element(c7_element.clone())
@@ -2189,7 +2207,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c7p2.calc_pole(),
+        c7p2.calc_standard_pole(),
         Point3::new(1.0, 1.0, -2.0) / 6.0f64.sqrt()
     );
 
@@ -2199,7 +2217,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c7p3.calc_pole(),
+        c7p3.calc_standard_pole(),
         Point3::new(1.0, 1.0, -2.0) / 6.0f64.sqrt()
     );
 
@@ -2209,7 +2227,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        c7p4.calc_pole(),
+        c7p4.calc_standard_pole(),
         -Point3::new(1.0, 1.0, -2.0) / 6.0f64.sqrt()
     );
 
@@ -2218,7 +2236,7 @@ fn test_symmetry_operation_poles() {
         .power(7)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(c7p7.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(c7p7.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let ci_element = SymmetryElement::builder()
         .threshold(1e-7)
@@ -2235,7 +2253,10 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(ci.calc_pole(), Point3::new(1.0, 0.0, -1.0) / 2.0f64.sqrt());
+    approx::assert_relative_eq!(
+        ci.calc_standard_pole(),
+        Point3::new(1.0, 0.0, -1.0) / 2.0f64.sqrt()
+    );
 
     let cip2 = SymmetryOperation::builder()
         .generating_element(ci_element.clone())
@@ -2243,7 +2264,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        cip2.calc_pole(),
+        cip2.calc_standard_pole(),
         Point3::new(1.0, 0.0, -1.0) / 2.0f64.sqrt()
     );
 
@@ -2253,7 +2274,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        cip3.calc_pole(),
+        cip3.calc_standard_pole(),
         -Point3::new(1.0, 0.0, -1.0) / 2.0f64.sqrt()
     );
 
@@ -2263,7 +2284,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        cip4.calc_pole(),
+        cip4.calc_standard_pole(),
         -Point3::new(1.0, 0.0, -1.0) / 2.0f64.sqrt()
     );
 
@@ -2273,7 +2294,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        cip5.calc_pole(),
+        cip5.calc_standard_pole(),
         -Point3::new(1.0, 0.0, -1.0) / 2.0f64.sqrt()
     );
 
@@ -2282,7 +2303,7 @@ fn test_symmetry_operation_poles() {
         .power(6)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(cip6.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(cip6.calc_standard_pole(), Point3::from(Vector3::z()));
 
     // ============================
     // Improper symmetry operations
@@ -2302,20 +2323,20 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s1.calc_pole(), Point3::new(0.0, 1.0, 0.0));
+    approx::assert_relative_eq!(s1.calc_standard_pole(), Point3::new(0.0, 1.0, 0.0));
 
     let s1c = s1.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s1.calc_pole(), s1c.calc_pole());
+    approx::assert_relative_eq!(s1.calc_standard_pole(), s1c.calc_standard_pole());
 
     let s1pm2 = SymmetryOperation::builder()
         .generating_element(s1_element)
         .power(-2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s1pm2.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(s1pm2.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let s1pm2c = s1pm2.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s1pm2.calc_pole(), s1pm2c.calc_pole());
+    approx::assert_relative_eq!(s1pm2.calc_standard_pole(), s1pm2c.calc_standard_pole());
 
     let sd2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2332,20 +2353,23 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd2.calc_pole(), Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt());
+    approx::assert_relative_eq!(
+        sd2.calc_standard_pole(),
+        Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt()
+    );
 
     let sd2c = sd2.convert_to_improper_kind(&SIG);
-    approx::assert_relative_eq!(sd2.calc_pole(), sd2c.calc_pole());
+    approx::assert_relative_eq!(sd2.calc_standard_pole(), sd2c.calc_standard_pole());
 
     let sd2p2 = SymmetryOperation::builder()
         .generating_element(sd2_element)
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd2p2.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(sd2p2.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let sd2p2c = sd2p2.convert_to_improper_kind(&SIG);
-    approx::assert_relative_eq!(sd2p2.calc_pole(), sd2p2c.calc_pole());
+    approx::assert_relative_eq!(sd2p2.calc_standard_pole(), sd2p2c.calc_standard_pole());
 
     let sd2pp2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2362,10 +2386,10 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd2pp2.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(sd2pp2.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let sd2pp2c = sd2pp2.convert_to_improper_kind(&SIG);
-    approx::assert_relative_eq!(sd2pp2.calc_pole(), sd2pp2c.calc_pole());
+    approx::assert_relative_eq!(sd2pp2.calc_standard_pole(), sd2pp2c.calc_standard_pole());
 
     let s2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2382,20 +2406,20 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s2.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(s2.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let s2c = s2.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s2.calc_pole(), s2c.calc_pole());
+    approx::assert_relative_eq!(s2.calc_standard_pole(), s2c.calc_standard_pole());
 
     let s2p2 = SymmetryOperation::builder()
         .generating_element(s2_element)
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s2p2.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(s2p2.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let s2p2c = s2p2.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s2p2.calc_pole(), s2p2c.calc_pole());
+    approx::assert_relative_eq!(s2p2.calc_standard_pole(), s2p2c.calc_standard_pole());
 
     let s2pp2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2412,20 +2436,20 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s2pp2.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
+    approx::assert_relative_eq!(s2pp2.calc_standard_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
     let s2pp2c = s2pp2.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s2pp2.calc_pole(), s2pp2c.calc_pole());
+    approx::assert_relative_eq!(s2pp2.calc_standard_pole(), s2pp2c.calc_standard_pole());
 
     let s2pp2p4 = SymmetryOperation::builder()
         .generating_element(s2pp2_element)
         .power(4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s2pp2p4.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(s2pp2p4.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let s2pp2p4c = s2pp2p4.convert_to_improper_kind(&SIG);
-    approx::assert_relative_eq!(s2pp2p4.calc_pole(), s2pp2p4c.calc_pole());
+    approx::assert_relative_eq!(s2pp2p4.calc_standard_pole(), s2pp2p4c.calc_standard_pole());
 
     let sd1_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2442,20 +2466,20 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd1.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(sd1.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let sd1c = sd1.convert_to_improper_kind(&SIG);
-    approx::assert_relative_eq!(sd1.calc_pole(), sd1c.calc_pole());
+    approx::assert_relative_eq!(sd1.calc_standard_pole(), sd1c.calc_standard_pole());
 
     let sd1pm2 = SymmetryOperation::builder()
         .generating_element(sd1_element)
         .power(-2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd1pm2.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(sd1pm2.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let sd1pm2c = sd1pm2.convert_to_improper_kind(&SIG);
-    approx::assert_relative_eq!(sd1pm2.calc_pole(), sd1pm2c.calc_pole());
+    approx::assert_relative_eq!(sd1pm2.calc_standard_pole(), sd1pm2c.calc_standard_pole());
 
     let s3_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2472,94 +2496,97 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3.calc_pole(), -Point3::new(2.0, 2.0, 1.0) / 3.0);
+    approx::assert_relative_eq!(s3.calc_standard_pole(), -Point3::new(2.0, 2.0, 1.0) / 3.0);
 
     let s3c = s3.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s3.calc_pole(), s3c.calc_pole());
+    approx::assert_relative_eq!(s3.calc_standard_pole(), s3c.calc_standard_pole());
 
     let s3pm1 = SymmetryOperation::builder()
         .generating_element(s3_element.clone())
         .power(-1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pm1.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
+    approx::assert_relative_eq!(s3pm1.calc_standard_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
     let s3pm1c = s3pm1.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s3pm1.calc_pole(), s3pm1c.calc_pole());
+    approx::assert_relative_eq!(s3pm1.calc_standard_pole(), s3pm1c.calc_standard_pole());
 
     let s3p2 = SymmetryOperation::builder()
         .generating_element(s3_element.clone())
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3p2.calc_pole(), -Point3::new(2.0, 2.0, 1.0) / 3.0);
+    approx::assert_relative_eq!(s3p2.calc_standard_pole(), -Point3::new(2.0, 2.0, 1.0) / 3.0);
 
     let s3p2c = s3p2.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s3p2.calc_pole(), s3p2c.calc_pole());
+    approx::assert_relative_eq!(s3p2.calc_standard_pole(), s3p2c.calc_standard_pole());
 
     let s3pm2 = SymmetryOperation::builder()
         .generating_element(s3_element.clone())
         .power(-2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pm2.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
+    approx::assert_relative_eq!(s3pm2.calc_standard_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
     let s3pm2c = s3pm2.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s3pm2.calc_pole(), s3pm2c.calc_pole());
+    approx::assert_relative_eq!(s3pm2.calc_standard_pole(), s3pm2c.calc_standard_pole());
 
     let s3p3 = SymmetryOperation::builder()
         .generating_element(s3_element.clone())
         .power(3)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3p3.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
+    approx::assert_relative_eq!(s3p3.calc_standard_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
     let s3p3c = s3p3.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s3p3.calc_pole(), s3p3c.calc_pole());
+    approx::assert_relative_eq!(s3p3.calc_standard_pole(), s3p3c.calc_standard_pole());
 
     let s3pm3 = SymmetryOperation::builder()
         .generating_element(s3_element.clone())
         .power(-3)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pm3.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
+    approx::assert_relative_eq!(s3pm3.calc_standard_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
     let s3pm3c = s3pm3.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s3pm3.calc_pole(), s3pm3c.calc_pole());
+    approx::assert_relative_eq!(s3pm3.calc_standard_pole(), s3pm3c.calc_standard_pole());
 
     let s3p5 = SymmetryOperation::builder()
         .generating_element(s3_element.clone())
         .power(5)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3p5.calc_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
+    approx::assert_relative_eq!(s3p5.calc_standard_pole(), Point3::new(2.0, 2.0, 1.0) / 3.0);
 
     let s3p5c = s3p5.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s3p5.calc_pole(), s3p5c.calc_pole());
+    approx::assert_relative_eq!(s3p5.calc_standard_pole(), s3p5c.calc_standard_pole());
 
     let s3pm5 = SymmetryOperation::builder()
         .generating_element(s3_element.clone())
         .power(-5)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pm5.calc_pole(), -Point3::new(2.0, 2.0, 1.0) / 3.0);
+    approx::assert_relative_eq!(
+        s3pm5.calc_standard_pole(),
+        -Point3::new(2.0, 2.0, 1.0) / 3.0
+    );
 
     let s3pm5c = s3pm5.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s3pm5.calc_pole(), s3pm5c.calc_pole());
+    approx::assert_relative_eq!(s3pm5.calc_standard_pole(), s3pm5c.calc_standard_pole());
 
     let s3p6 = SymmetryOperation::builder()
         .generating_element(s3_element.clone())
         .power(6)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3p6.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(s3p6.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let s3pm6 = SymmetryOperation::builder()
         .generating_element(s3_element)
         .power(-6)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pm6.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(s3pm6.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let s3pp2_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2576,21 +2603,21 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pp2.calc_pole(), -s3.calc_pole());
+    approx::assert_relative_eq!(s3pp2.calc_standard_pole(), -s3.calc_standard_pole());
 
     let s3pp2p2 = SymmetryOperation::builder()
         .generating_element(s3pp2_element.clone())
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pp2p2.calc_pole(), -s3p2.calc_pole());
+    approx::assert_relative_eq!(s3pp2p2.calc_standard_pole(), -s3p2.calc_standard_pole());
 
     let s3pp2p3 = SymmetryOperation::builder()
         .generating_element(s3pp2_element)
         .power(3)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pp2p3.calc_pole(), s3p3.calc_pole());
+    approx::assert_relative_eq!(s3pp2p3.calc_standard_pole(), s3p3.calc_standard_pole());
 
     let s3pp3_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2607,14 +2634,14 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pp3.calc_pole(), s3p3.calc_pole());
+    approx::assert_relative_eq!(s3pp3.calc_standard_pole(), s3p3.calc_standard_pole());
 
     let s3pp3p2 = SymmetryOperation::builder()
         .generating_element(s3pp3_element)
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s3pp3p2.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(s3pp3p2.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let sd3_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2631,7 +2658,10 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd3.calc_pole(), Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt());
+    approx::assert_relative_eq!(
+        sd3.calc_standard_pole(),
+        Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
+    );
 
     let sd3p2 = SymmetryOperation::builder()
         .generating_element(sd3_element.clone())
@@ -2639,7 +2669,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        sd3p2.calc_pole(),
+        sd3p2.calc_standard_pole(),
         -Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
     );
 
@@ -2648,7 +2678,7 @@ fn test_symmetry_operation_poles() {
         .power(3)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sd3p3.calc_pole(), Point3::from(Vector3::z()));
+    approx::assert_relative_eq!(sd3p3.calc_standard_pole(), Point3::from(Vector3::z()));
 
     let s7_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2665,60 +2695,72 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s7.calc_pole(), -Point3::new(2.0, 2.0, -1.0) / 3.0);
+    approx::assert_relative_eq!(s7.calc_standard_pole(), -Point3::new(2.0, 2.0, -1.0) / 3.0);
 
     let s7c = s7.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s7.calc_pole(), s7c.calc_pole());
+    approx::assert_relative_eq!(s7.calc_standard_pole(), s7c.calc_standard_pole());
 
     let s7pm1 = SymmetryOperation::builder()
         .generating_element(s7_element.clone())
         .power(-1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s7pm1.calc_pole(), Point3::new(2.0, 2.0, -1.0) / 3.0);
+    approx::assert_relative_eq!(
+        s7pm1.calc_standard_pole(),
+        Point3::new(2.0, 2.0, -1.0) / 3.0
+    );
 
     let s7pm1c = s7pm1.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s7pm1.calc_pole(), s7pm1c.calc_pole());
+    approx::assert_relative_eq!(s7pm1.calc_standard_pole(), s7pm1c.calc_standard_pole());
 
     let s7p4 = SymmetryOperation::builder()
         .generating_element(s7_element.clone())
         .power(4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s7p4.calc_pole(), -Point3::new(2.0, 2.0, -1.0) / 3.0);
+    approx::assert_relative_eq!(
+        s7p4.calc_standard_pole(),
+        -Point3::new(2.0, 2.0, -1.0) / 3.0
+    );
 
     let s7p4c = s7p4.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s7p4.calc_pole(), s7p4c.calc_pole());
+    approx::assert_relative_eq!(s7p4.calc_standard_pole(), s7p4c.calc_standard_pole());
 
     let s7pm4 = SymmetryOperation::builder()
         .generating_element(s7_element.clone())
         .power(-4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s7pm4.calc_pole(), Point3::new(2.0, 2.0, -1.0) / 3.0);
+    approx::assert_relative_eq!(
+        s7pm4.calc_standard_pole(),
+        Point3::new(2.0, 2.0, -1.0) / 3.0
+    );
 
     let s7pm4c = s7pm4.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s7pm4.calc_pole(), s7pm4c.calc_pole());
+    approx::assert_relative_eq!(s7pm4.calc_standard_pole(), s7pm4c.calc_standard_pole());
 
     let s7p5 = SymmetryOperation::builder()
         .generating_element(s7_element.clone())
         .power(5)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s7p5.calc_pole(), Point3::new(2.0, 2.0, -1.0) / 3.0);
+    approx::assert_relative_eq!(s7p5.calc_standard_pole(), Point3::new(2.0, 2.0, -1.0) / 3.0);
 
     let s7p5c = s7p5.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s7p5.calc_pole(), s7p5c.calc_pole());
+    approx::assert_relative_eq!(s7p5.calc_standard_pole(), s7p5c.calc_standard_pole());
 
     let s7pm5 = SymmetryOperation::builder()
         .generating_element(s7_element)
         .power(-5)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(s7pm5.calc_pole(), -Point3::new(2.0, 2.0, -1.0) / 3.0);
+    approx::assert_relative_eq!(
+        s7pm5.calc_standard_pole(),
+        -Point3::new(2.0, 2.0, -1.0) / 3.0
+    );
 
     let s7pm5c = s7pm5.convert_to_improper_kind(&INV);
-    approx::assert_relative_eq!(s7pm5.calc_pole(), s7pm5c.calc_pole());
+    approx::assert_relative_eq!(s7pm5.calc_standard_pole(), s7pm5c.calc_standard_pole());
 
     let si_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2735,14 +2777,20 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(si.calc_pole(), -Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
+    approx::assert_relative_eq!(
+        si.calc_standard_pole(),
+        -Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt()
+    );
 
     let sip2 = SymmetryOperation::builder()
         .generating_element(si_element)
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sip2.calc_pole(), Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
+    approx::assert_relative_eq!(
+        sip2.calc_standard_pole(),
+        Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt()
+    );
 
     let sdi_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2759,7 +2807,10 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(sdi.calc_pole(), Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
+    approx::assert_relative_eq!(
+        sdi.calc_standard_pole(),
+        Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt()
+    );
 
     let sdip2 = SymmetryOperation::builder()
         .generating_element(sdi_element)
@@ -2767,7 +2818,7 @@ fn test_symmetry_operation_poles() {
         .build()
         .unwrap();
     approx::assert_relative_eq!(
-        sdip2.calc_pole(),
+        sdip2.calc_standard_pole(),
         Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt()
     );
 }
