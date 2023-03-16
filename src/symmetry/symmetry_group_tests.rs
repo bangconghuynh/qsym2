@@ -4663,6 +4663,71 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_grey_dnd() {
     }
 }
 
+/***
+Dnd*
+***/
+
+#[test]
+fn test_ur_group_symmetric_b2cl4_d2d_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D2d*", 16, 7, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_b2cl4_d2d_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "2|C2(Σ), C2(QΣ)|^(')",
+            "2|S4(Σ)|",
+            "2|S4(QΣ)|",
+            "2|σd(Σ), σd(QΣ)|"
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_staggered_c2h6_d3d_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D3d*", 24, 12, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_staggered_c2h6_d3d_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "|C2(Σ), C2(Σ), C2(QΣ)|",
+            "|C2(Σ), C2(QΣ), C2(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "2|S6(Σ)|",
+            "2|S6(QΣ)|",
+            "|σd(Σ), σd(Σ), σd(QΣ)|",
+            "|σd(Σ), σd(QΣ), σd(QΣ)|"
+        ],
+    );
+}
+
 /*
 S2n
 */

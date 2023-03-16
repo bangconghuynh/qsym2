@@ -304,16 +304,35 @@ pub trait SymmetryGroupProperties:
                                 }
                             });
                         if let Some(alt_rep_ele) = alt_rep_ele_option {
-                            assert_eq!(old_symbol.size().rem_euclid(2), 0);
-                            (
-                                old_symbol.size().div_euclid(2),
-                                format!(
-                                    "{}, {}",
-                                    rep_ele.get_abbreviated_symbol(),
-                                    alt_rep_ele.get_abbreviated_symbol()
-                                ),
-                                vec![rep_ele, alt_rep_ele],
-                            )
+                            if old_symbol.size().rem_euclid(2) == 0 {
+                                (
+                                    old_symbol.size().div_euclid(2),
+                                    format!(
+                                        "{}, {}",
+                                        rep_ele.get_abbreviated_symbol(),
+                                        alt_rep_ele.get_abbreviated_symbol()
+                                    ),
+                                    vec![rep_ele, alt_rep_ele],
+                                )
+                            } else {
+                                let mut reps = self
+                                    .get_cc_index(i)
+                                    .unwrap_or_else(|| {
+                                        panic!("No conjugacy class index `{i}` can be found.")
+                                    })
+                                    .iter()
+                                    .map(|&j| {
+                                        self.get_index(j).unwrap_or_else(|| {
+                                            panic!("Element with index {j} cannot be retrieved.")
+                                        })
+                                    }).collect_vec();
+                                reps.sort_by_key(|op| op.is_su2_class_1());
+                                (
+                                    1,
+                                    reps.iter().map(|op| op.get_abbreviated_symbol()).join(", "),
+                                    reps,
+                                )
+                            }
                         } else {
                             (
                                 old_symbol.size(),
