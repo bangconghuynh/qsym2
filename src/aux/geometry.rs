@@ -170,8 +170,8 @@ pub fn normalise_rotation_double_angle(rot_ang: f64, thresh: f64) -> f64 {
 /// Panics if the resulting pole is a null vector.
 #[must_use]
 pub fn get_standard_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
-    let poshem = PositiveHemisphere::new_standard_cartesian(thresh);
-    poshem.get_positive_pole(axis)
+    let poshem = PositiveHemisphere::new_standard_cartesian();
+    poshem.get_positive_pole(axis, thresh)
     // let mut pole = axis.normalize();
     // if pole[2].abs() > thresh {
     //     pole *= pole[2].signum();
@@ -204,8 +204,8 @@ pub fn get_standard_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f
 /// Panics if the axis is a null vector.
 #[must_use]
 pub fn check_standard_positive_pole(axis: &Vector3<f64>, thresh: f64) -> bool {
-    let poshem = PositiveHemisphere::new_standard_cartesian(thresh);
-    poshem.check_positive_pole(axis)
+    let poshem = PositiveHemisphere::new_standard_cartesian();
+    poshem.check_positive_pole(axis, thresh)
     // let normalised_axis = axis.normalize();
     // normalised_axis[2] > thresh
     //     || (approx::relative_eq!(
@@ -631,7 +631,7 @@ enum ImproperOrdering {
     GreaterEqual,
     Less,
     LessEqual,
-    Equal
+    Equal,
 }
 
 #[derive(Debug, Clone)]
@@ -664,32 +664,34 @@ impl fmt::Display for CartesianCoordinate {
 #[derive(Clone)]
 pub struct CartesianConditions {
     conditions: Vec<Vec<(CartesianCoordinate, ImproperOrdering, f64)>>,
-    threshold: f64,
 }
 
 impl CartesianConditions {
-    fn check(&self, vec: &Vector3<f64>) -> bool {
+    fn check(&self, vec: &Vector3<f64>, thresh: f64) -> bool {
         self.conditions.iter().any(|condition_set| {
             condition_set.iter().all(|(i, order, target)| match order {
-                ImproperOrdering::Greater => vec[i.to_index()] > target + self.threshold,
-                ImproperOrdering::GreaterEqual => vec[i.to_index()] > target - self.threshold,
-                ImproperOrdering::Less => vec[i.to_index()] < target - self.threshold,
-                ImproperOrdering::LessEqual => vec[i.to_index()] < target + self.threshold,
+                ImproperOrdering::Greater => vec[i.to_index()] > target + thresh,
+                ImproperOrdering::GreaterEqual => vec[i.to_index()] > target - thresh,
+                ImproperOrdering::Less => vec[i.to_index()] < target - thresh,
+                ImproperOrdering::LessEqual => vec[i.to_index()] < target + thresh,
                 ImproperOrdering::Equal => approx::relative_eq!(
                     vec[i.to_index()],
                     target,
-                    max_relative = self.threshold,
-                    epsilon = self.threshold
-                )
+                    max_relative = thresh,
+                    epsilon = thresh
+                ),
             })
         })
     }
 
-    fn new_standard(thresh: f64) -> Self {
-        assert!(thresh >= 0.0);
+    fn new_standard() -> Self {
         Self {
             conditions: vec![
-                vec![(CartesianCoordinate::Z, ImproperOrdering::Greater, 0.0 + thresh)],
+                vec![(
+                    CartesianCoordinate::Z,
+                    ImproperOrdering::Greater,
+                    0.0,
+                )],
                 vec![
                     (CartesianCoordinate::Z, ImproperOrdering::Equal, 0.0),
                     (CartesianCoordinate::X, ImproperOrdering::Greater, 0.0),
@@ -700,14 +702,13 @@ impl CartesianConditions {
                     (CartesianCoordinate::Y, ImproperOrdering::Greater, 0.0),
                 ],
             ],
-            threshold: thresh
         }
     }
 }
 
 impl Default for CartesianConditions {
     fn default() -> Self {
-        Self::new_standard(1e-7)
+        Self::new_standard()
     }
 }
 
@@ -736,9 +737,6 @@ pub struct SphericalConditions {
 
     #[builder(setter(custom))]
     conditions: Vec<Vec<(SphericalCoordinate, ImproperOrdering, f64)>>,
-
-    #[builder(setter(custom))]
-    threshold: f64,
 }
 
 impl SphericalConditionsBuilder {
@@ -752,14 +750,11 @@ impl SphericalConditionsBuilder {
         self
     }
 
-    fn conditions(&mut self, conds: &[Vec<(SphericalCoordinate, ImproperOrdering, f64)>]) -> &mut Self {
+    fn conditions(
+        &mut self,
+        conds: &[Vec<(SphericalCoordinate, ImproperOrdering, f64)>],
+    ) -> &mut Self {
         self.conditions = Some(conds.to_vec());
-        self
-    }
-
-    fn threshold(&mut self, thresh: f64) -> &mut Self {
-        assert!(thresh >= 0.0);
-        self.threshold = Some(thresh);
         self
     }
 }
@@ -769,22 +764,17 @@ impl SphericalConditions {
         SphericalConditionsBuilder::default()
     }
 
-    fn get_component(&self, vec: &Vector3<f64>, coord: &SphericalCoordinate) -> f64 {
+    fn get_component(&self, vec: &Vector3<f64>, coord: &SphericalCoordinate, thresh: f64) -> f64 {
         match coord {
             SphericalCoordinate::Theta => {
                 let cos_theta = vec.dot(&self.z_basis) / (vec.norm() * self.z_basis.norm());
-                if approx::relative_eq!(
-                    cos_theta,
-                    1.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
-                ) {
+                if approx::relative_eq!(cos_theta, 1.0, epsilon = thresh, max_relative = thresh) {
                     1.0f64.acos()
                 } else if approx::relative_eq!(
                     cos_theta,
                     -1.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
+                    epsilon = thresh,
+                    max_relative = thresh
                 ) {
                     (-1.0f64).acos()
                 } else {
@@ -796,18 +786,13 @@ impl SphericalConditions {
                 let xy_vec = vec - vec.dot(&self.z_basis) / self.z_basis.norm() * self.z_basis;
                 let sgn_y = xy_vec.dot(&y_vector).signum();
                 let cos_phi = xy_vec.dot(&self.x_basis) / (xy_vec.norm() * self.x_basis.norm());
-                if approx::relative_eq!(
-                    cos_phi,
-                    1.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
-                ) {
+                if approx::relative_eq!(cos_phi, 1.0, epsilon = thresh, max_relative = thresh) {
                     sgn_y * 1.0f64.acos()
                 } else if approx::relative_eq!(
                     cos_phi,
                     -1.0,
-                    epsilon = self.threshold,
-                    max_relative = self.threshold
+                    epsilon = thresh,
+                    max_relative = thresh
                 ) {
                     sgn_y * (-1.0f64).acos()
                 } else {
@@ -817,45 +802,55 @@ impl SphericalConditions {
         }
     }
 
-    fn check(&self, vec: &Vector3<f64>) -> bool {
+    fn check(&self, vec: &Vector3<f64>, thresh: f64) -> bool {
         self.conditions.iter().any(|condition_set| {
             condition_set.iter().all(|(i, order, target)| {
-                let component = self.get_component(vec, i);
+                let component = self.get_component(vec, i, thresh);
                 match order {
-                    ImproperOrdering::Greater => component > target + self.threshold,
-                    ImproperOrdering::GreaterEqual => component > target - self.threshold,
-                    ImproperOrdering::Less => component < target - self.threshold,
-                    ImproperOrdering::LessEqual => component < target + self.threshold,
+                    ImproperOrdering::Greater => component > target + thresh,
+                    ImproperOrdering::GreaterEqual => component > target - thresh,
+                    ImproperOrdering::Less => component < target - thresh,
+                    ImproperOrdering::LessEqual => component < target + thresh,
                     ImproperOrdering::Equal => approx::relative_eq!(
                         component,
                         target,
-                        max_relative = self.threshold,
-                        epsilon = self.threshold
-                    )
+                        max_relative = thresh,
+                        epsilon = thresh
+                    ),
                 }
             })
         })
     }
 
-    fn new_standard(thresh: f64) -> Self {
-        assert!(thresh >= 0.0);
+    fn new_standard() -> Self {
         let half_pi = 0.5 * std::f64::consts::PI;
         let conditions = vec![
             vec![
-                (SphericalCoordinate::Theta, ImproperOrdering::GreaterEqual, 0.0),
+                (
+                    SphericalCoordinate::Theta,
+                    ImproperOrdering::GreaterEqual,
+                    0.0,
+                ),
                 (SphericalCoordinate::Theta, ImproperOrdering::Less, half_pi),
             ],
             vec![
                 (SphericalCoordinate::Theta, ImproperOrdering::Equal, half_pi),
-                (SphericalCoordinate::Phi, ImproperOrdering::Greater, -half_pi),
-                (SphericalCoordinate::Phi, ImproperOrdering::LessEqual, half_pi),
+                (
+                    SphericalCoordinate::Phi,
+                    ImproperOrdering::Greater,
+                    -half_pi,
+                ),
+                (
+                    SphericalCoordinate::Phi,
+                    ImproperOrdering::LessEqual,
+                    half_pi,
+                ),
             ],
         ];
         Self::builder()
             .z_basis(Vector3::z())
             .x_basis(Vector3::x())
             .conditions(&conditions)
-            .threshold(thresh)
             .build()
             .expect("Unable to construct a set of spherical-coordinate conditions.")
     }
@@ -864,7 +859,6 @@ impl SphericalConditions {
         z_basis: Vector3<f64>,
         x_basis: Vector3<f64>,
         n: usize,
-        thresh: f64,
     ) -> Self {
         assert!(n > 0);
         let n_f64 = n
@@ -875,19 +869,27 @@ impl SphericalConditions {
         let half_pi = 0.5 * std::f64::consts::PI;
 
         let mut conditions = vec![vec![
-            (SphericalCoordinate::Theta, ImproperOrdering::GreaterEqual, 0.0),
+            (
+                SphericalCoordinate::Theta,
+                ImproperOrdering::GreaterEqual,
+                0.0,
+            ),
             (SphericalCoordinate::Theta, ImproperOrdering::Less, half_pi),
         ]];
 
         let phi_conditions = (0..n)
             .map(|i| {
-                let (centre, _) = normalise_rotation_angle(i.to_f64().unwrap() * sep, thresh);
+                let (centre, _) = normalise_rotation_angle(i.to_f64().unwrap() * sep, f64::EPSILON);
                 let min_exc = centre - half_arc;
                 let max_inc = centre + half_arc;
                 vec![
                     (SphericalCoordinate::Theta, ImproperOrdering::Equal, half_pi),
                     (SphericalCoordinate::Phi, ImproperOrdering::Greater, min_exc),
-                    (SphericalCoordinate::Phi, ImproperOrdering::LessEqual, max_inc),
+                    (
+                        SphericalCoordinate::Phi,
+                        ImproperOrdering::LessEqual,
+                        max_inc,
+                    ),
                 ]
             })
             .collect_vec();
@@ -897,7 +899,6 @@ impl SphericalConditions {
             .z_basis(z_basis)
             .x_basis(x_basis)
             .conditions(&conditions)
-            .threshold(thresh)
             .build()
             .expect("Unable to construct a set of spherical-coordinate conditions.")
     }
@@ -910,41 +911,42 @@ pub enum PositiveHemisphere {
 }
 
 impl PositiveHemisphere {
-    pub fn check_positive_pole(&self, axis: &Vector3<f64>) -> bool {
+    pub fn check_positive_pole(&self, axis: &Vector3<f64>, thresh: f64) -> bool {
         let normalised_axis = axis.normalize();
         match self {
             PositiveHemisphere::Cartesian(cart_conditions) => {
-                cart_conditions.check(&normalised_axis)
+                cart_conditions.check(&normalised_axis, thresh)
             }
-            PositiveHemisphere::Spherical(sph_conditions) => sph_conditions.check(&normalised_axis),
+            PositiveHemisphere::Spherical(sph_conditions) => {
+                sph_conditions.check(&normalised_axis, thresh)
+            }
         }
     }
 
-    pub fn get_positive_pole(&self, axis: &Vector3<f64>) -> Vector3<f64> {
+    pub fn get_positive_pole(&self, axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
         let normalised_axis = axis.normalize();
-        if self.check_positive_pole(&normalised_axis) {
+        if self.check_positive_pole(&normalised_axis, thresh) {
             normalised_axis
         } else {
             -normalised_axis
         }
     }
 
-    pub fn new_standard_cartesian(thresh: f64) -> Self {
-        Self::Cartesian(CartesianConditions::new_standard(thresh))
+    pub fn new_standard_cartesian() -> Self {
+        Self::Cartesian(CartesianConditions::new_standard())
     }
 
-    pub fn new_standard_spherical(thresh: f64) -> Self {
-        Self::Spherical(SphericalConditions::new_standard(thresh))
+    pub fn new_standard_spherical() -> Self {
+        Self::Spherical(SphericalConditions::new_standard())
     }
 
     pub fn new_spherical_disjoint_equatorial_arcs(
         z_basis: Vector3<f64>,
         x_basis: Vector3<f64>,
         n: usize,
-        thresh: f64,
     ) -> Self {
         Self::Spherical(SphericalConditions::new_disjoint_equatorial_arcs(
-            z_basis, x_basis, n, thresh,
+            z_basis, x_basis, n,
         ))
     }
 }

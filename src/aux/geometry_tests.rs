@@ -36,56 +36,56 @@ fn test_check_regular_polygon() {
 
 #[test]
 fn test_standard_positive_hemisphere() {
-    let poshem_c = geometry::PositiveHemisphere::new_standard_cartesian(1e-7);
-    let poshem_s = geometry::PositiveHemisphere::new_standard_spherical(1e-7);
+    let poshem_c = geometry::PositiveHemisphere::new_standard_cartesian();
+    let poshem_s = geometry::PositiveHemisphere::new_standard_spherical();
 
     let axis_z = Vector3::<f64>::z();
-    assert!(poshem_c.check_positive_pole(&axis_z));
-    assert!(poshem_s.check_positive_pole(&axis_z));
-    assert!(!poshem_c.check_positive_pole(&-axis_z));
-    assert!(!poshem_s.check_positive_pole(&-axis_z));
+    assert!(poshem_c.check_positive_pole(&axis_z, 1e-7));
+    assert!(poshem_s.check_positive_pole(&axis_z, 1e-7));
+    assert!(!poshem_c.check_positive_pole(&-axis_z, 1e-7));
+    assert!(!poshem_s.check_positive_pole(&-axis_z, 1e-7));
 
     let axis_x = Vector3::<f64>::x();
-    assert!(poshem_c.check_positive_pole(&axis_x));
-    assert!(poshem_s.check_positive_pole(&axis_x));
-    assert!(!poshem_c.check_positive_pole(&-axis_x));
-    assert!(!poshem_s.check_positive_pole(&-axis_x));
+    assert!(poshem_c.check_positive_pole(&axis_x, 1e-7));
+    assert!(poshem_s.check_positive_pole(&axis_x, 1e-7));
+    assert!(!poshem_c.check_positive_pole(&-axis_x, 1e-7));
+    assert!(!poshem_s.check_positive_pole(&-axis_x, 1e-7));
 
     let axis_y = Vector3::<f64>::y();
-    assert!(poshem_c.check_positive_pole(&axis_y));
-    assert!(poshem_s.check_positive_pole(&axis_y));
-    assert!(!poshem_c.check_positive_pole(&-axis_y));
-    assert!(!poshem_s.check_positive_pole(&-axis_y));
+    assert!(poshem_c.check_positive_pole(&axis_y, 1e-7));
+    assert!(poshem_s.check_positive_pole(&axis_y, 1e-7));
+    assert!(!poshem_c.check_positive_pole(&-axis_y, 1e-7));
+    assert!(!poshem_s.check_positive_pole(&-axis_y, 1e-7));
 
     let axis_0 = Vector3::new(-1.0, -1.0, 1.0);
-    assert!(poshem_c.check_positive_pole(&axis_0));
-    assert!(poshem_s.check_positive_pole(&axis_0));
-    assert!(!poshem_c.check_positive_pole(&-axis_0));
-    assert!(!poshem_s.check_positive_pole(&-axis_0));
+    assert!(poshem_c.check_positive_pole(&axis_0, 1e-7));
+    assert!(poshem_s.check_positive_pole(&axis_0, 1e-7));
+    assert!(!poshem_c.check_positive_pole(&-axis_0, 1e-7));
+    assert!(!poshem_s.check_positive_pole(&-axis_0, 1e-7));
 
     let axis_1 = Vector3::new(-1.0, 1.0, 0.0);
-    assert!(!poshem_c.check_positive_pole(&axis_1));
-    assert!(!poshem_s.check_positive_pole(&axis_1));
-    assert!(poshem_c.check_positive_pole(&-axis_1));
-    assert!(poshem_s.check_positive_pole(&-axis_1));
+    assert!(!poshem_c.check_positive_pole(&axis_1, 1e-7));
+    assert!(!poshem_s.check_positive_pole(&axis_1, 1e-7));
+    assert!(poshem_c.check_positive_pole(&-axis_1, 1e-7));
+    assert!(poshem_s.check_positive_pole(&-axis_1, 1e-7));
 
     let axis_2 = Vector3::new(1.0, 0.0, -0.2);
-    assert!(!poshem_c.check_positive_pole(&axis_2));
-    assert!(!poshem_s.check_positive_pole(&axis_2));
-    assert!(poshem_c.check_positive_pole(&-axis_2));
-    assert!(poshem_s.check_positive_pole(&-axis_2));
+    assert!(!poshem_c.check_positive_pole(&axis_2, 1e-7));
+    assert!(!poshem_s.check_positive_pole(&axis_2, 1e-7));
+    assert!(poshem_c.check_positive_pole(&-axis_2, 1e-7));
+    assert!(poshem_s.check_positive_pole(&-axis_2, 1e-7));
 
     let axis_3 = Vector3::new(-0.1, 0.8, 0.0);
-    assert!(!poshem_c.check_positive_pole(&axis_3));
-    assert!(!poshem_s.check_positive_pole(&axis_3));
-    assert!(poshem_c.check_positive_pole(&-axis_3));
-    assert!(poshem_s.check_positive_pole(&-axis_3));
+    assert!(!poshem_c.check_positive_pole(&axis_3, 1e-7));
+    assert!(!poshem_s.check_positive_pole(&axis_3, 1e-7));
+    assert!(poshem_c.check_positive_pole(&-axis_3, 1e-7));
+    assert!(poshem_s.check_positive_pole(&-axis_3, 1e-7));
 
     let axis_4 = Vector3::new(-0.1, 0.8, 0.2);
-    assert!(poshem_c.check_positive_pole(&axis_4));
-    assert!(poshem_s.check_positive_pole(&axis_4));
-    assert!(!poshem_c.check_positive_pole(&-axis_4));
-    assert!(!poshem_s.check_positive_pole(&-axis_4));
+    assert!(poshem_c.check_positive_pole(&axis_4, 1e-7));
+    assert!(poshem_s.check_positive_pole(&axis_4, 1e-7));
+    assert!(!poshem_c.check_positive_pole(&-axis_4, 1e-7));
+    assert!(!poshem_s.check_positive_pole(&-axis_4, 1e-7));
 }
 
 #[test]
@@ -94,54 +94,51 @@ fn test_custom_positive_hemisphere() {
         Vector3::z(),
         Vector3::x(),
         3,
-        1e-7
     );
 
     let axis_x = Vector3::<f64>::x();
-    assert!(poshem_s.check_positive_pole(&axis_x));
-    assert!(!poshem_s.check_positive_pole(&-axis_x));
+    assert!(poshem_s.check_positive_pole(&axis_x, 1e-7));
+    assert!(!poshem_s.check_positive_pole(&-axis_x, 1e-7));
 
     let axis_y = Vector3::<f64>::y();
-    assert!(!poshem_s.check_positive_pole(&axis_y));
-    assert!(poshem_s.check_positive_pole(&-axis_y));
+    assert!(!poshem_s.check_positive_pole(&axis_y, 1e-7));
+    assert!(poshem_s.check_positive_pole(&-axis_y, 1e-7));
 
     let axis_0 = Vector3::<f64>::new(-0.5, 3.0f64.sqrt() / 2.0, 0.0);
-    assert!(poshem_s.check_positive_pole(&axis_0));
-    assert!(!poshem_s.check_positive_pole(&-axis_0));
+    assert!(poshem_s.check_positive_pole(&axis_0, 1e-7));
+    assert!(!poshem_s.check_positive_pole(&-axis_0, 1e-7));
 
     let axis_1 = Vector3::<f64>::new(-0.5, -3.0f64.sqrt() / 2.0, 0.0);
-    assert!(poshem_s.check_positive_pole(&axis_1));
-    assert!(!poshem_s.check_positive_pole(&-axis_1));
+    assert!(poshem_s.check_positive_pole(&axis_1, 1e-7));
+    assert!(!poshem_s.check_positive_pole(&-axis_1, 1e-7));
 
     let poshem_s2 = geometry::PositiveHemisphere::new_spherical_disjoint_equatorial_arcs(
         Vector3::z(),
         Vector3::new(-0.5, 3.0f64.sqrt() / 2.0, 0.0),
         3,
-        1e-7
     );
 
-    assert!(poshem_s2.check_positive_pole(&axis_x));
-    assert!(!poshem_s2.check_positive_pole(&-axis_x));
-    assert!(!poshem_s2.check_positive_pole(&axis_y));
-    assert!(poshem_s2.check_positive_pole(&-axis_y));
-    assert!(poshem_s2.check_positive_pole(&axis_0));
-    assert!(!poshem_s2.check_positive_pole(&-axis_0));
-    assert!(poshem_s2.check_positive_pole(&axis_1));
-    assert!(!poshem_s2.check_positive_pole(&-axis_1));
+    assert!(poshem_s2.check_positive_pole(&axis_x, 1e-7));
+    assert!(!poshem_s2.check_positive_pole(&-axis_x, 1e-7));
+    assert!(!poshem_s2.check_positive_pole(&axis_y, 1e-7));
+    assert!(poshem_s2.check_positive_pole(&-axis_y, 1e-7));
+    assert!(poshem_s2.check_positive_pole(&axis_0, 1e-7));
+    assert!(!poshem_s2.check_positive_pole(&-axis_0, 1e-7));
+    assert!(poshem_s2.check_positive_pole(&axis_1, 1e-7));
+    assert!(!poshem_s2.check_positive_pole(&-axis_1, 1e-7));
 
     let poshem_s3 = geometry::PositiveHemisphere::new_spherical_disjoint_equatorial_arcs(
         Vector3::z(),
         Vector3::new(-0.5, -3.0f64.sqrt() / 2.0, 0.0),
         3,
-        1e-7
     );
 
-    assert!(poshem_s3.check_positive_pole(&axis_x));
-    assert!(!poshem_s3.check_positive_pole(&-axis_x));
-    assert!(!poshem_s3.check_positive_pole(&axis_y));
-    assert!(poshem_s3.check_positive_pole(&-axis_y));
-    assert!(poshem_s3.check_positive_pole(&axis_0));
-    assert!(!poshem_s3.check_positive_pole(&-axis_0));
-    assert!(poshem_s3.check_positive_pole(&axis_1));
-    assert!(!poshem_s3.check_positive_pole(&-axis_1));
+    assert!(poshem_s3.check_positive_pole(&axis_x, 1e-7));
+    assert!(!poshem_s3.check_positive_pole(&-axis_x, 1e-7));
+    assert!(!poshem_s3.check_positive_pole(&axis_y, 1e-7));
+    assert!(poshem_s3.check_positive_pole(&-axis_y, 1e-7));
+    assert!(poshem_s3.check_positive_pole(&axis_0, 1e-7));
+    assert!(!poshem_s3.check_positive_pole(&-axis_0, 1e-7));
+    assert!(poshem_s3.check_positive_pole(&axis_1, 1e-7));
+    assert!(!poshem_s3.check_positive_pole(&-axis_1, 1e-7));
 }
