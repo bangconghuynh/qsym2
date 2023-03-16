@@ -213,7 +213,7 @@ pub trait SymmetryGroupProperties:
                             .to_symmetry_element();
                         (
                             op.is_su2_class_1(), // prioritise class 0
-                            !geometry::check_positive_pole(
+                            !geometry::check_standard_positive_pole(
                                 &op.proper_rotation_pole(),
                                 op.threshold(),
                             ), // prioritise positive rotation

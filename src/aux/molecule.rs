@@ -277,7 +277,7 @@ impl Molecule {
                 sorted_eigenvalues[2],
             ],
             [
-                geometry::get_positive_pole(
+                geometry::get_standard_positive_pole(
                     &Vector3::new(
                         sorted_eigenvectors[0][(0, 0)],
                         sorted_eigenvectors[0][(1, 0)],
@@ -285,7 +285,7 @@ impl Molecule {
                     ),
                     self.threshold,
                 ),
-                geometry::get_positive_pole(
+                geometry::get_standard_positive_pole(
                     &Vector3::new(
                         sorted_eigenvectors[1][(0, 0)],
                         sorted_eigenvectors[1][(1, 0)],
@@ -293,7 +293,7 @@ impl Molecule {
                     ),
                     self.threshold,
                 ),
-                geometry::get_positive_pole(
+                geometry::get_standard_positive_pole(
                     &Vector3::new(
                         sorted_eigenvectors[2][(0, 0)],
                         sorted_eigenvectors[2][(1, 0)],

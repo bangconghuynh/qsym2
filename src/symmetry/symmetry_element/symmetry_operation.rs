@@ -306,12 +306,12 @@ impl SymmetryOperation {
                 // 180-degree rotation, i.e. binary rotation or reflection. Whether the resultant
                 // operation is in class 0 or class 1 depends on whether the vector part is in the
                 // positive hemisphere or negative hemisphere.
-                let positive_axis = geometry::get_positive_pole(&vector_part, thresh);
+                let positive_axis = geometry::get_standard_positive_pole(&vector_part, thresh);
                 (
                     positive_axis,
                     2u32,
                     1u32,
-                    if geometry::check_positive_pole(&vector_part, thresh) {
+                    if geometry::check_standard_positive_pole(&vector_part, thresh) {
                         SU2_0
                     } else {
                         SU2_1
@@ -480,7 +480,10 @@ impl SymmetryOperation {
             max_relative = c_self.generating_element.threshold,
             epsilon = c_self.generating_element.threshold
         ) {
-            geometry::check_positive_pole(&vector_part, c_self.generating_element.threshold)
+            geometry::check_standard_positive_pole(
+                &vector_part,
+                c_self.generating_element.threshold,
+            )
         } else {
             true
         });
@@ -531,7 +534,7 @@ impl SymmetryOperation {
                     .expect("No total proper fractions found.");
                 if total_proper_fraction == frac_1_2 {
                     // Binary rotations or reflections
-                    Point3::from(geometry::get_positive_pole(
+                    Point3::from(geometry::get_standard_positive_pole(
                         &op.generating_element.raw_axis,
                         op.generating_element.threshold,
                     ))
@@ -555,7 +558,7 @@ impl SymmetryOperation {
                     epsilon = op.generating_element.threshold
                 ) {
                     // Binary rotations or reflections
-                    Point3::from(geometry::get_positive_pole(
+                    Point3::from(geometry::get_standard_positive_pole(
                         &op.generating_element.raw_axis,
                         op.generating_element.threshold,
                     ))
@@ -610,7 +613,7 @@ impl SymmetryOperation {
                     .expect("No total proper fractions found.");
                 if total_proper_fraction == frac_1_2 {
                     // Binary rotations or reflections
-                    Point3::from(geometry::get_positive_pole(
+                    Point3::from(geometry::get_standard_positive_pole(
                         &self.generating_element.raw_axis,
                         self.generating_element.threshold,
                     ))
@@ -634,7 +637,7 @@ impl SymmetryOperation {
                     epsilon = self.generating_element.threshold
                 ) {
                     // Binary rotations or reflections
-                    Point3::from(geometry::get_positive_pole(
+                    Point3::from(geometry::get_standard_positive_pole(
                         &self.generating_element.raw_axis,
                         self.generating_element.threshold,
                     ))
@@ -1186,7 +1189,10 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     });
                 let single_jump_from_c2 = (c_self.is_spatial_binary_rotation()
                     || c_self.is_spatial_reflection())
-                    && !geometry::check_positive_pole(c_self.generating_element.raw_axis(), thresh);
+                    && !geometry::check_standard_positive_pole(
+                        c_self.generating_element.raw_axis(),
+                        thresh,
+                    );
                 odd_jumps_from_angle != single_jump_from_c2
             };
             let intrinsic_inverse = c_self.generating_element.rotation_group().is_su2_class_1()
@@ -1549,7 +1555,7 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             )
         });
 
-        let negative_rotation = !geometry::check_positive_pole(
+        let negative_rotation = !geometry::check_standard_positive_pole(
             &c_op.calc_proper_rotation_pole().coords,
             c_op.generating_element.threshold(),
         );

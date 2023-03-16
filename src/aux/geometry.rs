@@ -170,17 +170,19 @@ pub fn normalise_rotation_double_angle(rot_ang: f64, thresh: f64) -> f64 {
 ///
 /// Panics if the resulting pole is a null vector.
 #[must_use]
-pub fn get_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
-    let mut pole = axis.normalize();
-    if pole[2].abs() > thresh {
-        pole *= pole[2].signum();
-    } else if pole[0].abs() > thresh {
-        pole *= pole[0].signum();
-    } else {
-        assert!(pole[1].abs() > thresh);
-        pole *= pole[1].signum();
-    }
-    pole
+pub fn get_standard_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
+    let poshem = PositiveHemisphere::new_standard_cartesian(thresh);
+    poshem.get_positive_pole(axis)
+    // let mut pole = axis.normalize();
+    // if pole[2].abs() > thresh {
+    //     pole *= pole[2].signum();
+    // } else if pole[0].abs() > thresh {
+    //     pole *= pole[0].signum();
+    // } else {
+    //     assert!(pole[1].abs() > thresh);
+    //     pole *= pole[1].signum();
+    // }
+    // pole
 }
 
 /// Check if a rotation axis is in the positive hemisphere.
@@ -202,26 +204,28 @@ pub fn get_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
 ///
 /// Panics if the axis is a null vector.
 #[must_use]
-pub fn check_positive_pole(axis: &Vector3<f64>, thresh: f64) -> bool {
-    let normalised_axis = axis.normalize();
-    normalised_axis[2] > thresh
-        || (approx::relative_eq!(
-            normalised_axis[2],
-            0.0,
-            max_relative = thresh,
-            epsilon = thresh
-        ) && normalised_axis[0] > thresh)
-        || (approx::relative_eq!(
-            normalised_axis[2],
-            0.0,
-            max_relative = thresh,
-            epsilon = thresh
-        ) && approx::relative_eq!(
-            normalised_axis[0],
-            0.0,
-            max_relative = thresh,
-            epsilon = thresh
-        ) && normalised_axis[1] > thresh)
+pub fn check_standard_positive_pole(axis: &Vector3<f64>, thresh: f64) -> bool {
+    let poshem = PositiveHemisphere::new_standard_cartesian(thresh);
+    poshem.check_positive_pole(axis)
+    // let normalised_axis = axis.normalize();
+    // normalised_axis[2] > thresh
+    //     || (approx::relative_eq!(
+    //         normalised_axis[2],
+    //         0.0,
+    //         max_relative = thresh,
+    //         epsilon = thresh
+    //     ) && normalised_axis[0] > thresh)
+    //     || (approx::relative_eq!(
+    //         normalised_axis[2],
+    //         0.0,
+    //         max_relative = thresh,
+    //         epsilon = thresh
+    //     ) && approx::relative_eq!(
+    //         normalised_axis[0],
+    //         0.0,
+    //         max_relative = thresh,
+    //         epsilon = thresh
+    //     ) && normalised_axis[1] > thresh)
 }
 
 /// Determines the reduced fraction $`k/n`$ where $`k`$ and $`n`$ are both integers representing a
@@ -901,6 +905,7 @@ pub enum PositiveHemisphere {
 
 impl PositiveHemisphere {
     pub fn check_positive_pole(&self, axis: &Vector3<f64>) -> bool {
+        let normalised_axis = axis.normalize();
         match self {
             PositiveHemisphere::Cartesian(cart_conditions) => cart_conditions.check(axis),
             PositiveHemisphere::Spherical(sph_conditions) => sph_conditions.check(axis),

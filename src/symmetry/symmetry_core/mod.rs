@@ -444,7 +444,7 @@ impl Symmetry {
         threshold: f64,
         tr: bool,
     ) -> bool {
-        let positive_axis = geometry::get_positive_pole(axis, threshold).normalize();
+        let positive_axis = geometry::get_standard_positive_pole(axis, threshold).normalize();
         let element = SymmetryElement::builder()
             .threshold(threshold)
             .proper_order(order)
@@ -563,7 +563,7 @@ impl Symmetry {
         threshold: f64,
         tr: bool,
     ) -> bool {
-        let positive_axis = geometry::get_positive_pole(axis, threshold).normalize();
+        let positive_axis = geometry::get_standard_positive_pole(axis, threshold).normalize();
         let element = if let Some(sigma_str) = sigma {
             assert!(sigma_str == "d" || sigma_str == "v" || sigma_str == "h");
             let mut sym_ele = SymmetryElement::builder()

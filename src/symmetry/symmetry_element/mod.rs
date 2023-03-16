@@ -433,7 +433,7 @@ impl SymmetryElement {
 
     /// Returns the axis of the proper rotation in the positive hemisphere.
     pub fn positive_axis(&self) -> Vector3<f64> {
-        geometry::get_positive_pole(&self.raw_axis, self.threshold)
+        geometry::get_standard_positive_pole(&self.raw_axis, self.threshold)
     }
 
     /// Returns the axis of the proper rotation multiplied by the sign of the rotation angle. If
@@ -472,7 +472,7 @@ impl SymmetryElement {
                 let proper_fraction = self.proper_fraction.expect("No proper fractions found.");
                 if proper_fraction == frac_1_2 {
                     // Binary rotations or reflections
-                    geometry::get_positive_pole(&self.raw_axis, self.threshold)
+                    geometry::get_standard_positive_pole(&self.raw_axis, self.threshold)
                 } else if proper_fraction > F::zero() {
                     // Positive rotation angles
                     self.raw_axis
@@ -493,18 +493,14 @@ impl SymmetryElement {
                     epsilon = self.threshold
                 ) {
                     // Binary rotations or reflections
-                    geometry::get_positive_pole(&self.raw_axis, self.threshold)
+                    geometry::get_standard_positive_pole(&self.raw_axis, self.threshold)
                 } else if approx::relative_ne!(
                     self.proper_angle.expect("No proper angles found."),
                     0.0,
                     max_relative = self.threshold,
                     epsilon = self.threshold
                 ) {
-                    self
-                        .proper_angle
-                        .expect("No proper angles found.")
-                        .signum()
-                        * self.raw_axis
+                    self.proper_angle.expect("No proper angles found.").signum() * self.raw_axis
                 } else {
                     approx::assert_relative_eq!(
                         self.proper_angle.expect("No proper angles found."),
@@ -1072,7 +1068,10 @@ impl SymmetryElement {
                 let pow = *proper_fraction
                     .numer()
                     .expect("Unable to extract the numerator of the proper fraction.");
-                if !geometry::check_positive_pole(&self.proper_rotation_pole(), self.threshold) {
+                if !geometry::check_standard_positive_pole(
+                    &self.proper_rotation_pole(),
+                    self.threshold,
+                ) {
                     format!("^(-{pow})")
                 } else if pow > 1 {
                     format!("^{pow}")
@@ -1433,8 +1432,8 @@ impl PartialEq for SymmetryElement {
 
             // Parallel or anti-parallel axes.
             let similar_poles = approx::relative_eq!(
-                geometry::get_positive_pole(&self.raw_axis, thresh),
-                geometry::get_positive_pole(&other.raw_axis, thresh),
+                geometry::get_standard_positive_pole(&self.raw_axis, thresh),
+                geometry::get_standard_positive_pole(&other.raw_axis, thresh),
                 epsilon = thresh,
                 max_relative = thresh
             );
@@ -1476,8 +1475,8 @@ impl PartialEq for SymmetryElement {
 
             // Parallel or anti-parallel axes.
             let similar_poles = approx::relative_eq!(
-                geometry::get_positive_pole(&c_self.raw_axis, thresh),
-                geometry::get_positive_pole(&c_other.raw_axis, thresh),
+                geometry::get_standard_positive_pole(&c_self.raw_axis, thresh),
+                geometry::get_standard_positive_pole(&c_other.raw_axis, thresh),
                 epsilon = thresh,
                 max_relative = thresh
             );
@@ -1540,7 +1539,7 @@ impl Hash for SymmetryElement {
         } else if self.kind == SymmetryElementKind::ImproperMirrorPlane(tr) {
             let c_self = self
                 .convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(tr), false);
-            let pole = geometry::get_positive_pole(&c_self.raw_axis, c_self.threshold);
+            let pole = geometry::get_standard_positive_pole(&c_self.raw_axis, c_self.threshold);
             pole[0]
                 .round_factor(self.threshold)
                 .integer_decode()
@@ -1571,7 +1570,7 @@ impl Hash for SymmetryElement {
                     .hash(state);
             };
         } else {
-            let pole = geometry::get_positive_pole(&self.raw_axis, self.threshold);
+            let pole = geometry::get_standard_positive_pole(&self.raw_axis, self.threshold);
             pole[0]
                 .round_factor(self.threshold)
                 .integer_decode()
