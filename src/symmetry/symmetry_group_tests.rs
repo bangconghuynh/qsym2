@@ -2600,7 +2600,7 @@ fn test_ur_group_symmetric_antiprism_pb10_electric_field_grey_c4v() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
-    test_ur_ordinary_group(&mol, thresh, "C4v", 8, 5, false);
+    test_ur_magnetic_group(&mol, thresh, "C4v + θ·C4v", 16, 10, false, GRGRP);
 }
 
 #[test]
@@ -3112,6 +3112,41 @@ fn test_ur_group_symmetric_nh3_c3v_double_class_order() {
 }
 
 #[test]
+fn test_ur_group_symmetric_vf6_electric_field_grey_c3v_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 1.0, 1.0)));
+    test_ur_magnetic_double_group(&mol, thresh, "(C3v + θ·C3v)*", 24, 12, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_symmetric_vf6_electric_field_grey_c3v_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 1.0, 1.0)));
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "3|σv(Σ)|",
+            "3|σv(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "2|θ·C3(Σ)|",
+            "2|θ·C3(QΣ)|",
+            "3|θ·σv(Σ)|",
+            "3|θ·σv(QΣ)|",
+        ],
+    );
+}
+
+#[test]
 fn test_ur_group_symmetric_antiprism_pb10_electric_field_c4v_double() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
     let thresh = 1e-7;
@@ -3137,6 +3172,43 @@ fn test_ur_group_symmetric_antiprism_pb10_electric_field_c4v_double_class_order(
             "|C2(Σ), C2(QΣ)|",
             "2|σv(Σ), σv(QΣ)|",
             "2|σv(Σ), σv(QΣ)|^(')",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_antiprism_pb10_electric_field_grey_c4v_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group(&mol, thresh, "(C4v + θ·C4v)*", 32, 14, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_symmetric_antiprism_pb10_electric_field_grey_c4v_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C4(Σ)|",
+            "2|C4(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "2|σv(Σ), σv(QΣ)|",
+            "2|σv(Σ), σv(QΣ)|^(')",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "2|θ·C4(Σ)|",
+            "2|θ·C4(QΣ)|",
+            "|θ·C2(Σ), θ·C2(QΣ)|",
+            "2|θ·σv(Σ), θ·σv(QΣ)|",
+            "2|θ·σv(Σ), θ·σv(QΣ)|^(')",
         ],
     );
 }
@@ -3173,6 +3245,45 @@ fn test_ur_group_symmetric_c60_electric_field_c5v_double_class_order() {
 }
 
 #[test]
+fn test_ur_group_symmetric_c60_electric_field_grey_c5v_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group(&mol, thresh, "(C5v + θ·C5v)*", 40, 16, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_symmetric_c60_electric_field_grey_c5v_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C5(Σ)|",
+            "2|C5(QΣ)|",
+            "2|C5^2(Σ)|",
+            "2|C5^2(QΣ)|",
+            "5|σv(Σ)|",
+            "5|σv(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "2|θ·C5(Σ)|",
+            "2|θ·C5(QΣ)|",
+            "2|θ·C5^2(Σ)|",
+            "2|θ·C5^2(QΣ)|",
+            "5|θ·σv(Σ)|",
+            "5|θ·σv(QΣ)|",
+        ],
+    );
+}
+
+#[test]
 fn test_ur_group_symmetric_benzene_electric_field_c6v_double() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
@@ -3201,6 +3312,48 @@ fn test_ur_group_symmetric_benzene_electric_field_c6v_double_class_order() {
             "|C2(Σ), C2(QΣ)|",
             "3|σv(Σ), σv(QΣ)|",
             "3|σv(Σ), σv(QΣ)|^(')",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_benzene_electric_field_grey_c6v_double() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
+    test_ur_magnetic_double_group(&mol, thresh, "(C6v + θ·C6v)*", 48, 18, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_symmetric_benzene_electric_field_grey_c6v_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C6(Σ)|",
+            "2|C6(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "3|σv(Σ), σv(QΣ)|",
+            "3|σv(Σ), σv(QΣ)|^(')",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "2|θ·C6(Σ)|",
+            "2|θ·C6(QΣ)|",
+            "2|θ·C3(Σ)|",
+            "2|θ·C3(QΣ)|",
+            "|θ·C2(Σ), θ·C2(QΣ)|",
+            "3|θ·σv(Σ), θ·σv(QΣ)|",
+            "3|θ·σv(Σ), θ·σv(QΣ)|^(')",
         ],
     );
 }
