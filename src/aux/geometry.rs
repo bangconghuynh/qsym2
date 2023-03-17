@@ -963,6 +963,8 @@ impl Default for SphericalConditions {
 impl fmt::Display for SphericalConditions {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Spherical conditions:")?;
+        writeln!(f, "Polar axis     (z-like): {:?}", self.z_basis)?;
+        writeln!(f, "Azimuthal axis (x-like): {:?}", self.x_basis)?;
         let conditions = self
             .conditions
             .iter()

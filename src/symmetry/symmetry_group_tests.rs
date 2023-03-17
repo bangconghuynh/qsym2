@@ -4025,6 +4025,153 @@ fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_grey_dnh() {
 }
 
 /*
+Dnh*
+*/
+
+#[test]
+fn test_ur_group_symmetric_bf3_d3h_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D3h*", 24, 9, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_bf3_d3h_double_class_order() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/bf3.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "3|C2(Σ), C2(QΣ)|",
+            "2|S3(Σ)|",
+            "2|S3(QΣ)|",
+            "|σh(Σ), σh(QΣ)|",
+            "3|σv(Σ), σv(QΣ)|"
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_h8_d4h_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D4h*", 32, 14, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_h8_d4h_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h8.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C4(Σ)|",
+            "2|C4(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "2|C2(Σ), C2(QΣ)|^(')",
+            "2|C2(Σ), C2(QΣ)|^('')",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "2|S4(Σ)|",
+            "2|S4(QΣ)|",
+            "|σh(Σ), σh(QΣ)|",
+            "2|σv(Σ), σv(QΣ)|",
+            "2|σv(Σ), σv(QΣ)|^(')",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_eclipsed_ferrocene_d5h_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D5h*", 40, 13, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_eclipsed_ferrocene_d5h_double_class_order() {
+    env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C5(Σ)|",
+            "2|C5(QΣ)|",
+            "2|C5^2(Σ)|",
+            "2|C5^2(QΣ)|",
+            "5|C2(Σ), C2(QΣ)|",
+            "2|S5(Σ)|",
+            "2|S5(QΣ)|",
+            "2|σC5^2(Σ)|",
+            "2|σC5^2(QΣ)|",
+            "|σh(Σ), σh(QΣ)|",
+            "5|σv(Σ), σv(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_benzene_d6h_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D6h*", 48, 18, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_benzene_d6h_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    // The benzene molecule is in the yz-plane. Ordering of the symmetry elements based on their
+    // closeness to principal axes means that the class ordering will appear different from that
+    // found in standard character tables.
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C6(Σ)|",
+            "2|C6(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "3|C2(Σ), C2(QΣ)|",
+            "3|C2(Σ), C2(QΣ)|^(')",
+            "|C2(Σ), C2(QΣ)|^('')",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "2|S6(Σ)|",
+            "2|S6(QΣ)|",
+            "2|S3(Σ)|",
+            "2|S3(QΣ)|",
+            "3|σv(Σ), σv(QΣ)|",
+            "3|σv(Σ), σv(QΣ)|^(')",
+            "|σh(Σ), σh(QΣ)|",
+        ],
+    );
+}
+
+/*
 Dnd
 */
 

@@ -2,6 +2,7 @@ use counter::Counter;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use nalgebra::Vector3;
+use ordered_float::OrderedFloat;
 
 use crate::aux::geometry::{self, PositiveHemisphere};
 use crate::chartab::chartab_group::{
@@ -291,7 +292,9 @@ pub trait SymmetryGroupProperties:
                                 op.is_su2_class_1()
                             })
                             .count();
-                        if old_symbol.size().rem_euclid(2) == 0 && class_1_count == old_symbol.size().div_euclid(2) {
+                        if old_symbol.size().rem_euclid(2) == 0
+                            && class_1_count == old_symbol.size().div_euclid(2)
+                        {
                             // Both class-0 and class-1 elements occur in equal number. We show one
                             // of each and halve the multiplicity.
                             let class_1_rep_ele = self
@@ -311,15 +314,15 @@ pub trait SymmetryGroupProperties:
                                     }
                                 })
                                 .expect("Unable to find a class-1 element in this class.");
-                                (
-                                    old_symbol.size().div_euclid(2),
-                                    format!(
-                                        "{}, {}",
-                                        rep_ele.get_abbreviated_symbol(),
-                                        class_1_rep_ele.get_abbreviated_symbol()
-                                    ),
-                                    vec![rep_ele],
-                                )
+                            (
+                                old_symbol.size().div_euclid(2),
+                                format!(
+                                    "{}, {}",
+                                    rep_ele.get_abbreviated_symbol(),
+                                    class_1_rep_ele.get_abbreviated_symbol()
+                                ),
+                                vec![rep_ele],
+                            )
                         } else if class_1_count > 0 {
                             // Both class-0 and class-1 elements occur, but not in equal numbers.
                             // We show all of them and set the multiplicity to 1.
@@ -459,24 +462,29 @@ impl SymmetryGroupProperties
                     .get_cc_index(cc_i)
                     .expect("Unable to retrieve a conjugacy class.");
                 if cc.len() > 1 && cc.len().rem_euclid(2) == 1 {
-                    let c2s = cc
+                    let mut all_c2s = cc
                         .iter()
-                        .take(2)
                         .map(|&op_i| {
                             self.get_index(op_i)
-                                .expect("Unable to retrieve a group element.")
+                                .expect("Unable to retrieve a group operation.")
                         })
                         .collect_vec();
+                    all_c2s.sort_by_key(|c2| {
+                        let (axis_closeness, closest_axis) = c2.generating_element.closeness_to_cartesian_axes();
+                        (OrderedFloat(axis_closeness), closest_axis)
+                    });
+                    let c2x = all_c2s.first().expect("Unable to retrieve the last C2 operation.");
+                    let c20 = all_c2s.last().expect("Unable to retrieve the first C2 operation.");
                     let z_basis = geometry::get_standard_positive_pole(
-                        &c2s[0]
+                        &c2x
                             .generating_element
                             .raw_axis()
-                            .cross(&c2s[1].generating_element.raw_axis()),
-                        c2s[0].generating_element.threshold(),
+                            .cross(&c20.generating_element.raw_axis()),
+                        c2x.generating_element.threshold(),
                     );
-                    let x_basis = c2s[0].generating_element.raw_axis().clone();
+                    let x_basis = c2x.generating_element.raw_axis().clone();
                     log::debug!("Found a class of odd non-coaxial binary rotations or reflections:");
-                    for c2 in &c2s {
+                    for c2 in all_c2s.iter() {
                         log::debug!("  {c2}");
                     }
                     log::debug!("Adjusting the positive hemisphere to encompass all class-0 binary-rotation or reflection poles...");
