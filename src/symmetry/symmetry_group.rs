@@ -451,6 +451,8 @@ impl SymmetryGroupProperties
     }
 
     fn to_double_group(&self) -> Self {
+        log::debug!("Constructing the double group for {}", self.name());
+
         // Check for classes of multiple C2 axes.
         log::debug!("Checking for classes of odd non-coaxial binary rotations or reflections...");
         let poshem = (0..self.class_number()).find_map(|cc_i| {
@@ -764,6 +766,8 @@ impl SymmetryGroupProperties
     }
 
     fn to_double_group(&self) -> Self {
+        log::debug!("Constructing the double group for {}", self.name());
+
         // Check for classes of multiple C2 axes.
         let poshem = (0..self.class_number()).find_map(|cc_i| {
             let cc_symbol = self

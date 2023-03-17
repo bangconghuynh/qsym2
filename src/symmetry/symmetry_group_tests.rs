@@ -3567,6 +3567,32 @@ fn test_ur_group_symmetric_arbitrary_twisted_sandwich_grey_dn() {
 /***
 Dn*
 ***/
+#[test]
+fn test_ur_group_symmetric_triphenyl_radical_d3_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/triphenylradical.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D3*", 12, 6, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_triphenyl_radical_d3_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/triphenylradical.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "3|C2(Σ)|",
+            "3|C2(QΣ)|",
+        ],
+    );
+}
 
 #[test]
 fn test_ur_group_symmetric_h8_twisted_d4_double() {
@@ -3589,10 +3615,69 @@ fn test_ur_group_symmetric_h8_twisted_d4_double_class_order() {
             "2|C4(QΣ)|",
             "|C2(Σ), C2(QΣ)|",
             "2|C2(Σ), C2(QΣ)|^(')",
-            "2|C2(Σ), C2(QΣ)|^('')"],
+            "2|C2(Σ), C2(QΣ)|^('')",
+        ],
     );
 }
 
+#[test]
+fn test_ur_group_symmetric_c5ph5_d5_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c5ph5.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D5*", 20, 8, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_c5ph5_d5_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c5ph5.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C5(Σ)|",
+            "2|C5(QΣ)|",
+            "2|C5^2(Σ)|",
+            "2|C5^2(QΣ)|",
+            "5|C2(Σ)|",
+            "5|C2(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_c6ph6_d6_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c6ph6.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D6*", 24, 9, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_c6ph6_d6_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c6ph6.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C6(Σ)|",
+            "2|C6(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "3|C2(Σ), C2(QΣ)|^(')",
+            "3|C2(Σ), C2(QΣ)|^('')"
+        ],
+    );
+}
 
 /*
 Dnh
@@ -4054,7 +4139,7 @@ fn test_ur_group_symmetric_bf3_d3h_double_class_order() {
             "2|S3(Σ)|",
             "2|S3(QΣ)|",
             "|σh(Σ), σh(QΣ)|",
-            "3|σv(Σ), σv(QΣ)|"
+            "3|σv(Σ), σv(QΣ)|",
         ],
     );
 }
@@ -4867,7 +4952,7 @@ fn test_ur_group_symmetric_b2cl4_d2d_double_class_order() {
             "2|C2(Σ), C2(QΣ)|^(')",
             "2|S4(Σ)|",
             "2|S4(QΣ)|",
-            "2|σd(Σ), σd(QΣ)|"
+            "2|σd(Σ), σd(QΣ)|",
         ],
     );
 }
@@ -4901,7 +4986,7 @@ fn test_ur_group_symmetric_staggered_c2h6_d3d_double_class_order() {
             "2|S6(Σ)|",
             "2|S6(QΣ)|",
             "3|σd(Σ)|",
-            "3|σd(QΣ)|"
+            "3|σd(QΣ)|",
         ],
     );
 }
