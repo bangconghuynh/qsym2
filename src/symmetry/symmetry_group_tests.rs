@@ -1977,7 +1977,7 @@ fn test_ur_group_symmetric_b7_magnetic_field_bw_c6v_c6_class_order() {
 
 #[test]
 fn test_ur_group_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
-    env_logger::init();
+    // env_logger::init();
     let thresh = 1e-7;
     for n in 3..=32 {
         let mut mol = template_molecules::gen_arbitrary_half_sandwich(n);
@@ -4625,7 +4625,7 @@ fn test_ur_group_symmetric_eclipsed_ferrocene_d5h_double() {
 
 #[test]
 fn test_ur_group_symmetric_eclipsed_ferrocene_d5h_double_class_order() {
-    env_logger::init();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
