@@ -4829,6 +4829,42 @@ fn test_ur_group_symmetric_staggered_ferrocene_d5d_double_class_order() {
     );
 }
 
+#[test]
+fn test_ur_group_symmetric_au26_d6d_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "D6d*", 48, 15, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_au26_d6d_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C6(Σ)|",
+            "2|C6(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "6|C2(Σ), C2(QΣ)|^(')",
+            "2|S12(Σ)|",
+            "2|S12(QΣ)|",
+            "2|σC12^5(Σ)|",
+            "2|σC12^5(QΣ)|",
+            "2|S4(Σ)|",
+            "2|S4(QΣ)|",
+            "6|σd(Σ), σd(QΣ)|",
+        ],
+    );
+}
+
 /*
 S2n
 */

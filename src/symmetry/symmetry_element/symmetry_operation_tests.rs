@@ -5543,7 +5543,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
 }
 
 #[test]
-fn test_symmetry_operation_collinear_composition() {
+fn test_symmetry_operation_coaxial_composition() {
     // ==========================
     // Proper symmetry operations
     // ==========================
@@ -5812,7 +5812,7 @@ fn test_symmetry_operation_collinear_composition() {
 }
 
 #[test]
-fn test_symmetry_operation_noncollinear_composition() {
+fn test_symmetry_operation_noncoaxial_composition() {
     // ==========================
     // Proper symmetry operations
     // ==========================
@@ -6094,7 +6094,7 @@ fn test_symmetry_operation_noncollinear_composition() {
 }
 
 #[test]
-fn test_symmetry_operation_su2_collinear_composition() {
+fn test_symmetry_operation_su2_coaxial_composition() {
     // ==========================
     // Proper symmetry operations
     // ==========================
@@ -6458,7 +6458,7 @@ fn test_symmetry_operation_su2_collinear_composition() {
 }
 
 #[test]
-fn test_symmetry_operation_su2_noncollinear_composition() {
+fn test_symmetry_operation_su2_noncoaxial_composition() {
     // ----------------------------------------------------------------------------------------
     // D2*
     //

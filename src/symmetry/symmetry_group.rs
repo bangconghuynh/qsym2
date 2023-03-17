@@ -449,6 +449,7 @@ impl SymmetryGroupProperties
 
     fn to_double_group(&self) -> Self {
         // Check for classes of multiple C2 axes.
+        log::debug!("Checking for classes of odd non-coaxial binary rotations or reflections...");
         let poshem = (0..self.class_number()).find_map(|cc_i| {
             let cc_symbol = self
                 .get_cc_symbol_of_index(cc_i)
@@ -474,6 +475,11 @@ impl SymmetryGroupProperties
                         c2s[0].generating_element.threshold(),
                     );
                     let x_basis = c2s[0].generating_element.raw_axis().clone();
+                    log::debug!("Found a class of odd non-coaxial binary rotations or reflections:");
+                    for c2 in &c2s {
+                        log::debug!("  {c2}");
+                    }
+                    log::debug!("Adjusting the positive hemisphere to encompass all class-0 binary-rotation or reflection poles...");
                     Some(PositiveHemisphere::new_spherical_disjoint_equatorial_arcs(
                         z_basis,
                         x_basis,
@@ -486,6 +492,13 @@ impl SymmetryGroupProperties
                 None
             }
         });
+
+        if let Some(pos_hem) = poshem.as_ref() {
+            log::debug!("New positive hemisphere:");
+            log::debug!("{pos_hem}");
+        } else {
+            log::debug!("No classes of odd non-coaxial binary rotations or reflections found.");
+        }
 
         let mut su2_operations = self
             .elements()
