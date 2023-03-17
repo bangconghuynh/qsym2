@@ -150,83 +150,6 @@ pub fn normalise_rotation_double_angle(rot_ang: f64, thresh: f64) -> f64 {
     norm_rot_ang
 }
 
-/// Returns the positive pole of a rotation axis.
-///
-/// The definition of positive poles can be found in S.L. Altmann, Rotations,
-/// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005)
-/// (Chapter 9).
-///
-/// # Arguments
-///
-/// * axis - An axis of rotation (proper or improper).
-/// * thresh - Threshold for comparisons.
-///
-/// # Returns
-///
-/// The positive pole of `axis`.
-///
-/// # Panics
-///
-/// Panics if the resulting pole is a null vector.
-#[must_use]
-pub fn get_standard_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
-    let poshem = PositiveHemisphere::new_standard_cartesian();
-    poshem.get_positive_pole(axis, thresh)
-    // let mut pole = axis.normalize();
-    // if pole[2].abs() > thresh {
-    //     pole *= pole[2].signum();
-    // } else if pole[0].abs() > thresh {
-    //     pole *= pole[0].signum();
-    // } else {
-    //     assert!(pole[1].abs() > thresh);
-    //     pole *= pole[1].signum();
-    // }
-    // pole
-}
-
-/// Check if a rotation axis is in the positive hemisphere.
-///
-/// The definition of the positive hemisphere can be found in S.L. Altmann, Rotations,
-/// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005)
-/// (Chapter 9).
-///
-/// # Arguments
-///
-/// * axis - An axis of rotation.
-/// * thresh - Threshold for comparisons.
-///
-/// # Returns
-///
-/// Returns `true` if `axis` is in the positive hemisphere.
-///
-/// # Panics
-///
-/// Panics if the axis is a null vector.
-#[must_use]
-pub fn check_standard_positive_pole(axis: &Vector3<f64>, thresh: f64) -> bool {
-    let poshem = PositiveHemisphere::new_standard_cartesian();
-    poshem.check_positive_pole(axis, thresh)
-    // let normalised_axis = axis.normalize();
-    // normalised_axis[2] > thresh
-    //     || (approx::relative_eq!(
-    //         normalised_axis[2],
-    //         0.0,
-    //         max_relative = thresh,
-    //         epsilon = thresh
-    //     ) && normalised_axis[0] > thresh)
-    //     || (approx::relative_eq!(
-    //         normalised_axis[2],
-    //         0.0,
-    //         max_relative = thresh,
-    //         epsilon = thresh
-    //     ) && approx::relative_eq!(
-    //         normalised_axis[0],
-    //         0.0,
-    //         max_relative = thresh,
-    //         epsilon = thresh
-    //     ) && normalised_axis[1] > thresh)
-}
-
 /// Determines the reduced fraction $`k/n`$ where $`k`$ and $`n`$ are both integers representing a
 /// proper rotation $`C_n^k`$ corresponding to a specified rotation angle.
 ///
@@ -625,6 +548,11 @@ pub trait Transform {
 // Positive Hemisphere
 // ===================
 
+// ----------------
+// ImproperOrdering
+// ----------------
+
+/// An enumerated type to handle comparisons symbolically.
 #[derive(Clone, Debug, PartialEq)]
 enum ImproperOrdering {
     Greater,
@@ -634,6 +562,27 @@ enum ImproperOrdering {
     Equal,
 }
 
+impl fmt::Display for ImproperOrdering {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ImproperOrdering::Greater => write!(f, ">"),
+            ImproperOrdering::GreaterEqual => write!(f, "≥"),
+            ImproperOrdering::Less => write!(f, "<"),
+            ImproperOrdering::LessEqual => write!(f, "≤"),
+            ImproperOrdering::Equal => write!(f, "="),
+        }
+    }
+}
+
+// ---------
+// Cartesian
+// ---------
+
+/***
+Coordinates
+***/
+
+/// An enumerated type to handle Cartesian coordinates symbolically.
 #[derive(Debug, Clone, PartialEq)]
 enum CartesianCoordinate {
     X,
@@ -642,6 +591,7 @@ enum CartesianCoordinate {
 }
 
 impl CartesianCoordinate {
+    /// Converts a Cartesian coordinate to a numerical index.
     fn to_index(&self) -> usize {
         match self {
             CartesianCoordinate::X => 0,
@@ -661,12 +611,30 @@ impl fmt::Display for CartesianCoordinate {
     }
 }
 
+/***
+Conditions
+***/
+
+/// A structure to handle inequality conditions written in terms of Cartesian coordinates.
 #[derive(Debug, Clone, PartialEq)]
 pub struct CartesianConditions {
+    /// The Cartesian conditions. The condititions are satisfied if all of the tuples in any of the
+    /// inner vectors are satisfied.
     conditions: Vec<Vec<(CartesianCoordinate, ImproperOrdering, f64)>>,
 }
 
 impl CartesianConditions {
+    /// Checks if a vector satisfies the current Cartesian conditions. The condititions are
+    /// satisfied if all of the tuples in any of the inner vectors are satisfied.
+    ///
+    /// # Arguments
+    ///
+    /// * `vec` - A vector to check.
+    /// * `thresh` - A threshold for numerical comparisons.
+    ///
+    /// # Returns
+    ///
+    /// A boolean indicating if `vec` satisfies the conditions.
     fn check(&self, vec: &Vector3<f64>, thresh: f64) -> bool {
         self.conditions.iter().any(|condition_set| {
             condition_set.iter().all(|(i, order, target)| match order {
@@ -689,11 +657,7 @@ impl Default for CartesianConditions {
     fn default() -> Self {
         Self {
             conditions: vec![
-                vec![(
-                    CartesianCoordinate::Z,
-                    ImproperOrdering::Greater,
-                    0.0,
-                )],
+                vec![(CartesianCoordinate::Z, ImproperOrdering::Greater, 0.0)],
                 vec![
                     (CartesianCoordinate::Z, ImproperOrdering::Equal, 0.0),
                     (CartesianCoordinate::X, ImproperOrdering::Greater, 0.0),
@@ -708,6 +672,33 @@ impl Default for CartesianConditions {
     }
 }
 
+impl fmt::Display for CartesianConditions {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Cartesian conditions:")?;
+        let conditions = self
+            .conditions
+            .iter()
+            .map(|condition_set| {
+                condition_set
+                    .iter()
+                    .map(|(i, order, target)| format!("{i} {order} {target}"))
+                    .join(", ")
+            })
+            .join("\n  or\n");
+        writeln!(f, "{conditions}")?;
+        Ok(())
+    }
+}
+
+// ---------
+// Spherical
+// ---------
+
+/***
+Coordinates
+***/
+
+/// An enumerated type to handle spherical angular coordinates.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SphericalCoordinate {
     Theta,
@@ -723,14 +714,23 @@ impl fmt::Display for SphericalCoordinate {
     }
 }
 
+/***
+Conditions
+***/
+
+/// A structure to handle inequality conditions written in terms of spherical angular coordinates.
 #[derive(Debug, Clone, Builder, PartialEq)]
 pub struct SphericalConditions {
+    /// The polar axis relative to which the polar angle $`\theta`$ is defined.
     #[builder(setter(custom))]
     z_basis: Vector3<f64>,
 
+    /// The azimuthal axis relative to which the azimuthal angle $`\phi`$ is defined.
     #[builder(setter(custom))]
     x_basis: Vector3<f64>,
 
+    /// The spherical angular conditions. The condititions are satisfied if all of the tuples in
+    /// any of the inner vectors are satisfied.
     #[builder(setter(custom))]
     conditions: Vec<Vec<(SphericalCoordinate, ImproperOrdering, f64)>>,
 }
@@ -756,10 +756,23 @@ impl SphericalConditionsBuilder {
 }
 
 impl SphericalConditions {
+    /// Returns a builder to construct [`Self`].
     fn builder() -> SphericalConditionsBuilder {
         SphericalConditionsBuilder::default()
     }
 
+    /// Returns a required angular component of a vector given the current set of spherical
+    /// conditions that define the polar and azimuthal axes.
+    ///
+    /// # Arguments
+    ///
+    /// * `vec` - A vector whose components are to be retrieved.
+    /// * `coord` - A spherical angular coordinate.
+    /// * `thresh` - A threshold for checking if cosines of angles are equal to $`\pm 1`$.
+    ///
+    /// # Returns
+    ///
+    /// The required component.
     fn get_component(&self, vec: &Vector3<f64>, coord: &SphericalCoordinate, thresh: f64) -> f64 {
         match coord {
             SphericalCoordinate::Theta => {
@@ -798,6 +811,17 @@ impl SphericalConditions {
         }
     }
 
+    /// Checks if a vector satisfies the current spherical angular conditions. The condititions are
+    /// satisfied if all of the tuples in any of the inner vectors are satisfied.
+    ///
+    /// # Arguments
+    ///
+    /// * `vec` - A vector to check.
+    /// * `thresh` - A threshold for numerical comparisons.
+    ///
+    /// # Returns
+    ///
+    /// A boolean indicating if `vec` satisfies the conditions.
     fn check(&self, vec: &Vector3<f64>, thresh: f64) -> bool {
         self.conditions.iter().any(|condition_set| {
             condition_set.iter().all(|(i, order, target)| {
@@ -818,12 +842,46 @@ impl SphericalConditions {
         })
     }
 
+    /// Constructs a positive hemisphere where the equator consists of an odd number of equal and
+    /// disjoint arcs.
+    ///
+    /// The centre of the first arc is always at $`\phi = 0`$. Each arc is open at the
+    /// smaller-$`\phi`$ end and closed at the larger-$`\phi`$ end. It can be shown (see below)
+    /// that, as `n` is odd, no arcs can cross between $`+\pi`$ and $`-\pi`$.
+    ///
+    /// For $`n`$ odd, the centres of the most-positive and most-negative arcs are given by
+    ///
+    /// ```math
+    ///     \pm \frac{2\pi}{n} \times \frac{n - 1}{2} = \pm \pi \times \frac{n - 1}{n}.
+    /// ```
+    ///
+    /// Each arc has width $`\pi / n`$, so the most positive or most negative arc
+    /// $`\phi`$-coordinate are
+    ///
+    /// ```math
+    ///     \pm \left( \pi \times \frac{n - 1}{n} + \frac{\pi}{2n} \right)
+    ///     = \pm \pi \frac{2n - 1}{2n},
+    /// ```
+    ///
+    /// thus showing clearly that the arcs never cross from $`+\pi`$ to $`-\pi`$ and *vice versa*.
+    ///
+    ///
+    /// # Arguments
+    ///
+    /// `z_basis` - The polar axis.
+    /// `x_basis` - The azimuthal axis.
+    /// `n` - An odd number specifying the number of equal and disjoint arcs belonging to the
+    /// positive hemisphere on the equator.
+    ///
+    /// # Returns
+    ///
+    /// The required spherical angular conditions.
     fn new_disjoint_equatorial_arcs(
         z_basis: Vector3<f64>,
         x_basis: Vector3<f64>,
         n: usize,
     ) -> Self {
-        assert!(n > 0);
+        assert!(n > 0 && n.rem_euclid(2) == 1);
         let n_f64 = n
             .to_f64()
             .expect("Unable to convert the number of arcs to `f64`.");
@@ -902,6 +960,29 @@ impl Default for SphericalConditions {
     }
 }
 
+impl fmt::Display for SphericalConditions {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Spherical conditions:")?;
+        let conditions = self
+            .conditions
+            .iter()
+            .map(|condition_set| {
+                condition_set
+                    .iter()
+                    .map(|(i, order, target)| format!("{i} {order} {target}"))
+                    .join(", ")
+            })
+            .join("\n  or\n");
+        writeln!(f, "{conditions}")?;
+        Ok(())
+    }
+}
+
+// ------------------
+// PositiveHemisphere
+// ------------------
+
+/// An enumerated type to handle positive hemispheres in Cartesian or spherical conditions.
 #[derive(Debug, Clone, PartialEq)]
 pub enum PositiveHemisphere {
     Cartesian(CartesianConditions),
@@ -909,6 +990,53 @@ pub enum PositiveHemisphere {
 }
 
 impl PositiveHemisphere {
+    /// Constructs a new standard positive hemisphere in the Cartesian form.
+    pub fn new_standard_cartesian() -> Self {
+        Self::Cartesian(CartesianConditions::default())
+    }
+
+    /// Constructs a new standard positive hemisphere in the spherical form.
+    pub fn new_standard_spherical() -> Self {
+        Self::Spherical(SphericalConditions::default())
+    }
+
+    /// Constructs a new positive hemisphere in the spherical form with equal and disjoint arcs on
+    /// the equator.
+    ///
+    /// # Arguments
+    ///
+    /// `z_basis` - The polar axis.
+    /// `x_basis` - The azimuthal axis.
+    /// `n` - An odd number specifying the number of equal and disjoint arcs belonging to the
+    /// positive hemisphere on the equator.
+    ///
+    /// # Returns
+    ///
+    /// The required positive hemisphere.
+    pub fn new_spherical_disjoint_equatorial_arcs(
+        z_basis: Vector3<f64>,
+        x_basis: Vector3<f64>,
+        n: usize,
+    ) -> Self {
+        Self::Spherical(SphericalConditions::new_disjoint_equatorial_arcs(
+            z_basis, x_basis, n,
+        ))
+    }
+
+    /// Check if a rotation axis is in the current positive hemisphere.
+    ///
+    /// # Arguments
+    ///
+    /// * axis - An axis of rotation.
+    /// * thresh - Threshold for comparisons.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if `axis` is in the positive hemisphere.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the axis is a null vector.
     pub fn check_positive_pole(&self, axis: &Vector3<f64>, thresh: f64) -> bool {
         let normalised_axis = axis.normalize();
         match self {
@@ -921,6 +1049,21 @@ impl PositiveHemisphere {
         }
     }
 
+    /// Returns the positive pole of a rotation axis with respect to the current positive
+    /// hemisphere.
+    ///
+    /// # Arguments
+    ///
+    /// * axis - An axis of rotation.
+    /// * thresh - Threshold for comparisons.
+    ///
+    /// # Returns
+    ///
+    /// The positive pole of `axis`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the resulting pole is a null vector.
     pub fn get_positive_pole(&self, axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
         let normalised_axis = axis.normalize();
         if self.check_positive_pole(&normalised_axis, thresh) {
@@ -929,28 +1072,67 @@ impl PositiveHemisphere {
             -normalised_axis
         }
     }
-
-    pub fn new_standard_cartesian() -> Self {
-        Self::Cartesian(CartesianConditions::default())
-    }
-
-    pub fn new_standard_spherical() -> Self {
-        Self::Spherical(SphericalConditions::default())
-    }
-
-    pub fn new_spherical_disjoint_equatorial_arcs(
-        z_basis: Vector3<f64>,
-        x_basis: Vector3<f64>,
-        n: usize,
-    ) -> Self {
-        Self::Spherical(SphericalConditions::new_disjoint_equatorial_arcs(
-            z_basis, x_basis, n,
-        ))
-    }
 }
 
 impl Default for PositiveHemisphere {
     fn default() -> Self {
         Self::Cartesian(CartesianConditions::default())
     }
+}
+
+impl fmt::Display for PositiveHemisphere {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PositiveHemisphere::Cartesian(cart_conds) => write!(f, "{cart_conds}"),
+            PositiveHemisphere::Spherical(sph_conds) => write!(f, "{sph_conds}"),
+        }
+    }
+}
+
+/// Returns the standard positive pole of a rotation axis.
+///
+/// The definition of standard positive poles can be found in S.L. Altmann, Rotations,
+/// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005)
+/// (Chapter 9).
+///
+/// # Arguments
+///
+/// * axis - An axis of rotation (proper or improper).
+/// * thresh - Threshold for comparisons.
+///
+/// # Returns
+///
+/// The positive pole of `axis`.
+///
+/// # Panics
+///
+/// Panics if the resulting pole is a null vector.
+#[must_use]
+pub fn get_standard_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f64> {
+    let poshem = PositiveHemisphere::new_standard_cartesian();
+    poshem.get_positive_pole(axis, thresh)
+}
+
+/// Check if a rotation axis is in the standard positive hemisphere.
+///
+/// The definition of the standard positive hemisphere can be found in S.L. Altmann, Rotations,
+/// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005)
+/// (Chapter 9).
+///
+/// # Arguments
+///
+/// * axis - An axis of rotation.
+/// * thresh - Threshold for comparisons.
+///
+/// # Returns
+///
+/// Returns `true` if `axis` is in the positive hemisphere.
+///
+/// # Panics
+///
+/// Panics if the axis is a null vector.
+#[must_use]
+pub fn check_standard_positive_pole(axis: &Vector3<f64>, thresh: f64) -> bool {
+    let poshem = PositiveHemisphere::new_standard_cartesian();
+    poshem.check_positive_pole(axis, thresh)
 }
