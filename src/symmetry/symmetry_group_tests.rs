@@ -3564,6 +3564,36 @@ fn test_ur_group_symmetric_arbitrary_twisted_sandwich_grey_dn() {
     }
 }
 
+/***
+Dn*
+***/
+
+#[test]
+fn test_ur_group_symmetric_h8_twisted_d4_double() {
+    let thresh = 1e-7;
+    let mol = template_molecules::gen_twisted_h8(0.1);
+    test_ur_ordinary_double_group(&mol, thresh, "D4*", 16, 7, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_h8_twisted_d4_double_class_order() {
+    let thresh = 1e-7;
+    let mol = template_molecules::gen_twisted_h8(0.1);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C4(Σ)|",
+            "2|C4(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "2|C2(Σ), C2(QΣ)|^(')",
+            "2|C2(Σ), C2(QΣ)|^('')"],
+    );
+}
+
+
 /*
 Dnh
 */
