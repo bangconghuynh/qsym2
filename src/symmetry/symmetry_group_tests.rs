@@ -968,6 +968,149 @@ fn test_ur_group_spherical_vf6_grey_oh_class_order() {
     );
 }
 
+/*********
+Spherical*
+*********/
+#[test]
+fn test_ur_group_spherical_c60_ih_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-5;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "Ih*", 240, 18, false);
+}
+
+#[test]
+fn test_ur_group_spherical_c60_ih_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-5;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "12|C5(Σ)|",
+            "12|C5(QΣ)|",
+            "12|C5^2(Σ)|",
+            "12|C5^2(QΣ)|",
+            "20|C3(Σ)|",
+            "20|C3(QΣ)|",
+            "15|C2(Σ), C2(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "12|S10(Σ)|",
+            "12|S10(QΣ)|",
+            "12|σC10^3(Σ)|",
+            "12|σC10^3(QΣ)|",
+            "20|S6(Σ)|",
+            "20|S6(QΣ)|",
+            "15|σ(Σ), σ(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_spherical_ch4_td_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "Td*", 48, 8, false);
+}
+
+#[test]
+fn test_ur_group_spherical_ch4_td_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "8|C3(Σ)|",
+            "8|C3(QΣ)|",
+            "3|C2(Σ), C2(QΣ)|",
+            "6|S4(Σ)|",
+            "6|S4(QΣ)|",
+            "6|σd(Σ), σd(QΣ)|"
+        ]);
+}
+
+#[test]
+fn test_ur_group_spherical_vh2o6_th_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "Th*", 48, 14, false);
+}
+
+#[test]
+fn test_ur_group_spherical_vh2o6_th_double_class_order() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "4|C3(Σ)|",
+            "4|C3(Σ)|^(')",
+            "4|C3(QΣ)|",
+            "4|C3(QΣ)|^(')",
+            "3|C2(Σ), C2(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "4|S6(Σ)|",
+            "4|S6(Σ)|^(')",
+            "4|S6(QΣ)|",
+            "4|S6(QΣ)|^(')",
+            "3|σh(Σ), σh(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_spherical_vf6_oh_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "Oh*", 96, 16, false);
+}
+
+#[test]
+fn test_ur_group_spherical_vf6_oh_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "6|C4(Σ)|",
+            "6|C4(QΣ)|",
+            "8|C3(Σ)|",
+            "8|C3(QΣ)|",
+            "3|C2(Σ), C2(QΣ)|",
+            "6|C2(Σ), C2(QΣ)|^(')",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "8|S6(Σ)|",
+            "8|S6(QΣ)|",
+            "6|S4(Σ)|",
+            "6|S4(QΣ)|",
+            "3|σh(Σ), σh(QΣ)|",
+            "6|σd(Σ), σd(QΣ)|",
+        ],
+    );
+}
+
 /*****
 Linear
 *****/
