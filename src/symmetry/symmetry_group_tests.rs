@@ -2885,6 +2885,130 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_electric_field_grey_cnv(
     }
 }
 
+/***
+Cnv*
+***/
+
+#[test]
+fn test_ur_group_symmetric_nh3_c3v_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group(&mol, thresh, "C3v*", 12, 6, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_nh3_c3v_double_class_order() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/nh3.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "3|σv(Σ)|",
+            "3|σv(QΣ)|"
+        ]);
+}
+
+#[test]
+fn test_ur_group_symmetric_antiprism_pb10_electric_field_c4v_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_ordinary_double_group(&mol, thresh, "C4v*", 16, 7, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_antiprism_pb10_electric_field_c4v_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C4(Σ)|",
+            "2|C4(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "2|σv(Σ), σv(QΣ)|",
+            "2|σv(Σ), σv(QΣ)|^(')"
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_c60_electric_field_c5v_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_ordinary_double_group(&mol, thresh, "C5v*", 20, 8, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_c60_electric_field_c5v_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C5(Σ)|",
+            "2|C5(QΣ)|",
+            "2|C5^2(Σ)|",
+            "2|C5^2(QΣ)|",
+            "5|σv(Σ)|",
+            "5|σv(QΣ)|"
+        ]);
+}
+
+#[test]
+fn test_ur_group_symmetric_benzene_electric_field_c6v_double() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
+    test_ur_ordinary_double_group(&mol, thresh, "C6v*", 24, 9, false);
+}
+
+#[test]
+fn test_ur_group_symmetric_benzene_electric_field_c6v_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
+    test_ur_ordinary_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C6(Σ)|",
+            "2|C6(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "3|σv(Σ), σv(QΣ)|",
+            "3|σv(Σ), σv(QΣ)|^(')"
+        ],
+    );
+}
+
 /*
 Cnh
 */
