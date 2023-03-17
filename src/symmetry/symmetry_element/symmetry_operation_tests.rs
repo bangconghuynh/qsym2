@@ -6419,7 +6419,7 @@ fn test_symmetry_operation_su2_collinear_composition() {
 
     // =======================================
     // Proper and improper symmetry operations
-    // =====================-----------=======
+    // =======================================
     let c2z_nsr_element = SymmetryElement::builder()
         .threshold(1e-12)
         .proper_order(ElementOrder::Int(2))
@@ -6437,7 +6437,7 @@ fn test_symmetry_operation_su2_collinear_composition() {
 
     let s4z_nsr_element = SymmetryElement::builder()
         .threshold(1e-12)
-        .proper_order(ElementOrder::Int(5))
+        .proper_order(ElementOrder::Int(4))
         .proper_power(1)
         .raw_axis(Vector3::z())
         .kind(SIG)
@@ -6449,7 +6449,12 @@ fn test_symmetry_operation_su2_collinear_composition() {
         .power(1)
         .build()
         .unwrap();
-    assert_eq!(&s5_nsr_p1 * &c5_nsr_p1, s5_pp2_nsr_p1);
+    let s4z_nsr_pm1 = SymmetryOperation::builder()
+        .generating_element(s4z_nsr_element.clone())
+        .power(-1)
+        .build()
+        .unwrap();
+    assert_eq!(&c2z_nsr_p1 * &s4z_nsr_p1, s4z_nsr_pm1);
 }
 
 #[test]
