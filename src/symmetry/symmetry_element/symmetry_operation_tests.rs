@@ -3948,6 +3948,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(c4p2, c4p2r);
 
@@ -3975,6 +3976,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(c7, c7r);
 
@@ -3992,6 +3994,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(c7p2, c7p2r);
 
@@ -4009,6 +4012,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(c7p3, c7p3r);
 
@@ -4026,6 +4030,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(c7p7, c7p7r);
 
@@ -4056,6 +4061,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(s1, s1r);
 
@@ -4073,6 +4079,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(s1pm4, s1pm4r);
 
@@ -4100,6 +4107,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(s2, s2r);
 
@@ -4117,6 +4125,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(s2p2, s2p2r);
 
@@ -4144,6 +4153,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(s3, s3r);
 
@@ -4161,6 +4171,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(s3p2, s3p2r);
 
@@ -4178,6 +4189,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(s3pm1, s3pm1r);
 
@@ -4195,6 +4207,7 @@ fn test_symmetry_operation_from_quaternion() {
         10,
         false,
         false,
+        None,
     );
     assert_eq!(s3p3, s3p3r);
 
@@ -4222,6 +4235,7 @@ fn test_symmetry_operation_from_quaternion() {
         17,
         false,
         false,
+        None,
     );
     assert_eq!(s17pp3, s17pp3r);
 
@@ -4249,6 +4263,7 @@ fn test_symmetry_operation_from_quaternion() {
         11,
         false,
         false,
+        None,
     );
     assert_eq!(sd11, sd11r);
 
@@ -4266,6 +4281,7 @@ fn test_symmetry_operation_from_quaternion() {
         11,
         false,
         false,
+        None,
     );
     assert_eq!(sd11p6, sd11p6r);
 }
@@ -5123,6 +5139,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(c4_nsr_p2, c4_nsr_p2_r);
     assert!(!c4_nsr_p2.is_su2_class_1());
@@ -5142,6 +5159,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(c4_nsr_pm2, c4_nsr_pm2_r);
     assert!(c4_nsr_pm2.is_su2_class_1());
@@ -5161,6 +5179,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(c4_nsr_p4, c4_nsr_p4_r);
     assert!(c4_nsr_p4.is_su2_class_1());
@@ -5180,6 +5199,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(c4_nsr_p6, c4_nsr_p6_r);
     assert!(c4_nsr_p6_r.is_su2_class_1());
@@ -5208,6 +5228,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(c7_isr_p1, c7_isr_p1_r);
     assert!(c7_isr_p1_r.is_su2_class_1());
@@ -5226,6 +5247,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(c7_isr_p2, c7_isr_p2_r);
     assert!(!c7_isr_p2_r.is_su2_class_1());
@@ -5244,6 +5266,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(c7_isr_p3, c7_isr_p3_r);
     assert!(c7_isr_p3_r.is_su2_class_1());
@@ -5262,6 +5285,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(c7_isr_p7, c7_isr_p7_r);
 
@@ -5292,6 +5316,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(s1_nsr_p1, s1_nsr_p1_r);
 
@@ -5309,6 +5334,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(s1_nsr_pm4, s1_nsr_pm4_r);
 
@@ -5336,6 +5362,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(s2_isr_p1, s2_isr_p1_r);
 
@@ -5353,6 +5380,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(s2_isr_p2, s2_isr_p2_r);
     assert!(!s2_isr_p2_r.is_su2_class_1());
@@ -5381,6 +5409,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(s3_isr_p1, s3_isr_p1_r);
 
@@ -5398,6 +5427,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(s3_isr_p2, s3_isr_p2_r);
 
@@ -5415,6 +5445,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(s3_isr_pm1, s3_isr_pm1_r);
 
@@ -5432,6 +5463,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         10,
         false,
         true,
+        None,
     );
     assert_eq!(s3_isr_p3, s3_isr_p3_r);
 
@@ -5459,6 +5491,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         17,
         false,
         true,
+        None,
     );
     assert_eq!(s17_nsr_pp3, s17_nsr_pp3_r);
 
@@ -5486,6 +5519,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         11,
         false,
         true,
+        None,
     );
     assert_eq!(sd11_isr_p1, sd11_isr_p1r);
 
@@ -5503,6 +5537,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         11,
         false,
         true,
+        None,
     );
     assert_eq!(sd11_isr_p6, sd11_isr_p6_r);
 }

@@ -185,7 +185,7 @@ pub struct SymmetryOperation {
     #[builder(setter(skip), default = "self.calc_total_proper_fraction()")]
     pub total_proper_fraction: Option<F>,
 
-    #[builder(setter(skip), default = "None")]
+    #[builder(default = "None")]
     positive_hemisphere: Option<PositiveHemisphere>,
 }
 
@@ -271,6 +271,7 @@ impl SymmetryOperation {
         max_trial_power: u32,
         tr: bool,
         su2: bool,
+        poshem: Option<PositiveHemisphere>,
     ) -> Self {
         let (scalar_part, vector_part) = qtn;
         let kind = if proper {
@@ -309,12 +310,21 @@ impl SymmetryOperation {
                 // 180-degree rotation, i.e. binary rotation or reflection. Whether the resultant
                 // operation is in class 0 or class 1 depends on whether the vector part is in the
                 // positive hemisphere or negative hemisphere.
-                let positive_axis = geometry::get_standard_positive_pole(&vector_part, thresh);
+                let positive_axis = poshem
+                    .as_ref()
+                    .cloned()
+                    .unwrap_or_default()
+                    .get_positive_pole(&vector_part, thresh);
                 (
                     positive_axis,
                     2u32,
                     1u32,
-                    if geometry::check_standard_positive_pole(&vector_part, thresh) {
+                    if poshem
+                        .as_ref()
+                        .cloned()
+                        .unwrap_or_default()
+                        .check_positive_pole(&vector_part, thresh)
+                    {
                         SU2_0
                     } else {
                         SU2_1
@@ -421,6 +431,7 @@ impl SymmetryOperation {
         SymmetryOperation::builder()
             .generating_element(element)
             .power(1)
+            .positive_hemisphere(poshem)
             .build()
             .unwrap_or_else(|_|
                 panic!(
@@ -462,7 +473,11 @@ impl SymmetryOperation {
             // Time-reversal does not matter here.
             self.convert_to_improper_kind(&INV)
         };
-        debug_assert_eq!(self.is_su2_class_1(), c_self.is_su2_class_1());
+        debug_assert_eq!(
+            self.is_su2_class_1(),
+            c_self.is_su2_class_1(),
+            "`{self}` and `{c_self}` are in different homotopy classes."
+        );
 
         // We only need the absolute value of the angle. Its sign information is
         // encoded in the pole. `abs_angle` thus lies in [0, π], and so
@@ -483,13 +498,15 @@ impl SymmetryOperation {
             max_relative = c_self.generating_element.threshold,
             epsilon = c_self.generating_element.threshold
         ) {
-            geometry::check_standard_positive_pole(
-                &vector_part,
-                c_self.generating_element.threshold,
-            )
+            // println!();
+            c_self.positive_hemisphere
+                .as_ref()
+                .cloned()
+                .unwrap_or_default()
+                .check_positive_pole(&vector_part, c_self.generating_element.threshold)
         } else {
             true
-        });
+        }, "Poshem: {:?} - c_self: {c_self} - pole: {} - vec: {vector_part}", c_self.positive_hemisphere, c_self.calc_pole());
 
         if self.is_su2_class_1() {
             (-scalar_part, -vector_part)
@@ -629,10 +646,16 @@ impl SymmetryOperation {
                     .expect("No total proper fractions found.");
                 if total_proper_fraction == frac_1_2 {
                     // Binary rotations or reflections
-                    Point3::from(geometry::get_standard_positive_pole(
-                        &self.generating_element.raw_axis,
-                        self.generating_element.threshold,
-                    ))
+                    Point3::from(
+                        self.positive_hemisphere
+                            .as_ref()
+                            .cloned()
+                            .unwrap_or_default()
+                            .get_positive_pole(
+                                &self.generating_element.raw_axis,
+                                self.generating_element.threshold,
+                            ),
+                    )
                 } else if total_proper_fraction > F::zero() {
                     // Positive rotation angles
                     Point3::from(self.generating_element.raw_axis)
@@ -653,10 +676,16 @@ impl SymmetryOperation {
                     epsilon = self.generating_element.threshold
                 ) {
                     // Binary rotations or reflections
-                    Point3::from(geometry::get_standard_positive_pole(
-                        &self.generating_element.raw_axis,
-                        self.generating_element.threshold,
-                    ))
+                    Point3::from(
+                        self.positive_hemisphere
+                            .as_ref()
+                            .cloned()
+                            .unwrap_or_default()
+                            .get_positive_pole(
+                                &self.generating_element.raw_axis,
+                                self.generating_element.threshold,
+                            ),
+                    )
                 } else if approx::relative_ne!(
                     self.total_proper_angle,
                     0.0,
@@ -733,6 +762,7 @@ impl SymmetryOperation {
         Self::builder()
             .generating_element(c_element)
             .power(self.power)
+            .positive_hemisphere(self.positive_hemisphere.clone())
             .build()
             .expect("Unable to construct a symmetry operation.")
     }
@@ -920,6 +950,7 @@ impl SymmetryOperation {
             1,
             false,
             true,
+            None,
         );
         if self.is_su2() {
             if self.is_su2_class_1() {
@@ -940,6 +971,10 @@ impl SymmetryOperation {
                 op
             }
         }
+    }
+
+    pub fn set_positive_hemisphere(&mut self, poshem: Option<&PositiveHemisphere>) {
+        self.positive_hemisphere = poshem.cloned();
     }
 }
 
@@ -1205,10 +1240,12 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     });
                 let single_jump_from_c2 = (c_self.is_spatial_binary_rotation()
                     || c_self.is_spatial_reflection())
-                    && !geometry::check_standard_positive_pole(
-                        c_self.generating_element.raw_axis(),
-                        thresh,
-                    );
+                    && !self
+                        .positive_hemisphere
+                        .as_ref()
+                        .cloned()
+                        .unwrap_or_default()
+                        .check_positive_pole(c_self.generating_element.raw_axis(), thresh);
                 odd_jumps_from_angle != single_jump_from_c2
             };
             let intrinsic_inverse = c_self.generating_element.rotation_group().is_su2_class_1()
@@ -1422,6 +1459,7 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
             rhs.is_su2(),
             "`self` and `rhs` must both have or not have associated spin rotations."
         );
+        assert_eq!(self.positive_hemisphere, rhs.positive_hemisphere);
         let su2 = self.is_su2();
         let (q1_s, q1_v) = self.calc_quaternion();
         let (q2_s, q2_v) = rhs.calc_quaternion();
@@ -1439,7 +1477,15 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
         let tr = self.is_antiunitary() != rhs.is_antiunitary();
         let thresh = (self.generating_element.threshold * rhs.generating_element.threshold).sqrt();
         let max_trial_power = u32::MAX;
-        SymmetryOperation::from_quaternion(q3, proper, thresh, max_trial_power, tr, su2)
+        SymmetryOperation::from_quaternion(
+            q3,
+            proper,
+            thresh,
+            max_trial_power,
+            tr,
+            su2,
+            self.positive_hemisphere.clone(),
+        )
     }
 }
 
@@ -1474,6 +1520,7 @@ impl Pow<i32> for &SymmetryOperation {
         SymmetryOperation::builder()
             .generating_element(self.generating_element.clone())
             .power(self.power * rhs)
+            .positive_hemisphere(self.positive_hemisphere.clone())
             .build()
             .expect("Unable to construct a symmetry operation.")
     }
@@ -1494,6 +1541,7 @@ impl Inv for &SymmetryOperation {
         SymmetryOperation::builder()
             .generating_element(self.generating_element.clone())
             .power(-self.power)
+            .positive_hemisphere(self.positive_hemisphere.clone())
             .build()
             .expect("Unable to construct an inverse symmetry operation.")
     }
@@ -1571,10 +1619,15 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             )
         });
 
-        let negative_rotation = !geometry::check_standard_positive_pole(
-            &c_op.calc_proper_rotation_pole().coords,
-            c_op.generating_element.threshold(),
-        );
+        let negative_rotation = !c_op
+            .positive_hemisphere
+            .as_ref()
+            .cloned()
+            .unwrap_or_default()
+            .check_positive_pole(
+                &c_op.calc_proper_rotation_pole().coords,
+                c_op.generating_element.threshold(),
+            );
 
         (
             c_op.is_antiunitary(),

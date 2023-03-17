@@ -3,7 +3,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use nalgebra::Vector3;
 
-use crate::aux::geometry;
+use crate::aux::geometry::{self, PositiveHemisphere};
 use crate::chartab::chartab_group::{
     CharacterProperties, IrcorepCharTabConstruction, IrrepCharTabConstruction,
 };
@@ -297,35 +297,35 @@ pub trait SymmetryGroupProperties:
                                 }
                             });
                         if let Some(alt_rep_ele) = alt_rep_ele_option {
-                            // if old_symbol.size().rem_eulid(2) == 0 {
-                            (
-                                old_symbol.size(),
-                                format!(
-                                    "{}/{}",
-                                    rep_ele.get_abbreviated_symbol(),
-                                    alt_rep_ele.get_abbreviated_symbol()
-                                ),
-                                vec![rep_ele],
-                            )
-                            // } else {
-                            //     let mut reps = self
-                            //         .get_cc_index(i)
-                            //         .unwrap_or_else(|| {
-                            //             panic!("No conjugacy class index `{i}` can be found.")
-                            //         })
-                            //         .iter()
-                            //         .map(|&j| {
-                            //             self.get_index(j).unwrap_or_else(|| {
-                            //                 panic!("Element with index {j} cannot be retrieved.")
-                            //             })
-                            //         }).collect_vec();
-                            //     reps.sort_by_key(|op| op.is_su2_class_1());
-                            //     (
-                            //         1,
-                            //         reps.iter().map(|op| op.get_abbreviated_symbol()).join(", "),
-                            //         reps,
-                            //     )
-                            // }
+                            if old_symbol.size().rem_euclid(2) == 0 {
+                                (
+                                    old_symbol.size().div_euclid(2),
+                                    format!(
+                                        "{}, {}",
+                                        rep_ele.get_abbreviated_symbol(),
+                                        alt_rep_ele.get_abbreviated_symbol()
+                                    ),
+                                    vec![rep_ele],
+                                )
+                            } else {
+                                let mut reps = self
+                                    .get_cc_index(i)
+                                    .unwrap_or_else(|| {
+                                        panic!("No conjugacy class index `{i}` can be found.")
+                                    })
+                                    .iter()
+                                    .map(|&j| {
+                                        self.get_index(j).unwrap_or_else(|| {
+                                            panic!("Element with index {j} cannot be retrieved.")
+                                        })
+                                    }).collect_vec();
+                                reps.sort_by_key(|op| op.is_su2_class_1());
+                                (
+                                    1,
+                                    reps.iter().map(|op| op.get_abbreviated_symbol()).join(", "),
+                                    reps,
+                                )
+                            }
                         } else {
                             (
                                 old_symbol.size(),
@@ -432,11 +432,54 @@ impl SymmetryGroupProperties
     }
 
     fn to_double_group(&self) -> Self {
+        // Check for classes of multiple C2 axes.
+        let poshem = (0..self.class_number()).find_map(|cc_i| {
+            let cc_symbol = self
+                .get_cc_symbol_of_index(cc_i)
+                .expect("Unable to retrive a conjugacy class symbol.");
+            if cc_symbol.is_spatial_binary_rotation() || cc_symbol.is_spatial_reflection() {
+                let cc = self
+                    .get_cc_index(cc_i)
+                    .expect("Unable to retrieve a conjugacy class.");
+                if cc.len() > 1 && cc.len().rem_euclid(2) == 1 {
+                    let c2s = cc
+                        .iter()
+                        .take(2)
+                        .map(|&op_i| {
+                            self.get_index(op_i)
+                                .expect("Unable to retrieve a group element.")
+                        })
+                        .collect_vec();
+                    let z_basis = geometry::get_standard_positive_pole(
+                        &c2s[0]
+                            .generating_element
+                            .raw_axis()
+                            .cross(&c2s[1].generating_element.raw_axis()),
+                        c2s[0].generating_element.threshold(),
+                    );
+                    let x_basis = c2s[0].generating_element.raw_axis().clone();
+                    Some(PositiveHemisphere::new_spherical_disjoint_equatorial_arcs(
+                        z_basis,
+                        x_basis,
+                        cc.len(),
+                    ))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        });
+
         let mut su2_operations = self
             .elements()
             .clone()
             .into_iter()
-            .map(|op| op.to_su2_class_0())
+            .map(|op| {
+                let mut su2_op = op.to_su2_class_0();
+                su2_op.set_positive_hemisphere(poshem.as_ref());
+                su2_op
+            })
             .collect_vec();
         let q_identity = SymmetryOperation::from_quaternion(
             (-1.0, -Vector3::z()),
@@ -445,6 +488,7 @@ impl SymmetryGroupProperties
             1,
             false,
             true,
+            poshem,
         );
         let su2_1_operations = su2_operations
             .iter()
@@ -696,6 +740,7 @@ impl SymmetryGroupProperties
             1,
             false,
             true,
+            None,
         );
         let su2_1_operations = su2_operations
             .iter()

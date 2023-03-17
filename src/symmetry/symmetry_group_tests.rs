@@ -4705,6 +4705,7 @@ fn test_ur_group_symmetric_staggered_c2h6_d3d_double() {
 
 #[test]
 fn test_ur_group_symmetric_staggered_c2h6_d3d_double_class_order() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h6.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
@@ -4716,14 +4717,14 @@ fn test_ur_group_symmetric_staggered_c2h6_d3d_double_class_order() {
             "|E(QΣ)|",
             "2|C3(Σ)|",
             "2|C3(QΣ)|",
-            "|C2(Σ), C2(Σ), C2(QΣ)|",
-            "|C2(Σ), C2(QΣ), C2(QΣ)|",
+            "3|C2(Σ)|",
+            "3|C2(QΣ)|",
             "|i(Σ)|",
             "|i(QΣ)|",
             "2|S6(Σ)|",
             "2|S6(QΣ)|",
-            "|σd(Σ), σd(Σ), σd(QΣ)|",
-            "|σd(Σ), σd(QΣ), σd(QΣ)|"
+            "3|σd(Σ)|",
+            "3|σd(QΣ)|"
         ],
     );
 }
@@ -5405,18 +5406,18 @@ fn test_ur_group_symmetric_au26_magnetic_field_s12_class_order() {
         &mol,
         thresh,
         &[
-            "|E(Σ)|",
-            "|C6(Σ)|",
-            "|C6^(-1)(Σ)|",
-            "|C3(Σ)|",
-            "|C3^(-1)(Σ)|",
-            "|C2(Σ)|",
-            "|S12(Σ)|",
-            "|σC12^5(Σ)|",
-            "|σC12^(-5)(Σ)|",
-            "|S12^(-1)(Σ)|",
-            "|S4(Σ)|",
-            "|S4^(-1)(Σ)|",
+            "|E|",
+            "|C6|",
+            "|C6^(-1)|",
+            "|C3|",
+            "|C3^(-1)|",
+            "|C2|",
+            "|S12|",
+            "|σC12^5|",
+            "|σC12^(-5)|",
+            "|S12^(-1)|",
+            "|S4|",
+            "|S4^(-1)|",
         ],
     );
 }

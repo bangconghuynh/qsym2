@@ -625,7 +625,7 @@ pub trait Transform {
 // Positive Hemisphere
 // ===================
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 enum ImproperOrdering {
     Greater,
     GreaterEqual,
@@ -634,7 +634,7 @@ enum ImproperOrdering {
     Equal,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 enum CartesianCoordinate {
     X,
     Y,
@@ -661,7 +661,7 @@ impl fmt::Display for CartesianCoordinate {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CartesianConditions {
     conditions: Vec<Vec<(CartesianCoordinate, ImproperOrdering, f64)>>,
 }
@@ -708,7 +708,7 @@ impl Default for CartesianConditions {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SphericalCoordinate {
     Theta,
     Phi,
@@ -723,7 +723,7 @@ impl fmt::Display for SphericalCoordinate {
     }
 }
 
-#[derive(Clone, Builder)]
+#[derive(Debug, Clone, Builder, PartialEq)]
 pub struct SphericalConditions {
     #[builder(setter(custom))]
     z_basis: Vector3<f64>,
@@ -902,7 +902,7 @@ impl Default for SphericalConditions {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PositiveHemisphere {
     Cartesian(CartesianConditions),
     Spherical(SphericalConditions),
