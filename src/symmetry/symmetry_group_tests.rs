@@ -11,7 +11,7 @@ use crate::aux::template_molecules;
 use crate::group::class::ClassProperties;
 use crate::group::{
     EagerGroup, GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup,
-    BWGRP, GRGRP, ORGRP, ORGRP2,
+    BWGRP, BWGRP2, GRGRP, GRGRP2, ORGRP, ORGRP2,
 };
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
@@ -332,6 +332,32 @@ fn test_ur_magnetic_group(
     });
 }
 
+fn test_ur_magnetic_double_group(
+    mol: &Molecule,
+    thresh: f64,
+    name: &str,
+    order: usize,
+    class_number: usize,
+    abelian: bool,
+    mag_group_type: GroupType,
+) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None).to_double_group();
+    assert_eq!(group.group_type(), mag_group_type);
+    verify_abstract_group(&group, name, order, class_number, abelian);
+
+    // IntoPermutation
+    group.elements().into_iter().for_each(|op| {
+        assert!(op.act_permute(mol).is_some());
+    });
+}
+
 fn test_mr_magnetic_group(
     mol: &Molecule,
     thresh: f64,
@@ -502,6 +528,30 @@ fn test_ur_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_s
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true);
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
+    let classes = (0..group.class_number())
+        .map(|i| {
+            group
+                .get_cc_symbol_of_index(i)
+                .expect("Unable to retrieve all class symbols.")
+                .to_string()
+        })
+        .collect_vec();
+    assert_eq!(&classes, class_order_str);
+}
+
+fn test_ur_magnetic_double_group_class_order(
+    mol: &Molecule,
+    thresh: f64,
+    class_order_str: &[&str],
+) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol, true)
+        .build()
+        .unwrap();
+    let mut magsym = Symmetry::new();
+    magsym.analyse(&presym, true);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None).to_double_group();
     let classes = (0..group.class_number())
         .map(|i| {
             group
@@ -1034,8 +1084,9 @@ fn test_ur_group_spherical_ch4_td_double_class_order() {
             "3|C2(Σ), C2(QΣ)|",
             "6|S4(Σ)|",
             "6|S4(QΣ)|",
-            "6|σd(Σ), σd(QΣ)|"
-        ]);
+            "6|σd(Σ), σd(QΣ)|",
+        ],
+    );
 }
 
 #[test]
@@ -3055,8 +3106,9 @@ fn test_ur_group_symmetric_nh3_c3v_double_class_order() {
             "2|C3(Σ)|",
             "2|C3(QΣ)|",
             "3|σv(Σ)|",
-            "3|σv(QΣ)|"
-        ]);
+            "3|σv(QΣ)|",
+        ],
+    );
 }
 
 #[test]
@@ -3084,7 +3136,7 @@ fn test_ur_group_symmetric_antiprism_pb10_electric_field_c4v_double_class_order(
             "2|C4(QΣ)|",
             "|C2(Σ), C2(QΣ)|",
             "2|σv(Σ), σv(QΣ)|",
-            "2|σv(Σ), σv(QΣ)|^(')"
+            "2|σv(Σ), σv(QΣ)|^(')",
         ],
     );
 }
@@ -3115,8 +3167,9 @@ fn test_ur_group_symmetric_c60_electric_field_c5v_double_class_order() {
             "2|C5^2(Σ)|",
             "2|C5^2(QΣ)|",
             "5|σv(Σ)|",
-            "5|σv(QΣ)|"
-        ]);
+            "5|σv(QΣ)|",
+        ],
+    );
 }
 
 #[test]
@@ -3147,7 +3200,7 @@ fn test_ur_group_symmetric_benzene_electric_field_c6v_double_class_order() {
             "2|C3(QΣ)|",
             "|C2(Σ), C2(QΣ)|",
             "3|σv(Σ), σv(QΣ)|",
-            "3|σv(Σ), σv(QΣ)|^(')"
+            "3|σv(Σ), σv(QΣ)|^(')",
         ],
     );
 }
@@ -3613,7 +3666,7 @@ fn test_ur_group_symmetric_bf3_magnetic_field_c3h_double_class_order() {
             "|S3^(-1)(Σ)|",
             "|S3^(-1)(QΣ)|",
             "|σh(Σ)|",
-            "|σh(QΣ)|"
+            "|σh(QΣ)|",
         ],
     );
 }
@@ -4110,7 +4163,7 @@ fn test_ur_group_symmetric_c6ph6_d6_double_class_order() {
             "2|C3(QΣ)|",
             "|C2(Σ), C2(QΣ)|",
             "3|C2(Σ), C2(QΣ)|^(')",
-            "3|C2(Σ), C2(QΣ)|^('')"
+            "3|C2(Σ), C2(QΣ)|^('')",
         ],
     );
 }
@@ -6258,6 +6311,36 @@ fn test_ur_group_symmetric_b2cl4_magnetic_field_s4_double_class_order() {
 }
 
 #[test]
+fn test_ur_group_symmetric_b2cl4_magnetic_field_bw_d2d_s4_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group(&mol, thresh, "D2d*", 16, 7, false, BWGRP2);
+}
+
+#[test]
+fn test_ur_group_symmetric_b2cl4_magnetic_field_bw_d2d_s4_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "2|S4(Σ)|",
+            "2|S4(QΣ)|",
+            "2|θ·C2(Σ), θ·C2(QΣ)|",
+            "2|θ·σd(Σ), θ·σd(QΣ)|"
+        ],
+    );
+}
+
+#[test]
 fn test_ur_group_symmetric_vf6_magnetic_field_s6_double() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
@@ -6288,6 +6371,41 @@ fn test_ur_group_symmetric_vf6_magnetic_field_s6_double_class_order() {
             "|S6(QΣ)|",
             "|S6^(-1)(Σ)|",
             "|S6^(-1)(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_vf6_magnetic_field_bw_d3d_s6_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    test_ur_magnetic_double_group(&mol, thresh, "D3d*", 24, 12, false, BWGRP2);
+}
+
+#[test]
+fn test_ur_group_symmetric_vf6_magnetic_field_bw_d3d_s6_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "2|S6(Σ)|",
+            "2|S6(QΣ)|",
+            "3|θ·C2(Σ)|",
+            "3|θ·C2(QΣ)|",
+            "3|θ·σd(Σ)|",
+            "3|θ·σd(QΣ)|",
         ],
     );
 }
@@ -6327,6 +6445,40 @@ fn test_ur_group_symmetric_antiprism_pb10_magnetic_field_s8_double_class_order()
             "|σC8^(-3)(QΣ)|",
             "|S8^(-1)(Σ)|",
             "|S8^(-1)(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group(&mol, thresh, "D4d*", 32, 11, false, BWGRP2);
+}
+
+#[test]
+fn test_ur_group_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C4(Σ)|",
+            "2|C4(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "2|S8(Σ)|",
+            "2|S8(QΣ)|",
+            "2|σC8^3(Σ)|",
+            "2|σC8^3(QΣ)|",
+            "4|θ·C2(Σ), θ·C2(QΣ)|",
+            "4|θ·σd(Σ), θ·σd(QΣ)|",
         ],
     );
 }
@@ -6679,6 +6831,35 @@ fn test_ur_group_asymmetric_spiroketal_c2_double_class_order() {
     );
 }
 
+#[test]
+fn test_ur_group_asymmetric_spiroketal_grey_c2_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/spiroketal.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(C2 + θ·C2)*", 8, 8, true, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_asymmetric_spiroketal_grey_c2_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/spiroketal.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ)|",
+            "|C2(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "|θ·C2(Σ)|",
+            "|θ·C2(QΣ)|",
+        ],
+    );
+}
+
 /***
 C2v
 ***/
@@ -6841,6 +7022,37 @@ fn test_ur_group_asymmetric_water_c2v_double_class_order() {
             "|C2(Σ), C2(QΣ)|",
             "|σv(Σ), σv(QΣ)|",
             "|σv(Σ), σv(QΣ)|^(')",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_asymmetric_pyridine_grey_c2v_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(C2v + θ·C2v)*", 16, 10, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_asymmetric_pyridine_grey_c2v_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pyridine.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "|σv(Σ), σv(QΣ)|",
+            "|σv(Σ), σv(QΣ)|^(')",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "|θ·C2(Σ), θ·C2(QΣ)|",
+            "|θ·σv(Σ), θ·σv(QΣ)|",
+            "|θ·σv(Σ), θ·σv(QΣ)|^(')",
         ],
     );
 }
@@ -7137,6 +7349,43 @@ fn test_ur_group_asymmetric_h2o2_c2h_double_class_order() {
             "|i(QΣ)|",
             "|σh(Σ)|",
             "|σh(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_asymmetric_h2o2_grey_c2h_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(C2h + θ·C2h)*", 16, 16, true, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_asymmetric_h2o2_grey_c2h_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ)|",
+            "|C2(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "|σh(Σ)|",
+            "|σh(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "|θ·C2(Σ)|",
+            "|θ·C2(QΣ)|",
+            "|θ·i(Σ)|",
+            "|θ·i(QΣ)|",
+            "|θ·σh(Σ)|",
+            "|θ·σh(QΣ)|",
         ],
     );
 }
@@ -7565,6 +7814,35 @@ fn test_ur_group_asymmetric_propene_cs_double_class_order() {
     );
 }
 
+#[test]
+fn test_ur_group_asymmetric_propene_grey_cs_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(Cs + θ·Cs)*", 8, 8, true, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_asymmetric_propene_grey_cs_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|σh(Σ)|",
+            "|σh(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "|θ·σh(Σ)|",
+            "|θ·σh(QΣ)|",
+        ],
+    );
+}
+
 /*
 D2
 */
@@ -7656,6 +7934,37 @@ fn test_ur_group_asymmetric_i4_biphenyl_d2_double_class_order() {
             "|C2(Σ), C2(QΣ)|",
             "|C2(Σ), C2(QΣ)|^(')",
             "|C2(Σ), C2(QΣ)|^('')",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_asymmetric_i4_biphenyl_grey_d2_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(D2 + θ·D2)*", 16, 10, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_asymmetric_i4_biphenyl_grey_d2_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/i4-biphenyl.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "|C2(Σ), C2(QΣ)|^(')",
+            "|C2(Σ), C2(QΣ)|^('')",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "|θ·C2(Σ), θ·C2(QΣ)|",
+            "|θ·C2(Σ), θ·C2(QΣ)|^(')",
+            "|θ·C2(Σ), θ·C2(QΣ)|^('')",
         ],
     );
 }
@@ -7913,6 +8222,47 @@ fn test_ur_group_asymmetric_b2h6_d2h_double_class_order() {
     );
 }
 
+#[test]
+fn test_ur_group_asymmetric_pyrene_grey_d2h_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(D2h + θ·D2h)*", 32, 20, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_asymmetric_pyrene_grey_d2h_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pyrene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "|C2(Σ), C2(QΣ)|^(')",
+            "|C2(Σ), C2(QΣ)|^('')",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "|σ(Σ), σ(QΣ)|",
+            "|σ(Σ), σ(QΣ)|^(')",
+            "|σ(Σ), σ(QΣ)|^('')",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "|θ·C2(Σ), θ·C2(QΣ)|",
+            "|θ·C2(Σ), θ·C2(QΣ)|^(')",
+            "|θ·C2(Σ), θ·C2(QΣ)|^('')",
+            "|θ·i(Σ)|",
+            "|θ·i(QΣ)|",
+            "|θ·σ(Σ), θ·σ(QΣ)|",
+            "|θ·σ(Σ), θ·σ(QΣ)|^(')",
+            "|θ·σ(Σ), θ·σ(QΣ)|^('')",
+        ],
+    );
+}
+
 /***
 Ci
 ***/
@@ -8055,6 +8405,35 @@ fn test_ur_group_asymmetric_meso_tartaricacid_ci_double_class_order() {
     );
 }
 
+#[test]
+fn test_ur_group_asymmetric_meso_tartaricacid_grey_ci_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(Ci + θ·Ci)*", 8, 8, true, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_asymmetric_meso_tartaricacid_grey_ci_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/meso-tartaricacid.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "|θ·i(Σ)|",
+            "|θ·i(QΣ)|",
+        ],
+    );
+}
+
 /***
 C1
 ***/
@@ -8156,4 +8535,24 @@ fn test_ur_group_asymmetric_butan1ol_c1_double_class_order() {
     let thresh = 1e-7;
     let mol = Molecule::from_xyz(&path, thresh);
     test_ur_ordinary_double_group_class_order(&mol, thresh, &["|E(Σ)|", "|E(QΣ)|"]);
+}
+
+#[test]
+fn test_ur_group_asymmetric_butan1ol_grey_c1_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(C1 + θ·C1)*", 4, 4, true, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_asymmetric_butan1ol_grey_c1_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &["|E(Σ)|", "|E(QΣ)|", "|θ(Σ)|", "|θ(QΣ)|"],
+    );
 }

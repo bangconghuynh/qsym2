@@ -549,8 +549,18 @@ impl SymmetryGroupProperties
         su2_operations.extend(su2_1_operations.into_iter());
         sort_operations(&mut su2_operations);
 
-        let group_name = self.name().clone() + "*";
-        let finite_group_name = self.finite_subgroup_name().map(|name| name.clone() + "*");
+        let group_name = if self.name().contains("+") {
+            format!("({})*", self.name())
+        } else {
+            self.name().clone() + "*"
+        };
+        let finite_group_name = self.finite_subgroup_name().map(|name| {
+            if name.contains("+") {
+                format!("({})*", name)
+            } else {
+                name.clone() + "*"
+            }
+        });
         let mut group = Self::new(group_name.as_str(), su2_operations);
         group.set_finite_subgroup_name(finite_group_name);
         let symbols = group.class_symbols_from_symmetry();
@@ -769,6 +779,7 @@ impl SymmetryGroupProperties
         log::debug!("Constructing the double group for {}", self.name());
 
         // Check for classes of multiple C2 axes.
+        log::debug!("Checking for classes of odd non-coaxial binary rotations or reflections...");
         let poshem = (0..self.class_number()).find_map(|cc_i| {
             let cc_symbol = self
                 .get_cc_symbol_of_index(cc_i)
@@ -806,6 +817,13 @@ impl SymmetryGroupProperties
                 None
             }
         });
+
+        if let Some(pos_hem) = poshem.as_ref() {
+            log::debug!("New positive hemisphere:");
+            log::debug!("{pos_hem}");
+        } else {
+            log::debug!("No classes of odd non-coaxial binary rotations or reflections found.");
+        }
 
         let mut su2_operations = self
             .elements()
@@ -848,8 +866,19 @@ impl SymmetryGroupProperties
 
         let double_unitary_subgroup = self.unitary_subgroup().to_double_group();
 
-        let group_name = self.name().clone() + "*";
-        let finite_group_name = self.finite_subgroup_name().map(|name| name.clone() + "*");
+        let group_name = if self.name().contains("+") {
+            format!("({})*", self.name())
+        } else {
+            self.name().clone() + "*"
+        };
+        let finite_group_name = self.finite_subgroup_name().map(|name| {
+            if name.contains("+") {
+                format!("({})*", name)
+            } else {
+                name.clone() + "*"
+            }
+        });
+
         let mut group = Self::new(group_name.as_str(), su2_operations, double_unitary_subgroup);
         group.set_finite_subgroup_name(finite_group_name);
         let symbols = group.class_symbols_from_symmetry();
