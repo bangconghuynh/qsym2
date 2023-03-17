@@ -6527,6 +6527,45 @@ fn test_ur_group_symmetric_c60_magnetic_field_s10_double_class_order() {
 }
 
 #[test]
+fn test_ur_group_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group(&mol, thresh, "D5d*", 40, 16, false, BWGRP2);
+}
+
+#[test]
+fn test_ur_group_symmetric_staggered_ferrocene_magnetic_field_bw_d5d_s10_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C5(Σ)|",
+            "2|C5(QΣ)|",
+            "2|C5^2(Σ)|",
+            "2|C5^2(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "2|S10(Σ)|",
+            "2|S10(QΣ)|",
+            "2|σC10^3(Σ)|",
+            "2|σC10^3(QΣ)|",
+            "5|θ·C2(Σ)|",
+            "5|θ·C2(QΣ)|",
+            "5|θ·σd(Σ)|",
+            "5|θ·σd(QΣ)|",
+        ],
+    );
+}
+
+#[test]
 fn test_ur_group_symmetric_au26_magnetic_field_s12_double() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
     let thresh = 1e-6;
@@ -6572,6 +6611,45 @@ fn test_ur_group_symmetric_au26_magnetic_field_s12_double_class_order() {
         ],
     );
 }
+
+#[test]
+fn test_ur_group_symmetric_au26_magnetic_field_bw_d6d_s12_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group(&mol, thresh, "D6d*", 48, 15, false, BWGRP2);
+}
+
+#[test]
+fn test_ur_group_symmetric_au26_magnetic_field_bw_d6d_s12_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "2|C6(Σ)|",
+            "2|C6(QΣ)|",
+            "2|C3(Σ)|",
+            "2|C3(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "2|S12(Σ)|",
+            "2|S12(QΣ)|",
+            "2|σC12^5(Σ)|",
+            "2|σC12^5(QΣ)|",
+            "2|S4(Σ)|",
+            "2|S4(QΣ)|",
+            "6|θ·C2(Σ), θ·C2(QΣ)|",
+            "6|θ·σd(Σ), θ·σd(QΣ)|",
+        ],
+    );
+}
+
 
 /*********
 Asymmetric
