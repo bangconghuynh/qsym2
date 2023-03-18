@@ -1061,6 +1061,63 @@ fn test_ur_group_spherical_c60_ih_double_class_order() {
 }
 
 #[test]
+fn test_ur_group_spherical_c60_grey_ih_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-5;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(Ih + θ·Ih)*", 480, 36, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_spherical_c60_grey_ih_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-5;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "12|C5(Σ)|",
+            "12|C5(QΣ)|",
+            "12|C5^2(Σ)|",
+            "12|C5^2(QΣ)|",
+            "20|C3(Σ)|",
+            "20|C3(QΣ)|",
+            "15|C2(Σ), C2(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "12|S10(Σ)|",
+            "12|S10(QΣ)|",
+            "12|σC10^3(Σ)|",
+            "12|σC10^3(QΣ)|",
+            "20|S6(Σ)|",
+            "20|S6(QΣ)|",
+            "15|σ(Σ), σ(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "12|θ·C5(Σ)|",
+            "12|θ·C5(QΣ)|",
+            "12|θ·C5^2(Σ)|",
+            "12|θ·C5^2(QΣ)|",
+            "20|θ·C3(Σ)|",
+            "20|θ·C3(QΣ)|",
+            "15|θ·C2(Σ), θ·C2(QΣ)|",
+            "|θ·i(Σ)|",
+            "|θ·i(QΣ)|",
+            "12|θ·S10(Σ)|",
+            "12|θ·S10(QΣ)|",
+            "12|θ·σC10^3(Σ)|",
+            "12|θ·σC10^3(QΣ)|",
+            "20|θ·S6(Σ)|",
+            "20|θ·S6(QΣ)|",
+            "15|θ·σ(Σ), θ·σ(QΣ)|",
+        ],
+    );
+}
+
+#[test]
 fn test_ur_group_spherical_ch4_td_double() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
     let thresh = 1e-6;
@@ -1085,6 +1142,43 @@ fn test_ur_group_spherical_ch4_td_double_class_order() {
             "6|S4(Σ)|",
             "6|S4(QΣ)|",
             "6|σd(Σ), σd(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_spherical_ch4_grey_td_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(Td + θ·Td)*", 96, 16, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_spherical_ch4_grey_td_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/ch4.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "8|C3(Σ)|",
+            "8|C3(QΣ)|",
+            "3|C2(Σ), C2(QΣ)|",
+            "6|S4(Σ)|",
+            "6|S4(QΣ)|",
+            "6|σd(Σ), σd(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "8|θ·C3(Σ)|",
+            "8|θ·C3(QΣ)|",
+            "3|θ·C2(Σ), θ·C2(QΣ)|",
+            "6|θ·S4(Σ)|",
+            "6|θ·S4(QΣ)|",
+            "6|θ·σd(Σ), θ·σd(QΣ)|",
         ],
     );
 }
@@ -1126,6 +1220,55 @@ fn test_ur_group_spherical_vh2o6_th_double_class_order() {
 }
 
 #[test]
+fn test_ur_group_spherical_vh2o6_grey_th_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(Th + θ·Th)*", 96, 28, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_spherical_vh2o6_grey_th_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vh2o6.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "4|C3(Σ)|",
+            "4|C3(Σ)|^(')",
+            "4|C3(QΣ)|",
+            "4|C3(QΣ)|^(')",
+            "3|C2(Σ), C2(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "4|S6(Σ)|",
+            "4|S6(Σ)|^(')",
+            "4|S6(QΣ)|",
+            "4|S6(QΣ)|^(')",
+            "3|σh(Σ), σh(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "4|θ·C3(Σ)|",
+            "4|θ·C3(Σ)|^(')",
+            "4|θ·C3(QΣ)|",
+            "4|θ·C3(QΣ)|^(')",
+            "3|θ·C2(Σ), θ·C2(QΣ)|",
+            "|θ·i(Σ)|",
+            "|θ·i(QΣ)|",
+            "4|θ·S6(Σ)|",
+            "4|θ·S6(Σ)|^(')",
+            "4|θ·S6(QΣ)|",
+            "4|θ·S6(QΣ)|^(')",
+            "3|θ·σh(Σ), θ·σh(QΣ)|",
+        ],
+    );
+}
+
+#[test]
 fn test_ur_group_spherical_vf6_oh_double() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
@@ -1158,6 +1301,59 @@ fn test_ur_group_spherical_vf6_oh_double_class_order() {
             "6|S4(QΣ)|",
             "3|σh(Σ), σh(QΣ)|",
             "6|σd(Σ), σd(QΣ)|",
+        ],
+    );
+}
+
+#[test]
+fn test_ur_group_spherical_vf6_grey_oh_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group(&mol, thresh, "(Oh + θ·Oh)*", 192, 32, false, GRGRP2);
+}
+
+#[test]
+fn test_ur_group_spherical_vf6_grey_oh_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mol = Molecule::from_xyz(&path, thresh);
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "6|C4(Σ)|",
+            "6|C4(QΣ)|",
+            "8|C3(Σ)|",
+            "8|C3(QΣ)|",
+            "3|C2(Σ), C2(QΣ)|",
+            "6|C2(Σ), C2(QΣ)|^(')",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "8|S6(Σ)|",
+            "8|S6(QΣ)|",
+            "6|S4(Σ)|",
+            "6|S4(QΣ)|",
+            "3|σh(Σ), σh(QΣ)|",
+            "6|σd(Σ), σd(QΣ)|",
+            "|θ(Σ)|",
+            "|θ(QΣ)|",
+            "6|θ·C4(Σ)|",
+            "6|θ·C4(QΣ)|",
+            "8|θ·C3(Σ)|",
+            "8|θ·C3(QΣ)|",
+            "3|θ·C2(Σ), θ·C2(QΣ)|",
+            "6|θ·C2(Σ), θ·C2(QΣ)|^(')",
+            "|θ·i(Σ)|",
+            "|θ·i(QΣ)|",
+            "8|θ·S6(Σ)|",
+            "8|θ·S6(QΣ)|",
+            "6|θ·S4(Σ)|",
+            "6|θ·S4(QΣ)|",
+            "3|θ·σh(Σ), θ·σh(QΣ)|",
+            "6|θ·σd(Σ), θ·σd(QΣ)|",
         ],
     );
 }
