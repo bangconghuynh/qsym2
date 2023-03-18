@@ -11,6 +11,7 @@ use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use nalgebra::Vector3;
 use ndarray::{Array2, ArrayView2, Axis};
+use num_traits::ToPrimitive;
 use phf::{phf_map, phf_set};
 use regex::Regex;
 
@@ -50,6 +51,22 @@ static MULLIKEN_IRREP_DEGENERACIES: phf::Map<&'static str, u64> = phf_map! {
     "K" => 8u64,
     "L" => 9u64,
     "M" => 10u64,
+    "A*" => 1u64,
+    "B*" => 1u64,
+    "Σ*" => 1u64,
+    "Γ*" => 1u64,
+    "E*" => 2u64,
+    "Π*" => 2u64,
+    "Δ*" => 2u64,
+    "Φ*" => 2u64,
+    "T*" => 3u64,
+    "G*" => 4u64,
+    "H*" => 5u64,
+    "I*" => 6u64,
+    "J*" => 7u64,
+    "K*" => 8u64,
+    "L*" => 9u64,
+    "M*" => 10u64,
 };
 
 static INV_MULLIKEN_IRREP_DEGENERACIES: phf::Map<u64, &'static str> = phf_map! {
@@ -873,12 +890,13 @@ where
         // - decreasing operation order
         // - unitary operations, then antiunitary operations
         // - proper operations, then improper operations in each operation order
+        // - if SU(2), then homotopy class 0, then homotopy class 1
         let mut sorted_class_symbols = class_symbols
             .clone()
             .sorted_by(|cc1, _, cc2, _| {
                 PartialOrd::partial_cmp(
-                    &(cc1.order(), !cc1.is_antiunitary(), cc1.is_proper()),
-                    &(cc2.order(), !cc2.is_antiunitary(), cc2.is_proper()),
+                    &(cc1.order(), !cc1.is_antiunitary(), cc1.is_proper(), !cc1.is_su2_class_1()),
+                    &(cc2.order(), !cc2.is_antiunitary(), cc2.is_proper(), !cc2.is_su2_class_1()),
                 )
                 .expect("Unable to sort class symbols.")
             })
@@ -897,14 +915,15 @@ where
                 .expect("Unexpected empty `sorted_class_symbols`.")
         };
 
-        // Now find all principal classes with the same order, parity, and unitarity as
-        // `principal_rep`.
+        // Now find all principal classes with the same order, parity, unitarity, and homotopy
+        // class as `principal_rep`.
         class_symbols
             .keys()
             .filter(|cc| {
                 cc.is_antiunitary() == principal_rep.is_antiunitary()
                 && cc.is_proper() == principal_rep.is_proper()
                 && cc.order() == principal_rep.order()
+                && cc.is_su2_class_1() == principal_rep.is_su2_class_1()
             })
             .cloned()
             .collect::<Vec<_>>()
@@ -968,21 +987,33 @@ where
 {
     log::debug!("Generating Mulliken irreducible representation symbols...");
 
+    let su2_0 = if class_symbols.keys().any(|cc_sym| cc_sym.is_su2()) {
+        "(Σ)"
+    } else {
+        ""
+    };
+
     let e_cc = class_symbols
         .first()
         .expect("No class symbols found.")
         .0
         .clone();
-    let i_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||i||", None)
-        .expect("Unable to construct class symbol `1||i||`.");
-    let ti_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||θ·i||", None)
-        .expect("Unable to construct class symbol `1||θ·i||`.");
-    let s_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||σh||", None)
-        .expect("Unable to construct class symbol `1||σh||`.");
-    let ts_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||θ·σh||", None)
-        .expect("Unable to construct class symbol `1||θ·σh||`.");
-    let t_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||θ||", None)
-        .expect("Unable to construct class symbol `1||θ||`.");
+    let e1_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||E(QΣ)||", None)
+        .expect("Unable to construct class symbol `1||E(QΣ)||`.");
+    let i_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new(&format!("1||i{su2_0}||"), None)
+        .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||i{su2_0}||`."));
+    let ti_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new(&format!("1||θ·i{su2_0}||"), None)
+        .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·i{su2_0}||`."));
+    let s_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new(&format!("1||σh{su2_0}||"), None)
+        .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh{su2_0}||`."));
+    let ts_cc: SymmetryClassSymbol<R> =
+        SymmetryClassSymbol::new(&format!("1||θ·σh{su2_0}||"), None)
+            .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·σh{su2_0}||`."));
+    let t_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new(&format!("1||θ{su2_0}||"), None)
+        .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ{su2_0}||`."));
+
+    // SU(2) class 1 parity?
+    let su2_1_parity = class_symbols.contains_key(&e1_cc);
 
     // Inversion parity?
     let i_parity = class_symbols.contains_key(&i_cc);
@@ -995,6 +1026,11 @@ where
 
     // Time-reversed reflection parity?
     let ts_parity = class_symbols.contains_key(&ts_cc);
+
+    // SU(2) class 1?
+    if su2_1_parity {
+        log::debug!("E(QΣ) found. This will be used to determine projective representations.");
+    }
 
     // i_parity takes priority.
     if i_parity {
@@ -1070,6 +1106,47 @@ where
             }
         };
 
+        let projective = if su2_1_parity {
+            let char_e1 = irrep[
+                *class_symbols
+                    .get(&e1_cc)
+                    .unwrap_or_else(|| {
+                        panic!("The character for `{e1_cc}` could not be found.")
+                    })
+            ].clone();
+            let char_e1_c = char_e1.complex_value();
+            assert!(
+                approx::relative_eq!(
+                    char_e1_c.im,
+                    0.0,
+                    epsilon = char_e1.threshold,
+                    max_relative = char_e1.threshold
+                ) && approx::relative_eq!(
+                    char_e1_c.re.round(),
+                    char_e1_c.re,
+                    epsilon = char_e1.threshold,
+                    max_relative = char_e1.threshold
+                ),
+            );
+
+            #[allow(clippy::cast_possible_truncation)]
+            let char_e1_c = char_e1_c
+                .re
+                .round()
+                .to_i32()
+                .unwrap_or_else(|| panic!("Unable to convert the real part of the character for `{e1_cc}` to `i32`."));
+            let dim_i32 = i32::try_from(dim).expect("Unable to convert the irrep dimensionality to `i32`.");
+            if char_e1_c == dim_i32 {
+                false
+            } else {
+                assert_eq!(char_e1_c, -dim_i32);
+                true
+            }
+        } else {
+            false
+        };
+        let projective_str = if projective { "*" } else { "" };
+
         let (inv, mir) = if i_parity || ti_parity {
             // Determine inversion symmetry
             // Inversion symmetry trumps reflection symmetry.
@@ -1106,8 +1183,10 @@ where
                 Ordering::Less => ("u", ""),
                 Ordering::Equal => panic!("Inversion character must not be zero."),
             }
-        } else if s_parity || ts_parity {
+        } else if !projective && (s_parity || ts_parity) {
             // Determine reflection symmetry
+            // Note that for projective irreps, characters under σh are either imaginary or zero,
+            // thus no '/'' classifications.
             let char_ref = irrep[
                 *class_symbols
                     .get(&s_cc)
@@ -1139,7 +1218,7 @@ where
             match char_ref_c.cmp(&0) {
                 Ordering::Greater => ("", "'"),
                 Ordering::Less => ("", "''"),
-                Ordering::Equal => panic!("Reflection character must not be zero."),
+                Ordering::Equal => panic!("Reflection character must not be zero for linear irreducible representations."),
             }
         } else {
             ("", "")
@@ -1179,10 +1258,10 @@ where
             ""
         };
 
-        MullikenIrrepSymbol::new(format!("|^({trev})|{main}|^({mir})_({inv})|").as_str())
+        MullikenIrrepSymbol::new(format!("|^({trev})|{main}{projective_str}|^({mir})_({inv})|").as_str())
             .unwrap_or_else(|_| {
                 panic!(
-                    "Unable to construct symmetry symbol `|^({trev})|{main}|^({mir})_({inv})|`."
+                    "Unable to construct symmetry symbol `|^({trev})|{main}{projective}|^({mir})_({inv})|`."
                 )
             })
     });

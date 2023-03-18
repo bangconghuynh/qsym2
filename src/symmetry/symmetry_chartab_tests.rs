@@ -236,6 +236,35 @@ fn test_chartab_ordinary_group(
     test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
 }
 
+fn test_chartab_ordinary_double_group(
+    mol: &Molecule,
+    thresh: f64,
+    expected_name: &str,
+    expected_irreps: &[MullikenIrrepSymbol],
+    expected_chars_option: Option<
+        HashMap<
+            (
+                &MullikenIrrepSymbol,
+                &SymmetryClassSymbol<SymmetryOperation>,
+            ),
+            Character,
+        >,
+    >,
+) {
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(mol, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
+    let chartab = group.character_table();
+    println!("{chartab:?}");
+    assert_eq!(chartab.name, expected_name);
+    test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
+}
+
 fn test_chartab_magnetic_group(
     mol: &Molecule,
     thresh: f64,
@@ -12680,6 +12709,41 @@ fn verify_grey_c1(mol: &Molecule, thresh: f64) {
         Some(expected_chars),
     );
 }
+
+/***
+C1*
+***/
+#[test]
+fn test_chartab_asymmetric_butan1ol_c1_double() {
+    env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A||").unwrap(),
+        MullikenIrrepSymbol::new("||A*||").unwrap()
+    ];
+    let e = SymmetryClassSymbol::<SymmetryOperation>::new("1||E(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &e),
+            Character::new(&[(UnityRoot::new(0, 1), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &e),
+            Character::new(&[(UnityRoot::new(0, 1), 1)]),
+        ),
+    ]);
+    test_chartab_ordinary_double_group(&mol, thresh, "C1*", &expected_irreps, Some(expected_chars));
+}
+
+// #[test]
+// fn test_chartab_asymmetric_butan1ol_grey_c1_double() {
+//     let path: String = format!("{}{}", ROOT, "/tests/xyz/butan-1-ol.xyz");
+//     let thresh = 1e-7;
+//     let mol = Molecule::from_xyz(&path, thresh);
+//     verify_grey_c1_double(&mol, thresh);
+// }
 
 #[cfg(test)]
 #[path = "symmetry_chartab_nonuniform_b_tests.rs"]
