@@ -2385,7 +2385,7 @@ fn test_ur_group_symmetric_h8_twisted_magnetic_field_bw_d4_c4_double_class_order
             "2|C4(QΣ)|",
             "|C2(Σ), C2(QΣ)|",
             "2|θ·C2(Σ), θ·C2(QΣ)|",
-            "2|θ·C2(Σ), θ·C2(QΣ)|^(')"
+            "2|θ·C2(Σ), θ·C2(QΣ)|^(')",
         ],
     );
 }
@@ -2451,8 +2451,8 @@ fn test_ur_group_symmetric_cpnico_magnetic_field_bw_c5v_c5_double_class_order() 
             "2|C5^2(Σ)|",
             "2|C5^2(QΣ)|",
             "5|θ·σv(Σ)|",
-            "5|θ·σv(QΣ)|"
-        ]
+            "5|θ·σv(QΣ)|",
+        ],
     );
 }
 
@@ -2519,7 +2519,7 @@ fn test_ur_group_symmetric_b7_magnetic_field_bw_c6v_c6_double_class_order() {
             "2|C3(QΣ)|",
             "|C2(Σ), C2(QΣ)|",
             "3|θ·σv(Σ), θ·σv(QΣ)|",
-            "3|θ·σv(Σ), θ·σv(QΣ)|^(')"
+            "3|θ·σv(Σ), θ·σv(QΣ)|^(')",
         ],
     );
 }
