@@ -1404,9 +1404,36 @@ impl fmt::Debug for SymmetryElement {
             f,
             "{}({:+.3}, {:+.3}, {:+.3})",
             self.get_full_symbol(),
-            signed_axis[0] + 0.0,
-            signed_axis[1] + 0.0,
-            signed_axis[2] + 0.0
+            if approx::relative_eq!(
+                signed_axis[0],
+                0.0,
+                epsilon = self.threshold,
+                max_relative = self.threshold
+            ) {
+                0.0
+            } else {
+                signed_axis[0]
+            },
+            if approx::relative_eq!(
+                signed_axis[1],
+                0.0,
+                epsilon = self.threshold,
+                max_relative = self.threshold
+            ) {
+                0.0
+            } else {
+                signed_axis[1]
+            },
+            if approx::relative_eq!(
+                signed_axis[2],
+                0.0,
+                epsilon = self.threshold,
+                max_relative = self.threshold
+            ) {
+                0.0
+            } else {
+                signed_axis[2]
+            },
         )
     }
 }
@@ -1422,9 +1449,36 @@ impl fmt::Display for SymmetryElement {
                 f,
                 "{}({:+.3}, {:+.3}, {:+.3})",
                 self.get_simplified_symbol(),
-                signed_axis[0] + 0.0,
-                signed_axis[1] + 0.0,
-                signed_axis[2] + 0.0
+                if approx::relative_eq!(
+                    signed_axis[0],
+                    0.0,
+                    epsilon = self.threshold,
+                    max_relative = self.threshold
+                ) {
+                    0.0
+                } else {
+                    signed_axis[0]
+                },
+                if approx::relative_eq!(
+                    signed_axis[1],
+                    0.0,
+                    epsilon = self.threshold,
+                    max_relative = self.threshold
+                ) {
+                    0.0
+                } else {
+                    signed_axis[1]
+                },
+                if approx::relative_eq!(
+                    signed_axis[2],
+                    0.0,
+                    epsilon = self.threshold,
+                    max_relative = self.threshold
+                ) {
+                    0.0
+                } else {
+                    signed_axis[2]
+                },
             )
         }
     }

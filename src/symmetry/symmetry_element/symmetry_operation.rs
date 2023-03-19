@@ -17,7 +17,8 @@ use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::{
-    SymmetryElement, SymmetryElementKind, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV, TRROT, TRSIG,
+    AntiunitaryKind, SymmetryElement, SymmetryElementKind, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV,
+    TRROT, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
@@ -277,23 +278,15 @@ impl SymmetryOperation {
         proper: bool,
         thresh: f64,
         max_trial_power: u32,
-        tr: bool,
+        au: Option<AntiunitaryKind>,
         su2: bool,
         poshem: Option<PositiveHemisphere>,
     ) -> Self {
         let (scalar_part, vector_part) = qtn;
         let kind = if proper {
-            if tr {
-                TRROT
-            } else {
-                ROT
-            }
+            ROT.to_antiunitary(au)
         } else {
-            if tr {
-                TRINV
-            } else {
-                INV
-            }
+            INV.to_antiunitary(au)
         };
         let element = if su2 {
             // SU(2)
@@ -759,6 +752,10 @@ impl SymmetryOperation {
         c_self.total_proper_angle.abs()
     }
 
+    // ------------------
+    // Conversion methods
+    // ------------------
+
     /// Returns a copy of the current symmetry operation with the generating element
     /// converted to the requested improper kind (power-preserving), provided that
     /// it is an improper element.
@@ -789,6 +786,72 @@ impl SymmetryOperation {
             .expect("Unable to construct a symmetry operation.")
     }
 
+    pub fn rotationise_su2_time_reversal(&self) -> Option<Self> {
+        if self.is_su2() {
+            if self.contains_time_reversal() {
+                if self.power.rem_euclid(2) == 0 {
+                    // power must be 4n + 2, the time-reversal part simply gives E(QΣ).
+                    let mut generating_element = self.generating_element.clone();
+                    generating_element.kind = generating_element.kind.to_antiunitary(None);
+                    let q_identity = SymmetryOperation::from_quaternion(
+                        (-1.0, -Vector3::z()),
+                        true,
+                        generating_element.threshold(),
+                        1,
+                        None,
+                        true,
+                        self.positive_hemisphere.clone(),
+                    );
+                    let spatial_op = SymmetryOperation::builder()
+                        .generating_element(generating_element)
+                        .power(self.power)
+                        .build()
+                        .expect(
+                            "Unable to extract the spatial unitary part of the symmetry operation.",
+                        );
+                    Some(spatial_op * q_identity)
+                } else {
+                    // power must be 4n + 1 or 4n + 3, the time-reversal part will affect the
+                    // unitary rotation part.
+                    let mut generating_element = self.generating_element.clone();
+                    generating_element.kind = generating_element
+                        .kind
+                        .to_antiunitary(Some(AntiunitaryKind::ComplexConjugation));
+
+                    let r_pi_y_element = SymmetryElement::builder()
+                        .threshold(generating_element.threshold)
+                        .proper_order(ElementOrder::Int(2))
+                        .proper_power(1)
+                        .raw_axis(Vector3::y())
+                        .kind(ROT)
+                        .rotation_group(SU2_0)
+                        .build()
+                        .expect("Unable to construct a R(πy) element in SU(2) (class 0).)");
+                    let r_pi_y = SymmetryOperation::builder()
+                        .generating_element(r_pi_y_element.clone())
+                        .power(self.power.rem_euclid(4))
+                        .build()
+                        .expect("Unable to construct a R(πy) operation in SU(2) (class 0).)");
+                    println!("Rpiy: {r_pi_y}");
+                    let spatial_op = SymmetryOperation::builder()
+                        .generating_element(generating_element)
+                        .power(self.power)
+                        .build()
+                        .expect(
+                            "Unable to extract the spatial unitary part of the symmetry operation.",
+                        );
+                    println!("Spatial: {spatial_op}");
+                    Some(r_pi_y * spatial_op)
+                }
+            } else {
+                // power must be 4n, the time-reversal part simply gives E(Σ).
+                Some(self.clone())
+            }
+        } else {
+            None
+        }
+    }
+
     /// Converts the current symmetry operation $`O`$ to an equivalent symmetry element $`E`$ such
     /// that $`O = E^1`$.
     ///
@@ -803,33 +866,36 @@ impl SymmetryOperation {
     ///
     /// The equivalent symmetry element $`E`$.
     pub fn to_symmetry_element(&self) -> SymmetryElement {
-        let kind = if self.is_proper() {
-            if self.is_antiunitary() {
-                ROT.to_antiunitary(self.generating_element.contains_antiunitary())
+        let c_self = self
+            .rotationise_su2_time_reversal()
+            .unwrap_or_else(|| self.clone());
+        let kind = if c_self.is_proper() {
+            if c_self.is_antiunitary() {
+                ROT.to_antiunitary(c_self.generating_element.contains_antiunitary())
             } else {
                 ROT
             }
         } else {
-            self.generating_element.kind.clone()
+            c_self.generating_element.kind.clone()
         };
-        let additional_superscript = if self.is_proper() {
+        let additional_superscript = if c_self.is_proper() {
             String::new()
         } else {
-            self.generating_element.additional_superscript.clone()
+            c_self.generating_element.additional_superscript.clone()
         };
-        let additional_subscript = if self.is_proper() {
+        let additional_subscript = if c_self.is_proper() {
             String::new()
         } else {
-            self.generating_element.additional_subscript.clone()
+            c_self.generating_element.additional_subscript.clone()
         };
-        let rotation_group = if self.is_rot_su2_class_1() {
+        let rotation_group = if c_self.is_rot_su2_class_1() {
             SU2_1
-        } else if self.is_su2() {
+        } else if c_self.is_su2() {
             SU2_0
         } else {
             SO3
         };
-        if let Some(total_proper_fraction) = self.total_proper_fraction {
+        if let Some(total_proper_fraction) = c_self.total_proper_fraction {
             let proper_order = *total_proper_fraction
                 .denom()
                 .expect("Unable to extract the denominator of the total proper fraction.");
@@ -839,10 +905,10 @@ impl SymmetryOperation {
             let proper_power =
                 i32::try_from(numer).expect("Unable to convert the numerator to `i32`.");
             SymmetryElement::builder()
-                .threshold(self.generating_element.threshold())
+                .threshold(c_self.generating_element.threshold())
                 .proper_order(ElementOrder::Int(proper_order))
                 .proper_power(proper_power)
-                .raw_axis(self.calc_proper_rotation_pole().coords)
+                .raw_axis(c_self.calc_proper_rotation_pole().coords)
                 .kind(kind)
                 .rotation_group(rotation_group)
                 .additional_superscript(additional_superscript)
@@ -850,12 +916,12 @@ impl SymmetryOperation {
                 .build()
                 .unwrap()
         } else {
-            let proper_angle = self.total_proper_angle;
+            let proper_angle = c_self.total_proper_angle;
             SymmetryElement::builder()
-                .threshold(self.generating_element.threshold())
+                .threshold(c_self.generating_element.threshold())
                 .proper_order(ElementOrder::Inf)
                 .proper_angle(proper_angle)
-                .raw_axis(self.calc_proper_rotation_pole().coords)
+                .raw_axis(c_self.calc_proper_rotation_pole().coords)
                 .kind(kind)
                 .rotation_group(rotation_group)
                 .additional_superscript(additional_superscript)
@@ -973,7 +1039,7 @@ impl SymmetryOperation {
             true,
             self.generating_element.threshold(),
             1,
-            false,
+            None,
             true,
             None,
         );
@@ -1191,7 +1257,12 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A boolean indicating if the symmetry oppperation contains a time reversal.
     fn contains_time_reversal(&self) -> bool {
-        self.generating_element.contains_time_reversal() && self.power.rem_euclid(2) == 1
+        self.generating_element.contains_time_reversal()
+            && if self.is_su2() {
+                self.power.rem_euclid(4) != 0
+            } else {
+                self.power.rem_euclid(2) == 1
+            }
     }
 
     // ==================
@@ -1508,7 +1579,28 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
         };
 
         let proper = self.is_proper() == rhs.is_proper();
-        let tr = self.is_antiunitary() != rhs.is_antiunitary();
+        let au = if su2 {
+            if self.is_antiunitary() == rhs.is_antiunitary() {
+                None
+            } else {
+                Some(AntiunitaryKind::ComplexConjugation)
+            }
+        } else {
+            if self.is_antiunitary() && rhs.is_antiunitary() {
+                assert_eq!(
+                    self.generating_element.contains_antiunitary(),
+                    rhs.generating_element.contains_antiunitary(),
+                    "Multiplying complex conjugation and time reversal without SU(2) is not supported."
+                );
+            }
+            if self.is_antiunitary() == rhs.is_antiunitary() {
+                None
+            } else {
+                self.generating_element
+                    .contains_antiunitary()
+                    .or(rhs.generating_element.contains_antiunitary())
+            }
+        };
         let thresh = (self.generating_element.threshold * rhs.generating_element.threshold).sqrt();
         let max_trial_power = u32::MAX;
         SymmetryOperation::from_quaternion(
@@ -1516,7 +1608,7 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
             proper,
             thresh,
             max_trial_power,
-            tr,
+            au,
             su2,
             self.positive_hemisphere.clone(),
         )

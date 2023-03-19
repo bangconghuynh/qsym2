@@ -7,7 +7,8 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, TRINV, TRROT, TRSIG,
+    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV,
+    TRROT, TRSIG,
 };
 
 #[test]
@@ -1965,10 +1966,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c2.calc_pole(),
-        Point3::new(1.0, 1.0, 0.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c2.calc_pole(), Point3::new(1.0, 1.0, 0.0) / 2.0f64.sqrt());
 
     let c2pm1 = SymmetryOperation::builder()
         .generating_element(c2_element.clone())
@@ -2002,10 +2000,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c2b.calc_pole(),
-        Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c2b.calc_pole(), Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt());
 
     let c2bpm1 = SymmetryOperation::builder()
         .generating_element(c2b_element)
@@ -2032,10 +2027,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c3.calc_pole(),
-        Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c3.calc_pole(), Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt());
 
     let c3p2 = SymmetryOperation::builder()
         .generating_element(c3_element.clone())
@@ -2079,10 +2071,7 @@ fn test_symmetry_operation_poles() {
         .power(4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c3p4.calc_pole(),
-        Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c3p4.calc_pole(), Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt());
 
     let c3pm4 = SymmetryOperation::builder()
         .generating_element(c3_element)
@@ -2139,10 +2128,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c4.calc_pole(),
-        Point3::new(1.0, 1.0, -1.0) / 3.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c4.calc_pole(), Point3::new(1.0, 1.0, -1.0) / 3.0f64.sqrt());
 
     let c4p2 = SymmetryOperation::builder()
         .generating_element(c4_element.clone())
@@ -2196,10 +2182,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c7.calc_pole(),
-        Point3::new(1.0, 1.0, -2.0) / 6.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c7.calc_pole(), Point3::new(1.0, 1.0, -2.0) / 6.0f64.sqrt());
 
     let c7p2 = SymmetryOperation::builder()
         .generating_element(c7_element.clone())
@@ -2253,10 +2236,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        ci.calc_pole(),
-        Point3::new(1.0, 0.0, -1.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(ci.calc_pole(), Point3::new(1.0, 0.0, -1.0) / 2.0f64.sqrt());
 
     let cip2 = SymmetryOperation::builder()
         .generating_element(ci_element.clone())
@@ -2353,10 +2333,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        sd2.calc_pole(),
-        Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(sd2.calc_pole(), Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt());
 
     let sd2c = sd2.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(sd2.calc_pole(), sd2c.calc_pole());
@@ -2566,10 +2543,7 @@ fn test_symmetry_operation_poles() {
         .power(-5)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        s3pm5.calc_pole(),
-        -Point3::new(2.0, 2.0, 1.0) / 3.0
-    );
+    approx::assert_relative_eq!(s3pm5.calc_pole(), -Point3::new(2.0, 2.0, 1.0) / 3.0);
 
     let s3pm5c = s3pm5.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s3pm5.calc_pole(), s3pm5c.calc_pole());
@@ -2658,10 +2632,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        sd3.calc_pole(),
-        Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(sd3.calc_pole(), Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt());
 
     let sd3p2 = SymmetryOperation::builder()
         .generating_element(sd3_element.clone())
@@ -2705,10 +2676,7 @@ fn test_symmetry_operation_poles() {
         .power(-1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        s7pm1.calc_pole(),
-        Point3::new(2.0, 2.0, -1.0) / 3.0
-    );
+    approx::assert_relative_eq!(s7pm1.calc_pole(), Point3::new(2.0, 2.0, -1.0) / 3.0);
 
     let s7pm1c = s7pm1.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s7pm1.calc_pole(), s7pm1c.calc_pole());
@@ -2718,10 +2686,7 @@ fn test_symmetry_operation_poles() {
         .power(4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        s7p4.calc_pole(),
-        -Point3::new(2.0, 2.0, -1.0) / 3.0
-    );
+    approx::assert_relative_eq!(s7p4.calc_pole(), -Point3::new(2.0, 2.0, -1.0) / 3.0);
 
     let s7p4c = s7p4.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s7p4.calc_pole(), s7p4c.calc_pole());
@@ -2731,10 +2696,7 @@ fn test_symmetry_operation_poles() {
         .power(-4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        s7pm4.calc_pole(),
-        Point3::new(2.0, 2.0, -1.0) / 3.0
-    );
+    approx::assert_relative_eq!(s7pm4.calc_pole(), Point3::new(2.0, 2.0, -1.0) / 3.0);
 
     let s7pm4c = s7pm4.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s7pm4.calc_pole(), s7pm4c.calc_pole());
@@ -2754,10 +2716,7 @@ fn test_symmetry_operation_poles() {
         .power(-5)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        s7pm5.calc_pole(),
-        -Point3::new(2.0, 2.0, -1.0) / 3.0
-    );
+    approx::assert_relative_eq!(s7pm5.calc_pole(), -Point3::new(2.0, 2.0, -1.0) / 3.0);
 
     let s7pm5c = s7pm5.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s7pm5.calc_pole(), s7pm5c.calc_pole());
@@ -2777,20 +2736,14 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        si.calc_pole(),
-        -Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(si.calc_pole(), -Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
 
     let sip2 = SymmetryOperation::builder()
         .generating_element(si_element)
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        sip2.calc_pole(),
-        Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(sip2.calc_pole(), Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
 
     let sdi_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2807,10 +2760,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        sdi.calc_pole(),
-        Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(sdi.calc_pole(), Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
 
     let sdip2 = SymmetryOperation::builder()
         .generating_element(sdi_element)
@@ -3946,7 +3896,7 @@ fn test_symmetry_operation_from_quaternion() {
         c4p2.is_proper(),
         c4_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -3974,7 +3924,7 @@ fn test_symmetry_operation_from_quaternion() {
         c7.is_proper(),
         c7_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -3992,7 +3942,7 @@ fn test_symmetry_operation_from_quaternion() {
         c7p2.is_proper(),
         c7_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -4010,7 +3960,7 @@ fn test_symmetry_operation_from_quaternion() {
         c7p3.is_proper(),
         c7_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -4028,7 +3978,7 @@ fn test_symmetry_operation_from_quaternion() {
         c7p7.is_proper(),
         c7_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -4059,7 +4009,7 @@ fn test_symmetry_operation_from_quaternion() {
         s1.is_proper(),
         s1_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -4077,7 +4027,7 @@ fn test_symmetry_operation_from_quaternion() {
         s1pm4.is_proper(),
         s1_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -4105,7 +4055,7 @@ fn test_symmetry_operation_from_quaternion() {
         s2.is_proper(),
         s2_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -4123,7 +4073,7 @@ fn test_symmetry_operation_from_quaternion() {
         s2p2.is_proper(),
         s2_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -4151,7 +4101,7 @@ fn test_symmetry_operation_from_quaternion() {
         s3.is_proper(),
         s3_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -4169,7 +4119,7 @@ fn test_symmetry_operation_from_quaternion() {
         s3p2.is_proper(),
         s3_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -4187,7 +4137,7 @@ fn test_symmetry_operation_from_quaternion() {
         s3pm1.is_proper(),
         s3_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -4205,7 +4155,7 @@ fn test_symmetry_operation_from_quaternion() {
         s3p3.is_proper(),
         s3_element.threshold,
         10,
-        false,
+        None,
         false,
         None,
     );
@@ -4233,7 +4183,7 @@ fn test_symmetry_operation_from_quaternion() {
         s17pp3.is_proper(),
         s17pp3_element.threshold,
         17,
-        false,
+        None,
         false,
         None,
     );
@@ -4261,7 +4211,7 @@ fn test_symmetry_operation_from_quaternion() {
         sd11.is_proper(),
         sd11_element.threshold,
         11,
-        false,
+        None,
         false,
         None,
     );
@@ -4279,7 +4229,7 @@ fn test_symmetry_operation_from_quaternion() {
         sd11p6.is_proper(),
         sd11_element.threshold,
         11,
-        false,
+        None,
         false,
         None,
     );
@@ -5137,7 +5087,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         c4_nsr_p2.is_proper(),
         c4_nsr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5157,7 +5107,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         c4_nsr_pm2.is_proper(),
         c4_nsr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5177,7 +5127,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         c4_nsr_p4.is_proper(),
         c4_nsr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5197,7 +5147,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         c4_nsr_p6.is_proper(),
         c4_nsr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5226,7 +5176,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         c7_isr_p1.is_proper(),
         c7_isr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5245,7 +5195,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         c7_isr_p2.is_proper(),
         c7_isr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5264,7 +5214,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         c7_isr_p3.is_proper(),
         c7_isr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5283,7 +5233,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         c7_isr_p7.is_proper(),
         c7_isr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5314,7 +5264,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         s1_nsr_p1.is_proper(),
         s1_nsr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5332,7 +5282,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         s1_nsr_pm4.is_proper(),
         s1_nsr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5360,7 +5310,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         s2_isr_p1.is_proper(),
         s2_isr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5378,7 +5328,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         s2_isr_p2.is_proper(),
         s2_isr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5407,7 +5357,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         s3_isr_p1.is_proper(),
         s3_isr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5425,7 +5375,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         s3_isr_p2.is_proper(),
         s3_isr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5443,7 +5393,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         s3_isr_pm1.is_proper(),
         s3_isr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5461,7 +5411,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         s3_isr_p3.is_proper(),
         s3_isr_element.threshold,
         10,
-        false,
+        None,
         true,
         None,
     );
@@ -5489,7 +5439,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         s17_nsr_pp3.is_proper(),
         s17_nsr_pp3_element.threshold,
         17,
-        false,
+        None,
         true,
         None,
     );
@@ -5517,7 +5467,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         sd11_isr_p1.is_proper(),
         sd11_isr_element.threshold,
         11,
-        false,
+        None,
         true,
         None,
     );
@@ -5535,7 +5485,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         sd11_isr_p6.is_proper(),
         sd11_isr_element.threshold,
         11,
-        false,
+        None,
         true,
         None,
     );
@@ -9053,4 +9003,177 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
     assert_eq!(&s5_nsr_p10.get_abbreviated_symbol(), "E(QΣ)");
 
     assert_eq!(s5_nsr_p1.order(), 20);
+}
+
+#[test]
+fn test_symmetry_operation_rotationise_su2_time_reversal() {
+    let tc2y_element_so3 = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::y())
+        .kind(TRROT)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let tc2y_so3 = SymmetryOperation::builder()
+        .generating_element(tc2y_element_so3)
+        .power(1)
+        .build()
+        .unwrap();
+
+    assert!(tc2y_so3.rotationise_su2_time_reversal().is_none());
+
+    let tc2y_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::y())
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc2y = SymmetryOperation::builder()
+        .generating_element(tc2y_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(tc2y.is_antiunitary());
+    assert!(!tc2y.is_rot_su2_class_1());
+    assert_eq!(tc2y.to_string(), "θ·C2(Σ)(+0.000, +1.000, +0.000)");
+
+    let tc2y_r = tc2y.rotationise_su2_time_reversal().unwrap();
+    assert!(tc2y_r.is_antiunitary());
+    assert!(tc2y_r.is_rot_su2_class_1());
+    assert_eq!(tc2y_r.to_string(), "K(QΣ)");
+
+    let tc2y_p2 = tc2y.pow(2);
+    assert!(!tc2y_p2.is_antiunitary());
+    assert!(tc2y_p2.is_rot_su2_class_1());
+
+    let tc2y_r_p2 = tc2y_r.pow(2);
+    assert!(!tc2y_r_p2.is_antiunitary());
+    assert!(!tc2y_r_p2.is_rot_su2_class_1());
+
+    let tc2x_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::x())
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc2x = SymmetryOperation::builder()
+        .generating_element(tc2x_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(tc2x.is_antiunitary());
+    assert!(!tc2x.is_rot_su2_class_1());
+    assert_eq!(tc2x.to_string(), "θ·C2(Σ)(+1.000, +0.000, +0.000)");
+
+    let tc2x_r = tc2x.rotationise_su2_time_reversal().unwrap();
+    assert!(tc2x_r.is_antiunitary());
+    assert!(tc2x_r.is_rot_su2_class_1());
+    assert_eq!(tc2x_r.to_string(), "K·C2(QΣ)(+0.000, +0.000, +1.000)");
+
+    let tc2z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc2z = SymmetryOperation::builder()
+        .generating_element(tc2z_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(tc2z.is_antiunitary());
+    assert!(!tc2z.is_rot_su2_class_1());
+    assert_eq!(tc2z.to_string(), "θ·C2(Σ)(+0.000, +0.000, +1.000)");
+
+    let tc2z_r = tc2z.rotationise_su2_time_reversal().unwrap();
+    assert!(tc2z_r.is_antiunitary());
+    assert!(!tc2z_r.is_rot_su2_class_1());
+    assert_eq!(tc2z_r.to_string(), "K·C2(Σ)(+1.000, +0.000, +0.000)");
+
+    let tc3y_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::y())
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc3y = SymmetryOperation::builder()
+        .generating_element(tc3y_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(tc3y.is_antiunitary());
+    assert!(!tc3y.is_rot_su2_class_1());
+    assert_eq!(tc3y.to_string(), "θ·C3(Σ)(+0.000, +1.000, +0.000)");
+
+    let tc3y_r = tc3y.rotationise_su2_time_reversal().unwrap();
+    assert!(tc3y_r.is_antiunitary());
+    assert!(tc3y_r.is_rot_su2_class_1());
+    assert_eq!(tc3y_r.to_string(), "K·C6(QΣ)(+0.000, -1.000, +0.000)");
+
+    let tc3yppm1_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(-1)
+        .raw_axis(Vector3::y())
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc3yppm1 = SymmetryOperation::builder()
+        .generating_element(tc3yppm1_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(tc3yppm1.is_antiunitary());
+    assert!(!tc3yppm1.is_rot_su2_class_1());
+    assert_eq!(tc3yppm1.to_string(), "θ·C3(Σ)(+0.000, -1.000, +0.000)");
+
+    let tc3yppm1_r = tc3yppm1.rotationise_su2_time_reversal().unwrap();
+    assert!(tc3yppm1_r.is_antiunitary());
+    assert!(!tc3yppm1_r.is_rot_su2_class_1());
+    assert_eq!(tc3yppm1_r.to_string(), "K·C6(Σ)(+0.000, +1.000, +0.000)");
+
+    let tc4y_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::y())
+        .kind(TRROT)
+        .rotation_group(SU2_1)
+        .build()
+        .unwrap();
+
+    let tc4y = SymmetryOperation::builder()
+        .generating_element(tc4y_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(tc4y.is_antiunitary());
+    assert!(tc4y.is_rot_su2_class_1());
+    assert_eq!(tc4y.to_string(), "θ·C4(QΣ)(+0.000, +1.000, +0.000)");
+
+    let tc4y_r = tc4y.rotationise_su2_time_reversal().unwrap();
+    assert!(tc4y_r.is_antiunitary());
+    assert!(!tc4y_r.is_rot_su2_class_1());
+    assert_eq!(tc4y_r.to_string(), "K·C4(Σ)(+0.000, -1.000, +0.000)");
 }
