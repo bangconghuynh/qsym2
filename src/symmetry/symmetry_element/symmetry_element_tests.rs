@@ -3,7 +3,8 @@ use std::collections::HashSet;
 
 use crate::aux::misc;
 use crate::symmetry::symmetry_element::{
-    RotationGroup, ElementOrder, SymmetryElement, INV, ROT, SIG, TRINV, TRROT, TRSIG,
+    AntiunitaryKind, ElementOrder, RotationGroup, SymmetryElement, INV, ROT, SIG, TRINV, TRROT,
+    TRSIG,
 };
 
 type F = fraction::GenericFraction<u32>;
@@ -1263,7 +1264,7 @@ fn test_symmetry_element_finite_power_comparison() {
     assert_eq!(c1, c1p);
     assert_eq!(c1, c1p2);
     assert_eq!(c1p, c1p2);
-    assert!(c1.is_o3_identity(false));
+    assert!(c1.is_o3_identity(None));
 
     let tc1 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1295,7 +1296,7 @@ fn test_symmetry_element_finite_power_comparison() {
     assert_eq!(tc1, tc1p);
     assert_eq!(tc1, tc1p2);
     assert_eq!(tc1p, tc1p2);
-    assert!(tc1.is_o3_identity(true));
+    assert!(tc1.is_o3_identity(Some(AntiunitaryKind::TimeReversal)));
 
     let c2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -1306,7 +1307,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(!c2.is_o3_identity(false));
+    assert!(!c2.is_o3_identity(None));
     let c2p = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
@@ -1316,7 +1317,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(c2p.is_o3_identity(false));
+    assert!(c2p.is_o3_identity(None));
     let c2p2 = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
@@ -1326,7 +1327,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(!c2p2.is_o3_identity(false));
+    assert!(!c2p2.is_o3_identity(None));
     assert_eq!(c2, c2p2);
     assert_eq!(c1, c2p);
     assert_ne!(c1, c2p2);
@@ -1340,7 +1341,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(!tc2.is_o3_identity(true));
+    assert!(!tc2.is_o3_identity(Some(AntiunitaryKind::TimeReversal)));
     let tc2p = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
@@ -1350,7 +1351,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(tc2p.is_o3_identity(true));
+    assert!(tc2p.is_o3_identity(Some(AntiunitaryKind::TimeReversal)));
     let tc2p2 = SymmetryElement::builder()
         .threshold(1e-14)
         .proper_order(ElementOrder::Int(2))
@@ -1360,7 +1361,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(!tc2p2.is_o3_identity(true));
+    assert!(!tc2p2.is_o3_identity(Some(AntiunitaryKind::TimeReversal)));
     assert_eq!(tc2, tc2p2);
     assert_eq!(tc1, tc2p);
     assert_ne!(tc1, tc2p2);
@@ -1410,7 +1411,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(c4p4.is_o3_identity(false));
+    assert!(c4p4.is_o3_identity(None));
     assert_eq!(c4p2, c2);
     assert_eq!(c4p4, c1);
     assert_eq!(c4p4, c1p2);
@@ -1462,7 +1463,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(tc4p4.is_o3_identity(true));
+    assert!(tc4p4.is_o3_identity(Some(AntiunitaryKind::TimeReversal)));
     assert_eq!(tc4p2, tc2);
     assert_eq!(tc4p4, tc1);
     assert_eq!(tc4p4, tc1p2);
@@ -1521,7 +1522,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(s1.is_o3_mirror_plane(false));
+    assert!(s1.is_o3_mirror_plane(None));
     let s1p2 = SymmetryElement::builder()
         .threshold(1e-3)
         .proper_order(ElementOrder::Int(1))
@@ -1531,7 +1532,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(s1p2.is_o3_mirror_plane(false));
+    assert!(s1p2.is_o3_mirror_plane(None));
     assert_eq!(s1, s1p2);
     let sd2 = s1.convert_to_improper_kind(&INV, false);
     let sd2p = s1p2.convert_to_improper_kind(&INV, false);
@@ -1546,7 +1547,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts1.is_o3_mirror_plane(true));
+    assert!(ts1.is_o3_mirror_plane(Some(AntiunitaryKind::TimeReversal)));
     let ts1p2 = SymmetryElement::builder()
         .threshold(1e-3)
         .proper_order(ElementOrder::Int(1))
@@ -1556,7 +1557,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts1p2.is_o3_mirror_plane(true));
+    assert!(ts1p2.is_o3_mirror_plane(Some(AntiunitaryKind::TimeReversal)));
     assert_eq!(ts1, ts1p2);
     let tsd2 = ts1.convert_to_improper_kind(&INV, false);
     let tsd2p = ts1p2.convert_to_improper_kind(&INV, false);
@@ -1571,7 +1572,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(s2.is_o3_inversion_centre(false));
+    assert!(s2.is_o3_inversion_centre(None));
     let s2p2 = SymmetryElement::builder()
         .threshold(1e-3)
         .proper_order(ElementOrder::Int(2))
@@ -1581,7 +1582,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(s2p2.is_o3_mirror_plane(false));
+    assert!(s2p2.is_o3_mirror_plane(None));
     let s2p3 = SymmetryElement::builder()
         .threshold(1e-3)
         .proper_order(ElementOrder::Int(2))
@@ -1591,7 +1592,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(s2p3.is_o3_inversion_centre(false));
+    assert!(s2p3.is_o3_inversion_centre(None));
     assert_eq!(s1, s2p2);
     assert_eq!(s2, s2p3);
 
@@ -1604,7 +1605,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts2.is_o3_inversion_centre(true));
+    assert!(ts2.is_o3_inversion_centre(Some(AntiunitaryKind::TimeReversal)));
     let ts2p2 = SymmetryElement::builder()
         .threshold(1e-3)
         .proper_order(ElementOrder::Int(2))
@@ -1614,7 +1615,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts2p2.is_o3_mirror_plane(true));
+    assert!(ts2p2.is_o3_mirror_plane(Some(AntiunitaryKind::TimeReversal)));
     let ts2p3 = SymmetryElement::builder()
         .threshold(1e-3)
         .proper_order(ElementOrder::Int(2))
@@ -1624,7 +1625,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts2p3.is_o3_inversion_centre(true));
+    assert!(ts2p3.is_o3_inversion_centre(Some(AntiunitaryKind::TimeReversal)));
     assert_eq!(ts1, ts2p2);
     assert_eq!(ts2, ts2p3);
 
@@ -1637,7 +1638,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(sd2.is_o3_mirror_plane(false));
+    assert!(sd2.is_o3_mirror_plane(None));
     let sd2b = sd2.convert_to_improper_kind(&SIG, true);
     let sd2p2 = SymmetryElement::builder()
         .threshold(1e-3)
@@ -1648,7 +1649,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(sd2p2.is_o3_inversion_centre(false));
+    assert!(sd2p2.is_o3_inversion_centre(None));
     let sd2p2b = sd2p2.convert_to_improper_kind(&SIG, true);
     assert_eq!(sd2, s1);
     assert_eq!(sd2p2, s2);
@@ -1664,7 +1665,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(tsd2.is_o3_mirror_plane(true));
+    assert!(tsd2.is_o3_mirror_plane(Some(AntiunitaryKind::TimeReversal)));
     let tsd2b = tsd2.convert_to_improper_kind(&SIG, true);
     let tsd2p2 = SymmetryElement::builder()
         .threshold(1e-3)
@@ -1675,7 +1676,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(tsd2p2.is_o3_inversion_centre(true));
+    assert!(tsd2p2.is_o3_inversion_centre(Some(AntiunitaryKind::TimeReversal)));
     let tsd2p2b = tsd2p2.convert_to_improper_kind(&SIG, true);
     assert_eq!(tsd2, ts1);
     assert_eq!(tsd2p2, ts2);
@@ -1718,7 +1719,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(s3p3.is_o3_mirror_plane(false));
+    assert!(s3p3.is_o3_mirror_plane(None));
     assert_eq!(s3, s3p2);
     assert_eq!(s3, s3p4);
 
@@ -1758,7 +1759,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts3p3.is_o3_mirror_plane(true));
+    assert!(ts3p3.is_o3_mirror_plane(Some(AntiunitaryKind::TimeReversal)));
     assert_eq!(ts3, ts3p2);
     assert_eq!(ts3, ts3p4);
 
@@ -1789,7 +1790,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(s6p3.is_o3_inversion_centre(false));
+    assert!(s6p3.is_o3_inversion_centre(None));
     assert_eq!(s3, s6p2);
     assert_eq!(s3, s6p4);
 
@@ -1820,7 +1821,7 @@ fn test_symmetry_element_finite_power_comparison() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    assert!(ts6p3.is_o3_inversion_centre(true));
+    assert!(ts6p3.is_o3_inversion_centre(Some(AntiunitaryKind::TimeReversal)));
     assert_eq!(ts3, ts6p2);
     assert_eq!(ts3, ts6p4);
 
@@ -2294,7 +2295,10 @@ fn test_symmetry_element_su2_construction() {
     let i_sr_tc1 = tc1.to_su2(false).unwrap();
     assert!(i_sr_tc1.is_su2_class_1());
     assert_eq!(i_sr_tc1.to_string(), "θ(QΣ)");
-    assert_eq!(format!("{:?}", i_sr_tc1), "θ·C1(QΣ)(+0.000, +1.000, +0.000)");
+    assert_eq!(
+        format!("{:?}", i_sr_tc1),
+        "θ·C1(QΣ)(+0.000, +1.000, +0.000)"
+    );
     assert!(i_sr_tc1.to_su2(true).is_none());
 
     let c3 = SymmetryElement::builder()

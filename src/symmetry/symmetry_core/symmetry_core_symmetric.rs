@@ -8,7 +8,9 @@ use nalgebra::Vector3;
 
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::{SymmetryElement, INV, ROT, SIG, TRROT, TRSIG};
+use crate::symmetry::symmetry_element::{
+    AntiunitaryKind, SymmetryElement, INV, ROT, SIG, TRROT, TRSIG,
+};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
 
@@ -778,7 +780,8 @@ fn _add_sigmahcn(
     presym: &PreSymmetry,
     tr: bool,
 ) {
-    assert!(sigma_h.is_o3_mirror_plane(false) || sigma_h.is_o3_mirror_plane(true));
+    let au = sigma_h.contains_antiunitary();
+    assert!(sigma_h.is_o3_mirror_plane(au));
     for c_element in non_id_c_elements {
         if approx::relative_eq!(
             c_element.raw_axis().cross(sigma_h.raw_axis()).norm(),
