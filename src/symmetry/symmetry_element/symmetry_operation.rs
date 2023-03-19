@@ -17,7 +17,7 @@ use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::{
-    SymmetryElement, SymmetryElementKind, INV, SIG, ROT, SO3, SU2_0, SU2_1, TRSIG, TRROT, TRINV
+    SymmetryElement, SymmetryElementKind, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV, TRROT, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
@@ -105,6 +105,13 @@ pub trait SpecialSymmetryTransformation {
     ///
     /// A boolean indicating if the symmetry oppperation is antiunitary.
     fn is_antiunitary(&self) -> bool;
+
+    /// Checks if the symmetry operation contains a time reversal.
+    ///
+    /// # Returns
+    ///
+    /// A boolean indicating if the symmetry oppperation contains a time reversal.
+    fn contains_time_reversal(&self) -> bool;
 
     // ==========================
     // Overall - provided methods
@@ -275,9 +282,17 @@ impl SymmetryOperation {
     ) -> Self {
         let (scalar_part, vector_part) = qtn;
         let kind = if proper {
-            if tr { TRROT } else { ROT }
+            if tr {
+                TRROT
+            } else {
+                ROT
+            }
         } else {
-            if tr { TRINV } else { INV }
+            if tr {
+                TRINV
+            } else {
+                INV
+            }
         };
         let element = if su2 {
             // SU(2)
@@ -492,21 +507,27 @@ impl SymmetryOperation {
             -self.generating_element.threshold <= scalar_part
                 && scalar_part <= 1.0 + self.generating_element.threshold
         );
-        debug_assert!(if approx::relative_eq!(
-            scalar_part,
-            0.0,
-            max_relative = c_self.generating_element.threshold,
-            epsilon = c_self.generating_element.threshold
-        ) {
-            // println!();
-            c_self.positive_hemisphere
-                .as_ref()
-                .cloned()
-                .unwrap_or_default()
-                .check_positive_pole(&vector_part, c_self.generating_element.threshold)
-        } else {
-            true
-        }, "Poshem: {:?} - c_self: {c_self} - pole: {} - vec: {vector_part}", c_self.positive_hemisphere, c_self.calc_pole());
+        debug_assert!(
+            if approx::relative_eq!(
+                scalar_part,
+                0.0,
+                max_relative = c_self.generating_element.threshold,
+                epsilon = c_self.generating_element.threshold
+            ) {
+                // println!();
+                c_self
+                    .positive_hemisphere
+                    .as_ref()
+                    .cloned()
+                    .unwrap_or_default()
+                    .check_positive_pole(&vector_part, c_self.generating_element.threshold)
+            } else {
+                true
+            },
+            "Poshem: {:?} - c_self: {c_self} - pole: {} - vec: {vector_part}",
+            c_self.positive_hemisphere,
+            c_self.calc_pole()
+        );
 
         if self.is_su2_class_1() {
             (-scalar_part, -vector_part)
@@ -756,8 +777,8 @@ impl SymmetryOperation {
             .generating_element
             .convert_to_improper_kind(improper_kind, true);
         debug_assert_eq!(
-            self.generating_element.is_su2_class_1(),
-            c_element.is_su2_class_1()
+            self.generating_element.rot_is_su2_class_1(),
+            c_element.rot_is_su2_class_1()
         );
         Self::builder()
             .generating_element(c_element)
@@ -782,8 +803,11 @@ impl SymmetryOperation {
     /// The equivalent symmetry element $`E`$.
     pub fn to_symmetry_element(&self) -> SymmetryElement {
         let kind = if self.is_proper() {
-            let tr = self.is_antiunitary();
-            if tr { TRROT } else { ROT }
+            if self.is_antiunitary() {
+                ROT.to_antiunitary(self.generating_element.contains_antiunitary())
+            } else {
+                ROT
+            }
         } else {
             self.generating_element.kind.clone()
         };
@@ -1017,7 +1041,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A boolean indicating if the spatial part of the symmetry operation is proper.
     fn is_proper(&self) -> bool {
-        let au= self.generating_element.contains_antiunitary();
+        let au = self.generating_element.contains_antiunitary();
         self.generating_element.is_o3_proper(au) || self.power.rem_euclid(2) == 0
     }
 
@@ -1157,6 +1181,15 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A boolean indicating if the symmetry oppperation is antiunitary.
     fn is_antiunitary(&self) -> bool {
+        self.generating_element.contains_antiunitary().is_some() && self.power.rem_euclid(2) == 1
+    }
+
+    /// Checks if the symmetry operation contains a time reversal.
+    ///
+    /// # Returns
+    ///
+    /// A boolean indicating if the symmetry oppperation contains a time reversal.
+    fn contains_time_reversal(&self) -> bool {
         self.generating_element.contains_time_reversal() && self.power.rem_euclid(2) == 1
     }
 

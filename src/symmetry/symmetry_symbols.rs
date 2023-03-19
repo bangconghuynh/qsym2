@@ -696,6 +696,18 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
             .is_antiunitary()
     }
 
+    /// Checks if this class contains a time reversal.
+    ///
+    /// # Returns
+    ///
+    /// A flag indicating if this class contains a time reversal.
+    fn contains_time_reversal(&self) -> bool {
+        self.representative()
+            .as_ref()
+            .expect("No representative element found for this class.")
+            .contains_time_reversal()
+    }
+
     // ==================
     // Spin rotation part
     // ==================

@@ -206,25 +206,25 @@ pub trait SymmetryGroupProperties:
                     .unwrap_or_else(|| panic!("No conjugacy class index `{i}` can be found."))
                     .iter()
                     .min_by_key(|&&j| {
-                        let op = self
+                        let equiv_ele = self
                             .get_index(j)
                             .unwrap_or_else(|| {
                                 panic!("Element with index {j} cannot be retrieved.")
                             })
                             .to_symmetry_element();
                         (
-                            op.is_su2_class_1(), // prioritise class 0
+                            equiv_ele.rot_is_su2_class_1(), // prioritise class 0
                             !geometry::check_standard_positive_pole(
-                                &op.proper_rotation_pole(),
-                                op.threshold(),
+                                &equiv_ele.proper_rotation_pole(),
+                                equiv_ele.threshold(),
                             ), // prioritise positive rotation
-                            op.proper_fraction()
+                            equiv_ele.proper_fraction()
                                 .map(|frac| {
                                     *frac.numer().expect(
                                         "The numerator of the proper fraction cannot be retrieved.",
                                     )
                                 })
-                                .or_else(|| op.raw_proper_power().map(|pp| pp.unsigned_abs()))
+                                .or_else(|| equiv_ele.raw_proper_power().map(|pp| pp.unsigned_abs()))
                                 .expect(
                                     "No angle information for the proper rotation can be found.",
                                 ), // prioritise small rotation angle
