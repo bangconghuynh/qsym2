@@ -213,18 +213,21 @@ pub trait SymmetryGroupProperties:
                             })
                             .to_symmetry_element();
                         (
-                            equiv_ele.rot_is_su2_class_1(), // prioritise class 0
+                            equiv_ele.is_rot_su2_class_1(), // prioritise class 0
                             !geometry::check_standard_positive_pole(
                                 &equiv_ele.proper_rotation_pole(),
                                 equiv_ele.threshold(),
                             ), // prioritise positive rotation
-                            equiv_ele.proper_fraction()
+                            equiv_ele
+                                .proper_fraction()
                                 .map(|frac| {
                                     *frac.numer().expect(
                                         "The numerator of the proper fraction cannot be retrieved.",
                                     )
                                 })
-                                .or_else(|| equiv_ele.raw_proper_power().map(|pp| pp.unsigned_abs()))
+                                .or_else(|| {
+                                    equiv_ele.raw_proper_power().map(|pp| pp.unsigned_abs())
+                                })
                                 .expect(
                                     "No angle information for the proper rotation can be found.",
                                 ), // prioritise small rotation angle
@@ -235,7 +238,7 @@ pub trait SymmetryGroupProperties:
                     panic!("Unable to retrieve group element with index `{rep_ele_index}`.")
                 });
 
-                let su2 = if rep_ele.is_su2_class_1() {
+                let su2 = if rep_ele.is_rot_su2_class_1() {
                     "(QΣ)"
                 } else if rep_ele.is_su2() {
                     "(Σ)"
@@ -276,89 +279,89 @@ pub trait SymmetryGroupProperties:
                     assert!(undashed_class_symbols.insert(trev_sym.clone(), 1).is_none());
                     trev_sym
                 } else {
-                    let (mult, main_symbol, reps) = if rep_ele.is_su2() && !rep_ele.is_su2_class_1()
-                    {
-                        // This class might contain both class-0 and class-1 elements.
-                        let class_1_count = self
-                            .get_cc_index(i)
-                            .unwrap_or_else(|| {
-                                panic!("No conjugacy class index `{i}` can be found.")
-                            })
-                            .iter()
-                            .filter(|&j| {
-                                let op = self.get_index(*j).unwrap_or_else(|| {
-                                    panic!("Element with index {j} cannot be retrieved.")
-                                });
-                                op.is_su2_class_1()
-                            })
-                            .count();
-                        if old_symbol.size().rem_euclid(2) == 0
-                            && class_1_count == old_symbol.size().div_euclid(2)
-                        {
-                            // Both class-0 and class-1 elements occur in equal number. We show one
-                            // of each and halve the multiplicity.
-                            let class_1_rep_ele = self
+                    let (mult, main_symbol, reps) =
+                        if rep_ele.is_su2() && !rep_ele.is_rot_su2_class_1() {
+                            // This class might contain both class-0 and class-1 elements.
+                            let class_1_count = self
                                 .get_cc_index(i)
                                 .unwrap_or_else(|| {
                                     panic!("No conjugacy class index `{i}` can be found.")
                                 })
                                 .iter()
-                                .find_map(|&j| {
-                                    let op = self.get_index(j).unwrap_or_else(|| {
+                                .filter(|&j| {
+                                    let op = self.get_index(*j).unwrap_or_else(|| {
                                         panic!("Element with index {j} cannot be retrieved.")
                                     });
-                                    if op.is_su2_class_1() {
-                                        Some(op)
-                                    } else {
-                                        None
-                                    }
+                                    op.is_rot_su2_class_1()
                                 })
-                                .expect("Unable to find a class-1 element in this class.");
-                            (
-                                old_symbol.size().div_euclid(2),
-                                format!(
-                                    "{}, {}",
-                                    rep_ele.get_abbreviated_symbol(),
-                                    class_1_rep_ele.get_abbreviated_symbol()
-                                ),
-                                vec![rep_ele, class_1_rep_ele],
-                            )
-                        } else if class_1_count > 0 {
-                            // Both class-0 and class-1 elements occur, but not in equal numbers.
-                            // We show all of them and set the multiplicity to 1.
-                            let ops = self
-                                .get_cc_index(i)
-                                .unwrap_or_else(|| {
-                                    panic!("No conjugacy class index `{i}` can be found.")
-                                })
-                                .iter()
-                                .map(|&j| {
-                                    self.get_index(j).unwrap_or_else(|| {
-                                        panic!("Element with index {j} cannot be retrieved.")
+                                .count();
+                            if old_symbol.size().rem_euclid(2) == 0
+                                && class_1_count == old_symbol.size().div_euclid(2)
+                            {
+                                // Both class-0 and class-1 elements occur in equal number. We show one
+                                // of each and halve the multiplicity.
+                                let class_1_rep_ele = self
+                                    .get_cc_index(i)
+                                    .unwrap_or_else(|| {
+                                        panic!("No conjugacy class index `{i}` can be found.")
                                     })
-                                })
-                                .collect_vec();
-                            (
-                                1,
-                                ops.iter().map(|op| op.get_abbreviated_symbol()).join(", "),
-                                ops,
-                            )
+                                    .iter()
+                                    .find_map(|&j| {
+                                        let op = self.get_index(j).unwrap_or_else(|| {
+                                            panic!("Element with index {j} cannot be retrieved.")
+                                        });
+                                        if op.is_rot_su2_class_1() {
+                                            Some(op)
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .expect("Unable to find a class-1 element in this class.");
+                                (
+                                    old_symbol.size().div_euclid(2),
+                                    format!(
+                                        "{}, {}",
+                                        rep_ele.get_abbreviated_symbol(),
+                                        class_1_rep_ele.get_abbreviated_symbol()
+                                    ),
+                                    vec![rep_ele, class_1_rep_ele],
+                                )
+                            } else if class_1_count > 0 {
+                                // Both class-0 and class-1 elements occur, but not in equal numbers.
+                                // We show all of them and set the multiplicity to 1.
+                                let ops = self
+                                    .get_cc_index(i)
+                                    .unwrap_or_else(|| {
+                                        panic!("No conjugacy class index `{i}` can be found.")
+                                    })
+                                    .iter()
+                                    .map(|&j| {
+                                        self.get_index(j).unwrap_or_else(|| {
+                                            panic!("Element with index {j} cannot be retrieved.")
+                                        })
+                                    })
+                                    .collect_vec();
+                                (
+                                    1,
+                                    ops.iter().map(|op| op.get_abbreviated_symbol()).join(", "),
+                                    ops,
+                                )
+                            } else {
+                                // Only class-0 elements occur.
+                                (
+                                    old_symbol.size(),
+                                    rep_ele.get_abbreviated_symbol(),
+                                    vec![rep_ele],
+                                )
+                            }
                         } else {
-                            // Only class-0 elements occur.
+                            // Only class-1 elements occur, or no SU2 elements at all.
                             (
                                 old_symbol.size(),
                                 rep_ele.get_abbreviated_symbol(),
                                 vec![rep_ele],
                             )
-                        }
-                    } else {
-                        // Only class-1 elements occur, or no SU2 elements at all.
-                        (
-                            old_symbol.size(),
-                            rep_ele.get_abbreviated_symbol(),
-                            vec![rep_ele],
-                        )
-                    };
+                        };
                     let undashed_sym =
                         SymmetryClassSymbol::new(format!("1||{}||", main_symbol).as_str(), None)
                             .unwrap_or_else(|_| {
