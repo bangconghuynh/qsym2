@@ -113,7 +113,7 @@ pub trait CollectionSymbol: MathematicalSymbol {
                 "Unable to deduce the multiplicity of the class from the prefactor {}.",
                 self.prefactor()
             )
-        }) * self.representatives().map(|reps| reps.len()).unwrap_or(1)
+        }) * self.representatives().map(|reps| reps.len()).expect("No representatives found.")
     }
 }
 
@@ -174,6 +174,14 @@ impl GenericSymbol {
     /// Sets the main part of the symbol.
     pub fn set_main(&mut self, main: &str) {
         self.main = main.to_string();
+    }
+
+    pub fn set_presub(&mut self, presub: &str) {
+        self.presub = presub.to_string();
+    }
+
+    pub fn set_postsub(&mut self, postsub: &str) {
+        self.postsub = postsub.to_string();
     }
 }
 
@@ -383,8 +391,9 @@ where
                 let symbols: VecDeque<S> = (0..duplicate_count)
                     .map(|i| {
                         let mut new_symbol = S::from_str(&format!(
-                            "|^({})|{}|^({})_({}{})|",
+                            "|^({})_({})|{}|^({})_({}{})|",
                             raw_symbol.presuper(),
+                            raw_symbol.presub(),
                             raw_symbol.main(),
                             raw_symbol.postsuper(),
                             i + 1,

@@ -312,14 +312,7 @@ where
 
     /// Retrieves the order of the group.
     fn get_order(&self) -> usize {
-        self.classes
-            .keys()
-            .map(|cc| {
-                cc.multiplicity().unwrap_or_else(|| {
-                    panic!("Unable to find the multiplicity for conjugacy class `{cc}`.")
-                })
-            })
-            .sum()
+        self.classes.keys().map(|cc| cc.size()).sum()
     }
 
     /// Prints a nicely formatted character table.
@@ -351,15 +344,7 @@ where
         compact: bool,
         numerical: Option<usize>,
     ) -> fmt::Result {
-        let group_order: usize = self
-            .classes
-            .keys()
-            .map(|cc| {
-                cc.multiplicity().unwrap_or_else(|| {
-                    panic!("Unable to find the multiplicity for conjugacy class `{cc}`.")
-                })
-            })
-            .sum();
+        let group_order = self.get_order();
 
         let name = format!("u {} ({group_order})", self.name);
         let chars_str = self.characters.map(|character| {
@@ -739,17 +724,9 @@ where
         compact: bool,
         numerical: Option<usize>,
     ) -> fmt::Result {
-        let unitary_group_order: usize = self
-            .classes
-            .keys()
-            .map(|cc| {
-                cc.multiplicity().unwrap_or_else(|| {
-                    panic!("Unable to find the multiplicity for conjugacy class `{cc}`.")
-                })
-            })
-            .sum();
+        let group_order = self.get_order();
 
-        let name = format!("m {} ({})", self.name, 2 * unitary_group_order);
+        let name = format!("m {} ({})", self.name, group_order);
         let chars_str = self.characters.map(|character| {
             if let Some(precision) = numerical {
                 let real_only = self.characters.iter().all(|character| {

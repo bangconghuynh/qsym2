@@ -321,7 +321,7 @@ pub trait SymmetryGroupProperties:
                                     rep_ele.get_abbreviated_symbol(),
                                     class_1_rep_ele.get_abbreviated_symbol()
                                 ),
-                                vec![rep_ele],
+                                vec![rep_ele, class_1_rep_ele],
                             )
                         } else if class_1_count > 0 {
                             // Both class-0 and class-1 elements occur, but not in equal numbers.

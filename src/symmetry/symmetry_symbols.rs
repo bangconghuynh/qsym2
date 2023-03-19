@@ -51,22 +51,22 @@ static MULLIKEN_IRREP_DEGENERACIES: phf::Map<&'static str, u64> = phf_map! {
     "K" => 8u64,
     "L" => 9u64,
     "M" => 10u64,
-    "A*" => 1u64,
-    "B*" => 1u64,
-    "Σ*" => 1u64,
-    "Γ*" => 1u64,
-    "E*" => 2u64,
-    "Π*" => 2u64,
-    "Δ*" => 2u64,
-    "Φ*" => 2u64,
-    "T*" => 3u64,
-    "G*" => 4u64,
-    "H*" => 5u64,
-    "I*" => 6u64,
-    "J*" => 7u64,
-    "K*" => 8u64,
-    "L*" => 9u64,
-    "M*" => 10u64,
+    "A~" => 1u64,
+    "B~" => 1u64,
+    "Σ~" => 1u64,
+    "Γ~" => 1u64,
+    "E~" => 2u64,
+    "Π~" => 2u64,
+    "Δ~" => 2u64,
+    "Φ~" => 2u64,
+    "T~" => 3u64,
+    "G~" => 4u64,
+    "H~" => 5u64,
+    "I~" => 6u64,
+    "J~" => 7u64,
+    "K~" => 8u64,
+    "L~" => 9u64,
+    "M~" => 10u64,
 };
 
 static INV_MULLIKEN_IRREP_DEGENERACIES: phf::Map<u64, &'static str> = phf_map! {
@@ -768,37 +768,52 @@ impl<R: Clone> fmt::Display for SymmetryClassSymbol<R> {
 /// # Panics
 ///
 /// Panics when expected classes cannot be found.
-pub fn sort_irreps<R: Clone>(
+pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
     char_arr: &ArrayView2<Character>,
     frobenius_schur_indicators: &[i8],
     class_symbols: &IndexMap<SymmetryClassSymbol<R>, usize>,
     principal_classes: &[SymmetryClassSymbol<R>],
 ) -> (Array2<Character>, Vec<i8>) {
     log::debug!("Sorting irreducible representations...");
+    let su2_0 = if class_symbols.keys().any(|cc_sym| cc_sym.is_su2()) {
+        "(Σ)"
+    } else {
+        ""
+    };
     let class_e = class_symbols
         .first()
         .expect("No class symbols found.")
         .0
         .clone();
-    let class_i = SymmetryClassSymbol::new("1||i||", None)
-        .expect("Unable to construct class symbol `1||i||`.");
-    let class_ti = SymmetryClassSymbol::new("1||θ·i||", None)
-        .expect("Unable to construct class symbol `1||θ·i||`.");
-    let class_s = SymmetryClassSymbol::new("1||σh||", None)
-        .expect("Unable to construct class symbol `1||σh||`.");
-    let class_ts = SymmetryClassSymbol::new("1||θ·σh||", None)
-        .expect("Unable to construct class symbol `1||θ·σh||`.");
-    let class_t = SymmetryClassSymbol::new("1||θ||", None)
-        .expect("Unable to construct class symbol `1||θ||`.");
+    let class_e1: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||E(QΣ)||", None)
+        .expect("Unable to construct class symbol `1||E(QΣ)||`.");
+    let class_i: SymmetryClassSymbol<R> = SymmetryClassSymbol::new(&format!("1||i{su2_0}||"), None)
+        .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||i{su2_0}||`."));
+    let class_ti: SymmetryClassSymbol<R> =
+        SymmetryClassSymbol::new(&format!("1||θ·i{su2_0}||"), None)
+            .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·i{su2_0}||`."));
+    let class_s: SymmetryClassSymbol<R> =
+        SymmetryClassSymbol::new(&format!("1||σh{su2_0}||"), None)
+            .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh{su2_0}||`."));
+    let class_ts: SymmetryClassSymbol<R> =
+        SymmetryClassSymbol::new(&format!("1||θ·σh{su2_0}||"), None)
+            .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·σh{su2_0}||`."));
+    let class_t: SymmetryClassSymbol<R> = SymmetryClassSymbol::new(&format!("1||θ{su2_0}||"), None)
+        .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ{su2_0}||`."));
 
     let mut leading_classes: IndexSet<SymmetryClassSymbol<R>> = IndexSet::new();
 
-    // Highest priority: time-reversal
+    // Highest priority: SU(2) class 1
+    if class_symbols.contains_key(&class_e1) {
+        leading_classes.insert(class_e1);
+    }
+
+    // Second highest priority: time-reversal
     if class_symbols.contains_key(&class_t) {
         leading_classes.insert(class_t);
     }
 
-    // Second highest priority: inversion, or horizontal mirror plane if inversion not available,
+    // Third highest priority: inversion, or horizontal mirror plane if inversion not available,
     // or time-reversed horizontal mirror plane if non-time-reversed version not available.
     if class_symbols.contains_key(&class_i) {
         leading_classes.insert(class_i);
@@ -810,10 +825,10 @@ pub fn sort_irreps<R: Clone>(
         leading_classes.insert(class_ts);
     };
 
-    // Third highest priority: identity
+    // Forth highest priority: identity
     leading_classes.insert(class_e);
 
-    // Fourth highest priority: principal classes, if not yet encountered
+    // Fifth highest priority: principal classes, if not yet encountered
     leading_classes.extend(principal_classes.iter().cloned());
 
     log::debug!("Irreducible representation sort order:");
@@ -1063,7 +1078,7 @@ where
     // First pass: assign irrep symbols based on Mulliken's convention as much as possible.
     log::debug!("First pass: assign symbols from rules");
 
-    let raw_irrep_symbols = char_arr.rows().into_iter().map(|irrep| {
+    let mut raw_irrep_symbols = char_arr.rows().into_iter().map(|irrep| {
         // Determine the main symmetry
         let dim = irrep[
             *class_symbols.get(&e_cc).unwrap_or_else(|| panic!("Class `{}` not found.", &e_cc))
@@ -1079,30 +1094,38 @@ where
         let dim = dim.re.round() as u64;
         assert!(dim > 0);
         let main = if dim >= 2 {
+            // Degenerate irreps
             INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim).map_or_else(|| {
                 log::warn!("{} cannot be assigned a standard dimensionality symbol. A generic 'Λ' will be used instead.", dim);
                 "Λ"
             }, |sym| sym)
         } else {
-            let char_rots: HashSet<_> = principal_classes
-                .iter()
-                .map(|cc| {
-                    irrep[
-                        *class_symbols.get(cc).unwrap_or_else(|| panic!("Class `{cc}` not found."))
-                    ].clone()
-                })
-                .collect();
-            if char_rots.len() == 1 && *char_rots.iter().next().expect("No rotation classes found.") == char_p1 {
-                "A"
-            } else if char_rots
-                .iter()
-                .all(|char_rot| char_rot.clone() == char_p1 || char_rot.clone() == char_m1)
-            {
-                "B"
-            } else {
-                // There are principal rotations but with non-(±1) characters. These must be
-                // complex.
+            // Non-degenerate irreps
+            let complex = irrep.map(|character| character.complex_conjugate()) != irrep;
+            if complex {
                 "Γ"
+            } else {
+                let char_rots: HashSet<_> = principal_classes
+                    .iter()
+                    .map(|cc| {
+                        irrep[
+                            *class_symbols.get(cc).unwrap_or_else(|| panic!("Class `{cc}` not found."))
+                        ].clone()
+                    })
+                    .collect();
+                if char_rots.len() == 1 && *char_rots.iter().next().expect("No rotation classes found.") == char_p1 {
+                    "A"
+                } else if char_rots
+                    .iter()
+                    .all(|char_rot| char_rot.clone() == char_p1 || char_rot.clone() == char_m1)
+                {
+                    "B"
+                } else {
+                    panic!("");
+                    // // There are principal rotations but with non-(±1) characters. These must be
+                    // // complex.
+                    // "Γ"
+                }
             }
         };
 
@@ -1145,7 +1168,7 @@ where
         } else {
             false
         };
-        let projective_str = if projective { "*" } else { "" };
+        let projective_str = if projective { "~" } else { "" };
 
         let (inv, mir) = if i_parity || ti_parity {
             // Determine inversion symmetry
@@ -1264,11 +1287,77 @@ where
                     "Unable to construct symmetry symbol `|^({trev})|{main}{projective}|^({mir})_({inv})|`."
                 )
             })
-    });
+    }).collect_vec();
+
+    let mut complex_irrep_indices = raw_irrep_symbols
+        .iter()
+        .enumerate()
+        .filter_map(|(i, irrep_sym)| {
+            if irrep_sym.main().contains("Γ") {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .rev()
+        .collect::<IndexSet<_>>();
+
+    let cc_pairs = if !complex_irrep_indices.is_empty() {
+        log::debug!("Grouping pairs of complex-conjugate irreps...");
+        let mut cc_pairs: Vec<(usize, usize)> = vec![];
+        while !complex_irrep_indices.is_empty() {
+            let complex_irrep_index = complex_irrep_indices.pop().unwrap();
+            let complex_irrep = char_arr.row(complex_irrep_index);
+            let complex_conj_irrep = complex_irrep.map(|character| character.complex_conjugate());
+            let complex_conj_irrep_index = char_arr
+                .rows()
+                .into_iter()
+                .enumerate()
+                .find_map(|(i, irrep)| {
+                    if irrep == complex_conj_irrep {
+                        Some(i)
+                    } else {
+                        None
+                    }
+                })
+                .expect("Unable to find the complex-conjugate irrep.");
+            complex_irrep_indices.shift_remove(&complex_conj_irrep_index);
+            cc_pairs.push((complex_irrep_index, complex_conj_irrep_index));
+            raw_irrep_symbols[complex_irrep_index]
+                .generic_symbol
+                .set_presub("a");
+            raw_irrep_symbols[complex_conj_irrep_index]
+                .generic_symbol
+                .set_presub("b");
+        }
+        log::debug!(
+            "There {} {} {} of complex-conjugate irreps.",
+            if cc_pairs.len() == 1 { "is" } else { "are" },
+            cc_pairs.len(),
+            if cc_pairs.len() == 1 { "pair" } else { "pairs" },
+        );
+        log::debug!("Grouping pairs of complex-conjugate irreps... Done.");
+        Some(cc_pairs)
+    } else {
+        None
+    };
 
     log::debug!("Second pass: disambiguate identical cases not distinguishable by rules");
-    let irrep_symbols = disambiguate_linspace_symbols(raw_irrep_symbols);
+    let mut irrep_symbols = disambiguate_linspace_symbols(raw_irrep_symbols.into_iter());
+
+    if let Some(cc_pairs_vec) = cc_pairs {
+        log::debug!("Equalising post-subscripts in complex-conjugate pairs...");
+        for (complex_irrep_index, complex_conj_irrep_index) in &cc_pairs_vec {
+            let complex_irrep_postsub = irrep_symbols[*complex_irrep_index].postsub();
+            irrep_symbols[*complex_conj_irrep_index]
+                .generic_symbol
+                .set_postsub(&complex_irrep_postsub);
+        }
+        log::debug!("Equalising post-subscripts in complex-conjugate pairs... Done.");
+    }
+
     log::debug!("Generating Mulliken irreducible representation symbols... Done.");
+
     irrep_symbols
 }
 
