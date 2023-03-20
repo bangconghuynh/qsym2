@@ -76,6 +76,9 @@ pub trait SpecialSymmetryTransformation {
     // Spatial part
     // ============
 
+    // All methods in this section disregard any rotation contribution from the antiunitary part
+    // (K or θ).
+
     /// Checks if the spatial part of the symmetry operation is proper.
     ///
     /// # Returns
@@ -83,14 +86,16 @@ pub trait SpecialSymmetryTransformation {
     /// A boolean indicating if the spatial part of the symmetry operation is proper.
     fn is_proper(&self) -> bool;
 
-    /// Checks if the spatial part of the symmetry operation is the spatial identity.
+    /// Checks if the spatial part of the symmetry operation is the spatial identity, irrespective
+    /// of any rotation contribution from the antiunitary part.
     ///
     /// # Returns
     ///
     /// A boolean indicating if the spatial part of the symmetry operation is the spatial identity.
     fn is_spatial_identity(&self) -> bool;
 
-    /// Checks if the spatial part of the symmetry operation is a spatial binary rotation.
+    /// Checks if the spatial part of the symmetry operation is a spatial binary rotation,
+    /// irrespective of any rotation contribution from the antiunitary part.
     ///
     /// # Returns
     ///
@@ -98,23 +103,37 @@ pub trait SpecialSymmetryTransformation {
     /// rotation.
     fn is_spatial_binary_rotation(&self) -> bool;
 
-    /// Checks if the spatial part of the symmetry operation is the spatial inversion.
+    /// Checks if the spatial part of the symmetry operation is the spatial inversion, irrespective
+    /// of any rotation contribution from the antiunitary part.
     ///
     /// # Returns
     ///
     /// A boolean indicating if the spatial part of the symmetry operation is the spatial inversion.
     fn is_spatial_inversion(&self) -> bool;
 
-    /// Checks if the spatial part of the symmetry operation is a spatial reflection.
+    /// Checks if the spatial part of the symmetry operation is a spatial reflection, irrespective
+    /// of any rotation contribution from the antiunitary part.
     ///
     /// # Returns
     ///
     /// A boolean indicating if the spatial part of the symmetry operation is a spatial reflection.
     fn is_spatial_reflection(&self) -> bool;
 
-    // ==================
-    // Time-reversal part
-    // ==================
+    //// ============
+    //// Unitary part
+    //// ============
+
+    ///// Checks if the spatial part of the symmetry operation is the spatial identity, taking into
+    ///// account any rotation contribution from the antiunitary part.
+    /////
+    ///// # Returns
+    /////
+    ///// A boolean indicating if the spatial part of the symmetry operation is the unitary identity.
+    //fn is_unitary_identity(&self) -> bool;
+
+    // ================
+    // Antiunitary part
+    // ================
 
     /// Checks if the symmetry operation is antiunitary.
     ///
@@ -123,12 +142,12 @@ pub trait SpecialSymmetryTransformation {
     /// A boolean indicating if the symmetry oppperation is antiunitary.
     fn is_antiunitary(&self) -> bool;
 
-    /// Checks if the symmetry operation contains a time reversal.
+    /// Checks if the symmetry operation is a pure time-reversal.
     ///
     /// # Returns
     ///
-    /// A boolean indicating if the symmetry oppperation contains a time reversal.
-    fn contains_time_reversal(&self) -> bool;
+    /// A boolean indicating if this symmetry operation is a pure time-reversal.
+    fn is_time_reversal(&self) -> bool;
 
     // ==========================
     // Overall - provided methods
@@ -141,15 +160,6 @@ pub trait SpecialSymmetryTransformation {
     /// A boolean indicating if this symmetry operation is the identity.
     fn is_identity(&self) -> bool {
         self.is_spatial_identity() && !self.is_antiunitary() && !self.is_rot_su2_class_1()
-    }
-
-    /// Checks if the symmetry operation is a pure time-reversal.
-    ///
-    /// # Returns
-    ///
-    /// A boolean indicating if this symmetry operation is a pure time-reversal.
-    fn is_time_reversal(&self) -> bool {
-        self.is_spatial_identity() && self.is_antiunitary() && !self.is_rot_su2_class_1()
     }
 
     /// Checks if the symmetry operation is an inversion in $`\mathsf{O}(3)`$.
@@ -257,6 +267,36 @@ impl SymmetryOperation {
     #[must_use]
     pub fn builder() -> SymmetryOperationBuilder {
         SymmetryOperationBuilder::default()
+    }
+
+    fn get_comparable_standard_form(&self) -> Self {
+        match (self.is_proper(), self.is_antiunitary()) {
+            (true, false) => {
+                // Proper, unitary
+                self.clone()
+            }
+            (false, false) => {
+                // Improper, unitary
+                // Actual antiunitary kind will be taken care of in the conversion method for the
+                // generating element.
+                self.convert_to_improper_kind(&INV)
+            }
+            (true, true) => {
+                // Proper, antiunitary
+                self.rotationise_su2_time_reversal().unwrap_or_else(|| {
+                    assert!(!self.is_su2());
+                    self.clone()
+                })
+            }
+            (false, true) => {
+                // Improper, antiunitary
+                let c_self = self.convert_to_improper_kind(&INV);
+                c_self.rotationise_su2_time_reversal().unwrap_or_else(|| {
+                    assert!(!self.is_su2());
+                    c_self
+                })
+            }
+        }
     }
 
     /// Constructs a finite-order-element-generated symmetry operation from a quaternion.
@@ -491,15 +531,16 @@ impl SymmetryOperation {
     /// $`[0, 1]`$ by more than the threshold value stored in the generating element in `self`.
     #[must_use]
     pub fn calc_quaternion(&self) -> Quaternion {
-        let c_self = if self.is_proper() {
-            self.clone()
-        } else {
-            // Time-reversal does not matter here.
-            self.convert_to_improper_kind(&INV)
-        };
+        let c_self = self.get_comparable_standard_form();
+        // let c_self = if self.is_proper() {
+        //     self.clone()
+        // } else {
+        //     // Time-reversal does not matter here.
+        //     self.convert_to_improper_kind(&INV)
+        // };
         debug_assert_eq!(
-            self.is_rot_su2_class_1(),
-            c_self.is_rot_su2_class_1(),
+            self.is_full_su2_class_1(),
+            c_self.is_full_su2_class_1(),
             "`{self}` and `{c_self}` are in different homotopy classes."
         );
 
@@ -571,14 +612,41 @@ impl SymmetryOperation {
     /// Panics when no total proper fractions could be found for this operation.
     #[must_use]
     pub fn calc_pole(&self) -> Point3<f64> {
+        let op = self.get_comparable_standard_form();
+
         // let op = match (self.is_proper(), self.is_antiunitary()) {
+        //     (true, false) => {
+        //         // Proper, unitary
+        //         self.clone()
+        //     },
+        //     (false, false) => {
+        //         // Improper, unitary
+        //         // Actual antiunitary kind will be taken care of in the conversion method for the
+        //         // generating element.
+        //         self.convert_to_improper_kind(&INV)
+        //     },
+        //     (true, true) => {
+        //         // Proper, antiunitary
+        //         self.rotationise_su2_time_reversal().unwrap_or_else(|| {
+        //             assert!(!self.is_su2());
+        //             self.clone()
+        //         })
+        //     },
+        //     (false, true) => {
+        //         // Improper, antiunitary
+        //         let c_self = self.convert_to_improper_kind(&INV);
+        //         c_self.rotationise_su2_time_reversal().unwrap_or_else(|| {
+        //             assert!(!self.is_su2());
+        //             c_self
+        //         })
+        //     }
         // };
-        let op = if self.is_proper() {
-            self.clone()
-        } else {
-            // Time-reversal does not matter here.
-            self.convert_to_improper_kind(&INV)
-        };
+        // let op = if self.is_proper() {
+        //     self.clone()
+        // } else {
+        //     // Time-reversal does not matter here.
+        //     self.convert_to_improper_kind(&INV)
+        // };
         match *op.generating_element.raw_proper_order() {
             ElementOrder::Int(_) => {
                 let frac_1_2 = F::new(1u32, 2u32);
@@ -759,12 +827,13 @@ impl SymmetryOperation {
     /// Panics when no total proper fractions could be found for this operation.
     #[must_use]
     pub fn calc_pole_angle(&self) -> f64 {
-        let c_self = match self.generating_element.kind {
-            SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
-                self.clone()
-            }
-            SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
-        };
+        // let c_self = match self.generating_element.kind {
+        //     SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
+        //         self.clone()
+        //     }
+        //     SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
+        // };
+        let c_self = self.get_comparable_standard_form();
 
         c_self.total_proper_angle.abs()
     }
@@ -905,36 +974,36 @@ impl SymmetryOperation {
     ///
     /// The equivalent symmetry element $`E`$.
     pub fn to_symmetry_element(&self) -> SymmetryElement {
-        let c_self = self
-            .rotationise_su2_time_reversal()
-            .unwrap_or_else(|| self.clone());
-        let kind = if c_self.is_proper() {
-            if c_self.is_antiunitary() {
-                ROT.to_antiunitary(c_self.generating_element.contains_antiunitary())
+        // let c_self = self
+        //     .rotationise_su2_time_reversal()
+        //     .unwrap_or_else(|| self.clone());
+        let kind = if self.is_proper() {
+            if self.is_antiunitary() {
+                ROT.to_antiunitary(self.generating_element.contains_antiunitary())
             } else {
                 ROT
             }
         } else {
-            c_self.generating_element.kind.clone()
+            self.generating_element.kind.clone()
         };
-        let additional_superscript = if c_self.is_proper() {
+        let additional_superscript = if self.is_proper() {
             String::new()
         } else {
-            c_self.generating_element.additional_superscript.clone()
+            self.generating_element.additional_superscript.clone()
         };
-        let additional_subscript = if c_self.is_proper() {
+        let additional_subscript = if self.is_proper() {
             String::new()
         } else {
-            c_self.generating_element.additional_subscript.clone()
+            self.generating_element.additional_subscript.clone()
         };
-        let rotation_group = if c_self.is_rot_su2_class_1() {
+        let rotation_group = if self.is_rot_su2_class_1() {
             SU2_1
-        } else if c_self.is_su2() {
+        } else if self.is_su2() {
             SU2_0
         } else {
             SO3
         };
-        if let Some(total_proper_fraction) = c_self.total_proper_fraction {
+        if let Some(total_proper_fraction) = self.total_proper_fraction {
             let proper_order = *total_proper_fraction
                 .denom()
                 .expect("Unable to extract the denominator of the total proper fraction.");
@@ -944,10 +1013,10 @@ impl SymmetryOperation {
             let proper_power =
                 i32::try_from(numer).expect("Unable to convert the numerator to `i32`.");
             SymmetryElement::builder()
-                .threshold(c_self.generating_element.threshold())
+                .threshold(self.generating_element.threshold())
                 .proper_order(ElementOrder::Int(proper_order))
                 .proper_power(proper_power)
-                .raw_axis(c_self.calc_proper_rotation_pole().coords)
+                .raw_axis(self.calc_proper_rotation_pole().coords)
                 .kind(kind)
                 .rotation_group(rotation_group)
                 .additional_superscript(additional_superscript)
@@ -955,12 +1024,12 @@ impl SymmetryOperation {
                 .build()
                 .unwrap()
         } else {
-            let proper_angle = c_self.total_proper_angle;
+            let proper_angle = self.total_proper_angle;
             SymmetryElement::builder()
-                .threshold(c_self.generating_element.threshold())
+                .threshold(self.generating_element.threshold())
                 .proper_order(ElementOrder::Inf)
                 .proper_angle(proper_angle)
-                .raw_axis(c_self.calc_proper_rotation_pole().coords)
+                .raw_axis(self.calc_proper_rotation_pole().coords)
                 .kind(kind)
                 .rotation_group(rotation_group)
                 .additional_superscript(additional_superscript)
@@ -1277,6 +1346,27 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             }
     }
 
+    //// ============
+    //// Unitary part
+    //// ============
+
+    ///// Checks if the spatial part of the symmetry operation is the spatial identity, taking into
+    ///// account any rotation contribution from the antiunitary part.
+    /////
+    ///// # Returns
+    /////
+    ///// A boolean indicating if the spatial part of the symmetry operation is the unitary identity.
+    //fn is_unitary_identity(&self) -> bool {
+    //    if self.is_su2() {
+    //        let c_self = self
+    //            .derotationise_su2_time_reversal()
+    //            .expect("Unable to derotationise SU(2) time reversal.");
+    //        c_self.is_spatial_identity()
+    //    } else {
+    //        self.is_spatial_identity()
+    //    }
+    //}
+
     // ==================
     // Time-reversal part
     // ==================
@@ -1295,8 +1385,19 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     /// # Returns
     ///
     /// A boolean indicating if the symmetry oppperation contains a time reversal.
-    fn contains_time_reversal(&self) -> bool {
-        self.generating_element.contains_time_reversal() && self.power.rem_euclid(2) == 1
+    fn is_time_reversal(&self) -> bool {
+        if self.is_su2() {
+            let c_self = self
+                .derotationise_su2_time_reversal()
+                .expect("Unable to derotationise SU(2) time reversal.");
+            c_self.generating_element.contains_time_reversal()
+                && c_self.power.rem_euclid(2) == 1
+                && c_self.is_spatial_identity()
+        } else {
+            self.generating_element.contains_time_reversal()
+                && self.power.rem_euclid(2) == 1
+                && self.is_spatial_identity()
+        }
     }
 
     // ==================
@@ -1459,7 +1560,7 @@ impl PartialEq for SymmetryOperation {
             return false;
         }
 
-        if self.is_rot_su2_class_1() != other.is_rot_su2_class_1() {
+        if self.is_full_su2_class_1() != other.is_full_su2_class_1() {
             return false;
         }
 
@@ -1503,18 +1604,20 @@ impl PartialEq for SymmetryOperation {
                 max_relative = thresh
             )
         } else {
-            let c_self = if self.is_proper() {
-                self.clone()
-            } else {
-                // Time-reversal does not matter here.
-                self.convert_to_improper_kind(&INV)
-            };
-            let c_other = if other.is_proper() {
-                other.clone()
-            } else {
-                // Time-reversal does not matter here.
-                other.convert_to_improper_kind(&INV)
-            };
+            let c_self = self.get_comparable_standard_form();
+            let c_other = other.get_comparable_standard_form();
+            // let c_self = if self.is_proper() {
+            //     self.clone()
+            // } else {
+            //     // Time-reversal does not matter here.
+            //     self.convert_to_improper_kind(&INV)
+            // };
+            // let c_other = if other.is_proper() {
+            //     other.clone()
+            // } else {
+            //     // Time-reversal does not matter here.
+            //     other.convert_to_improper_kind(&INV)
+            // };
 
             let angle_comparison = if let (Some(s_frac), Some(o_frac)) =
                 (c_self.total_proper_fraction, c_other.total_proper_fraction)
@@ -1553,19 +1656,20 @@ impl Eq for SymmetryOperation {}
 
 impl Hash for SymmetryOperation {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let c_self = match self.generating_element.kind {
-            SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
-                self.clone()
-            }
-            SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
-        };
+        // let c_self = match self.generating_element.kind {
+        //     SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
+        //         self.clone()
+        //     }
+        //     SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
+        // };
+        let c_self = self.get_comparable_standard_form();
         // ==========================
         // Special general operations
         // ==========================
         c_self.is_proper().hash(state);
         c_self.is_antiunitary().hash(state);
         c_self.is_su2().hash(state);
-        c_self.is_rot_su2_class_1().hash(state);
+        c_self.is_full_su2_class_1().hash(state);
 
         // ===========================
         // Special specific operations

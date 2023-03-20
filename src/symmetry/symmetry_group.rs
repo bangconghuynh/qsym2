@@ -539,6 +539,9 @@ impl SymmetryGroupProperties
                 if !q_op.is_proper() {
                     q_op = q_op.convert_to_improper_kind(&SIG);
                 }
+                if q_op.is_antiunitary() {
+                    q_op = q_op.derotationise_su2_time_reversal().unwrap_or(q_op);
+                }
 
                 // Multiplying by q_identity does not change subscript/superscript information
                 // such as inversion parity or mirror plane type.
@@ -853,6 +856,9 @@ impl SymmetryGroupProperties
                 let mut q_op = op * &q_identity;
                 if !q_op.is_proper() {
                     q_op = q_op.convert_to_improper_kind(&SIG);
+                }
+                if q_op.is_antiunitary() {
+                    q_op = q_op.derotationise_su2_time_reversal().unwrap_or(q_op);
                 }
 
                 // Multiplying by q_identity does not change subscript/superscript information
