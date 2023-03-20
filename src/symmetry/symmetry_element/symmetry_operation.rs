@@ -48,14 +48,29 @@ pub trait SpecialSymmetryTransformation {
     /// rotation.
     fn is_su2(&self) -> bool;
 
-    /// Checks if the proper rotation part of the symmetry operation is in $`\mathsf{SU}(2)`$ and
+    /// Checks if the spatial rotation part of the symmetry operation is in $`\mathsf{SU}(2)`$ and
     /// connected to the identity via a homotopy path of class 1.
+    ///
+    /// For antiunitary operations with an $`\mathsf{SU}(2)`$ rotation part, this does **not** take
+    /// into account the $`\pi \hat{\mathbf{y}}`$ rotation of any accompanying time reversal.
     ///
     /// # Returns
     ///
     /// A boolean indicating if this symmetry operation contains an $`\mathsf{SU}(2)`$ proper
     /// rotation connected to the identity via a homotopy path of class 1.
     fn is_rot_su2_class_1(&self) -> bool;
+
+    /// Checks if the spatial rotation part of the symmetry operation is in $`\mathsf{SU}(2)`$ and
+    /// connected to the identity via a homotopy path of class 1.
+    ///
+    /// For antiunitary operations with an $`\mathsf{SU}(2)`$ rotation part, this **does** take
+    /// into account the $`\pi \hat{\mathbf{y}}`$ rotation of any accompanying time reversal.
+    ///
+    /// # Returns
+    ///
+    /// A boolean indicating if this symmetry operation contains an $`\mathsf{SU}(2)`$ proper
+    /// rotation connected to the identity via a homotopy path of class 1.
+    fn is_full_su2_class_1(&self) -> bool;
 
     // ============
     // Spatial part
@@ -1281,19 +1296,14 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A boolean indicating if the symmetry oppperation contains a time reversal.
     fn contains_time_reversal(&self) -> bool {
-        self.generating_element.contains_time_reversal()
-            && if self.is_su2() {
-                self.power.rem_euclid(4) != 0
-            } else {
-                self.power.rem_euclid(2) == 1
-            }
+        self.generating_element.contains_time_reversal() && self.power.rem_euclid(2) == 1
     }
 
     // ==================
     // Spin rotation part
     // ==================
 
-    /// Checks if the proper rotation part of the symmetry operation is in $`\mathsf{SU}(2)`$.
+    /// Checks if the spatial rotation part of the symmetry operation is in $`\mathsf{SU}(2)`$.
     ///
     /// # Returns
     ///
@@ -1303,8 +1313,11 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
         self.generating_element.rotation_group.is_su2()
     }
 
-    /// Checks if the proper rotation part of the symmetry operation is in $`\mathsf{SU}(2)`$ and
+    /// Checks if the spatial rotation part of the symmetry operation is in $`\mathsf{SU}(2)`$ and
     /// connected to the identity via a homotopy path of class 1.
+    ///
+    /// For antiunitary operations with an $`\mathsf{SU}(2)`$ rotation part, this does not take
+    /// into account the $`\pi \hat{\mathbf{y}}`$ rotation of any accompanying time reversal.
     ///
     /// # Returns
     ///
@@ -1383,6 +1396,22 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
         } else {
             false
         }
+    }
+
+    /// Checks if the spatial rotation part of the symmetry operation is in $`\mathsf{SU}(2)`$ and
+    /// connected to the identity via a homotopy path of class 1.
+    ///
+    /// For antiunitary operations with an $`\mathsf{SU}(2)`$ rotation part, this **does** take
+    /// into account the $`\pi \hat{\mathbf{y}}`$ rotation of any accompanying time reversal.
+    ///
+    /// # Returns
+    ///
+    /// A boolean indicating if this symmetry operation contains an $`\mathsf{SU}(2)`$ proper
+    /// rotation connected to the identity via a homotopy path of class 1.
+    fn is_full_su2_class_1(&self) -> bool {
+        self.rotationise_su2_time_reversal()
+            .map(|c_self| c_self.is_rot_su2_class_1())
+            .unwrap_or(false)
     }
 }
 
