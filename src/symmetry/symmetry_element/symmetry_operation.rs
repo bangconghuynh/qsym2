@@ -556,6 +556,8 @@ impl SymmetryOperation {
     /// Panics when no total proper fractions could be found for this operation.
     #[must_use]
     pub fn calc_pole(&self) -> Point3<f64> {
+        // let op = match (self.is_proper(), self.is_antiunitary()) {
+        // };
         let op = if self.is_proper() {
             self.clone()
         } else {
@@ -788,63 +790,85 @@ impl SymmetryOperation {
 
     pub fn rotationise_su2_time_reversal(&self) -> Option<Self> {
         if self.is_su2() {
-            if self.contains_time_reversal() {
-                if self.power.rem_euclid(2) == 0 {
-                    // power must be 4n + 2, the time-reversal part simply gives E(QΣ).
-                    let mut generating_element = self.generating_element.clone();
-                    generating_element.kind = generating_element.kind.to_antiunitary(None);
-                    let q_identity = SymmetryOperation::from_quaternion(
-                        (-1.0, -Vector3::z()),
-                        true,
-                        generating_element.threshold(),
-                        1,
-                        None,
-                        true,
-                        self.positive_hemisphere.clone(),
-                    );
-                    let spatial_op = SymmetryOperation::builder()
-                        .generating_element(generating_element)
-                        .power(self.power)
-                        .build()
-                        .expect(
-                            "Unable to extract the spatial unitary part of the symmetry operation.",
-                        );
-                    Some(spatial_op * q_identity)
-                } else {
-                    // power must be 4n + 1 or 4n + 3, the time-reversal part will affect the
-                    // unitary rotation part.
-                    let mut generating_element = self.generating_element.clone();
-                    generating_element.kind = generating_element
-                        .kind
-                        .to_antiunitary(Some(AntiunitaryKind::ComplexConjugation));
+            if self.generating_element.contains_time_reversal() {
+                let mut spatial_rotation_element = self.generating_element.clone();
+                spatial_rotation_element.kind = spatial_rotation_element.kind.to_antiunitary(None);
+                let spatial_rotation = SymmetryOperation::builder()
+                    .generating_element(spatial_rotation_element)
+                    .power(1)
+                    .build()
+                    .expect("Unable to construct the spatial rotation in SU(2).)");
 
-                    let r_pi_y_element = SymmetryElement::builder()
-                        .threshold(generating_element.threshold)
-                        .proper_order(ElementOrder::Int(2))
-                        .proper_power(1)
-                        .raw_axis(Vector3::y())
-                        .kind(ROT)
-                        .rotation_group(SU2_0)
-                        .build()
-                        .expect("Unable to construct a R(πy) element in SU(2) (class 0).)");
-                    let r_pi_y = SymmetryOperation::builder()
-                        .generating_element(r_pi_y_element.clone())
-                        .power(self.power.rem_euclid(4))
-                        .build()
-                        .expect("Unable to construct a R(πy) operation in SU(2) (class 0).)");
-                    println!("Rpiy: {r_pi_y}");
-                    let spatial_op = SymmetryOperation::builder()
-                        .generating_element(generating_element)
-                        .power(self.power)
-                        .build()
-                        .expect(
-                            "Unable to extract the spatial unitary part of the symmetry operation.",
-                        );
-                    println!("Spatial: {spatial_op}");
-                    Some(r_pi_y * spatial_op)
-                }
+                let r_pi_y_element = SymmetryElement::builder()
+                    .threshold(self.generating_element.threshold)
+                    .proper_order(ElementOrder::Int(2))
+                    .proper_power(1)
+                    .raw_axis(Vector3::y())
+                    .kind(ROT)
+                    .rotation_group(SU2_0)
+                    .build()
+                    .expect("Unable to construct a R(πy) element in SU(2) (class 0).)");
+                let r_pi_y = SymmetryOperation::builder()
+                    .generating_element(r_pi_y_element.clone())
+                    .power(1)
+                    .build()
+                    .expect("Unable to construct a R(πy) operation in SU(2) (class 0).)");
+
+                let mut overall = r_pi_y * spatial_rotation;
+
+                overall.generating_element.kind = overall
+                    .generating_element
+                    .kind
+                    .to_antiunitary(Some(AntiunitaryKind::ComplexConjugation));
+
+                Some(overall.pow(self.power))
             } else {
-                // power must be 4n, the time-reversal part simply gives E(Σ).
+                Some(self.clone())
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn derotationise_su2_time_reversal(&self) -> Option<Self> {
+        if self.is_su2() {
+            if self.generating_element.contains_antiunitary()
+                == Some(AntiunitaryKind::ComplexConjugation)
+            {
+                let mut spatial_rotation_element = self.generating_element.clone();
+                spatial_rotation_element.kind = spatial_rotation_element.kind.to_antiunitary(None);
+                let spatial_rotation = SymmetryOperation::builder()
+                    .generating_element(spatial_rotation_element)
+                    .power(1)
+                    .build()
+                    .expect("Unable to construct the spatial rotation in SU(2).)");
+
+                let r_pi_y_element = SymmetryElement::builder()
+                    .threshold(self.generating_element.threshold)
+                    .proper_order(ElementOrder::Int(2))
+                    .proper_power(1)
+                    .raw_axis(Vector3::y())
+                    .kind(ROT)
+                    .rotation_group(SU2_0)
+                    .build()
+                    .expect("Unable to construct a R(πy) element in SU(2) (class 0).)");
+                let r_pi_y_inv = SymmetryOperation::builder()
+                    .generating_element(r_pi_y_element.clone())
+                    .power(-1)
+                    .build()
+                    .expect("Unable to construct a R(πy)^(-1) operation in SU(2) (class 0).)");
+
+                let mut overall = r_pi_y_inv * spatial_rotation;
+
+                overall.generating_element.kind = overall
+                    .generating_element
+                    .kind
+                    .to_antiunitary(Some(AntiunitaryKind::TimeReversal));
+
+                Some(overall.pow(self.power))
+            } else {
+                // This is not an antiunitary operation, or an antiunitary operation that already
+                // contains the time reversal operation explicitly.
                 Some(self.clone())
             }
         } else {
