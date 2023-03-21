@@ -125,6 +125,13 @@ impl RotationGroup {
     fn is_su2_class_1(&self) -> bool {
         matches!(self, RotationGroup::SU2(false))
     }
+
+    fn flip_homotopy_class(&self) -> Self {
+        match self {
+            RotationGroup::SO3 => RotationGroup::SO3,
+            RotationGroup::SU2(normal) => RotationGroup::SU2(!normal),
+        }
+    }
 }
 
 // ======================================
@@ -1303,7 +1310,7 @@ impl SymmetryElement {
             return self.clone();
         }
 
-        let (dest_order, dest_proper_power) = match *self.raw_proper_order() {
+        let (dest_order, dest_proper_power, dest_rot_group) = match self.raw_proper_order() {
             ElementOrder::Int(_) => {
                 let proper_fraction = self
                     .proper_fraction
@@ -1333,7 +1340,48 @@ impl SymmetryElement {
                     } else {
                         1
                     };
-                    (n2, k2)
+
+                    let dest_rot_group = if k == 0 || self.rotation_group == SO3 {
+                        match improper_kind {
+                            SymmetryElementKind::ImproperInversionCentre(_) => {
+                                self.rotation_group.clone()
+                            }
+                            SymmetryElementKind::ImproperMirrorPlane(_) => {
+                                self.rotation_group.flip_homotopy_class()
+                            }
+                            SymmetryElementKind::Proper(_) => {
+                                panic!("`improper_kind` must be one of the improper variants.")
+                            }
+                        }
+                    } else if geometry::check_standard_positive_pole(&self.raw_axis, self.threshold)
+                    {
+                        // positive (k > 0, positive raw_axis)
+                        match improper_kind {
+                            SymmetryElementKind::ImproperInversionCentre(_) => {
+                                self.rotation_group.flip_homotopy_class()
+                            }
+                            SymmetryElementKind::ImproperMirrorPlane(_) => {
+                                self.rotation_group.clone()
+                            }
+                            SymmetryElementKind::Proper(_) => {
+                                panic!("`improper_kind` must be one of the improper variants.")
+                            }
+                        }
+                    } else {
+                        // negative (k > 0, negative raw_axis)
+                        match improper_kind {
+                            SymmetryElementKind::ImproperInversionCentre(_) => {
+                                self.rotation_group.clone()
+                            }
+                            SymmetryElementKind::ImproperMirrorPlane(_) => {
+                                self.rotation_group.flip_homotopy_class()
+                            }
+                            SymmetryElementKind::Proper(_) => {
+                                panic!("`improper_kind` must be one of the improper variants.")
+                            }
+                        }
+                    };
+                    (n2, k2, dest_rot_group)
                 } else {
                     // k < 0, k2 >= 0
                     let n_p_2k = n
@@ -1346,10 +1394,91 @@ impl SymmetryElement {
                     } else {
                         1
                     };
-                    (n2, k2)
+                    let dest_rot_group = if self.rotation_group == SO3 {
+                        self.rotation_group.clone()
+                    } else if !geometry::check_standard_positive_pole(
+                        &self.raw_axis,
+                        self.threshold,
+                    ) {
+                        // positive (k < 0, negative raw_axis)
+                        match improper_kind {
+                            SymmetryElementKind::ImproperInversionCentre(_) => {
+                                self.rotation_group.flip_homotopy_class()
+                            }
+                            SymmetryElementKind::ImproperMirrorPlane(_) => {
+                                self.rotation_group.clone()
+                            }
+                            SymmetryElementKind::Proper(_) => {
+                                panic!("`improper_kind` must be one of the improper variants.")
+                            }
+                        }
+                    } else {
+                        // negative (k < 0, positive raw_axis)
+                        match improper_kind {
+                            SymmetryElementKind::ImproperInversionCentre(_) => {
+                                self.rotation_group.clone()
+                            }
+                            SymmetryElementKind::ImproperMirrorPlane(_) => {
+                                self.rotation_group.flip_homotopy_class()
+                            }
+                            SymmetryElementKind::Proper(_) => {
+                                panic!("`improper_kind` must be one of the improper variants.")
+                            }
+                        }
+                    };
+                    (n2, k2, dest_rot_group)
                 }
             }
-            ElementOrder::Inf => (ElementOrder::Inf, 1),
+            ElementOrder::Inf => {
+                let dest_rot_group = self
+                    .proper_angle
+                    .map(|ang| {
+                        if approx::relative_eq!(
+                            ang,
+                            0.0,
+                            max_relative = self.threshold,
+                            epsilon = self.threshold
+                        ) || self.rotation_group == SO3
+                        {
+                            self.rotation_group.clone()
+                        } else if (ang > 0.0)
+                            == geometry::check_standard_positive_pole(
+                                &self.raw_axis,
+                                self.threshold,
+                            )
+                        {
+                            // positive (ang > 0, positive raw_axis)
+                            // positive (ang < 0, negative raw_axis)
+                            match improper_kind {
+                                SymmetryElementKind::ImproperInversionCentre(_) => {
+                                    self.rotation_group.flip_homotopy_class()
+                                }
+                                SymmetryElementKind::ImproperMirrorPlane(_) => {
+                                    self.rotation_group.clone()
+                                }
+                                SymmetryElementKind::Proper(_) => {
+                                    panic!("`improper_kind` must be one of the improper variants.")
+                                }
+                            }
+                        } else {
+                            // negative (ang < 0, positive raw_axis)
+                            // negative (ang > 0, negative raw_axis)
+                            match improper_kind {
+                                SymmetryElementKind::ImproperInversionCentre(_) => {
+                                    self.rotation_group.clone()
+                                }
+                                SymmetryElementKind::ImproperMirrorPlane(_) => {
+                                    self.rotation_group.flip_homotopy_class()
+                                }
+                                SymmetryElementKind::Proper(_) => {
+                                    panic!("`improper_kind` must be one of the improper variants.")
+                                }
+                            }
+                        }
+                    })
+                    .unwrap_or_else(|| self.rotation_group.clone());
+                (ElementOrder::Inf, 1, dest_rot_group)
+            }
         };
 
         match dest_order {
@@ -1359,7 +1488,7 @@ impl SymmetryElement {
                 .proper_power(dest_proper_power)
                 .raw_axis(self.raw_axis)
                 .kind(improper_kind)
-                .rotation_group(self.rotation_group.clone())
+                .rotation_group(dest_rot_group)
                 .generator(self.generator)
                 .additional_superscript(self.additional_superscript.clone())
                 .additional_subscript(self.additional_subscript.clone())
@@ -1375,7 +1504,7 @@ impl SymmetryElement {
                         .proper_angle(-std::f64::consts::PI + ang)
                         .raw_axis(self.raw_axis)
                         .kind(improper_kind)
-                        .rotation_group(self.rotation_group.clone())
+                        .rotation_group(dest_rot_group)
                         .generator(self.generator)
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())
@@ -1388,7 +1517,7 @@ impl SymmetryElement {
                         .proper_power(dest_proper_power)
                         .raw_axis(self.raw_axis)
                         .kind(improper_kind)
-                        .rotation_group(self.rotation_group.clone())
+                        .rotation_group(dest_rot_group)
                         .generator(self.generator)
                         .additional_superscript(self.additional_superscript.clone())
                         .additional_subscript(self.additional_subscript.clone())

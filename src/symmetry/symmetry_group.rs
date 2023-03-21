@@ -16,7 +16,7 @@ use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     sort_operations, SpecialSymmetryTransformation,
 };
-use crate::symmetry::symmetry_element::{SymmetryOperation, SIG};
+use crate::symmetry::symmetry_element::{SymmetryOperation, SIG, TR};
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, MullikenIrcorepSymbol,
     MullikenIrrepSymbol, SymmetryClassSymbol, FORCED_PRINCIPAL_GROUPS,
@@ -532,15 +532,20 @@ impl SymmetryGroupProperties
             true,
             poshem,
         );
+        println!("Class 0 SU2 ops:");
+        for op in &su2_operations {
+            println!("{op}");
+        }
         let su2_1_operations = su2_operations
             .iter()
             .map(|op| {
                 let mut q_op = op * &q_identity;
+                println!("{op} * {q_identity} -> {q_op}");
                 if !q_op.is_proper() {
                     q_op = q_op.convert_to_improper_kind(&SIG);
                 }
-                if q_op.is_antiunitary() {
-                    q_op = q_op.derotationise_su2_time_reversal().unwrap_or(q_op);
+                if q_op.is_su2() && q_op.is_antiunitary() {
+                    q_op = q_op.convert_to_antiunitary_kind(&TR);
                 }
 
                 // Multiplying by q_identity does not change subscript/superscript information
@@ -553,6 +558,10 @@ impl SymmetryGroupProperties
             })
             .collect_vec();
         su2_operations.extend(su2_1_operations.into_iter());
+        println!("All SU2 ops:");
+        for op in &su2_operations {
+            println!("{op}");
+        }
         sort_operations(&mut su2_operations);
 
         let group_name = if self.name().contains("+") {
@@ -857,8 +866,8 @@ impl SymmetryGroupProperties
                 if !q_op.is_proper() {
                     q_op = q_op.convert_to_improper_kind(&SIG);
                 }
-                if q_op.is_antiunitary() {
-                    q_op = q_op.derotationise_su2_time_reversal().unwrap_or(q_op);
+                if q_op.is_su2() && q_op.is_antiunitary() {
+                    q_op = q_op.convert_to_antiunitary_kind(&TR);
                 }
 
                 // Multiplying by q_identity does not change subscript/superscript information

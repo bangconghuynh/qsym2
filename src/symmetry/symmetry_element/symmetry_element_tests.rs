@@ -2342,15 +2342,6 @@ fn test_symmetry_element_su2_construction() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
-    let i_sr_s1 = s1.to_su2(false).unwrap();
-    assert!(i_sr_s1.is_rot_su2_class_1());
-    assert_eq!(i_sr_s1.to_string(), "σ(QΣ)(+0.000, +1.000, +0.000)");
-    assert_eq!(format!("{:?}", i_sr_s1), "S1(QΣ)(+0.000, +1.000, +0.000)");
-
-    let i_sr_s1p = i_sr_s1.convert_to_improper_kind(&INV, true);
-    assert!(i_sr_s1p.is_rot_su2_class_1());
-    assert_eq!(i_sr_s1p.to_string(), "σ(QΣ)(+0.000, +1.000, +0.000)");
-    assert_eq!(format!("{:?}", i_sr_s1p), "Ṡ2(QΣ)(+0.000, +1.000, +0.000)");
 
     let n_sr_s1 = s1.to_su2(true).unwrap();
     assert!(!n_sr_s1.is_rot_su2_class_1());
@@ -2362,6 +2353,16 @@ fn test_symmetry_element_su2_construction() {
     assert_eq!(n_sr_s1p.to_string(), "σ(Σ)(+0.000, +1.000, +0.000)");
     assert_eq!(format!("{:?}", n_sr_s1p), "Ṡ2(Σ)(+0.000, +1.000, +0.000)");
 
+    let i_sr_s1 = s1.to_su2(false).unwrap();
+    assert!(i_sr_s1.is_rot_su2_class_1());
+    assert_eq!(i_sr_s1.to_string(), "σ(QΣ)(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", i_sr_s1), "S1(QΣ)(+0.000, +1.000, +0.000)");
+
+    let i_sr_s1p = i_sr_s1.convert_to_improper_kind(&INV, true);
+    assert!(i_sr_s1p.is_rot_su2_class_1());
+    assert_eq!(i_sr_s1p.to_string(), "σ(QΣ)(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", i_sr_s1p), "Ṡ2(QΣ)(+0.000, +1.000, +0.000)");
+
     let s2 = SymmetryElement::builder()
         .threshold(1e-3)
         .proper_order(ElementOrder::Int(2))
@@ -2371,15 +2372,26 @@ fn test_symmetry_element_su2_construction() {
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
+
     let n_sr_s2 = s2.to_su2(true).unwrap();
     assert!(!n_sr_s2.is_rot_su2_class_1());
-    assert_eq!(n_sr_s2.to_string(), "i(Σ)");
+    assert_eq!(n_sr_s2.to_string(), "i(QΣ)");
     assert_eq!(format!("{:?}", n_sr_s2), "S2(Σ)(+0.000, +0.707, +0.707)");
 
     let n_sr_s2p = n_sr_s2.convert_to_improper_kind(&INV, true);
-    assert!(!n_sr_s2p.is_rot_su2_class_1());
-    assert_eq!(n_sr_s2p.to_string(), "i(Σ)");
-    assert_eq!(format!("{:?}", n_sr_s2p), "Ṡ1(Σ)(+0.000, +0.707, +0.707)");
+    assert!(n_sr_s2p.is_rot_su2_class_1());
+    assert_eq!(n_sr_s2p.to_string(), "i(QΣ)");
+    assert_eq!(format!("{:?}", n_sr_s2p), "Ṡ1(QΣ)(+0.000, +0.707, +0.707)");
+
+    let i_sr_s2 = s2.to_su2(false).unwrap();
+    assert!(!i_sr_s2.is_rot_su2_class_1());
+    assert_eq!(i_sr_s2.to_string(), "i(Σ)");
+    assert_eq!(format!("{:?}", n_sr_s2), "S2(Σ)(+0.000, +0.707, +0.707)");
+
+    let i_sr_s2p = i_sr_s2.convert_to_improper_kind(&INV, true);
+    assert!(!i_sr_s2p.is_rot_su2_class_1());
+    assert_eq!(i_sr_s2p.to_string(), "i(Σ)");
+    assert_eq!(format!("{:?}", i_sr_s2p), "Ṡ1(Σ)(+0.000, +0.707, +0.707)");
 
     let s3 = SymmetryElement::builder()
         .threshold(1e-3)
@@ -2416,10 +2428,12 @@ fn test_symmetry_element_su2_construction() {
     assert_eq!(n_sr_sd1.to_string(), "i(Σ)");
     assert_eq!(format!("{:?}", n_sr_sd1), "Ṡ1(Σ)(+0.000, +1.000, +0.000)");
 
+    println!("BEGIN");
     let n_sr_sd1p = n_sr_sd1.convert_to_improper_kind(&SIG, true);
     assert!(!n_sr_sd1p.is_rot_su2_class_1());
     assert_eq!(n_sr_sd1p.to_string(), "i(Σ)");
-    assert_eq!(format!("{:?}", n_sr_sd1p), "S2(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(format!("{:?}", n_sr_sd1p), "S2(QΣ)(+0.000, +1.000, +0.000)");
+    println!("END");
 
     let sd2 = SymmetryElement::builder()
         .threshold(1e-3)

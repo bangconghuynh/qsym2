@@ -17,8 +17,7 @@ use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, SymmetryElement, SymmetryElementKind, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV,
-    TRROT, TRSIG,
+    AntiunitaryKind, SymmetryElement, SymmetryElementKind, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRSIG, TR,
 };
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
@@ -860,7 +859,23 @@ impl SymmetryOperation {
             .expect("Unable to construct a symmetry operation.")
     }
 
-    pub fn rotationise_su2_time_reversal(&self) -> Option<Self> {
+    #[must_use]
+    pub fn convert_to_antiunitary_kind(&self, antiunitary_kind: &AntiunitaryKind) -> Self {
+        if self.generating_element.contains_antiunitary().is_some() {
+            match antiunitary_kind {
+                AntiunitaryKind::ComplexConjugation => self
+                    .rotationise_su2_time_reversal()
+                    .unwrap_or_else(|| panic!("Unable to rotationise an SU(2) time reversal, most likely because `{self}` does not contain an SU(2) rotation.")),
+                AntiunitaryKind::TimeReversal => self
+                    .derotationise_su2_time_reversal()
+                    .unwrap_or_else(|| panic!("Unable to derotationise an SU(2) time reversal, most likely because `{self}` does not contain an SU(2) rotation.")),
+            }
+        } else {
+            panic!("Only operations with an antiunitary generating element can be converted.");
+        }
+    }
+
+    fn rotationise_su2_time_reversal(&self) -> Option<Self> {
         if self.is_su2() {
             if self.generating_element.contains_time_reversal() {
                 let mut spatial_rotation_element = self.generating_element.clone();
@@ -902,7 +917,7 @@ impl SymmetryOperation {
         }
     }
 
-    pub fn derotationise_su2_time_reversal(&self) -> Option<Self> {
+    fn derotationise_su2_time_reversal(&self) -> Option<Self> {
         if self.is_su2() {
             if self.generating_element.contains_antiunitary()
                 == Some(AntiunitaryKind::ComplexConjugation)
@@ -1681,9 +1696,9 @@ impl Hash for SymmetryOperation {
         // ==========================
         // Special general operations
         // ==========================
+        c_self.is_su2().hash(state);
         c_self.is_proper().hash(state);
         c_self.is_antiunitary().hash(state);
-        c_self.is_su2().hash(state);
         c_self.is_full_su2_class_1().hash(state);
 
         // ===========================
@@ -1775,7 +1790,7 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
         };
         let thresh = (self.generating_element.threshold * rhs.generating_element.threshold).sqrt();
         let max_trial_power = u32::MAX;
-        SymmetryOperation::from_quaternion(
+        let product = SymmetryOperation::from_quaternion(
             q3,
             proper,
             thresh,
@@ -1783,7 +1798,13 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
             au,
             su2,
             self.positive_hemisphere.clone(),
-        )
+        );
+        product
+        // if au == Some(AntiunitaryKind::ComplexConjugation) {
+        //     product.convert_to_antiunitary_kind(&TR)
+        // } else {
+        //     product
+        // }
     }
 }
 
@@ -1858,17 +1879,22 @@ where
     M: Transform + PermutableCollection<Rank = usize>,
 {
     fn act_permute(&self, rhs: &M) -> Option<Permutation<usize>> {
-        let angle = self.calc_pole_angle();
-        let axis = self.calc_pole().coords;
-        let mut t_mol = if self.is_proper() {
-            rhs.rotate(angle, &axis)
+        // TODO: Consider how SU(2) operations act.
+        if self.is_su2() {
+            rhs.get_perm_of(&rhs)
         } else {
-            rhs.improper_rotate(angle, &axis, &IMINV)
-        };
-        if self.is_antiunitary() {
-            t_mol.reverse_time_mut();
+            let angle = self.calc_pole_angle();
+            let axis = self.calc_pole().coords;
+            let mut t_mol = if self.is_proper() {
+                rhs.rotate(angle, &axis)
+            } else {
+                rhs.improper_rotate(angle, &axis, &IMINV)
+            };
+            if self.is_antiunitary() {
+                t_mol.reverse_time_mut();
+            }
+            rhs.get_perm_of(&t_mol)
         }
-        rhs.get_perm_of(&t_mol)
     }
 }
 
