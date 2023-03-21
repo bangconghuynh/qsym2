@@ -3,8 +3,8 @@ use std::collections::HashSet;
 
 use crate::aux::misc;
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, ElementOrder, RotationGroup, SymmetryElement, INV, ROT, SIG, TRINV, TRROT,
-    TRSIG,
+    AntiunitaryKind, ElementOrder, RotationGroup, SymmetryElement, SymmetryElementKind, INV, ROT,
+    SIG, TRINV, TRROT, TRSIG, SU2_0, SO3
 };
 
 type F = fraction::GenericFraction<u32>;
@@ -1297,6 +1297,7 @@ fn test_symmetry_element_finite_power_comparison() {
     assert_eq!(tc1, tc1p2);
     assert_eq!(tc1p, tc1p2);
     assert!(tc1.is_o3_identity(Some(AntiunitaryKind::TimeReversal)));
+    assert!(tc1.is_time_reversal());
 
     let c2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2476,4 +2477,60 @@ fn test_symmetry_element_su2_construction() {
         format!("{:?}", &n_sr_tsd2p2),
         "θ·Ṡ1(Σ)(-0.707, +0.707, +0.000)"
     );
+
+    // ====================
+    // Antiunitary elements
+    // ====================
+    let tc1z_so3 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(TRROT)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+    assert!(tc1z_so3.is_time_reversal());
+    assert_eq!(tc1z_so3.to_string(), "θ");
+
+    let tc1z_su2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+    assert!(tc1z_su2.is_time_reversal());
+    assert_eq!(tc1z_su2.to_string(), "θ(Σ)");
+
+    let kc2y_so3 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::y())
+        .kind(SymmetryElementKind::Proper(Some(
+            AntiunitaryKind::ComplexConjugation,
+        )))
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+    assert!(!kc2y_so3.is_time_reversal());
+    assert_eq!(kc2y_so3.to_string(), "K·C2(+0.000, +1.000, +0.000)");
+
+    let kc2y_su2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::y())
+        .kind(SymmetryElementKind::Proper(Some(
+            AntiunitaryKind::ComplexConjugation,
+        )))
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+    assert!(kc2y_su2.is_time_reversal());
+    assert_eq!(kc2y_su2.to_string(), "θ(Σ)");
+    assert_eq!(format!("{:?}", kc2y_su2), "K·C2(Σ)(+0.000, +1.000, +0.000)");
 }
