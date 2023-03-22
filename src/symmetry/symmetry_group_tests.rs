@@ -8625,7 +8625,6 @@ fn test_ur_group_asymmetric_h2o2_grey_c2h_double() {
 
 #[test]
 fn test_ur_group_asymmetric_h2o2_grey_c2h_double_class_order() {
-    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2o2.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
