@@ -528,7 +528,7 @@ impl SymmetryGroupProperties
             true,
             su2_operations[0].generating_element.threshold(),
             1,
-            None,
+            false,
             true,
             poshem,
         );
@@ -843,7 +843,7 @@ impl SymmetryGroupProperties
             true,
             su2_operations[0].generating_element.threshold(),
             1,
-            None,
+            false,
             true,
             poshem,
         );
