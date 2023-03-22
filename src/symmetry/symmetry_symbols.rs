@@ -680,20 +680,9 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
             .is_spatial_reflection()
     }
 
-    // // ============
-    // // Unitary part
-    // // ============
-
-    // fn is_unitary_identity(&self) -> bool {
-    //     self.representative()
-    //         .as_ref()
-    //         .expect("No representative element found for this class.")
-    //         .is_unitary_identity()
-    // }
-
-    // ================
-    // Antiunitary part
-    // ================
+    // ==================
+    // Time-reversal part
+    // ==================
 
     /// Checks if this class is antiunitary.
     ///
@@ -707,16 +696,16 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
             .is_antiunitary()
     }
 
-    /// Checks if this class contains a pure time reversal.
+    /// Checks if this class contains a time reversal.
     ///
     /// # Returns
     ///
-    /// A flag indicating if this class contains a pure time reversal.
-    fn is_time_reversal(&self) -> bool {
+    /// A flag indicating if this class contains a time reversal.
+    fn contains_time_reversal(&self) -> bool {
         self.representative()
             .as_ref()
             .expect("No representative element found for this class.")
-            .is_time_reversal()
+            .contains_time_reversal()
     }
 
     // ==================
@@ -1296,28 +1285,26 @@ where
                 })
             ].clone();
             let char_trev_c = char_trev.complex_value();
-            if approx::relative_eq!(
-                char_trev_c.im,
-                0.0,
-                epsilon = char_trev.threshold,
-                max_relative = char_trev.threshold
-            ) && approx::relative_eq!(
-                char_trev_c.re.round(),
-                char_trev_c.re,
-                epsilon = char_trev.threshold,
-                max_relative = char_trev.threshold
-            ) {
-                // Real, integral time-reversal character
-                #[allow(clippy::cast_possible_truncation)]
-                let char_trev_c = char_trev_c.re.round() as i32;
-                match char_trev_c.cmp(&0) {
-                    Ordering::Greater => "",
-                    Ordering::Less => "m",
-                    Ordering::Equal => panic!("Real time-reversal character must not be zero."),
-                }
-            } else {
-                // Non-real or non-integral time-reversal character
-                ""
+            assert!(
+                approx::relative_eq!(
+                    char_trev_c.im,
+                    0.0,
+                    epsilon = char_trev.threshold,
+                    max_relative = char_trev.threshold
+                ) && approx::relative_eq!(
+                    char_trev_c.re.round(),
+                    char_trev_c.re,
+                    epsilon = char_trev.threshold,
+                    max_relative = char_trev.threshold
+                ),
+            );
+
+            #[allow(clippy::cast_possible_truncation)]
+            let char_trev_c = char_trev_c.re.round() as i32;
+            match char_trev_c.cmp(&0) {
+                Ordering::Greater => "",
+                Ordering::Less => "m",
+                Ordering::Equal => panic!("Time-reversal character must not be zero."),
             }
         } else {
             ""

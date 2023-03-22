@@ -1718,14 +1718,12 @@ impl Hash for SymmetryElement {
 }
 
 pub const TR: AntiunitaryKind = AntiunitaryKind::TimeReversal;
-pub const K: AntiunitaryKind = AntiunitaryKind::ComplexConjugation;
 pub const ROT: SymmetryElementKind = SymmetryElementKind::Proper(None);
 pub const SIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane(None);
 pub const INV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre(None);
 pub const TRROT: SymmetryElementKind = SymmetryElementKind::Proper(Some(TR));
 pub const TRSIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane(Some(TR));
 pub const TRINV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre(Some(TR));
-pub const KROT: SymmetryElementKind = SymmetryElementKind::Proper(Some(K));
 pub const SO3: RotationGroup = RotationGroup::SO3;
 pub const SU2_0: RotationGroup = RotationGroup::SU2(true);
 pub const SU2_1: RotationGroup = RotationGroup::SU2(false);
