@@ -1300,18 +1300,6 @@ where
             })
     }).collect_vec();
 
-    // let mut complex_irrep_indices = raw_irrep_symbols
-    //     .iter()
-    //     .enumerate()
-    //     .filter_map(|(i, irrep_sym)| {
-    //         if irrep_sym.main().contains("Γ") {
-    //             Some(i)
-    //         } else {
-    //             None
-    //         }
-    //     })
-    //     .rev()
-    //     .collect::<IndexSet<_>>();
     let mut complex_irrep_indices = char_arr
         .rows()
         .into_iter()
