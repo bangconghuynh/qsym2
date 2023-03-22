@@ -17,7 +17,7 @@ use crate::aux::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::{
-    SymmetryElement, SymmetryElementKind, INV, SIG, ROT, SO3, SU2_0, SU2_1, TRSIG, TRROT, TRINV
+    SymmetryElement, SymmetryElementKind, INV, SIG, SO3, SU2_0, SU2_1, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
@@ -275,9 +275,9 @@ impl SymmetryOperation {
     ) -> Self {
         let (scalar_part, vector_part) = qtn;
         let kind = if proper {
-            if tr { TRROT } else { ROT }
+            SymmetryElementKind::Proper(tr)
         } else {
-            if tr { TRINV } else { INV }
+            SymmetryElementKind::ImproperInversionCentre(tr)
         };
         let element = if su2 {
             // SU(2)
@@ -783,7 +783,7 @@ impl SymmetryOperation {
     pub fn to_symmetry_element(&self) -> SymmetryElement {
         let kind = if self.is_proper() {
             let tr = self.is_antiunitary();
-            if tr { TRROT } else { ROT }
+            SymmetryElementKind::Proper(tr)
         } else {
             self.generating_element.kind.clone()
         };
@@ -1017,8 +1017,8 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A boolean indicating if the spatial part of the symmetry operation is proper.
     fn is_proper(&self) -> bool {
-        let au= self.generating_element.contains_antiunitary();
-        self.generating_element.is_o3_proper(au) || self.power.rem_euclid(2) == 0
+        let tr = self.generating_element.contains_time_reversal();
+        self.generating_element.is_o3_proper(tr) || self.power.rem_euclid(2) == 0
     }
 
     /// Checks if the spatial part of the symmetry operation is the spatial identity.
@@ -1202,13 +1202,13 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
                     self.convert_to_improper_kind(&SymmetryElementKind::ImproperInversionCentre(tr))
                 }
             };
-            let generating_element_au = c_self.generating_element.contains_antiunitary();
+            let generating_element_tr = c_self.generating_element.contains_time_reversal();
             let spatial_proper_identity = c_self
                 .generating_element
-                .is_o3_identity(generating_element_au)
+                .is_o3_identity(generating_element_tr)
                 || c_self
                     .generating_element
-                    .is_o3_inversion_centre(generating_element_au);
+                    .is_o3_inversion_centre(generating_element_tr);
             let inverse_from_rotation_group = if spatial_proper_identity {
                 // The proper part of the generating element is the identity. In this case, no
                 // matter the value of proper power, the result is always the identity.

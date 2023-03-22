@@ -16,7 +16,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation, sort_operations
 };
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, SymmetryElement, SymmetryElementKind, ROT, SIG, SO3, TRROT, TRSIG,
+    SymmetryElement, SymmetryElementKind, ROT, SIG, SO3, TRROT, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
@@ -183,11 +183,11 @@ impl PreSymmetry {
         let angle = 2.0 * std::f64::consts::PI / order.to_float();
         let rotated_mol = self.molecule.rotate(angle, axis);
         if rotated_mol == self.molecule {
-            Some(ROT)
+            Some(SymmetryElementKind::Proper(false))
         } else if tr {
             let tr_rotated_mol = rotated_mol.reverse_time();
             if tr_rotated_mol == self.molecule {
-                Some(TRROT)
+                Some(SymmetryElementKind::Proper(true))
             } else {
                 None
             }
@@ -321,7 +321,7 @@ impl Symmetry {
             .proper_order(ORDER_1)
             .proper_power(1)
             .raw_axis(Vector3::new(0.0, 0.0, 1.0))
-            .kind(ROT)
+            .kind(SymmetryElementKind::Proper(false))
             .rotation_group(SO3)
             .build()
             .expect("Unable to construct the identity element.");
@@ -445,19 +445,19 @@ impl Symmetry {
         tr: bool,
     ) -> bool {
         let positive_axis = geometry::get_standard_positive_pole(axis, threshold).normalize();
-        let proper_kind = if tr { TRROT } else { ROT };
         let element = SymmetryElement::builder()
             .threshold(threshold)
             .proper_order(order)
             .proper_power(1)
             .raw_axis(positive_axis)
-            .kind(proper_kind)
+            .kind(SymmetryElementKind::Proper(tr))
             .rotation_group(SO3)
             .generator(generator)
             .build()
             .expect("Unable to construct a proper element.");
         let simplified_symbol = element.get_simplified_symbol();
         let full_symbol = element.get_full_symbol();
+        let proper_kind = if tr { TRROT } else { ROT };
         let result = if generator {
             if let Vacant(proper_generators) = self.generators.entry(proper_kind.clone()) {
                 proper_generators.insert(HashMap::from([(order, IndexSet::from([element]))]));
@@ -564,7 +564,6 @@ impl Symmetry {
         tr: bool,
     ) -> bool {
         let positive_axis = geometry::get_standard_positive_pole(axis, threshold).normalize();
-        let mirror_kind = if tr { TRSIG } else { SIG };
         let element = if let Some(sigma_str) = sigma {
             assert!(sigma_str == "d" || sigma_str == "v" || sigma_str == "h");
             let mut sym_ele = SymmetryElement::builder()
@@ -577,7 +576,7 @@ impl Symmetry {
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
-                .convert_to_improper_kind(&mirror_kind, false);
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane(tr), false);
             if *sym_ele.raw_proper_order() == ElementOrder::Int(1) {
                 sym_ele.additional_subscript = sigma_str;
             }
@@ -593,14 +592,13 @@ impl Symmetry {
                 .generator(generator)
                 .build()
                 .expect("Unable to construct an improper symmetry element.")
-                .convert_to_improper_kind(&mirror_kind, false)
+                .convert_to_improper_kind(&SymmetryElementKind::ImproperMirrorPlane(tr), false)
         };
         let order = *element.raw_proper_order();
         let simplified_symbol = element.get_simplified_symbol();
         let full_symbol = element.get_full_symbol();
-        let au = if tr { Some(AntiunitaryKind::TimeReversal) } else { None };
-        let is_o3_mirror_plane = element.is_o3_mirror_plane(au);
-        let is_o3_inversion_centre = element.is_o3_inversion_centre(au);
+        let is_o3_mirror_plane = element.is_o3_mirror_plane(tr);
+        let is_o3_inversion_centre = element.is_o3_inversion_centre(tr);
         let improper_kind = if tr { TRSIG } else { SIG };
         let result = if generator {
             if let Vacant(improper_generators) = self.generators.entry(improper_kind.clone()) {

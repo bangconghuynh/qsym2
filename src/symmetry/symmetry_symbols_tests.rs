@@ -6,7 +6,7 @@ use crate::chartab::chartab_symbols::{CollectionSymbol, MathematicalSymbol};
 use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
-use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SIG, ROT};
+use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SymmetryElementKind};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_symbols::{
     MullikenIrcorepSymbol, MullikenIrrepSymbol, SymmetryClassSymbol,
@@ -36,7 +36,7 @@ fn test_symmetry_symbols_class() {
         .proper_order(ElementOrder::new(3.0, 1e-14))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(ROT)
+        .kind(SymmetryElementKind::Proper(false))
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -68,7 +68,7 @@ fn test_symmetry_symbols_class() {
         .proper_order(ElementOrder::new(2.0, 1e-14))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SIG)
+        .kind(SymmetryElementKind::ImproperMirrorPlane(false))
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
@@ -89,7 +89,7 @@ fn test_symmetry_symbols_class() {
         .proper_order(ElementOrder::new(1.0, 1e-14))
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(SIG)
+        .kind(SymmetryElementKind::ImproperMirrorPlane(false))
         .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();

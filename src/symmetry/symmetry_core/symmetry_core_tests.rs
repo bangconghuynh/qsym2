@@ -1,6 +1,6 @@
 use crate::aux::molecule::Molecule;
 use crate::symmetry::symmetry_core::PreSymmetry;
-use crate::symmetry::symmetry_element::{SymmetryElementKind, INV, SIG};
+use crate::symmetry::symmetry_element::SymmetryElementKind;
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use nalgebra::Vector3;
 
@@ -25,11 +25,13 @@ fn test_symmetry_check_proper_improper_n3() {
         .check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, -1.0, 0.0), false)
         .is_none());
 
+    let sig = SymmetryElementKind::ImproperMirrorPlane(false);
+    let inv = SymmetryElementKind::ImproperInversionCentre(false);
     assert!(presym
         .check_improper(
             &ElementOrder::Int(1),
             &Vector3::new(-1.0, 0.0, 1.0),
-            &SIG,
+            &sig,
             false
         )
         .is_some());
@@ -37,7 +39,7 @@ fn test_symmetry_check_proper_improper_n3() {
         .check_improper(
             &ElementOrder::Int(1),
             &Vector3::new(-1.0, 0.0, 1.0),
-            &INV,
+            &inv,
             false
         )
         .is_none());
@@ -45,7 +47,7 @@ fn test_symmetry_check_proper_improper_n3() {
         .check_improper(
             &ElementOrder::Int(2),
             &Vector3::new(0.0, 1.0, -1.0),
-            &INV,
+            &inv,
             false
         )
         .is_some());
@@ -53,7 +55,7 @@ fn test_symmetry_check_proper_improper_n3() {
         .check_improper(
             &ElementOrder::Int(2),
             &Vector3::new(0.0, 1.0, -1.0),
-            &SIG,
+            &sig,
             false
         )
         .is_none());
@@ -78,11 +80,13 @@ fn test_symmetry_check_proper_improper_h8() {
         .check_proper(&ElementOrder::Int(2), &Vector3::new(1.0, 1.0, 0.0), false)
         .is_some());
 
+    let sig = SymmetryElementKind::ImproperMirrorPlane(false);
+    let inv = SymmetryElementKind::ImproperInversionCentre(false);
     assert!(presym
         .check_improper(
             &ElementOrder::Int(1),
             &Vector3::new(0.0, 0.0, 1.0),
-            &INV,
+            &inv,
             false
         )
         .is_some());
@@ -90,7 +94,7 @@ fn test_symmetry_check_proper_improper_h8() {
         .check_improper(
             &ElementOrder::Int(1),
             &Vector3::new(0.0, 0.0, 1.0),
-            &SIG,
+            &sig,
             false
         )
         .is_some());
@@ -98,7 +102,7 @@ fn test_symmetry_check_proper_improper_h8() {
         .check_improper(
             &ElementOrder::Int(1),
             &Vector3::new(0.0, 1.0, 0.0),
-            &SIG,
+            &sig,
             false
         )
         .is_some());
@@ -106,7 +110,7 @@ fn test_symmetry_check_proper_improper_h8() {
         .check_improper(
             &ElementOrder::Int(1),
             &Vector3::new(1.0, 1.0, 0.0),
-            &SIG,
+            &sig,
             false
         )
         .is_some());
