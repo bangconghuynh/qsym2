@@ -729,11 +729,11 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
     /// # Returns
     ///
     /// A flag indicating if this class contains an active and inverse associated spin rotation.
-    fn is_rot_su2_class_1(&self) -> bool {
+    fn is_su2_class_1(&self) -> bool {
         self.representatives()
             .expect("No representative element found for this class.")
             .iter()
-            .all(|rep| rep.is_rot_su2_class_1())
+            .all(|rep| rep.is_su2_class_1())
     }
 }
 
@@ -922,8 +922,8 @@ where
             .clone()
             .sorted_by(|cc1, _, cc2, _| {
                 PartialOrd::partial_cmp(
-                    &(cc1.order(), !cc1.is_antiunitary(), cc1.is_proper(), !cc1.is_rot_su2_class_1()),
-                    &(cc2.order(), !cc2.is_antiunitary(), cc2.is_proper(), !cc2.is_rot_su2_class_1()),
+                    &(cc1.order(), !cc1.is_antiunitary(), cc1.is_proper(), !cc1.is_su2_class_1()),
+                    &(cc2.order(), !cc2.is_antiunitary(), cc2.is_proper(), !cc2.is_su2_class_1()),
                 )
                 .expect("Unable to sort class symbols.")
             })
@@ -950,7 +950,7 @@ where
                 cc.is_antiunitary() == principal_rep.is_antiunitary()
                 && cc.is_proper() == principal_rep.is_proper()
                 && cc.order() == principal_rep.order()
-                && cc.is_rot_su2_class_1() == principal_rep.is_rot_su2_class_1()
+                && cc.is_su2_class_1() == principal_rep.is_su2_class_1()
             })
             .cloned()
             .collect::<Vec<_>>()

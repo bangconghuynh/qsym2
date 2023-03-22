@@ -38,8 +38,7 @@ pub trait SpecialSymmetryTransformation {
     // Group-theoretical
     // =================
 
-    /// Checks if the overall proper rotation part of the symmetry operation is in
-    /// $`\mathsf{SU}(2)`$.
+    /// Checks if the proper rotation part of the symmetry operation is in $`\mathsf{SU}(2)`$.
     ///
     /// # Returns
     ///
@@ -54,7 +53,7 @@ pub trait SpecialSymmetryTransformation {
     ///
     /// A boolean indicating if this symmetry operation contains an $`\mathsf{SU}(2)`$ proper
     /// rotation connected to the identity via a homotopy path of class 1.
-    fn is_rot_su2_class_1(&self) -> bool;
+    fn is_su2_class_1(&self) -> bool;
 
     // ============
     // Spatial part
@@ -124,7 +123,7 @@ pub trait SpecialSymmetryTransformation {
     ///
     /// A boolean indicating if this symmetry operation is the identity.
     fn is_identity(&self) -> bool {
-        self.is_spatial_identity() && !self.is_antiunitary() && !self.is_rot_su2_class_1()
+        self.is_spatial_identity() && !self.is_antiunitary() && !self.is_su2_class_1()
     }
 
     /// Checks if the symmetry operation is a pure time-reversal.
@@ -133,7 +132,7 @@ pub trait SpecialSymmetryTransformation {
     ///
     /// A boolean indicating if this symmetry operation is a pure time-reversal.
     fn is_time_reversal(&self) -> bool {
-        self.is_spatial_identity() && self.is_antiunitary() && !self.is_rot_su2_class_1()
+        self.is_spatial_identity() && self.is_antiunitary() && !self.is_su2_class_1()
     }
 
     /// Checks if the symmetry operation is an inversion in $`\mathsf{O}(3)`$.
@@ -490,8 +489,8 @@ impl SymmetryOperation {
             self.convert_to_improper_kind(&INV)
         };
         debug_assert_eq!(
-            self.is_rot_su2_class_1(),
-            c_self.is_rot_su2_class_1(),
+            self.is_su2_class_1(),
+            c_self.is_su2_class_1(),
             "`{self}` and `{c_self}` are in different homotopy classes."
         );
 
@@ -530,7 +529,7 @@ impl SymmetryOperation {
             c_self.calc_pole()
         );
 
-        if self.is_rot_su2_class_1() {
+        if self.is_su2_class_1() {
             (-scalar_part, -vector_part)
         } else {
             (scalar_part, vector_part)
@@ -778,8 +777,8 @@ impl SymmetryOperation {
             .generating_element
             .convert_to_improper_kind(improper_kind, true);
         debug_assert_eq!(
-            self.generating_element.is_rot_su2_class_1(),
-            c_element.is_rot_su2_class_1()
+            self.generating_element.rot_is_su2_class_1(),
+            c_element.rot_is_su2_class_1()
         );
         Self::builder()
             .generating_element(c_element)
@@ -822,7 +821,7 @@ impl SymmetryOperation {
         } else {
             self.generating_element.additional_subscript.clone()
         };
-        let rotation_group = if self.is_rot_su2_class_1() {
+        let rotation_group = if self.is_su2_class_1() {
             SU2_1
         } else if self.is_su2() {
             SU2_0
@@ -978,7 +977,7 @@ impl SymmetryOperation {
             None,
         );
         if self.is_su2() {
-            if self.is_rot_su2_class_1() {
+            if self.is_su2_class_1() {
                 self * q_identity
             } else {
                 self.clone()
@@ -986,7 +985,7 @@ impl SymmetryOperation {
         } else {
             let mut op = self.clone();
             op.generating_element.rotation_group = SU2_0;
-            if op.is_rot_su2_class_1() {
+            if op.is_su2_class_1() {
                 let mut q_op = op * q_identity;
                 if !q_op.is_proper() {
                     q_op = q_op.convert_to_improper_kind(&SIG);
@@ -1215,7 +1214,7 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     ///
     /// A boolean indicating if this symmetry operation contains an $`\mathsf{SU}(2)`$ proper
     /// rotation connected to the identity via a homotopy path of class 1.
-    fn is_rot_su2_class_1(&self) -> bool {
+    fn is_su2_class_1(&self) -> bool {
         if self.is_su2() {
             // The following is wrong, because `self.is_proper()` takes into account the power applied
             // to the spatial part, but not yet to the spin rotation part. Then, for example,
@@ -1335,7 +1334,7 @@ impl PartialEq for SymmetryOperation {
             return false;
         }
 
-        if self.is_rot_su2_class_1() != other.is_rot_su2_class_1() {
+        if self.is_su2_class_1() != other.is_su2_class_1() {
             return false;
         }
 
@@ -1441,7 +1440,7 @@ impl Hash for SymmetryOperation {
         c_self.is_proper().hash(state);
         c_self.is_antiunitary().hash(state);
         c_self.is_su2().hash(state);
-        c_self.is_rot_su2_class_1().hash(state);
+        c_self.is_su2_class_1().hash(state);
 
         // ===========================
         // Special specific operations
@@ -1673,7 +1672,7 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             if negative_rotation { -numer } else { numer },
             OrderedFloat(axis_closeness),
             closest_axis,
-            c_op.is_rot_su2_class_1(),
+            c_op.is_su2_class_1(),
         )
     });
 }

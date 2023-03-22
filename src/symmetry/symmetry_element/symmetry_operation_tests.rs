@@ -4307,7 +4307,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .build()
         .unwrap();
     assert!(c2_nsr_p1.is_spatial_binary_rotation());
-    assert!(c2_nsr_p1.is_rot_su2_class_1());
+    assert!(c2_nsr_p1.is_su2_class_1());
 
     let (c2_nsr_p1_sca, c2_nsr_p1_vec) = c2_nsr_p1.calc_quaternion();
     approx::assert_relative_eq!(
@@ -4329,7 +4329,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .build()
         .unwrap();
     assert!(c2_nsr_p2.is_spatial_identity());
-    assert!(c2_nsr_p2.is_rot_su2_class_1());
+    assert!(c2_nsr_p2.is_su2_class_1());
 
     let (c2_nsr_p2_sca, c2_nsr_p2_vec) = c2_nsr_p2.calc_quaternion();
     approx::assert_relative_eq!(
@@ -4351,7 +4351,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .build()
         .unwrap();
     assert!(c2_nsr_p3.is_spatial_binary_rotation());
-    assert!(!c2_nsr_p3.is_rot_su2_class_1());
+    assert!(!c2_nsr_p3.is_su2_class_1());
 
     let (c2_nsr_p3_sca, c2_nsr_p3_vec) = c2_nsr_p3.calc_quaternion();
     approx::assert_relative_eq!(
@@ -4540,7 +4540,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(1)
         .build()
         .unwrap();
-    assert!(!s1_nsr_p1.is_rot_su2_class_1());
+    assert!(!s1_nsr_p1.is_su2_class_1());
     assert!(s1_nsr_p1.is_spatial_reflection());
 
     let (s1_nsr_p1_sca, s1_nsr_p1_vec) = s1_nsr_p1.calc_quaternion();
@@ -4562,7 +4562,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(2)
         .build()
         .unwrap();
-    assert!(s1_nsr_p2.is_rot_su2_class_1());
+    assert!(s1_nsr_p2.is_su2_class_1());
     assert!(s1_nsr_p2.is_spatial_identity());
 
     let (s1_nsr_p2_sca, s1_nsr_p2_vec) = s1_nsr_p2.calc_quaternion();
@@ -4584,7 +4584,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(3)
         .build()
         .unwrap();
-    assert!(s1_nsr_p3.is_rot_su2_class_1());
+    assert!(s1_nsr_p3.is_su2_class_1());
     assert!(s1_nsr_p3.is_spatial_reflection());
 
     let (s1_nsr_p3_sca, s1_nsr_p3_vec) = s1_nsr_p3.calc_quaternion();
@@ -4606,7 +4606,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(4)
         .build()
         .unwrap();
-    assert!(!s1_nsr_p4.is_rot_su2_class_1());
+    assert!(!s1_nsr_p4.is_su2_class_1());
     assert!(s1_nsr_p4.is_identity());
 
     let (s1_nsr_p4_sca, s1_nsr_p4_vec) = s1_nsr_p4.calc_quaternion();
@@ -4638,7 +4638,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(1)
         .build()
         .unwrap();
-    assert!(!s2_nsr_p1.is_rot_su2_class_1());
+    assert!(!s2_nsr_p1.is_su2_class_1());
     assert!(s2_nsr_p1.is_spatial_inversion());
     assert!(!s2_nsr_p1.is_identity());
 
@@ -4661,7 +4661,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(2)
         .build()
         .unwrap();
-    assert!(!s2_nsr_p2.is_rot_su2_class_1());
+    assert!(!s2_nsr_p2.is_su2_class_1());
     assert!(s2_nsr_p2.is_identity());
 
     let (s2_nsr_p2_sca, s2_nsr_p2_vec) = s2_nsr_p2.calc_quaternion();
@@ -4696,7 +4696,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(1)
         .build()
         .unwrap();
-    assert!(!s3_nsr_p1.is_rot_su2_class_1());
+    assert!(!s3_nsr_p1.is_su2_class_1());
 
     let (s3_nsr_p1_sca, s3_nsr_p1_vec) = s3_nsr_p1.calc_quaternion();
     approx::assert_relative_eq!(
@@ -4718,7 +4718,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(2)
         .build()
         .unwrap();
-    assert!(!s3_nsr_p2.is_rot_su2_class_1());
+    assert!(!s3_nsr_p2.is_su2_class_1());
     assert!(s3_nsr_p2.is_proper());
 
     let (s3_nsr_p2_sca, s3_nsr_p2_vec) = s3_nsr_p2.calc_quaternion();
@@ -4741,7 +4741,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(3)
         .build()
         .unwrap();
-    assert!(s3_nsr_p3.is_rot_su2_class_1());
+    assert!(s3_nsr_p3.is_su2_class_1());
     assert!(!s3_nsr_p3.is_proper());
     assert!(s3_nsr_p3.is_spatial_reflection());
 
@@ -4764,7 +4764,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(4)
         .build()
         .unwrap();
-    assert!(s3_nsr_p4.is_rot_su2_class_1());
+    assert!(s3_nsr_p4.is_su2_class_1());
     assert!(s3_nsr_p4.is_proper());
 
     let (s3_nsr_p4_sca, s3_nsr_p4_vec) = s3_nsr_p4.calc_quaternion();
@@ -4787,7 +4787,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(5)
         .build()
         .unwrap();
-    assert!(s3_nsr_p5.is_rot_su2_class_1());
+    assert!(s3_nsr_p5.is_su2_class_1());
     assert!(!s3_nsr_p5.is_proper());
 
     let (s3_nsr_p5_sca, s3_nsr_p5_vec) = s3_nsr_p5.calc_quaternion();
@@ -4810,7 +4810,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(6)
         .build()
         .unwrap();
-    assert!(s3_nsr_p6.is_rot_su2_class_1());
+    assert!(s3_nsr_p6.is_su2_class_1());
     assert!(s3_nsr_p6.is_proper());
     assert!(s3_nsr_p6.is_spatial_identity());
 
@@ -4833,7 +4833,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(7)
         .build()
         .unwrap();
-    assert!(s3_nsr_p7.is_rot_su2_class_1());
+    assert!(s3_nsr_p7.is_su2_class_1());
     assert!(!s3_nsr_p7.is_proper());
 
     let (s3_nsr_p7_sca, s3_nsr_p7_vec) = s3_nsr_p7.calc_quaternion();
@@ -4855,7 +4855,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(8)
         .build()
         .unwrap();
-    assert!(s3_nsr_p8.is_rot_su2_class_1());
+    assert!(s3_nsr_p8.is_su2_class_1());
     assert!(s3_nsr_p8.is_proper());
 
     let (s3_nsr_p8_sca, s3_nsr_p8_vec) = s3_nsr_p8.calc_quaternion();
@@ -4877,7 +4877,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(9)
         .build()
         .unwrap();
-    assert!(!s3_nsr_p9.is_rot_su2_class_1());
+    assert!(!s3_nsr_p9.is_su2_class_1());
     assert!(!s3_nsr_p9.is_proper());
 
     let (s3_nsr_p9_sca, s3_nsr_p9_vec) = s3_nsr_p9.calc_quaternion();
@@ -4899,7 +4899,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(10)
         .build()
         .unwrap();
-    assert!(!s3_nsr_p10.is_rot_su2_class_1());
+    assert!(!s3_nsr_p10.is_su2_class_1());
     assert!(s3_nsr_p10.is_proper());
 
     let (s3_nsr_p10_sca, s3_nsr_p10_vec) = s3_nsr_p10.calc_quaternion();
@@ -4921,7 +4921,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(11)
         .build()
         .unwrap();
-    assert!(!s3_nsr_p11.is_rot_su2_class_1());
+    assert!(!s3_nsr_p11.is_su2_class_1());
     assert!(!s3_nsr_p11.is_proper());
 
     let (s3_nsr_p11_sca, s3_nsr_p11_vec) = s3_nsr_p11.calc_quaternion();
@@ -4943,7 +4943,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(12)
         .build()
         .unwrap();
-    assert!(!s3_nsr_p12.is_rot_su2_class_1());
+    assert!(!s3_nsr_p12.is_su2_class_1());
     assert!(s3_nsr_p12.is_proper());
     assert!(s3_nsr_p12.is_identity());
 
@@ -4979,7 +4979,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(1)
         .build()
         .unwrap();
-    assert!(!sd3_nsr_p1.is_rot_su2_class_1());
+    assert!(!sd3_nsr_p1.is_su2_class_1());
     assert!(!sd3_nsr_p1.is_proper());
 
     let (sd3_nsr_p1_sca, sd3_nsr_p1_vec) = sd3_nsr_p1.calc_quaternion();
@@ -5002,7 +5002,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(2)
         .build()
         .unwrap();
-    assert!(sd3_nsr_p2.is_rot_su2_class_1());
+    assert!(sd3_nsr_p2.is_su2_class_1());
     assert!(sd3_nsr_p2.is_proper());
 
     let (sd3_nsr_p2_sca, sd3_nsr_p2_vec) = sd3_nsr_p2.calc_quaternion();
@@ -5025,7 +5025,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(3)
         .build()
         .unwrap();
-    assert!(sd3_nsr_p3.is_rot_su2_class_1());
+    assert!(sd3_nsr_p3.is_su2_class_1());
     assert!(!sd3_nsr_p3.is_proper());
     assert!(sd3_nsr_p3.is_spatial_inversion());
 
@@ -5048,7 +5048,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(4)
         .build()
         .unwrap();
-    assert!(sd3_nsr_p4.is_rot_su2_class_1());
+    assert!(sd3_nsr_p4.is_su2_class_1());
     assert!(sd3_nsr_p4.is_proper());
 
     let (sd3_nsr_p4_sca, sd3_nsr_p4_vec) = sd3_nsr_p4.calc_quaternion();
@@ -5070,7 +5070,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(5)
         .build()
         .unwrap();
-    assert!(!sd3_nsr_p5.is_rot_su2_class_1());
+    assert!(!sd3_nsr_p5.is_su2_class_1());
     assert!(!sd3_nsr_p5.is_proper());
 
     let (sd3_nsr_p5_sca, sd3_nsr_p5_vec) = sd3_nsr_p5.calc_quaternion();
@@ -5092,7 +5092,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .power(6)
         .build()
         .unwrap();
-    assert!(!sd3_nsr_p6.is_rot_su2_class_1());
+    assert!(!sd3_nsr_p6.is_su2_class_1());
     assert!(sd3_nsr_p6.is_identity());
 
     let (sd3_nsr_p6_sca, sd3_nsr_p6_vec) = sd3_nsr_p6.calc_quaternion();
@@ -5142,8 +5142,8 @@ fn test_symmetry_operation_su2_from_quaternion() {
         None,
     );
     assert_eq!(c4_nsr_p2, c4_nsr_p2_r);
-    assert!(!c4_nsr_p2.is_rot_su2_class_1());
-    assert!(!c4_nsr_p2_r.is_rot_su2_class_1());
+    assert!(!c4_nsr_p2.is_su2_class_1());
+    assert!(!c4_nsr_p2_r.is_su2_class_1());
 
     let c4_nsr_pm2 = SymmetryOperation::builder()
         .generating_element(c4_nsr_element.clone())
@@ -5162,8 +5162,8 @@ fn test_symmetry_operation_su2_from_quaternion() {
         None,
     );
     assert_eq!(c4_nsr_pm2, c4_nsr_pm2_r);
-    assert!(c4_nsr_pm2.is_rot_su2_class_1());
-    assert!(c4_nsr_pm2_r.is_rot_su2_class_1());
+    assert!(c4_nsr_pm2.is_su2_class_1());
+    assert!(c4_nsr_pm2_r.is_su2_class_1());
 
     let c4_nsr_p4 = SymmetryOperation::builder()
         .generating_element(c4_nsr_element.clone())
@@ -5182,8 +5182,8 @@ fn test_symmetry_operation_su2_from_quaternion() {
         None,
     );
     assert_eq!(c4_nsr_p4, c4_nsr_p4_r);
-    assert!(c4_nsr_p4.is_rot_su2_class_1());
-    assert!(c4_nsr_p4_r.is_rot_su2_class_1());
+    assert!(c4_nsr_p4.is_su2_class_1());
+    assert!(c4_nsr_p4_r.is_su2_class_1());
 
     let c4_nsr_p6 = SymmetryOperation::builder()
         .generating_element(c4_nsr_element.clone())
@@ -5202,7 +5202,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         None,
     );
     assert_eq!(c4_nsr_p6, c4_nsr_p6_r);
-    assert!(c4_nsr_p6_r.is_rot_su2_class_1());
+    assert!(c4_nsr_p6_r.is_su2_class_1());
 
     let c7_isr_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -5231,7 +5231,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         None,
     );
     assert_eq!(c7_isr_p1, c7_isr_p1_r);
-    assert!(c7_isr_p1_r.is_rot_su2_class_1());
+    assert!(c7_isr_p1_r.is_su2_class_1());
 
     let c7_isr_p2 = SymmetryOperation::builder()
         .generating_element(c7_isr_element.clone())
@@ -5250,7 +5250,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         None,
     );
     assert_eq!(c7_isr_p2, c7_isr_p2_r);
-    assert!(!c7_isr_p2_r.is_rot_su2_class_1());
+    assert!(!c7_isr_p2_r.is_su2_class_1());
 
     let c7_isr_p3 = SymmetryOperation::builder()
         .generating_element(c7_isr_element.clone())
@@ -5269,7 +5269,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         None,
     );
     assert_eq!(c7_isr_p3, c7_isr_p3_r);
-    assert!(c7_isr_p3_r.is_rot_su2_class_1());
+    assert!(c7_isr_p3_r.is_su2_class_1());
 
     let c7_isr_p7 = SymmetryOperation::builder()
         .generating_element(c7_isr_element.clone())
@@ -5383,7 +5383,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         None,
     );
     assert_eq!(s2_isr_p2, s2_isr_p2_r);
-    assert!(!s2_isr_p2_r.is_rot_su2_class_1());
+    assert!(!s2_isr_p2_r.is_su2_class_1());
 
     let s3_isr_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -6120,10 +6120,10 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .build()
         .unwrap();
 
-    assert!((&c2_nsr_p1 * &c2_nsr_p1).is_rot_su2_class_1());
+    assert!((&c2_nsr_p1 * &c2_nsr_p1).is_su2_class_1());
     assert_eq!(&c2_nsr_p1 * &c2_nsr_p1, c2_nsr_p2);
 
-    assert!(!(&c2_nsr_p2 * &c2_nsr_p2).is_rot_su2_class_1());
+    assert!(!(&c2_nsr_p2 * &c2_nsr_p2).is_su2_class_1());
     assert!((&c2_nsr_p2 * &c2_nsr_p2).is_identity());
 
     let c2_isr_element = SymmetryElement::builder()
@@ -6141,7 +6141,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .power(1)
         .build()
         .unwrap();
-    assert!(!(&c2_nsr_p1 * &c2_isr_p1).is_rot_su2_class_1());
+    assert!(!(&c2_nsr_p1 * &c2_isr_p1).is_su2_class_1());
     assert!((&c2_nsr_p1 * &c2_isr_p1).is_identity());
 
     let c3_nsr_element = SymmetryElement::builder()
@@ -6172,13 +6172,13 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .build()
         .unwrap();
 
-    assert!((&c3_nsr_p1 * &c3_nsr_p2).is_rot_su2_class_1());
+    assert!((&c3_nsr_p1 * &c3_nsr_p2).is_su2_class_1());
     assert!((&c3_nsr_p1 * &c3_nsr_p2).is_spatial_identity());
 
-    assert!((&c3_nsr_p2 * &c3_nsr_p2).is_rot_su2_class_1());
+    assert!((&c3_nsr_p2 * &c3_nsr_p2).is_su2_class_1());
     assert_eq!(&c3_nsr_p2 * &c3_nsr_p2, c3_nsr_p4);
 
-    assert!(!(&c3_nsr_p4 * &c3_nsr_p1).is_rot_su2_class_1());
+    assert!(!(&c3_nsr_p4 * &c3_nsr_p1).is_su2_class_1());
     assert!((&c3_nsr_p4 * &c3_nsr_p2).is_identity());
 
     assert!((&c3_nsr_p4 * &c3_nsr_p2).is_identity());
@@ -6229,7 +6229,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .build()
         .unwrap();
     let c4b_nsr_p2 = c4b_nsr_p1.pow(2);
-    assert!(c4b_nsr_p2.is_rot_su2_class_1());
+    assert!(c4b_nsr_p2.is_su2_class_1());
     assert_eq!(c4b_nsr_p2, c2_nsr_p3);
 
     let c5_nsr_element = SymmetryElement::builder()
@@ -6271,7 +6271,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .power(3)
         .build()
         .unwrap();
-    assert!((&c5_nsr_p2 * &c5_nsr_p3).is_rot_su2_class_1());
+    assert!((&c5_nsr_p2 * &c5_nsr_p3).is_su2_class_1());
     assert!((&c5_nsr_p2 * &c5_nsr_p3).is_spatial_identity());
 
     let c5_isr_element = SymmetryElement::builder()
@@ -6295,7 +6295,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .build()
         .unwrap();
 
-    assert!((&c5_nsr_p2 * &c5_nsr_p4).is_rot_su2_class_1());
+    assert!((&c5_nsr_p2 * &c5_nsr_p4).is_su2_class_1());
     assert_eq!(&c5_nsr_p2 * &c5_nsr_p4, c5_isr_p1);
 
     let c7_isr_element = SymmetryElement::builder()
@@ -6396,8 +6396,8 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .power(7)
         .build()
         .unwrap();
-    assert!(!s5_nsr_p1.is_rot_su2_class_1());
-    assert!((&s5_nsr_p1 * &s5_nsr_p1).is_rot_su2_class_1());
+    assert!(!s5_nsr_p1.is_su2_class_1());
+    assert!((&s5_nsr_p1 * &s5_nsr_p1).is_su2_class_1());
     assert_eq!(&s5_nsr_p1 * &s5_nsr_p1, c5_nsr_p7);
 
     let s5_pp2_nsr_element = SymmetryElement::builder()
@@ -7262,8 +7262,8 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_isr_p1, c5_nsr_p6);
-    assert!(c5_isr_p1.is_rot_su2_class_1());
-    assert!(c5_nsr_p6.is_rot_su2_class_1());
+    assert!(c5_isr_p1.is_su2_class_1());
+    assert!(c5_nsr_p6.is_su2_class_1());
 
     let c5_isr_p2 = SymmetryOperation::builder()
         .generating_element(c5_isr_element.clone())
@@ -7276,8 +7276,8 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_isr_p2, c5_nsr_p2);
-    assert!(!c5_isr_p2.is_rot_su2_class_1());
-    assert!(!c5_nsr_p2.is_rot_su2_class_1());
+    assert!(!c5_isr_p2.is_su2_class_1());
+    assert!(!c5_nsr_p2.is_su2_class_1());
 
     let c5_isr_p3 = SymmetryOperation::builder()
         .generating_element(c5_isr_element.clone())
@@ -7290,8 +7290,8 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_isr_p3, c5_nsr_p8);
-    assert!(!c5_isr_p3.is_rot_su2_class_1());
-    assert!(!c5_nsr_p8.is_rot_su2_class_1());
+    assert!(!c5_isr_p3.is_su2_class_1());
+    assert!(!c5_nsr_p8.is_su2_class_1());
 
     let c5_isr_p4 = SymmetryOperation::builder()
         .generating_element(c5_isr_element.clone())
@@ -7304,8 +7304,8 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_isr_p4, c5_nsr_p4);
-    assert!(c5_isr_p4.is_rot_su2_class_1());
-    assert!(c5_nsr_p4.is_rot_su2_class_1());
+    assert!(c5_isr_p4.is_su2_class_1());
+    assert!(c5_nsr_p4.is_su2_class_1());
 
     let c5_isr_p5 = SymmetryOperation::builder()
         .generating_element(c5_isr_element.clone())
@@ -7332,8 +7332,8 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_isr_p6, c5_nsr_p6);
-    assert!(c5_isr_p6.is_rot_su2_class_1());
-    assert!(c5_nsr_p6.is_rot_su2_class_1());
+    assert!(c5_isr_p6.is_su2_class_1());
+    assert!(c5_nsr_p6.is_su2_class_1());
 
     let c5_isr_p7 = SymmetryOperation::builder()
         .generating_element(c5_isr_element.clone())
@@ -7346,8 +7346,8 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_isr_p7, c5_nsr_p2);
-    assert!(!c5_isr_p7.is_rot_su2_class_1());
-    assert!(!c5_nsr_p2.is_rot_su2_class_1());
+    assert!(!c5_isr_p7.is_su2_class_1());
+    assert!(!c5_nsr_p2.is_su2_class_1());
 
     let c5_isr_p8 = SymmetryOperation::builder()
         .generating_element(c5_isr_element.clone())
@@ -7360,8 +7360,8 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_isr_p8, c5_nsr_p8);
-    assert!(!c5_isr_p8.is_rot_su2_class_1());
-    assert!(!c5_nsr_p8.is_rot_su2_class_1());
+    assert!(!c5_isr_p8.is_su2_class_1());
+    assert!(!c5_nsr_p8.is_su2_class_1());
 
     let c5_isr_p9 = SymmetryOperation::builder()
         .generating_element(c5_isr_element.clone())
@@ -7374,8 +7374,8 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_isr_p9, c5_nsr_p4);
-    assert!(c5_isr_p9.is_rot_su2_class_1());
-    assert!(c5_nsr_p4.is_rot_su2_class_1());
+    assert!(c5_isr_p9.is_su2_class_1());
+    assert!(c5_nsr_p4.is_su2_class_1());
 
     let c5_isr_p10 = SymmetryOperation::builder()
         .generating_element(c5_isr_element.clone())
@@ -7402,7 +7402,7 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_nsr_pm1, c5_nsr_p9);
-    assert!(!c5_nsr_pm1.is_rot_su2_class_1());
+    assert!(!c5_nsr_pm1.is_su2_class_1());
 
     let c5_nsr_pm3 = SymmetryOperation::builder()
         .generating_element(c5_nsr_element.clone())
@@ -7415,8 +7415,8 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_nsr_pm3, c5_nsr_p7);
-    assert!(c5_nsr_pm3.is_rot_su2_class_1());
-    assert!(c5_nsr_p7.is_rot_su2_class_1());
+    assert!(c5_nsr_pm3.is_su2_class_1());
+    assert!(c5_nsr_p7.is_su2_class_1());
 
     let c5_nsr_pm5 = SymmetryOperation::builder()
         .generating_element(c5_nsr_element.clone())
@@ -7430,8 +7430,8 @@ fn test_symmetry_operation_su2_comparison() {
         .unwrap();
     assert_eq!(c5_nsr_pm5, c5_nsr_p5);
     assert!(c5_nsr_pm5.is_spatial_identity());
-    assert!(c5_nsr_pm5.is_rot_su2_class_1());
-    assert!(c5_nsr_p5.is_rot_su2_class_1());
+    assert!(c5_nsr_pm5.is_su2_class_1());
+    assert!(c5_nsr_p5.is_su2_class_1());
 
     let c5_pp3_nsr_element = SymmetryElement::builder()
         .threshold(1e-12)
@@ -7461,9 +7461,9 @@ fn test_symmetry_operation_su2_comparison() {
         .unwrap();
     assert_eq!(c5_pp3_nsr_p2, c5_pp3_nsr_p7);
     assert_eq!(c5_pp3_nsr_p2, c5_pp3_nsr_pm8);
-    assert!(c5_pp3_nsr_p2.is_rot_su2_class_1());
-    assert!(c5_pp3_nsr_p7.is_rot_su2_class_1());
-    assert!(c5_pp3_nsr_pm8.is_rot_su2_class_1());
+    assert!(c5_pp3_nsr_p2.is_su2_class_1());
+    assert!(c5_pp3_nsr_p7.is_su2_class_1());
+    assert!(c5_pp3_nsr_pm8.is_su2_class_1());
 
     let c7_element = SymmetryElement::builder()
         .threshold(1e-12)
@@ -7487,7 +7487,7 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_nsr_p5, c7_nsr_p7);
-    assert!(c5_nsr_p5.is_spatial_identity() && c5_nsr_p5.is_rot_su2_class_1());
+    assert!(c5_nsr_p5.is_spatial_identity() && c5_nsr_p5.is_su2_class_1());
 
     let c5_nsr_pm5 = SymmetryOperation::builder()
         .generating_element(c5_nsr_element.clone())
@@ -7500,7 +7500,7 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_nsr_pm5, c7_nsr_pm7);
-    assert!(c5_nsr_pm5.is_spatial_identity() && c5_nsr_pm5.is_rot_su2_class_1());
+    assert!(c5_nsr_pm5.is_spatial_identity() && c5_nsr_pm5.is_su2_class_1());
 
     let c5_nsr_p10 = SymmetryOperation::builder()
         .generating_element(c5_nsr_element.clone())
@@ -7513,7 +7513,7 @@ fn test_symmetry_operation_su2_comparison() {
         .build()
         .unwrap();
     assert_eq!(c5_nsr_p10, c7_nsr_p14);
-    assert!(c5_nsr_p10.is_identity() && !c5_nsr_p10.is_rot_su2_class_1());
+    assert!(c5_nsr_p10.is_identity() && !c5_nsr_p10.is_su2_class_1());
 }
 
 #[test]

@@ -593,7 +593,7 @@ impl SymmetryElement {
 
     /// Checks if the proper rotation of the element is in $`\mathsf{SU}(2)`$.
     #[must_use]
-    pub fn is_rot_su2(&self) -> bool {
+    pub fn rot_is_su2(&self) -> bool {
         self.rotation_group.is_su2()
     }
 
@@ -602,7 +602,7 @@ impl SymmetryElement {
     /// See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover Publications, Inc., New
     /// York, 2005) for further information.
     #[must_use]
-    pub fn is_rot_su2_class_1(&self) -> bool {
+    pub fn rot_is_su2_class_1(&self) -> bool {
         self.rotation_group.is_su2_class_1()
     }
 
@@ -852,9 +852,9 @@ impl SymmetryElement {
             }
         };
 
-        let su2_sym = if self.is_rot_su2_class_1() {
+        let su2_sym = if self.rot_is_su2_class_1() {
             "(QΣ)"
-        } else if self.is_rot_su2() {
+        } else if self.rot_is_su2() {
             "(Σ)"
         } else {
             ""
@@ -970,9 +970,9 @@ impl SymmetryElement {
             }
         };
 
-        let su2_sym = if self.is_rot_su2_class_1() {
+        let su2_sym = if self.rot_is_su2_class_1() {
             "(QΣ)"
-        } else if self.is_rot_su2() {
+        } else if self.rot_is_su2() {
             "(Σ)"
         } else {
             ""
@@ -1100,9 +1100,9 @@ impl SymmetryElement {
             }
         };
 
-        let su2_sym = if self.is_rot_su2_class_1() {
+        let su2_sym = if self.rot_is_su2_class_1() {
             "(QΣ)"
-        } else if self.is_rot_su2() {
+        } else if self.rot_is_su2() {
             "(Σ)"
         } else {
             ""
@@ -1357,7 +1357,7 @@ impl SymmetryElement {
     /// A symmetry element in $`\mathsf{SU}(2)`$, or `None` if the current symmetry element
     /// is already in $`\mathsf{SU}(2)`$.
     pub fn to_su2(&self, normal: bool) -> Option<Self> {
-        if self.is_rot_su2() {
+        if self.rot_is_su2() {
             None
         } else {
             let mut element = self.clone();
