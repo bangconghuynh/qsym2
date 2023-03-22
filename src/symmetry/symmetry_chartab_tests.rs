@@ -12032,6 +12032,87 @@ fn verify_grey_cs(mol: &Molecule, thresh: f64) {
     );
 }
 
+/***
+Cs*
+***/
+#[test]
+fn test_chartab_asymmetric_propene_cs_double() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|^(')|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^('')|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~||").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~||").unwrap(),
+    ];
+    let s = SymmetryClassSymbol::<SymmetryOperation>::new("1||σh(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &s),
+            Character::new(&[(UnityRoot::new(0, 2), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &s),
+            Character::new(&[(UnityRoot::new(1, 2), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &s),
+            Character::new(&[(UnityRoot::new(1, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &s),
+            Character::new(&[(UnityRoot::new(3, 4), 1)]),
+        ),
+    ]);
+    test_chartab_ordinary_double_group(&mol, thresh, "Cs*", &expected_irreps, Some(expected_chars));
+}
+
+#[test]
+fn test_chartab_asymmetric_propene_grey_cs_double() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/propene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|^(')|").unwrap(),
+        MullikenIrrepSymbol::new("||A|^('')|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|^(')|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|^('')|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~||").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~||").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)^(m)|Γ~||").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)^(m)|Γ~||").unwrap(),
+    ];
+    let ts = SymmetryClassSymbol::<SymmetryOperation>::new("1||θ·σh(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &ts),
+            Character::new(&[(UnityRoot::new(0, 2), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &ts),
+            Character::new(&[(UnityRoot::new(1, 2), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &ts),
+            Character::new(&[(UnityRoot::new(1, 2), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &ts),
+            Character::new(&[(UnityRoot::new(0, 2), 1)]),
+        ),
+    ]);
+    test_chartab_magnetic_double_group(
+        &mol,
+        thresh,
+        "(Cs + θ·Cs)*",
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
 /*
 D2
 */
