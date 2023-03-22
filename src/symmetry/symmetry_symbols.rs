@@ -359,13 +359,22 @@ impl LinearSpaceSymbol for MullikenIrrepSymbol {
             log::error!("{err}");
             panic!("Unable to convert `{dim}` to `u64`.")
         });
-        let main_opt = INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim_u64);
-        if let Some(main) = main_opt {
-            self.generic_symbol.set_main(main);
-            true
-        } else {
-            log::warn!("Unable to retrieve an unambiguous Mulliken symbol for dimensionality `{dim_u64}`. Main symbol of {self} will be kept unchanged.");
+        let dim_from_current_main = *MULLIKEN_IRREP_DEGENERACIES.get(&self.main()).unwrap_or(&0);
+        if dim_from_current_main == dim_u64 {
+            log::debug!(
+                "The current main symbol `{}` already has the right dimension of `{dim}`. No new Mulliken symbols will be set.",
+                self.main()
+            );
             false
+        } else {
+            let main_opt = INV_MULLIKEN_IRREP_DEGENERACIES.get(&dim_u64);
+            if let Some(main) = main_opt {
+                self.generic_symbol.set_main(main);
+                true
+            } else {
+                log::warn!("Unable to retrieve an unambiguous Mulliken symbol for dimensionality `{dim_u64}`. Main symbol of {self} will be kept unchanged.");
+                false
+            }
         }
     }
 }
@@ -1256,26 +1265,28 @@ where
                 })
             ].clone();
             let char_trev_c = char_trev.complex_value();
-            assert!(
-                approx::relative_eq!(
-                    char_trev_c.im,
-                    0.0,
-                    epsilon = char_trev.threshold,
-                    max_relative = char_trev.threshold
-                ) && approx::relative_eq!(
-                    char_trev_c.re.round(),
-                    char_trev_c.re,
-                    epsilon = char_trev.threshold,
-                    max_relative = char_trev.threshold
-                ),
-            );
-
-            #[allow(clippy::cast_possible_truncation)]
-            let char_trev_c = char_trev_c.re.round() as i32;
-            match char_trev_c.cmp(&0) {
-                Ordering::Greater => "",
-                Ordering::Less => "m",
-                Ordering::Equal => panic!("Time-reversal character must not be zero."),
+            if approx::relative_eq!(
+                char_trev_c.im,
+                0.0,
+                epsilon = char_trev.threshold,
+                max_relative = char_trev.threshold
+            ) && approx::relative_eq!(
+                char_trev_c.re.round(),
+                char_trev_c.re,
+                epsilon = char_trev.threshold,
+                max_relative = char_trev.threshold
+            ) {
+                // Real, integral time-reversal character
+                #[allow(clippy::cast_possible_truncation)]
+                let char_trev_c = char_trev_c.re.round() as i32;
+                match char_trev_c.cmp(&0) {
+                    Ordering::Greater => "",
+                    Ordering::Less => "m",
+                    Ordering::Equal => panic!("Real time-reversal character must not be zero."),
+                }
+            } else {
+                // Non-real or non-integral time-reversal character
+                ""
             }
         } else {
             ""
@@ -1284,23 +1295,37 @@ where
         MullikenIrrepSymbol::new(format!("|^({trev})|{main}{projective_str}|^({mir})_({inv})|").as_str())
             .unwrap_or_else(|_| {
                 panic!(
-                    "Unable to construct symmetry symbol `|^({trev})|{main}{projective}|^({mir})_({inv})|`."
+                    "Unable to construct symmetry symbol `|^({trev})|{main}{projective_str}|^({mir})_({inv})|`."
                 )
             })
     }).collect_vec();
 
-    let mut complex_irrep_indices = raw_irrep_symbols
-        .iter()
+    // let mut complex_irrep_indices = raw_irrep_symbols
+    //     .iter()
+    //     .enumerate()
+    //     .filter_map(|(i, irrep_sym)| {
+    //         if irrep_sym.main().contains("Γ") {
+    //             Some(i)
+    //         } else {
+    //             None
+    //         }
+    //     })
+    //     .rev()
+    //     .collect::<IndexSet<_>>();
+    let mut complex_irrep_indices = char_arr
+        .rows()
+        .into_iter()
         .enumerate()
-        .filter_map(|(i, irrep_sym)| {
-            if irrep_sym.main().contains("Γ") {
+        .filter_map(|(i, irrep)| {
+            let complex = irrep.map(|character| character.complex_conjugate()) != irrep;
+            if complex {
                 Some(i)
             } else {
                 None
             }
         })
-        .rev()
         .collect::<IndexSet<_>>();
+    complex_irrep_indices.reverse();
 
     let cc_pairs = if !complex_irrep_indices.is_empty() {
         log::debug!("Grouping pairs of complex-conjugate irreps...");
