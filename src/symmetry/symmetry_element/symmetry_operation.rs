@@ -804,6 +804,20 @@ impl SymmetryOperation {
         } else {
             SO3
         };
+        let axis = if self.is_spatial_reflection() {
+            self
+                .positive_hemisphere
+                .as_ref()
+                .cloned()
+                .unwrap_or_default()
+                .get_positive_pole(
+                    &self.generating_element.raw_axis(),
+                    self.generating_element.threshold,
+                )
+        } else {
+            self.calc_proper_rotation_pole().coords
+        };
+
         if let Some(total_proper_fraction) = self.total_proper_fraction {
             let proper_order = *total_proper_fraction
                 .denom()
@@ -817,7 +831,7 @@ impl SymmetryOperation {
                 .threshold(self.generating_element.threshold())
                 .proper_order(ElementOrder::Int(proper_order))
                 .proper_power(proper_power)
-                .raw_axis(self.calc_proper_rotation_pole().coords)
+                .raw_axis(axis)
                 .kind(kind)
                 .rotation_group(rotation_group)
                 .additional_superscript(additional_superscript)
@@ -830,7 +844,7 @@ impl SymmetryOperation {
                 .threshold(self.generating_element.threshold())
                 .proper_order(ElementOrder::Inf)
                 .proper_angle(proper_angle)
-                .raw_axis(self.calc_proper_rotation_pole().coords)
+                .raw_axis(axis)
                 .kind(kind)
                 .rotation_group(rotation_group)
                 .additional_superscript(additional_superscript)

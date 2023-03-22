@@ -7,7 +7,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, TRINV, TRROT, TRSIG,
+    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, TRINV, TRROT, TRSIG, SO3, SU2_0
 };
 
 #[test]
@@ -9053,4 +9053,667 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
     assert_eq!(&s5_nsr_p10.get_abbreviated_symbol(), "E(QΣ)");
 
     assert_eq!(s5_nsr_p1.order(), 20);
+}
+
+#[test]
+fn test_symmetry_operation_to_symmetry_element() {
+    // ================================
+    // Proper symmetry operations (SO3)
+    // ================================
+    let c3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(ROT)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let c3p2 = SymmetryOperation::builder()
+        .generating_element(c3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(
+        c3p2.to_symmetry_element().to_string(),
+        "C3(+0.000, -1.000, +0.000)"
+    );
+
+    let tc3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let tc3p2 = SymmetryOperation::builder()
+        .generating_element(tc3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(
+        tc3p2.to_symmetry_element().to_string(),
+        "C3(+0.000, -1.000, +0.000)"
+    );
+
+    let c4_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
+        .kind(ROT)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let c4p2 = SymmetryOperation::builder()
+        .generating_element(c4_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(c4p2.to_string(), "[C4(+0.000, +0.894, -0.447)]^2");
+    assert_eq!(
+        c4p2.to_symmetry_element().to_string(),
+        "C2(+0.000, -0.894, +0.447)"
+    );
+
+    let tc4_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
+        .kind(TRROT)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let tc4p3 = SymmetryOperation::builder()
+        .generating_element(tc4_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(tc4p3.to_string(), "[θ·C4(+0.000, +0.894, -0.447)]^3");
+    assert_eq!(
+        tc4p3.to_symmetry_element().to_string(),
+        "θ·C4(+0.000, -0.894, +0.447)"
+    );
+
+    let c7_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(7))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
+        .kind(ROT)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let c7p2 = SymmetryOperation::builder()
+        .generating_element(c7_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(c7p2.to_string(), "[C7(+0.000, +0.894, -0.447)]^2");
+    assert_eq!(
+        c7p2.to_symmetry_element().to_string(),
+        "C7^2(+0.000, +0.894, -0.447)"
+    );
+
+    let c7pm2 = SymmetryOperation::builder()
+        .generating_element(c7_element.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(c7pm2.to_string(), "[C7(+0.000, +0.894, -0.447)]^(-2)");
+    assert_eq!(
+        c7pm2.to_symmetry_element().to_string(),
+        "C7^2(+0.000, -0.894, +0.447)"
+    );
+
+    let c7p4 = SymmetryOperation::builder()
+        .generating_element(c7_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(c7p4.to_string(), "[C7(+0.000, +0.894, -0.447)]^4");
+    assert_eq!(
+        c7p4.to_symmetry_element().to_string(),
+        "C7^3(+0.000, -0.894, +0.447)"
+    );
+
+    let c7p7 = SymmetryOperation::builder()
+        .generating_element(c7_element.clone())
+        .power(7)
+        .build()
+        .unwrap();
+    assert_eq!(c7p7.to_string(), "[C7(+0.000, +0.894, -0.447)]^7");
+    assert_eq!(c7p7.to_symmetry_element().to_string(), "E");
+
+    let tc7_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(7))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
+        .kind(TRROT)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let tc7p2 = SymmetryOperation::builder()
+        .generating_element(tc7_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(tc7p2.to_string(), "[θ·C7(+0.000, +0.894, -0.447)]^2");
+    assert_eq!(
+        tc7p2.to_symmetry_element().to_string(),
+        "C7^2(+0.000, +0.894, -0.447)"
+    );
+
+    let tc7p5 = SymmetryOperation::builder()
+        .generating_element(tc7_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(tc7p5.to_string(), "[θ·C7(+0.000, +0.894, -0.447)]^5");
+    assert_eq!(
+        tc7p5.to_symmetry_element().to_string(),
+        "θ·C7^2(+0.000, -0.894, +0.447)"
+    );
+
+    // ==================================
+    // Improper symmetry operations (SO3)
+    // ==================================
+    let s3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
+        .kind(SIG)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let s3p2 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(s3p2.to_string(), "[S3(+0.000, +0.894, -0.447)]^2");
+    assert_eq!(
+        s3p2.to_symmetry_element().to_string(),
+        "C3(+0.000, -0.894, +0.447)"
+    );
+
+    let s3p3 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(s3p3.to_string(), "[S3(+0.000, +0.894, -0.447)]^3");
+    assert_eq!(
+        s3p3.to_symmetry_element().to_string(),
+        "σ(+0.000, -0.894, +0.447)"
+    );
+
+    let s3p4 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(s3p4.to_string(), "[S3(+0.000, +0.894, -0.447)]^4");
+    assert_eq!(
+        s3p4.to_symmetry_element().to_string(),
+        "C3(+0.000, +0.894, -0.447)"
+    );
+
+    let s3p5 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(s3p5.to_string(), "[S3(+0.000, +0.894, -0.447)]^5");
+    assert_eq!(
+        s3p5.to_symmetry_element().to_string(),
+        "S3(+0.000, -0.894, +0.447)"
+    );
+
+    let s3p6 = SymmetryOperation::builder()
+        .generating_element(s3_element.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(s3p6.to_string(), "[S3(+0.000, +0.894, -0.447)]^6");
+    assert_eq!(s3p6.to_symmetry_element().to_string(), "E");
+
+    let ts3_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
+        .kind(TRSIG)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let ts3p2 = SymmetryOperation::builder()
+        .generating_element(ts3_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(ts3p2.to_string(), "[θ·S3(+0.000, +0.894, -0.447)]^2");
+    assert_eq!(
+        ts3p2.to_symmetry_element().to_string(),
+        "C3(+0.000, -0.894, +0.447)"
+    );
+
+    let ts3p3 = SymmetryOperation::builder()
+        .generating_element(ts3_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(ts3p3.to_string(), "[θ·S3(+0.000, +0.894, -0.447)]^3");
+    assert_eq!(
+        ts3p3.to_symmetry_element().to_string(),
+        "θ·σ(+0.000, -0.894, +0.447)"
+    );
+
+    let sd5_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
+        .kind(INV)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let sd5p2 = SymmetryOperation::builder()
+        .generating_element(sd5_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(sd5p2.to_string(), "[Ṡ5(+0.000, +0.894, -0.447)]^2");
+    assert_eq!(
+        sd5p2.to_symmetry_element().to_string(),
+        "C5^2(+0.000, +0.894, -0.447)"
+    );
+
+    let sd5p3 = SymmetryOperation::builder()
+        .generating_element(sd5_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(sd5p3.to_string(), "[Ṡ5(+0.000, +0.894, -0.447)]^3");
+    assert_eq!(
+        sd5p3.to_symmetry_element().to_string(),
+        "iC5^2(+0.000, -0.894, +0.447)"
+    );
+
+    let sd5p4 = SymmetryOperation::builder()
+        .generating_element(sd5_element.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(sd5p4.to_string(), "[Ṡ5(+0.000, +0.894, -0.447)]^4");
+    assert_eq!(
+        sd5p4.to_symmetry_element().to_string(),
+        "C5(+0.000, -0.894, +0.447)"
+    );
+
+    let sd5p5 = SymmetryOperation::builder()
+        .generating_element(sd5_element.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(sd5p5.to_string(), "[Ṡ5(+0.000, +0.894, -0.447)]^5");
+    assert_eq!(sd5p5.to_symmetry_element().to_string(), "i");
+
+    let sd5p10 = SymmetryOperation::builder()
+        .generating_element(sd5_element.clone())
+        .power(10)
+        .build()
+        .unwrap();
+    assert_eq!(sd5p10.to_string(), "[Ṡ5(+0.000, +0.894, -0.447)]^10");
+    assert_eq!(sd5p10.to_symmetry_element().to_string(), "E");
+
+    let tsd5_element = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(5))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
+        .kind(TRINV)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let tsd5p2 = SymmetryOperation::builder()
+        .generating_element(tsd5_element.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(tsd5p2.to_string(), "[θ·Ṡ5(+0.000, +0.894, -0.447)]^2");
+    assert_eq!(
+        tsd5p2.to_symmetry_element().to_string(),
+        "C5^2(+0.000, +0.894, -0.447)"
+    );
+
+    let tsd5p3 = SymmetryOperation::builder()
+        .generating_element(tsd5_element.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(tsd5p3.to_string(), "[θ·Ṡ5(+0.000, +0.894, -0.447)]^3");
+    assert_eq!(
+        tsd5p3.to_symmetry_element().to_string(),
+        "θ·iC5^2(+0.000, -0.894, +0.447)"
+    );
+
+    // ================================
+    // Proper symmetry operations (SU2)
+    // ================================
+    let c3_element_su2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
+        .kind(ROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let c3p2_su2 = SymmetryOperation::builder()
+        .generating_element(c3_element_su2.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(
+        c3p2_su2.to_symmetry_element().to_string(),
+        "C3(QΣ)(+0.000, -1.000, +0.000)"
+    );
+
+    let c3p3_su2 = SymmetryOperation::builder()
+        .generating_element(c3_element_su2.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(c3p3_su2.to_symmetry_element().to_string(), "E(QΣ)");
+
+    let c3p4_su2 = SymmetryOperation::builder()
+        .generating_element(c3_element_su2.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(
+        c3p4_su2.to_symmetry_element().to_string(),
+        "C3(QΣ)(+0.000, +1.000, +0.000)"
+    );
+
+    let c3p5_su2 = SymmetryOperation::builder()
+        .generating_element(c3_element_su2.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(
+        c3p5_su2.to_symmetry_element().to_string(),
+        "C3(Σ)(+0.000, -1.000, +0.000)"
+    );
+
+    let c3p6_su2 = SymmetryOperation::builder()
+        .generating_element(c3_element_su2.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(c3p6_su2.to_symmetry_element().to_string(), "E(Σ)");
+
+    let c4_element_su2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, -1.0, 0.0))
+        .kind(ROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let c4p2_su2 = SymmetryOperation::builder()
+        .generating_element(c4_element_su2.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(
+        c4p2_su2.to_symmetry_element().to_string(),
+        "C2(QΣ)(+0.000, +1.000, +0.000)"
+    );
+
+    let c4pm2_su2 = SymmetryOperation::builder()
+        .generating_element(c4_element_su2.clone())
+        .power(-2)
+        .build()
+        .unwrap();
+    assert_eq!(
+        c4pm2_su2.to_symmetry_element().to_string(),
+        "C2(Σ)(+0.000, +1.000, +0.000)"
+    );
+
+    let tc1_element_su2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 2.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc1_su2 = SymmetryOperation::builder()
+        .generating_element(tc1_element_su2.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(tc1_su2.to_symmetry_element().to_string(), "θ(Σ)");
+
+    let tc1p2_su2 = SymmetryOperation::builder()
+        .generating_element(tc1_element_su2.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(tc1p2_su2.to_symmetry_element().to_string(), "E(QΣ)");
+
+    let tc1p3_su2 = SymmetryOperation::builder()
+        .generating_element(tc1_element_su2.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(tc1p3_su2.to_symmetry_element().to_string(), "θ(QΣ)");
+
+    let tc1p4_su2 = SymmetryOperation::builder()
+        .generating_element(tc1_element_su2.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(tc1p4_su2.to_symmetry_element().to_string(), "E(Σ)");
+
+    let tc3_element_su2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc3_su2 = SymmetryOperation::builder()
+        .generating_element(tc3_element_su2.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(tc3_su2.to_symmetry_element().to_string(), "θ·C3(Σ)(+0.577, +0.577, +0.577)");
+
+    let tc3p2_su2 = SymmetryOperation::builder()
+        .generating_element(tc3_element_su2.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(tc3p2_su2.to_symmetry_element().to_string(), "C3(QΣ)(+0.577, +0.577, -0.577)");
+
+    let tc4y_element_su2 = SymmetryElement::builder()
+        .threshold(1e-14)
+        .proper_order(ElementOrder::Int(4))
+        .proper_power(1)
+        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc4y_su2 = SymmetryOperation::builder()
+        .generating_element(tc4y_element_su2.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    assert_eq!(tc4y_su2.to_symmetry_element().to_string(), "θ·C4(Σ)(+0.000, +1.000, +0.000)");
+
+    let tc4yp2_su2 = SymmetryOperation::builder()
+        .generating_element(tc4y_element_su2.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(tc4yp2_su2.to_symmetry_element().to_string(), "C2(QΣ)(+0.000, +1.000, +0.000)");
+
+    let tc4yp3_su2 = SymmetryOperation::builder()
+        .generating_element(tc4y_element_su2.clone())
+        .power(3)
+        .build()
+        .unwrap();
+    assert_eq!(tc4yp3_su2.to_symmetry_element().to_string(), "θ·C4(Σ)(+0.000, -1.000, +0.000)");
+
+    let tc4yp4_su2 = SymmetryOperation::builder()
+        .generating_element(tc4y_element_su2.clone())
+        .power(4)
+        .build()
+        .unwrap();
+    assert_eq!(tc4yp4_su2.to_symmetry_element().to_string(), "E(QΣ)");
+
+    let tc4yp5_su2 = SymmetryOperation::builder()
+        .generating_element(tc4y_element_su2.clone())
+        .power(5)
+        .build()
+        .unwrap();
+    assert_eq!(tc4yp5_su2.to_symmetry_element().to_string(), "θ·C4(QΣ)(+0.000, +1.000, +0.000)");
+
+    let tc4yp6_su2 = SymmetryOperation::builder()
+        .generating_element(tc4y_element_su2.clone())
+        .power(6)
+        .build()
+        .unwrap();
+    assert_eq!(tc4yp6_su2.to_symmetry_element().to_string(), "C2(Σ)(+0.000, +1.000, +0.000)");
+
+    let tc4yp7_su2 = SymmetryOperation::builder()
+        .generating_element(tc4y_element_su2.clone())
+        .power(7)
+        .build()
+        .unwrap();
+    assert_eq!(tc4yp7_su2.to_symmetry_element().to_string(), "θ·C4(QΣ)(+0.000, -1.000, +0.000)");
+
+    let tc4yp8_su2 = SymmetryOperation::builder()
+        .generating_element(tc4y_element_su2.clone())
+        .power(8)
+        .build()
+        .unwrap();
+    assert_eq!(tc4yp8_su2.to_symmetry_element().to_string(), "E(Σ)");
+
+    let tc3p2_su2 = SymmetryOperation::builder()
+        .generating_element(tc3_element_su2.clone())
+        .power(2)
+        .build()
+        .unwrap();
+    assert_eq!(tc3p2_su2.to_symmetry_element().to_string(), "C3(QΣ)(+0.577, +0.577, -0.577)");
+
+    // let kc2x_element_su2 = SymmetryElement::builder()
+    //     .threshold(1e-14)
+    //     .proper_order(ElementOrder::Int(2))
+    //     .proper_power(1)
+    //     .raw_axis(Vector3::x())
+    //     .kind(KROT)
+    //     .rotation_group(SU2_0)
+    //     .build()
+    //     .unwrap();
+
+    // let kc2x_su2 = SymmetryOperation::builder()
+    //     .generating_element(kc2x_element_su2.clone())
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(
+    //     kc2x_su2.to_symmetry_element().to_string(),
+    //     "K·C2(Σ)(+1.000, +0.000, +0.000)"
+    // );
+
+    // let kc2xp2_su2 = SymmetryOperation::builder()
+    //     .generating_element(kc2x_element_su2.clone())
+    //     .power(2)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(kc2xp2_su2.to_symmetry_element().to_string(), "E(QΣ)");
+
+    // let kc2xp3_su2 = SymmetryOperation::builder()
+    //     .generating_element(kc2x_element_su2.clone())
+    //     .power(3)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(
+    //     kc2xp3_su2.to_symmetry_element().to_string(),
+    //     "K·C2(QΣ)(+1.000, +0.000, +0.000)"
+    // );
+
+    // let kc2xp4_su2 = SymmetryOperation::builder()
+    //     .generating_element(kc2x_element_su2.clone())
+    //     .power(4)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(kc2xp4_su2.to_symmetry_element().to_string(), "E(Σ)");
+
+    // let kc2y_element_su2 = SymmetryElement::builder()
+    //     .threshold(1e-14)
+    //     .proper_order(ElementOrder::Int(2))
+    //     .proper_power(1)
+    //     .raw_axis(Vector3::y())
+    //     .kind(KROT)
+    //     .rotation_group(SU2_0)
+    //     .build()
+    //     .unwrap();
+
+    // let kc2y_su2 = SymmetryOperation::builder()
+    //     .generating_element(kc2y_element_su2.clone())
+    //     .power(1)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(kc2y_su2.to_symmetry_element().to_string(), "θ(Σ)");
+
+    // let kc2yp2_su2 = SymmetryOperation::builder()
+    //     .generating_element(kc2y_element_su2.clone())
+    //     .power(2)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(kc2yp2_su2.to_symmetry_element().to_string(), "E(QΣ)");
+
+    // let kc2yp3_su2 = SymmetryOperation::builder()
+    //     .generating_element(kc2y_element_su2.clone())
+    //     .power(3)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(kc2yp3_su2.to_symmetry_element().to_string(), "θ(QΣ)");
+
+    // let kc2yp4_su2 = SymmetryOperation::builder()
+    //     .generating_element(kc2y_element_su2.clone())
+    //     .power(4)
+    //     .build()
+    //     .unwrap();
+    // assert_eq!(kc2yp4_su2.to_symmetry_element().to_string(), "E(Σ)");
 }
