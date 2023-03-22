@@ -7,7 +7,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, TRINV, TRROT, TRSIG, SO3, SU2_0
+    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, TRINV, TRROT, TRSIG, SO3, SU2_0, SU2_1
 };
 
 #[test]
@@ -9560,7 +9560,7 @@ fn test_symmetry_operation_to_symmetry_element() {
         .power(2)
         .build()
         .unwrap();
-    assert_eq!(tc3p2_su2.to_symmetry_element().to_string(), "C3(QΣ)(+0.577, +0.577, -0.577)");
+    assert_eq!(tc3p2_su2.to_symmetry_element().to_string(), "C3(Σ)(-0.577, -0.577, -0.577)");
 
     let tc4y_element_su2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -9627,13 +9627,6 @@ fn test_symmetry_operation_to_symmetry_element() {
         .build()
         .unwrap();
     assert_eq!(tc4yp8_su2.to_symmetry_element().to_string(), "E(Σ)");
-
-    let tc3p2_su2 = SymmetryOperation::builder()
-        .generating_element(tc3_element_su2.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(tc3p2_su2.to_symmetry_element().to_string(), "C3(QΣ)(+0.577, +0.577, -0.577)");
 
     // let kc2x_element_su2 = SymmetryElement::builder()
     //     .threshold(1e-14)
@@ -9716,4 +9709,356 @@ fn test_symmetry_operation_to_symmetry_element() {
     //     .build()
     //     .unwrap();
     // assert_eq!(kc2yp4_su2.to_symmetry_element().to_string(), "E(Σ)");
+}
+
+#[test]
+fn test_symmetry_operation_composition_time_reversal() {
+    // ---
+    // SO3
+    // ---
+    let tc1z_element_so3 = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(TRROT)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let tc1z_so3 = SymmetryOperation::builder()
+        .generating_element(tc1z_element_so3)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tc1z_tc1z_so3 = (&tc1z_so3) * (&tc1z_so3);
+    assert!(tc1z_tc1z_so3.is_identity());
+
+    let tc1z_p2_so3 = (&tc1z_so3).pow(2);
+    assert!(tc1z_p2_so3.is_identity());
+
+    let tc1z_tc1z_tc1z_so3 = (&tc1z_tc1z_so3) * (&tc1z_so3);
+    assert!(tc1z_tc1z_tc1z_so3.is_time_reversal());
+
+    let tc1z_p3_so3 = (&tc1z_so3).pow(3);
+    assert!(tc1z_p3_so3.is_time_reversal());
+
+    let tc1z_tc1z_tc1z_tc1z_so3 = (&tc1z_tc1z_so3) * (&tc1z_tc1z_so3);
+    assert!(tc1z_tc1z_tc1z_tc1z_so3.is_identity());
+
+    let tc1z_p4_so3 = (&tc1z_so3).pow(4);
+    assert!(tc1z_p4_so3.is_identity());
+
+    let tc2z_element_so3 = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(TRROT)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let tc2z_so3 = SymmetryOperation::builder()
+        .generating_element(tc2z_element_so3)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tc2z_tc2z_so3 = (&tc2z_so3) * (&tc2z_so3);
+    assert!(tc2z_tc2z_so3.is_identity());
+
+    let tc2z_p2_so3 = (&tc2z_so3).pow(2);
+    assert!(tc2z_p2_so3.is_identity());
+
+    let tc2z_tc2z_tc2z_so3 = (&tc2z_tc2z_so3) * (&tc2z_so3);
+    assert!(!tc2z_tc2z_tc2z_so3.is_time_reversal());
+
+    let tc2z_p3_so3 = (&tc2z_so3).pow(3);
+    assert!(!tc2z_p3_so3.is_time_reversal());
+
+    let tc2z_tc2z_tc2z_tc2z_so3 = (&tc2z_tc2z_so3) * (&tc2z_tc2z_so3);
+    assert!(tc2z_tc2z_tc2z_tc2z_so3.is_identity());
+
+    let tc2z_p4_so3 = (&tc2z_so3).pow(4);
+    assert!(tc2z_p4_so3.is_identity());
+
+    let tc3_element_so3 = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(SO3)
+        .build()
+        .unwrap();
+
+    let tc3_so3 = SymmetryOperation::builder()
+        .generating_element(tc3_element_so3)
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tc3_tc3_so3 = (&tc3_so3) * (&tc3_so3);
+    assert!(!tc3_tc3_so3.is_identity());
+
+    let tc3_p2_so3 = (&tc3_so3).pow(2);
+    assert!(!tc3_p2_so3.is_identity());
+
+    let tc3_tc3_tc3_so3 = (&tc3_tc3_so3) * (&tc3_so3);
+    assert!(tc3_tc3_tc3_so3.is_time_reversal());
+
+    let tc3_p3_so3 = (&tc3_so3).pow(3);
+    assert!(tc3_p3_so3.is_time_reversal());
+
+    // ---
+    // SU2
+    // ---
+    let tc1z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc1z = SymmetryOperation::builder()
+        .generating_element(tc1z_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!tc1z.is_su2_class_1());
+    assert!(tc1z.is_time_reversal());
+    assert_eq!(tc1z.to_string(), "θ(Σ)");
+    assert_eq!(tc1z.get_abbreviated_symbol(), "θ(Σ)");
+
+    let tc1z_p2 = (&tc1z).pow(2);
+    assert!(tc1z_p2.is_su2_class_1());
+    assert!(!tc1z_p2.is_identity());
+    assert_eq!(tc1z_p2.to_string(), "[θ(Σ)]^2");
+    assert_eq!(tc1z_p2.get_abbreviated_symbol(), "E(QΣ)");
+
+    let tc1z_tc1z = (&tc1z) * (&tc1z);
+    assert!(tc1z_tc1z.is_su2_class_1());
+    assert!(!tc1z_tc1z.is_identity());
+    assert_eq!(tc1z_tc1z.to_string(), "E(QΣ)");
+    assert_eq!(tc1z_tc1z.get_abbreviated_symbol(), "E(QΣ)");
+
+    let tc1z_p3 = (&tc1z).pow(3);
+    assert!(tc1z_p3.is_su2_class_1());
+    assert!(!tc1z_p3.is_time_reversal());
+    assert_eq!(tc1z_p3.to_string(), "[θ(Σ)]^3");
+    assert_eq!(tc1z_p3.get_abbreviated_symbol(), "θ(QΣ)");
+
+    let tc1z_tc1z_tc1z = (&tc1z_p2) * &tc1z;
+    assert!(tc1z_tc1z_tc1z.is_su2_class_1());
+    assert!(!tc1z_tc1z_tc1z.is_time_reversal());
+    assert_eq!(tc1z_tc1z_tc1z.to_string(), "θ(QΣ)");
+    assert_eq!(tc1z_tc1z_tc1z.get_abbreviated_symbol(), "θ(QΣ)");
+
+    let tc1z_p4 = (&tc1z).pow(4);
+    assert!(!tc1z_p4.is_su2_class_1());
+    assert!(tc1z_p4.is_identity());
+    assert_eq!(tc1z_p4.to_string(), "[θ(Σ)]^4");
+    assert_eq!(tc1z_p4.get_abbreviated_symbol(), "E(Σ)");
+
+    let tc1z_tc1z_tc1z_tc1z = (&tc1z_p2) * (&tc1z_p2);
+    assert!(!tc1z_tc1z_tc1z_tc1z.is_su2_class_1());
+    assert!(tc1z_tc1z_tc1z_tc1z.is_identity());
+    assert_eq!(tc1z_tc1z_tc1z_tc1z.to_string(), "E(Σ)");
+    assert_eq!(tc1z_tc1z_tc1z_tc1z.get_abbreviated_symbol(), "E(Σ)");
+
+    let tc2z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc2z = SymmetryOperation::builder()
+        .generating_element(tc2z_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!tc2z.is_time_reversal());
+    assert_eq!(tc2z.to_string(), "θ·C2(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(tc2z.get_abbreviated_symbol(), "θ·C2(Σ)");
+
+    let tc2z_p2 = (&tc2z).pow(2);
+    assert!(!tc2z_p2.is_su2_class_1());
+    assert!(tc2z_p2.is_identity());
+    assert_eq!(tc2z_p2.to_string(), "[θ·C2(Σ)(+0.000, +0.000, +1.000)]^2");
+    assert_eq!(tc2z_p2.get_abbreviated_symbol(), "E(Σ)");
+
+    let tc2z_tc2z = (&tc2z) * (&tc2z);
+    assert!(!tc2z_tc2z.is_su2_class_1());
+    assert!(tc2z_tc2z.is_identity());
+    assert_eq!(tc2z_tc2z.to_string(), "E(Σ)");
+    assert_eq!(tc2z_tc2z.get_abbreviated_symbol(), "E(Σ)");
+
+    let tc2z_p3 = (&tc2z).pow(3);
+    assert!(!tc2z_p3.is_su2_class_1());
+    assert!(!tc2z_p3.is_time_reversal());
+    assert_eq!(tc2z_p3.to_string(), "[θ·C2(Σ)(+0.000, +0.000, +1.000)]^3");
+    assert_eq!(tc2z_p3.get_abbreviated_symbol(), "θ·C2(Σ)");
+
+    let tc2z_tc2z_tc2z = (&tc2z_p2) * &tc2z;
+    assert!(!tc2z_tc2z_tc2z.is_su2_class_1());
+    assert!(!tc2z_tc2z_tc2z.is_time_reversal());
+    assert_eq!(tc2z_tc2z_tc2z.to_string(), "θ·C2(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(tc2z_tc2z_tc2z.get_abbreviated_symbol(), "θ·C2(Σ)");
+
+    let tc2z_p4 = (&tc2z).pow(4);
+    assert!(!tc2z_p4.is_su2_class_1());
+    assert!(tc2z_p4.is_identity());
+    assert_eq!(tc2z_p4.to_string(), "[θ·C2(Σ)(+0.000, +0.000, +1.000)]^4");
+    assert_eq!(tc2z_p4.get_abbreviated_symbol(), "E(Σ)");
+
+    let tc2z_tc2z_tc2z_tc2z = (&tc2z_p2) * (&tc2z_p2);
+    assert!(!tc2z_tc2z_tc2z_tc2z.is_su2_class_1());
+    assert!(tc2z_tc2z_tc2z_tc2z.is_identity());
+    assert_eq!(tc2z_tc2z_tc2z_tc2z.to_string(), "E(Σ)");
+    assert_eq!(tc2z_tc2z_tc2z_tc2z.get_abbreviated_symbol(), "E(Σ)");
+
+    let tc3_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc3 = SymmetryOperation::builder()
+        .generating_element(tc3_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!tc3.is_time_reversal());
+    assert_eq!(tc3.to_string(), "θ·C3(Σ)(+0.577, +0.577, +0.577)");
+    assert_eq!(tc3.get_abbreviated_symbol(), "θ·C3(Σ)");
+
+    let tc3_p2 = (&tc3).pow(2);
+    assert!(!tc3_p2.is_su2_class_1());
+    assert_eq!(tc3_p2.to_string(), "[θ·C3(Σ)(+0.577, +0.577, +0.577)]^2");
+    assert_eq!(tc3_p2.get_abbreviated_symbol(), "C3^(-1)(Σ)");
+
+    let tc3_tc3 = (&tc3) * (&tc3);
+    assert!(!tc3_tc3.is_su2_class_1());
+    assert_eq!(tc3_tc3.to_string(), "C3(Σ)(-0.577, -0.577, -0.577)");
+    assert_eq!(tc3_tc3.get_abbreviated_symbol(), "C3^(-1)(Σ)");
+
+    let tc3_p3 = (&tc3).pow(3);
+    assert!(!tc3_p3.is_su2_class_1());
+    assert!(tc3_p3.is_time_reversal());
+    assert_eq!(tc3_p3.to_string(), "[θ·C3(Σ)(+0.577, +0.577, +0.577)]^3");
+    assert_eq!(tc3_p3.get_abbreviated_symbol(), "θ(Σ)");
+
+    let tc3_tc3_tc3 = (&tc3_p2) * &tc3;
+    assert!(!tc3_tc3_tc3.is_su2_class_1());
+    assert!(tc3_tc3_tc3.is_time_reversal());
+    assert_eq!(tc3_tc3_tc3.to_string(), "θ(Σ)");
+    assert_eq!(tc3_tc3_tc3.get_abbreviated_symbol(), "θ(Σ)");
+
+    let tc3_p4 = (&tc3).pow(4);
+    assert!(tc3_p4.is_su2_class_1());
+    assert_eq!(tc3_p4.to_string(), "[θ·C3(Σ)(+0.577, +0.577, +0.577)]^4");
+    assert_eq!(tc3_p4.get_abbreviated_symbol(), "C3(QΣ)");
+
+    let tc3_tc3_tc3_tc3 = (&tc3_p2) * (&tc3_p2);
+    assert!(tc3_tc3_tc3_tc3.is_su2_class_1());
+    assert_eq!(tc3_tc3_tc3_tc3.to_string(), "C3(QΣ)(+0.577, +0.577, +0.577)");
+    assert_eq!(tc3_tc3_tc3_tc3.get_abbreviated_symbol(), "C3(QΣ)");
+
+    let c2z_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(2))
+        .proper_power(1)
+        .raw_axis(Vector3::z())
+        .kind(ROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let c2z = SymmetryOperation::builder()
+        .generating_element(c2z_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+    let c2zpm1 = SymmetryOperation::builder()
+        .generating_element(c2z_element)
+        .power(-1)
+        .build()
+        .unwrap();
+
+    let tc2z_c2z = (&tc2z) * (&c2z);
+    assert!(!tc2z_c2z.is_time_reversal());
+    assert_eq!(tc2z_c2z.to_string(), "θ(QΣ)");
+    assert_eq!(
+        format!("{:?}", tc2z_c2z),
+        "θ·C1(QΣ)(+0.000, +0.000, +1.000)"
+    );
+    assert_eq!(tc2z_c2z.get_abbreviated_symbol(), "θ(QΣ)");
+
+    let tc2z_c2zpm1 = (&tc2z) * (&c2zpm1);
+    assert!(tc2z_c2zpm1.is_time_reversal());
+    assert_eq!(tc2z_c2zpm1.to_string(), "θ(Σ)");
+    assert_eq!(
+        format!("{:?}", tc2z_c2zpm1),
+        "θ·C1(Σ)(+0.000, +0.000, +1.000)"
+    );
+    assert_eq!(tc2z_c2zpm1.get_abbreviated_symbol(), "θ(Σ)");
+
+    let tc3y_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(3))
+        .proper_power(1)
+        .raw_axis(-Vector3::y())
+        .kind(TRROT)
+        .rotation_group(SU2_0)
+        .build()
+        .unwrap();
+
+    let tc3y = SymmetryOperation::builder()
+        .generating_element(tc3y_element)
+        .power(1)
+        .build()
+        .unwrap();
+    assert!(!tc3y.is_time_reversal());
+    assert_eq!(tc3y.to_string(), "θ·C3(Σ)(+0.000, -1.000, +0.000)");
+    assert_eq!(tc3y.get_abbreviated_symbol(), "θ·C3^(-1)(Σ)");
+
+    let tc3y_p3 = tc3y.pow(3);
+    assert!(tc3y_p3.is_time_reversal());
+    assert_eq!(tc3y_p3.to_string(), "[θ·C3(Σ)(+0.000, -1.000, +0.000)]^3");
+    assert_eq!(tc3y_p3.to_symmetry_element().to_string(), "θ(Σ)");
+    assert_eq!(tc3y_p3.get_abbreviated_symbol(), "θ(Σ)");
+
+    let c1_isr_element = SymmetryElement::builder()
+        .threshold(1e-12)
+        .proper_order(ElementOrder::Int(1))
+        .proper_power(1)
+        .raw_axis(Vector3::new(2.0, 1.0, 2.0))
+        .kind(ROT)
+        .rotation_group(SU2_1)
+        .build()
+        .unwrap();
+
+    let c1_isr = SymmetryOperation::builder()
+        .generating_element(c1_isr_element.clone())
+        .power(1)
+        .build()
+        .unwrap();
+
+    let tc2z_c2z_c1_isr = (&tc2z_c2z) * (&c1_isr);
+    assert!(tc2z_c2z_c1_isr.is_time_reversal());
+    assert_eq!(tc2z_c2z_c1_isr.to_string(), "θ(Σ)");
+    assert_eq!(tc2z_c2z_c1_isr.get_abbreviated_symbol(), "θ(Σ)");
 }
