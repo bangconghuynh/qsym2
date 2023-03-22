@@ -119,6 +119,18 @@ pub trait SpecialSymmetryTransformation {
     /// A boolean indicating if the spatial part of the symmetry operation is a spatial reflection.
     fn is_spatial_reflection(&self) -> bool;
 
+    //// ============
+    //// Unitary part
+    //// ============
+
+    ///// Checks if the spatial part of the symmetry operation is the spatial identity, taking into
+    ///// account any rotation contribution from the antiunitary part.
+    /////
+    ///// # Returns
+    /////
+    ///// A boolean indicating if the spatial part of the symmetry operation is the unitary identity.
+    //fn is_unitary_identity(&self) -> bool;
+
     // ================
     // Antiunitary part
     // ================
@@ -962,110 +974,68 @@ impl SymmetryOperation {
     ///
     /// The equivalent symmetry element $`E`$.
     pub fn to_symmetry_element(&self) -> SymmetryElement {
-        let c_self = self
-            .rotationise_su2_time_reversal()
-            .unwrap_or_else(|| self.clone());
-        let kind = if c_self.is_proper() {
-            if c_self.is_antiunitary() {
-                ROT.to_antiunitary(c_self.generating_element.contains_antiunitary())
+        // let c_self = self
+        //     .rotationise_su2_time_reversal()
+        //     .unwrap_or_else(|| self.clone());
+        let kind = if self.is_proper() {
+            if self.is_antiunitary() {
+                ROT.to_antiunitary(self.generating_element.contains_antiunitary())
             } else {
                 ROT
             }
         } else {
-            if c_self.is_antiunitary() {
-                c_self
-                    .generating_element
-                    .kind
-                    .to_antiunitary(c_self.generating_element.contains_antiunitary())
-            } else {
-                c_self.generating_element.kind.clone()
-            }
+            self.generating_element.kind.clone()
         };
-        let additional_superscript = if c_self.is_proper() {
+        let additional_superscript = if self.is_proper() {
             String::new()
         } else {
-            c_self.generating_element.additional_superscript.clone()
+            self.generating_element.additional_superscript.clone()
         };
-        let additional_subscript = if c_self.is_proper() {
+        let additional_subscript = if self.is_proper() {
             String::new()
         } else {
-            c_self.generating_element.additional_subscript.clone()
+            self.generating_element.additional_subscript.clone()
         };
-        let rotation_group = if c_self.is_rot_su2_class_1() {
+        let rotation_group = if self.is_rot_su2_class_1() {
             SU2_1
-        } else if c_self.is_su2() {
+        } else if self.is_su2() {
             SU2_0
         } else {
             SO3
         };
-        let axis = if c_self.is_spatial_reflection() {
-            c_self
-                .positive_hemisphere
-                .as_ref()
-                .cloned()
-                .unwrap_or_default()
-                .get_positive_pole(
-                    &c_self.generating_element.raw_axis(),
-                    c_self.generating_element.threshold,
-                )
-        } else {
-            c_self.calc_proper_rotation_pole().coords
-        };
-        let element = {
-            if let Some(total_proper_fraction) = c_self.total_proper_fraction {
-                let proper_order = *total_proper_fraction
-                    .denom()
-                    .expect("Unable to extract the denominator of the total proper fraction.");
-                let numer = *total_proper_fraction
-                    .numer()
-                    .expect("Unable to extract the numerator of the total proper fraction.");
-                let proper_power =
-                    i32::try_from(numer).expect("Unable to convert the numerator to `i32`.");
-                SymmetryElement::builder()
-                    .threshold(c_self.generating_element.threshold())
-                    .proper_order(ElementOrder::Int(proper_order))
-                    .proper_power(proper_power)
-                    .raw_axis(axis)
-                    .kind(kind)
-                    .rotation_group(rotation_group)
-                    .additional_superscript(additional_superscript)
-                    .additional_subscript(additional_subscript)
-                    .build()
-                    .unwrap()
-            } else {
-                let proper_angle = c_self.total_proper_angle;
-                SymmetryElement::builder()
-                    .threshold(c_self.generating_element.threshold())
-                    .proper_order(ElementOrder::Inf)
-                    .proper_angle(proper_angle)
-                    .raw_axis(axis)
-                    .kind(kind)
-                    .rotation_group(rotation_group)
-                    .additional_superscript(additional_superscript)
-                    .additional_subscript(additional_subscript)
-                    .build()
-                    .unwrap()
-            }
-        };
-        if self.is_su2()
-            && self.is_antiunitary()
-            && self.generating_element.contains_antiunitary() == Some(AntiunitaryKind::TimeReversal)
-        {
-            // The original operation has time-reversal antiunitary kind, but the new element is
-            // invariably in complex-conjugation antiunitary kind, so we must convert back. This
-            // conversion is done via the `SymmetryOperation` structure.
-            let op = SymmetryOperation::builder()
-                .generating_element(element.clone())
-                .power(1)
+        if let Some(total_proper_fraction) = self.total_proper_fraction {
+            let proper_order = *total_proper_fraction
+                .denom()
+                .expect("Unable to extract the denominator of the total proper fraction.");
+            let numer = *total_proper_fraction
+                .numer()
+                .expect("Unable to extract the numerator of the total proper fraction.");
+            let proper_power =
+                i32::try_from(numer).expect("Unable to convert the numerator to `i32`.");
+            SymmetryElement::builder()
+                .threshold(self.generating_element.threshold())
+                .proper_order(ElementOrder::Int(proper_order))
+                .proper_power(proper_power)
+                .raw_axis(self.calc_proper_rotation_pole().coords)
+                .kind(kind)
+                .rotation_group(rotation_group)
+                .additional_superscript(additional_superscript)
+                .additional_subscript(additional_subscript)
                 .build()
-                .unwrap_or_else(|_| {
-                    panic!("Unable to construct a symmetry operation from the element `{element}`.")
-                })
-                .derotationise_su2_time_reversal()
-                .expect("Unable to derotationise an SU(2) time-reversal operation.");
-            op.generating_element
+                .unwrap()
         } else {
-            element
+            let proper_angle = self.total_proper_angle;
+            SymmetryElement::builder()
+                .threshold(self.generating_element.threshold())
+                .proper_order(ElementOrder::Inf)
+                .proper_angle(proper_angle)
+                .raw_axis(self.calc_proper_rotation_pole().coords)
+                .kind(kind)
+                .rotation_group(rotation_group)
+                .additional_superscript(additional_superscript)
+                .additional_subscript(additional_subscript)
+                .build()
+                .unwrap()
         }
     }
 
@@ -1376,9 +1346,30 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             }
     }
 
-    // ================
-    // Antiunitary part
-    // ================
+    //// ============
+    //// Unitary part
+    //// ============
+
+    ///// Checks if the spatial part of the symmetry operation is the spatial identity, taking into
+    ///// account any rotation contribution from the antiunitary part.
+    /////
+    ///// # Returns
+    /////
+    ///// A boolean indicating if the spatial part of the symmetry operation is the unitary identity.
+    //fn is_unitary_identity(&self) -> bool {
+    //    if self.is_su2() {
+    //        let c_self = self
+    //            .derotationise_su2_time_reversal()
+    //            .expect("Unable to derotationise SU(2) time reversal.");
+    //        c_self.is_spatial_identity()
+    //    } else {
+    //        self.is_spatial_identity()
+    //    }
+    //}
+
+    // ==================
+    // Time-reversal part
+    // ==================
 
     /// Checks if the symmetry operation is antiunitary or not.
     ///
@@ -1397,17 +1388,11 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
     fn is_time_reversal(&self) -> bool {
         if self.is_su2() {
             let c_self = self
-                .rotationise_su2_time_reversal()
-                .expect("Unable to rotationise SU(2) time reversal.");
-            c_self.is_antiunitary()
-                && c_self.is_spatial_binary_rotation()
-                && !c_self.is_full_su2_class_1()
-                && approx::relative_eq!(
-                    c_self.calc_pole().coords,
-                    Vector3::y(),
-                    max_relative = self.generating_element.threshold,
-                    epsilon = self.generating_element.threshold,
-                )
+                .derotationise_su2_time_reversal()
+                .expect("Unable to derotationise SU(2) time reversal.");
+            c_self.generating_element.contains_time_reversal()
+                && c_self.power.rem_euclid(2) == 1
+                && c_self.is_spatial_identity()
         } else {
             self.generating_element.contains_time_reversal()
                 && self.power.rem_euclid(2) == 1

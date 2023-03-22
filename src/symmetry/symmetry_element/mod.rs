@@ -573,79 +573,21 @@ impl SymmetryElement {
         self.threshold
     }
 
-    pub fn contains_antiunitary(&self) -> Option<AntiunitaryKind> {
-        match self.kind {
-            SymmetryElementKind::Proper(au)
-            | SymmetryElementKind::ImproperMirrorPlane(au)
-            | SymmetryElementKind::ImproperInversionCentre(au) => au,
-        }
-    }
-
-    /// Checks if the symmetry element contains a time-reversal generator.
+    /// Checks if the symmetry element contains a time-reversal operator.
     ///
     /// # Returns
     ///
-    /// A boolean indicating if the symmetry element contains a time-reversal generator.
+    /// A boolean indicating if the symmetry element contains a time-reversal operator.
     #[must_use]
     pub fn contains_time_reversal(&self) -> bool {
         self.kind.contains_time_reversal()
     }
 
-    /// Checks if the symmetry element is a pure time-reversal generator.
-    ///
-    /// In $`\mathsf{SU}(2)`$, both `θ(Σ)` and `θ(QΣ)` shall yield `true`, as both are inverses of
-    /// each other and can be generated from one another.
-    ///
-    /// # Returns
-    ///
-    /// A boolean indicating if the symmetry element is a pure time-reversal generator.
-    #[must_use]
-    pub fn is_time_reversal(&self) -> bool {
-        match self.contains_antiunitary() {
-            None => false,
-            Some(AntiunitaryKind::TimeReversal) => {
-                self.is_o3_proper(Some(AntiunitaryKind::TimeReversal))
-                    && self
-                        .proper_fraction
-                        .map(|frac| frac.is_zero())
-                        .or_else(|| {
-                            self.proper_angle.map(|proper_angle| {
-                                approx::relative_eq!(
-                                    proper_angle,
-                                    0.0,
-                                    epsilon = self.threshold,
-                                    max_relative = self.threshold
-                                )
-                            })
-                        })
-                        .unwrap_or(false)
-            }
-            Some(AntiunitaryKind::ComplexConjugation) => {
-                // Time reversal cannot be represented as a complex conjugation times a rotation in
-                // SO3, only in SU2.
-                self.is_rot_su2()
-                    && self.is_o3_proper(Some(AntiunitaryKind::ComplexConjugation))
-                    && self
-                        .proper_fraction
-                        .map(|frac| frac == F::new(1u32, 2u32))
-                        .or_else(|| {
-                            self.proper_angle.map(|proper_angle| {
-                                approx::relative_eq!(
-                                    proper_angle,
-                                    std::f64::consts::PI,
-                                    epsilon = self.threshold,
-                                    max_relative = self.threshold
-                                )
-                            })
-                        })
-                        .unwrap_or(false)
-                    && approx::relative_eq!(
-                        self.proper_rotation_pole(),
-                        Vector3::y(),
-                        epsilon = self.threshold,
-                        max_relative = self.threshold
-                    )
-            }
+    pub fn contains_antiunitary(&self) -> Option<AntiunitaryKind> {
+        match self.kind {
+            SymmetryElementKind::Proper(au)
+            | SymmetryElementKind::ImproperMirrorPlane(au)
+            | SymmetryElementKind::ImproperInversionCentre(au) => au,
         }
     }
 
@@ -863,14 +805,14 @@ impl SymmetryElement {
     /// The full symbol for this symmetry element.
     #[must_use]
     pub fn get_full_symbol(&self) -> String {
-        let an_sym = match self.contains_antiunitary() {
-            None => "",
-            Some(AntiunitaryKind::TimeReversal) => "θ·",
-            Some(AntiunitaryKind::ComplexConjugation) => "K·",
+        let tr_sym = if self.kind.contains_time_reversal() {
+            "θ·"
+        } else {
+            ""
         };
         let main_symbol: String = match self.kind {
             SymmetryElementKind::Proper(_) => {
-                format!("{an_sym}C")
+                format!("{tr_sym}C")
             }
             SymmetryElementKind::ImproperMirrorPlane(_) => {
                 if *self.raw_proper_order() != ElementOrder::Inf
@@ -885,9 +827,9 @@ impl SymmetryElement {
                             .expect("No proper fractions found for a finite-order element.")
                             .is_zero())
                 {
-                    format!("{an_sym}S")
+                    format!("{tr_sym}S")
                 } else {
-                    format!("{an_sym}σC")
+                    format!("{tr_sym}σC")
                 }
             }
             SymmetryElementKind::ImproperInversionCentre(_) => {
@@ -903,9 +845,9 @@ impl SymmetryElement {
                             .expect("No proper fractions found for a finite-order element.")
                             .is_zero())
                 {
-                    format!("{an_sym}Ṡ")
+                    format!("{tr_sym}Ṡ")
                 } else {
-                    format!("{an_sym}iC")
+                    format!("{tr_sym}iC")
                 }
             }
         };
@@ -963,71 +905,67 @@ impl SymmetryElement {
     /// The simplified symbol for this symmetry element.
     #[must_use]
     pub fn get_simplified_symbol(&self) -> String {
-        let (main_symbol, needs_power) = if self.is_time_reversal() {
-            ("θ".to_owned(), false)
-        } else {
-            match self.kind {
-                SymmetryElementKind::Proper(au) => {
-                    if self.is_o3_identity(au) {
-                        match au {
-                            None => ("E".to_owned(), false),
-                            Some(AntiunitaryKind::TimeReversal) => ("θ".to_owned(), false),
-                            Some(AntiunitaryKind::ComplexConjugation) => ("K".to_owned(), false),
-                        }
-                    } else {
-                        let au_sym = match au {
-                            None => "",
-                            Some(AntiunitaryKind::TimeReversal) => "θ·",
-                            Some(AntiunitaryKind::ComplexConjugation) => "K·",
-                        };
-                        (format!("{au_sym}C"), true)
+        let (main_symbol, needs_power) = match self.kind {
+            SymmetryElementKind::Proper(au) => {
+                if self.is_o3_identity(au) {
+                    match au {
+                        None => ("E".to_owned(), false),
+                        Some(AntiunitaryKind::TimeReversal) => ("θ".to_owned(), false),
+                        Some(AntiunitaryKind::ComplexConjugation) => ("K".to_owned(), false),
                     }
-                }
-                SymmetryElementKind::ImproperMirrorPlane(au) => {
+                } else {
                     let au_sym = match au {
                         None => "",
                         Some(AntiunitaryKind::TimeReversal) => "θ·",
                         Some(AntiunitaryKind::ComplexConjugation) => "K·",
                     };
-                    if self.is_o3_mirror_plane(au) {
-                        (format!("{au_sym}σ"), false)
-                    } else if self.is_o3_inversion_centre(au) {
-                        (format!("{au_sym}i"), false)
-                    } else if *self.raw_proper_order() == ElementOrder::Inf
-                        || *self
-                            .proper_fraction
-                            .expect("No proper fractions found for a finite-order element.")
-                            .numer()
-                            .expect("Unable to extract the numerator of the proper fraction.")
-                            == 1
-                    {
-                        (format!("{au_sym}S"), false)
-                    } else {
-                        (format!("{au_sym}σC"), true)
-                    }
+                    (format!("{au_sym}C"), true)
                 }
-                SymmetryElementKind::ImproperInversionCentre(au) => {
-                    let au_sym = match au {
-                        None => "",
-                        Some(AntiunitaryKind::TimeReversal) => "θ·",
-                        Some(AntiunitaryKind::ComplexConjugation) => "K·",
-                    };
-                    if self.is_o3_mirror_plane(au) {
-                        (format!("{au_sym}σ"), false)
-                    } else if self.is_o3_inversion_centre(au) {
-                        (format!("{au_sym}i"), false)
-                    } else if *self.raw_proper_order() == ElementOrder::Inf
-                        || *self
-                            .proper_fraction
-                            .expect("No proper fractions found for a finite-order element.")
-                            .numer()
-                            .expect("Unable to extract the numerator of the proper fraction.")
-                            == 1
-                    {
-                        (format!("{au_sym}Ṡ"), false)
-                    } else {
-                        (format!("{au_sym}iC"), true)
-                    }
+            }
+            SymmetryElementKind::ImproperMirrorPlane(au) => {
+                let au_sym = match au {
+                    None => "",
+                    Some(AntiunitaryKind::TimeReversal) => "θ·",
+                    Some(AntiunitaryKind::ComplexConjugation) => "K·",
+                };
+                if self.is_o3_mirror_plane(au) {
+                    (format!("{au_sym}σ"), false)
+                } else if self.is_o3_inversion_centre(au) {
+                    (format!("{au_sym}i"), false)
+                } else if *self.raw_proper_order() == ElementOrder::Inf
+                    || *self
+                        .proper_fraction
+                        .expect("No proper fractions found for a finite-order element.")
+                        .numer()
+                        .expect("Unable to extract the numerator of the proper fraction.")
+                        == 1
+                {
+                    (format!("{au_sym}S"), false)
+                } else {
+                    (format!("{au_sym}σC"), true)
+                }
+            }
+            SymmetryElementKind::ImproperInversionCentre(au) => {
+                let au_sym = match au {
+                    None => "",
+                    Some(AntiunitaryKind::TimeReversal) => "θ·",
+                    Some(AntiunitaryKind::ComplexConjugation) => "K·",
+                };
+                if self.is_o3_mirror_plane(au) {
+                    (format!("{au_sym}σ"), false)
+                } else if self.is_o3_inversion_centre(au) {
+                    (format!("{au_sym}i"), false)
+                } else if *self.raw_proper_order() == ElementOrder::Inf
+                    || *self
+                        .proper_fraction
+                        .expect("No proper fractions found for a finite-order element.")
+                        .numer()
+                        .expect("Unable to extract the numerator of the proper fraction.")
+                        == 1
+                {
+                    (format!("{au_sym}Ṡ"), false)
+                } else {
+                    (format!("{au_sym}iC"), true)
                 }
             }
         };
@@ -1045,7 +983,6 @@ impl SymmetryElement {
             let proper_order = if self.is_o3_identity(au)
                 || self.is_o3_inversion_centre(au)
                 || self.is_o3_mirror_plane(au)
-                || self.is_time_reversal()
             {
                 String::new()
             } else {
@@ -1098,71 +1035,67 @@ impl SymmetryElement {
     /// The simplified symbol for this symmetry element.
     #[must_use]
     pub fn get_simplified_symbol_signed_power(&self) -> String {
-        let (main_symbol, needs_power) = if self.is_time_reversal() {
-            ("θ".to_owned(), false)
-        } else {
-            match self.kind {
-                SymmetryElementKind::Proper(au) => {
-                    if self.is_o3_identity(au) {
-                        match au {
-                            None => ("E".to_owned(), false),
-                            Some(AntiunitaryKind::TimeReversal) => ("θ".to_owned(), false),
-                            Some(AntiunitaryKind::ComplexConjugation) => ("K".to_owned(), false),
-                        }
-                    } else {
-                        let au_sym = match au {
-                            None => "",
-                            Some(AntiunitaryKind::TimeReversal) => "θ·",
-                            Some(AntiunitaryKind::ComplexConjugation) => "K·",
-                        };
-                        (format!("{au_sym}C"), true)
+        let (main_symbol, needs_power) = match self.kind {
+            SymmetryElementKind::Proper(au) => {
+                if self.is_o3_identity(au) {
+                    match au {
+                        None => ("E".to_owned(), false),
+                        Some(AntiunitaryKind::TimeReversal) => ("θ".to_owned(), false),
+                        Some(AntiunitaryKind::ComplexConjugation) => ("K".to_owned(), false),
                     }
-                }
-                SymmetryElementKind::ImproperMirrorPlane(au) => {
+                } else {
                     let au_sym = match au {
                         None => "",
                         Some(AntiunitaryKind::TimeReversal) => "θ·",
                         Some(AntiunitaryKind::ComplexConjugation) => "K·",
                     };
-                    if self.is_o3_mirror_plane(au) {
-                        (format!("{au_sym}σ"), false)
-                    } else if self.is_o3_inversion_centre(au) {
-                        (format!("{au_sym}i"), false)
-                    } else if *self.raw_proper_order() == ElementOrder::Inf
-                        || *self
-                            .proper_fraction
-                            .expect("No proper fractions found for a finite-order element.")
-                            .numer()
-                            .expect("Unable to extract the numerator of the proper fraction.")
-                            == 1
-                    {
-                        (format!("{au_sym}S"), true)
-                    } else {
-                        (format!("{au_sym}σC"), true)
-                    }
+                    (format!("{au_sym}C"), true)
                 }
-                SymmetryElementKind::ImproperInversionCentre(au) => {
-                    let au_sym = match au {
-                        None => "",
-                        Some(AntiunitaryKind::TimeReversal) => "θ·",
-                        Some(AntiunitaryKind::ComplexConjugation) => "K·",
-                    };
-                    if self.is_o3_mirror_plane(au) {
-                        (format!("{au_sym}σ"), false)
-                    } else if self.is_o3_inversion_centre(au) {
-                        (format!("{au_sym}i"), false)
-                    } else if *self.raw_proper_order() == ElementOrder::Inf
-                        || *self
-                            .proper_fraction
-                            .expect("No proper fractions found for a finite-order element.")
-                            .numer()
-                            .expect("Unable to extract the numerator of the proper fraction.")
-                            == 1
-                    {
-                        (format!("{au_sym}Ṡ"), true)
-                    } else {
-                        (format!("{au_sym}iC"), true)
-                    }
+            }
+            SymmetryElementKind::ImproperMirrorPlane(au) => {
+                let au_sym = match au {
+                    None => "",
+                    Some(AntiunitaryKind::TimeReversal) => "θ·",
+                    Some(AntiunitaryKind::ComplexConjugation) => "K·",
+                };
+                if self.is_o3_mirror_plane(au) {
+                    (format!("{au_sym}σ"), false)
+                } else if self.is_o3_inversion_centre(au) {
+                    (format!("{au_sym}i"), false)
+                } else if *self.raw_proper_order() == ElementOrder::Inf
+                    || *self
+                        .proper_fraction
+                        .expect("No proper fractions found for a finite-order element.")
+                        .numer()
+                        .expect("Unable to extract the numerator of the proper fraction.")
+                        == 1
+                {
+                    (format!("{au_sym}S"), true)
+                } else {
+                    (format!("{au_sym}σC"), true)
+                }
+            }
+            SymmetryElementKind::ImproperInversionCentre(au) => {
+                let au_sym = match au {
+                    None => "",
+                    Some(AntiunitaryKind::TimeReversal) => "θ·",
+                    Some(AntiunitaryKind::ComplexConjugation) => "K·",
+                };
+                if self.is_o3_mirror_plane(au) {
+                    (format!("{au_sym}σ"), false)
+                } else if self.is_o3_inversion_centre(au) {
+                    (format!("{au_sym}i"), false)
+                } else if *self.raw_proper_order() == ElementOrder::Inf
+                    || *self
+                        .proper_fraction
+                        .expect("No proper fractions found for a finite-order element.")
+                        .numer()
+                        .expect("Unable to extract the numerator of the proper fraction.")
+                        == 1
+                {
+                    (format!("{au_sym}Ṡ"), true)
+                } else {
+                    (format!("{au_sym}iC"), true)
                 }
             }
         };
@@ -1180,7 +1113,6 @@ impl SymmetryElement {
             let proper_order = if self.is_o3_identity(au)
                 || self.is_o3_inversion_centre(au)
                 || self.is_o3_mirror_plane(au)
-                || self.is_time_reversal()
             {
                 String::new()
             } else {
@@ -1509,7 +1441,7 @@ impl fmt::Debug for SymmetryElement {
 impl fmt::Display for SymmetryElement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let au = self.contains_antiunitary();
-        if self.is_o3_identity(au) || self.is_o3_inversion_centre(au) || self.is_time_reversal() {
+        if self.is_o3_identity(au) || self.is_o3_inversion_centre(au) {
             write!(f, "{}", self.get_simplified_symbol())
         } else {
             let signed_axis = self.signed_axis();

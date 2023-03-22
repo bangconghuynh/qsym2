@@ -7,8 +7,8 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, ElementOrder, SymmetryElement, SymmetryElementKind, F, INV, KROT, ROT, SIG,
-    SO3, SU2_0, SU2_1, TRINV, TRROT, TRSIG,
+    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV,
+    TRROT, TRSIG, KROT
 };
 
 #[test]
@@ -22,7 +22,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -60,7 +60,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -93,7 +93,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -117,7 +117,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -155,7 +155,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -179,7 +179,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -217,7 +217,7 @@ fn test_symmetry_operation_constructor() {
         .raw_axis(Vector3::new(1.0, 0.0, -1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_6)
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -269,7 +269,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -307,7 +307,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(1)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -345,7 +345,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(2)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -383,7 +383,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -421,7 +421,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -459,7 +459,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -497,7 +497,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -535,7 +535,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -573,7 +573,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(3)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -611,7 +611,7 @@ fn test_symmetry_operation_constructor() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -649,7 +649,7 @@ fn test_symmetry_operation_constructor() {
         .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -719,7 +719,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -745,7 +745,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -771,7 +771,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -789,7 +789,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -847,7 +847,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -865,7 +865,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -915,7 +915,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 2.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -968,7 +968,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -994,7 +994,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(1)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1020,7 +1020,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(2)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1046,7 +1046,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1072,7 +1072,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1098,7 +1098,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1124,7 +1124,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1176,7 +1176,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1202,7 +1202,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(3)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1228,7 +1228,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1262,7 +1262,7 @@ fn test_symmetry_operation_total_proper_fraction() {
         .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1285,7 +1285,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1339,7 +1339,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_power(1)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1393,7 +1393,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_power(2)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1447,7 +1447,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1501,7 +1501,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1555,7 +1555,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1657,7 +1657,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1711,7 +1711,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1743,7 +1743,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.5, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1819,7 +1819,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, 2.5, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1851,7 +1851,7 @@ fn test_symmetry_operation_finite_improper_conversion() {
         .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_4)
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1933,7 +1933,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1957,7 +1957,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -1991,7 +1991,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2018,7 +2018,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2089,7 +2089,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2119,7 +2119,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, -1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2173,7 +2173,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, -2.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2227,7 +2227,7 @@ fn test_symmetry_operation_poles() {
         .raw_axis(Vector3::new(1.0, 0.0, -1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_6)
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2294,7 +2294,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, -2.0, 0.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2324,7 +2324,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2354,7 +2354,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(2)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2374,7 +2374,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2404,7 +2404,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2434,7 +2434,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2464,7 +2464,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2568,7 +2568,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2599,7 +2599,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(3)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2623,7 +2623,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2657,7 +2657,7 @@ fn test_symmetry_operation_poles() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, -1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2727,7 +2727,7 @@ fn test_symmetry_operation_poles() {
         .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::PI / 5.0)
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2751,7 +2751,7 @@ fn test_symmetry_operation_poles() {
         .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::PI / 5.0)
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2784,7 +2784,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2807,7 +2807,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2837,7 +2837,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(-1.0, -1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2854,7 +2854,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2914,7 +2914,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(2)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -2945,7 +2945,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, -1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3002,7 +3002,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(-Vector3::new(1.0, 1.0, -1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3027,7 +3027,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3065,7 +3065,7 @@ fn test_symmetry_operation_comparisons() {
         .raw_axis(-Vector3::new(1.0, 1.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::FRAC_PI_6)
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3146,7 +3146,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, -2.0, 0.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3189,7 +3189,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3218,7 +3218,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(2)
         .raw_axis(Vector3::new(-1.0, 1.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3237,7 +3237,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3266,7 +3266,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(2)
         .raw_axis(Vector3::new(0.0, 1.0, 0.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3296,7 +3296,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3326,7 +3326,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3414,7 +3414,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(2)
         .raw_axis(-Vector3::new(1.0, 1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3440,7 +3440,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(3)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3464,7 +3464,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3480,7 +3480,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(5)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3511,7 +3511,7 @@ fn test_symmetry_operation_comparisons() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, 2.0, -1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3605,7 +3605,7 @@ fn test_symmetry_operation_comparisons() {
         .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .proper_angle(2.0 * std::f64::consts::PI / 5.0)
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3655,7 +3655,7 @@ fn test_symmetry_operation_to_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3730,7 +3730,7 @@ fn test_symmetry_operation_to_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3802,7 +3802,7 @@ fn test_symmetry_operation_to_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3880,7 +3880,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3908,7 +3908,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -2.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -3993,7 +3993,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 2.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4039,7 +4039,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 2.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4085,7 +4085,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4167,7 +4167,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_power(3)
         .raw_axis(Vector3::new(5.0, -1.0, 2.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4195,7 +4195,7 @@ fn test_symmetry_operation_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -4247,7 +4247,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, -1.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -4344,7 +4344,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -4481,7 +4481,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -4579,7 +4579,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -4637,7 +4637,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -4920,7 +4920,7 @@ fn test_symmetry_operation_su2_to_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(INV)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -5071,7 +5071,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -5160,7 +5160,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -2.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -5248,7 +5248,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 2.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -5294,7 +5294,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 2.0))
         .kind(SIG)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -5341,7 +5341,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -5423,7 +5423,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         .proper_power(3)
         .raw_axis(Vector3::new(5.0, -1.0, 2.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -5451,7 +5451,7 @@ fn test_symmetry_operation_su2_from_quaternion() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(INV)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -5503,7 +5503,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5544,7 +5544,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5560,7 +5560,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5590,7 +5590,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5616,7 +5616,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5633,7 +5633,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5666,7 +5666,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5682,7 +5682,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5699,7 +5699,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5716,7 +5716,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5733,7 +5733,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5749,7 +5749,7 @@ fn test_symmetry_operation_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5772,7 +5772,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5788,7 +5788,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5804,7 +5804,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5823,7 +5823,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5839,7 +5839,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5855,7 +5855,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5875,7 +5875,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5891,7 +5891,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 0.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5907,7 +5907,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5927,7 +5927,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5947,7 +5947,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
             0.0,
         ))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5972,7 +5972,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power((*fract.numer().unwrap()).try_into().unwrap())
         .raw_axis(rotation_axis)
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -5993,7 +5993,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
             0.0,
         ))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6009,7 +6009,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6031,7 +6031,7 @@ fn test_symmetry_operation_noncoaxial_composition() {
             0.0,
         ))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6054,7 +6054,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::x())
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -6082,7 +6082,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::x())
         .kind(ROT)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -6100,7 +6100,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::z())
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -6139,7 +6139,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::x())
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -6169,7 +6169,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(-Vector3::x())
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -6188,7 +6188,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -6230,7 +6230,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -6254,7 +6254,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -6269,7 +6269,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(12)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
     let c35_pp12_isr_p1 = SymmetryOperation::builder()
@@ -6290,7 +6290,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
     let c35_pp2_isr_p1 = SymmetryOperation::builder()
@@ -6306,7 +6306,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -6332,7 +6332,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -6356,7 +6356,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(2)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -6376,7 +6376,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::z())
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
     let c2z_nsr_p1 = SymmetryOperation::builder()
@@ -6391,7 +6391,7 @@ fn test_symmetry_operation_su2_coaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::z())
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
     let s4z_nsr_p1 = SymmetryOperation::builder()
@@ -6421,7 +6421,7 @@ fn test_symmetry_operation_su2_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::x())
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
     let e_nsr = SymmetryOperation::builder()
@@ -6451,7 +6451,7 @@ fn test_symmetry_operation_su2_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::y())
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
     let c2y_nsr = SymmetryOperation::builder()
@@ -6471,7 +6471,7 @@ fn test_symmetry_operation_su2_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::z())
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
     let c2z_nsr = SymmetryOperation::builder()
@@ -6584,7 +6584,7 @@ fn test_symmetry_operation_su2_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::z())
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
     let c3p1_nsr = SymmetryOperation::builder()
@@ -6614,7 +6614,7 @@ fn test_symmetry_operation_su2_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::x())
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
     let c21_nsr = SymmetryOperation::builder()
@@ -6634,7 +6634,7 @@ fn test_symmetry_operation_su2_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.5, -3.0f64.sqrt() / 2.0, 0.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
     let c22_nsr = SymmetryOperation::builder()
@@ -6654,7 +6654,7 @@ fn test_symmetry_operation_su2_noncoaxial_composition() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.5, 3.0f64.sqrt() / 2.0, 0.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
     let c23_nsr = SymmetryOperation::builder()
@@ -6761,7 +6761,7 @@ fn test_symmetry_operation_time_reversal() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(TRROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6780,7 +6780,7 @@ fn test_symmetry_operation_time_reversal() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
     let c2x = SymmetryOperation::builder()
@@ -6803,7 +6803,7 @@ fn test_symmetry_operation_time_reversal() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 0.0))
         .kind(TRROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6819,7 +6819,7 @@ fn test_symmetry_operation_time_reversal() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
     let c2y = SymmetryOperation::builder()
@@ -6844,7 +6844,7 @@ fn test_symmetry_operation_time_reversal() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6862,7 +6862,7 @@ fn test_symmetry_operation_time_reversal() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(TRINV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6890,7 +6890,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6924,7 +6924,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6941,7 +6941,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6959,7 +6959,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -6989,7 +6989,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -2.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7020,7 +7020,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -2.0, 2.0))
         .kind(TRSIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7040,7 +7040,7 @@ fn test_symmetry_operation_exponentiation() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -2.0, 2.0))
         .kind(TRROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7062,7 +7062,7 @@ fn test_symmetry_operation_invertibility() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7086,7 +7086,7 @@ fn test_symmetry_operation_invertibility() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -2.0, 2.0))
         .kind(TRROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7109,7 +7109,7 @@ fn test_symmetry_operation_hashability() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7128,7 +7128,7 @@ fn test_symmetry_operation_hashability() {
         .proper_power(1)
         .raw_axis(Vector3::new(-1.0, 1.0, -1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7148,7 +7148,7 @@ fn test_symmetry_operation_hashability() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, -1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7166,7 +7166,7 @@ fn test_symmetry_operation_hashability() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, -1.0, 1.0))
         .kind(TRROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7187,7 +7187,7 @@ fn test_symmetry_operation_su2_comparison() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -7197,7 +7197,7 @@ fn test_symmetry_operation_su2_comparison() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -7389,7 +7389,7 @@ fn test_symmetry_operation_su2_comparison() {
         .proper_power(3)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap()
         .to_su2(true)
@@ -7421,7 +7421,7 @@ fn test_symmetry_operation_su2_comparison() {
         .proper_power(1)
         .raw_axis(Vector3::new(2.0, -1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
     let c7_nsr_element = c7_element.to_su2(true).unwrap();
@@ -7477,7 +7477,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7508,7 +7508,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7546,7 +7546,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 1.0, -1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7570,7 +7570,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7608,7 +7608,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, -1.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7646,7 +7646,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(ROT)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7701,7 +7701,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7739,7 +7739,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7777,7 +7777,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, -1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7815,7 +7815,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, -1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7853,7 +7853,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -7933,7 +7933,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -8027,7 +8027,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -8093,7 +8093,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(INV)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -8159,7 +8159,7 @@ fn test_symmetry_operation_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 0.0, 1.0))
         .kind(SIG)
-        .rotation_group(SO3)
+        .rotation_group(RotationGroup::SO3)
         .build()
         .unwrap();
 
@@ -8273,7 +8273,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -8297,7 +8297,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -8321,7 +8321,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 2.0, 0.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -8359,7 +8359,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, -2.0, 0.0))
         .kind(ROT)
-        .rotation_group(SU2_1)
+        .rotation_group(RotationGroup::SU2(false))
         .build()
         .unwrap();
 
@@ -8397,7 +8397,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, -1.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -8449,7 +8449,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 1.0))
         .kind(ROT)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -8560,7 +8560,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -8626,7 +8626,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -8664,7 +8664,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -8702,7 +8702,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 1.0))
         .kind(INV)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -8768,7 +8768,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -8862,7 +8862,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(0.0, 1.0, 1.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -8928,7 +8928,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
         .proper_power(1)
         .raw_axis(Vector3::new(1.0, 0.0, 0.0))
         .kind(SIG)
-        .rotation_group(SU2_0)
+        .rotation_group(RotationGroup::SU2(true))
         .build()
         .unwrap();
 
@@ -9006,7 +9006,7 @@ fn test_symmetry_operation_su2_abbreviated_symbols() {
 }
 
 #[test]
-fn test_symmetry_operation_rotationise_time_reversal() {
+fn test_symmetry_operation_rotationise_su2_time_reversal() {
     // ---
     // SO3
     // ---
@@ -9084,8 +9084,7 @@ fn test_symmetry_operation_rotationise_time_reversal() {
     assert!(tc1z_r.is_time_reversal());
     assert!(!tc1z_r.is_rot_su2_class_1());
     assert!(!tc1z_r.is_full_su2_class_1());
-    assert_eq!(tc1z_r.to_string(), "θ(Σ)");
-    assert_eq!(format!("{:?}", tc1z_r), "K·C2(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(tc1z_r.to_string(), "K·C2(Σ)(+0.000, +1.000, +0.000)");
 
     let tc1z_2 = tc1z_r.derotationise_su2_time_reversal().unwrap();
     assert!(tc1z_2.is_antiunitary());
@@ -9093,7 +9092,6 @@ fn test_symmetry_operation_rotationise_time_reversal() {
     assert!(!tc1z_2.is_rot_su2_class_1());
     assert!(!tc1z_2.is_full_su2_class_1());
     assert_eq!(tc1z_2.to_string(), "θ(Σ)");
-    assert_eq!(format!("{:?}", tc1z_2), "θ·C1(Σ)(+0.000, +0.000, +1.000)");
 
     let kc2y_element = SymmetryElement::builder()
         .threshold(1e-12)
@@ -9115,8 +9113,7 @@ fn test_symmetry_operation_rotationise_time_reversal() {
     assert!(kc2y.is_time_reversal());
     assert!(!kc2y.is_rot_su2_class_1());
     assert!(!kc2y.is_full_su2_class_1());
-    assert_eq!(kc2y.to_string(), "θ(Σ)");
-    assert_eq!(format!("{:?}", kc2y), "K·C2(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(kc2y.to_string(), "K·C2(Σ)(+0.000, +1.000, +0.000)");
 
     let kc2y_d = kc2y.derotationise_su2_time_reversal().unwrap();
     assert!(kc2y_d.is_antiunitary());
@@ -9312,10 +9309,7 @@ fn test_symmetry_operation_rotationise_time_reversal() {
     assert!(!tc2x_p2_r.is_time_reversal());
     assert!(tc2x_p2_r.is_rot_su2_class_1());
     assert!(tc2x_p2_r.is_full_su2_class_1());
-    assert_eq!(
-        tc2x_p2_r.to_string(),
-        "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^2"
-    );
+    assert_eq!(tc2x_p2_r.to_string(), "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^2");
 
     let tc2x_p2_2 = tc2x_p2_r.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2x_p2_2.is_antiunitary());
@@ -9329,10 +9323,7 @@ fn test_symmetry_operation_rotationise_time_reversal() {
     assert!(!tc2x_r_p2.is_time_reversal());
     assert!(tc2x_r_p2.is_rot_su2_class_1());
     assert!(tc2x_r_p2.is_full_su2_class_1());
-    assert_eq!(
-        tc2x_r_p2.to_string(),
-        "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^2"
-    );
+    assert_eq!(tc2x_r_p2.to_string(), "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^2");
 
     let tc2x_p2_3 = tc2x_r_p2.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2x_p2_3.is_antiunitary());
@@ -9353,10 +9344,7 @@ fn test_symmetry_operation_rotationise_time_reversal() {
     assert!(!tc2x_p3_r.is_time_reversal());
     assert!(!tc2x_p3_r.is_rot_su2_class_1());
     assert!(!tc2x_p3_r.is_full_su2_class_1());
-    assert_eq!(
-        tc2x_p3_r.to_string(),
-        "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^3"
-    );
+    assert_eq!(tc2x_p3_r.to_string(), "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^3");
 
     let tc2x_p3_2 = tc2x_p3_r.derotationise_su2_time_reversal().unwrap();
     assert!(tc2x_p3_2.is_antiunitary());
@@ -9369,10 +9357,7 @@ fn test_symmetry_operation_rotationise_time_reversal() {
     assert!(tc2x_r_p3.is_antiunitary());
     assert!(!tc2x_r_p3.is_rot_su2_class_1());
     assert!(!tc2x_r_p3.is_full_su2_class_1());
-    assert_eq!(
-        tc2x_r_p3.to_string(),
-        "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^3"
-    );
+    assert_eq!(tc2x_r_p3.to_string(), "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^3");
 
     let tc2x_p3_3 = tc2x_r_p3.derotationise_su2_time_reversal().unwrap();
     assert!(tc2x_p3_3.is_antiunitary());
@@ -9393,10 +9378,7 @@ fn test_symmetry_operation_rotationise_time_reversal() {
     assert!(!tc2x_p4_r.is_time_reversal());
     assert!(!tc2x_p4_r.is_rot_su2_class_1());
     assert!(!tc2x_p4_r.is_full_su2_class_1());
-    assert_eq!(
-        tc2x_p4_r.to_string(),
-        "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^4"
-    );
+    assert_eq!(tc2x_p4_r.to_string(), "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^4");
 
     let tc2x_p4_2 = tc2x_p4_r.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2x_p4_2.is_antiunitary());
@@ -9409,10 +9391,7 @@ fn test_symmetry_operation_rotationise_time_reversal() {
     assert!(!tc2x_r_p4.is_antiunitary());
     assert!(!tc2x_r_p4.is_time_reversal());
     assert!(!tc2x_r_p4.is_rot_su2_class_1());
-    assert_eq!(
-        tc2x_r_p4.to_string(),
-        "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^4"
-    );
+    assert_eq!(tc2x_r_p4.to_string(), "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^4");
 
     let tc2x_p4_3 = tc2x_r_p4.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2x_p4_3.is_antiunitary());
@@ -9498,10 +9477,7 @@ fn test_symmetry_operation_rotationise_time_reversal() {
     assert!(!tc3y_p2_r.is_antiunitary());
     assert!(!tc3y_p2_r.is_rot_su2_class_1());
     assert!(!tc3y_p2_r.is_full_su2_class_1());
-    assert_eq!(
-        tc3y_p2_r.to_string(),
-        "[K·C6(QΣ)(+0.000, -1.000, +0.000)]^2"
-    );
+    assert_eq!(tc3y_p2_r.to_string(), "[K·C6(QΣ)(+0.000, -1.000, +0.000)]^2");
 
     let tc3y_p2_2 = tc3y_p2_r.derotationise_su2_time_reversal().unwrap();
     assert!(!tc3y_p2_2.is_antiunitary());
@@ -9589,841 +9565,5 @@ fn test_symmetry_operation_rotationise_time_reversal() {
     assert!(!tc4y_p2_2.is_antiunitary());
     assert!(!tc4y_p2_2.is_rot_su2_class_1());
     assert!(tc4y_p2_2.is_full_su2_class_1());
-    assert_eq!(
-        tc4y_p2_2.to_string(),
-        "[θ·C4(QΣ)(+0.000, +1.000, +0.000)]^2"
-    );
-}
-
-#[test]
-fn test_symmetry_operation_composition_time_reversal() {
-    // ---
-    // SO3
-    // ---
-    let tc1z_element_so3 = SymmetryElement::builder()
-        .threshold(1e-12)
-        .proper_order(ElementOrder::Int(1))
-        .proper_power(1)
-        .raw_axis(Vector3::z())
-        .kind(TRROT)
-        .rotation_group(SO3)
-        .build()
-        .unwrap();
-
-    let tc1z_so3 = SymmetryOperation::builder()
-        .generating_element(tc1z_element_so3)
-        .power(1)
-        .build()
-        .unwrap();
-
-    let tc1z_tc1z_so3 = (&tc1z_so3) * (&tc1z_so3);
-    assert!(tc1z_tc1z_so3.is_identity());
-
-    let tc1z_tc1z_tc1z_so3 = (&tc1z_tc1z_so3) * (&tc1z_so3);
-    assert!(tc1z_tc1z_tc1z_so3.is_time_reversal());
-
-    // ---
-    // SU2
-    // ---
-    let tc1z_element = SymmetryElement::builder()
-        .threshold(1e-12)
-        .proper_order(ElementOrder::Int(1))
-        .proper_power(1)
-        .raw_axis(Vector3::z())
-        .kind(TRROT)
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let tc1z = SymmetryOperation::builder()
-        .generating_element(tc1z_element)
-        .power(1)
-        .build()
-        .unwrap();
-    assert!(tc1z.is_time_reversal());
-    assert_eq!(tc1z.to_string(), "θ(Σ)");
-
-    let tc1z_p2 = (&tc1z) * (&tc1z);
-    assert!(!tc1z_p2.is_identity());
-    assert_eq!(tc1z_p2.to_string(), "E(QΣ)");
-
-    let tc1z_p3 = (&tc1z_p2) * &tc1z;
-    assert!(!tc1z_p3.is_time_reversal());
-    assert_eq!(
-        tc1z_p3
-            .derotationise_su2_time_reversal()
-            .unwrap()
-            .to_string(),
-        "θ(QΣ)"
-    );
-
-    let tc1z_p4 = (&tc1z_p2) * (&tc1z_p2);
-    assert!(tc1z_p4.is_identity());
-    assert_eq!(tc1z_p4.to_string(), "E(Σ)");
-
-    let tc2z_element = SymmetryElement::builder()
-        .threshold(1e-12)
-        .proper_order(ElementOrder::Int(2))
-        .proper_power(1)
-        .raw_axis(Vector3::z())
-        .kind(TRROT)
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let tc2z = SymmetryOperation::builder()
-        .generating_element(tc2z_element)
-        .power(1)
-        .build()
-        .unwrap();
-    assert!(!tc2z.is_time_reversal());
-
-    let c2z_element = SymmetryElement::builder()
-        .threshold(1e-12)
-        .proper_order(ElementOrder::Int(2))
-        .proper_power(1)
-        .raw_axis(Vector3::z())
-        .kind(ROT)
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let c2z = SymmetryOperation::builder()
-        .generating_element(c2z_element.clone())
-        .power(1)
-        .build()
-        .unwrap();
-    let c2zpm1 = SymmetryOperation::builder()
-        .generating_element(c2z_element)
-        .power(-1)
-        .build()
-        .unwrap();
-
-    let tc2z_c2z = (&tc2z) * (&c2z);
-    assert!(!tc2z_c2z.is_time_reversal());
-    assert_eq!(tc2z_c2z.to_string(), "θ(QΣ)");
-    assert_eq!(
-        format!("{:?}", tc2z_c2z),
-        "K·C2(QΣ)(+0.000, +1.000, +0.000)"
-    );
-
-    let tc2z_c2zpm1 = (&tc2z) * (&c2zpm1);
-    assert!(tc2z_c2zpm1.is_time_reversal());
-    assert_eq!(tc2z_c2zpm1.to_string(), "θ(Σ)");
-    assert_eq!(
-        format!("{:?}", tc2z_c2zpm1),
-        "K·C2(Σ)(+0.000, +1.000, +0.000)"
-    );
-
-    let tc3y_element = SymmetryElement::builder()
-        .threshold(1e-12)
-        .proper_order(ElementOrder::Int(3))
-        .proper_power(1)
-        .raw_axis(-Vector3::y())
-        .kind(TRROT)
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let tc3y = SymmetryOperation::builder()
-        .generating_element(tc3y_element)
-        .power(1)
-        .build()
-        .unwrap();
-    assert!(!tc3y.is_time_reversal());
-    assert_eq!(tc3y.to_string(), "θ·C3(Σ)(+0.000, -1.000, +0.000)");
-
-    let tc3y_p3 = tc3y.pow(3);
-    assert!(tc3y_p3.is_time_reversal());
-    assert_eq!(tc3y_p3.to_string(), "[θ·C3(Σ)(+0.000, -1.000, +0.000)]^3");
-    assert_eq!(tc3y_p3.to_symmetry_element().to_string(), "θ(Σ)");
-    assert_eq!(tc3y_p3.get_abbreviated_symbol(), "θ(Σ)");
-
-    let kc10y_element = SymmetryElement::builder()
-        .threshold(1e-12)
-        .proper_order(ElementOrder::Int(10))
-        .proper_power(1)
-        .raw_axis(Vector3::y())
-        .kind(SymmetryElementKind::Proper(Some(
-            AntiunitaryKind::ComplexConjugation,
-        )))
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let kc10y = SymmetryOperation::builder()
-        .generating_element(kc10y_element)
-        .power(1)
-        .build()
-        .unwrap();
-    assert!(!kc10y.is_time_reversal());
-    assert_eq!(kc10y.to_string(), "K·C10(Σ)(+0.000, +1.000, +0.000)");
-
-    let kc10y_p5 = kc10y.pow(5);
-    assert!(kc10y_p5.is_time_reversal());
-    assert_eq!(kc10y_p5.to_symmetry_element().to_string(), "θ(Σ)");
-    assert_eq!(kc10y_p5.get_abbreviated_symbol(), "θ(Σ)");
-}
-
-#[test]
-fn test_symmetry_operation_to_symmetry_element() {
-    // ================================
-    // Proper symmetry operations (SO3)
-    // ================================
-    let c3_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(3))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(ROT)
-        .rotation_group(SO3)
-        .build()
-        .unwrap();
-
-    let c3p2 = SymmetryOperation::builder()
-        .generating_element(c3_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(
-        c3p2.to_symmetry_element().to_string(),
-        "C3(+0.000, -1.000, +0.000)"
-    );
-
-    let tc3_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(3))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(TRROT)
-        .rotation_group(SO3)
-        .build()
-        .unwrap();
-
-    let tc3p2 = SymmetryOperation::builder()
-        .generating_element(tc3_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(
-        tc3p2.to_symmetry_element().to_string(),
-        "C3(+0.000, -1.000, +0.000)"
-    );
-
-    let c4_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(4))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
-        .kind(ROT)
-        .rotation_group(SO3)
-        .build()
-        .unwrap();
-
-    let c4p2 = SymmetryOperation::builder()
-        .generating_element(c4_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(c4p2.to_string(), "[C4(+0.000, +0.894, -0.447)]^2");
-    assert_eq!(
-        c4p2.to_symmetry_element().to_string(),
-        "C2(+0.000, -0.894, +0.447)"
-    );
-
-    let tc4_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(4))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
-        .kind(TRROT)
-        .rotation_group(SO3)
-        .build()
-        .unwrap();
-
-    let tc4p3 = SymmetryOperation::builder()
-        .generating_element(tc4_element.clone())
-        .power(3)
-        .build()
-        .unwrap();
-    assert_eq!(tc4p3.to_string(), "[θ·C4(+0.000, +0.894, -0.447)]^3");
-    assert_eq!(
-        tc4p3.to_symmetry_element().to_string(),
-        "θ·C4(+0.000, -0.894, +0.447)"
-    );
-
-    let c7_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(7))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
-        .kind(ROT)
-        .rotation_group(SO3)
-        .build()
-        .unwrap();
-
-    let c7p2 = SymmetryOperation::builder()
-        .generating_element(c7_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(c7p2.to_string(), "[C7(+0.000, +0.894, -0.447)]^2");
-    assert_eq!(
-        c7p2.to_symmetry_element().to_string(),
-        "C7^2(+0.000, +0.894, -0.447)"
-    );
-
-    let c7pm2 = SymmetryOperation::builder()
-        .generating_element(c7_element.clone())
-        .power(-2)
-        .build()
-        .unwrap();
-    assert_eq!(c7pm2.to_string(), "[C7(+0.000, +0.894, -0.447)]^(-2)");
-    assert_eq!(
-        c7pm2.to_symmetry_element().to_string(),
-        "C7^2(+0.000, -0.894, +0.447)"
-    );
-
-    let c7p4 = SymmetryOperation::builder()
-        .generating_element(c7_element.clone())
-        .power(4)
-        .build()
-        .unwrap();
-    assert_eq!(c7p4.to_string(), "[C7(+0.000, +0.894, -0.447)]^4");
-    assert_eq!(
-        c7p4.to_symmetry_element().to_string(),
-        "C7^3(+0.000, -0.894, +0.447)"
-    );
-
-    let c7p7 = SymmetryOperation::builder()
-        .generating_element(c7_element.clone())
-        .power(7)
-        .build()
-        .unwrap();
-    assert_eq!(c7p7.to_string(), "[C7(+0.000, +0.894, -0.447)]^7");
-    assert_eq!(c7p7.to_symmetry_element().to_string(), "E");
-
-    let tc7_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(7))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
-        .kind(TRROT)
-        .rotation_group(SO3)
-        .build()
-        .unwrap();
-
-    let tc7p2 = SymmetryOperation::builder()
-        .generating_element(tc7_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(tc7p2.to_string(), "[θ·C7(+0.000, +0.894, -0.447)]^2");
-    assert_eq!(
-        tc7p2.to_symmetry_element().to_string(),
-        "C7^2(+0.000, +0.894, -0.447)"
-    );
-
-    let tc7p5 = SymmetryOperation::builder()
-        .generating_element(tc7_element.clone())
-        .power(5)
-        .build()
-        .unwrap();
-    assert_eq!(tc7p5.to_string(), "[θ·C7(+0.000, +0.894, -0.447)]^5");
-    assert_eq!(
-        tc7p5.to_symmetry_element().to_string(),
-        "θ·C7^2(+0.000, -0.894, +0.447)"
-    );
-
-    // ==================================
-    // Improper symmetry operations (SO3)
-    // ==================================
-    let s3_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(3))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
-        .kind(SIG)
-        .rotation_group(SO3)
-        .build()
-        .unwrap();
-
-    let s3p2 = SymmetryOperation::builder()
-        .generating_element(s3_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(s3p2.to_string(), "[S3(+0.000, +0.894, -0.447)]^2");
-    assert_eq!(
-        s3p2.to_symmetry_element().to_string(),
-        "C3(+0.000, -0.894, +0.447)"
-    );
-
-    let s3p3 = SymmetryOperation::builder()
-        .generating_element(s3_element.clone())
-        .power(3)
-        .build()
-        .unwrap();
-    assert_eq!(s3p3.to_string(), "[S3(+0.000, +0.894, -0.447)]^3");
-    assert_eq!(
-        s3p3.to_symmetry_element().to_string(),
-        "σ(+0.000, -0.894, +0.447)"
-    );
-
-    let s3p4 = SymmetryOperation::builder()
-        .generating_element(s3_element.clone())
-        .power(4)
-        .build()
-        .unwrap();
-    assert_eq!(s3p4.to_string(), "[S3(+0.000, +0.894, -0.447)]^4");
-    assert_eq!(
-        s3p4.to_symmetry_element().to_string(),
-        "C3(+0.000, +0.894, -0.447)"
-    );
-
-    let s3p5 = SymmetryOperation::builder()
-        .generating_element(s3_element.clone())
-        .power(5)
-        .build()
-        .unwrap();
-    assert_eq!(s3p5.to_string(), "[S3(+0.000, +0.894, -0.447)]^5");
-    assert_eq!(
-        s3p5.to_symmetry_element().to_string(),
-        "S3(+0.000, -0.894, +0.447)"
-    );
-
-    let s3p6 = SymmetryOperation::builder()
-        .generating_element(s3_element.clone())
-        .power(6)
-        .build()
-        .unwrap();
-    assert_eq!(s3p6.to_string(), "[S3(+0.000, +0.894, -0.447)]^6");
-    assert_eq!(s3p6.to_symmetry_element().to_string(), "E");
-
-    let ts3_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(3))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
-        .kind(TRSIG)
-        .rotation_group(SO3)
-        .build()
-        .unwrap();
-
-    let ts3p2 = SymmetryOperation::builder()
-        .generating_element(ts3_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(ts3p2.to_string(), "[θ·S3(+0.000, +0.894, -0.447)]^2");
-    assert_eq!(
-        ts3p2.to_symmetry_element().to_string(),
-        "C3(+0.000, -0.894, +0.447)"
-    );
-
-    let ts3p3 = SymmetryOperation::builder()
-        .generating_element(ts3_element.clone())
-        .power(3)
-        .build()
-        .unwrap();
-    assert_eq!(ts3p3.to_string(), "[θ·S3(+0.000, +0.894, -0.447)]^3");
-    assert_eq!(
-        ts3p3.to_symmetry_element().to_string(),
-        "θ·σ(+0.000, -0.894, +0.447)"
-    );
-
-    let sd5_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(5))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
-        .kind(INV)
-        .rotation_group(SO3)
-        .build()
-        .unwrap();
-
-    let sd5p2 = SymmetryOperation::builder()
-        .generating_element(sd5_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(sd5p2.to_string(), "[Ṡ5(+0.000, +0.894, -0.447)]^2");
-    assert_eq!(
-        sd5p2.to_symmetry_element().to_string(),
-        "C5^2(+0.000, +0.894, -0.447)"
-    );
-
-    let sd5p3 = SymmetryOperation::builder()
-        .generating_element(sd5_element.clone())
-        .power(3)
-        .build()
-        .unwrap();
-    assert_eq!(sd5p3.to_string(), "[Ṡ5(+0.000, +0.894, -0.447)]^3");
-    assert_eq!(
-        sd5p3.to_symmetry_element().to_string(),
-        "iC5^2(+0.000, -0.894, +0.447)"
-    );
-
-    let sd5p4 = SymmetryOperation::builder()
-        .generating_element(sd5_element.clone())
-        .power(4)
-        .build()
-        .unwrap();
-    assert_eq!(sd5p4.to_string(), "[Ṡ5(+0.000, +0.894, -0.447)]^4");
-    assert_eq!(
-        sd5p4.to_symmetry_element().to_string(),
-        "C5(+0.000, -0.894, +0.447)"
-    );
-
-    let sd5p5 = SymmetryOperation::builder()
-        .generating_element(sd5_element.clone())
-        .power(5)
-        .build()
-        .unwrap();
-    assert_eq!(sd5p5.to_string(), "[Ṡ5(+0.000, +0.894, -0.447)]^5");
-    assert_eq!(sd5p5.to_symmetry_element().to_string(), "i");
-
-    let sd5p10 = SymmetryOperation::builder()
-        .generating_element(sd5_element.clone())
-        .power(10)
-        .build()
-        .unwrap();
-    assert_eq!(sd5p10.to_string(), "[Ṡ5(+0.000, +0.894, -0.447)]^10");
-    assert_eq!(sd5p10.to_symmetry_element().to_string(), "E");
-
-    let tsd5_element = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(5))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, -1.0))
-        .kind(TRINV)
-        .rotation_group(SO3)
-        .build()
-        .unwrap();
-
-    let tsd5p2 = SymmetryOperation::builder()
-        .generating_element(tsd5_element.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(tsd5p2.to_string(), "[θ·Ṡ5(+0.000, +0.894, -0.447)]^2");
-    assert_eq!(
-        tsd5p2.to_symmetry_element().to_string(),
-        "C5^2(+0.000, +0.894, -0.447)"
-    );
-
-    let tsd5p3 = SymmetryOperation::builder()
-        .generating_element(tsd5_element.clone())
-        .power(3)
-        .build()
-        .unwrap();
-    assert_eq!(tsd5p3.to_string(), "[θ·Ṡ5(+0.000, +0.894, -0.447)]^3");
-    assert_eq!(
-        tsd5p3.to_symmetry_element().to_string(),
-        "θ·iC5^2(+0.000, -0.894, +0.447)"
-    );
-
-    // ================================
-    // Proper symmetry operations (SU2)
-    // ================================
-    let c3_element_su2 = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(3))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, 0.0))
-        .kind(ROT)
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let c3p2_su2 = SymmetryOperation::builder()
-        .generating_element(c3_element_su2.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(
-        c3p2_su2.to_symmetry_element().to_string(),
-        "C3(QΣ)(+0.000, -1.000, +0.000)"
-    );
-
-    let c3p3_su2 = SymmetryOperation::builder()
-        .generating_element(c3_element_su2.clone())
-        .power(3)
-        .build()
-        .unwrap();
-    assert_eq!(c3p3_su2.to_symmetry_element().to_string(), "E(QΣ)");
-
-    let c3p4_su2 = SymmetryOperation::builder()
-        .generating_element(c3_element_su2.clone())
-        .power(4)
-        .build()
-        .unwrap();
-    assert_eq!(
-        c3p4_su2.to_symmetry_element().to_string(),
-        "C3(QΣ)(+0.000, +1.000, +0.000)"
-    );
-
-    let c3p5_su2 = SymmetryOperation::builder()
-        .generating_element(c3_element_su2.clone())
-        .power(5)
-        .build()
-        .unwrap();
-    assert_eq!(
-        c3p5_su2.to_symmetry_element().to_string(),
-        "C3(Σ)(+0.000, -1.000, +0.000)"
-    );
-
-    let c3p6_su2 = SymmetryOperation::builder()
-        .generating_element(c3_element_su2.clone())
-        .power(6)
-        .build()
-        .unwrap();
-    assert_eq!(c3p6_su2.to_symmetry_element().to_string(), "E(Σ)");
-
-    let c4_element_su2 = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(4))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, -1.0, 0.0))
-        .kind(ROT)
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let c4p2_su2 = SymmetryOperation::builder()
-        .generating_element(c4_element_su2.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(
-        c4p2_su2.to_symmetry_element().to_string(),
-        "C2(QΣ)(+0.000, +1.000, +0.000)"
-    );
-
-    let c4pm2_su2 = SymmetryOperation::builder()
-        .generating_element(c4_element_su2.clone())
-        .power(-2)
-        .build()
-        .unwrap();
-    assert_eq!(
-        c4pm2_su2.to_symmetry_element().to_string(),
-        "C2(Σ)(+0.000, +1.000, +0.000)"
-    );
-
-    let tc1_element_su2 = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(1))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 2.0, 1.0))
-        .kind(TRROT)
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let tc1_su2 = SymmetryOperation::builder()
-        .generating_element(tc1_element_su2.clone())
-        .power(1)
-        .build()
-        .unwrap();
-    assert_eq!(tc1_su2.to_symmetry_element().to_string(), "θ(Σ)");
-
-    let tc1p2_su2 = SymmetryOperation::builder()
-        .generating_element(tc1_element_su2.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(tc1p2_su2.to_symmetry_element().to_string(), "E(QΣ)");
-
-    let tc1p3_su2 = SymmetryOperation::builder()
-        .generating_element(tc1_element_su2.clone())
-        .power(3)
-        .build()
-        .unwrap();
-    assert_eq!(tc1p3_su2.to_symmetry_element().to_string(), "θ(QΣ)");
-
-    let tc1p4_su2 = SymmetryOperation::builder()
-        .generating_element(tc1_element_su2.clone())
-        .power(4)
-        .build()
-        .unwrap();
-    assert_eq!(tc1p4_su2.to_symmetry_element().to_string(), "E(Σ)");
-
-    let tc3_element_su2 = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(3))
-        .proper_power(1)
-        .raw_axis(Vector3::new(1.0, 1.0, 1.0))
-        .kind(TRROT)
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let tc3_su2 = SymmetryOperation::builder()
-        .generating_element(tc3_element_su2.clone())
-        .power(1)
-        .build()
-        .unwrap();
-    assert_eq!(tc3_su2.to_symmetry_element().to_string(), "θ·C3(Σ)(+0.577, +0.577, +0.577)");
-
-    let tc3p2_su2 = SymmetryOperation::builder()
-        .generating_element(tc3_element_su2.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(tc3p2_su2.to_symmetry_element().to_string(), "C3(QΣ)(+0.577, +0.577, -0.577)");
-
-    let tc4y_element_su2 = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(4))
-        .proper_power(1)
-        .raw_axis(Vector3::new(0.0, 1.0, 0.0))
-        .kind(TRROT)
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let tc4y_su2 = SymmetryOperation::builder()
-        .generating_element(tc4y_element_su2.clone())
-        .power(1)
-        .build()
-        .unwrap();
-    assert_eq!(tc4y_su2.to_symmetry_element().to_string(), "θ·C4(Σ)(+0.000, +1.000, +0.000)");
-
-    let tc4yp2_su2 = SymmetryOperation::builder()
-        .generating_element(tc4y_element_su2.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(tc4yp2_su2.to_symmetry_element().to_string(), "C2(QΣ)(+0.000, +1.000, +0.000)");
-
-    let tc4yp3_su2 = SymmetryOperation::builder()
-        .generating_element(tc4y_element_su2.clone())
-        .power(3)
-        .build()
-        .unwrap();
-    assert_eq!(tc4yp3_su2.to_symmetry_element().to_string(), "θ·C4(Σ)(+0.000, -1.000, +0.000)");
-
-    let tc4yp4_su2 = SymmetryOperation::builder()
-        .generating_element(tc4y_element_su2.clone())
-        .power(4)
-        .build()
-        .unwrap();
-    assert_eq!(tc4yp4_su2.to_symmetry_element().to_string(), "E(QΣ)");
-
-    let tc4yp5_su2 = SymmetryOperation::builder()
-        .generating_element(tc4y_element_su2.clone())
-        .power(5)
-        .build()
-        .unwrap();
-    assert_eq!(tc4yp5_su2.to_symmetry_element().to_string(), "θ·C4(QΣ)(+0.000, +1.000, +0.000)");
-
-    let tc4yp6_su2 = SymmetryOperation::builder()
-        .generating_element(tc4y_element_su2.clone())
-        .power(6)
-        .build()
-        .unwrap();
-    assert_eq!(tc4yp6_su2.to_symmetry_element().to_string(), "C2(Σ)(+0.000, +1.000, +0.000)");
-
-    let tc4yp7_su2 = SymmetryOperation::builder()
-        .generating_element(tc4y_element_su2.clone())
-        .power(7)
-        .build()
-        .unwrap();
-    assert_eq!(tc4yp7_su2.to_symmetry_element().to_string(), "θ·C4(QΣ)(+0.000, -1.000, +0.000)");
-
-    let tc4yp8_su2 = SymmetryOperation::builder()
-        .generating_element(tc4y_element_su2.clone())
-        .power(8)
-        .build()
-        .unwrap();
-    assert_eq!(tc4yp8_su2.to_symmetry_element().to_string(), "E(Σ)");
-
-    let tc3p2_su2 = SymmetryOperation::builder()
-        .generating_element(tc3_element_su2.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(tc3p2_su2.to_symmetry_element().to_string(), "C3(QΣ)(+0.577, +0.577, -0.577)");
-
-    let kc2x_element_su2 = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(2))
-        .proper_power(1)
-        .raw_axis(Vector3::x())
-        .kind(KROT)
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let kc2x_su2 = SymmetryOperation::builder()
-        .generating_element(kc2x_element_su2.clone())
-        .power(1)
-        .build()
-        .unwrap();
-    assert_eq!(
-        kc2x_su2.to_symmetry_element().to_string(),
-        "K·C2(Σ)(+1.000, +0.000, +0.000)"
-    );
-
-    let kc2xp2_su2 = SymmetryOperation::builder()
-        .generating_element(kc2x_element_su2.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(kc2xp2_su2.to_symmetry_element().to_string(), "E(QΣ)");
-
-    let kc2xp3_su2 = SymmetryOperation::builder()
-        .generating_element(kc2x_element_su2.clone())
-        .power(3)
-        .build()
-        .unwrap();
-    assert_eq!(
-        kc2xp3_su2.to_symmetry_element().to_string(),
-        "K·C2(QΣ)(+1.000, +0.000, +0.000)"
-    );
-
-    let kc2xp4_su2 = SymmetryOperation::builder()
-        .generating_element(kc2x_element_su2.clone())
-        .power(4)
-        .build()
-        .unwrap();
-    assert_eq!(kc2xp4_su2.to_symmetry_element().to_string(), "E(Σ)");
-
-    let kc2y_element_su2 = SymmetryElement::builder()
-        .threshold(1e-14)
-        .proper_order(ElementOrder::Int(2))
-        .proper_power(1)
-        .raw_axis(Vector3::y())
-        .kind(KROT)
-        .rotation_group(SU2_0)
-        .build()
-        .unwrap();
-
-    let kc2y_su2 = SymmetryOperation::builder()
-        .generating_element(kc2y_element_su2.clone())
-        .power(1)
-        .build()
-        .unwrap();
-    assert_eq!(kc2y_su2.to_symmetry_element().to_string(), "θ(Σ)");
-
-    let kc2yp2_su2 = SymmetryOperation::builder()
-        .generating_element(kc2y_element_su2.clone())
-        .power(2)
-        .build()
-        .unwrap();
-    assert_eq!(kc2yp2_su2.to_symmetry_element().to_string(), "E(QΣ)");
-
-    let kc2yp3_su2 = SymmetryOperation::builder()
-        .generating_element(kc2y_element_su2.clone())
-        .power(3)
-        .build()
-        .unwrap();
-    assert_eq!(kc2yp3_su2.to_symmetry_element().to_string(), "θ(QΣ)");
-
-    let kc2yp4_su2 = SymmetryOperation::builder()
-        .generating_element(kc2y_element_su2.clone())
-        .power(4)
-        .build()
-        .unwrap();
-    assert_eq!(kc2yp4_su2.to_symmetry_element().to_string(), "E(Σ)");
+    assert_eq!(tc4y_p2_2.to_string(), "[θ·C4(QΣ)(+0.000, +1.000, +0.000)]^2");
 }
