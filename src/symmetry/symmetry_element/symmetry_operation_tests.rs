@@ -9048,13 +9048,11 @@ fn test_symmetry_operation_rotationise_su2_time_reversal() {
         .unwrap();
     assert!(tc1z.is_antiunitary());
     assert!(!tc1z.is_rot_su2_class_1());
-    assert!(!tc1z.is_full_su2_class_1());
     assert_eq!(tc1z.to_string(), "θ(Σ)");
 
     let tc1z_r = tc1z.rotationise_su2_time_reversal().unwrap();
     assert!(tc1z_r.is_antiunitary());
     assert!(!tc1z_r.is_rot_su2_class_1());
-    assert!(!tc1z_r.is_full_su2_class_1());
     assert_eq!(tc1z_r.to_string(), "K·C2(Σ)(+0.000, +1.000, +0.000)");
 
     let tc1z_2 = tc1z_r.derotationise_su2_time_reversal().unwrap();
@@ -9079,109 +9077,91 @@ fn test_symmetry_operation_rotationise_su2_time_reversal() {
         .unwrap();
     assert!(tc2y.is_antiunitary());
     assert!(!tc2y.is_rot_su2_class_1());
-    assert!(tc2y.is_full_su2_class_1());
     assert_eq!(tc2y.to_string(), "θ·C2(Σ)(+0.000, +1.000, +0.000)");
 
     let tc2y_r = tc2y.rotationise_su2_time_reversal().unwrap();
     assert!(tc2y_r.is_antiunitary());
     assert!(tc2y_r.is_rot_su2_class_1());
-    assert!(tc2y_r.is_full_su2_class_1());
     assert_eq!(tc2y_r.to_string(), "K(QΣ)");
 
     let tc2y_2 = tc2y_r.derotationise_su2_time_reversal().unwrap();
     assert!(tc2y_2.is_antiunitary());
     assert!(!tc2y_2.is_rot_su2_class_1());
-    assert!(tc2y_2.is_full_su2_class_1());
     assert_eq!(tc2y_2.to_string(), "θ·C2(Σ)(+0.000, +1.000, +0.000)");
 
     let tc2y_p2 = (&tc2y).pow(2);
     assert!(!tc2y_p2.is_antiunitary());
     assert!(tc2y_p2.is_rot_su2_class_1());
-    assert!(!tc2y_p2.is_full_su2_class_1());
     assert_eq!(tc2y_p2.to_string(), "[θ·C2(Σ)(+0.000, +1.000, +0.000)]^2");
 
     let tc2y_p2_r = tc2y_p2.rotationise_su2_time_reversal().unwrap();
     assert!(!tc2y_p2_r.is_antiunitary());
     assert!(!tc2y_p2_r.is_rot_su2_class_1());
-    assert!(!tc2y_p2_r.is_full_su2_class_1());
     assert_eq!(tc2y_p2_r.to_string(), "[K(QΣ)]^2");
 
     let tc2y_p2_2 = tc2y_p2_r.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2y_p2_2.is_antiunitary());
     assert!(tc2y_p2_2.is_rot_su2_class_1());
-    assert!(!tc2y_p2_2.is_full_su2_class_1());
     assert_eq!(tc2y_p2_2.to_string(), "[θ·C2(Σ)(+0.000, +1.000, +0.000)]^2");
 
     let tc2y_r_p2 = (&tc2y_r).pow(2);
     assert!(!tc2y_r_p2.is_antiunitary());
     assert!(!tc2y_r_p2.is_rot_su2_class_1());
-    assert!(!tc2y_r_p2.is_full_su2_class_1());
     assert_eq!(tc2y_r_p2.to_string(), "[K(QΣ)]^2");
 
     let tc2y_p2_3 = tc2y_r_p2.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2y_p2_3.is_antiunitary());
     assert!(tc2y_p2_3.is_rot_su2_class_1());
-    assert!(!tc2y_p2_3.is_full_su2_class_1());
     assert_eq!(tc2y_p2_3.to_string(), "[θ·C2(Σ)(+0.000, +1.000, +0.000)]^2");
 
     let tc2y_p3 = (&tc2y).pow(3);
     assert!(tc2y_p3.is_antiunitary());
     assert!(tc2y_p3.is_rot_su2_class_1());
-    assert!(tc2y_p3.is_full_su2_class_1());
     assert_eq!(tc2y_p3.to_string(), "[θ·C2(Σ)(+0.000, +1.000, +0.000)]^3");
 
     let tc2y_p3_r = tc2y_p3.rotationise_su2_time_reversal().unwrap();
     assert!(tc2y_p3_r.is_antiunitary());
     assert!(tc2y_p3_r.is_rot_su2_class_1());
-    assert!(tc2y_p3_r.is_full_su2_class_1());
     assert_eq!(tc2y_p3_r.to_string(), "[K(QΣ)]^3");
 
     let tc2y_p3_2 = tc2y_p3_r.derotationise_su2_time_reversal().unwrap();
     assert!(tc2y_p3_2.is_antiunitary());
     assert!(tc2y_p3_2.is_rot_su2_class_1());
-    assert!(tc2y_p3_2.is_full_su2_class_1());
     assert_eq!(tc2y_p3_2.to_string(), "[θ·C2(Σ)(+0.000, +1.000, +0.000)]^3");
 
     let tc2y_r_p3 = (&tc2y_r).pow(3);
     assert!(tc2y_r_p3.is_antiunitary());
     assert!(tc2y_r_p3.is_rot_su2_class_1());
-    assert!(tc2y_r_p3.is_full_su2_class_1());
     assert_eq!(tc2y_r_p3.to_string(), "[K(QΣ)]^3");
 
     let tc2y_p3_3 = tc2y_r_p3.derotationise_su2_time_reversal().unwrap();
     assert!(tc2y_p3_3.is_antiunitary());
     assert!(tc2y_p3_3.is_rot_su2_class_1());
-    assert!(tc2y_p3_3.is_full_su2_class_1());
     assert_eq!(tc2y_p3_3.to_string(), "[θ·C2(Σ)(+0.000, +1.000, +0.000)]^3");
 
     let tc2y_p4 = (&tc2y).pow(4);
     assert!(!tc2y_p4.is_antiunitary());
     assert!(!tc2y_p4.is_rot_su2_class_1());
-    assert!(!tc2y_p4.is_full_su2_class_1());
     assert_eq!(tc2y_p4.to_string(), "[θ·C2(Σ)(+0.000, +1.000, +0.000)]^4");
 
     let tc2y_p4_r = tc2y_p4.rotationise_su2_time_reversal().unwrap();
     assert!(!tc2y_p4_r.is_antiunitary());
     assert!(!tc2y_p4_r.is_rot_su2_class_1());
-    assert!(!tc2y_p4_r.is_full_su2_class_1());
     assert_eq!(tc2y_p4_r.to_string(), "[K(QΣ)]^4");
 
     let tc2y_p4_2 = tc2y_p4_r.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2y_p4_2.is_antiunitary());
     assert!(!tc2y_p4_2.is_rot_su2_class_1());
-    assert!(!tc2y_p4_2.is_full_su2_class_1());
     assert_eq!(tc2y_p4_2.to_string(), "[θ·C2(Σ)(+0.000, +1.000, +0.000)]^4");
 
     let tc2y_r_p4 = (&tc2y_r).pow(4);
     assert!(!tc2y_r_p4.is_antiunitary());
     assert!(!tc2y_r_p4.is_rot_su2_class_1());
-    assert!(!tc2y_r_p4.is_full_su2_class_1());
     assert_eq!(tc2y_r_p4.to_string(), "[K(QΣ)]^4");
 
     let tc2y_p4_3 = tc2y_r_p4.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2y_p4_3.is_antiunitary());
     assert!(!tc2y_p4_3.is_rot_su2_class_1());
-    assert!(!tc2y_p4_3.is_full_su2_class_1());
     assert_eq!(tc2y_p4_3.to_string(), "[θ·C2(Σ)(+0.000, +1.000, +0.000)]^4");
 
     let tc2x_element = SymmetryElement::builder()
@@ -9201,97 +9181,81 @@ fn test_symmetry_operation_rotationise_su2_time_reversal() {
         .unwrap();
     assert!(tc2x.is_antiunitary());
     assert!(!tc2x.is_rot_su2_class_1());
-    assert!(tc2x.is_full_su2_class_1());
     assert_eq!(tc2x.to_string(), "θ·C2(Σ)(+1.000, +0.000, +0.000)");
 
     let tc2x_r = tc2x.rotationise_su2_time_reversal().unwrap();
     assert!(tc2x_r.is_antiunitary());
     assert!(tc2x_r.is_rot_su2_class_1());
-    assert!(tc2x_r.is_full_su2_class_1());
     assert_eq!(tc2x_r.to_string(), "K·C2(QΣ)(+0.000, +0.000, +1.000)");
 
     let tc2x_2 = tc2x_r.derotationise_su2_time_reversal().unwrap();
     assert!(tc2x_2.is_antiunitary());
     assert!(!tc2x_2.is_rot_su2_class_1());
-    assert!(tc2x_2.is_full_su2_class_1());
     assert_eq!(tc2x_2.to_string(), "θ·C2(Σ)(+1.000, +0.000, +0.000)");
 
     let tc2x_p2 = (&tc2x).pow(2);
     assert!(!tc2x_p2.is_antiunitary());
     assert!(tc2x_p2.is_rot_su2_class_1());
-    assert!(tc2x_p2.is_full_su2_class_1());
     assert_eq!(tc2x_p2.to_string(), "[θ·C2(Σ)(+1.000, +0.000, +0.000)]^2");
 
     let tc2x_p2_r = tc2x_p2.rotationise_su2_time_reversal().unwrap();
     assert!(!tc2x_p2_r.is_antiunitary());
     assert!(tc2x_p2_r.is_rot_su2_class_1());
-    assert!(tc2x_p2_r.is_full_su2_class_1());
     assert_eq!(tc2x_p2_r.to_string(), "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^2");
 
     let tc2x_p2_2 = tc2x_p2_r.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2x_p2_2.is_antiunitary());
     assert!(tc2x_p2_2.is_rot_su2_class_1());
-    assert!(tc2x_p2_2.is_full_su2_class_1());
     assert_eq!(tc2x_p2_2.to_string(), "[θ·C2(Σ)(+1.000, +0.000, +0.000)]^2");
 
     let tc2x_r_p2 = (&tc2x_r).pow(2);
     assert!(!tc2x_r_p2.is_antiunitary());
     assert!(tc2x_r_p2.is_rot_su2_class_1());
-    assert!(tc2x_r_p2.is_full_su2_class_1());
     assert_eq!(tc2x_r_p2.to_string(), "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^2");
 
     let tc2x_p2_3 = tc2x_r_p2.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2x_p2_3.is_antiunitary());
     assert!(tc2x_p2_3.is_rot_su2_class_1());
-    assert!(tc2x_p2_3.is_full_su2_class_1());
     assert_eq!(tc2x_p2_3.to_string(), "[θ·C2(Σ)(+1.000, +0.000, +0.000)]^2");
 
     let tc2x_p3 = (&tc2x).pow(3);
     assert!(tc2x_p3.is_antiunitary());
     assert!(tc2x_p3.is_rot_su2_class_1());
-    assert!(!tc2x_p3.is_full_su2_class_1());
     assert_eq!(tc2x_p3.to_string(), "[θ·C2(Σ)(+1.000, +0.000, +0.000)]^3");
 
     let tc2x_p3_r = tc2x_p3.rotationise_su2_time_reversal().unwrap();
     assert!(tc2x_p3_r.is_antiunitary());
     assert!(!tc2x_p3_r.is_rot_su2_class_1());
-    assert!(!tc2x_p3_r.is_full_su2_class_1());
     assert_eq!(tc2x_p3_r.to_string(), "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^3");
 
     let tc2x_p3_2 = tc2x_p3_r.derotationise_su2_time_reversal().unwrap();
     assert!(tc2x_p3_2.is_antiunitary());
     assert!(tc2x_p3_2.is_rot_su2_class_1());
-    assert!(!tc2x_p3_2.is_full_su2_class_1());
     assert_eq!(tc2x_p3_2.to_string(), "[θ·C2(Σ)(+1.000, +0.000, +0.000)]^3");
 
     let tc2x_r_p3 = (&tc2x_r).pow(3);
     assert!(tc2x_r_p3.is_antiunitary());
     assert!(!tc2x_r_p3.is_rot_su2_class_1());
-    assert!(!tc2x_r_p3.is_full_su2_class_1());
     assert_eq!(tc2x_r_p3.to_string(), "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^3");
 
     let tc2x_p3_3 = tc2x_r_p3.derotationise_su2_time_reversal().unwrap();
     assert!(tc2x_p3_3.is_antiunitary());
     assert!(tc2x_p3_3.is_rot_su2_class_1());
-    assert!(!tc2x_p3_3.is_full_su2_class_1());
     assert_eq!(tc2x_p3_3.to_string(), "[θ·C2(Σ)(+1.000, +0.000, +0.000)]^3");
 
     let tc2x_p4 = (&tc2x).pow(4);
     assert!(!tc2x_p4.is_antiunitary());
     assert!(!tc2x_p4.is_rot_su2_class_1());
-    assert!(!tc2x_p4.is_full_su2_class_1());
     assert_eq!(tc2x_p4.to_string(), "[θ·C2(Σ)(+1.000, +0.000, +0.000)]^4");
 
     let tc2x_p4_r = tc2x_p4.rotationise_su2_time_reversal().unwrap();
     assert!(!tc2x_p4_r.is_antiunitary());
     assert!(!tc2x_p4_r.is_rot_su2_class_1());
-    assert!(!tc2x_p4_r.is_full_su2_class_1());
     assert_eq!(tc2x_p4_r.to_string(), "[K·C2(QΣ)(+0.000, +0.000, +1.000)]^4");
 
     let tc2x_p4_2 = tc2x_p4_r.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2x_p4_2.is_antiunitary());
     assert!(!tc2x_p4_2.is_rot_su2_class_1());
-    assert!(!tc2x_p4_2.is_full_su2_class_1());
     assert_eq!(tc2x_p4_2.to_string(), "[θ·C2(Σ)(+1.000, +0.000, +0.000)]^4");
 
     let tc2x_r_p4 = (&tc2x_r).pow(4);
@@ -9302,7 +9266,6 @@ fn test_symmetry_operation_rotationise_su2_time_reversal() {
     let tc2x_p4_3 = tc2x_r_p4.derotationise_su2_time_reversal().unwrap();
     assert!(!tc2x_p4_3.is_antiunitary());
     assert!(!tc2x_p4_3.is_rot_su2_class_1());
-    assert!(!tc2x_p4_3.is_full_su2_class_1());
     assert_eq!(tc2x_p4_3.to_string(), "[θ·C2(Σ)(+1.000, +0.000, +0.000)]^4");
 
     let tc2z_element = SymmetryElement::builder()
@@ -9322,19 +9285,16 @@ fn test_symmetry_operation_rotationise_su2_time_reversal() {
         .unwrap();
     assert!(tc2z.is_antiunitary());
     assert!(!tc2z.is_rot_su2_class_1());
-    assert!(!tc2z.is_full_su2_class_1());
     assert_eq!(tc2z.to_string(), "θ·C2(Σ)(+0.000, +0.000, +1.000)");
 
     let tc2z_r = tc2z.rotationise_su2_time_reversal().unwrap();
     assert!(tc2z_r.is_antiunitary());
     assert!(!tc2z_r.is_rot_su2_class_1());
-    assert!(!tc2z_r.is_full_su2_class_1());
     assert_eq!(tc2z_r.to_string(), "K·C2(Σ)(+1.000, +0.000, +0.000)");
 
     let tc2z_2 = tc2z_r.derotationise_su2_time_reversal().unwrap();
     assert!(tc2z_2.is_antiunitary());
     assert!(!tc2z_2.is_rot_su2_class_1());
-    assert!(!tc2z_2.is_full_su2_class_1());
     assert_eq!(tc2z_2.to_string(), "θ·C2(Σ)(+0.000, +0.000, +1.000)");
 
     let tc3y_element = SymmetryElement::builder()
@@ -9354,37 +9314,31 @@ fn test_symmetry_operation_rotationise_su2_time_reversal() {
         .unwrap();
     assert!(tc3y.is_antiunitary());
     assert!(!tc3y.is_rot_su2_class_1());
-    assert!(tc3y.is_full_su2_class_1());
     assert_eq!(tc3y.to_string(), "θ·C3(Σ)(+0.000, +1.000, +0.000)");
 
     let tc3y_r = tc3y.rotationise_su2_time_reversal().unwrap();
     assert!(tc3y_r.is_antiunitary());
     assert!(tc3y_r.is_rot_su2_class_1());
-    assert!(tc3y_r.is_full_su2_class_1());
     assert_eq!(tc3y_r.to_string(), "K·C6(QΣ)(+0.000, -1.000, +0.000)");
 
     let tc3y_2 = tc3y_r.derotationise_su2_time_reversal().unwrap();
     assert!(tc3y_2.is_antiunitary());
     assert!(!tc3y_2.is_rot_su2_class_1());
-    assert!(tc3y_2.is_full_su2_class_1());
     assert_eq!(tc3y_2.to_string(), "θ·C3(Σ)(+0.000, +1.000, +0.000)");
 
     let tc3y_p2 = (&tc3y).pow(2);
     assert!(!tc3y_p2.is_antiunitary());
     assert!(tc3y_p2.is_rot_su2_class_1());
-    assert!(!tc3y_p2.is_full_su2_class_1());
     assert_eq!(tc3y_p2.to_string(), "[θ·C3(Σ)(+0.000, +1.000, +0.000)]^2");
 
     let tc3y_p2_r = tc3y_p2.rotationise_su2_time_reversal().unwrap();
     assert!(!tc3y_p2_r.is_antiunitary());
     assert!(!tc3y_p2_r.is_rot_su2_class_1());
-    assert!(!tc3y_p2_r.is_full_su2_class_1());
     assert_eq!(tc3y_p2_r.to_string(), "[K·C6(QΣ)(+0.000, -1.000, +0.000)]^2");
 
     let tc3y_p2_2 = tc3y_p2_r.derotationise_su2_time_reversal().unwrap();
     assert!(!tc3y_p2_2.is_antiunitary());
     assert!(tc3y_p2_2.is_rot_su2_class_1());
-    assert!(!tc3y_p2_2.is_full_su2_class_1());
     assert_eq!(tc3y_p2_2.to_string(), "[θ·C3(Σ)(+0.000, +1.000, +0.000)]^2");
 
     let tc3yppm1_element = SymmetryElement::builder()
@@ -9404,19 +9358,16 @@ fn test_symmetry_operation_rotationise_su2_time_reversal() {
         .unwrap();
     assert!(tc3yppm1.is_antiunitary());
     assert!(!tc3yppm1.is_rot_su2_class_1());
-    assert!(!tc3yppm1.is_full_su2_class_1());
     assert_eq!(tc3yppm1.to_string(), "θ·C3(Σ)(+0.000, -1.000, +0.000)");
 
     let tc3yppm1_r = tc3yppm1.rotationise_su2_time_reversal().unwrap();
     assert!(tc3yppm1_r.is_antiunitary());
     assert!(!tc3yppm1_r.is_rot_su2_class_1());
-    assert!(!tc3yppm1_r.is_full_su2_class_1());
     assert_eq!(tc3yppm1_r.to_string(), "K·C6(Σ)(+0.000, +1.000, +0.000)");
 
     let tc3yppm1_2 = tc3yppm1_r.derotationise_su2_time_reversal().unwrap();
     assert!(tc3yppm1_2.is_antiunitary());
     assert!(!tc3yppm1_2.is_rot_su2_class_1());
-    assert!(!tc3yppm1_2.is_full_su2_class_1());
     assert_eq!(tc3yppm1_2.to_string(), "θ·C3(Σ)(+0.000, -1.000, +0.000)");
 
     let tc4y_element = SymmetryElement::builder()
@@ -9436,36 +9387,30 @@ fn test_symmetry_operation_rotationise_su2_time_reversal() {
         .unwrap();
     assert!(tc4y.is_antiunitary());
     assert!(tc4y.is_rot_su2_class_1());
-    assert!(!tc4y.is_full_su2_class_1());
     assert_eq!(tc4y.to_string(), "θ·C4(QΣ)(+0.000, +1.000, +0.000)");
 
     let tc4y_r = tc4y.rotationise_su2_time_reversal().unwrap();
     assert!(tc4y_r.is_antiunitary());
     assert!(!tc4y_r.is_rot_su2_class_1());
-    assert!(!tc4y_r.is_full_su2_class_1());
     assert_eq!(tc4y_r.to_string(), "K·C4(Σ)(+0.000, -1.000, +0.000)");
 
     let tc4y_2 = tc4y_r.derotationise_su2_time_reversal().unwrap();
     assert!(tc4y_2.is_antiunitary());
     assert!(tc4y_2.is_rot_su2_class_1());
-    assert!(!tc4y_2.is_full_su2_class_1());
     assert_eq!(tc4y_2.to_string(), "θ·C4(QΣ)(+0.000, +1.000, +0.000)");
 
     let tc4y_p2 = (&tc4y).pow(2);
     assert!(!tc4y_p2.is_antiunitary());
     assert!(!tc4y_p2.is_rot_su2_class_1());
-    assert!(tc4y_p2.is_full_su2_class_1());
     assert_eq!(tc4y_p2.to_string(), "[θ·C4(QΣ)(+0.000, +1.000, +0.000)]^2");
 
     let tc4y_p2_r = tc4y_p2.rotationise_su2_time_reversal().unwrap();
     assert!(!tc4y_p2_r.is_antiunitary());
     assert!(tc4y_p2_r.is_rot_su2_class_1());
-    assert!(tc4y_p2_r.is_full_su2_class_1());
     assert_eq!(tc4y_p2_r.to_string(), "[K·C4(Σ)(+0.000, -1.000, +0.000)]^2");
 
     let tc4y_p2_2 = tc4y_p2_r.derotationise_su2_time_reversal().unwrap();
     assert!(!tc4y_p2_2.is_antiunitary());
     assert!(!tc4y_p2_2.is_rot_su2_class_1());
-    assert!(tc4y_p2_2.is_full_su2_class_1());
     assert_eq!(tc4y_p2_2.to_string(), "[θ·C4(QΣ)(+0.000, +1.000, +0.000)]^2");
 }

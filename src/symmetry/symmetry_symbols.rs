@@ -735,23 +735,6 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
             .iter()
             .all(|rep| rep.is_rot_su2_class_1())
     }
-
-    /// Checks if the spatial rotation parts of the symmetry operations in this class are in
-    /// $`\mathsf{SU}(2)`$ and connected to the identity via a homotopy path of class 1.
-    ///
-    /// For antiunitary operations with an $`\mathsf{SU}(2)`$ rotation part, this **does** take
-    /// into account the $`\pi \hat{\mathbf{y}}`$ rotation of any accompanying time reversal.
-    ///
-    /// # Returns
-    ///
-    /// A boolean indicating if this symmetry operations in this class contain an
-    /// $`\mathsf{SU}(2)`$ proper rotation connected to the identity via a homotopy path of class 1.
-    fn is_full_su2_class_1(&self) -> bool {
-        self.representatives()
-            .expect("No representative element found for this class.")
-            .iter()
-            .all(|rep| rep.is_full_su2_class_1())
-    }
 }
 
 impl<R: FiniteOrder + Clone> FiniteOrder for SymmetryClassSymbol<R> {
