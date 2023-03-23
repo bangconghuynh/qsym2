@@ -8652,6 +8652,39 @@ fn test_ur_group_asymmetric_h2o2_grey_c2h_double_class_order() {
     );
 }
 
+#[test]
+fn test_ur_group_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
+    test_ur_magnetic_double_group(&mol, thresh, "D2h*", 16, 10, false, BWGRP2);
+}
+
+#[test]
+fn test_ur_group_asymmetric_distorted_vf6_magnetic_field_bw_d2h_c2h_double_class_order() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_d2h.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
+    test_ur_magnetic_double_group_class_order(
+        &mol,
+        thresh,
+        &[
+            "|E(Σ)|",
+            "|E(QΣ)|",
+            "|C2(Σ), C2(QΣ)|",
+            "|i(Σ)|",
+            "|i(QΣ)|",
+            "|σ(Σ), σ(QΣ)|",
+            "|θ·C2(Σ), θ·C2(QΣ)|",
+            "|θ·C2(Σ), θ·C2(QΣ)|^(')",
+            "|θ·σ(Σ), θ·σ(QΣ)|",
+            "|θ·σ(Σ), θ·σ(QΣ)|^(')",
+        ],
+    );
+}
+
 /*
 Cs
 */
