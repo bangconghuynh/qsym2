@@ -9015,6 +9015,153 @@ fn test_chartab_symmetric_arbitrary_staggered_sandwich_grey_dnd() {
     }
 }
 
+/***
+Dnd*
+***/
+
+#[test]
+fn test_chartab_symmetric_b2cl4_d2d_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(2)|").unwrap(),
+    ];
+    let s4 = SymmetryClassSymbol::<SymmetryOperation>::new("2||S4(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &s4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &s4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &s4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &s4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &s4),
+            Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &s4),
+            Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &s4),
+            Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
+        ),
+    ]);
+    test_chartab_ordinary_double_group(
+        &mol,
+        thresh,
+        "D2d*",
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
+#[test]
+fn test_chartab_symmetric_b2cl4_grey_d2d_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/b2cl4.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E||").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E||").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|E~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|E~|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|E~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|E~|_(2)|").unwrap(),
+    ];
+    let ts4 = SymmetryClassSymbol::<SymmetryOperation>::new("2||θ·S4(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &ts4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &ts4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &ts4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &ts4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &ts4),
+            Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &ts4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &ts4),
+            Character::new(&[(UnityRoot::new(2, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &ts4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &ts4),
+            Character::new(&[(UnityRoot::new(0, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &ts4),
+            Character::new(&[(UnityRoot::new(1, 4), 1), (UnityRoot::new(3, 4), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &ts4),
+            Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(3, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &ts4),
+            Character::new(&[(UnityRoot::new(5, 8), 1), (UnityRoot::new(7, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &ts4),
+            Character::new(&[(UnityRoot::new(5, 8), 1), (UnityRoot::new(7, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &ts4),
+            Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(3, 8), 1)]),
+        ),
+    ]);
+    test_chartab_magnetic_double_group(
+        &mol,
+        thresh,
+        "(D2d + θ·D2d)*",
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
 /*
 S2n
 */
