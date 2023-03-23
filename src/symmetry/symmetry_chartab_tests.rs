@@ -9876,6 +9876,7 @@ fn test_chartab_symmetric_vf6_magnetic_field_s6() {
 
 #[test]
 fn test_chartab_symmetric_vf6_magnetic_field_bw_d3d_s6() {
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);
@@ -10914,49 +10915,791 @@ fn test_chartab_symmetric_vf6_magnetic_field_s6_double() {
     test_chartab_ordinary_double_group(&mol, thresh, "S6*", &expected_irreps, Some(expected_chars));
 }
 
-// #[test]
-// fn test_chartab_symmetric_vf6_magnetic_field_bw_d3d_s6() {
-//     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
-//     let thresh = 1e-12;
-//     let mut mol = Molecule::from_xyz(&path, thresh);
-//     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-//     let expected_irreps = vec![
-//         MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
-//         MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
-//         MullikenIrrepSymbol::new("||E|_(g)|").unwrap(),
-//         MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
-//         MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
-//         MullikenIrrepSymbol::new("||E|_(u)|").unwrap(),
-//     ];
-//     let c3 = SymmetryClassSymbol::<SymmetryOperation>::new("2||C3||", None).unwrap();
-//     let expected_chars = HashMap::from([
-//         (
-//             (&expected_irreps[0], &c3),
-//             Character::new(&[(UnityRoot::new(0, 3), 1)]),
-//         ),
-//         (
-//             (&expected_irreps[1], &c3),
-//             Character::new(&[(UnityRoot::new(0, 3), 1)]),
-//         ),
-//         (
-//             (&expected_irreps[2], &c3),
-//             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
-//         ),
-//         (
-//             (&expected_irreps[3], &c3),
-//             Character::new(&[(UnityRoot::new(0, 3), 1)]),
-//         ),
-//         (
-//             (&expected_irreps[4], &c3),
-//             Character::new(&[(UnityRoot::new(0, 3), 1)]),
-//         ),
-//         (
-//             (&expected_irreps[5], &c3),
-//             Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
-//         ),
-//     ]);
-//     test_chartab_magnetic_group(&mol, thresh, "D3d", &expected_irreps, Some(expected_chars));
-// }
+#[test]
+fn test_chartab_symmetric_vf6_magnetic_field_bw_d3d_s6_double() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let thresh = 1e-12;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B~|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B~|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B~|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B~|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(u)|").unwrap(),
+    ];
+    let c3 = SymmetryClassSymbol::<SymmetryOperation>::new("2||C3(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &c3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &c3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &c3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &c3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &c3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &c3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &c3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &c3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &c3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &c3),
+            Character::new(&[(UnityRoot::new(1, 3), 1), (UnityRoot::new(2, 3), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &c3),
+            Character::new(&[(UnityRoot::new(0, 3), 1)]),
+        ),
+    ]);
+    test_chartab_magnetic_double_group(
+        &mol,
+        thresh,
+        "D3d*",
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
+#[test]
+fn test_chartab_symmetric_antiprism_pb10_magnetic_field_s8_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A||").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("||B||").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(4)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(4)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(1)|").unwrap(),
+    ];
+    let s8 = SymmetryClassSymbol::<SymmetryOperation>::new("1||S8(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &s8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &s8),
+            Character::new(&[(UnityRoot::new(1, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &s8),
+            Character::new(&[(UnityRoot::new(2, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &s8),
+            Character::new(&[(UnityRoot::new(3, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &s8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &s8),
+            Character::new(&[(UnityRoot::new(5, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &s8),
+            Character::new(&[(UnityRoot::new(6, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &s8),
+            Character::new(&[(UnityRoot::new(7, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &s8),
+            Character::new(&[(UnityRoot::new(1, 16), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &s8),
+            Character::new(&[(UnityRoot::new(3, 16), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &s8),
+            Character::new(&[(UnityRoot::new(5, 16), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &s8),
+            Character::new(&[(UnityRoot::new(7, 16), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &s8),
+            Character::new(&[(UnityRoot::new(9, 16), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &s8),
+            Character::new(&[(UnityRoot::new(11, 16), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &s8),
+            Character::new(&[(UnityRoot::new(13, 16), 1)]),
+        ),
+        (
+            (&expected_irreps[15], &s8),
+            Character::new(&[(UnityRoot::new(15, 16), 1)]),
+        ),
+    ]);
+    test_chartab_ordinary_double_group(&mol, thresh, "S8*", &expected_irreps, Some(expected_chars));
+}
+
+#[test]
+fn test_chartab_symmetric_antiprism_pb10_magnetic_field_bw_d4d_s8_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/pb10.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(4)|").unwrap(),
+    ];
+    let s8 = SymmetryClassSymbol::<SymmetryOperation>::new("2||S8(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &s8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &s8),
+            Character::new(&[(UnityRoot::new(0, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &s8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &s8),
+            Character::new(&[(UnityRoot::new(4, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &s8),
+            Character::new(&[(UnityRoot::new(1, 8), 1), (UnityRoot::new(7, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &s8),
+            Character::new(&[(UnityRoot::new(2, 8), 1), (UnityRoot::new(6, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &s8),
+            Character::new(&[(UnityRoot::new(3, 8), 1), (UnityRoot::new(5, 8), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &s8),
+            Character::new(&[(UnityRoot::new(1, 16), 1), (UnityRoot::new(15, 16), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &s8),
+            Character::new(&[(UnityRoot::new(3, 16), 1), (UnityRoot::new(13, 16), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &s8),
+            Character::new(&[(UnityRoot::new(5, 16), 1), (UnityRoot::new(11, 16), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &s8),
+            Character::new(&[(UnityRoot::new(7, 16), 1), (UnityRoot::new(9, 16), 1)]),
+        ),
+    ]);
+    test_chartab_magnetic_double_group(
+        &mol,
+        thresh,
+        "D4d*",
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
+#[test]
+fn test_chartab_symmetric_staggered_ferrocene_magnetic_field_s10_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/staggered_ferrocene.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B~|_(g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B~|_(u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(1u)|").unwrap(),
+    ];
+    let c5 = SymmetryClassSymbol::<SymmetryOperation>::new("1||C5(Σ)||", None).unwrap();
+    let s10 = SymmetryClassSymbol::<SymmetryOperation>::new("1||S10(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &c5),
+            Character::new(&[(UnityRoot::new(1, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &c5),
+            Character::new(&[(UnityRoot::new(2, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &c5),
+            Character::new(&[(UnityRoot::new(3, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &c5),
+            Character::new(&[(UnityRoot::new(4, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &c5),
+            Character::new(&[(UnityRoot::new(1, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &c5),
+            Character::new(&[(UnityRoot::new(2, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &c5),
+            Character::new(&[(UnityRoot::new(3, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &c5),
+            Character::new(&[(UnityRoot::new(4, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &c5),
+            Character::new(&[(UnityRoot::new(1, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &c5),
+            Character::new(&[(UnityRoot::new(3, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &c5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &c5),
+            Character::new(&[(UnityRoot::new(7, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &c5),
+            Character::new(&[(UnityRoot::new(9, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[15], &c5),
+            Character::new(&[(UnityRoot::new(1, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[16], &c5),
+            Character::new(&[(UnityRoot::new(3, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[17], &c5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[18], &c5),
+            Character::new(&[(UnityRoot::new(7, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[19], &c5),
+            Character::new(&[(UnityRoot::new(9, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[0], &s10),
+            Character::new(&[(UnityRoot::new(0, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &s10),
+            Character::new(&[(UnityRoot::new(6, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &s10),
+            Character::new(&[(UnityRoot::new(2, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &s10),
+            Character::new(&[(UnityRoot::new(8, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &s10),
+            Character::new(&[(UnityRoot::new(4, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &s10),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &s10),
+            Character::new(&[(UnityRoot::new(1, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &s10),
+            Character::new(&[(UnityRoot::new(7, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &s10),
+            Character::new(&[(UnityRoot::new(3, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &s10),
+            Character::new(&[(UnityRoot::new(9, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &s10),
+            Character::new(&[(UnityRoot::new(4, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &s10),
+            Character::new(&[(UnityRoot::new(2, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &s10),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &s10),
+            Character::new(&[(UnityRoot::new(3, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &s10),
+            Character::new(&[(UnityRoot::new(1, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[15], &s10),
+            Character::new(&[(UnityRoot::new(3, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[16], &s10),
+            Character::new(&[(UnityRoot::new(9, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[17], &s10),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[18], &s10),
+            Character::new(&[(UnityRoot::new(1, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[19], &s10),
+            Character::new(&[(UnityRoot::new(7, 10), 1)]),
+        ),
+    ]);
+    test_chartab_ordinary_double_group(
+        &mol,
+        thresh,
+        "S10*",
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
+#[test]
+fn test_chartab_symmetric_c60_magnetic_field_bw_d5d_s10_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-5;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B~|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B~|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B~|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B~|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(2u)|").unwrap(),
+    ];
+    let c5 = SymmetryClassSymbol::<SymmetryOperation>::new("2||C5(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &c5),
+            Character::new(&[(UnityRoot::new(1, 5), 1), (UnityRoot::new(4, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &c5),
+            Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &c5),
+            Character::new(&[(UnityRoot::new(1, 5), 1), (UnityRoot::new(4, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &c5),
+            Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &c5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &c5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &c5),
+            Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &c5),
+            Character::new(&[(UnityRoot::new(3, 10), 1), (UnityRoot::new(7, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &c5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &c5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &c5),
+            Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[15], &c5),
+            Character::new(&[(UnityRoot::new(3, 10), 1), (UnityRoot::new(7, 10), 1)]),
+        ),
+    ]);
+    test_chartab_magnetic_double_group(
+        &mol,
+        thresh,
+        "D5d*",
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
+#[test]
+fn test_chartab_symmetric_au26_magnetic_field_s12_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A||").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(4)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(5)|").unwrap(),
+        MullikenIrrepSymbol::new("||B||").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(5)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(4)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(4)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(5)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(6)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(6)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(5)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(4)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(1)|").unwrap(),
+    ];
+    let s12 = SymmetryClassSymbol::<SymmetryOperation>::new("1||S12(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &s12),
+            Character::new(&[(UnityRoot::new(0, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &s12),
+            Character::new(&[(UnityRoot::new(1, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &s12),
+            Character::new(&[(UnityRoot::new(2, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &s12),
+            Character::new(&[(UnityRoot::new(3, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &s12),
+            Character::new(&[(UnityRoot::new(4, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &s12),
+            Character::new(&[(UnityRoot::new(5, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &s12),
+            Character::new(&[(UnityRoot::new(6, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &s12),
+            Character::new(&[(UnityRoot::new(7, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &s12),
+            Character::new(&[(UnityRoot::new(8, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &s12),
+            Character::new(&[(UnityRoot::new(9, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &s12),
+            Character::new(&[(UnityRoot::new(10, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &s12),
+            Character::new(&[(UnityRoot::new(11, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &s12),
+            Character::new(&[(UnityRoot::new(1, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &s12),
+            Character::new(&[(UnityRoot::new(3, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &s12),
+            Character::new(&[(UnityRoot::new(5, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[15], &s12),
+            Character::new(&[(UnityRoot::new(7, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[16], &s12),
+            Character::new(&[(UnityRoot::new(9, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[17], &s12),
+            Character::new(&[(UnityRoot::new(11, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[18], &s12),
+            Character::new(&[(UnityRoot::new(13, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[19], &s12),
+            Character::new(&[(UnityRoot::new(15, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[20], &s12),
+            Character::new(&[(UnityRoot::new(17, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[21], &s12),
+            Character::new(&[(UnityRoot::new(19, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[22], &s12),
+            Character::new(&[(UnityRoot::new(21, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[23], &s12),
+            Character::new(&[(UnityRoot::new(23, 24), 1)]),
+        ),
+    ]);
+    test_chartab_ordinary_double_group(
+        &mol,
+        thresh,
+        "S12*",
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
+#[test]
+fn test_chartab_symmetric_au26_magnetic_field_bw_d6d_s12_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/au26.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(4)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(5)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(3)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(4)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(5)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(6)|").unwrap(),
+    ];
+    let s12 = SymmetryClassSymbol::<SymmetryOperation>::new("2||S12(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &s12),
+            Character::new(&[(UnityRoot::new(0, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &s12),
+            Character::new(&[(UnityRoot::new(0, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &s12),
+            Character::new(&[(UnityRoot::new(6, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &s12),
+            Character::new(&[(UnityRoot::new(6, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &s12),
+            Character::new(&[(UnityRoot::new(1, 12), 1), (UnityRoot::new(11, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &s12),
+            Character::new(&[(UnityRoot::new(2, 12), 1), (UnityRoot::new(10, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &s12),
+            Character::new(&[(UnityRoot::new(3, 12), 1), (UnityRoot::new(9, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &s12),
+            Character::new(&[(UnityRoot::new(4, 12), 1), (UnityRoot::new(8, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &s12),
+            Character::new(&[(UnityRoot::new(5, 12), 1), (UnityRoot::new(7, 12), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &s12),
+            Character::new(&[(UnityRoot::new(1, 24), 1), (UnityRoot::new(23, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &s12),
+            Character::new(&[(UnityRoot::new(3, 24), 1), (UnityRoot::new(21, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &s12),
+            Character::new(&[(UnityRoot::new(5, 24), 1), (UnityRoot::new(19, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &s12),
+            Character::new(&[(UnityRoot::new(7, 24), 1), (UnityRoot::new(17, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &s12),
+            Character::new(&[(UnityRoot::new(9, 24), 1), (UnityRoot::new(15, 24), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &s12),
+            Character::new(&[(UnityRoot::new(11, 24), 1), (UnityRoot::new(13, 24), 1)]),
+        ),
+    ]);
+    test_chartab_magnetic_double_group(
+        &mol,
+        thresh,
+        "D6d*",
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
 
 /*********
 Asymmetric

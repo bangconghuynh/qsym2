@@ -813,9 +813,12 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
     let mut leading_classes: IndexSet<SymmetryClassSymbol<R>> = IndexSet::new();
 
     // Highest priority: SU(2) class 1
-    if class_symbols.contains_key(&class_e1) {
+    let has_e1 = if class_symbols.contains_key(&class_e1) {
         leading_classes.insert(class_e1);
-    }
+        true
+    } else {
+        false
+    };
 
     // Second highest priority: time-reversal
     if class_symbols.contains_key(&class_t) {
@@ -858,7 +861,24 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
     let mut col_idxs: Vec<usize> = Vec::with_capacity(n_rows);
     col_idxs.extend(leading_idxs.iter());
     col_idxs.extend((1..n_rows).filter(|i| !leading_idxs.contains(i)));
-    let sort_arr = char_arr.select(Axis(1), &col_idxs);
+    let sort_arr = if has_e1 {
+        // Maps E(QΣ) characters to ±1, otherwise all linear/projective irreps of the same
+        // degeneracy would be grouped together.
+        let mut sort_arr = char_arr.select(Axis(1), &col_idxs);
+        let one = Character::new(&[(UnityRoot::new(0, 2), 1)]);
+        let m_one = Character::new(&[(UnityRoot::new(1, 2), 1)]);
+
+        sort_arr.column_mut(0).mapv_inplace(|e1_character| {
+            if e1_character.complex_value().re > 0.0 {
+                one.clone()
+            } else {
+                m_one.clone()
+            }
+        });
+        sort_arr
+    } else {
+        char_arr.select(Axis(1), &col_idxs)
+    };
 
     let sort_row_indices: Vec<_> = (0..n_rows)
         .sorted_by(|&i, &j| {
