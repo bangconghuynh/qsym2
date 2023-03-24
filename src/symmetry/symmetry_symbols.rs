@@ -811,30 +811,34 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
         .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ{su2_0}||`."));
 
     let mut leading_classes: IndexSet<SymmetryClassSymbol<R>> = IndexSet::new();
+    let mut sign_only_classes: HashSet<SymmetryClassSymbol<R>> = HashSet::new();
 
     // Highest priority: SU(2) class 1
-    let has_e1 = if class_symbols.contains_key(&class_e1) {
-        leading_classes.insert(class_e1);
-        true
-    } else {
-        false
-    };
+    if class_symbols.contains_key(&class_e1) {
+        leading_classes.insert(class_e1.clone());
+        sign_only_classes.insert(class_e1);
+    }
 
     // Second highest priority: time-reversal
     if class_symbols.contains_key(&class_t) {
-        leading_classes.insert(class_t);
+        leading_classes.insert(class_t.clone());
+        sign_only_classes.insert(class_t.clone());
     }
 
     // Third highest priority: inversion, or horizontal mirror plane if inversion not available,
     // or time-reversed horizontal mirror plane if non-time-reversed version not available.
     if class_symbols.contains_key(&class_i) {
-        leading_classes.insert(class_i);
+        leading_classes.insert(class_i.clone());
+        sign_only_classes.insert(class_i);
     } else if class_symbols.contains_key(&class_ti) {
-        leading_classes.insert(class_ti);
+        leading_classes.insert(class_ti.clone());
+        sign_only_classes.insert(class_ti);
     } else if class_symbols.contains_key(&class_s) {
-        leading_classes.insert(class_s);
+        leading_classes.insert(class_s.clone());
+        sign_only_classes.insert(class_s);
     } else if class_symbols.contains_key(&class_ts) {
-        leading_classes.insert(class_ts);
+        leading_classes.insert(class_ts.clone());
+        sign_only_classes.insert(class_ts);
     };
 
     // Forth highest priority: identity
@@ -845,7 +849,15 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
 
     log::debug!("Irreducible representation sort order:");
     for leading_cc in leading_classes.iter() {
-        log::debug!("  {}", leading_cc);
+        log::debug!(
+            "  {}{}",
+            leading_cc,
+            if sign_only_classes.contains(leading_cc) {
+                " (sign only)"
+            } else {
+                ""
+            }
+        );
     }
 
     let leading_idxs: IndexSet<usize> = leading_classes
@@ -861,24 +873,39 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
     let mut col_idxs: Vec<usize> = Vec::with_capacity(n_rows);
     col_idxs.extend(leading_idxs.iter());
     col_idxs.extend((1..n_rows).filter(|i| !leading_idxs.contains(i)));
-    let sort_arr = if has_e1 {
-        // Maps E(QΣ) characters to ±1, otherwise all linear/projective irreps of the same
-        // degeneracy would be grouped together.
-        let mut sort_arr = char_arr.select(Axis(1), &col_idxs);
-        let one = Character::new(&[(UnityRoot::new(0, 2), 1)]);
-        let m_one = Character::new(&[(UnityRoot::new(1, 2), 1)]);
-
-        sort_arr.column_mut(0).mapv_inplace(|e1_character| {
-            if e1_character.complex_value().re > 0.0 {
+    let mut sort_arr = char_arr.select(Axis(1), &col_idxs);
+    let one = Character::new(&[(UnityRoot::new(0, 2), 1)]);
+    let m_one = Character::new(&[(UnityRoot::new(1, 2), 1)]);
+    sign_only_classes.iter().for_each(|class| {
+        let col_idx = leading_classes
+            .get_index_of(class)
+            .unwrap_or_else(|| panic!("Unable to obtain the column index of class `{class}`."));
+        sort_arr.column_mut(col_idx).mapv_inplace(|character| {
+            if character.complex_value().re > 0.0 {
                 one.clone()
             } else {
                 m_one.clone()
             }
         });
-        sort_arr
-    } else {
-        char_arr.select(Axis(1), &col_idxs)
-    };
+    });
+    // let sort_arr = if has_e1 {
+    //     // Maps E(QΣ) characters to ±1, otherwise all linear/projective irreps of the same
+    //     // degeneracy would be grouped together.
+    //     let mut sort_arr = char_arr.select(Axis(1), &col_idxs);
+    //     let one = Character::new(&[(UnityRoot::new(0, 2), 1)]);
+    //     let m_one = Character::new(&[(UnityRoot::new(1, 2), 1)]);
+
+    //     sort_arr.column_mut(0).mapv_inplace(|e1_character| {
+    //         if e1_character.complex_value().re > 0.0 {
+    //             one.clone()
+    //         } else {
+    //             m_one.clone()
+    //         }
+    //     });
+    //     sort_arr
+    // } else {
+    //     char_arr.select(Axis(1), &col_idxs)
+    // };
 
     let sort_row_indices: Vec<_> = (0..n_rows)
         .sorted_by(|&i, &j| {
