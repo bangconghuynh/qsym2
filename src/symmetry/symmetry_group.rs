@@ -451,63 +451,14 @@ impl SymmetryGroupProperties
     }
 
     fn to_double_group(&self) -> Self {
-        log::debug!("Constructing the double group for {}", self.name());
+        log::debug!("Constructing the double group for unitary-represented {}...", self.name());
 
         // Check for classes of multiple C2 axes.
-        log::debug!("Checking for classes of odd non-coaxial binary rotations or reflections...");
-        let poshem = (0..self.class_number()).find_map(|cc_i| {
-            let cc_symbol = self
-                .get_cc_symbol_of_index(cc_i)
-                .expect("Unable to retrive a conjugacy class symbol.");
-            if cc_symbol.is_spatial_binary_rotation() || cc_symbol.is_spatial_reflection() {
-                let cc = self
-                    .get_cc_index(cc_i)
-                    .expect("Unable to retrieve a conjugacy class.");
-                if cc.len() > 1 && cc.len().rem_euclid(2) == 1 {
-                    let mut all_c2s = cc
-                        .iter()
-                        .map(|&op_i| {
-                            self.get_index(op_i)
-                                .expect("Unable to retrieve a group operation.")
-                        })
-                        .collect_vec();
-                    all_c2s.sort_by_key(|c2| {
-                        let (axis_closeness, closest_axis) = c2.generating_element.closeness_to_cartesian_axes();
-                        (OrderedFloat(axis_closeness), closest_axis)
-                    });
-                    let c2x = all_c2s.first().expect("Unable to retrieve the last C2 operation.");
-                    let c20 = all_c2s.last().expect("Unable to retrieve the first C2 operation.");
-                    let z_basis = geometry::get_standard_positive_pole(
-                        &c2x
-                            .generating_element
-                            .raw_axis()
-                            .cross(&c20.generating_element.raw_axis()),
-                        c2x.generating_element.threshold(),
-                    );
-                    let x_basis = c2x.generating_element.raw_axis().clone();
-                    log::debug!("Found a class of odd non-coaxial binary rotations or reflections:");
-                    for c2 in all_c2s.iter() {
-                        log::debug!("  {c2}");
-                    }
-                    log::debug!("Adjusting the positive hemisphere to encompass all class-0 binary-rotation or reflection poles...");
-                    Some(PositiveHemisphere::new_spherical_disjoint_equatorial_arcs(
-                        z_basis,
-                        x_basis,
-                        cc.len(),
-                    ))
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        });
+        let poshem = find_positive_hemisphere(self);
 
         if let Some(pos_hem) = poshem.as_ref() {
             log::debug!("New positive hemisphere:");
             log::debug!("{pos_hem}");
-        } else {
-            log::debug!("No classes of odd non-coaxial binary rotations or reflections found.");
         }
 
         let mut su2_operations = self
@@ -755,7 +706,7 @@ impl SymmetryGroupProperties
             SymmetryOperation,
             MullikenIrrepSymbol,
             SymmetryClassSymbol<SymmetryOperation>,
-        >::new(group_name.as_str(), unitary_operations);
+        >::new(&format!("u[{group_name}]"), unitary_operations);
         let uni_symbols = unitary_subgroup.class_symbols_from_symmetry();
         unitary_subgroup.set_class_symbols(&uni_symbols);
         unitary_subgroup.construct_irrep_character_table();
@@ -776,53 +727,14 @@ impl SymmetryGroupProperties
     }
 
     fn to_double_group(&self) -> Self {
-        log::debug!("Constructing the double group for {}", self.name());
+        log::debug!("Constructing the double group for magnetic-represented {}...", self.name());
 
         // Check for classes of multiple C2 axes.
-        log::debug!("Checking for classes of odd non-coaxial binary rotations or reflections...");
-        let poshem = (0..self.class_number()).find_map(|cc_i| {
-            let cc_symbol = self
-                .get_cc_symbol_of_index(cc_i)
-                .expect("Unable to retrive a conjugacy class symbol.");
-            if cc_symbol.is_spatial_binary_rotation() || cc_symbol.is_spatial_reflection() {
-                let cc = self
-                    .get_cc_index(cc_i)
-                    .expect("Unable to retrieve a conjugacy class.");
-                if cc.len() > 1 && cc.len().rem_euclid(2) == 1 {
-                    let c2s = cc
-                        .iter()
-                        .take(2)
-                        .map(|&op_i| {
-                            self.get_index(op_i)
-                                .expect("Unable to retrieve a group element.")
-                        })
-                        .collect_vec();
-                    let z_basis = geometry::get_standard_positive_pole(
-                        &c2s[0]
-                            .generating_element
-                            .raw_axis()
-                            .cross(&c2s[1].generating_element.raw_axis()),
-                        c2s[0].generating_element.threshold(),
-                    );
-                    let x_basis = c2s[0].generating_element.raw_axis().clone();
-                    Some(PositiveHemisphere::new_spherical_disjoint_equatorial_arcs(
-                        z_basis,
-                        x_basis,
-                        cc.len(),
-                    ))
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        });
+        let poshem = find_positive_hemisphere(self);
 
         if let Some(pos_hem) = poshem.as_ref() {
             log::debug!("New positive hemisphere:");
             log::debug!("{pos_hem}");
-        } else {
-            log::debug!("No classes of odd non-coaxial binary rotations or reflections found.");
         }
 
         let mut su2_operations = self
@@ -887,4 +799,67 @@ impl SymmetryGroupProperties
         group.canonicalise_character_table();
         group
     }
+}
+
+// -----------------
+// Utility functions
+// -----------------
+fn find_positive_hemisphere<G>(group: &G) -> Option<PositiveHemisphere>
+where
+    G: GroupProperties<GroupElement = SymmetryOperation>
+        + ClassProperties<ClassSymbol = SymmetryClassSymbol<SymmetryOperation>>,
+{
+    log::debug!("Checking for classes of odd non-coaxial binary rotations or reflections...");
+    let poshem = (0..group.class_number()).find_map(|cc_i| {
+        let cc_symbol = group
+            .get_cc_symbol_of_index(cc_i)
+            .expect("Unable to retrive a conjugacy class symbol.");
+        if cc_symbol.is_spatial_binary_rotation() || cc_symbol.is_spatial_reflection() {
+            let cc = group
+                .get_cc_index(cc_i)
+                .expect("Unable to retrieve a conjugacy class.");
+            if cc.len() > 1 && cc.len().rem_euclid(2) == 1 {
+                let mut all_c2s = cc
+                    .iter()
+                    .map(|&op_i| {
+                        group.get_index(op_i)
+                            .expect("Unable to retrieve a group operation.")
+                    })
+                    .collect_vec();
+                all_c2s.sort_by_key(|c2| {
+                    let (axis_closeness, closest_axis) = c2.generating_element.closeness_to_cartesian_axes();
+                    (OrderedFloat(axis_closeness), closest_axis)
+                });
+                let c2x = all_c2s.first().expect("Unable to retrieve the last C2 operation.");
+                let c20 = all_c2s.last().expect("Unable to retrieve the first C2 operation.");
+                let z_basis = geometry::get_standard_positive_pole(
+                    &c2x
+                        .generating_element
+                        .raw_axis()
+                        .cross(&c20.generating_element.raw_axis()),
+                    c2x.generating_element.threshold(),
+                );
+                let x_basis = c2x.generating_element.raw_axis().clone();
+                log::debug!("Found a class of odd non-coaxial binary rotations or reflections:");
+                for c2 in all_c2s.iter() {
+                    log::debug!("  {c2}");
+                }
+                log::debug!("Adjusting the positive hemisphere to encompass all class-0 binary-rotation or reflection poles...");
+                Some(PositiveHemisphere::new_spherical_disjoint_equatorial_arcs(
+                    z_basis,
+                    x_basis,
+                    cc.len(),
+                ))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    });
+    if poshem.is_none() {
+        log::debug!("No classes of odd non-coaxial binary rotations or reflections found.");
+    }
+    log::debug!("Checking for classes of odd non-coaxial binary rotations or reflections... Done.");
+    poshem
 }

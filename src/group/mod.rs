@@ -628,7 +628,7 @@ where
             .abstract_group
             .as_ref()
             .expect("Abstract group not yet set for this magnetic-represented group.")
-            .contains(&op)));
+            .contains(&op)), "Some unitary operations cannot be found in the magnetic group.");
         self.unitary_subgroup = Some(uni_subgrp);
         self
     }
