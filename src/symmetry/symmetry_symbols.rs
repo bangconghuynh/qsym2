@@ -881,10 +881,31 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
             .get_index_of(class)
             .unwrap_or_else(|| panic!("Unable to obtain the column index of class `{class}`."));
         sort_arr.column_mut(col_idx).mapv_inplace(|character| {
-            if character.complex_value().re > 0.0 {
-                one.clone()
+            let character_c = character.complex_value();
+            if approx::relative_eq!(
+                character_c.im,
+                0.0,
+                max_relative = character.threshold,
+                epsilon = character.threshold
+            ) {
+                if character_c.re > 0.0 {
+                    one.clone()
+                } else {
+                    m_one.clone()
+                }
+            } else if approx::relative_eq!(
+                character_c.re,
+                0.0,
+                max_relative = character.threshold,
+                epsilon = character.threshold
+            ) {
+                if character_c.im > 0.0 {
+                    one.clone()
+                } else {
+                    m_one.clone()
+                }
             } else {
-                m_one.clone()
+                panic!("Character {character} is neither purely real nor purely imaginary for sign-only sorting.")
             }
         });
     });
