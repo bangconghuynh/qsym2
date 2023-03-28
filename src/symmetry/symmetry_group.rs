@@ -536,6 +536,10 @@ impl SymmetryGroupProperties
             .unwrap_or_else(|_| {
                 panic!("Unable to construct a class symbol from `1||σh{su2_0}||`.")
             });
+        let s2_cc = SymmetryClassSymbol::new(format!("1||σh(Σ), σh(QΣ)||").as_str(), None)
+            .unwrap_or_else(|_| {
+                panic!("Unable to construct a class symbol from `1||σh(Σ), σh(QΣ)||`.")
+            });
         let ts_cc = SymmetryClassSymbol::new(format!("1||θ·σh{su2_0}||").as_str(), None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·σh{su2_0}||`."));
 
@@ -576,7 +580,7 @@ impl SymmetryGroupProperties
                 }),
                 None,
             )
-        } else if class_symbols.contains_key(&s_cc) {
+        } else if class_symbols.contains_key(&s_cc) || class_symbols.contains_key(&s2_cc) {
             log::debug!(
                 "Horizontal mirror plane exists. Principal-axis classes will be forced to be proper."
             );

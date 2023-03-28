@@ -804,6 +804,9 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
     let class_s: SymmetryClassSymbol<R> =
         SymmetryClassSymbol::new(&format!("1||σh{su2_0}||"), None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh{su2_0}||`."));
+    let class_s2: SymmetryClassSymbol<R> =
+        SymmetryClassSymbol::new(&format!("1||σh(Σ), σh(QΣ)||"), None)
+            .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh(Σ), σh(QΣ)||`."));
     let class_ts: SymmetryClassSymbol<R> =
         SymmetryClassSymbol::new(&format!("1||θ·σh{su2_0}||"), None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·σh{su2_0}||`."));
@@ -836,6 +839,9 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
     } else if class_symbols.contains_key(&class_s) {
         leading_classes.insert(class_s.clone());
         sign_only_classes.insert(class_s);
+    } else if class_symbols.contains_key(&class_s2) {
+        leading_classes.insert(class_s2.clone());
+        sign_only_classes.insert(class_s2);
     } else if class_symbols.contains_key(&class_ts) {
         leading_classes.insert(class_ts.clone());
         sign_only_classes.insert(class_ts);
@@ -1098,6 +1104,9 @@ where
         .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·i{su2_0}||`."));
     let s_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new(&format!("1||σh{su2_0}||"), None)
         .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh{su2_0}||`."));
+    let s2_cc: SymmetryClassSymbol<R> =
+        SymmetryClassSymbol::new(&format!("1||σh(Σ), σh(QΣ)||"), None)
+            .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh(Σ), σh(QΣ)||`."));
     let ts_cc: SymmetryClassSymbol<R> =
         SymmetryClassSymbol::new(&format!("1||θ·σh{su2_0}||"), None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·σh{su2_0}||`."));
@@ -1114,7 +1123,7 @@ where
     let ti_parity = class_symbols.contains_key(&ti_cc);
 
     // Reflection parity?
-    let s_parity = class_symbols.contains_key(&s_cc);
+    let s_parity = class_symbols.contains_key(&s_cc) || class_symbols.contains_key(&s2_cc);
 
     // Time-reversed reflection parity?
     let ts_parity = class_symbols.contains_key(&ts_cc);
@@ -1292,10 +1301,14 @@ where
                     .get(&s_cc)
                     .unwrap_or_else(|| {
                         class_symbols
-                            .get(&ts_cc)
+                            .get(&s2_cc)
                             .unwrap_or_else(|| {
-                                panic!("Neither `{}` nor `{}` found.", &s_cc, &ts_cc)
-                                })
+                                class_symbols
+                                    .get(&ts_cc)
+                                    .unwrap_or_else(|| {
+                                        panic!("Neither `{}`, `{}`, nor `{}` found.", &s_cc, &s2_cc, &ts_cc)
+                                        })
+                        })
                     })
             ].clone();
             let char_ref_c = char_ref.complex_value();
