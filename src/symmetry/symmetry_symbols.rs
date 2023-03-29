@@ -81,13 +81,19 @@ static INV_MULLIKEN_IRREP_DEGENERACIES: phf::Map<u64, &'static str> = phf_map! {
      10u64 => "M",
 };
 
-pub static FORCED_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
+pub static FORCED_C3_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
     "O",
     "Oh",
     "Td",
     "O + θ·O",
     "Oh + θ·Oh",
     "Td + θ·Td",
+    "O*",
+    "Oh*",
+    "Td*",
+    "(O + θ·O)*",
+    "(Oh + θ·Oh)*",
+    "(Td + θ·Td)*",
 };
 
 // ==================
@@ -1030,9 +1036,6 @@ where
             force_principal_predicate.is_none(),
             "`force_principal_predicate` and `force_principal` cannot be both provided."
         );
-        // for cc in class_symbols.keys() {
-        //     println!("CC: {cc}");
-        // }
         assert!(
             class_symbols.contains_key(&principal_cc),
             "Forcing principal-axis class to be `{principal_cc}`, but `{principal_cc}` is not a valid class in the group."

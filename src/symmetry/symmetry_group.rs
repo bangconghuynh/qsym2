@@ -19,7 +19,7 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
 use crate::symmetry::symmetry_element::{SymmetryOperation, SIG};
 use crate::symmetry::symmetry_symbols::{
     deduce_mulliken_irrep_symbols, deduce_principal_classes, sort_irreps, MullikenIrcorepSymbol,
-    MullikenIrrepSymbol, SymmetryClassSymbol, FORCED_PRINCIPAL_GROUPS,
+    MullikenIrrepSymbol, SymmetryClassSymbol, FORCED_C3_PRINCIPAL_GROUPS,
 };
 
 #[cfg(test)]
@@ -543,8 +543,8 @@ impl SymmetryGroupProperties
         let ts_cc = SymmetryClassSymbol::new(format!("1||θ·σh{su2_0}||").as_str(), None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·σh{su2_0}||`."));
 
-        let force_principal = if FORCED_PRINCIPAL_GROUPS.contains(&self.name())
-            || FORCED_PRINCIPAL_GROUPS.contains(
+        let force_principal = if FORCED_C3_PRINCIPAL_GROUPS.contains(&self.name())
+            || FORCED_C3_PRINCIPAL_GROUPS.contains(
                 self.finite_subgroup_name()
                     .unwrap_or(&String::new())
                     .as_str(),
