@@ -5257,6 +5257,166 @@ fn test_chartab_symmetric_antiprism_pb10_electric_field_grey_c4v_double() {
     );
 }
 
+#[test]
+fn test_chartab_symmetric_cpnico_c5v_double() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cpnico.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~||").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~||").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E~|_(2)|").unwrap(),
+    ];
+    let c5 = SymmetryClassSymbol::<SymmetryOperation>::new("2||C5(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &c5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &c5),
+            Character::new(&[(UnityRoot::new(1, 5), 1), (UnityRoot::new(4, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &c5),
+            Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &c5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &c5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &c5),
+            Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &c5),
+            Character::new(&[(UnityRoot::new(3, 10), 1), (UnityRoot::new(7, 10), 1)]),
+        ),
+    ]);
+    test_chartab_ordinary_double_group(
+        &mol,
+        thresh,
+        "C5v*",
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
+#[test]
+fn test_chartab_symmetric_c60_electric_field_grey_c5v_double() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c60.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||E|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|^(m)|E|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ~|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|E~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|E~|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|E~|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|E~|_(2)|").unwrap(),
+    ];
+    let tc5 = SymmetryClassSymbol::<SymmetryOperation>::new("2||θ·C5(Σ)||", None).unwrap();
+    let expected_chars = HashMap::from([
+        (
+            (&expected_irreps[0], &tc5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[1], &tc5),
+            Character::new(&[(UnityRoot::new(0, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[2], &tc5),
+            Character::new(&[(UnityRoot::new(1, 5), 1), (UnityRoot::new(4, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[3], &tc5),
+            Character::new(&[(UnityRoot::new(2, 5), 1), (UnityRoot::new(3, 5), 1)]),
+        ),
+        (
+            (&expected_irreps[4], &tc5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[5], &tc5),
+            Character::new(&[(UnityRoot::new(5, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[6], &tc5),
+            Character::new(&[(UnityRoot::new(3, 10), 1), (UnityRoot::new(7, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[7], &tc5),
+            Character::new(&[(UnityRoot::new(1, 10), 1), (UnityRoot::new(9, 10), 1)]),
+        ),
+        (
+            (&expected_irreps[8], &tc5),
+            Character::new(&[(UnityRoot::new(15, 20), 1)]),
+        ),
+        (
+            (&expected_irreps[9], &tc5),
+            Character::new(&[(UnityRoot::new(15, 20), 1)]),
+        ),
+        (
+            (&expected_irreps[10], &tc5),
+            Character::new(&[(UnityRoot::new(3, 20), 1), (UnityRoot::new(7, 20), 1)]),
+        ),
+        (
+            (&expected_irreps[11], &tc5),
+            Character::new(&[(UnityRoot::new(11, 20), 1), (UnityRoot::new(19, 20), 1)]),
+        ),
+        (
+            (&expected_irreps[12], &tc5),
+            Character::new(&[(UnityRoot::new(5, 20), 1)]),
+        ),
+        (
+            (&expected_irreps[13], &tc5),
+            Character::new(&[(UnityRoot::new(5, 20), 1)]),
+        ),
+        (
+            (&expected_irreps[14], &tc5),
+            Character::new(&[(UnityRoot::new(13, 20), 1), (UnityRoot::new(17, 20), 1)]),
+        ),
+        (
+            (&expected_irreps[15], &tc5),
+            Character::new(&[(UnityRoot::new(1, 20), 1), (UnityRoot::new(9, 20), 1)]),
+        ),
+    ]);
+    test_chartab_magnetic_double_group(
+        &mol,
+        thresh,
+        "(C5v + θ·C5v)*",
+        &expected_irreps,
+        Some(expected_chars),
+    );
+}
+
 /*
 Cnh
 */
