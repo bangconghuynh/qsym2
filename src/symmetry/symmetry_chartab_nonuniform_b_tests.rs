@@ -58,8 +58,8 @@ fn test_chartab_symmetric_h8_twisted_alt_magnetic_field_bw_c4_c2() {
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap(),
     ];
     test_chartab_magnetic_group(&mol, thresh, "C4", &mag_expected_irreps, None);
 }
@@ -118,8 +118,8 @@ fn test_chartab_symmetric_h8_alt_x_magnetic_field_bw_s4_c2() {
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap(),
     ];
     test_chartab_magnetic_group(&mol, thresh, "S4", &mag_expected_irreps, None);
 }
@@ -215,18 +215,18 @@ fn test_chartab_symmetric_tan_rad_magnetic_field_bw_c3h_c3() {
 
     let expected_irreps = vec![
         MullikenIrrepSymbol::new("||A||").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap(),
     ];
     test_chartab_ordinary_group(&mol, thresh, "C3", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|^(')|").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|^(')_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|^(')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|^(')|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|^(')|").unwrap(),
         MullikenIrrepSymbol::new("||A|^('')|").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|^('')_(1)|").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|^('')_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|^('')|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|^('')|").unwrap(),
     ];
     test_chartab_magnetic_group(&mol, thresh, "C3h", &mag_expected_irreps, None);
 }
@@ -494,21 +494,21 @@ fn test_chartab_symmetric_xef4_alt_x_magnetic_field_bw_c4h_s4() {
 
     let expected_irreps = vec![
         MullikenIrrepSymbol::new("||A||").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap(),
         MullikenIrrepSymbol::new("||B||").unwrap(),
-        MullikenIrrepSymbol::new("||Γ|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap(),
     ];
     test_chartab_ordinary_group(&mol, thresh, "S4", &expected_irreps, None);
 
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1g)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(g)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(u)|").unwrap(),
     ];
     test_chartab_magnetic_group(&mol, thresh, "C4h", &mag_expected_irreps, None);
 }
@@ -563,12 +563,12 @@ fn test_chartab_symmetric_h8_alt_x_magnetic_field_bw_c4h_c2h() {
     let mag_expected_irreps = vec![
         MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1g)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(g)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(g)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
         MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
-        MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(a)|Γ|_(u)|").unwrap(),
+        MullikenIrrepSymbol::new("|_(b)|Γ|_(u)|").unwrap(),
     ];
     test_chartab_magnetic_group(&mol, thresh, "C4h", &mag_expected_irreps, None);
 }
