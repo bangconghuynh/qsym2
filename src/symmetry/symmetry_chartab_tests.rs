@@ -6723,6 +6723,7 @@ fn test_chartab_symmetric_nh3_c3v_double() {
 
 #[test]
 fn test_chartab_symmetric_vf6_electric_field_grey_c3v_double() {
+    env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let thresh = 1e-12;
     let mut mol = Molecule::from_xyz(&path, thresh);

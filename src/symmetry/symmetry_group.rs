@@ -451,7 +451,10 @@ impl SymmetryGroupProperties
     }
 
     fn to_double_group(&self) -> Self {
-        log::debug!("Constructing the double group for unitary-represented {}...", self.name());
+        log::debug!(
+            "Constructing the double group for unitary-represented {}...",
+            self.name()
+        );
 
         // Check for classes of multiple C2 axes.
         let poshem = find_positive_hemisphere(self);
@@ -731,7 +734,10 @@ impl SymmetryGroupProperties
     }
 
     fn to_double_group(&self) -> Self {
-        log::debug!("Constructing the double group for magnetic-represented {}...", self.name());
+        log::debug!(
+            "Constructing the double group for magnetic-represented {}...",
+            self.name()
+        );
 
         // Check for classes of multiple C2 axes.
         let poshem = find_positive_hemisphere(self);
@@ -780,8 +786,6 @@ impl SymmetryGroupProperties
         su2_operations.extend(su2_1_operations.into_iter());
         sort_operations(&mut su2_operations);
 
-        let double_unitary_subgroup = self.unitary_subgroup().to_double_group();
-
         let group_name = if self.name().contains("+") {
             format!("({})*", self.name())
         } else {
@@ -794,6 +798,31 @@ impl SymmetryGroupProperties
                 name.clone() + "*"
             }
         });
+
+        log::debug!("Constructing the double unitary subgroup for the magnetic double group...");
+        let unitary_su2_operations = su2_operations
+            .iter()
+            .filter_map(|op| {
+                if op.is_antiunitary() {
+                    None
+                } else {
+                    Some(op.clone())
+                }
+            })
+            .collect::<Vec<_>>();
+        let mut double_unitary_subgroup =
+            UnitaryRepresentedGroup::<
+                SymmetryOperation,
+                MullikenIrrepSymbol,
+                SymmetryClassSymbol<SymmetryOperation>,
+            >::new(&format!("u[{group_name}]"), unitary_su2_operations);
+        let uni_symbols = double_unitary_subgroup.class_symbols_from_symmetry();
+        double_unitary_subgroup.set_class_symbols(&uni_symbols);
+        double_unitary_subgroup.construct_irrep_character_table();
+        double_unitary_subgroup.canonicalise_character_table();
+        log::debug!(
+            "Constructing the double unitary subgroup for the magnetic double group... Done."
+        );
 
         let mut group = Self::new(group_name.as_str(), su2_operations, double_unitary_subgroup);
         group.set_finite_subgroup_name(finite_group_name);
