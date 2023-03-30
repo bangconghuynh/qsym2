@@ -111,7 +111,8 @@ pub trait SpecialSymmetryTransformation {
     // Overall - provided methods
     // ==========================
 
-    /// Checks if the symmetry operation is the identity in $`\mathsf{O}(3)`$ or $`\mathsf{SU}(2)`$.
+    /// Checks if the symmetry operation is the identity in $`\mathsf{O}(3)`$, `E`, or
+    /// in $`\mathsf{SU}(2)`$, `E(Σ)`.
     ///
     /// # Returns
     ///
@@ -120,7 +121,8 @@ pub trait SpecialSymmetryTransformation {
         self.is_spatial_identity() && !self.is_antiunitary() && !self.is_su2_class_1()
     }
 
-    /// Checks if the symmetry operation is a pure time-reversal.
+    /// Checks if the symmetry operation is a pure time-reversal in $`\mathsf{O}(3)`$, `θ`, or
+    /// in $`\mathsf{SU}(2)`$, `θ(Σ)`.
     ///
     /// # Returns
     ///
@@ -129,7 +131,8 @@ pub trait SpecialSymmetryTransformation {
         self.is_spatial_identity() && self.is_antiunitary() && !self.is_su2_class_1()
     }
 
-    /// Checks if the symmetry operation is an inversion in $`\mathsf{O}(3)`$.
+    /// Checks if the symmetry operation is an inversion in $`\mathsf{O}(3)`$, `i`, but not in
+    /// $`\mathsf{SU}(2)`$, `i(Σ)`.
     ///
     /// # Returns
     ///
@@ -138,7 +141,8 @@ pub trait SpecialSymmetryTransformation {
         self.is_spatial_inversion() && !self.is_antiunitary() && !self.is_su2()
     }
 
-    /// Checks if the symmetry operation is a reflection in $`\mathsf{O}(3)`$.
+    /// Checks if the symmetry operation is a reflection in $`\mathsf{O}(3)`$, `σ`, but not in
+    /// $`\mathsf{SU}(2)`$, `σ(Σ)`.
     ///
     /// # Returns
     ///
@@ -152,11 +156,11 @@ pub trait SpecialSymmetryTransformation {
 // Struct definitions and implementations
 // ======================================
 
-/// A struct for managing symmetry operations generated from symmetry elements.
+/// A structure for managing symmetry operations generated from symmetry elements.
 ///
 /// A symmetry element serves as a generator for symmetry operations. Thus, a symmetry element
-/// together with an integer indicating the number of times the symmetry element is applied
-/// specifies a symmetry operation.
+/// together with a signed integer indicating the number of times the symmetry element is applied
+/// (positively or negatively) specifies a symmetry operation.
 #[derive(Builder, Clone)]
 pub struct SymmetryOperation {
     /// The generating symmetry element for this symmetry operation.
@@ -166,26 +170,27 @@ pub struct SymmetryOperation {
     /// [`Self::generating_element`] is applied to form the symmetry operation.
     pub power: i32,
 
-    /// The total proper rotation angle associated with this operation (after
-    /// taking into account the power of the operation).
+    /// The total proper rotation angle associated with this operation (after taking into account
+    /// the power of the operation).
     ///
-    /// This is simply the proper rotation angle of [`Self::generating_element`]
-    /// multiplied by [`Self::power`].
+    /// This is simply the proper rotation angle of [`Self::generating_element`] multiplied by
+    /// [`Self::power`] and then folded onto the open interval $`(-\pi, \pi]`$.
     ///
-    /// This angle lies in the open interval $`(-\pi, \pi]`$. For improper
-    /// operations, this angle depends on the convention used to describe the
-    /// [`Self::generating_element`].
+    /// This angle lies in the open interval $`(-\pi, \pi]`$. For improper operations, this angle
+    /// depends on the convention used to describe the [`Self::generating_element`].
     #[builder(setter(skip), default = "self.calc_total_proper_angle()")]
     total_proper_angle: f64,
 
-    /// The fraction $`pk/n \in (-1/2, 1/2]`$ of the proper rotation, represented
-    /// exactly for hashing and comparison purposes.
+    /// The fraction $`pk/n \in (-1/2, 1/2]`$ of the proper rotation, represented exactly for
+    /// hashing and comparison purposes.
     ///
-    /// This is not defined for operations with infinite-order generating
-    /// elements.
+    /// This is not defined for operations with infinite-order generating elements.
     #[builder(setter(skip), default = "self.calc_total_proper_fraction()")]
     pub total_proper_fraction: Option<F>,
 
+    /// The positive hemisphere used for distinguishing positive and negative rotation poles. If
+    /// `None`, the standard positive hemisphere as defined in S.L. Altmann, Rotations,
+    /// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005) is used.
     #[builder(default = "None")]
     positive_hemisphere: Option<PositiveHemisphere>,
 }
@@ -253,7 +258,10 @@ impl SymmetryOperation {
     /// * `tr` - A boolean indicating if the resulting symmetry operation should be accompanied by
     /// a time-reversal operation.
     /// * `su2` - A boolean indicating if the resulting symmetry operation is to contain a proper
-    /// rotation in $`\mathsf{SU}(2)`$.
+    /// rotation in $`\mathsf{SU}(2)`$. The homotopy class of the operation will be deduced from
+    /// the specified quaternion.
+    /// * `poshem` - An option containing any custom positive hemisphere used to distinguish
+    /// positive and negative rotation poles.
     ///
     /// # Returns
     ///
@@ -452,9 +460,8 @@ impl SymmetryOperation {
 
     /// Finds the quaternion associated with this operation.
     ///
-    /// The rotation angle encoded in the quaternion is taken to be non-negative
-    /// and assigned as the proper rotation angle associated with the element
-    /// generating the operation.
+    /// The rotation angle encoded in the quaternion is taken to be non-negative and assigned as
+    /// the proper rotation angle associated with the element generating the operation.
     ///
     /// If this is an operation generated from an improper element, the inversion-centre convention
     /// will be used to determine the angle of proper rotation.
@@ -508,7 +515,6 @@ impl SymmetryOperation {
                 max_relative = c_self.generating_element.threshold,
                 epsilon = c_self.generating_element.threshold
             ) {
-                // println!();
                 c_self
                     .positive_hemisphere
                     .as_ref()
@@ -518,9 +524,6 @@ impl SymmetryOperation {
             } else {
                 true
             },
-            "Poshem: {:?} - c_self: {c_self} - pole: {} - vec: {vector_part}",
-            c_self.positive_hemisphere,
-            c_self.calc_pole()
         );
 
         if self.is_su2_class_1() {
@@ -725,13 +728,13 @@ impl SymmetryOperation {
 
     /// Finds the pole angle associated with this operation.
     ///
-    /// This is the angle that, together with the pole, uniquely determines the proper part of this
-    /// operation. This angle lies in the interval $`[0, \pi]`$.
+    /// This is the non-negative angle that, together with the pole, uniquely determines the proper
+    /// part of this operation. This angle lies in the interval $`[0, \pi]`$.
     ///
-    /// For improper operations, the inversion-centre convention is used to define
-    /// the pole angle. This allows a proper rotation and its improper partner to have the
-    /// same pole angle, thus facilitating the consistent specification of poles for the
-    /// identity / inversion and binary rotations / reflections.
+    /// For improper operations, the inversion-centre convention is used to define the pole angle.
+    /// This allows a proper rotation and its improper partner to have the same pole angle, thus
+    /// facilitating the consistent specification of poles for the identity / inversion and binary
+    /// rotations / reflections.
     ///
     /// # Returns
     ///
@@ -872,8 +875,7 @@ impl SymmetryOperation {
         }
     }
 
-    /// Generates the abbreviated symbol for this symmetry operation, which classifies
-    /// certain improper axes into inversion centres or mirror planes,
+    /// Generates the abbreviated symbol for this symmetry operation.
     #[must_use]
     pub fn get_abbreviated_symbol(&self) -> String {
         self.to_symmetry_element()
@@ -1005,6 +1007,11 @@ impl SymmetryOperation {
         }
     }
 
+    /// Sets the positive hemisphere governing this symmetry operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `poshem` - An `Option` containing a custom positive hemisphere, if any.
     pub fn set_positive_hemisphere(&mut self, poshem: Option<&PositiveHemisphere>) {
         self.positive_hemisphere = poshem.cloned();
     }
@@ -1302,7 +1309,6 @@ impl SpecialSymmetryTransformation for SymmetryOperation {
             .count();
 
             inverse_count.rem_euclid(2) == 1
-            // inverse_from_rotation_group != intrinsic_inverse
         } else {
             false
         }
@@ -1531,12 +1537,6 @@ impl Mul<&'_ SymmetryOperation> for &SymmetryOperation {
         let thresh = (self.generating_element.threshold * rhs.generating_element.threshold).sqrt();
         let max_trial_power = u32::MAX;
 
-        // let q3 = if su2 || q3_s >= 0.0 {
-        //     (q3_s, q3_v)
-        // } else {
-        //     (-q3_s, -q3_v)
-        // };
-
         let q3 = if su2 {
             if tr2 {
                 (-q3_s, -q3_v)
@@ -1649,6 +1649,21 @@ where
 // =================
 // Utility functions
 // =================
+/// Sorts symmetry operations in-place based on:
+///
+/// * whether they are unitary or antiunitary
+/// * whether they are proper or improper
+/// * whether they are the identity or inversion
+/// * whether they are a spatial binary rotation or spatial reflection
+/// * their orders
+/// * their powers
+/// * their closeness to Cartesian axes
+/// * the axes of closest inclination
+/// * whether they are of homotopy class 1 in $`\mathsf{SU}'(2)`$.
+///
+/// # Arguments
+///
+/// * `operations` - A mutable reference to a vector of symmetry operations.
 pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
     operations.sort_by_key(|op| {
         let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
