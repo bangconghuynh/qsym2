@@ -26,33 +26,35 @@ mod symmetry_element_tests;
 // Enum definitions and implementations
 // ====================================
 
+/// An enumerated type to classify the type of the antiunitary term that contributes to a symmetry
+/// element.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum AntiunitaryKind {
+    /// Variant for the antiunitary term being a complex-conjugation operation.
     ComplexConjugation,
+
+    /// Variant for the antiunitary term being a time-reversal operation.
     TimeReversal,
 }
 
-/// An enum to classify the types of symmetry element.
+/// An enumerated type to classify the types of symmetry element.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum SymmetryElementKind {
     /// Proper symmetry element which consists of just a proper rotation axis.
     ///
-    /// The associated boolean indicates whether there is a time-reversal operation associated with
-    /// this element.
+    /// The associated option indicates the type of the associated antiunitary operation, if any.
     Proper(Option<AntiunitaryKind>),
 
-    /// Improper symmetry element in the mirror-plane convention, which consists
-    /// of a proper rotation axis and an orthogonal mirror plane.
+    /// Improper symmetry element in the mirror-plane convention, which consists of a proper
+    /// rotation axis and an orthogonal mirror plane.
     ///
-    /// The associated boolean indicates whether there is a time-reversal operation associated with
-    /// this element.
+    /// The associated option indicates the type of the associated antiunitary operation, if any.
     ImproperMirrorPlane(Option<AntiunitaryKind>),
 
-    /// Improper symmetry element in the inversion-centre convention, which
-    /// consists of a proper rotation axis and an inversion centre.
+    /// Improper symmetry element in the inversion-centre convention, which consists of a proper
+    /// rotation axis and an inversion centre.
     ///
-    /// The associated boolean indicates whether there is a time-reversal operation associated with
-    /// this element.
+    /// The associated option indicates the type of the associated antiunitary operation, if any.
     ImproperInversionCentre(Option<AntiunitaryKind>),
 }
 
@@ -71,11 +73,12 @@ impl SymmetryElementKind {
     ///
     /// # Arguments
     ///
-    /// * `tr` - A boolean indicating whether time reversal is included or not.
+    /// * `tr` - A boolean indicating whether time reversal is included (`true`) or removed
+    /// (`false`).
     ///
     /// # Returns
     ///
-    /// A copy of the current kind with the desired time-reversal boolean.
+    /// A copy of the current kind with or without the time-reversal antiunitary operation.
     #[must_use]
     pub fn to_tr(&self, tr: bool) -> Self {
         if tr {
@@ -83,13 +86,17 @@ impl SymmetryElementKind {
         } else {
             self.to_antiunitary(None)
         }
-        // match self {
-        //     Self::Proper(_) => Self::Proper(tr),
-        //     Self::ImproperMirrorPlane(_) => Self::ImproperMirrorPlane(tr),
-        //     Self::ImproperInversionCentre(_) => Self::ImproperInversionCentre(tr),
-        // }
     }
 
+    /// Converts the associated antiunitary operation to the desired kind.
+    ///
+    /// # Arguments
+    ///
+    /// * `au` - An option containing the desired antiunitary kind.
+    ///
+    /// # Returns
+    ///
+    /// A new symmetry element kind with the desired antiunitary kind.
     pub fn to_antiunitary(&self, au: Option<AntiunitaryKind>) -> Self {
         match self {
             Self::Proper(_) => Self::Proper(au),
@@ -200,37 +207,44 @@ impl fmt::Display for SymmetryElementKind {
     }
 }
 
-/// A struct for storing and managing symmetry elements.
+/// A structure for storing and managing symmetry elements.
 ///
-/// Each symmetry element is a geometrical object in $`\mathbb{R}^3`$ that encodes
-/// three pieces of information:
+/// Each symmetry element is a geometrical object in $`\mathbb{R}^3`$ that encodes the following
+/// pieces of information:
 ///
 /// * the axis of rotation $`\hat{\mathbf{n}}`$,
-/// * the angle of rotation $`\phi`$, and
-/// * whether the element is proper or improper.
+/// * the angle of rotation $`\phi`$,
+/// * the associated improper operation, if any, and
+/// * the associated antiunitary operation, if any.
 ///
-/// These three pieces of information can be stored in the following
-/// representation of a symmetry element $`\hat{g}`$:
+/// These pieces of information can be stored in the following representation of a symmetry element
+/// $`\hat{g}`$:
 ///
 /// ```math
-/// \hat{g} = \hat{\gamma} \hat{C}_n^k,
+/// \hat{g} = \hat{\alpha} \hat{\gamma} \hat{C}_n^k,
 /// ```
 ///
-/// where $`n \in \mathbb{N}_{+}`$, $`k \in \mathbb{Z}/n\mathbb{Z}`$ such that
-/// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$, and $`\hat{\gamma}`$ is either the
-/// identity $`\hat{e}`$, the inversion operation $`\hat{i}`$, or a reflection operation
-/// $`\hat{\sigma}`$. With this definition, the three pieces of information required to specify a
-/// geometrical symmetry element are given as follows:
+/// where
+/// * $`n \in \mathbb{N}_{+}`$, $`k \in \mathbb{Z}/n\mathbb{Z}`$ such that
+/// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$,
+/// * $`\hat{\gamma}`$ is either the identity $`\hat{e}`$, the inversion operation $`\hat{i}`$, or
+/// a reflection operation $`\hat{\sigma}`$ perpendicular to the axis of rotation,
+/// * $`\hat{\alpha}`$ is either the identity $`\hat{e}`$, the complex conjugation $`\hat{K}`$, or
+/// the time reversal $`\hat{\theta}`$.
+///
+/// With this definition, the above pieces of information required to specify a geometrical symmetry
+/// element are given as follows:
 ///
 /// * the axis of rotation $`\hat{\mathbf{n}}`$ is given by the axis of $`\hat{C}_n^k`$,
-/// * the angle of rotation $`\phi = 2\pi k/n \in (-`pi, \pi], and
-/// * whether the element is proper or improper is given by $`\hat{\gamma}`$.
+/// * the angle of rotation $`\phi = 2\pi k/n \in (-`pi, \pi],
+/// * the improper contribution $`\hat{\gamma}`$,
+/// * the antiunitary contribution $`\hat{\alpha}`$.
 ///
-/// This definition also allows $`\hat{g}`$ to be interpreted as an element of either
-/// $`\mathsf{O}(3)`$ or $`\mathsf{SU}'(2)`$, which means that $`\hat{g}`$ is also a symmetry
-/// operation in the corresponding group, and a rather special one that can be used to generate
-/// other symmetry operations of the group. $`\hat{g}`$ thus serves as a bridge between molecular
-/// symmetry and abstract group theory.
+/// This definition also allows the unitary part of $`\hat{g}`$ to be interpreted as an element of
+/// either $`\mathsf{O}(3)`$ or $`\mathsf{SU}'(2)`$, which means that the unitary part of
+/// $`\hat{g}`$ is also a symmetry operation in the corresponding group, and a rather special one
+/// that can be used to generate other symmetry operations of the group. $`\hat{g}`$ thus serves as
+/// a bridge between molecular symmetry and abstract group theory.
 ///
 /// There is one small caveat: for infinite-order elements, $`n`$ and $`k`$ can no longer be used
 /// to give the angle of rotation. There must thus be a mechanism to allow for infinite-order
@@ -240,13 +254,15 @@ impl fmt::Display for SymmetryElementKind {
 /// floating-point number $`\phi`$.
 #[derive(Builder, Clone)]
 pub struct SymmetryElement {
-    /// The rotational order $`n`$ of the proper rotation part of the symmetry element.
+    /// The rotational order $`n`$ of the proper rotation part of the symmetry element. This can be
+    /// finite or infinite, and will determine whether [`Self::raw_proper_power`] is `None` or
+    /// contains an integer value.
     #[builder(setter(name = "proper_order"))]
     raw_proper_order: ElementOrder,
 
     /// The power $`k \in \mathbb{Z}/n\mathbb{Z}`$ of the proper symmetry element such that
-    /// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$. This is only defined if [`Self::proper_order`]
-    /// is finite.
+    /// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$. This is only defined if
+    /// [`Self::proper_order`] is finite.
     #[builder(setter(custom, name = "proper_power"), default = "None")]
     raw_proper_power: Option<i32>,
 
@@ -254,7 +270,7 @@ pub struct SymmetryElement {
     #[builder(setter(custom))]
     raw_axis: Vector3<f64>,
 
-    /// The spatial and time-reversal kind of the symmetry element.
+    /// The spatial and antiunitary kind of the symmetry element.
     #[builder(default = "SymmetryElementKind::Proper(None)")]
     kind: SymmetryElementKind,
 
@@ -455,7 +471,7 @@ impl SymmetryElement {
         &self.raw_axis
     }
 
-    /// Returns the axis of the proper rotation in the positive hemisphere.
+    /// Returns the axis of the proper rotation in the standard positive hemisphere.
     pub fn standard_positive_axis(&self) -> Vector3<f64> {
         geometry::get_standard_positive_pole(&self.raw_axis, self.threshold)
     }
@@ -482,26 +498,28 @@ impl SymmetryElement {
         }
     }
 
+    /// Returns the pole of the proper rotation part of the element while leaving any improper and
+    /// antiunitary contributions intact.
+    ///
+    /// If the proper rotation part if a binary rotation, the pole is always in the standard
+    /// positive hemisphere.
+    ///
+    /// # Returns
+    ///
+    /// The position vector of the proper rotation pole.
     pub fn proper_rotation_pole(&self) -> Vector3<f64> {
-        // let c_ele = if self.is_o3_proper(tr) {
-        //     self.clone()
-        // } else if tr {
-        //     self.convert_to_improper_kind(&TRINV, true)
-        // } else {
-        //     self.convert_to_improper_kind(&INV, true)
-        // };
         match *self.raw_proper_order() {
             ElementOrder::Int(_) => {
                 let frac_1_2 = F::new(1u32, 2u32);
                 let proper_fraction = self.proper_fraction.expect("No proper fractions found.");
                 if proper_fraction == frac_1_2 {
-                    // Binary rotations or reflections
+                    // Binary proper rotations
                     geometry::get_standard_positive_pole(&self.raw_axis, self.threshold)
                 } else if proper_fraction > F::zero() {
-                    // Positive rotation angles
+                    // Positive proper rotation angles
                     self.raw_axis
                 } else if proper_fraction < F::zero() {
-                    // Negative rotation angles
+                    // Negative proper rotation angles
                     -self.raw_axis
                 } else {
                     // Identity or inversion
@@ -516,7 +534,7 @@ impl SymmetryElement {
                     max_relative = self.threshold,
                     epsilon = self.threshold
                 ) {
-                    // Binary rotations or reflections
+                    // Binary proper rotations
                     geometry::get_standard_positive_pole(&self.raw_axis, self.threshold)
                 } else if approx::relative_ne!(
                     self.proper_angle.expect("No proper angles found."),
@@ -547,17 +565,18 @@ impl SymmetryElement {
 
     /// Returns the proper angle for this element, if any.
     ///
-    /// The element lacks a proper angle if it is infinite-order and the rotation angle
+    /// The element lacks a proper angle if it is infinite-order and the rotation angle has not
+    /// been set.
     pub fn proper_angle(&self) -> Option<f64> {
         self.proper_angle
     }
 
-    /// Returns the spatial and time-reversal kind of this element.
+    /// Returns the spatial and antiunitary kind of this element.
     pub fn kind(&self) -> &SymmetryElementKind {
         &self.kind
     }
 
-    /// Returns the rotation group and possibly identity-connected homotopy class in which the
+    /// Returns the rotation group and possibly the identity-connected homotopy class in which the
     /// proper rotation part of this element is to be interpreted.
     pub fn rotation_group(&self) -> &RotationGroup {
         &self.rotation_group
@@ -573,16 +592,23 @@ impl SymmetryElement {
         self.threshold
     }
 
-    /// Checks if the symmetry element contains a time-reversal operator.
+    /// Checks if the symmetry element contains a time-reversal operator as the antiunitary part.
     ///
     /// # Returns
     ///
-    /// A boolean indicating if the symmetry element contains a time-reversal operator.
+    /// A boolean indicating if the symmetry element contains a time-reversal operator as the
+    /// antiunitary part.
     #[must_use]
     pub fn contains_time_reversal(&self) -> bool {
         self.kind.contains_time_reversal()
     }
 
+    /// Checks if the symmetry element contains an antiunitary part.
+    ///
+    /// # Returns
+    ///
+    /// Returns `None` if the symmetry element has no antiunitary parts, or `Some` wrapping around
+    /// the antiunitary kind if the symmetry element contains an antiunitary part.
     pub fn contains_antiunitary(&self) -> Option<AntiunitaryKind> {
         match self.kind {
             SymmetryElementKind::Proper(au)
@@ -591,14 +617,15 @@ impl SymmetryElement {
         }
     }
 
-    /// Checks if the proper rotation of the element is in $`\mathsf{SU}(2)`$.
+    /// Checks if the proper rotation part of the element is in $`\mathsf{SU}(2)`$.
     #[must_use]
     pub fn is_su2(&self) -> bool {
         self.rotation_group.is_su2()
     }
 
-    /// Checks if the proper rotation of the element is in $`\mathsf{SU}(2)`$ and connected to the
-    /// identity via a homotopy path of class 1.
+    /// Checks if the proper rotation part of the element is in $`\mathsf{SU}(2)`$ and connected to
+    /// the identity via a homotopy path of class 1.
+    ///
     /// See S.L. Altmann, Rotations, Quaternions, and Double Groups (Dover Publications, Inc., New
     /// York, 2005) for further information.
     #[must_use]
@@ -607,15 +634,15 @@ impl SymmetryElement {
     }
 
     /// Checks if the spatial part of the symmetry element is proper and has the specified
-    /// time-reversal attribute.
+    /// antiunitary attribute.
     ///
     /// # Arguments
     ///
-    /// * `tr` - A boolean indicating if time reversal is to be considered.
+    /// * `au` - An `Option` for the desired antiunitary kind.
     ///
     /// # Returns
     ///
-    /// A boolean indicating if the symmetry element is proper and has the specified time-reversal
+    /// A boolean indicating if the symmetry element is proper and has the specified antiunitary
     /// attribute.
     #[must_use]
     pub fn is_o3_proper(&self, au: Option<AntiunitaryKind>) -> bool {
@@ -623,16 +650,16 @@ impl SymmetryElement {
     }
 
     /// Checks if the symmetry element is spatially an identity element and has the specified
-    /// time-reversal attribute.
+    /// antiunitary attribute.
     ///
     /// # Arguments
     ///
-    /// * `tr` - A boolean indicating if time reversal is to be considered.
+    /// * `au` - An `Option` for the desired antiunitary kind.
     ///
     /// # Returns
     ///
     /// A boolean indicating if this symmetry element is spatially an identity element and has the
-    /// specified time-reversal attribute.
+    /// specified antiunitary attribute.
     #[must_use]
     pub fn is_o3_identity(&self, au: Option<AntiunitaryKind>) -> bool {
         self.kind == SymmetryElementKind::Proper(au)
@@ -653,16 +680,16 @@ impl SymmetryElement {
     }
 
     /// Checks if the symmetry element is spatially an inversion centre and has the specified
-    /// time-reversal attribute.
+    /// antiunitary attribute.
     ///
     /// # Arguments
     ///
-    /// * `tr` - A boolean indicating if time reversal is to be considered.
+    /// * `au` - An `Option` for the desired antiunitary kind.
     ///
     /// # Returns
     ///
     /// A boolean indicating if this symmetry element is an inversion centre and has the specified
-    /// time-reversal attribute.
+    /// antiunitary attribute.
     #[must_use]
     pub fn is_o3_inversion_centre(&self, au: Option<AntiunitaryKind>) -> bool {
         match self.kind {
@@ -705,16 +732,16 @@ impl SymmetryElement {
     }
 
     /// Checks if the symmetry element is spatially a binary rotation axis and has the specified
-    /// time-reversal attribute.
+    /// antiunitary attribute.
     ///
     /// # Arguments
     ///
-    /// * `tr` - A boolean indicating if time reversal is to be considered.
+    /// * `au` - An `Option` for the desired antiunitary kind.
     ///
     /// # Returns
     ///
-    /// A boolean indicating if this symmetry element is spatially a binary rotation axis and has the
-    /// specified time-reversal attribute.
+    /// A boolean indicating if this symmetry element is spatially a binary rotation axis and has
+    /// the specified antiunitary attribute.
     #[must_use]
     pub fn is_o3_binary_rotation_axis(&self, au: Option<AntiunitaryKind>) -> bool {
         self.kind == SymmetryElementKind::Proper(au)
@@ -735,16 +762,16 @@ impl SymmetryElement {
     }
 
     /// Checks if the symmetry element is spatially a mirror plane and has the specified
-    /// time-reversal attribute.
+    /// antiunitary attribute.
     ///
     /// # Arguments
     ///
-    /// * `tr` - A boolean indicating if time reversal is to be considered.
+    /// * `au` - An `Option` for the desired antiunitary kind.
     ///
     /// # Returns
     ///
     /// A boolean indicating if this symmetry element is spatially a mirror plane and has the
-    /// specified time-reversal attribute.
+    /// specified antiunitary attribute.
     #[must_use]
     pub fn is_o3_mirror_plane(&self, au: Option<AntiunitaryKind>) -> bool {
         match self.kind {
@@ -789,8 +816,8 @@ impl SymmetryElement {
     /// Returns the full symbol for this symmetry element, which does not classify certain
     /// improper rotation axes into inversion centres or mirror planes, but which does simplify
     /// the power/order ratio, and which displays only the absolute value of the power since
-    /// symmetry elements do not distinguish senses of rotations. Rotations of oposite directions
-    /// are inverses of each other, both of which must exist in the group.
+    /// symmetry elements do not distinguish senses of rotations since rotations of oposite
+    /// directions are inverses of each other, both of which must exist in the group.
     ///
     /// Some additional symbols that can be unconventional include:
     ///
@@ -895,10 +922,10 @@ impl SymmetryElement {
     }
 
     /// Returns the simplified symbol for this symmetry element, which classifies special symmetry
-    /// elements (identity, inversion centre, mirror planes), and which simplifies the power/order
-    /// ratio and displays only the absolute value of the power since symmetry elements do not
-    /// distinguish senses of rotations. Rotations of oposite directions are inverses of each
-    /// other, both of which must exist in the group.
+    /// elements (identity, inversion centre, time reversal, mirror planes), and which simplifies
+    /// the power/order ratio and displays only the absolute value of the power since symmetry
+    /// elements do not distinguish senses of rotations, as rotations of oposite directions are
+    /// inverses of each other, both of which must exist in the group.
     ///
     /// # Returns
     ///
@@ -1160,7 +1187,8 @@ impl SymmetryElement {
     }
 
     /// Returns a copy of the current improper symmetry element that has been converted to the
-    /// required improper kind.
+    /// required improper kind. For $`\mathsf{SU}'(2)`$ elements, the conversion will be carried
+    /// out in the same homotopy class.
     ///
     /// To convert between the two improper kinds, we essentially seek integers
     /// $`n, n' \in \mathbb{N}_{+}`$ and $`k \in \mathbb{Z}/n\mathbb{Z}`$,
@@ -1350,7 +1378,8 @@ impl SymmetryElement {
     ///
     /// # Arguments
     ///
-    /// * `normal` - A boolean indicating whether the added spin rotation is normal or inverse.
+    /// * `normal` - A boolean indicating whether the resultant $`\mathsf{SU}(2)`$ proper rotation
+    /// is of homotopy class 0 (`true`) or 1 (`false`) when connected to the identity.
     ///
     /// # Returns
     ///
@@ -1435,12 +1464,11 @@ impl PartialEq for SymmetryElement {
     ///
     /// * they are both in the same rotation group and belong to the same homotopy class;
     /// * they are both proper or improper;
-    /// * they both have the same time reversal properties;
+    /// * they both have the same antiunitary properties;
     /// * their axes are either parallel or anti-parallel;
     /// * their proper rotation angles have equal absolute values.
     ///
-    /// For improper elements, proper rotation angles are taken in the inversion
-    /// centre convention.
+    /// For improper elements, proper rotation angles are taken in the inversion centre convention.
     ///
     /// Thus, symmetry element equality is less strict than symmetry operation equality. This is so
     /// that parallel or anti-parallel symmetry elements with the same spatial and time-reversal
