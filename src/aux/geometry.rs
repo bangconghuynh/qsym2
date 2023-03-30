@@ -39,7 +39,8 @@ pub const IMINV: ImproperRotationKind = ImproperRotationKind::InversionCentre;
 // Utility functions
 // =================
 
-/// Returns the rotation angle adjusted to be in the interval $`(-\pi, +\pi]`$.
+/// Returns the rotation angle adjusted to be in the interval $`(-\pi, +\pi]`$ and the number of
+/// $`2\pi`$-folds required to bring the original angle to that interval.
 ///
 /// # Arguments
 ///
@@ -48,7 +49,7 @@ pub const IMINV: ImproperRotationKind = ImproperRotationKind::InversionCentre;
 ///
 /// # Returns
 ///
-/// The normalised rotation angle.
+/// The normalised rotation angle and the number of folds.
 #[must_use]
 pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> (f64, u32) {
     let frac_1_2 = 1.0 / 2.0;
@@ -78,6 +79,17 @@ pub fn normalise_rotation_angle(rot_ang: f64, thresh: f64) -> (f64, u32) {
     }
 }
 
+/// Returns the rotation fraction adjusted to be in the interval $`(-1/2, +1/2]`$ and the number of
+/// $`1`$-folds required to bring the original fraction to that interval.
+///
+/// # Arguments
+///
+/// * `fraction` - A rotation fraction.
+///
+/// # Returns
+///
+/// The normalised rotation fraction and the number of folds.
+#[must_use]
 pub fn normalise_rotation_fraction(fraction: F32) -> (F32, u32) {
     // Consider a fraction f.
     //
@@ -169,11 +181,6 @@ pub fn normalise_rotation_double_angle(rot_ang: f64, thresh: f64) -> f64 {
 #[must_use]
 pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> Option<F32> {
     let (normalised_angle, _) = normalise_rotation_angle(angle, thresh);
-    // let positive_normalised_angle = if normalised_angle >= 0.0 {
-    //     normalised_angle
-    // } else {
-    //     2.0 * std::f64::consts::PI + normalised_angle
-    // };
     let rational_order = (2.0 * std::f64::consts::PI) / normalised_angle.abs();
     let mut power: u32 = 1;
     while approx::relative_ne!(
@@ -204,32 +211,6 @@ pub fn get_proper_fraction(angle: f64, thresh: f64, max_trial_power: u32) -> Opt
     } else {
         None
     }
-    // let rational_order = (2.0 * std::f64::consts::PI) / positive_normalised_angle;
-    // let mut power: u32 = 1;
-    // while approx::relative_ne!(
-    //     rational_order * (f64::from(power)),
-    //     (rational_order * (f64::from(power))).round(),
-    //     max_relative = thresh,
-    //     epsilon = thresh
-    // ) && power < max_trial_power
-    // {
-    //     power += 1;
-    // }
-    // if approx::relative_eq!(
-    //     rational_order * (f64::from(power)),
-    //     (rational_order * (f64::from(power))).round(),
-    //     max_relative = thresh,
-    //     epsilon = thresh
-    // ) {
-    //     let orderf64 = (rational_order * (f64::from(power))).round();
-    //     assert!(orderf64.is_sign_positive());
-    //     assert!(orderf64 <= f64::from(u32::MAX));
-    //     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    //     let order = orderf64 as u32;
-    //     Some(F32::new(power, order))
-    // } else {
-    //     None
-    // }
 }
 
 /// Computes the outer product between two three-dimensional vectors.
@@ -250,8 +231,8 @@ fn outer<T: Scalar + ClosedMul + Copy>(vec1: &Vector3<T>, vec2: &Vector3<T>) -> 
     Matrix3::from_iterator(outer_product_iter)
 }
 
-/// Returns a $3 \times 3$ rotation matrix in $\mathbb{R}^3$ corresponding to a
-/// rotation through `angle` about `axis` raised to the power `power`.
+/// Returns a $3 \times 3$ rotation matrix in $\mathbb{R}^3$ corresponding to a rotation through
+/// `angle` about `axis` raised to the power `power`.
 ///
 /// # Arguments
 ///
@@ -268,9 +249,8 @@ pub fn proper_rotation_matrix(angle: f64, axis: &Vector3<f64>, power: i8) -> Mat
     Rotation3::from_axis_angle(&normalised_axis, (f64::from(power)) * angle).into_inner()
 }
 
-/// Returns a $3 \times 3$ transformation matrix in $\mathbb{R}^3$ corresponding
-/// to an improper rotation through `angle` about `axis` raised to the power
-/// `power`.
+/// Returns a $3 \times 3$ transformation matrix in $\mathbb{R}^3$ corresponding to an improper
+/// rotation through `angle` about `axis` raised to the power `power`.
 ///
 /// # Arguments
 ///
@@ -1094,8 +1074,7 @@ impl fmt::Display for PositiveHemisphere {
 /// Returns the standard positive pole of a rotation axis.
 ///
 /// The definition of standard positive poles can be found in S.L. Altmann, Rotations,
-/// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005)
-/// (Chapter 9).
+/// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005) (Chapter 9).
 ///
 /// # Arguments
 ///
@@ -1118,8 +1097,7 @@ pub fn get_standard_positive_pole(axis: &Vector3<f64>, thresh: f64) -> Vector3<f
 /// Check if a rotation axis is in the standard positive hemisphere.
 ///
 /// The definition of the standard positive hemisphere can be found in S.L. Altmann, Rotations,
-/// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005)
-/// (Chapter 9).
+/// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005) (Chapter 9).
 ///
 /// # Arguments
 ///
