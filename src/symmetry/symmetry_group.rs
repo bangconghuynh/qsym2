@@ -450,6 +450,11 @@ impl SymmetryGroupProperties
         group
     }
 
+    /// Constructs the double group of this unitary-represented group.
+    ///
+    /// # Returns
+    ///
+    /// The unitary-represented double group.
     fn to_double_group(&self) -> Self {
         log::debug!(
             "Constructing the double group for unitary-represented {}...",
@@ -733,6 +738,17 @@ impl SymmetryGroupProperties
         group
     }
 
+    /// Constructs the double group of this magnetic-represented group.
+    ///
+    /// Note that the unitary subgroup of the magnetic-represented double group is not necessarily
+    /// the same as the double group of the unitary subgroup. This difference can manifest when
+    /// there are binary rotations or reflections and the positive hemisphere of the
+    /// magnetic-represented group might be different from the positive hemisphere of the unitary
+    /// subgroup.
+    ///
+    /// # Returns
+    ///
+    /// The magnetic-represented double group.
     fn to_double_group(&self) -> Self {
         log::debug!(
             "Constructing the double group for magnetic-represented {}...",
@@ -837,6 +853,8 @@ impl SymmetryGroupProperties
 // -----------------
 // Utility functions
 // -----------------
+/// Finds the custom positive hemisphere for a group such that any classes of odd non-coaxial binary
+/// rotations or reflections have all of their elements have the poles in the positive hemisphere.
 fn find_positive_hemisphere<G>(group: &G) -> Option<PositiveHemisphere>
 where
     G: GroupProperties<GroupElement = SymmetryOperation>
