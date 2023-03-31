@@ -125,7 +125,7 @@ pub trait CollectionSymbol: MathematicalSymbol {
 // GenericSymbol
 // -------------
 
-/// A struct to handle generic mathematical symbols.
+/// A structure to handle generic mathematical symbols.
 ///
 /// Each generic symbol has the format
 ///

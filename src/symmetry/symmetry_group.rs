@@ -850,9 +850,9 @@ impl SymmetryGroupProperties
     }
 }
 
-// -----------------
+// =================
 // Utility functions
-// -----------------
+// =================
 /// Finds the custom positive hemisphere for a group such that any classes of odd non-coaxial binary
 /// rotations or reflections have all of their elements have the poles in the positive hemisphere.
 fn find_positive_hemisphere<G>(group: &G) -> Option<PositiveHemisphere>
