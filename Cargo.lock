@@ -518,7 +518,7 @@ dependencies = [
  "approx",
  "matrixmultiply",
  "nalgebra-macros",
- "num-complex 0.4.0",
+ "num-complex 0.4.3",
  "num-rational 0.4.0",
  "num-traits",
  "simba",
@@ -543,7 +543,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adb12d4e967ec485a5f71c6311fe28158e9d6f4bc4a447b474184d0f91a8fa32"
 dependencies = [
  "matrixmultiply",
- "num-complex 0.4.0",
+ "num-complex 0.4.3",
  "num-integer",
  "num-traits",
  "rawpointer",
@@ -582,7 +582,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43db66d1170d347f9a065114077f7dccb00c1b9478c89384490a3425279a4606"
 dependencies = [
  "num-bigint 0.4.3",
- "num-complex 0.4.0",
+ "num-complex 0.4.3",
  "num-integer",
  "num-iter",
  "num-rational 0.4.0",
@@ -623,9 +623,9 @@ dependencies = [
 
 [[package]]
 name = "num-complex"
-version = "0.4.0"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26873667bbbb7c5182d4a37c1add32cdf09f841af72da53318fdb81543c15085"
+checksum = "02e0d21255c828d6f128a1e41534206671e8c3ea0c62f32291e808dc82cff17d"
 dependencies = [
  "num-traits",
 ]
@@ -885,6 +885,7 @@ dependencies = [
  "nalgebra",
  "ndarray",
  "num 0.4.0",
+ "num-complex 0.4.3",
  "num-modular",
  "num-ord",
  "num-traits",
@@ -1095,7 +1096,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13a2609e876d4f77f6ab7ff5254fc39b4f1927ba8e6db3d18be7c32534d3725e"
 dependencies = [
  "approx",
- "num-complex 0.4.0",
+ "num-complex 0.4.3",
  "num-traits",
  "paste",
  "wide",

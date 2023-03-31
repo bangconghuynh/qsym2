@@ -41,7 +41,7 @@ impl Symmetry {
         ));
         assert!(self.add_proper(
             ORDER_I,
-            principal_axes[0],
+            &principal_axes[0],
             true,
             presym.dist_threshold,
             false
@@ -56,7 +56,7 @@ impl Symmetry {
             log::debug!("Located an inversion centre.");
             assert!(self.add_improper(
                 ORDER_2,
-                Vector3::new(0.0, 0.0, 1.0),
+                &Vector3::new(0.0, 0.0, 1.0),
                 false,
                 SIG.clone(),
                 None,
@@ -70,7 +70,7 @@ impl Symmetry {
             assert!(sigma_check.is_some());
             assert!(self.add_improper(
                 ORDER_1,
-                principal_axes[0].clone_owned(),
+                &principal_axes[0],
                 true,
                 SIG.clone(),
                 Some("h".to_owned()),
@@ -85,7 +85,7 @@ impl Symmetry {
                 log::debug!("Located a C2 axis perpendicular to C∞.");
                 self.add_proper(
                     ORDER_2,
-                    principal_axes[1],
+                    &principal_axes[1],
                     true,
                     presym.dist_threshold,
                     proper_kind.contains_time_reversal(),
@@ -106,7 +106,7 @@ impl Symmetry {
                 log::debug!("Located a σv plane.");
                 self.add_improper(
                     ORDER_1,
-                    principal_axes[1].clone_owned(),
+                    &principal_axes[1],
                     true,
                     SIG.clone(),
                     Some("v".to_owned()),

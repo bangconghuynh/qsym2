@@ -21,6 +21,7 @@ log = "0.4.17"
 nalgebra = "0.30.1"
 ndarray = { version = "0.15.6", features = ["rayon"] }
 num = "0.4.0"
+num-complex = "0.4.3"
 num-modular = "0.5.1"
 num-ord = "0.1.0"
 num-traits = "0.2.15"

@@ -13,7 +13,7 @@ use crate::chartab::chartab_symbols::{
     LinearSpaceSymbol, MathematicalSymbol,
 };
 use crate::chartab::unityroot::UnityRoot;
-use crate::permutation::Permutation;
+use crate::permutation::{Permutation, PermutationRank};
 
 // ==================
 // Struct definitions
@@ -25,35 +25,31 @@ use crate::permutation::Permutation;
 
 /// A struct to handle conjugacy class symbols.
 #[derive(Builder, Debug, Clone)]
-pub struct PermutationClassSymbol {
+pub struct PermutationClassSymbol<T: PermutationRank> {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
 
     /// A representative element in the class.
-    representative: Option<Permutation>,
+    representatives: Option<Vec<Permutation<T>>>,
 }
 
-impl PartialEq for PermutationClassSymbol {
+impl<T: PermutationRank> PartialEq for PermutationClassSymbol<T> {
     fn eq(&self, other: &Self) -> bool {
         self.generic_symbol == other.generic_symbol
     }
 }
 
-impl Eq for PermutationClassSymbol {}
+impl<T: PermutationRank> Eq for PermutationClassSymbol<T> {}
 
-impl Hash for PermutationClassSymbol {
+impl<T: PermutationRank> Hash for PermutationClassSymbol<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.generic_symbol.hash(state);
     }
 }
 
-impl PermutationClassSymbol {
-    fn builder() -> PermutationClassSymbolBuilder {
+impl<T: PermutationRank> PermutationClassSymbol<T> {
+    fn builder() -> PermutationClassSymbolBuilder<T> {
         PermutationClassSymbolBuilder::default()
-    }
-
-    pub fn representative(&self) -> Option<Permutation> {
-        self.representative.clone()
     }
 
     /// Creates a class symbol from a string and a representative element.
@@ -85,7 +81,10 @@ impl PermutationClassSymbol {
     ///
     /// Errors when the string contains no parsable class size prefactor, or when the string cannot
     /// be parsed as a generic symbol.
-    pub fn new(symstr: &str, rep: Option<Permutation>) -> Result<Self, GenericSymbolParsingError> {
+    pub fn new(
+        symstr: &str,
+        reps: Option<Vec<Permutation<T>>>,
+    ) -> Result<Self, GenericSymbolParsingError> {
         let generic_symbol = GenericSymbol::from_str(symstr)?;
         if generic_symbol.multiplicity().is_none() {
             Err(GenericSymbolParsingError(format!(
@@ -94,14 +93,14 @@ impl PermutationClassSymbol {
         } else {
             Ok(Self::builder()
                 .generic_symbol(generic_symbol)
-                .representative(rep)
+                .representatives(reps)
                 .build()
                 .unwrap_or_else(|_| panic!("Unable to construct a class symbol from `{symstr}`.")))
         }
     }
 }
 
-impl MathematicalSymbol for PermutationClassSymbol {
+impl<T: PermutationRank> MathematicalSymbol for PermutationClassSymbol<T> {
     /// The main part of the symbol, which denotes the cycle pattern of the class.
     fn main(&self) -> String {
         self.generic_symbol.main()
@@ -137,37 +136,33 @@ impl MathematicalSymbol for PermutationClassSymbol {
         String::new()
     }
 
-    /// This is a synonym for the size of the conjugacy class.
+    /// The number of times the representative elements are 'duplicated' to give the size of the
+    /// class.
     fn multiplicity(&self) -> Option<usize> {
         self.generic_symbol.multiplicity()
     }
 }
 
-impl CollectionSymbol for PermutationClassSymbol {
-    type CollectionElement = Permutation;
+impl<T: PermutationRank> CollectionSymbol for PermutationClassSymbol<T> {
+    type CollectionElement = Permutation<T>;
 
-    fn size(&self) -> usize {
-        self.multiplicity().unwrap_or_else(|| {
-            panic!(
-                "Unable to deduce the size of the class from the prefactor {}.",
-                self.prefactor()
-            )
-        })
-    }
-
-    fn from_rep(
+    fn from_reps(
         symstr: &str,
-        rep: Option<Self::CollectionElement>,
+        reps: Option<Vec<Self::CollectionElement>>,
     ) -> Result<Self, GenericSymbolParsingError> {
-        Self::new(symstr, rep)
+        Self::new(symstr, reps)
     }
 
-    fn representative(&self) -> Option<Self::CollectionElement> {
-        self.representative.clone()
+    fn representative(&self) -> Option<&Self::CollectionElement> {
+        self.representatives.as_ref().map(|reps| &reps[0])
+    }
+
+    fn representatives(&self) -> Option<&Vec<Self::CollectionElement>> {
+        self.representatives.as_ref()
     }
 }
 
-impl fmt::Display for PermutationClassSymbol {
+impl<T: PermutationRank> fmt::Display for PermutationClassSymbol<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
     }

@@ -10,7 +10,7 @@ use crate::permutation::permutation_group::{
 };
 
 fn test_irrep_character_table_algebraic_validity(
-    chartab: &RepCharacterTable<PermutationIrrepSymbol, PermutationClassSymbol>,
+    chartab: &RepCharacterTable<PermutationIrrepSymbol, PermutationClassSymbol<u8>>,
 ) {
     let order: usize = chartab.classes.keys().map(|cc| cc.size()).sum();
     let order_i32 = order

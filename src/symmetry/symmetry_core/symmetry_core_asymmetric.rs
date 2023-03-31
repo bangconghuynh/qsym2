@@ -80,7 +80,7 @@ impl Symmetry {
             let c2 = c2s.next().expect(" No C2 elements found.");
             self.add_proper(
                 max_ord,
-                c2.axis,
+                c2.raw_axis(),
                 true,
                 presym.dist_threshold,
                 c2.contains_time_reversal(),
@@ -90,7 +90,7 @@ impl Symmetry {
             let another_c2 = c2s.next().expect("No more C2s found.");
             self.add_proper(
                 max_ord,
-                another_c2.axis,
+                another_c2.raw_axis(),
                 true,
                 presym.dist_threshold,
                 another_c2.contains_time_reversal(),
@@ -103,7 +103,7 @@ impl Symmetry {
                 self.set_group_name("D2h".to_owned());
                 self.add_improper(
                     ORDER_2,
-                    z_vec,
+                    &z_vec,
                     false,
                     SIG.clone(),
                     None,
@@ -120,11 +120,11 @@ impl Symmetry {
                     .cloned()
                     .collect_vec();
                 for c2 in &c2s {
-                    let improper_check = presym.check_improper(&ORDER_1, &c2.axis, &SIG, tr);
+                    let improper_check = presym.check_improper(&ORDER_1, c2.raw_axis(), &SIG, tr);
                     assert!(improper_check.is_some());
                     self.add_improper(
                         ORDER_1,
-                        c2.axis,
+                        c2.raw_axis(),
                         false,
                         SIG.clone(),
                         None,
@@ -133,7 +133,7 @@ impl Symmetry {
                             .unwrap_or_else(|| {
                                 panic!(
                                     "Expected mirror plane perpendicular to `{}` not found.",
-                                    c2.axis
+                                    c2.raw_axis()
                                 )
                             })
                             .contains_time_reversal(),
@@ -141,13 +141,13 @@ impl Symmetry {
                 }
                 // let sigmas = self.get_sigma_elements("").expect("No σ found.");
                 // let sigma = sigmas.iter().next().expect("No σ found.");
-                let principal_element = self.get_proper_principal_element();
+                let principal_element_axis = self.get_proper_principal_element().raw_axis().clone();
                 let improper_check =
-                    presym.check_improper(&ORDER_1, &principal_element.axis, &SIG, tr);
+                    presym.check_improper(&ORDER_1, &principal_element_axis, &SIG, tr);
                 assert!(improper_check.is_some());
                 self.add_improper(
                     ORDER_1,
-                    principal_element.axis,
+                    &principal_element_axis,
                     true,
                     SIG.clone(),
                     None,
@@ -172,7 +172,7 @@ impl Symmetry {
             let c2 = (*c2s.iter().next().expect(" No C2 elements found.")).clone();
             self.add_proper(
                 max_ord,
-                c2.axis,
+                c2.raw_axis(),
                 true,
                 presym.dist_threshold,
                 c2.contains_time_reversal(),
@@ -184,7 +184,7 @@ impl Symmetry {
                 log::debug!("Located an inversion centre.");
                 self.add_improper(
                     ORDER_2,
-                    z_vec,
+                    &z_vec,
                     false,
                     SIG.clone(),
                     None,
@@ -202,11 +202,11 @@ impl Symmetry {
                     .expect(" No C2 elements found."))
                 .clone();
 
-                let improper_check = presym.check_improper(&ORDER_1, &c2.axis, &SIG, tr);
+                let improper_check = presym.check_improper(&ORDER_1, c2.raw_axis(), &SIG, tr);
                 assert!(improper_check.is_some());
                 self.add_improper(
                     ORDER_1,
-                    c2.axis,
+                    c2.raw_axis(),
                     false,
                     SIG.clone(),
                     Some("h".to_owned()),
@@ -216,14 +216,14 @@ impl Symmetry {
                         .unwrap_or_else(|| {
                             panic!(
                                 "Expected mirror plane perpendicular to {} not found.",
-                                c2.axis
+                                c2.raw_axis()
                             )
                         })
                         .contains_time_reversal(),
                 );
                 self.add_improper(
                     ORDER_1,
-                    c2.axis,
+                    c2.raw_axis(),
                     true,
                     SIG.clone(),
                     Some("h".to_owned()),
@@ -232,7 +232,7 @@ impl Symmetry {
                         .unwrap_or_else(|| {
                             panic!(
                                 "Expected mirror plane perpendicular to {} not found.",
-                                c2.axis
+                                c2.raw_axis()
                             )
                         })
                         .contains_time_reversal(),
@@ -257,7 +257,7 @@ impl Symmetry {
                         }
                         count_sigma += u32::from(self.add_improper(
                             ORDER_1,
-                            principal_axes[2],
+                            &principal_axes[2],
                             false,
                             SIG.clone(),
                             Some("v".to_owned()),
@@ -290,7 +290,7 @@ impl Symmetry {
                                 log::debug!("The C2 axis is actually θ·C2. The non-time-reversed σv will be assigned as σh.");
                                 count_sigma += u32::from(self.add_improper(
                                     ORDER_1,
-                                    normal,
+                                    &normal,
                                     false,
                                     SIG.clone(),
                                     Some("h".to_owned()),
@@ -300,7 +300,7 @@ impl Symmetry {
                             } else {
                                 count_sigma += u32::from(self.add_improper(
                                     ORDER_1,
-                                    normal,
+                                    &normal,
                                     false,
                                     SIG.clone(),
                                     Some("v".to_owned()),
@@ -339,7 +339,7 @@ impl Symmetry {
                     let sigma = sigmas.first().expect("No σv or σh found.");
                     self.add_improper(
                         ORDER_1,
-                        sigma.axis,
+                        sigma.raw_axis(),
                         true,
                         SIG.clone(),
                         Some(sigma.additional_subscript.clone()),
@@ -360,7 +360,7 @@ impl Symmetry {
                 self.set_group_name("Ci".to_owned());
                 self.add_improper(
                     ORDER_2,
-                    z_vec,
+                    &z_vec,
                     false,
                     SIG.clone(),
                     None,
@@ -369,7 +369,7 @@ impl Symmetry {
                 );
                 self.add_improper(
                     ORDER_2,
-                    z_vec,
+                    &z_vec,
                     true,
                     SIG.clone(),
                     None,
@@ -396,7 +396,7 @@ impl Symmetry {
                         {
                             count_sigma += u32::from(self.add_improper(
                                 ORDER_1,
-                                normal,
+                                &normal,
                                 false,
                                 SIG.clone(),
                                 None,
@@ -423,7 +423,7 @@ impl Symmetry {
                     assert!(
                         self.add_improper(
                             ORDER_1,
-                            principal_axes[2],
+                            &principal_axes[2],
                             false,
                             SIG.clone(),
                             None,
@@ -489,7 +489,7 @@ impl Symmetry {
                     let old_sigma = old_sigmas.into_iter().next().expect("No σ found.");
                     self.add_improper(
                         ORDER_1,
-                        old_sigma.axis,
+                        old_sigma.raw_axis(),
                         false,
                         SIG.clone(),
                         Some("h".to_owned()),
@@ -498,7 +498,7 @@ impl Symmetry {
                     );
                     self.add_improper(
                         ORDER_1,
-                        old_sigma.axis,
+                        old_sigma.raw_axis(),
                         true,
                         SIG.clone(),
                         Some("h".to_owned()),
@@ -516,7 +516,13 @@ impl Symmetry {
                         .expect("No identity found."))
                     .clone();
 
-                    self.add_proper(ORDER_1, identity.axis, true, presym.dist_threshold, false);
+                    self.add_proper(
+                        ORDER_1,
+                        identity.raw_axis(),
+                        true,
+                        presym.dist_threshold,
+                        false,
+                    );
                     self.set_group_name("C1".to_owned());
                 }
             }

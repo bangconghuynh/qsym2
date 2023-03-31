@@ -129,6 +129,31 @@ impl Atom {
         Some(atom)
     }
 
+    /// Creates an ordinary atom.
+    ///
+    /// Arguments
+    ///
+    /// * coordinates - The coordinates of the special atom.
+    ///
+    /// Rerturns
+    ///
+    /// The required ordinary atom.
+    #[must_use]
+    pub fn new_ordinary(atomic_symbol: &str, coordinates: Point3<f64>, emap: &ElementMap, thresh: f64) -> Atom {
+        let (atomic_number, atomic_mass) = emap
+            .map
+            .get(atomic_symbol)
+            .expect("Invalid atomic symbol encountered.");
+        Atom {
+            kind: AtomKind::Ordinary,
+            atomic_number: *atomic_number,
+            atomic_symbol: atomic_symbol.to_string(),
+            atomic_mass: *atomic_mass,
+            coordinates,
+            threshold: thresh,
+        }
+    }
+
     /// Creates a special atom.
     ///
     /// Arguments

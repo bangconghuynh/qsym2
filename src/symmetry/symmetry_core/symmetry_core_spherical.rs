@@ -54,7 +54,7 @@ impl Symmetry {
                 if let Some(proper_kind) = presym.check_proper(&ORDER_2, &atom_i_pos.coords, tr) {
                     if self.add_proper(
                         ORDER_2,
-                        atom_i_pos.coords,
+                        &atom_i_pos.coords,
                         false,
                         presym.molecule.threshold,
                         proper_kind.contains_time_reversal(),
@@ -70,7 +70,7 @@ impl Symmetry {
                     if midvec.norm() > presym.molecule.threshold
                         && self.add_proper(
                             ORDER_2,
-                            midvec,
+                            &midvec,
                             false,
                             presym.molecule.threshold,
                             proper_kind.contains_time_reversal(),
@@ -121,28 +121,28 @@ impl Symmetry {
             self.set_group_name("O(3)".to_owned());
             self.add_proper(
                 ElementOrder::Inf,
-                Vector3::new(0.0, 0.0, 1.0),
+                &Vector3::z(),
                 true,
                 presym.molecule.threshold,
                 false,
             );
             self.add_proper(
                 ElementOrder::Inf,
-                Vector3::new(0.0, 1.0, 0.0),
+                &Vector3::y(),
                 true,
                 presym.molecule.threshold,
                 false,
             );
             self.add_proper(
                 ElementOrder::Inf,
-                Vector3::new(1.0, 0.0, 0.0),
+                &Vector3::x(),
                 true,
                 presym.molecule.threshold,
                 false,
             );
             self.add_improper(
                 ElementOrder::Int(2),
-                Vector3::new(0.0, 0.0, 1.0),
+                &Vector3::z(),
                 true,
                 SIG.clone(),
                 None,
@@ -163,14 +163,14 @@ impl Symmetry {
                 // Tetrahedral, so either T, Td, or Th
                 log::debug!("Tetrahedral family.");
                 if let Some(improper_kind) =
-                    presym.check_improper(&ORDER_2, &Vector3::new(0.0, 0.0, 1.0), &SIG, tr)
+                    presym.check_improper(&ORDER_2, &Vector3::z(), &SIG, tr)
                 {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
                     self.set_group_name("Th".to_owned());
                     assert!(self.add_improper(
                         ORDER_2,
-                        Vector3::new(0.0, 0.0, 1.0),
+                        &Vector3::z(),
                         false,
                         SIG.clone(),
                         None,
@@ -179,7 +179,7 @@ impl Symmetry {
                     ));
                     assert!(self.add_improper(
                         ORDER_2,
-                        Vector3::new(0.0, 0.0, 1.0),
+                        &Vector3::z(),
                         true,
                         SIG.clone(),
                         None,
@@ -195,11 +195,11 @@ impl Symmetry {
                         .cloned()
                         .collect_vec()
                         .into_iter();
-                    let normal = c2s.next().expect("No C2 elements found.").axis
+                    let normal = c2s.next().expect("No C2 elements found.").raw_axis()
                         + c2s
                             .next()
                             .expect("Two C2 elements expected, but only one found.")
-                            .axis;
+                            .raw_axis();
                     if presym.check_improper(&ORDER_1, &normal, &SIG, tr).is_some() {
                         // σd
                         log::debug!("Located σd.");
@@ -212,7 +212,7 @@ impl Symmetry {
                                 .iter()
                                 .combinations(2)
                             {
-                                let axis_p = c2s[0].axis + c2s[1].axis;
+                                let axis_p = c2s[0].raw_axis() + c2s[1].raw_axis();
                                 let p_improper_check =
                                     presym.check_improper(&ORDER_1, &axis_p, &SIG, tr);
                                 assert!(p_improper_check.is_some());
@@ -223,7 +223,7 @@ impl Symmetry {
                                         .contains_time_reversal(),
                                 ));
 
-                                let axis_m = c2s[0].axis - c2s[1].axis;
+                                let axis_m = c2s[0].raw_axis() - c2s[1].raw_axis();
                                 let m_improper_check =
                                     presym.check_improper(&ORDER_1, &axis_m, &SIG, tr);
                                 assert!(m_improper_check.is_some());
@@ -240,7 +240,7 @@ impl Symmetry {
                         for (axis, axis_tr) in sigmad_normals {
                             assert!(self.add_improper(
                                 ORDER_1,
-                                axis,
+                                &axis,
                                 false,
                                 SIG.clone(),
                                 Some("d".to_owned()),
@@ -250,7 +250,7 @@ impl Symmetry {
                         }
                         assert!(self.add_improper(
                             ORDER_1,
-                            sigmad_generator_normal.0,
+                            &sigmad_generator_normal.0,
                             true,
                             SIG.clone(),
                             Some("d".to_owned()),
@@ -267,14 +267,14 @@ impl Symmetry {
                 // 6 C2 and 3 C4^2; Octahedral, so either O or Oh
                 log::debug!("Octahedral family.");
                 if let Some(improper_kind) =
-                    presym.check_improper(&ORDER_2, &Vector3::new(0.0, 0.0, 1.0), &SIG, tr)
+                    presym.check_improper(&ORDER_2, &Vector3::z(), &SIG, tr)
                 {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
                     self.set_group_name("Oh".to_owned());
                     assert!(self.add_improper(
                         ORDER_2,
-                        Vector3::new(0.0, 0.0, 1.0),
+                        &Vector3::z(),
                         false,
                         SIG.clone(),
                         None,
@@ -283,7 +283,7 @@ impl Symmetry {
                     ));
                     assert!(self.add_improper(
                         ORDER_2,
-                        Vector3::new(0.0, 0.0, 1.0),
+                        &Vector3::z(),
                         true,
                         SIG.clone(),
                         None,
@@ -299,14 +299,14 @@ impl Symmetry {
                 // Icosahedral, so either I or Ih
                 log::debug!("Icosahedral family.");
                 if let Some(improper_kind) =
-                    presym.check_improper(&ORDER_2, &Vector3::new(0.0, 0.0, 1.0), &SIG, tr)
+                    presym.check_improper(&ORDER_2, &Vector3::z(), &SIG, tr)
                 {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
                     self.set_group_name("Ih".to_owned());
                     assert!(self.add_improper(
                         ORDER_2,
-                        Vector3::new(0.0, 0.0, 1.0),
+                        &Vector3::z(),
                         false,
                         SIG.clone(),
                         None,
@@ -315,7 +315,7 @@ impl Symmetry {
                     ));
                     assert!(self.add_improper(
                         ORDER_2,
-                        Vector3::new(0.0, 0.0, 1.0),
+                        &Vector3::z(),
                         true,
                         SIG.clone(),
                         None,
@@ -356,7 +356,7 @@ impl Symmetry {
                 if let Some(proper_kind) = presym.check_proper(&order_3, &vec_normal, tr) {
                     count_c3 += i32::from(self.add_proper(
                         order_3,
-                        vec_normal,
+                        &vec_normal,
                         false,
                         presym.molecule.threshold,
                         proper_kind.contains_time_reversal(),
@@ -392,7 +392,7 @@ impl Symmetry {
             for c3 in &c3s {
                 self.add_proper(
                     order_3,
-                    c3.axis,
+                    c3.raw_axis(),
                     true,
                     presym.molecule.threshold,
                     c3.contains_time_reversal(),
@@ -428,7 +428,7 @@ impl Symmetry {
                     if let Some(proper_kind) = presym.check_proper(&order_4, &vec_normal, tr) {
                         count_c4 += i32::from(self.add_proper(
                             order_4,
-                            vec_normal,
+                            &vec_normal,
                             false,
                             presym.molecule.threshold,
                             proper_kind.contains_time_reversal(),
@@ -449,9 +449,10 @@ impl Symmetry {
                 .iter()
                 .next()
                 .expect("Expected C4 not found.");
+            let c4_axis = c4.raw_axis().clone();
             self.add_proper(
                 order_4,
-                c4.axis,
+                &c4_axis,
                 true,
                 presym.molecule.threshold,
                 c4.contains_time_reversal(),
@@ -487,14 +488,14 @@ impl Symmetry {
                     if let Some(proper_kind) = presym.check_proper(&order_5, &vec_normal, tr) {
                         count_c5 += i32::from(self.add_proper(
                             order_5,
-                            vec_normal,
+                            &vec_normal,
                             false,
                             presym.molecule.threshold,
                             proper_kind.contains_time_reversal(),
                         ));
                         self.add_proper(
                             order_5,
-                            vec_normal,
+                            &vec_normal,
                             true,
                             presym.molecule.threshold,
                             proper_kind.contains_time_reversal(),
@@ -518,9 +519,14 @@ impl Symmetry {
                     .expect("Expected C2 elements not found.")
                     .iter()
                     .filter_map(|c2_ele| {
-                        presym.check_improper(&order_4, &c2_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c2_ele.axis, improper_kind.contains_time_reversal()),
-                        )
+                        presym
+                            .check_improper(&order_4, c2_ele.raw_axis(), &SIG, tr)
+                            .map(|improper_kind| {
+                                (
+                                    c2_ele.raw_axis().clone(),
+                                    improper_kind.contains_time_reversal(),
+                                )
+                            })
                     })
                     .collect()
             };
@@ -528,7 +534,7 @@ impl Symmetry {
             for (s4_axis, s4_axis_tr) in improper_s4_axes {
                 count_s4 += i32::from(self.add_improper(
                     order_4,
-                    s4_axis,
+                    &s4_axis,
                     false,
                     SIG.clone(),
                     None,
@@ -557,9 +563,14 @@ impl Symmetry {
                     .expect("Expected C2 elements not found.")
                     .iter()
                     .filter_map(|c2_ele| {
-                        presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c2_ele.axis, improper_kind.contains_time_reversal()),
-                        )
+                        presym
+                            .check_improper(&ORDER_1, c2_ele.raw_axis(), &SIG, tr)
+                            .map(|improper_kind| {
+                                (
+                                    c2_ele.raw_axis().clone(),
+                                    improper_kind.contains_time_reversal(),
+                                )
+                            })
                     })
                     .collect()
             };
@@ -567,7 +578,7 @@ impl Symmetry {
             for (sigmah_normal, sigmah_normal_tr) in sigmah_normals {
                 count_sigmah += i32::from(self.add_improper(
                     ORDER_1,
-                    sigmah_normal,
+                    &sigmah_normal,
                     false,
                     SIG.clone(),
                     Some("h".to_owned()),
@@ -584,9 +595,14 @@ impl Symmetry {
                     .expect("Expected C3 elements not found.")
                     .iter()
                     .filter_map(|c3_ele| {
-                        presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c3_ele.axis, improper_kind.contains_time_reversal()),
-                        )
+                        presym
+                            .check_improper(&order_6, c3_ele.raw_axis(), &SIG, tr)
+                            .map(|improper_kind| {
+                                (
+                                    c3_ele.raw_axis().clone(),
+                                    improper_kind.contains_time_reversal(),
+                                )
+                            })
                     })
                     .collect()
             };
@@ -594,7 +610,7 @@ impl Symmetry {
             for (s6_axis, s6_axis_tr) in s6_axes {
                 count_s6 += i32::from(self.add_improper(
                     order_6,
-                    s6_axis,
+                    &s6_axis,
                     false,
                     SIG.clone(),
                     None,
@@ -613,9 +629,14 @@ impl Symmetry {
                     .expect("Expected C2 elements not found.")
                     .iter()
                     .filter_map(|c2_ele| {
-                        presym.check_improper(&order_4, &c2_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c2_ele.axis, improper_kind.contains_time_reversal()),
-                        )
+                        presym
+                            .check_improper(&order_4, c2_ele.raw_axis(), &SIG, tr)
+                            .map(|improper_kind| {
+                                (
+                                    c2_ele.raw_axis().clone(),
+                                    improper_kind.contains_time_reversal(),
+                                )
+                            })
                     })
                     .collect()
             };
@@ -623,7 +644,7 @@ impl Symmetry {
             for (s4_axis, s4_axis_tr) in &s4_axes {
                 count_s4 += i32::from(self.add_improper(
                     order_4,
-                    *s4_axis,
+                    s4_axis,
                     false,
                     SIG.clone(),
                     None,
@@ -647,7 +668,7 @@ impl Symmetry {
             for (sigmah_axis, sigmah_axis_tr) in sigmah_axes {
                 count_sigmah += i32::from(self.add_improper(
                     ORDER_1,
-                    sigmah_axis,
+                    &sigmah_axis,
                     false,
                     SIG.clone(),
                     Some("h".to_owned()),
@@ -664,14 +685,17 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym
-                            .check_improper(&order_4, &c2_ele.axis, &SIG, tr)
+                            .check_improper(&order_4, &c2_ele.raw_axis(), &SIG, tr)
                             .is_none()
                         {
-                            presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG, tr).map(
-                                |improper_kind| {
-                                    (c2_ele.axis, improper_kind.contains_time_reversal())
-                                },
-                            )
+                            presym
+                                .check_improper(&ORDER_1, &c2_ele.raw_axis(), &SIG, tr)
+                                .map(|improper_kind| {
+                                    (
+                                        c2_ele.raw_axis().clone(),
+                                        improper_kind.contains_time_reversal(),
+                                    )
+                                })
                         } else {
                             None
                         }
@@ -682,7 +706,7 @@ impl Symmetry {
             for (sigmad_normal, sigmad_normal_tr) in sigmad_normals {
                 count_sigmad += i32::from(self.add_improper(
                     ORDER_1,
-                    sigmad_normal,
+                    &sigmad_normal,
                     false,
                     SIG.clone(),
                     Some("d".to_owned()),
@@ -699,9 +723,14 @@ impl Symmetry {
                     .expect("Expected C3 elements not found.")
                     .iter()
                     .filter_map(|c3_ele| {
-                        presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c3_ele.axis, improper_kind.contains_time_reversal()),
-                        )
+                        presym
+                            .check_improper(&order_6, &c3_ele.raw_axis(), &SIG, tr)
+                            .map(|improper_kind| {
+                                (
+                                    c3_ele.raw_axis().clone(),
+                                    improper_kind.contains_time_reversal(),
+                                )
+                            })
                     })
                     .collect()
             };
@@ -709,7 +738,7 @@ impl Symmetry {
             for (s6_axis, s6_axis_tr) in s6_axes {
                 count_s6 += i32::from(self.add_improper(
                     order_6,
-                    s6_axis,
+                    &s6_axis,
                     false,
                     SIG.clone(),
                     None,
@@ -730,9 +759,12 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c5_ele| {
                         presym
-                            .check_improper(&order_10, &c5_ele.axis, &SIG, tr)
+                            .check_improper(&order_10, &c5_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
-                                (c5_ele.axis, improper_kind.contains_time_reversal())
+                                (
+                                    c5_ele.raw_axis().clone(),
+                                    improper_kind.contains_time_reversal(),
+                                )
                             })
                     })
                     .collect()
@@ -741,7 +773,7 @@ impl Symmetry {
             for (s10_axis, s10_axis_tr) in s10_axes {
                 count_s10 += i32::from(self.add_improper(
                     order_10,
-                    s10_axis,
+                    &s10_axis,
                     false,
                     SIG.clone(),
                     None,
@@ -758,9 +790,14 @@ impl Symmetry {
                     .expect("Expected C3 elements not found.")
                     .iter()
                     .filter_map(|c3_ele| {
-                        presym.check_improper(&order_6, &c3_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c3_ele.axis, improper_kind.contains_time_reversal()),
-                        )
+                        presym
+                            .check_improper(&order_6, &c3_ele.raw_axis(), &SIG, tr)
+                            .map(|improper_kind| {
+                                (
+                                    c3_ele.raw_axis().clone(),
+                                    improper_kind.contains_time_reversal(),
+                                )
+                            })
                     })
                     .collect()
             };
@@ -768,7 +805,7 @@ impl Symmetry {
             for (s6_axis, s6_axis_tr) in s6_axes {
                 count_s6 += i32::from(self.add_improper(
                     order_6,
-                    s6_axis,
+                    &s6_axis,
                     false,
                     SIG.clone(),
                     None,
@@ -784,9 +821,14 @@ impl Symmetry {
                     .expect("Expected C2 elements not found.")
                     .iter()
                     .filter_map(|c2_ele| {
-                        presym.check_improper(&ORDER_1, &c2_ele.axis, &SIG, tr).map(
-                            |improper_kind| (c2_ele.axis, improper_kind.contains_time_reversal()),
-                        )
+                        presym
+                            .check_improper(&ORDER_1, &c2_ele.raw_axis(), &SIG, tr)
+                            .map(|improper_kind| {
+                                (
+                                    c2_ele.raw_axis().clone(),
+                                    improper_kind.contains_time_reversal(),
+                                )
+                            })
                     })
                     .collect()
             };
@@ -794,7 +836,7 @@ impl Symmetry {
             for (sigma_normal, sigma_normal_tr) in sigma_normals {
                 count_sigma += i32::from(self.add_improper(
                     ORDER_1,
-                    sigma_normal,
+                    &sigma_normal,
                     false,
                     SIG.clone(),
                     None,

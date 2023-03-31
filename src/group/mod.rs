@@ -147,8 +147,11 @@ impl fmt::Display for GroupType {
 }
 
 pub const ORGRP: GroupType = GroupType::Ordinary(false);
+pub const ORGRP2: GroupType = GroupType::Ordinary(true);
 pub const BWGRP: GroupType = GroupType::MagneticBlackWhite(false);
+pub const BWGRP2: GroupType = GroupType::MagneticBlackWhite(true);
 pub const GRGRP: GroupType = GroupType::MagneticGrey(false);
+pub const GRGRP2: GroupType = GroupType::MagneticGrey(true);
 
 // ======================================
 // Struct definitions and implementations
@@ -625,7 +628,7 @@ where
             .abstract_group
             .as_ref()
             .expect("Abstract group not yet set for this magnetic-represented group.")
-            .contains(&op)));
+            .contains(&op)), "Some unitary operations cannot be found in the magnetic group.");
         self.unitary_subgroup = Some(uni_subgrp);
         self
     }

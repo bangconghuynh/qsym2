@@ -140,55 +140,23 @@ fn test_ao_basis_cartorder() {
 
 #[test]
 fn test_ao_basis_basisshell() {
-    let bs0_p = BasisShell::builder()
-        .l(0)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs0_c = BasisShell::builder()
-        .l(0)
-        .shell_order(ShellOrder::Cart(CartOrder::lex(0)))
-        .build()
-        .unwrap();
+    let bs0_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bs0_c = BasisShell::new(0, ShellOrder::Cart(CartOrder::lex(0)));
     assert_eq!(bs0_p.n_funcs(), 1);
     assert_eq!(bs0_c.n_funcs(), 1);
 
-    let bs1_p = BasisShell::builder()
-        .l(1)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs1_c = BasisShell::builder()
-        .l(1)
-        .shell_order(ShellOrder::Cart(CartOrder::lex(1)))
-        .build()
-        .unwrap();
+    let bs1_p = BasisShell::new(1, ShellOrder::Pure(true));
+    let bs1_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
     assert_eq!(bs1_p.n_funcs(), 3);
     assert_eq!(bs1_c.n_funcs(), 3);
 
-    let bs2_p = BasisShell::builder()
-        .l(2)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs2_c = BasisShell::builder()
-        .l(2)
-        .shell_order(ShellOrder::Cart(CartOrder::lex(2)))
-        .build()
-        .unwrap();
+    let bs2_p = BasisShell::new(2, ShellOrder::Pure(true));
+    let bs2_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
     assert_eq!(bs2_p.n_funcs(), 5);
     assert_eq!(bs2_c.n_funcs(), 6);
 
-    let bs3_p = BasisShell::builder()
-        .l(3)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs3_c = BasisShell::builder()
-        .l(3)
-        .shell_order(ShellOrder::Cart(CartOrder::lex(3)))
-        .build()
-        .unwrap();
+    let bs3_p = BasisShell::new(3, ShellOrder::Pure(true));
+    let bs3_c = BasisShell::new(3, ShellOrder::Cart(CartOrder::lex(3)));
     assert_eq!(bs3_p.n_funcs(), 7);
     assert_eq!(bs3_c.n_funcs(), 10);
 }
@@ -198,42 +166,14 @@ fn test_ao_basis_basisatom() {
     let emap = ElementMap::new();
     let atm = Atom::from_xyz("C 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs1s_p = BasisShell::builder()
-        .l(0)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs2s_p = BasisShell::builder()
-        .l(0)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs2p_p = BasisShell::builder()
-        .l(1)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs3s_p = BasisShell::builder()
-        .l(0)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs3p_p = BasisShell::builder()
-        .l(1)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs3d_c = BasisShell::builder()
-        .l(2)
-        .shell_order(ShellOrder::Cart(CartOrder::lex(2)))
-        .build()
-        .unwrap();
+    let bs1s_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bs2s_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bs2p_p = BasisShell::new(1, ShellOrder::Pure(true));
+    let bs3s_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bs3p_p = BasisShell::new(1, ShellOrder::Pure(true));
+    let bs3d_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
 
-    let batm = BasisAtom::builder()
-        .atom(&atm)
-        .basis_shells(&[bs1s_p, bs2s_p, bs2p_p, bs3s_p, bs3p_p, bs3d_c])
-        .build()
-        .unwrap();
+    let batm = BasisAtom::new(&atm, &[bs1s_p, bs2s_p, bs2p_p, bs3s_p, bs3p_p, bs3d_c]);
 
     assert_eq!(batm.n_funcs(), 15);
     assert_eq!(
@@ -247,97 +187,47 @@ fn test_ao_basis_basisangularorder() {
     let emap = ElementMap::new();
     let atm_c = Atom::from_xyz("C 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs1s_p = BasisShell::builder()
-        .l(0)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs2s_p = BasisShell::builder()
-        .l(0)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs2p_p = BasisShell::builder()
-        .l(1)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs3s_p = BasisShell::builder()
-        .l(0)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs3p_p = BasisShell::builder()
-        .l(1)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs3d_c = BasisShell::builder()
-        .l(2)
-        .shell_order(ShellOrder::Cart(CartOrder::lex(2)))
-        .build()
-        .unwrap();
-    let bs3d_p = BasisShell::builder()
-        .l(2)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs4s_p = BasisShell::builder()
-        .l(0)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs4p_p = BasisShell::builder()
-        .l(1)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
-    let bs4d_p = BasisShell::builder()
-        .l(2)
-        .shell_order(ShellOrder::Pure(true))
-        .build()
-        .unwrap();
+    let bs1s_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bs2s_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bs2p_p = BasisShell::new(1, ShellOrder::Pure(true));
+    let bs3s_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bs3p_p = BasisShell::new(1, ShellOrder::Pure(true));
+    let bs3d_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
+    let bs3d_p = BasisShell::new(2, ShellOrder::Pure(true));
+    let bs4s_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bs4p_p = BasisShell::new(1, ShellOrder::Pure(true));
+    let bs4d_p = BasisShell::new(2, ShellOrder::Pure(true));
 
-    let batm_c = BasisAtom::builder()
-        .atom(&atm_c)
-        .basis_shells(&[
+    let batm_c = BasisAtom::new(
+        &atm_c,
+        &[
             bs1s_p.clone(),
             bs2s_p.clone(),
             bs2p_p.clone(),
             bs3s_p.clone(),
             bs3p_p.clone(),
             bs3d_c,
-        ])
-        .build()
-        .unwrap();
+        ],
+    );
 
     let atm_h1 = Atom::from_xyz("H 0.0 0.0 1.0", &emap, 1e-7).unwrap();
-    let batm_h1 = BasisAtom::builder()
-        .atom(&atm_h1)
-        .basis_shells(&[bs1s_p.clone(), bs2s_p.clone(), bs3s_p.clone()])
-        .build()
-        .unwrap();
+    let batm_h1 = BasisAtom::new(&atm_h1, &[bs1s_p.clone(), bs2s_p.clone(), bs3s_p.clone()]);
 
     let atm_h2 = Atom::from_xyz("H 0.0 0.0 -1.0", &emap, 1e-7).unwrap();
-    let batm_h2 = BasisAtom::builder()
-        .atom(&atm_h2)
-        .basis_shells(&[bs1s_p.clone(), bs2s_p.clone(), bs3s_p.clone()])
-        .build()
-        .unwrap();
+    let batm_h2 = BasisAtom::new(&atm_h2, &[bs1s_p.clone(), bs2s_p.clone(), bs3s_p.clone()]);
 
     let atm_f = Atom::from_xyz("F 0.0 1.0 0.0", &emap, 1e-7).unwrap();
-    let batm_f = BasisAtom::builder()
-        .atom(&atm_f)
-        .basis_shells(&[
+    let batm_f = BasisAtom::new(
+        &atm_f,
+        &[
             bs1s_p.clone(),
             bs2s_p.clone(),
             bs2p_p.clone(),
             bs3s_p.clone(),
             bs3p_p.clone(),
             bs3d_p.clone(),
-        ])
-        .build()
-        .unwrap();
+        ],
+    );
 
     let atm_cl = Atom::from_xyz("Cl 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
     let batm_cl = BasisAtom::builder()
@@ -348,10 +238,7 @@ fn test_ao_basis_basisangularorder() {
         .build()
         .unwrap();
 
-    let bao = BasisAngularOrder::builder()
-        .basis_atoms(&[batm_c, batm_h1, batm_h2, batm_f, batm_cl])
-        .build()
-        .unwrap();
+    let bao = BasisAngularOrder::new(&[batm_c, batm_h1, batm_h2, batm_f, batm_cl]);
 
     assert_eq!(bao.n_funcs(), 58);
     assert_eq!(bao.basis_shells().collect::<Vec<_>>().len(), 27);

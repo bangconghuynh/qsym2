@@ -1,9 +1,12 @@
+use std::collections::HashSet;
+
+use approx;
+use nalgebra::Vector3;
+
 use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::geometry::{Transform, IMINV, IMSIG};
 use crate::aux::molecule::Molecule;
-use approx;
-use nalgebra::Vector3;
-use std::collections::HashSet;
+use crate::permutation::{PermutableCollection, Permutation};
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -168,5 +171,134 @@ fn test_calc_moi_n3() {
         Vector3::new(1.0, 1.0, 1.0) / 3.0_f64.sqrt(),
         epsilon = 1e-6,
         max_relative = 1e-6
+    );
+}
+
+#[test]
+fn test_molecule_get_perm_of() {
+    let emap = ElementMap::new();
+    let atom_0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_0p = Atom::from_xyz("B 1.0 1.0 0.0", &emap, 1e-7).unwrap();
+    let atom_1 = Atom::from_xyz("H 1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_2 = Atom::from_xyz("H 0.0 1.0 0.0", &emap, 1e-7).unwrap();
+    let atom_3 = Atom::from_xyz("H -1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_4 = Atom::from_xyz("H 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
+    let mol1 = Molecule::from_atoms(
+        &[
+            atom_0.clone(),
+            atom_1.clone(),
+            atom_2.clone(),
+            atom_3.clone(),
+            atom_4.clone(),
+        ],
+        1e-7,
+    );
+    let mol2 = Molecule::from_atoms(
+        &[
+            atom_0.clone(),
+            atom_2.clone(),
+            atom_3.clone(),
+            atom_4.clone(),
+            atom_1.clone(),
+        ],
+        1e-7,
+    );
+    let mol3 = Molecule::from_atoms(
+        &[
+            atom_0.clone(),
+            atom_1.clone(),
+            atom_4.clone(),
+            atom_3.clone(),
+            atom_2.clone(),
+        ],
+        1e-7,
+    );
+    let mol4 = Molecule::from_atoms(
+        &[
+            atom_0p.clone(),
+            atom_1.clone(),
+            atom_4.clone(),
+            atom_3.clone(),
+            atom_2.clone(),
+        ],
+        1e-7,
+    );
+
+    assert_eq!(
+        mol1.get_perm_of(&mol2),
+        Some(Permutation::<usize>::from_image(vec![0, 4, 1, 2, 3]))
+    );
+    assert_eq!(
+        mol1.get_perm_of(&mol3),
+        Some(Permutation::<usize>::from_image(vec![0, 1, 4, 3, 2]))
+    );
+    assert_eq!(mol1.get_perm_of(&mol4), None);
+    assert_eq!(
+        mol2.get_perm_of(&mol1),
+        Some(Permutation::<usize>::from_image(vec![0, 2, 3, 4, 1]))
+    );
+    assert_eq!(
+        mol2.get_perm_of(&mol2),
+        Some(Permutation::<usize>::from_image(vec![0, 1, 2, 3, 4]))
+    );
+    assert_eq!(
+        mol2.get_perm_of(&mol3),
+        Some(Permutation::<usize>::from_image(vec![0, 4, 3, 2, 1]))
+    );
+}
+
+#[test]
+fn test_molecule_permute() {
+    let emap = ElementMap::new();
+    let atom_0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_1 = Atom::from_xyz("H 1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_2 = Atom::from_xyz("H 0.0 1.0 0.0", &emap, 1e-7).unwrap();
+    let atom_3 = Atom::from_xyz("H -1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_4 = Atom::from_xyz("H 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
+    let mol1 = Molecule::from_atoms(
+        &[
+            atom_0.clone(),
+            atom_1.clone(),
+            atom_2.clone(),
+            atom_3.clone(),
+            atom_4.clone(),
+        ],
+        1e-7,
+    );
+
+    let perm = Permutation::<usize>::from_image(vec![0, 4, 3, 1, 2]);
+    let mol2 = mol1.permute(&perm);
+    assert_eq!(
+        mol2.atoms,
+        &[
+            atom_0.clone(),
+            atom_4.clone(),
+            atom_3.clone(),
+            atom_1.clone(),
+            atom_2.clone(),
+        ]
+    );
+
+    let perm2 = Permutation::<usize>::from_image(vec![1, 4, 3, 0, 2]);
+    let mol3 = mol1.permute(&perm2);
+    assert_eq!(
+        mol3.atoms,
+        &[
+            atom_1.clone(),
+            atom_4.clone(),
+            atom_3.clone(),
+            atom_0.clone(),
+            atom_2.clone(),
+        ]
+    );
+    assert_ne!(
+        mol3.atoms,
+        &[
+            atom_0.clone(),
+            atom_4.clone(),
+            atom_3.clone(),
+            atom_1.clone(),
+            atom_2.clone(),
+        ]
     );
 }

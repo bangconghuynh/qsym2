@@ -324,9 +324,9 @@ where
                     panic!("Element with index {rep_ele_index} cannot be retrieved.")
                 });
                 (
-                    ClassSymbol::from_rep(
+                    ClassSymbol::from_reps(
                         format!("{}||K{i}||", class_sizes[i]).as_str(),
-                        Some(rep_ele.clone()),
+                        Some(vec![rep_ele.clone()]),
                     )
                     .unwrap_or_else(|_| {
                         panic!(

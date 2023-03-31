@@ -11,6 +11,66 @@ use num_traits::ToPrimitive;
 #[path = "spinor_rotation_3d_tests.rs"]
 mod spinor_rotation_3d_tests;
 
+// ================
+// Enum definitions
+// ================
+
+/// An enum to manage spin constraints and spin space information.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SpinConstraint {
+    /// Variant for restricted spin constraint: the spatial parts of all spin spaces are identical.
+    /// The associated value is the number of spin spaces.
+    Restricted(u16),
+
+    /// Variant for unrestricted spin constraint: the spatial parts of different spin spaces are
+    /// different, but spin collinearity is maintained. The associated values are the number of spin
+    /// spaces (*i.e.* the number of different spatial parts that are handled separately) and a
+    /// boolean indicating if the spin spaces are arranged in increasing $`m`$ order.
+    Unrestricted(u16, bool),
+
+    /// Variant for generalised spin constraint: the spatial parts of different spin spaces are
+    /// different, and no spin collinearity is imposed. The associated values are the number of spin
+    /// spaces and a boolean indicating if the spin spaces are arranged in increasing $`m`$ order.
+    Generalised(u16, bool),
+}
+
+impl SpinConstraint {
+    /// Returns the total number of units of consideration.
+    ///
+    /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
+    pub fn nunits(&self) -> u16 {
+        match self {
+            Self::Restricted(nspins) => *nspins,
+            Self::Unrestricted(nspins, _) => *nspins,
+            Self::Generalised(_, _) => 1,
+        }
+    }
+
+    /// Returns the number of spin spaces per 'unit' of consideration.
+    ///
+    /// A 'unit' of consideration is commonly known as a 'spin channel' or 'spin space'.
+    pub fn nspins_per_unit(&self) -> u16 {
+        match self {
+            Self::Restricted(_) => 1,
+            Self::Unrestricted(_, _) => 1,
+            Self::Generalised(nspins, _) => *nspins,
+        }
+    }
+
+    /// Returns the total number of spin spaces.
+    pub fn nspins(&self) -> u16 {
+        match self {
+            Self::Restricted(nspins) => *nspins,
+            Self::Unrestricted(nspins, _) => *nspins,
+            Self::Generalised(nspins, _) => *nspins,
+        }
+    }
+}
+
+// =========
+// Functions
+// =========
+
 /// Returns an element in the Wigner rotation matrix for $`j = 1/2`$ defined by
 ///
 /// ```math
