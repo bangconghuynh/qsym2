@@ -161,7 +161,10 @@ pub trait TimeReversalTransformable:
     }
 }
 
-/// Blanket implementation
+// ----------------------
+// Blanket implementation
+// ----------------------
+
 impl<T> TimeReversalTransformable for T where
     T: SpinUnitaryTransformable + ComplexConjugationTransformable
 {
@@ -182,7 +185,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// The resultant site permutation under the action of `symop`, or `None` if no such
     /// permutation can be found.
-    fn permute_sites(
+    fn sym_permute_sites_spatial(
         &self,
         symop: &SymmetryOperation,
     ) -> Result<Permutation<usize>, TransformationError>;
@@ -190,17 +193,20 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     // ----------------
     // Provided methods
     // ----------------
-    /// Performs a transformation according to a specified symmetry operation in-place.
+    /// Performs a spatial transformation according to a specified symmetry operation in-place.
+    ///
+    /// Note that both $`\mathsf{SO}(3)`$ and $`\mathsf{SU}(2)`$ rotations effect the same spatial
+    /// transformation.
     ///
     /// # Arguments
     ///
     /// * `op` - A symmetry operation.
-    fn transform_mut(
+    fn sym_transform_spatial_mut(
         &mut self,
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
         let rmat = symop.get_3d_spatial_matrix();
-        let perm = self.permute_sites(symop)?;
+        let perm = self.sym_permute_sites_spatial(symop)?;
         self.transform_spatial_mut(&rmat, Some(&perm));
         if symop.is_antiunitary() {
             self.transform_timerev_mut()?;
@@ -208,8 +214,11 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         Ok(self)
     }
 
-    /// Performs a transformation according to a specified symmetry operation and returns the
-    /// transformed result.
+    /// Performs a spatial transformation according to a specified symmetry operation and returns
+    /// the transformed result.
+    ///
+    /// Note that both $`\mathsf{SO}(3)`$ and $`\mathsf{SU}(2)`$ rotations effect the same spatial
+    /// transformation.
     ///
     /// # Arguments
     ///
@@ -218,50 +227,92 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     /// # Returns
     ///
     /// The transformed result.
-    fn transform(&self, symop: &SymmetryOperation) -> Result<Self, TransformationError> {
-        let mut tself = self.clone();
-        tself.transform_mut(symop)?;
-        Ok(tself)
-    }
-
-    fn transform_spin_from_spatial_mut(
-        &mut self,
-        symop: &SymmetryOperation,
-    ) -> Result<&mut Self, TransformationError> {
-        let angle = symop.calc_pole_double_angle();
-        let axis = symop.calc_pole().coords;
-        let dmat = dmat_angleaxis(angle, axis, false);
-        println!("dmat: {dmat}");
-        self.transform_spin_mut(&dmat)
-    }
-
-    fn transform_spin_from_spatial(
+    fn sym_transform_spatial(
         &self,
         symop: &SymmetryOperation,
     ) -> Result<Self, TransformationError> {
         let mut tself = self.clone();
-        tself.transform_spin_from_spatial_mut(symop)?;
+        tself.sym_transform_spatial_mut(symop)?;
         Ok(tself)
     }
 
-    fn transform_coupled_spin_spatial_mut(
+    /// Performs a spin transformation according to a specified symmetry operation in-place.
+    ///
+    /// Note that only $`\mathsf{SU}(2)`$ rotations can effect spin transformations.
+    ///
+    /// # Arguments
+    ///
+    /// * `op` - A symmetry operation.
+    fn sym_transform_spin_mut(
         &mut self,
         symop: &SymmetryOperation,
     ) -> Result<&mut Self, TransformationError> {
-        let angle = symop.calc_pole_double_angle();
-        let axis = symop.calc_pole().coords;
-        let dmat = dmat_angleaxis(angle, axis, false);
-        self
-            .transform_mut(symop)?
-            .transform_spin_mut(&dmat)
+        if symop.is_su2() {
+            let angle = symop.calc_pole_angle();
+            let axis = symop.calc_pole().coords;
+            let dmat = if symop.is_su2_class_1() {
+                -dmat_angleaxis(angle, axis, false)
+            } else {
+                dmat_angleaxis(angle, axis, false)
+            };
+            self.transform_spin_mut(&dmat)
+        } else {
+            Ok(self)
+        }
     }
 
-    fn transform_coupled_spin_spatial(
+    /// Performs a spin transformation according to a specified symmetry operation and returns the
+    /// transformed result.
+    ///
+    /// Note that only $`\mathsf{SU}(2)`$ rotations can effect spin transformations.
+    ///
+    /// # Arguments
+    ///
+    /// * `op` - A symmetry operation.
+    ///
+    /// # Returns
+    ///
+    /// The transformed result.
+    fn sym_transform_spin(&self, symop: &SymmetryOperation) -> Result<Self, TransformationError> {
+        let mut tself = self.clone();
+        tself.sym_transform_spin_mut(symop)?;
+        Ok(tself)
+    }
+
+    /// Performs a coupled spin-spatial transformation according to a specified symmetry operation
+    /// in-place.
+    ///
+    /// Note that only $`\mathsf{SU}(2)`$ rotations can effect spin transformations.
+    ///
+    /// # Arguments
+    ///
+    /// * `op` - A symmetry operation.
+    fn sym_transform_spin_spatial_mut(
+        &mut self,
+        symop: &SymmetryOperation,
+    ) -> Result<&mut Self, TransformationError> {
+        self.sym_transform_spatial_mut(symop)?
+            .sym_transform_spin_mut(symop)
+    }
+
+    /// Performs a coupled spin-spatial transformation according to a specified symmetry operation
+    /// and returns the transformed result.
+    ///
+    /// Note that only $`\mathsf{SU}(2)`$ rotations can effect spin transformations.
+    ///
+    /// # Arguments
+    ///
+    /// * `op` - A symmetry operation.
+    ///
+    /// # Returns
+    ///
+    /// The transformed result.
+    fn sym_transform_spin_spatial(
         &self,
         symop: &SymmetryOperation,
     ) -> Result<Self, TransformationError> {
         let mut tself = self.clone();
-        tself.transform_coupled_spin_spatial_mut(symop)?;
+        tself.sym_transform_spin_spatial_mut(symop)?;
         Ok(tself)
     }
 }

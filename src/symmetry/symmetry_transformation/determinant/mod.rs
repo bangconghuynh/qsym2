@@ -653,7 +653,7 @@ where
     T: ComplexFloat,
     Determinant<'a, T>: SpatialUnitaryTransformable + TimeReversalTransformable,
 {
-    fn permute_sites(
+    fn sym_permute_sites_spatial(
         &self,
         symop: &SymmetryOperation,
     ) -> Result<Permutation<usize>, TransformationError> {
