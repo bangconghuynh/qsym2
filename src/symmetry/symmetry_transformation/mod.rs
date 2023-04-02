@@ -35,6 +35,8 @@ impl fmt::Display for TransformationError {
 
 impl Error for TransformationError {}
 
+/// A trait for spatial unitary transformation. A spatial unitary transformation also permutes
+/// off-origin sites.
 pub trait SpatialUnitaryTransformable: Clone {
     // ----------------
     // Required methods
@@ -73,6 +75,7 @@ pub trait SpatialUnitaryTransformable: Clone {
     }
 }
 
+/// A trait for spin unitary transformations. A spin unitary transformation has no spatial effects.
 pub trait SpinUnitaryTransformable: Clone {
     // ----------------
     // Required methods
@@ -108,6 +111,7 @@ pub trait SpinUnitaryTransformable: Clone {
     }
 }
 
+/// A trait for complex-conjugation transformations.
 pub trait ComplexConjugationTransformable: Clone {
     // ----------------
     // Required methods
@@ -130,6 +134,10 @@ pub trait ComplexConjugationTransformable: Clone {
     }
 }
 
+/// A trait for time-reversal transformations.
+///
+/// This trait has a blanket implementation for any implementor of the [`SpinUnitaryTransformable`]
+/// trait and the [`ComplexConjugationTransformable`] trait.
 pub trait TimeReversalTransformable:
     SpinUnitaryTransformable + ComplexConjugationTransformable
 {
@@ -138,8 +146,8 @@ pub trait TimeReversalTransformable:
     // ----------------
     /// Performs a time-reversal transformation in-place.
     ///
-    /// The time-reversal transformation is a spin rotation by $`\pi`$ followed by a complex
-    /// conjugation.
+    /// The time-reversal transformation is a spin rotation by $`\pi`$ about the space-fixed
+    /// $`y`$-axis followed by a complex conjugation.
     fn transform_timerev_mut(&mut self) -> Result<&mut Self, TransformationError> {
         let dmat_y = dmat_angleaxis(std::f64::consts::PI, Vector3::y(), false);
         self.transform_spin_mut(&dmat_y)?.transform_cc_mut();
@@ -148,8 +156,8 @@ pub trait TimeReversalTransformable:
 
     /// Performs a time-reversal transformation and returns the time-reversed result.
     ///
-    /// The time-reversal transformation is a spin rotation by $`\pi`$ followed by a complex
-    /// conjugation.
+    /// The time-reversal transformation is a spin rotation by $`\pi`$ about the space-fixed
+    /// $`y`$-axis followed by a complex conjugation.
     ///
     /// # Returns
     ///
@@ -170,6 +178,7 @@ impl<T> TimeReversalTransformable for T where
 {
 }
 
+/// A trait for transformations using [`SymmetryOperation`].
 pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTransformable {
     // ----------------
     // Required methods
