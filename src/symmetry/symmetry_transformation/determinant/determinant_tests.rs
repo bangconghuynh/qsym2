@@ -1,4 +1,5 @@
 use env_logger;
+use itertools::Itertools;
 use nalgebra::Point3;
 use ndarray::{array, concatenate, Array2, Axis};
 use num_complex::Complex;
@@ -704,4 +705,113 @@ fn test_determinant_transformation_c3_spin_rotation() {
     let sxyz_nsr_p1 = group.get_index(6).unwrap();
     let tdetgen_sxyz_nsr_p1 = detgen.sym_transform_spin(&sxyz_nsr_p1).unwrap();
     assert_eq!(tdetgen_sxyz_nsr_p1, tdetgen_sxyz_nsr_p1_ref);
+}
+
+#[test]
+fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_h0 = Atom::from_xyz("H 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_h1 = Atom::from_xyz("H 1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atm_h2 = Atom::from_xyz("H 1.0 1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_h3 = Atom::from_xyz("H 0.0 1.0 0.0", &emap, 1e-7).unwrap();
+
+    let bss_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bsp_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
+    let bsd_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
+
+    let batm_h0 = BasisAtom::new(&atm_h0, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
+    let batm_h1 = BasisAtom::new(&atm_h1, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
+    let batm_h2 = BasisAtom::new(&atm_h2, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
+    let batm_h3 = BasisAtom::new(&atm_h3, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
+
+    let bao_h4 = BasisAngularOrder::new(&[batm_h0, batm_h1, batm_h2, batm_h3]);
+
+    let mol_h4 = Molecule::from_atoms(
+        &[
+            atm_h0.clone(),
+            atm_h1.clone(),
+            atm_h2.clone(),
+            atm_h3.clone(),
+        ],
+        1e-7,
+    )
+    .recentre();
+
+    #[rustfmt::skip]
+    let calpha = array![
+        [1.0, 0.0],
+        [0.0, 1.0], [0.0, 0.0], [ 0.0, 0.0],
+        [1.0, 0.0], [0.0, 1.0], [ 0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [ 0.0, 1.0],
+        [0.0, 0.0],
+        [1.0, 1.0], [0.0, 0.0], [ 0.0, 0.0],
+        [0.0, 1.0], [0.0, 1.0], [ 1.0, 0.0], [1.0, 0.0], [0.0, 0.0], [ 0.0, 1.0],
+        [0.0, 0.0],
+        [0.0, 1.0], [1.0, 0.0], [ 0.0, 0.0],
+        [1.0, 0.0], [0.0, 1.0], [ 0.0, 0.0], [0.0, 0.0], [1.0, 0.0], [ 0.0, 1.0],
+        [0.0, 1.0],
+        [0.0, 0.0], [0.0, 1.0], [ 0.0, 0.0],
+        [1.0, 0.0], [0.0, 0.0], [ 0.0, 0.0], [0.0, 0.0], [1.0, 0.0], [ 0.0, 1.0],
+    ];
+    let calpha_gen = concatenate!(Axis(0), calpha, Array2::zeros((40, 2)));
+    #[rustfmt::skip]
+    let cbeta = array![
+        [0.0, 0.0],
+        [0.0, 0.0], [0.0, 0.0], [ 1.0, 0.0],
+        [0.0, 1.0], [0.0, 0.0], [ 0.0, 1.0], [1.0, 0.0], [0.0, 0.0], [ 0.0, 1.0],
+        [0.0, 0.0],
+        [0.0, 0.0], [0.0, 0.0], [-1.0, 0.0],
+        [0.0, -1.0], [0.0, 0.0], [ 1.0, 0.0], [0.0, 0.0], [0.0, 1.0], [ 0.0, 1.0],
+        [0.0, 0.0],
+        [0.0, 0.0], [1.0, 0.0], [ 1.0, 0.0],
+        [1.0, 0.0], [1.0, 0.0], [ -1.0, 0.0], [0.0, 0.0], [1.0, 1.0], [ 1.0, 1.0],
+        [1.0, 0.0],
+        [0.0, 0.0], [0.0, 0.0], [-1.0, 0.0],
+        [0.0, 1.0], [0.0, 0.0], [ -1.0, 0.0], [0.0, 0.0], [0.0, 1.0], [ 0.0, 1.0],
+    ];
+    let cbeta_gen = concatenate!(Axis(0), Array2::zeros((40, 2)), cbeta);
+    let cgen = concatenate![Axis(1), calpha_gen, cbeta_gen];
+    let ogen = array![1.0, 1.0, 1.0, 1.0];
+    let detgen: Determinant<C128> = Determinant::new(
+        &[cgen.clone()],
+        &[ogen.clone()],
+        &bao_h4,
+        &mol_h4,
+        SpinConstraint::Generalised(2, false),
+        1e-14,
+    )
+    .into();
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_h4, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
+
+    let elements_i = group.elements();
+    let elements_j = group.elements();
+    elements_i
+        .into_iter()
+        .cartesian_product(elements_j)
+        .for_each(|(op_i, op_j)| {
+            let op_k = op_i * op_j;
+            let spin_tdetgen_ij = detgen
+                .sym_transform_spin(op_j)
+                .unwrap()
+                .sym_transform_spin(op_i)
+                .unwrap();
+            let spin_tdetgen_k = detgen.sym_transform_spin(&op_k).unwrap();
+            assert_eq!(spin_tdetgen_k, spin_tdetgen_ij);
+
+            let spin_spatial_tdetgen_ij = detgen
+                .sym_transform_spin_spatial(op_j)
+                .unwrap()
+                .sym_transform_spin_spatial(op_i)
+                .unwrap();
+            let spin_spatial_tdetgen_k = detgen.sym_transform_spin_spatial(&op_k).unwrap();
+            assert_eq!(spin_spatial_tdetgen_k, spin_spatial_tdetgen_ij);
+        });
 }
