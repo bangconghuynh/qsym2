@@ -798,6 +798,15 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
         .cartesian_product(elements_j)
         .for_each(|(op_i, op_j)| {
             let op_k = op_i * op_j;
+
+            let spatial_tdetgen_ij = detgen
+                .sym_transform_spatial(op_j)
+                .unwrap()
+                .sym_transform_spatial(op_i)
+                .unwrap();
+            let spatial_tdetgen_k = detgen.sym_transform_spatial(&op_k).unwrap();
+            assert_eq!(spatial_tdetgen_k, spatial_tdetgen_ij);
+
             let spin_tdetgen_ij = detgen
                 .sym_transform_spin(op_j)
                 .unwrap()
