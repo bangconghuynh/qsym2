@@ -656,7 +656,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
 
     let sxy_nsr_p1 = group.get_index(4).unwrap();
     let tdetgen_sxy_nsr_ref: Determinant<C128> = Determinant::new(
-        &[sxy_tcgen_ref],
+        &[sxy_tcgen_ref.clone()],
         &[ogen.clone()],
         &bao_c3,
         &mol_c3,
@@ -669,4 +669,39 @@ fn test_determinant_transformation_c3_spin_rotation() {
 
     let tdetgen_sxy_nsr_p2 = detgen.sym_transform_spin(&(&sxy_nsr_p1).pow(2)).unwrap();
     assert_eq!(tdetgen_sxy_nsr_p2, tdetgen_e_isr);
+
+    let tdetgen_sxy_nsr_p3_ref: Determinant<C128> = Determinant::new(
+        &[-sxy_tcgen_ref],
+        &[ogen.clone()],
+        &bao_c3,
+        &mol_c3,
+        SpinConstraint::Generalised(2, false),
+        1e-14,
+    )
+    .into();
+    let tdetgen_sxy_nsr_p3 = detgen.sym_transform_spin(&(&sxy_nsr_p1).pow(3)).unwrap();
+    assert_eq!(tdetgen_sxy_nsr_p3, tdetgen_sxy_nsr_p3_ref);
+
+    let tcalpha_sxyz_gen = concatenate!(
+        Axis(0),
+        Array2::zeros((12, 2)),
+        -C128::new(1.0, 1.0) * (calpha.clone() * sqr).map(|x| C128::from(x))
+    );
+    let tcbeta_sxyz_gen = concatenate!(
+        Axis(0),
+        C128::new(1.0, -1.0) * (cbeta.clone() * sqr).map(|x| C128::from(x)),
+        Array2::zeros((12, 2)),
+    );
+    let tcgen_sxyz_ref = concatenate![Axis(1), tcalpha_sxyz_gen, tcbeta_sxyz_gen];
+    let tdetgen_sxyz_nsr_p1_ref: Determinant<C128> = Determinant::new(
+        &[tcgen_sxyz_ref.clone()],
+        &[ogen.clone()],
+        &bao_c3,
+        &mol_c3,
+        SpinConstraint::Generalised(2, false),
+        1e-14,
+    );
+    let sxyz_nsr_p1 = group.get_index(6).unwrap();
+    let tdetgen_sxyz_nsr_p1 = detgen.sym_transform_spin(&sxyz_nsr_p1).unwrap();
+    assert_eq!(tdetgen_sxyz_nsr_p1, tdetgen_sxyz_nsr_p1_ref);
 }
