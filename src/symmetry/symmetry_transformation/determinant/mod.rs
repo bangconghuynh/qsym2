@@ -26,6 +26,7 @@ mod determinant_tests;
 // Struct definitions
 // ==================
 
+/// A structure to manage single-determinantal wavefunctions.
 #[derive(Builder, Clone)]
 struct Determinant<'a, T>
 where
@@ -55,10 +56,24 @@ impl<'a, T> Determinant<'a, T>
 where
     T: ComplexFloat + Clone,
 {
+    /// Returns a builder to construct a new [`Determinant`].
     fn builder() -> DeterminantBuilder<'a, T> {
         DeterminantBuilder::default()
     }
 
+    /// Constructs a new [`Determinant`] from its coefficients, occupation patterns, and associated
+    /// molecular information.
+    ///
+    /// # Arguments
+    ///
+    /// * `cs` - Coefficient arrays, one for each spin-subspace.
+    /// * `occs` - Occupation arrays, one for each spin-subspace.
+    /// * `bao` - A shared reference to a [`BasisAngularOrder`] structure which encapsulates
+    /// angular-momentum information about the shells in the basis set.
+    /// * `mol` - A shared reference to a [`Molecule`] structure which encapsulates information
+    /// about the molecular structure.
+    /// * `spincons` - The spin constraint in which the coefficient arrays are defined.
+    /// * `thresh` - The threshold for numerical comparisons of determinants.
     pub fn new(
         cs: &[Array2<T>],
         occs: &[Array1<T::Real>],
@@ -80,18 +95,22 @@ where
         det
     }
 
+    /// Returns a shared reference to a vector of coefficient arrays.
     pub fn coefficients(&self) -> &Vec<Array2<T>> {
         &self.coefficients
     }
 
+    /// Returns a shared reference to the spin constraint.
     pub fn spin_constraint(&self) -> &SpinConstraint {
         &self.spin_constraint
     }
 
+    /// Returns a shared reference to the [`BasisAngularOrder`].
     pub fn bao(&self) -> &BasisAngularOrder {
         &self.bao
     }
 
+    /// Returns the total number of electrons in the determinant.
     pub fn nelectrons(&self) -> T::Real
     where
         <T as ComplexFloat>::Real: Sum + From<u16>,
@@ -113,6 +132,8 @@ where
         }
     }
 
+    /// Verifies the validity of the determinant, *i.e.* checks for consistency between
+    /// coefficients, basis set shell structure, and spin constraint.
     fn verify(&self) -> bool {
         let nbas = self.bao.n_funcs();
         let spincons = match self.spin_constraint {
@@ -653,7 +674,7 @@ where
     T: ComplexFloat,
     Determinant<'a, T>: SpatialUnitaryTransformable + TimeReversalTransformable,
 {
-    fn permute_sites(
+    fn sym_permute_sites_spatial(
         &self,
         symop: &SymmetryOperation,
     ) -> Result<Permutation<usize>, TransformationError> {
