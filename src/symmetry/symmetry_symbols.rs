@@ -17,8 +17,9 @@ use regex::Regex;
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
-    disambiguate_linspace_symbols, CollectionSymbol, GenericSymbol, GenericSymbolParsingError,
-    LinearSpaceSymbol, MathematicalSymbol, ReducibleLinearSpaceSymbol,
+    disambiguate_linspace_symbols, CollectionSymbol, DecomposedSymbol,
+    DecomposedSymbolBuilderError, GenericSymbol, GenericSymbolParsingError, LinearSpaceSymbol,
+    MathematicalSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::unityroot::UnityRoot;
 use crate::group::FiniteOrder;
@@ -143,9 +144,9 @@ impl MullikenIrrepSymbol {
 // ---------------------
 
 /// A struct to handle Mulliken irreducible corepresentation symbols.
-#[derive(Builder, Debug, Clone, Eq)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
 pub struct MullikenIrcorepSymbol {
-    inducing_irreps: HashMap<MullikenIrrepSymbol, usize>,
+    inducing_irreps: DecomposedSymbol<MullikenIrrepSymbol>,
 }
 
 impl MullikenIrcorepSymbol {
@@ -172,19 +173,6 @@ impl MullikenIrcorepSymbol {
     /// Errors when the string cannot be parsed as a generic symbol.
     pub fn new(symstr: &str) -> Result<Self, MullikenIrcorepSymbolBuilderError> {
         Self::from_str(symstr)
-    }
-
-    /// Returns an iterator containing sorted references to the symbols of the inducing irreps.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the inducing irrep symbols cannot be ordered.
-    #[must_use]
-    pub fn sorted_inducing_irreps(&self) -> std::vec::IntoIter<(&MullikenIrrepSymbol, &usize)> {
-        self.inducing_irreps.iter().sorted_by(|(a, _), (b, _)| {
-            a.partial_cmp(b)
-                .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
-        })
     }
 }
 
@@ -395,66 +383,16 @@ impl fmt::Display for MullikenIrrepSymbol {
 // MullikenIrcorepSymbol
 // ---------------------
 
-impl MathematicalSymbol for MullikenIrcorepSymbol {
-    /// The main part of the symbol.
-    fn main(&self) -> String {
-        format!(
-            "D[{}]",
-            self.sorted_inducing_irreps()
-                .map(|(irrep, mult)| format!(
-                    "{}{irrep}",
-                    if *mult > 1 {
-                        mult.to_string()
-                    } else {
-                        String::new()
-                    }
-                ))
-                .join(" ⊕ ")
-        )
-    }
-
-    /// The pre-superscript part of the symbol, which is always empty.
-    fn presuper(&self) -> String {
-        String::new()
-    }
-
-    fn presub(&self) -> String {
-        String::new()
-    }
-
-    /// The post-superscript part of the symbol, which is always empty.
-    fn postsuper(&self) -> String {
-        String::new()
-    }
-
-    /// The post-subscript part of the symbol, which is always empty.
-    fn postsub(&self) -> String {
-        String::new()
-    }
-
-    /// The prefactor part of the symbol, which is always `"1"` implicitly because of irreducibility.
-    fn prefactor(&self) -> String {
-        "1".to_string()
-    }
-
-    /// The postfactor part of the symbol, which is always empty.
-    fn postfactor(&self) -> String {
-        String::new()
-    }
-
-    /// The dimensionality of the irreducible corepresentation.
-    fn multiplicity(&self) -> Option<usize> {
-        Some(
-            self.inducing_irreps
-            .iter()
-            .map(|(irrep, mult)| {
-                irrep
-                    .multiplicity()
-                    .expect("One of the inducing irreducible representations has an undefined multiplicity.")
-                * mult
-            })
-            .sum()
-        )
+impl From<DecomposedSymbolBuilderError> for MullikenIrcorepSymbolBuilderError {
+    fn from(value: DecomposedSymbolBuilderError) -> Self {
+        match value {
+            DecomposedSymbolBuilderError::UninitializedField(msg) => {
+                MullikenIrcorepSymbolBuilderError::UninitializedField(msg)
+            }
+            DecomposedSymbolBuilderError::ValidationError(msg) => {
+                MullikenIrcorepSymbolBuilderError::ValidationError(msg)
+            }
+        }
     }
 }
 
@@ -481,53 +419,9 @@ impl FromStr for MullikenIrcorepSymbol {
     ///
     /// Errors when the string cannot be parsed.
     fn from_str(symstr: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new(r"(\d?)(.*)").expect("Regex pattern invalid.");
-        let irreps = symstr
-            .split('+')
-            .map(|irrep_str| {
-                let cap = re
-                    .captures(irrep_str.trim())
-                    .unwrap_or_else(|| panic!("{irrep_str} does not fit the expected pattern."));
-                let mult_str = cap
-                    .get(1)
-                    .expect("Unable to parse the multiplicity of the irrep.")
-                    .as_str();
-                let mult = if mult_str.is_empty() {
-                    1
-                } else {
-                    str::parse::<usize>(mult_str)
-                        .unwrap_or_else(|_| panic!("`{mult_str}` is not a positive integer."))
-                };
-                let irrep = cap.get(2).expect("Unable to parse the irrep.").as_str();
-                (
-                    MullikenIrrepSymbol::from_str(irrep).unwrap_or_else(|_| {
-                        panic!("Unable to parse {irrep} as a Mulliken irrep symbol.")
-                    }),
-                    mult,
-                )
-            })
-            .collect::<HashMap<_, _>>();
         MullikenIrcorepSymbol::builder()
-            .inducing_irreps(irreps)
+            .inducing_irreps(DecomposedSymbol::from_str(symstr)?)
             .build()
-    }
-}
-
-impl LinearSpaceSymbol for MullikenIrcorepSymbol {
-    fn dimensionality(&self) -> usize {
-        self.inducing_irreps
-            .iter()
-            .map(|(irrep, mult)| {
-                irrep
-                    .multiplicity()
-                    .expect("One of the inducing irreducible representations has an undefined multiplicity.")
-                * mult
-            }).sum()
-    }
-
-    fn set_dimensionality(&mut self, _: usize) -> bool {
-        log::error!("The dimensionality of `{self}` cannot be set.");
-        false
     }
 }
 
@@ -536,35 +430,19 @@ impl ReducibleLinearSpaceSymbol for MullikenIrcorepSymbol {
 
     fn from_subspaces(irreps: &[(Self::Subspace, usize)]) -> Self {
         Self::builder()
-            .inducing_irreps(irreps.iter().cloned().collect::<HashMap<_, _>>())
+            .inducing_irreps(DecomposedSymbol::from_subspaces(irreps))
             .build()
             .expect("Unable to construct a Mulliken ircorep symbol from a slice of irrep symbols.")
     }
 
     fn subspaces(&self) -> Vec<(&Self::Subspace, &usize)> {
-        self.sorted_inducing_irreps().collect_vec()
+        self.inducing_irreps.subspaces()
     }
 }
 
 impl fmt::Display for MullikenIrcorepSymbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.main())
-    }
-}
-
-impl PartialEq for MullikenIrcorepSymbol {
-    fn eq(&self, other: &Self) -> bool {
-        let self_irreps = self.sorted_inducing_irreps().collect_vec();
-        let other_irreps = other.sorted_inducing_irreps().collect_vec();
-        self_irreps == other_irreps
-    }
-}
-
-impl Hash for MullikenIrcorepSymbol {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for irrep in self.sorted_inducing_irreps() {
-            irrep.hash(state);
-        }
+        write!(f, "D[{}]", self.main())
     }
 }
 

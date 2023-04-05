@@ -1,4 +1,5 @@
 use std::cmp::max;
+use std::collections::HashMap;
 use std::fmt;
 use std::iter;
 
@@ -8,8 +9,7 @@ use ndarray::{Array2, ArrayView1};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
-    CollectionSymbol, LinearSpaceSymbol, MathematicalSymbol, ReducibleLinearSpaceSymbol,
-    FROBENIUS_SCHUR_SYMBOLS,
+    CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol, FROBENIUS_SCHUR_SYMBOLS,
 };
 
 pub mod character;
@@ -112,6 +112,26 @@ where
         compact: bool,
         numerical: Option<usize>,
     ) -> fmt::Result;
+}
+
+pub trait SubspaceDecomposable: CharacterTable
+where
+    Self::Decomposition: ReducibleLinearSpaceSymbol<Subspace = Self::RowSymbol>,
+{
+    type Decomposition;
+
+    /// Reduces a space into subspaces using its characters under the conjugacy classes of the
+    /// character table.
+    ///
+    /// # Arguments
+    ///
+    /// * `characters` - A hashmap of characters for conjugacy classes.
+    ///
+    /// # Returns
+    ///
+    /// The decomposition result.
+    fn reduce_characters(self, characters: HashMap<&Self::ColSymbol, Character>)
+        -> Self::Decomposition;
 }
 
 // ======================================
@@ -471,6 +491,15 @@ where
         &self.principal_classes
     }
 }
+
+// impl<RowSymbol, ColSymbol, RowSymbols> SubspaceDecomposable for RepCharacterTable<RowSymbol, ColSymbol>
+// where
+//     RowSymbol: LinearSpaceSymbol,
+//     ColSymbol: CollectionSymbol,
+//     RowSymbols: ReducibleLinearSpaceSymbol<Subspace = RowSymbol>,
+// {
+//     type Decomposition = RowSymbols;
+// }
 
 impl<RowSymbol, ColSymbol> fmt::Display for RepCharacterTable<RowSymbol, ColSymbol>
 where

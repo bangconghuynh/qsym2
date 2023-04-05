@@ -1,11 +1,13 @@
-use std::collections::{HashMap, VecDeque};
+use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::error::Error;
 use std::fmt;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use counter::Counter;
 use derive_builder::Builder;
+use itertools::Itertools;
 use phf::phf_map;
 use regex::Regex;
 
@@ -18,6 +20,10 @@ pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
 // =================
 // Trait definitions
 // =================
+
+// ------------------
+// MathematicalSymbol
+// ------------------
 
 /// A trait for general mathematical symbols.
 pub trait MathematicalSymbol: Clone + Hash + Eq + fmt::Display {
@@ -46,6 +52,10 @@ pub trait MathematicalSymbol: Clone + Hash + Eq + fmt::Display {
     fn multiplicity(&self) -> Option<usize>;
 }
 
+// -----------------
+// LinearSpaceSymbol
+// -----------------
+
 /// A trait for symbols describing linear spaces.
 pub trait LinearSpaceSymbol: MathematicalSymbol + FromStr {
     /// The dimensionality of the linear space.
@@ -63,10 +73,18 @@ pub trait LinearSpaceSymbol: MathematicalSymbol + FromStr {
     fn set_dimensionality(&mut self, dim: usize) -> bool;
 }
 
+// --------------------------
+// ReducibleLinearSpaceSymbol
+// --------------------------
+
+// ~~~~~~~~~~~~~~~~
+// Trait definition
+// ~~~~~~~~~~~~~~~~
+
 /// A trait for symbols describing reducible linear spaces.
 pub trait ReducibleLinearSpaceSymbol: LinearSpaceSymbol
 where
-    Self::Subspace: LinearSpaceSymbol,
+    Self::Subspace: LinearSpaceSymbol + PartialOrd,
 {
     /// The type of the subspace symbols.
     type Subspace;
@@ -76,7 +94,110 @@ where
 
     /// Returns the constituting subspace symbols and their multiplicities.
     fn subspaces(&self) -> Vec<(&Self::Subspace, &usize)>;
+
+    // ----------------
+    // Provided methods
+    // ----------------
+
+    /// Returns an iterator containing sorted references to the constituting symbols.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the constituting symbols cannot be ordered.
+    #[must_use]
+    fn sorted_subspaces(&self) -> Vec<(&Self::Subspace, &usize)> {
+        self.subspaces()
+            .iter()
+            .sorted_by(|(a, _), (b, _)| {
+                a.partial_cmp(b)
+                    .unwrap_or_else(|| panic!("`{a}` and `{b}` cannot be compared."))
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+    }
 }
+
+// ~~~~~~~~~~~~~~~~~~~~~~
+// Blanket implementation
+// ~~~~~~~~~~~~~~~~~~~~~~
+
+impl<R> MathematicalSymbol for R
+where
+    R: ReducibleLinearSpaceSymbol,
+{
+    /// The main part of the symbol.
+    fn main(&self) -> String {
+        format!(
+            "{}",
+            self.sorted_subspaces()
+                .iter()
+                .map(|(irrep, &mult)| format!(
+                    "{}{irrep}",
+                    if mult > 1 {
+                        mult.to_string()
+                    } else {
+                        String::new()
+                    }
+                ))
+                .join(" ⊕ ")
+        )
+    }
+
+    /// The pre-superscript part of the symbol, which is always empty.
+    fn presuper(&self) -> String {
+        String::new()
+    }
+
+    fn presub(&self) -> String {
+        String::new()
+    }
+
+    /// The post-superscript part of the symbol, which is always empty.
+    fn postsuper(&self) -> String {
+        String::new()
+    }
+
+    /// The post-subscript part of the symbol, which is always empty.
+    fn postsub(&self) -> String {
+        String::new()
+    }
+
+    /// The prefactor part of the symbol, which is always `"1"`.
+    fn prefactor(&self) -> String {
+        "1".to_string()
+    }
+
+    /// The postfactor part of the symbol, which is always empty.
+    fn postfactor(&self) -> String {
+        String::new()
+    }
+
+    /// The multiplicity of the symbol, which is always `"1"`.
+    fn multiplicity(&self) -> Option<usize> {
+        Some(1)
+    }
+}
+
+impl<R> LinearSpaceSymbol for R
+where
+    R: ReducibleLinearSpaceSymbol,
+{
+    fn dimensionality(&self) -> usize {
+        self.subspaces()
+            .iter()
+            .map(|(symbol, &mult)| symbol.dimensionality() * mult)
+            .sum()
+    }
+
+    fn set_dimensionality(&mut self, _: usize) -> bool {
+        log::error!("The dimensionality of `{self}` cannot be set.");
+        false
+    }
+}
+
+// ----------------
+// CollectionSymbol
+// ----------------
 
 /// A trait for symbols describing collections of objects.
 pub trait CollectionSymbol: MathematicalSymbol {
@@ -113,7 +234,10 @@ pub trait CollectionSymbol: MathematicalSymbol {
                 "Unable to deduce the multiplicity of the class from the prefactor {}.",
                 self.prefactor()
             )
-        }) * self.representatives().map(|reps| reps.len()).expect("No representatives found.")
+        }) * self
+            .representatives()
+            .map(|reps| reps.len())
+            .expect("No representatives found.")
     }
 }
 
@@ -124,6 +248,10 @@ pub trait CollectionSymbol: MathematicalSymbol {
 // -------------
 // GenericSymbol
 // -------------
+
+// ~~~~~~~~~~~~~~~~~
+// Struct definition
+// ~~~~~~~~~~~~~~~~~
 
 /// A structure to handle generic mathematical symbols.
 ///
@@ -185,9 +313,9 @@ impl GenericSymbol {
     }
 }
 
-// ------------------
-// MathematicalSymbol
-// ------------------
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Trait implementation for GenericSymbol
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 impl MathematicalSymbol for GenericSymbol {
     fn main(&self) -> String {
@@ -360,9 +488,167 @@ impl fmt::Display for GenericSymbolParsingError {
 
 impl Error for GenericSymbolParsingError {}
 
-// =======
-// Methods
-// =======
+// ----------------
+// DecomposedSymbol
+// ----------------
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Trait implementation for DecomposedSymbol
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+/// A struct to handle Mulliken irreducible corepresentation symbols.
+#[derive(Builder, Debug, Clone, Eq)]
+pub struct DecomposedSymbol<S>
+where
+    S: LinearSpaceSymbol + PartialOrd,
+{
+    symbols: HashMap<S, usize>,
+}
+
+impl<S> DecomposedSymbol<S>
+where
+    S: LinearSpaceSymbol + PartialOrd,
+{
+    fn builder() -> DecomposedSymbolBuilder<S> {
+        DecomposedSymbolBuilder::<S>::default()
+    }
+
+    /// Parses a string representing a decomposed symbol.
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a decomposed symbol.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string cannot be parsed as a decomposed symbol.
+    pub fn new(symstr: &str) -> Result<Self, DecomposedSymbolBuilderError> {
+        Self::from_str(symstr)
+    }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Trait implementation for DecomposedSymbol
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+impl<S> ReducibleLinearSpaceSymbol for DecomposedSymbol<S>
+where
+    S: LinearSpaceSymbol + PartialOrd,
+{
+    type Subspace = S;
+
+    fn from_subspaces(irreps: &[(Self::Subspace, usize)]) -> Self {
+        Self::builder()
+            .symbols(irreps.iter().cloned().collect::<HashMap<_, _>>())
+            .build()
+            .expect("Unable to construct a decomposed symbol from a slice of symbols.")
+    }
+
+    fn subspaces(&self) -> Vec<(&Self::Subspace, &usize)> {
+        self.symbols.iter().collect::<Vec<_>>()
+    }
+}
+
+impl<S> FromStr for DecomposedSymbol<S>
+where
+    S: LinearSpaceSymbol + PartialOrd + FromStr,
+{
+    type Err = DecomposedSymbolBuilderError;
+
+    /// Parses a string representing a decomposed symbol. A valid string representing a
+    /// decomposed symbol is one consisting of one or more valid symbol strings, separated by a `+`
+    /// character.
+    ///
+    /// # Arguments
+    ///
+    /// * `symstr` - A string to be parsed to give a decomposed symbol.
+    ///
+    /// # Returns
+    ///
+    /// A [`Result`] wrapping the constructed decomposed symbol.
+    ///
+    /// # Panics
+    ///
+    /// Panics when unable to construct a decomposed symbol from the specified string.
+    ///
+    /// # Errors
+    ///
+    /// Errors when the string cannot be parsed.
+    fn from_str(symstr: &str) -> Result<Self, Self::Err> {
+        let re = Regex::new(r"(\d?)(.*)").expect("Regex pattern invalid.");
+        let symbols = symstr
+            .split('+')
+            .map(|irrep_str| {
+                let cap = re
+                    .captures(irrep_str.trim())
+                    .unwrap_or_else(|| panic!("{irrep_str} does not fit the expected pattern."));
+                let mult_str = cap
+                    .get(1)
+                    .expect("Unable to parse the multiplicity of the irrep.")
+                    .as_str();
+                let mult = if mult_str.is_empty() {
+                    1
+                } else {
+                    str::parse::<usize>(mult_str)
+                        .unwrap_or_else(|_| panic!("`{mult_str}` is not a positive integer."))
+                };
+                let irrep = cap.get(2).expect("Unable to parse the irrep.").as_str();
+                (
+                    S::from_str(irrep)
+                        .unwrap_or_else(|_| panic!("Unable to parse {irrep} as a valid symbol.")),
+                    mult,
+                )
+            })
+            .collect::<HashMap<_, _>>();
+        Self::builder().symbols(symbols).build()
+    }
+}
+
+impl<S> Hash for DecomposedSymbol<S>
+where
+    S: LinearSpaceSymbol + PartialOrd,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        for symbol in self.sorted_subspaces() {
+            symbol.hash(state);
+        }
+    }
+}
+
+impl<S> PartialOrd for DecomposedSymbol<S>
+where
+    S: LinearSpaceSymbol + PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let self_subspaces = self.sorted_subspaces();
+        let other_subspaces = other.sorted_subspaces();
+        self_subspaces.partial_cmp(&other_subspaces)
+    }
+}
+
+impl<S> fmt::Display for DecomposedSymbol<S>
+where
+    S: LinearSpaceSymbol + PartialOrd,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.main())
+    }
+}
+
+impl<S> PartialEq for DecomposedSymbol<S>
+where
+    S: LinearSpaceSymbol + PartialOrd,
+{
+    fn eq(&self, other: &Self) -> bool {
+        let self_subspaces = self.sorted_subspaces();
+        let other_subspaces = other.sorted_subspaces();
+        self_subspaces == other_subspaces
+    }
+}
+
+// ================
+// Helper functions
+// ================
 
 /// Disambiguates linear-space labelling symbols that cannot be otherwise distinguished from rules.
 ///
