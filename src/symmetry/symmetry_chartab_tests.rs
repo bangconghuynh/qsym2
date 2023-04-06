@@ -21058,3 +21058,7 @@ fn test_chartab_asymmetric_butan1ol_grey_c1_double() {
 #[cfg(test)]
 #[path = "symmetry_chartab_nonuniform_b_tests.rs"]
 mod symmetry_chartab_nonuniform_b_tests;
+
+#[cfg(test)]
+#[path = "symmetry_chartab_reduction_tests.rs"]
+mod symmetry_chartab_reduction_tests;

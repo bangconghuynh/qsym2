@@ -133,7 +133,7 @@ where
                 .iter()
                 .map(|(irrep, &mult)| format!(
                     "{}{irrep}",
-                    if mult > 1 {
+                    if mult != 1 {
                         mult.to_string()
                     } else {
                         String::new()

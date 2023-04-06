@@ -1,15 +1,19 @@
 use std::cmp::max;
 use std::collections::HashMap;
+use std::error::Error;
 use std::fmt;
 use std::iter;
 
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use ndarray::{Array2, ArrayView1};
+use num::Complex;
+use num_traits::{ToPrimitive, Zero};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
-    CollectionSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol, FROBENIUS_SCHUR_SYMBOLS,
+    CollectionSymbol, DecomposedSymbol, LinearSpaceSymbol, ReducibleLinearSpaceSymbol,
+    FROBENIUS_SCHUR_SYMBOLS,
 };
 
 pub mod character;
@@ -130,9 +134,22 @@ where
     /// # Returns
     ///
     /// The decomposition result.
-    fn reduce_characters(self, characters: HashMap<&Self::ColSymbol, Character>)
-        -> Self::Decomposition;
+    fn reduce_characters(
+        &self,
+        characters: &[(&Self::ColSymbol, Complex<f64>)],
+    ) -> Result<Self::Decomposition, DecompositionError>;
 }
+
+#[derive(Debug, Clone)]
+pub struct DecompositionError(pub String);
+
+impl fmt::Display for DecompositionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Subspace decomposition parsing error: {}.", self.0)
+    }
+}
+
+impl Error for DecompositionError {}
 
 // ======================================
 // Struct definitions and implementations
@@ -492,14 +509,109 @@ where
     }
 }
 
-// impl<RowSymbol, ColSymbol, RowSymbols> SubspaceDecomposable for RepCharacterTable<RowSymbol, ColSymbol>
-// where
-//     RowSymbol: LinearSpaceSymbol,
-//     ColSymbol: CollectionSymbol,
-//     RowSymbols: ReducibleLinearSpaceSymbol<Subspace = RowSymbol>,
-// {
-//     type Decomposition = RowSymbols;
-// }
+impl<RowSymbol, ColSymbol> SubspaceDecomposable for RepCharacterTable<RowSymbol, ColSymbol>
+where
+    RowSymbol: LinearSpaceSymbol + PartialOrd,
+    ColSymbol: CollectionSymbol,
+{
+    type Decomposition = DecomposedSymbol<RowSymbol>;
+
+    /// Reduces a representation into irreducible representations using its characters under the
+    /// conjugacy classes of the character table.
+    ///
+    /// # Arguments
+    ///
+    /// * `characters` - A hashmap of characters for conjugacy classes.
+    ///
+    /// # Returns
+    ///
+    /// The representation as a direct sum of irreducible representations.
+    fn reduce_characters(
+        &self,
+        characters: &[(&Self::ColSymbol, Complex<f64>)],
+    ) -> Result<Self::Decomposition, DecompositionError> {
+        assert_eq!(characters.len(), self.classes.len());
+        let thresh: f64 = self.array()[(0, 0)].threshold;
+        let rep_syms: Result<Vec<Option<(RowSymbol, usize)>>, _> = self
+            .irreps
+            .iter()
+            .map(|(irrep_symbol, &i)| {
+                let c = characters
+                    .iter()
+                    .try_fold(Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
+                        let j = self.classes.get_index_of(*cc_symbol).ok_or(DecompositionError(
+                            format!(
+                                "The conjugacy class `{cc_symbol}` cannot be found in this group."
+                            )
+                        ))?;
+                        Ok(
+                            acc + cc_symbol.size().to_f64().ok_or(DecompositionError(
+                                format!(
+                                    "The size of conjugacy class `{cc_symbol}` cannot be converted to `f64`."
+                                )
+                            ))?
+                                * self.characters[(i, j)].complex_conjugate().complex_value()
+                                * character
+                        )
+                    })? / self.get_order().to_f64().ok_or(
+                        DecompositionError("The group order cannot be converted to `f64`.".to_string())
+                    )?;
+
+                if approx::relative_ne!(c.im, 0.0, epsilon = thresh, max_relative = thresh) {
+                    Err(
+                        DecompositionError(
+                            format!(
+                                "Non-negligible imaginary part for irrep multiplicity: {:.3e}",
+                                c.im
+                            )
+                        )
+                    )
+                } else if c.re < -thresh {
+                    Err(
+                        DecompositionError(
+                            format!(
+                                "Negative irrep multiplicity: {:.3e}",
+                                c.re
+                            )
+                        )
+                    )
+                } else if approx::relative_ne!(
+                    c.re, c.re.round(), epsilon = thresh, max_relative = thresh
+                ) {
+                    Err(
+                        DecompositionError(
+                            format!(
+                                "Non-integer coefficient: {:.3e}",
+                                c.re
+                            )
+                        )
+                    )
+                } else {
+                    let mult = c.re.round().to_usize().ok_or(DecompositionError(
+                        format!(
+                            "Unable to convert the rounded coefficient `{}` to `usize`.",
+                            c.re.round()
+                        )
+                    ))?;
+                    if mult != 0 {
+                        Ok(Some((irrep_symbol.clone(), mult)))
+                    } else {
+                        Ok(None)
+                    }
+                }
+        })
+        .collect();
+
+        rep_syms.map(|syms| {
+            DecomposedSymbol::<RowSymbol>::from_subspaces(
+                &syms
+                    .into_iter()
+                    .filter_map(|irrep| irrep)
+                    .collect::<Vec<_>>(),
+            )
+        })
+    }
+}
 
 impl<RowSymbol, ColSymbol> fmt::Display for RepCharacterTable<RowSymbol, ColSymbol>
 where
