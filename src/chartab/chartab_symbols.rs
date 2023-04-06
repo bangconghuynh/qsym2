@@ -539,7 +539,13 @@ where
 
     fn from_subspaces(irreps: &[(Self::Subspace, usize)]) -> Self {
         Self::builder()
-            .symbols(irreps.iter().cloned().collect::<HashMap<_, _>>())
+            .symbols(
+                irreps
+                    .iter()
+                    .filter(|(_, mult)| *mult != 0)
+                    .cloned()
+                    .collect::<HashMap<_, _>>(),
+            )
             .build()
             .expect("Unable to construct a decomposed symbol from a slice of symbols.")
     }

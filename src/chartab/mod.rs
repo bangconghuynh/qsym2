@@ -137,6 +137,7 @@ where
     fn reduce_characters(
         &self,
         characters: &[(&Self::ColSymbol, Complex<f64>)],
+        thresh: f64,
     ) -> Result<Self::Decomposition, DecompositionError>;
 }
 
@@ -529,9 +530,9 @@ where
     fn reduce_characters(
         &self,
         characters: &[(&Self::ColSymbol, Complex<f64>)],
+        thresh: f64,
     ) -> Result<Self::Decomposition, DecompositionError> {
         assert_eq!(characters.len(), self.classes.len());
-        let thresh: f64 = self.array()[(0, 0)].threshold;
         let rep_syms: Result<Vec<Option<(RowSymbol, usize)>>, _> = self
             .irreps
             .iter()
