@@ -1,3 +1,4 @@
+pub mod analysis;
 pub mod angmom;
 pub mod aux;
 pub mod chartab;

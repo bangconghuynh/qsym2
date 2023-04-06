@@ -47,9 +47,6 @@ where
     type GroupElement;
     type ElementCollection: Clone + IntoIterator<Item = Self::GroupElement>;
 
-    // /// The underlying abstract group of the possibly concrete group.
-    // fn abstract_group(&self) -> &Group<Self::GroupElement>;
-
     /// The name of the group.
     fn name(&self) -> String;
 
