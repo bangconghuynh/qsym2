@@ -1,5 +1,4 @@
 use std::cmp::max;
-use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 use std::iter;
@@ -986,6 +985,116 @@ where
 
     fn get_principal_cols(&self) -> &IndexSet<Self::ColSymbol> {
         &self.principal_classes
+    }
+}
+
+impl<RowSymbol, UC> SubspaceDecomposable for CorepCharacterTable<RowSymbol, UC>
+where
+    RowSymbol: ReducibleLinearSpaceSymbol + PartialOrd,
+    UC: CharacterTable,
+{
+    type Decomposition = DecomposedSymbol<RowSymbol>;
+
+    /// Reduces a corepresentation into irreducible corepresentations using its characters under the
+    /// conjugacy classes of the character table.
+    ///
+    /// # Arguments
+    ///
+    /// * `characters` - A hashmap of characters for conjugacy classes.
+    ///
+    /// # Returns
+    ///
+    /// The corepresentation as a direct sum of irreducible corepresentations.
+    fn reduce_characters(
+        &self,
+        characters: &[(&Self::ColSymbol, Complex<f64>)],
+        thresh: f64,
+    ) -> Result<Self::Decomposition, DecompositionError> {
+        assert_eq!(characters.len(), self.classes.len());
+        let rep_syms: Result<Vec<Option<(RowSymbol, usize)>>, _> = self
+            .ircoreps
+            .iter()
+            .map(|(ircorep_symbol, &i)| {
+                let c = characters
+                    .iter()
+                    .try_fold(Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
+                        let j = self.classes.get_index_of(*cc_symbol).ok_or(DecompositionError(
+                            format!(
+                                "The conjugacy class `{cc_symbol}` cannot be found in this group."
+                            )
+                        ))?;
+                        Ok(
+                            acc + cc_symbol.size().to_f64().ok_or(DecompositionError(
+                                format!(
+                                    "The size of conjugacy class `{cc_symbol}` cannot be converted to `f64`."
+                                )
+                            ))?
+                                * self.characters[(i, j)].complex_conjugate().complex_value()
+                                * character
+                        )
+                    })? / (self.unitary_character_table.get_order().to_f64().ok_or(
+                        DecompositionError("The unitary subgroup order cannot be converted to `f64`.".to_string())
+                    )? * self.intertwining_numbers.get(ircorep_symbol).and_then(|x| x.to_f64()).ok_or(
+                        DecompositionError(
+                            format!(
+                                "The intertwining number of `{ircorep_symbol}` cannot be retrieved and/or converted to `f64`."
+                            )
+                        )
+                    )?);
+
+                if approx::relative_ne!(c.im, 0.0, epsilon = thresh, max_relative = thresh) {
+                    Err(
+                        DecompositionError(
+                            format!(
+                                "Non-negligible imaginary part for ircorep multiplicity: {:.3e}",
+                                c.im
+                            )
+                        )
+                    )
+                } else if c.re < -thresh {
+                    Err(
+                        DecompositionError(
+                            format!(
+                                "Negative ircorep multiplicity: {:.3e}",
+                                c.re
+                            )
+                        )
+                    )
+                } else if approx::relative_ne!(
+                    c.re, c.re.round(), epsilon = thresh, max_relative = thresh
+                ) {
+                    Err(
+                        DecompositionError(
+                            format!(
+                                "Non-integer coefficient: {:.3e}",
+                                c.re
+                            )
+                        )
+                    )
+                } else {
+                    let mult = c.re.round().to_usize().ok_or(DecompositionError(
+                        format!(
+                            "Unable to convert the rounded coefficient `{}` to `usize`.",
+                            c.re.round()
+                        )
+                    ))?;
+                    if mult != 0 {
+                        Ok(Some((ircorep_symbol.clone(), mult)))
+                    } else {
+                        Ok(None)
+                    }
+                }
+        })
+        .collect();
+
+        rep_syms.map(|syms| {
+            DecomposedSymbol::<RowSymbol>::from_subspaces(
+                &syms
+                    .into_iter()
+                    .filter_map(|ircorep| ircorep)
+                    .collect::<Vec<_>>(),
+            )
+        })
     }
 }
 

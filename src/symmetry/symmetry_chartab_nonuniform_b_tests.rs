@@ -11,7 +11,6 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_chartab_symmetric_h8_twisted_alt_magnetic_field_bw_c4_c2() {
-    // env_logger::init();
     let thresh = 1e-7;
     let angle = 0.2;
     let mut mol = template_molecules::gen_twisted_h8(angle);
