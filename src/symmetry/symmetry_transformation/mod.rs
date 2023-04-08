@@ -14,8 +14,6 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
 
-mod determinant;
-
 #[cfg(test)]
 #[path = "symmetry_transformation_tests.rs"]
 mod symmetry_transformation_tests;
@@ -354,7 +352,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
 /// Panics if the number of generalised rows along any of the dimensions in `axes` does not match
 /// the number of functions in the basis, or if the permutation rank does not match the number of
 /// atoms in the basis.
-fn permute_array_by_atoms<T, D>(
+pub(crate) fn permute_array_by_atoms<T, D>(
     arr: &Array<T, D>,
     atom_perm: &Permutation<usize>,
     axes: &[Axis],
@@ -405,7 +403,7 @@ where
 ///
 /// A vector of spherical-harmonic rotation matrices, one for each shells in `bao`. Non-standard
 /// orderings of functions in shells are taken into account.
-fn assemble_sh_rotation_3d_matrices(
+pub(crate) fn assemble_sh_rotation_3d_matrices(
     bao: &BasisAngularOrder,
     rmat: &Array2<f64>,
     perm: Option<&Permutation<usize>>,
@@ -481,8 +479,8 @@ fn assemble_sh_rotation_3d_matrices(
                         //      R πb = πb D(π).
                         // To relate D(π) to D, we first note the representation matrix for π, P:
                         //      πb = π b = b P,
-                        // which, when acts on a left row vector, permutes its entry normally, but
-                        // when acts on a right column vector, permutes its entry inversely.
+                        // which, when acts on a left row vector, permutes its entries normally, but
+                        // when acts on a right column vector, permutes its entries inversely.
                         // Then,
                         //      R πb = R b P = b P D(π) => R b = b PD(π)P^(-1).
                         // Thus,
@@ -491,7 +489,9 @@ fn assemble_sh_rotation_3d_matrices(
                         // according to π.
                         let perm = lex_cart_order
                             .get_perm_of(cart_order)
-                            .expect("Unable to find a permutation to ");
+                            .unwrap_or_else(
+                                || panic!("Unable to find a permutation to map `{lex_cart_order}` to `{cart_order}`.")
+                            );
                         rl.select(Axis(0), &perm.image())
                             .select(Axis(1), &perm.image())
                     } else {

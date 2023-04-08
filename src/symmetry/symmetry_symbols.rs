@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
@@ -13,7 +13,6 @@ use nalgebra::Vector3;
 use ndarray::{Array2, ArrayView2, Axis};
 use num_traits::ToPrimitive;
 use phf::{phf_map, phf_set};
-use regex::Regex;
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{

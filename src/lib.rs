@@ -6,3 +6,4 @@ pub mod group;
 pub mod permutation;
 pub mod rotsym;
 pub mod symmetry;
+pub mod target;

@@ -4,15 +4,22 @@ use std::ops::Mul;
 
 use approx;
 use derive_builder::Builder;
+use itertools::Itertools;
+use nalgebra::DMatrix;
 use ndarray::{array, concatenate, s, Array1, Array2, Axis, LinalgScalar, ScalarOperand};
 use num_complex::{Complex, ComplexFloat};
-use num_traits::float::{Float, FloatConst};
+use num_traits::{
+    float::{Float, FloatConst},
+    Zero,
+};
 
+use crate::analysis::{Orbit, Overlap, RepAnalysis, RepAnalysisError};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::molecule::Molecule;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
+use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{
     assemble_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
     SpatialUnitaryTransformable, SpinUnitaryTransformable, SymmetryTransformable,
@@ -28,7 +35,7 @@ mod determinant_tests;
 
 /// A structure to manage single-determinantal wavefunctions.
 #[derive(Builder, Clone)]
-struct Determinant<'a, T>
+pub struct Determinant<'a, T>
 where
     T: ComplexFloat,
 {
@@ -38,6 +45,11 @@ where
     /// The angular order of the basis functions with respect to which the coefficients are
     /// expressed.
     bao: &'a BasisAngularOrder<'a>,
+
+    /// The overlap matrix of the underlying basis functions in terms of which the coefficients are
+    /// expressed.
+    #[builder(default = "None")]
+    sao: Option<&'a Array2<T>>,
 
     /// The associated molecule.
     mol: &'a Molecule,
@@ -720,11 +732,23 @@ where
                         max_relative = thresh,
                     )
                 });
+        let sao_eq = match (self.sao, other.sao) {
+            (Some(s_sao), Some(o_sao)) => {
+                approx::relative_eq!(
+                    (s_sao - o_sao).map(|x| x.abs().powi(2)).sum().sqrt(),
+                    0.0,
+                    epsilon = thresh,
+                    max_relative = thresh,
+                )
+            }
+            _ => true,
+        };
         self.spin_constraint == other.spin_constraint
             && self.bao == other.bao
             && self.mol == other.mol
             && coefficients_eq
             && occs_eq
+            && sao_eq
     }
 }
 
@@ -800,5 +824,173 @@ where
                 .join(", ")
         )?;
         Ok(())
+    }
+}
+
+// -------
+// Overlap
+// -------
+
+impl<'a, T> Overlap<T> for Determinant<'a, T>
+where
+    T: nalgebra::ComplexField + ComplexFloat + fmt::Debug,
+    <T as ComplexFloat>::Real: fmt::Debug + approx::RelativeEq<<T as ComplexFloat>::Real>,
+{
+    fn overlap(&self, other: &Self) -> Result<T, RepAnalysisError> {
+        let sao = match (self.sao, other.sao) {
+            (Some(s_sao), Some(o_sao)) => {
+                approx::assert_relative_eq!(
+                    Float::sqrt(
+                        (s_sao - o_sao)
+                            .map(|x| Float::powi(ComplexFloat::abs(*x), 2))
+                            .sum()
+                    ),
+                    T::Real::zero(),
+                );
+                Ok(s_sao)
+            }
+            (Some(s_sao), None) => Ok(s_sao),
+            (None, Some(o_sao)) => Ok(o_sao),
+            (None, None) => Err(RepAnalysisError("No AO overlap matrix found.".to_string())),
+        }?;
+
+        assert_eq!(self.spin_constraint, other.spin_constraint);
+        assert_eq!(self.coefficients.len(), other.coefficients.len());
+
+        let ov = self
+            .coefficients
+            .iter()
+            .zip(other.coefficients.iter())
+            .map(|(cw, cx)| {
+                let mo_ov_mat = if self.complex_symmetric() {
+                    cw.t().dot(sao).dot(cx)
+                } else {
+                    cw.t().mapv(|x| x.conj()).dot(sao).dot(cx)
+                };
+                let mo_ov_mat_na = DMatrix::from_row_iterator(
+                    mo_ov_mat.nrows(),
+                    mo_ov_mat.ncols(),
+                    mo_ov_mat.into_iter(),
+                );
+                mo_ov_mat_na.determinant()
+            })
+            .fold(T::one(), |acc, x| acc * x);
+
+        match self.spin_constraint {
+            SpinConstraint::Restricted(n_spin_spaces) => {
+                Ok(ComplexFloat::powi(ov, n_spin_spaces.into()))
+            }
+            _ => Ok(ov),
+        }
+    }
+}
+
+#[derive(Builder, Clone)]
+struct DeterminantSpatialSymmetryOrbit<'a, G, T>
+where
+    G: SymmetryGroupProperties,
+    T: nalgebra::ComplexField + ComplexFloat + fmt::Debug,
+    Determinant<'a, T>: SymmetryTransformable,
+{
+    group: &'a G,
+
+    origin: &'a Determinant<'a, T>,
+
+    #[builder(setter(skip), default = "None")]
+    smat: Option<Array2<T>>,
+
+    #[builder(setter(skip), default = "None")]
+    xmat: Option<Array2<T>>,
+}
+
+impl<'a, G, T> DeterminantSpatialSymmetryOrbit<'a, G, T>
+where
+    G: SymmetryGroupProperties,
+    T: nalgebra::ComplexField + ComplexFloat + fmt::Debug,
+    <T as ComplexFloat>::Real: fmt::Debug + approx::RelativeEq<<T as ComplexFloat>::Real>,
+    Determinant<'a, T>: SymmetryTransformable,
+{
+    fn calc_smat(&mut self) {
+        let order = self.group.order();
+        let mut smat = Array2::<T>::zeros((order, order));
+        self.orbit()
+            .iter()
+            .enumerate()
+            .combinations_with_replacement(2)
+            .for_each(|pair| {
+                let (w, det_w) = pair[0];
+                let (x, det_x) = pair[1];
+                smat[(w, x)] = det_w.overlap(&det_x);
+            });
+    }
+}
+
+impl<'a, G, T> Orbit<G, Determinant<'a, T>> for DeterminantSpatialSymmetryOrbit<'a, G, T>
+where
+    G: SymmetryGroupProperties,
+    T: nalgebra::ComplexField + ComplexFloat + fmt::Debug,
+    Determinant<'a, T>: SymmetryTransformable,
+{
+    type OrbitIntoIter = Vec<Determinant<'a, T>>;
+
+    fn group(&self) -> &G {
+        self.group
+    }
+
+    fn origin(&self) -> &Determinant<'a, T> {
+        self.origin
+    }
+
+    fn orbit(&self) -> Self::OrbitIntoIter {
+        self.group
+            .elements()
+            .clone()
+            .into_iter()
+            .map(|op| self.origin.sym_transform_spatial(&op).unwrap())
+            .collect::<Vec<_>>()
+    }
+}
+
+impl<'a, G, T> RepAnalysis<G, Determinant<'a, T>, T> for DeterminantSpatialSymmetryOrbit<'a, G, T>
+where
+    G: SymmetryGroupProperties,
+    T: nalgebra::ComplexField + ComplexFloat + fmt::Debug,
+    <T as ComplexFloat>::Real: fmt::Debug + Zero + approx::RelativeEq<<T as ComplexFloat>::Real>,
+    Determinant<'a, T>: SymmetryTransformable,
+{
+    fn smat(&self) -> &Array2<T> {
+        self.smat.as_ref().expect("Orbit overlap matrix not found.")
+    }
+
+    fn xmat(&self) -> &Array2<T> {
+        self.xmat
+            .as_ref()
+            .expect("Orbit overlap orthogonalisation matrix not found.")
+    }
+
+    fn tmat(&self, op: &G::GroupElement) -> Array2<T> {
+        let ctb = self
+            .group
+            .cayley_table()
+            .expect("The Cayley table for the group cannot be found.");
+        let i = self.group.get_index_of(op).unwrap_or_else(|| {
+            panic!("Unable to retrieve the index of element `{op}` in the group.")
+        });
+        let order = self.group.order();
+        let mut twx = Array2::<T>::zeros((order, order));
+        for x in 0..order {
+            let ix = ctb[(i, x)];
+            let ixinv = ctb
+                .slice(s![.., ix])
+                .iter()
+                .position(|&z| z == 0)
+                .unwrap_or_else(|| panic!("The inverse of element index `{ix}` cannot be found."));
+
+            for w in 0..order {
+                let ixinv_w = ctb[(ixinv, w)];
+                twx[(w, x)] = self.smat()[(ixinv_w, 0)];
+            }
+        }
+        twx
     }
 }
