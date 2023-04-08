@@ -1,8 +1,8 @@
 use std::error::Error;
 use std::fmt;
 
-use nalgebra::{ComplexField, DMatrix};
-use ndarray::{Array2, Ix0, Ix2, ShapeBuilder};
+use ndarray::{Array2, Ix0, Ix2};
+use ndarray_linalg::{types::Lapack, solve::Inverse};
 use ndarray_einsum_beta::*;
 use num_complex::ComplexFloat;
 
@@ -21,11 +21,11 @@ impl fmt::Display for RepAnalysisError {
 impl Error for RepAnalysisError {}
 
 pub trait Overlap<T> where
-    T: ComplexField + ComplexFloat + fmt::Debug,
+    T: ComplexFloat + fmt::Debug + Lapack,
 {
     fn complex_symmetric(&self) -> bool;
 
-    fn overlap(&self, other: &Self) -> Result<T, RepAnalysisError>;
+    fn overlap(&self, other: &Self, metric: &Array2<T>) -> Result<T, RepAnalysisError>;
 }
 
 
@@ -43,7 +43,7 @@ pub trait Orbit<G, I> where
 
 pub(crate) trait RepAnalysis<G, I, T>: Orbit<G, I>
 where
-    T: ComplexField + ComplexFloat + fmt::Debug,
+    T: ComplexFloat + Lapack + fmt::Debug,
     G: GroupProperties,
     I: Overlap<T>,
     Self::OrbitIntoIter: IntoIterator<Item = I>,
@@ -67,14 +67,7 @@ where
             self.xmat().t().mapv(|x| x.conj())
         };
         let smattilde = xmath.dot(self.smat()).dot(self.xmat());
-        let smattilde_na =
-            DMatrix::from_row_iterator(smattilde.nrows(), smattilde.ncols(), smattilde.into_iter());
-        let smattilde_na_inv = smattilde_na.try_inverse().unwrap();
-        let smattilde_inv = Array2::<T>::from_shape_vec(
-            (smattilde_na_inv.nrows(), smattilde_na_inv.ncols()).f(),
-            smattilde_na_inv.iter().copied().collect::<Vec<_>>(),
-        )
-        .unwrap();
+        let smattilde_inv = smattilde.inv().expect("The inverse of S~ could not be found.");
         let dmat = einsum(
             "ij,jk,kl,lm->im",
             &[&smattilde_inv, &xmath, &self.tmat(op), self.xmat()],
@@ -94,14 +87,7 @@ where
             self.xmat().t().mapv(|x| x.conj())
         };
         let smattilde = xmath.dot(self.smat()).dot(self.xmat());
-        let smattilde_na =
-            DMatrix::from_row_iterator(smattilde.nrows(), smattilde.ncols(), smattilde.into_iter());
-        let smattilde_na_inv = smattilde_na.try_inverse().unwrap();
-        let smattilde_inv = Array2::<T>::from_shape_vec(
-            (smattilde_na_inv.nrows(), smattilde_na_inv.ncols()).f(),
-            smattilde_na_inv.iter().copied().collect::<Vec<_>>(),
-        )
-        .unwrap();
+        let smattilde_inv = smattilde.inv().expect("The inverse of S~ could not be found.");
         let dmat = einsum(
             "ij,jk,kl,li",
             &[&smattilde_inv, &xmath, &self.tmat(op), self.xmat()],
