@@ -7,10 +7,12 @@ use std::panic;
 
 use itertools::Itertools;
 use log;
-use ndarray::{s, Array1, Array2, Axis, LinalgScalar, ShapeBuilder, Zip};
+use ndarray::{s, stack, Array1, Array2, Axis, LinalgScalar, ShapeBuilder, Zip};
 use num_modular::ModularInteger;
 use num_traits::{Inv, Pow, ToPrimitive, Zero};
 use rayon::prelude::*;
+
+use crate::aux::misc::GramSchmidtError;
 
 #[cfg(test)]
 #[path = "modular_linalg_tests.rs"]
@@ -430,26 +432,6 @@ where
         )
 }
 
-#[derive(Debug, Clone)]
-pub struct GramSchmidtError<'a, T> {
-    vecs: &'a [Array1<T>],
-}
-
-impl<'a, T: Display + Debug> fmt::Display for GramSchmidtError<'a, T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(
-            f,
-            "Unable to perform Gram--Schmidt orthogonalisation on:",
-        )?;
-        for vec in self.vecs {
-            writeln!(f, "{vec}")?;
-        }
-        Ok(())
-    }
-}
-
-impl<'a, T: Display + Debug> Error for GramSchmidtError<'a, T> {}
-
 /// Performs Gram--Schmidt orthogonalisation (but not normalisation) on a set of vectors with
 /// respect to the inner product defined in [`self::weighted_hermitian_inprod`].
 ///
@@ -469,7 +451,7 @@ impl<'a, T: Display + Debug> Error for GramSchmidtError<'a, T> {}
 ///
 /// Errors when the orthogonalisation procedure fails, which occurs when there is linear dependency
 /// between the basis vectors.
-fn gram_schmidt<'a, T>(
+fn modular_gram_schmidt<'a, T>(
     vs: &'a [Array1<T>],
     class_sizes: &[usize],
     perm_for_conj: Option<&Vec<usize>>,
@@ -491,8 +473,11 @@ where
         // Project vi onto all uj (0 <= j < i)
         for j in 0..i {
             if Zero::is_zero(&us_sq_norm[j]) {
-                log::warn!("A zero-norm vector found: {}", us[j]);
-                return Err(GramSchmidtError { vecs: vs });
+                log::error!("A zero-norm vector found: {}", us[j]);
+                return Err(GramSchmidtError {
+                    vecs: Some(vs),
+                    mat: None,
+                });
             }
             let p_uj_vi =
                 weighted_hermitian_inprod((vi, &us[j]), class_sizes, perm_for_conj) / us_sq_norm[j];
@@ -602,7 +587,7 @@ where
         vec![Vec::from(vecs)]
     } else {
         // Orthogonalise the subspace basis
-        let ortho_vecs = gram_schmidt(vecs, class_sizes, perm_for_conj).map_err(|err| {
+        let ortho_vecs = modular_gram_schmidt(vecs, class_sizes, perm_for_conj).map_err(|err| {
             log::warn!("{err}");
             SplitSpaceError { mat, vecs }
         })?;

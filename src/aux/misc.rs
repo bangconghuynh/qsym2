@@ -1,7 +1,11 @@
 use std::collections::hash_map::DefaultHasher;
+use std::error::Error;
+use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use itertools::{Itertools, MultiProduct};
+use ndarray::{stack, Array1, Array2, Axis};
+use num_complex::ComplexFloat;
 
 pub trait HashableFloat {
     /// Returns a float rounded after being multiplied by a factor.
@@ -88,3 +92,114 @@ where
 }
 
 impl<T: Iterator + Clone> ProductRepeat for T where T::Item: Clone {}
+
+// =============
+// Gram--Schmidt
+// =============
+
+#[derive(Debug, Clone)]
+pub struct GramSchmidtError<'a, T> {
+    pub mat: Option<&'a Array2<T>>,
+    pub vecs: Option<&'a [Array1<T>]>,
+}
+
+impl<'a, T: fmt::Display + fmt::Debug> fmt::Display for GramSchmidtError<'a, T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "Unable to perform Gram--Schmidt orthogonalisation on:",)?;
+        if let Some(mat) = self.mat {
+            writeln!(f, "{mat}")?;
+        } else if let Some(vecs) = self.vecs {
+            for vec in vecs {
+                writeln!(f, "{vec}")?;
+            }
+        } else {
+            writeln!(f, "Unspecified basis vectors.")?;
+        }
+        Ok(())
+    }
+}
+
+impl<'a, T: fmt::Display + fmt::Debug> Error for GramSchmidtError<'a, T> {}
+
+/// Performs Gram--Schmidt orthonormalisation on a set of column vectors in a matrix with respect
+/// to the complex-symmetric or Hermitian dot product.
+///
+/// # Arguments
+///
+/// * `vmat` - Matrix containing column vectors forming a basis for a subspace.
+/// * `complex_symmetric` - A boolean indicating if the vector dot product is complex-symmetric. If
+/// `false`, the conventional Hermitian dot product is used.
+/// * `thresh` - A threshold for determining self-orthogonal vectors.
+///
+/// # Returns
+///
+/// The orthonormal vectors forming a basis for the same subspace collected as column vectors in a
+/// matrix.
+///
+/// # Errors
+///
+/// Errors when the orthonormalisation procedure fails, which occurs when there is linear dependency
+/// between the basis vectors and/or when self-orthogonal vectors are encountered.
+pub fn complex_gram_schmidt_orthonormalisation<T>(
+    vmat: &Array2<T>,
+    complex_symmetric: bool,
+    thresh: T::Real,
+) -> Result<Array2<T>, GramSchmidtError<T>>
+where
+    T: ComplexFloat + fmt::Display + 'static,
+{
+    let mut us: Vec<Array1<T>> = Vec::with_capacity(vmat.shape()[1]);
+    let mut us_sq_norm: Vec<T> = Vec::with_capacity(vmat.shape()[1]);
+    for (i, vi) in vmat.columns().into_iter().enumerate() {
+        // u[i] now initialised with v[i]
+        us.push(vi.to_owned());
+
+        // Project vi onto all uj (0 <= j < i)
+        for j in 0..i {
+            let p_uj_vi = if complex_symmetric {
+                vi.dot(&us[j]) / us_sq_norm[j]
+            } else {
+                vi.map(|x| x.conj()).dot(&us[j]) / us_sq_norm[j]
+            };
+            us[i] = &us[i] - us[j].map(|&x| x * p_uj_vi);
+        }
+
+        // Evaluate the squared norm of ui which will no longer be changed after this iteration.
+        // us_sq_norm[i] now available.
+        let us_sq_norm_i = if complex_symmetric {
+            us[i].dot(&us[i])
+        } else {
+            us[i].map(|x| x.conj()).dot(&us[i])
+        };
+        if us_sq_norm_i.abs() < thresh {
+            log::error!("A zero-norm vector found: {}", us[i]);
+            return Err(GramSchmidtError {
+                mat: Some(vmat),
+                vecs: None,
+            });
+        }
+        us_sq_norm.push(us_sq_norm_i);
+    }
+
+    // Normalise ui
+    for i in 0..us.len() {
+        us[i].mapv_inplace(|x| x / us_sq_norm[i].sqrt());
+    }
+
+    debug_assert!({
+        us.iter().enumerate().all(|(i, ui)| {
+            us.iter().enumerate().all(|(j, uj)| {
+                let ov_ij = if complex_symmetric {
+                    ui.dot(uj)
+                } else {
+                    ui.map(|x| x.conj()).dot(uj)
+                };
+                i == j || ov_ij.abs() < thresh
+            })
+        })
+    });
+
+    let umat = stack(Axis(1), &us.iter().map(|u| u.view()).collect_vec())
+        .expect("Unable to concatenate the orthogonal vectors into a matrix.");
+    Ok(umat)
+}

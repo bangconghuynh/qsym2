@@ -1,3 +1,4 @@
+use std::ops::Mul;
 use std::cmp::max;
 use std::error::Error;
 use std::fmt;
@@ -6,7 +7,7 @@ use std::iter;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use ndarray::{Array2, ArrayView1};
-use num::Complex;
+use num_complex::{Complex, ComplexFloat};
 use num_traits::{ToPrimitive, Zero};
 
 use crate::chartab::character::Character;
@@ -117,8 +118,9 @@ where
     ) -> fmt::Result;
 }
 
-pub trait SubspaceDecomposable: CharacterTable
+pub trait SubspaceDecomposable<T>: CharacterTable
 where
+    T: ComplexFloat,
     Self::Decomposition: ReducibleLinearSpaceSymbol<Subspace = Self::RowSymbol>,
 {
     type Decomposition;
@@ -135,7 +137,7 @@ where
     /// The decomposition result.
     fn reduce_characters(
         &self,
-        characters: &[(&Self::ColSymbol, Complex<f64>)],
+        characters: &[(&Self::ColSymbol, T)],
         thresh: f64,
     ) -> Result<Self::Decomposition, DecompositionError>;
 }
@@ -509,10 +511,12 @@ where
     }
 }
 
-impl<RowSymbol, ColSymbol> SubspaceDecomposable for RepCharacterTable<RowSymbol, ColSymbol>
+impl<RowSymbol, ColSymbol, T> SubspaceDecomposable<T> for RepCharacterTable<RowSymbol, ColSymbol>
 where
     RowSymbol: LinearSpaceSymbol + PartialOrd,
     ColSymbol: CollectionSymbol,
+    T: ComplexFloat,
+    for <'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
 {
     type Decomposition = DecomposedSymbol<RowSymbol>;
 
@@ -528,7 +532,7 @@ where
     /// The representation as a direct sum of irreducible representations.
     fn reduce_characters(
         &self,
-        characters: &[(&Self::ColSymbol, Complex<f64>)],
+        characters: &[(&Self::ColSymbol, T)],
         thresh: f64,
     ) -> Result<Self::Decomposition, DecompositionError> {
         assert_eq!(characters.len(), self.classes.len());
@@ -988,10 +992,12 @@ where
     }
 }
 
-impl<RowSymbol, UC> SubspaceDecomposable for CorepCharacterTable<RowSymbol, UC>
+impl<RowSymbol, UC, T> SubspaceDecomposable<T> for CorepCharacterTable<RowSymbol, UC>
 where
     RowSymbol: ReducibleLinearSpaceSymbol + PartialOrd,
     UC: CharacterTable,
+    T: ComplexFloat,
+    for <'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
 {
     type Decomposition = DecomposedSymbol<RowSymbol>;
 
@@ -1007,7 +1013,7 @@ where
     /// The corepresentation as a direct sum of irreducible corepresentations.
     fn reduce_characters(
         &self,
-        characters: &[(&Self::ColSymbol, Complex<f64>)],
+        characters: &[(&Self::ColSymbol, T)],
         thresh: f64,
     ) -> Result<Self::Decomposition, DecompositionError> {
         assert_eq!(characters.len(), self.classes.len());

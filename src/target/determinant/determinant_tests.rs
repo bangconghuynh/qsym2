@@ -6,7 +6,7 @@ use ndarray_linalg::assert_close_l2;
 use num_complex::Complex;
 use num_traits::Pow;
 
-use crate::analysis::{Orbit, Overlap};
+use crate::analysis::{Overlap, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::aux::atom::{Atom, ElementMap};
@@ -17,6 +17,7 @@ use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, TimeReversalTransformable};
 use crate::target::determinant::SlaterDeterminant;
+use crate::target::determinant::determinant_analysis::SlaterDeterminantSpatialSymmetryOrbit;
 
 type C128 = Complex<f64>;
 
@@ -1090,4 +1091,200 @@ fn test_determinant_analysis_overlap() {
             }
         });
     assert_close_l2!(&smat_cg, &smat_c_ref, 1e-7);
+}
+
+#[test]
+fn test_determinant_orbit_mat_s4_sqpl_s() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_s0 = Atom::from_xyz("S +1.0 +1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s1 = Atom::from_xyz("S -1.0 +1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s2 = Atom::from_xyz("S -1.0 -1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s3 = Atom::from_xyz("S +1.0 -1.0 0.0", &emap, 1e-7).unwrap();
+
+    let bss_p = BasisShell::new(0, ShellOrder::Pure(true));
+
+    let batm_s0 = BasisAtom::new(&atm_s0, &[bss_p.clone()]);
+    let batm_s1 = BasisAtom::new(&atm_s1, &[bss_p.clone()]);
+    let batm_s2 = BasisAtom::new(&atm_s2, &[bss_p.clone()]);
+    let batm_s3 = BasisAtom::new(&atm_s3, &[bss_p.clone()]);
+
+    let bao_s4 = BasisAngularOrder::new(&[batm_s0, batm_s1, batm_s2, batm_s3]);
+    let mol_s4 = Molecule::from_atoms(
+        &[
+            atm_s0.clone(),
+            atm_s1.clone(),
+            atm_s2.clone(),
+            atm_s3.clone(),
+        ],
+        1e-7,
+    )
+    .recentre();
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_s4, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+
+    #[rustfmt::skip]
+    let calpha = array![
+        [1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+    ];
+    #[rustfmt::skip]
+    let cbeta = array![
+        [1.0],
+        [0.0],
+        [0.0],
+        [0.0],
+    ];
+    let oalpha = array![1.0];
+    let obeta = array![1.0];
+    let det = SlaterDeterminant::<f64>::new(
+        &[calpha.clone(), cbeta.clone()],
+        &[oalpha.clone(), obeta.clone()],
+        &bao_s4,
+        &mol_s4,
+        SpinConstraint::Unrestricted(2, false),
+        false,
+        1e-14,
+    );
+
+    let mut orbit = SlaterDeterminantSpatialSymmetryOrbit::builder()
+        .group(&group)
+        .origin(&det)
+        .build()
+        .unwrap();
+
+    let sao = Array2::<f64>::eye(4);
+    orbit.calc_smat(&sao).calc_xmat(false);
+    let smat = orbit.smat.as_ref().unwrap().clone();
+    let xmat = orbit.xmat.as_ref().unwrap();
+
+    let os = xmat.t().dot(&smat).dot(xmat);
+    assert_eq!(os.shape(), &[4, 4]);
+    assert_close_l2!(&os, &Array2::<f64>::eye(os.shape()[0]), 1e-7);
+
+    let det_c = SlaterDeterminant::<C128>::from(det.clone());
+    let sao_c = sao.mapv(|x| C128::from(x));
+    let mut orbit_c = SlaterDeterminantSpatialSymmetryOrbit::builder()
+        .group(&group)
+        .origin(&det_c)
+        .build()
+        .unwrap();
+    orbit_c.calc_smat(&sao_c).calc_xmat(false);
+    let smat_c = orbit_c.smat.as_ref().unwrap().clone();
+    let xmat_c = orbit_c.xmat.as_ref().unwrap();
+
+    let os_c = xmat_c.t().mapv(|x| x.conj()).dot(&smat_c).dot(xmat_c);
+    assert_eq!(os_c.shape(), &[4, 4]);
+    assert_close_l2!(&os_c, &Array2::<C128>::eye(os.shape()[0]), 1e-7);
+
+    assert_close_l2!(&os.map(|x| C128::from(x)), &os_c, 1e-7);
+
+    orbit.analyse_rep();
+}
+
+#[test]
+fn test_determinant_orbit_mat_s4_sqpl_pz() {
+    // env_logger::init();
+    let emap = ElementMap::new();
+    let atm_s0 = Atom::from_xyz("S +1.0 +1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s1 = Atom::from_xyz("S -1.0 +1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s2 = Atom::from_xyz("S -1.0 -1.0 0.0", &emap, 1e-7).unwrap();
+    let atm_s3 = Atom::from_xyz("S +1.0 -1.0 0.0", &emap, 1e-7).unwrap();
+
+    let bsp_p = BasisShell::new(1, ShellOrder::Pure(true));
+
+    let batm_s0 = BasisAtom::new(&atm_s0, &[bsp_p.clone()]);
+    let batm_s1 = BasisAtom::new(&atm_s1, &[bsp_p.clone()]);
+    let batm_s2 = BasisAtom::new(&atm_s2, &[bsp_p.clone()]);
+    let batm_s3 = BasisAtom::new(&atm_s3, &[bsp_p.clone()]);
+
+    let bao_s4 = BasisAngularOrder::new(&[batm_s0, batm_s1, batm_s2, batm_s3]);
+    let mol_s4 = Molecule::from_atoms(
+        &[
+            atm_s0.clone(),
+            atm_s1.clone(),
+            atm_s2.clone(),
+            atm_s3.clone(),
+        ],
+        1e-7,
+    )
+    .recentre();
+
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_s4, true)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+
+    #[rustfmt::skip]
+    let calpha = array![
+        [1.0], [0.0], [0.0],
+        [0.0], [0.0], [0.0],
+        [0.0], [0.0], [0.0],
+        [0.0], [0.0], [0.0],
+    ];
+    #[rustfmt::skip]
+    let cbeta = array![
+        [1.0], [0.0], [0.0],
+        [0.0], [0.0], [0.0],
+        [0.0], [0.0], [0.0],
+        [0.0], [0.0], [0.0],
+    ];
+    let oalpha = array![1.0];
+    let obeta = array![0.0];
+    let det = SlaterDeterminant::<f64>::new(
+        &[calpha.clone(), cbeta.clone()],
+        &[oalpha.clone(), obeta.clone()],
+        &bao_s4,
+        &mol_s4,
+        SpinConstraint::Unrestricted(2, false),
+        false,
+        1e-14,
+    );
+
+    let mut orbit = SlaterDeterminantSpatialSymmetryOrbit::builder()
+        .group(&group)
+        .origin(&det)
+        .build()
+        .unwrap();
+
+    let sao = Array2::<f64>::eye(12);
+    orbit.calc_smat(&sao).calc_xmat(false);
+    let smat = orbit.smat.as_ref().unwrap().clone();
+    let xmat = orbit.xmat.as_ref().unwrap();
+
+    let os = xmat.t().dot(&smat).dot(xmat);
+    // assert_eq!(os.shape(), &[4, 4]);
+    assert_close_l2!(&os, &Array2::<f64>::eye(os.shape()[0]), 1e-7);
+
+    let det_c = SlaterDeterminant::<C128>::from(det.clone());
+    let sao_c = sao.mapv(|x| C128::from(x));
+    let mut orbit_c = SlaterDeterminantSpatialSymmetryOrbit::builder()
+        .group(&group)
+        .origin(&det_c)
+        .build()
+        .unwrap();
+    orbit_c.calc_smat(&sao_c).calc_xmat(false);
+    let smat_c = orbit_c.smat.as_ref().unwrap().clone();
+    let xmat_c = orbit_c.xmat.as_ref().unwrap();
+
+    let os_c = xmat_c.t().mapv(|x| x.conj()).dot(&smat_c).dot(xmat_c);
+    // assert_eq!(os_c.shape(), &[4, 4]);
+    assert_close_l2!(&os_c, &Array2::<C128>::eye(os.shape()[0]), 1e-7);
+
+    assert_close_l2!(&os.map(|x| C128::from(x)), &os_c, 1e-7);
+
+    orbit.analyse_rep();
 }
