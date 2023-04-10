@@ -1187,8 +1187,6 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
     assert_close_l2!(&os_c, &Array2::<C128>::eye(os.shape()[0]), 1e-7);
 
     assert_close_l2!(&os.map(|x| C128::from(x)), &os_c, 1e-7);
-
-    orbit.analyse_rep();
 }
 
 #[test]
@@ -1286,5 +1284,6 @@ fn test_determinant_orbit_mat_s4_sqpl_pz() {
 
     assert_close_l2!(&os.map(|x| C128::from(x)), &os_c, 1e-7);
 
-    orbit.analyse_rep();
+    println!("{}", orbit.analyse_rep().unwrap());
+    println!("{}", orbit_c.analyse_rep().unwrap());
 }

@@ -5,7 +5,7 @@ use std::ops::Mul;
 use approx;
 use derive_builder::Builder;
 use itertools::{izip, Itertools};
-use ndarray::{s, Array2, Axis};
+use ndarray::{Array2, Axis};
 use ndarray_linalg::{
     assert_close_l2,
     eig::Eig,
@@ -35,17 +35,50 @@ where
         + ComplexFloat<Real = <T as Scalar>::Real>
         + fmt::Debug
         + Mul<<T as ComplexFloat>::Real, Output = T>,
-    <T as ComplexFloat>::Real: fmt::Debug + approx::RelativeEq<<T as ComplexFloat>::Real>,
+    <T as ComplexFloat>::Real: fmt::Debug
+        + approx::RelativeEq<<T as ComplexFloat>::Real>
+        + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
 {
     fn complex_symmetric(&self) -> bool {
         self.complex_symmetric
     }
 
     fn overlap(&self, other: &Self, metric: &Array2<T>) -> Result<T, RepAnalysisError> {
-        assert_eq!(self.spin_constraint, other.spin_constraint);
-        assert_eq!(self.coefficients.len(), other.coefficients.len());
-        let sao = metric;
+        assert_eq!(
+            self.spin_constraint, other.spin_constraint,
+            "Inconsistent spin constraints between `self` and `other`."
+        );
+        assert_eq!(
+            self.coefficients.len(),
+            other.coefficients.len(),
+            "Inconsistent numbers of coefficient matrices between `self` and `other`."
+        );
+
         let thresh = Float::sqrt(self.threshold * other.threshold);
+        assert!(self
+            .occupations
+            .iter()
+            .all(|occs| occs.iter().all(|&occ| approx::relative_eq!(
+                occ,
+                occ.round(),
+                epsilon = thresh,
+                max_relative = thresh
+            ))),
+            "`self` contains fractional occupation numbers. Overlaps between determinants with fractional occupation numbers are currently not supported."
+        );
+        assert!(other
+            .occupations
+            .iter()
+            .all(|occs| occs.iter().all(|&occ| approx::relative_eq!(
+                occ,
+                occ.round(),
+                epsilon = thresh,
+                max_relative = thresh
+            ))),
+            "`other` contains fractional occupation numbers. Overlaps between determinants with fractional occupation numbers are currently not supported."
+        );
+
+        let sao = metric;
 
         let ov = izip!(
             &self.coefficients,
@@ -56,15 +89,9 @@ where
         .map(|(cw, occw, cx, occx)| {
             let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
             let cw_o = cw.select(Axis(1), &nonzero_occ_w);
-
             let nonzero_occ_x = occx.iter().positions(|&occ| occ > thresh).collect_vec();
             let cx_o = cx.select(Axis(1), &nonzero_occ_x);
-            // let cw_o = cw.dot(&Array2::from_diag(
-            //     &occw.mapv(|x| T::from_real(Float::sqrt(x))),
-            // ));
-            // let cx_o = cx.dot(&Array2::from_diag(
-            //     &occx.mapv(|x| T::from_real(Float::sqrt(x))),
-            // ));
+
             let mo_ov_mat = if self.complex_symmetric() {
                 cw_o.t().dot(sao).dot(&cx_o)
             } else {
@@ -85,6 +112,14 @@ where
     }
 }
 
+// =====================================
+// SlaterDeterminantSpatialSymmetryOrbit
+// =====================================
+
+// -----------------
+// Struct definition
+// -----------------
+
 #[derive(Builder, Clone)]
 pub struct SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
 where
@@ -102,6 +137,10 @@ where
     #[builder(setter(skip), default = "None")]
     pub xmat: Option<Array2<T>>,
 }
+
+// ----------------------------
+// Struct method implementation
+// ----------------------------
 
 impl<'a, G, T> SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
 where
@@ -224,6 +263,14 @@ where
     }
 }
 
+// ---------------------
+// Trait implementations
+// ---------------------
+
+// ~~~~~
+// Orbit
+// ~~~~~
+
 impl<'a, G, T> Orbit<G, SlaterDeterminant<'a, T>>
     for SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
 where
@@ -251,6 +298,10 @@ where
     }
 }
 
+// ~~~~~~~~~~~
+// RepAnalysis
+// ~~~~~~~~~~~
+
 impl<'a, G, T> RepAnalysis<G, SlaterDeterminant<'a, T>, T>
     for SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
 where
@@ -260,7 +311,10 @@ where
         + ComplexFloat<Real = <T as Scalar>::Real>
         + fmt::Debug
         + Mul<<T as ComplexFloat>::Real, Output = T>,
-    <T as ComplexFloat>::Real: fmt::Debug + Zero + approx::RelativeEq<<T as ComplexFloat>::Real>,
+    <T as ComplexFloat>::Real: fmt::Debug
+        + Zero
+        + approx::RelativeEq<<T as ComplexFloat>::Real>
+        + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
     SlaterDeterminant<'a, T>: SymmetryTransformable,
 {
     fn smat(&self) -> &Array2<T> {
@@ -271,31 +325,5 @@ where
         self.xmat
             .as_ref()
             .expect("Orbit overlap orthogonalisation matrix not found.")
-    }
-
-    fn tmat(&self, op: &G::GroupElement) -> Array2<T> {
-        let ctb = self
-            .group
-            .cayley_table()
-            .expect("The Cayley table for the group cannot be found.");
-        let i = self.group.get_index_of(op).unwrap_or_else(|| {
-            panic!("Unable to retrieve the index of element `{op}` in the group.")
-        });
-        let order = self.group.order();
-        let mut twx = Array2::<T>::zeros((order, order));
-        for x in 0..order {
-            let ix = ctb[(i, x)];
-            let ixinv = ctb
-                .slice(s![.., ix])
-                .iter()
-                .position(|&z| z == 0)
-                .unwrap_or_else(|| panic!("The inverse of element index `{ix}` cannot be found."));
-
-            for w in 0..order {
-                let ixinv_w = ctb[(ixinv, w)];
-                twx[(w, x)] = self.smat()[(ixinv_w, 0)];
-            }
-        }
-        twx
     }
 }

@@ -36,7 +36,7 @@ where
     bao: &'a BasisAngularOrder<'a>,
 
     /// A boolean indicating if inner products involving this determinant should be the
-    /// complex-symmetric bilinear form, rather than the conventional hermitian sesquilinear form.
+    /// complex-symmetric bilinear form, rather than the conventional Hermitian sesquilinear form.
     complex_symmetric: bool,
 
     /// The associated molecule.
