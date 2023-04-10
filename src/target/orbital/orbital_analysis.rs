@@ -4,13 +4,12 @@ use std::ops::Mul;
 
 use approx;
 use derive_builder::Builder;
-use itertools::{izip, Itertools};
+use itertools::Itertools;
 use ndarray::{Array2, Axis};
 use ndarray_linalg::{
     assert_close_l2,
     eig::Eig,
     eigh::Eigh,
-    solve::Determinant,
     types::{Lapack, Scalar},
     UPLO,
 };
@@ -18,18 +17,17 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, Zero};
 
 use crate::analysis::{Orbit, Overlap, RepAnalysis, RepAnalysisError};
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::misc::complex_gram_schmidt_orthonormalisation;
 use crate::chartab::SubspaceDecomposable;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::SymmetryTransformable;
-use crate::target::determinant::SlaterDeterminant;
+use crate::target::orbital::MolecularOrbital;
 
 // -------
 // Overlap
 // -------
 
-impl<'a, T> Overlap<T> for SlaterDeterminant<'a, T>
+impl<'a, T> Overlap<T> for MolecularOrbital<'a, T>
 where
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>
@@ -55,81 +53,36 @@ where
         );
 
         let thresh = Float::sqrt(self.threshold * other.threshold);
-        assert!(self
-            .occupations
-            .iter()
-            .all(|occs| occs.iter().all(|&occ| approx::relative_eq!(
-                occ,
-                occ.round(),
-                epsilon = thresh,
-                max_relative = thresh
-            ))),
-            "`self` contains fractional occupation numbers. Overlaps between determinants with fractional occupation numbers are currently not supported."
-        );
-        assert!(other
-            .occupations
-            .iter()
-            .all(|occs| occs.iter().all(|&occ| approx::relative_eq!(
-                occ,
-                occ.round(),
-                epsilon = thresh,
-                max_relative = thresh
-            ))),
-            "`other` contains fractional occupation numbers. Overlaps between determinants with fractional occupation numbers are currently not supported."
-        );
 
         let sao = metric;
 
-        let ov = izip!(
-            &self.coefficients,
-            &self.occupations,
-            &other.coefficients,
-            &other.occupations
-        )
-        .map(|(cw, occw, cx, occx)| {
-            let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
-            let cw_o = cw.select(Axis(1), &nonzero_occ_w);
-            let nonzero_occ_x = occx.iter().positions(|&occ| occ > thresh).collect_vec();
-            let cx_o = cx.select(Axis(1), &nonzero_occ_x);
-
-            let mo_ov_mat = if self.complex_symmetric() {
-                cw_o.t().dot(sao).dot(&cx_o)
-            } else {
-                cw_o.t().mapv(|x| x.conj()).dot(sao).dot(&cx_o)
-            };
-            mo_ov_mat
-                .det()
-                .expect("The determinant of the MO overlap matrix could not be found.")
-        })
-        .fold(T::one(), |acc, x| acc * x);
-
-        match self.spin_constraint {
-            SpinConstraint::Restricted(n_spin_spaces) => {
-                Ok(ComplexFloat::powi(ov, n_spin_spaces.into()))
-            }
-            _ => Ok(ov),
-        }
+        let ov = if self.complex_symmetric() {
+            self.coefficients.t().dot(sao).dot(&other.coefficients)
+        } else {
+            self.coefficients.t().mapv(|x| x.conj()).dot(sao).dot(&other.coefficients)
+        };
+        Ok(ov)
     }
 }
 
-// =====================================
-// SlaterDeterminantSpatialSymmetryOrbit
-// =====================================
+// ====================================
+// MolecularOrbitalSpatialSymmetryOrbit
+// ====================================
 
 // -----------------
 // Struct definition
 // -----------------
 
 #[derive(Builder, Clone)]
-pub struct SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
+pub struct MolecularOrbitalSpatialSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    MolecularOrbital<'a, T>: SymmetryTransformable,
 {
     group: &'a G,
 
-    origin: &'a SlaterDeterminant<'a, T>,
+    origin: &'a MolecularOrbital<'a, T>,
 
     #[builder(setter(skip), default = "None")]
     pub smat: Option<Array2<T>>,
@@ -142,18 +95,18 @@ where
 // Struct method implementation
 // ----------------------------
 
-impl<'a, G, T> SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
+impl<'a, G, T> MolecularOrbitalSpatialSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    MolecularOrbital<'a, T>: SymmetryTransformable,
 {
-    pub fn builder() -> SlaterDeterminantSpatialSymmetryOrbitBuilder<'a, G, T> {
-        SlaterDeterminantSpatialSymmetryOrbitBuilder::default()
+    pub fn builder() -> MolecularOrbitalSpatialSymmetryOrbitBuilder<'a, G, T> {
+        MolecularOrbitalSpatialSymmetryOrbitBuilder::default()
     }
 }
 
-impl<'a, G> SlaterDeterminantSpatialSymmetryOrbit<'a, G, f64>
+impl<'a, G> MolecularOrbitalSpatialSymmetryOrbit<'a, G, f64>
 where
     G: SymmetryGroupProperties,
 {
@@ -181,12 +134,12 @@ where
     }
 }
 
-impl<'a, G, T> SlaterDeterminantSpatialSymmetryOrbit<'a, G, Complex<T>>
+impl<'a, G, T> MolecularOrbitalSpatialSymmetryOrbit<'a, G, Complex<T>>
 where
     G: SymmetryGroupProperties,
     T: Float + Scalar<Complex = Complex<T>>,
     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
-    SlaterDeterminant<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>>,
+    MolecularOrbital<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>>,
 {
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) {
         // Complex S, symmetric or Hermitian
@@ -236,20 +189,20 @@ where
 // Orbit
 // ~~~~~
 
-impl<'a, G, T> Orbit<G, SlaterDeterminant<'a, T>>
-    for SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
+impl<'a, G, T> Orbit<G, MolecularOrbital<'a, T>>
+    for MolecularOrbitalSpatialSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    MolecularOrbital<'a, T>: SymmetryTransformable,
 {
-    type OrbitIntoIter = Vec<SlaterDeterminant<'a, T>>;
+    type OrbitIntoIter = Vec<MolecularOrbital<'a, T>>;
 
     fn group(&self) -> &G {
         self.group
     }
 
-    fn origin(&self) -> &SlaterDeterminant<'a, T> {
+    fn origin(&self) -> &MolecularOrbital<'a, T> {
         self.origin
     }
 
@@ -267,8 +220,8 @@ where
 // RepAnalysis
 // ~~~~~~~~~~~
 
-impl<'a, G, T> RepAnalysis<G, SlaterDeterminant<'a, T>, T>
-    for SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
+impl<'a, G, T> RepAnalysis<G, MolecularOrbital<'a, T>, T>
+    for MolecularOrbitalSpatialSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
     G::CharTab: SubspaceDecomposable<T>,
@@ -280,7 +233,7 @@ where
         + Zero
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
-    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    MolecularOrbital<'a, T>: SymmetryTransformable,
 {
     fn set_smat(&mut self, smat: Array2<T>) {
         self.smat = Some(smat)

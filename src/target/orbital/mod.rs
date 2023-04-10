@@ -15,8 +15,8 @@ use crate::aux::molecule::Molecule;
 // #[cfg(test)]
 // mod determinant_tests;
 
-// mod determinant_analysis;
-// mod determinant_transformation;
+mod orbital_analysis;
+mod orbital_transformation;
 
 // ==================
 // Struct definitions

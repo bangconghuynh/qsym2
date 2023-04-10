@@ -13,12 +13,12 @@ use crate::symmetry::symmetry_transformation::{
     SpatialUnitaryTransformable, SpinUnitaryTransformable, SymmetryTransformable,
     TimeReversalTransformable, TransformationError,
 };
-use crate::target::determinant::SlaterDeterminant;
+use crate::target::orbital::MolecularOrbital;
 
 // ---------------------------
 // SpatialUnitaryTransformable
 // ---------------------------
-impl<'a, T> SpatialUnitaryTransformable for SlaterDeterminant<'a, T>
+impl<'a, T> SpatialUnitaryTransformable for MolecularOrbital<'a, T>
 where
     T: ComplexFloat + LinalgScalar + ScalarOperand + Copy + Lapack,
     f64: Into<T>,
@@ -37,75 +37,78 @@ where
         } else {
             self.bao.clone()
         };
-        let new_coefficients = self
-            .coefficients
-            .iter()
-            .map(|old_coeff| match self.spin_constraint {
-                SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
-                    let p_coeff = if let Some(p) = perm {
-                        permute_array_by_atoms(old_coeff, p, &[Axis(0)], &self.bao)
-                    } else {
-                        old_coeff.clone()
-                    };
-                    let t_p_blocks = pbao
-                        .shell_boundary_indices()
-                        .into_iter()
-                        .zip(tmats.iter())
-                        .map(|((shl_start, shl_end), tmat)| {
-                            tmat.dot(&p_coeff.slice(s![shl_start..shl_end, ..]))
-                        })
-                        .collect::<Vec<_>>();
-                    concatenate(
+        let old_coeff = &self.coefficients;
+        let new_coefficients = match self.spin_constraint {
+            SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
+                let p_coeff = if let Some(p) = perm {
+                    permute_array_by_atoms(old_coeff, p, &[Axis(0)], &self.bao)
+                } else {
+                    old_coeff.clone()
+                };
+                let t_p_blocks = pbao
+                    .shell_boundary_indices()
+                    .into_iter()
+                    .zip(tmats.iter())
+                    .map(|((shl_start, shl_end), tmat)| {
+                        tmat.dot(&p_coeff.slice(s![shl_start..shl_end]))
+                    })
+                    .collect::<Vec<_>>();
+                concatenate(
+                    Axis(0),
+                    &t_p_blocks
+                        .iter()
+                        .map(|t_p_block| t_p_block.view())
+                        .collect::<Vec<_>>(),
+                )
+                .expect("Unable to concatenate the transformed rows for the various shells.")
+            }
+            SpinConstraint::Generalised(nspins, _) => {
+                let nspatial = self.bao.n_funcs();
+                let t_p_spin_blocks =
+                    (0..nspins)
+                        .map(|ispin| {
+                            // Extract spin block ispin.
+                            let spin_start = usize::from(ispin) * nspatial;
+                            let spin_end = (usize::from(ispin) + 1) * nspatial;
+                            let spin_block = old_coeff.slice(s![spin_start..spin_end]).to_owned();
+
+                            // Permute within spin block ispin.
+                            let p_spin_block = if let Some(p) = perm {
+                                permute_array_by_atoms(&spin_block, p, &[Axis(0)], &self.bao)
+                            } else {
+                                spin_block
+                            };
+
+                            // Transform within spin block ispin.
+                            let t_p_blocks = pbao
+                                .shell_boundary_indices()
+                                .into_iter()
+                                .zip(tmats.iter())
+                                .map(|((shl_start, shl_end), tmat)| {
+                                    tmat.dot(&p_spin_block.slice(s![shl_start..shl_end]))
+                                })
+                                .collect::<Vec<_>>();
+
+                            // Concatenate blocks for various shells within spin block ispin.
+                            concatenate(
                         Axis(0),
                         &t_p_blocks.iter().map(|t_p_block| t_p_block.view()).collect::<Vec<_>>(),
                     )
                     .expect("Unable to concatenate the transformed rows for the various shells.")
-                }
-                SpinConstraint::Generalised(nspins, _) => {
-                    let nspatial = self.bao.n_funcs();
-                    let t_p_spin_blocks = (0..nspins).map(|ispin| {
-                        // Extract spin block ispin.
-                        let spin_start = usize::from(ispin) * nspatial;
-                        let spin_end = (usize::from(ispin) + 1) * nspatial;
-                        let spin_block = old_coeff.slice(s![spin_start..spin_end, ..]).to_owned();
+                        })
+                        .collect::<Vec<_>>();
 
-                        // Permute within spin block ispin.
-                        let p_spin_block = if let Some(p) = perm {
-                            permute_array_by_atoms(&spin_block, p, &[Axis(0)], &self.bao)
-                        } else {
-                            spin_block
-                        };
-
-                        // Transform within spin block ispin.
-                        let t_p_blocks = pbao
-                            .shell_boundary_indices()
-                            .into_iter()
-                            .zip(tmats.iter())
-                            .map(|((shl_start, shl_end), tmat)| {
-                                tmat.dot(&p_spin_block.slice(s![shl_start..shl_end, ..]))
-                            })
-                            .collect::<Vec<_>>();
-
-                        // Concatenate blocks for various shells within spin block ispin.
-                        concatenate(
-                            Axis(0),
-                            &t_p_blocks.iter().map(|t_p_block| t_p_block.view()).collect::<Vec<_>>(),
-                        )
-                        .expect("Unable to concatenate the transformed rows for the various shells.")
-                    }).collect::<Vec<_>>();
-
-                    // Concatenate spin blocks.
-                    concatenate(
-                        Axis(0),
-                        &t_p_spin_blocks
-                            .iter()
-                            .map(|t_p_spin_block| t_p_spin_block.view())
-                            .collect::<Vec<_>>(),
-                    )
-                    .expect("Unable to concatenate the transformed spin blocks.")
-                }
-            })
-            .collect::<Vec<Array2<T>>>();
+                // Concatenate spin blocks.
+                concatenate(
+                    Axis(0),
+                    &t_p_spin_blocks
+                        .iter()
+                        .map(|t_p_spin_block| t_p_spin_block.view())
+                        .collect::<Vec<_>>(),
+                )
+                .expect("Unable to concatenate the transformed spin blocks.")
+            }
+        };
         self.coefficients = new_coefficients;
         self
     }
@@ -115,11 +118,11 @@ where
 // SpinUnitaryTransformable
 // ------------------------
 
-// ~~~~~~~~~~~~~~~~~~~~~
-// For real determinants
-// ~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~
+// For real orbitals
+// ~~~~~~~~~~~~~~~~~
 
-impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
+impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
     /// Performs a spin transformation in-place.
     ///
     /// # Arguments
@@ -167,9 +170,7 @@ impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
                         max_relative = 1e-14,
                     ) {
                         // Negative identity spin rotation
-                        self.coefficients
-                            .iter_mut()
-                            .for_each(|coeff| *coeff *= -1.0);
+                        self.coefficients *= -1.0;
                         Ok(self)
                     } else {
                         log::error!("Unsupported spin transformation matrix:\n{}", &rdmat);
@@ -210,9 +211,7 @@ impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
                         max_relative = 1e-14,
                     ) {
                         // Negative identity spin rotation
-                        self.coefficients
-                            .iter_mut()
-                            .for_each(|coeff| *coeff = -coeff.clone());
+                        self.coefficients *= -1.0;
                         Ok(self)
                     } else if approx::relative_eq!(
                         (&rdmat - &dmat_y).map(|x| x.abs().powi(2)).sum().sqrt(),
@@ -221,15 +220,23 @@ impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
                         max_relative = 1e-14,
                     ) {
                         // π-rotation about y-axis, effectively spin-flip
-                        let new_coefficients = if increasingm {
-                            vec![self.coefficients[1].clone(), -self.coefficients[0].clone()]
+                        if increasingm {
+                            if self.spin_index == 0 {
+                                self.spin_index = 1;
+                                self.coefficients *= -1.0;
+                            } else {
+                                assert_eq!(self.spin_index, 1);
+                                self.spin_index = 0;
+                            }
                         } else {
-                            vec![-self.coefficients[1].clone(), self.coefficients[0].clone()]
-                        };
-                        let new_occupations =
-                            vec![self.occupations[1].clone(), self.occupations[0].clone()];
-                        self.coefficients = new_coefficients;
-                        self.occupations = new_occupations;
+                            if self.spin_index == 0 {
+                                self.spin_index = 1;
+                            } else {
+                                assert_eq!(self.spin_index, 1);
+                                self.spin_index = 0;
+                                self.coefficients *= -1.0;
+                            }
+                        }
                         Ok(self)
                     } else if approx::relative_eq!(
                         (&rdmat + &dmat_y).map(|x| x.abs().powi(2)).sum().sqrt(),
@@ -238,15 +245,23 @@ impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
                         max_relative = 1e-14,
                     ) {
                         // 3π-rotation about y-axis, effectively negative spin-flip
-                        let new_coefficients = if increasingm {
-                            vec![-self.coefficients[1].clone(), self.coefficients[0].clone()]
+                        if increasingm {
+                            if self.spin_index == 0 {
+                                self.spin_index = 1;
+                            } else {
+                                assert_eq!(self.spin_index, 1);
+                                self.spin_index = 0;
+                                self.coefficients *= -1.0;
+                            }
                         } else {
-                            vec![self.coefficients[1].clone(), -self.coefficients[0].clone()]
-                        };
-                        let new_occupations =
-                            vec![self.occupations[1].clone(), self.occupations[0].clone()];
-                        self.coefficients = new_coefficients;
-                        self.occupations = new_occupations;
+                            if self.spin_index == 0 {
+                                self.spin_index = 1;
+                                self.coefficients *= -1.0;
+                            } else {
+                                assert_eq!(self.spin_index, 1);
+                                self.spin_index = 0;
+                            }
+                        }
                         Ok(self)
                     } else {
                         log::error!("Unsupported spin transformation matrix:\n{rdmat}");
@@ -265,29 +280,24 @@ impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
                     }
 
                     let nspatial = self.bao.n_funcs();
-                    let new_coefficients = self
-                        .coefficients
-                        .iter()
-                        .map(|old_coeff| {
-                            if !increasingm {
-                                let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
-                                let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
-                                let t_a_coeff = &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
-                                let t_b_coeff = &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
-                                concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
-                                    "Unable to concatenate the transformed rows for the various shells.",
-                                )
-                            } else {
-                                let b_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
-                                let a_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
-                                let t_a_coeff = &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
-                                let t_b_coeff = &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
-                                concatenate(Axis(0), &[t_b_coeff.view(), t_a_coeff.view()]).expect(
-                                    "Unable to concatenate the transformed rows for the various shells.",
-                                )
-                            }
-                        })
-                        .collect::<Vec<Array2<f64>>>();
+                    let old_coeff = &self.coefficients;
+                    let new_coefficients = if increasingm {
+                        let b_coeff = old_coeff.slice(s![0..nspatial]).to_owned();
+                        let a_coeff = old_coeff.slice(s![nspatial..2 * nspatial]).to_owned();
+                        let t_a_coeff = &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
+                        let t_b_coeff = &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
+                        concatenate(Axis(0), &[t_b_coeff.view(), t_a_coeff.view()]).expect(
+                            "Unable to concatenate the transformed rows for the various shells.",
+                        )
+                    } else {
+                        let a_coeff = old_coeff.slice(s![0..nspatial]).to_owned();
+                        let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial]).to_owned();
+                        let t_a_coeff = &a_coeff * rdmat[[0, 0]] + &b_coeff * rdmat[[0, 1]];
+                        let t_b_coeff = &a_coeff * rdmat[[1, 0]] + &b_coeff * rdmat[[1, 1]];
+                        concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
+                            "Unable to concatenate the transformed rows for the various shells.",
+                        )
+                    };
                     self.coefficients = new_coefficients;
                     Ok(self)
                 }
@@ -300,7 +310,7 @@ impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
 // For complex determinants
 // ~~~~~~~~~~~~~~~~~~~~~~~~
 
-impl<'a, T> SpinUnitaryTransformable for SlaterDeterminant<'a, Complex<T>>
+impl<'a, T> SpinUnitaryTransformable for MolecularOrbital<'a, Complex<T>>
 where
     T: Clone,
     Complex<T>: ComplexFloat<Real = T>
@@ -348,9 +358,7 @@ where
                     max_relative = 1e-14,
                 ) {
                     // Negative identity spin rotation
-                    self.coefficients
-                        .iter_mut()
-                        .for_each(|coeff| *coeff = -coeff.clone());
+                    self.coefficients.map_inplace(|x| *x = -*x);
                     Ok(self)
                 } else {
                     log::error!("Unsupported spin transformation matrix:\n{}", dmat);
@@ -394,9 +402,7 @@ where
                     max_relative = 1e-14,
                 ) {
                     // Negative identity spin rotation
-                    self.coefficients
-                        .iter_mut()
-                        .for_each(|coeff| *coeff = -coeff.clone());
+                    self.coefficients.map_inplace(|x| *x = -*x);
                     Ok(self)
                 } else if approx::relative_eq!(
                     (dmat - &dmat_y).map(|x| x.abs().powi(2)).sum().sqrt(),
@@ -405,15 +411,23 @@ where
                     max_relative = 1e-14,
                 ) {
                     // π-rotation about y-axis, effectively spin-flip
-                    let new_coefficients = if increasingm {
-                        vec![self.coefficients[1].clone(), -self.coefficients[0].clone()]
+                    if increasingm {
+                        if self.spin_index == 0 {
+                            self.spin_index = 1;
+                            self.coefficients.map_inplace(|x| *x = -*x);
+                        } else {
+                            assert_eq!(self.spin_index, 1);
+                            self.spin_index = 0;
+                        }
                     } else {
-                        vec![-self.coefficients[1].clone(), self.coefficients[0].clone()]
-                    };
-                    let new_occupations =
-                        vec![self.occupations[1].clone(), self.occupations[0].clone()];
-                    self.coefficients = new_coefficients;
-                    self.occupations = new_occupations;
+                        if self.spin_index == 0 {
+                            self.spin_index = 1;
+                        } else {
+                            assert_eq!(self.spin_index, 1);
+                            self.spin_index = 0;
+                            self.coefficients.map_inplace(|x| *x = -*x);
+                        }
+                    }
                     Ok(self)
                 } else if approx::relative_eq!(
                     (dmat + &dmat_y).map(|x| x.abs().powi(2)).sum().sqrt(),
@@ -422,15 +436,23 @@ where
                     max_relative = 1e-14,
                 ) {
                     // 3π-rotation about y-axis, effectively negative spin-flip
-                    let new_coefficients = if increasingm {
-                        vec![-self.coefficients[1].clone(), self.coefficients[0].clone()]
+                    if increasingm {
+                        if self.spin_index == 0 {
+                            self.spin_index = 1;
+                        } else {
+                            assert_eq!(self.spin_index, 1);
+                            self.spin_index = 0;
+                            self.coefficients.map_inplace(|x| *x = -*x);
+                        }
                     } else {
-                        vec![self.coefficients[1].clone(), -self.coefficients[0].clone()]
-                    };
-                    let new_occupations =
-                        vec![self.occupations[1].clone(), self.occupations[0].clone()];
-                    self.coefficients = new_coefficients;
-                    self.occupations = new_occupations;
+                        if self.spin_index == 0 {
+                            self.spin_index = 1;
+                            self.coefficients.map_inplace(|x| *x = -*x);
+                        } else {
+                            assert_eq!(self.spin_index, 1);
+                            self.spin_index = 0;
+                        }
+                    }
                     Ok(self)
                 } else {
                     log::error!("Unsupported spin transformation matrix:\n{dmat}");
@@ -447,29 +469,24 @@ where
 
                 let nspatial = self.bao.n_funcs();
 
-                let new_coefficients = self
-                    .coefficients
-                    .iter()
-                    .map(|old_coeff| {
-                        if increasingm {
-                            let b_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
-                            let a_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
-                            let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
-                            let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
-                            concatenate(Axis(0), &[t_b_coeff.view(), t_a_coeff.view()]).expect(
-                                "Unable to concatenate the transformed rows for the various shells.",
-                            )
-                        } else {
-                            let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
-                            let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
-                            let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
-                            let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
-                            concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
-                                "Unable to concatenate the transformed rows for the various shells.",
-                            )
-                        }
-                    })
-                    .collect::<Vec<Array2<Complex<T>>>>();
+                let old_coeff = &self.coefficients;
+                let new_coefficients = if increasingm {
+                    let b_coeff = old_coeff.slice(s![0..nspatial]).to_owned();
+                    let a_coeff = old_coeff.slice(s![nspatial..2 * nspatial]).to_owned();
+                    let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
+                    let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
+                    concatenate(Axis(0), &[t_b_coeff.view(), t_a_coeff.view()]).expect(
+                        "Unable to concatenate the transformed rows for the various shells.",
+                    )
+                } else {
+                    let a_coeff = old_coeff.slice(s![0..nspatial]).to_owned();
+                    let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial]).to_owned();
+                    let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
+                    let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
+                    concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
+                        "Unable to concatenate the transformed rows for the various shells.",
+                    )
+                };
                 self.coefficients = new_coefficients;
                 Ok(self)
             }
@@ -481,15 +498,13 @@ where
 // ComplexConjugationTransformable
 // -------------------------------
 
-impl<'a, T> ComplexConjugationTransformable for SlaterDeterminant<'a, T>
+impl<'a, T> ComplexConjugationTransformable for MolecularOrbital<'a, T>
 where
     T: ComplexFloat + Lapack,
 {
     /// Performs a complex conjugation in-place.
     fn transform_cc_mut(&mut self) -> &mut Self {
-        self.coefficients
-            .iter_mut()
-            .for_each(|coeff| coeff.mapv_inplace(|x| x.conj()));
+        self.coefficients.mapv_inplace(|x| x.conj());
         self
     }
 }
@@ -497,10 +512,10 @@ where
 // ---------------------
 // SymmetryTransformable
 // ---------------------
-impl<'a, T> SymmetryTransformable for SlaterDeterminant<'a, T>
+impl<'a, T> SymmetryTransformable for MolecularOrbital<'a, T>
 where
     T: ComplexFloat + Lapack,
-    SlaterDeterminant<'a, T>: SpatialUnitaryTransformable + TimeReversalTransformable,
+    MolecularOrbital<'a, T>: SpatialUnitaryTransformable + TimeReversalTransformable,
 {
     fn sym_permute_sites_spatial(
         &self,

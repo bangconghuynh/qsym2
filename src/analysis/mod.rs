@@ -1,13 +1,13 @@
 use std::error::Error;
 use std::fmt;
 
+use itertools::Itertools;
 use ndarray::{s, Array2, Ix0, Ix2};
 use ndarray_einsum_beta::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
 use num_complex::ComplexFloat;
 
 use crate::chartab::chartab_group::CharacterProperties;
-use crate::chartab::chartab_symbols::ReducibleLinearSpaceSymbol;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::{class::ClassProperties, GroupProperties};
 
@@ -50,21 +50,53 @@ where
     G: GroupProperties + ClassProperties + CharacterProperties,
     G::GroupElement: fmt::Display,
     G::CharTab: SubspaceDecomposable<T>,
-    I: Overlap<T>,
+    I: Overlap<T> + Clone,
     Self::OrbitIntoIter: IntoIterator<Item = I>,
 {
     // ----------------
     // Required methods
     // ----------------
 
+    fn set_smat(&mut self, smat: Array2<T>);
+
+    #[must_use]
     fn smat(&self) -> &Array2<T>;
 
+    #[must_use]
     fn xmat(&self) -> &Array2<T>;
 
     // ----------------
     // Provided methods
     // ----------------
 
+    fn calc_smat(&mut self, metric: &Array2<T>) -> &mut Self {
+        let order = self.group().order();
+        let mut smat = Array2::<T>::zeros((order, order));
+        self.orbit()
+            .into_iter()
+            .enumerate()
+            .combinations_with_replacement(2)
+            .for_each(|pair| {
+                let (w, item_w) = &pair[0];
+                let (x, item_x) = &pair[1];
+                smat[(*w, *x)] = item_w.overlap(&item_x, metric).unwrap_or_else(|err| {
+                    log::error!("{err}");
+                    panic!("Unable to calculate the overlap between items `{w}` and `{x}` in the orbit.");
+                });
+                if *w != *x {
+                    smat[(*x, *w)] = item_x.overlap(&item_w, metric).unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        panic!(
+                            "Unable to calculate the overlap between items `{x}` and `{w}` in the orbit."
+                        );
+                    });
+                }
+            });
+        self.set_smat(smat);
+        self
+    }
+
+    #[must_use]
     fn tmat(&self, op: &G::GroupElement) -> Array2<T> {
         let ctb = self
             .group()
@@ -167,6 +199,7 @@ where
         chis
     }
 
+    #[must_use]
     fn analyse_rep(
         &self,
     ) -> Result<
