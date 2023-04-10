@@ -3,7 +3,7 @@ use std::iter::Sum;
 
 use approx;
 use derive_builder::Builder;
-use ndarray::{s, Array1, Array2};
+use ndarray::{s, Array1};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
@@ -31,6 +31,8 @@ where
 {
     /// The spin constraint associated with the coefficients describing this molecular orbital.
     spin_constraint: SpinConstraint,
+
+    spin_index: usize,
 
     /// The angular order of the basis functions with respect to which the coefficients are
     /// expressed.
@@ -76,6 +78,7 @@ where
         bao: &'a BasisAngularOrder<'a>,
         mol: &'a Molecule,
         spincons: SpinConstraint,
+        spin_index: usize,
         complex_symmetric: bool,
         thresh: <T as ComplexFloat>::Real,
     ) -> Self {
@@ -84,6 +87,7 @@ where
             .bao(bao)
             .mol(mol)
             .spin_constraint(spincons)
+            .spin_index(spin_index)
             .complex_symmetric(complex_symmetric)
             .threshold(thresh)
             .build()
@@ -92,40 +96,40 @@ where
         mo
     }
 
-    pub fn to_generalised(&self, spin_index: usize) -> Self {
+    pub fn to_generalised(&self) -> Self {
         match self.spin_constraint {
             SpinConstraint::Restricted(n) => {
-                assert!(spin_index < usize::from(n));
                 let nbas = self.bao.n_funcs();
 
                 let cr = &self.coefficients;
                 let mut cg = Array1::<T>::zeros(nbas * usize::from(n));
-                let start = nbas * spin_index;
-                let end = nbas * (spin_index + 1);
+                let start = nbas * self.spin_index;
+                let end = nbas * (self.spin_index + 1);
                 cg.slice_mut(s![start..end]).assign(cr);
                 Self::new(
                     cg,
                     self.bao,
                     self.mol,
                     SpinConstraint::Generalised(n, false),
+                    0,
                     self.complex_symmetric,
                     self.threshold,
                 )
             }
             SpinConstraint::Unrestricted(n, increasingm) => {
-                assert!(spin_index < usize::from(n));
                 let nbas = self.bao.n_funcs();
 
                 let cr = &self.coefficients;
                 let mut cg = Array1::<T>::zeros(nbas * usize::from(n));
-                let start = nbas * spin_index;
-                let end = nbas * (spin_index + 1);
+                let start = nbas * self.spin_index;
+                let end = nbas * (self.spin_index + 1);
                 cg.slice_mut(s![start..end]).assign(cr);
                 Self::new(
                     cg,
                     self.bao,
                     self.mol,
                     SpinConstraint::Generalised(n, increasingm),
+                    0,
                     self.complex_symmetric,
                     self.threshold,
                 )
@@ -154,11 +158,12 @@ where
     fn verify(&self) -> bool {
         let nbas = self.bao.n_funcs();
         let spincons = match self.spin_constraint {
-            SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
-                self.coefficients.shape()[0] == nbas
+            SpinConstraint::Restricted(n) | SpinConstraint::Unrestricted(n, _) => {
+                self.spin_index < usize::from(n) && self.coefficients.shape()[0] == nbas
             }
             SpinConstraint::Generalised(nspins, _) => {
-                self.coefficients.shape()[0].rem_euclid(nbas) == 0
+                self.spin_index == 0
+                    && self.coefficients.shape()[0].rem_euclid(nbas) == 0
                     && self.coefficients.shape()[0].div_euclid(nbas) == usize::from(nspins)
             }
         };
@@ -193,6 +198,7 @@ where
             value.bao,
             value.mol,
             value.spin_constraint,
+            value.spin_index,
             value.complex_symmetric,
             value.threshold,
         )
@@ -218,6 +224,7 @@ where
             max_relative = thresh,
         );
         self.spin_constraint == other.spin_constraint
+            && self.spin_index == other.spin_index
             && self.bao == other.bao
             && self.mol == other.mol
             && coefficients_eq
@@ -240,8 +247,9 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "MolecularOrbital[{:?}: coefficient array of length {}]",
+            "MolecularOrbital[{:?} (spin index {}): coefficient array of length {}]",
             self.spin_constraint,
+            self.spin_index,
             self.coefficients.len()
         )?;
         Ok(())
@@ -259,8 +267,9 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "MolecularOrbital[{:?}: coefficient array of length {}]",
+            "MolecularOrbital[{:?} (spin index {}): coefficient array of length {}]",
             self.spin_constraint,
+            self.spin_index,
             self.coefficients.len()
         )?;
         Ok(())
