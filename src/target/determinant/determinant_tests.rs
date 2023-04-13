@@ -1,23 +1,25 @@
 use env_logger;
 use itertools::Itertools;
-use nalgebra::Point3;
+use nalgebra::{Point3, Vector3};
 use ndarray::{array, concatenate, s, Array2, Axis};
 use ndarray_linalg::assert_close_l2;
 use num_complex::Complex;
 use num_traits::Pow;
 
-use crate::analysis::{Overlap, RepAnalysis};
+use crate::analysis::{Orbit, Overlap, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::geometry::Transform;
 use crate::aux::molecule::Molecule;
-use crate::group::{GroupProperties, UnitaryRepresentedGroup};
+use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
-use crate::symmetry::symmetry_transformation::{SymmetryTransformable, TimeReversalTransformable};
+use crate::symmetry::symmetry_transformation::{
+    SymmetryTransformable, SymmetryTransformationKind, TimeReversalTransformable,
+};
+use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::determinant::determinant_analysis::SlaterDeterminantSpatialSymmetryOrbit;
 
 type C128 = Complex<f64>;
 
@@ -72,15 +74,16 @@ fn test_determinant_transformation_bf4_sqpl() {
     ];
     let oalpha = array![1.0, 1.0];
 
-    let det = SlaterDeterminant::<f64>::new(
-        &[calpha],
-        &[oalpha.clone()],
-        &bao_bf4,
-        &mol_bf4,
-        SpinConstraint::Restricted(2),
-        false,
-        1e-14,
-    );
+    let det = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[calpha])
+        .occupations(&[oalpha.clone()])
+        .bao(&bao_bf4)
+        .mol(&mol_bf4)
+        .spin_constraint(SpinConstraint::Restricted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
@@ -110,15 +113,16 @@ fn test_determinant_transformation_bf4_sqpl() {
         [0.0,  0.0], [ 1.0, 0.0], [0.0,  0.0],
         [0.0,  0.0], [-1.0, 0.0], [0.0, -1.0], [ 0.0, 0.0], [0.0, 0.0], [0.0, 0.0]
     ];
-    let tdet_c4p1_ref = SlaterDeterminant::<f64>::new(
-        &[tcalpha_ref],
-        &[oalpha],
-        &bao_bf4,
-        &mol_bf4,
-        SpinConstraint::Restricted(2),
-        false,
-        1e-14,
-    );
+    let tdet_c4p1_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[tcalpha_ref])
+        .occupations(&[oalpha])
+        .bao(&bao_bf4)
+        .mol(&mol_bf4)
+        .spin_constraint(SpinConstraint::Restricted(2))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     assert_eq!(tdet_c4p1, tdet_c4p1_ref);
 }
 
@@ -176,15 +180,16 @@ fn test_determinant_transformation_s4_sqpl() {
     ];
     let oalpha = array![1.0];
     let obeta = array![0.5];
-    let detunres = SlaterDeterminant::<f64>::new(
-        &[calpha.clone(), cbeta.clone()],
-        &[oalpha.clone(), obeta.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let detunres = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[calpha.clone(), cbeta.clone()])
+        .occupations(&[oalpha.clone(), obeta.clone()])
+        .bao(&bao_s4)
+        .mol(&mol_s4)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     let c4p1 = group.get_index(1).unwrap();
     #[rustfmt::skip]
@@ -201,15 +206,16 @@ fn test_determinant_transformation_s4_sqpl() {
         [ 0.0], [0.0], [0.0], [0.0], [1.0],
         [ 0.0], [0.0], [0.0], [0.0], [1.0]
     ];
-    let tdetunres_c4p1_ref = SlaterDeterminant::<f64>::new(
-        &[tcalpha_ref.clone(), tcbeta_ref.clone()],
-        &[oalpha.clone(), obeta.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let tdetunres_c4p1_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[tcalpha_ref.clone(), tcbeta_ref.clone()])
+        .occupations(&[oalpha.clone(), obeta.clone()])
+        .bao(&bao_s4)
+        .mol(&mol_s4)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetunres_c4p1 = detunres.sym_transform_spatial(&c4p1).unwrap();
     assert_eq!(tdetunres_c4p1, tdetunres_c4p1_ref);
 
@@ -232,99 +238,106 @@ fn test_determinant_transformation_s4_sqpl() {
     let cbeta2_gen = concatenate!(Axis(0), Array2::zeros((20, 1)), cbeta2);
     let cgen = concatenate![Axis(1), calpha2_gen, cbeta2_gen];
     let ogen = array![0.5, 1.0];
-    let detgen = SlaterDeterminant::<f64>::new(
-        &[cgen.clone()],
-        &[ogen.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let detgen = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[cgen.clone()])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_s4)
+        .mol(&mol_s4)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     let tcalpha2_gen = concatenate!(Axis(0), cbeta2, Array2::zeros((20, 1)));
     let tcbeta2_gen = concatenate!(Axis(0), Array2::zeros((20, 1)), calpha2);
     let tcgen_ref = concatenate![Axis(1), tcalpha2_gen, tcbeta2_gen];
-    let tdetgen_c4p1_ref = SlaterDeterminant::<f64>::new(
-        &[tcgen_ref],
-        &[ogen.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let tdetgen_c4p1_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[tcgen_ref])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_s4)
+        .mol(&mol_s4)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetgen_c4p1 = detgen.sym_transform_spatial(&c4p1).unwrap();
     assert_eq!(tdetgen_c4p1, tdetgen_c4p1_ref);
 
     // S1(+0.000, +0.000, +1.000)
     let s1zp1 = group.get_index(11).unwrap();
-    let tdetgen_s1zp1_ref = SlaterDeterminant::<f64>::new(
-        &[-cgen.clone()],
-        &[ogen.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let tdetgen_s1zp1_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[-cgen.clone()])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_s4)
+        .mol(&mol_s4)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetgen_s1zp1 = detgen.sym_transform_spatial(&s1zp1).unwrap();
     assert_eq!(tdetgen_s1zp1, tdetgen_s1zp1_ref);
 
     // S1(+0.000, +1.000, +0.000)
     let s1yp1 = group.get_index(12).unwrap();
-    let tdetgen_s1yp1_ref = SlaterDeterminant::<f64>::new(
-        &[cgen.clone()],
-        &[ogen.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let tdetgen_s1yp1_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[cgen.clone()])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_s4)
+        .mol(&mol_s4)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetgen_s1yp1 = detgen.sym_transform_spatial(&s1yp1).unwrap();
     assert_eq!(tdetgen_s1yp1, tdetgen_s1yp1_ref);
 
     // S1(+1.000, +0.000, +0.000)
     let s1xp1 = group.get_index(12).unwrap();
-    let tdetgen_s1xp1_ref = SlaterDeterminant::<f64>::new(
-        &[cgen.clone()],
-        &[ogen.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let tdetgen_s1xp1_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[cgen.clone()])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_s4)
+        .mol(&mol_s4)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetgen_s1xp1 = detgen.sym_transform_spatial(&s1xp1).unwrap();
     assert_eq!(tdetgen_s1xp1, tdetgen_s1xp1_ref);
 
     // i
     let ip1 = group.get_index(8).unwrap();
-    let tdetgen_ip1_ref = SlaterDeterminant::<f64>::new(
-        &[-cgen.clone()],
-        &[ogen.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let tdetgen_ip1_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[-cgen.clone()])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_s4)
+        .mol(&mol_s4)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetgen_ip1 = detgen.sym_transform_spatial(&ip1).unwrap();
     assert_eq!(tdetgen_ip1, tdetgen_ip1_ref);
 
     // S4(+0.000, +0.000, +1.000)
     let s4p1 = group.get_index(9).unwrap();
     let tcgen_s4p1_ref = concatenate![Axis(1), -tcalpha2_gen, -tcbeta2_gen];
-    let tdetgen_s4p1_ref = SlaterDeterminant::<f64>::new(
-        &[tcgen_s4p1_ref],
-        &[ogen.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let tdetgen_s4p1_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[tcgen_s4p1_ref])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_s4)
+        .mol(&mol_s4)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetgen_s4p1 = detgen.sym_transform_spatial(&s4p1).unwrap();
     assert_eq!(tdetgen_s4p1, tdetgen_s4p1_ref);
 }
@@ -402,26 +415,28 @@ fn test_determinant_transformation_b3_real_timerev() {
     let oalpha = array![0.5, 0.5];
     let obeta = array![0.75, 0.25];
 
-    let detunres = SlaterDeterminant::<f64>::new(
-        &[calpha.clone(), cbeta.clone()],
-        &[oalpha.clone(), obeta.clone()],
-        &bao_b3,
-        &mol_b3,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let detunres = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[calpha.clone(), cbeta.clone()])
+        .occupations(&[oalpha.clone(), obeta.clone()])
+        .bao(&bao_b3)
+        .mol(&mol_b3)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     let tdetunres_tr = detunres.transform_timerev().unwrap();
-    let tdetunres_tr_ref = SlaterDeterminant::<f64>::new(
-        &[-cbeta.clone(), calpha.clone()],
-        &[obeta.clone(), oalpha.clone()],
-        &bao_b3,
-        &mol_b3,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let tdetunres_tr_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[-cbeta.clone(), calpha.clone()])
+        .occupations(&[obeta.clone(), oalpha.clone()])
+        .bao(&bao_b3)
+        .mol(&mol_b3)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     assert_eq!(tdetunres_tr, tdetunres_tr_ref);
 
     let tdetunres_c3p1_tr = detunres
@@ -429,42 +444,45 @@ fn test_determinant_transformation_b3_real_timerev() {
         .unwrap()
         .transform_timerev()
         .unwrap();
-    let tdetunres_c3p1_tr_ref = SlaterDeterminant::<f64>::new(
-        &[tcalpha_ref.clone(), tcbeta_ref.clone()],
-        &[obeta.clone(), oalpha.clone()],
-        &bao_b3,
-        &mol_b3,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let tdetunres_c3p1_tr_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[tcalpha_ref.clone(), tcbeta_ref.clone()])
+        .occupations(&[obeta.clone(), oalpha.clone()])
+        .bao(&bao_b3)
+        .mol(&mol_b3)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     assert_eq!(tdetunres_c3p1_tr, tdetunres_c3p1_tr_ref);
 
     // Generalised spin constraint, spin-projection-mixed orbitals
     let cgen = concatenate![Axis(0), calpha, cbeta];
     let ogen = array![1.0, 1.0];
 
-    let detgen = SlaterDeterminant::<f64>::new(
-        &[cgen],
-        &[ogen.clone()],
-        &bao_b3,
-        &mol_b3,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let detgen = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[cgen])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_b3)
+        .mol(&mol_b3)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     let tdetgen_tr = detgen.transform_timerev().unwrap();
     let tcgen_ref = concatenate![Axis(0), -cbeta, calpha];
-    let tdetgen_tr_ref = SlaterDeterminant::<f64>::new(
-        &[tcgen_ref],
-        &[ogen.clone()],
-        &bao_b3,
-        &mol_b3,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let tdetgen_tr_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[tcgen_ref])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_b3)
+        .mol(&mol_b3)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     assert_eq!(tdetgen_tr, tdetgen_tr_ref);
 
     let tdetgen_c3p1_tr = detgen
@@ -473,15 +491,16 @@ fn test_determinant_transformation_b3_real_timerev() {
         .transform_timerev()
         .unwrap();
     let tcgen_ref = concatenate![Axis(0), tcalpha_ref, tcbeta_ref];
-    let tdetgen_c3p1_tr_ref = SlaterDeterminant::<f64>::new(
-        &[tcgen_ref],
-        &[ogen],
-        &bao_b3,
-        &mol_b3,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let tdetgen_c3p1_tr_ref = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[tcgen_ref])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_b3)
+        .mol(&mol_b3)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     assert_eq!(tdetgen_c3p1_tr, tdetgen_c3p1_tr_ref);
 }
 
@@ -515,28 +534,30 @@ fn test_determinant_transformation_c2_complex_timerev() {
     let cgen = concatenate![Axis(1), calpha_gen, cbeta_gen];
     let ogen = array![1.0, 1.0, 1.0, 1.0];
 
-    let detgen = SlaterDeterminant::<C128>::new(
-        &[cgen],
-        &[ogen.clone()],
-        &bao_c2,
-        &mol_c2,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let detgen = SlaterDeterminant::<C128>::builder()
+        .coefficients(&[cgen])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_c2)
+        .mol(&mol_c2)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     let tcalpha_gen_ref = concatenate!(Axis(0), Array2::zeros((6, 2)), calpha.map(|x| x.conj()));
     let tcbeta_gen_ref = concatenate!(Axis(0), -cbeta.map(|x| x.conj()), Array2::zeros((6, 2)));
     let tcgen_ref = concatenate![Axis(1), tcalpha_gen_ref, tcbeta_gen_ref];
-    let tdetgen_tr_ref = SlaterDeterminant::<C128>::new(
-        &[tcgen_ref],
-        &[ogen.clone()],
-        &bao_c2,
-        &mol_c2,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let tdetgen_tr_ref = SlaterDeterminant::<C128>::builder()
+        .coefficients(&[tcgen_ref])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_c2)
+        .mol(&mol_c2)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetgen_tr = detgen.transform_timerev().unwrap();
     assert_eq!(tdetgen_tr, tdetgen_tr_ref);
 }
@@ -590,16 +611,17 @@ fn test_determinant_transformation_c3_spin_rotation() {
     let cbeta_gen = concatenate!(Axis(0), Array2::zeros((12, 2)), cbeta);
     let cgen = concatenate![Axis(1), calpha_gen, cbeta_gen];
     let ogen = array![1.0, 1.0, 1.0, 1.0];
-    let detgen: SlaterDeterminant<C128> = SlaterDeterminant::new(
-        &[cgen.clone()],
-        &[ogen.clone()],
-        &bao_c3,
-        &mol_c3,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    )
-    .into();
+    let detgen: SlaterDeterminant<C128> = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[cgen.clone()])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_c3)
+        .mol(&mol_c3)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap()
+        .into();
 
     // ----------------
     // Proper rotations
@@ -618,29 +640,31 @@ fn test_determinant_transformation_c3_spin_rotation() {
         Array2::zeros((12, 2)),
     );
     let tcgen_ref = concatenate![Axis(1), tcalpha_gen, tcbeta_gen];
-    let tdetgen_c2_nsr_p1_ref: SlaterDeterminant<C128> = SlaterDeterminant::new(
-        &[tcgen_ref.clone()],
-        &[ogen.clone()],
-        &bao_c3,
-        &mol_c3,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let tdetgen_c2_nsr_p1_ref = SlaterDeterminant::<C128>::builder()
+        .coefficients(&[tcgen_ref.clone()])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_c3)
+        .mol(&mol_c3)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetgen_c2_nsr_p1 = detgen.sym_transform_spin(&c2_nsr_p1).unwrap();
     assert_eq!(tdetgen_c2_nsr_p1, tdetgen_c2_nsr_p1_ref);
 
     let c2_nsr_p2 = (&c2_nsr_p1).pow(2);
-    let tdetgen_c2_nsr_p2_ref: SlaterDeterminant<C128> = SlaterDeterminant::new(
-        &[-cgen],
-        &[ogen.clone()],
-        &bao_c3,
-        &mol_c3,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    )
-    .into();
+    let tdetgen_c2_nsr_p2_ref: SlaterDeterminant<C128> = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[-cgen])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_c3)
+        .mol(&mol_c3)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap()
+        .into();
     let tdetgen_c2_nsr_p2 = detgen.sym_transform_spin(&c2_nsr_p2).unwrap();
     assert_eq!(tdetgen_c2_nsr_p2, tdetgen_c2_nsr_p2_ref);
 
@@ -649,16 +673,16 @@ fn test_determinant_transformation_c3_spin_rotation() {
     assert_eq!(tdetgen_e_isr, tdetgen_c2_nsr_p2_ref);
 
     let c2_nsr_p3 = (&c2_nsr_p1).pow(3);
-    let tdetgen_c2_nsr_p3_ref: SlaterDeterminant<C128> = SlaterDeterminant::new(
-        &[-tcgen_ref],
-        &[ogen.clone()],
-        &bao_c3,
-        &mol_c3,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    )
-    .into();
+    let tdetgen_c2_nsr_p3_ref = SlaterDeterminant::<C128>::builder()
+        .coefficients(&[-tcgen_ref])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_c3)
+        .mol(&mol_c3)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetgen_c2_nsr_p3 = detgen.sym_transform_spin(&c2_nsr_p3).unwrap();
     assert_eq!(tdetgen_c2_nsr_p3, tdetgen_c2_nsr_p3_ref);
 
@@ -682,32 +706,32 @@ fn test_determinant_transformation_c3_spin_rotation() {
     let sxy_tcgen_ref = concatenate![Axis(1), sxy_tcalpha_gen, sxy_tcbeta_gen];
 
     let sxy_nsr_p1 = group.get_index(4).unwrap();
-    let tdetgen_sxy_nsr_ref: SlaterDeterminant<C128> = SlaterDeterminant::new(
-        &[sxy_tcgen_ref.clone()],
-        &[ogen.clone()],
-        &bao_c3,
-        &mol_c3,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    )
-    .into();
+    let tdetgen_sxy_nsr_ref = SlaterDeterminant::<C128>::builder()
+        .coefficients(&[sxy_tcgen_ref.clone()])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_c3)
+        .mol(&mol_c3)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetgen_sxy_nsr = detgen.sym_transform_spin(&sxy_nsr_p1).unwrap();
     assert_eq!(tdetgen_sxy_nsr, tdetgen_sxy_nsr_ref);
 
     let tdetgen_sxy_nsr_p2 = detgen.sym_transform_spin(&(&sxy_nsr_p1).pow(2)).unwrap();
     assert_eq!(tdetgen_sxy_nsr_p2, tdetgen_e_isr);
 
-    let tdetgen_sxy_nsr_p3_ref: SlaterDeterminant<C128> = SlaterDeterminant::new(
-        &[-sxy_tcgen_ref],
-        &[ogen.clone()],
-        &bao_c3,
-        &mol_c3,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    )
-    .into();
+    let tdetgen_sxy_nsr_p3_ref = SlaterDeterminant::<C128>::builder()
+        .coefficients(&[-sxy_tcgen_ref])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_c3)
+        .mol(&mol_c3)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let tdetgen_sxy_nsr_p3 = detgen.sym_transform_spin(&(&sxy_nsr_p1).pow(3)).unwrap();
     assert_eq!(tdetgen_sxy_nsr_p3, tdetgen_sxy_nsr_p3_ref);
 
@@ -722,15 +746,16 @@ fn test_determinant_transformation_c3_spin_rotation() {
         Array2::zeros((12, 2)),
     );
     let tcgen_sxyz_ref = concatenate![Axis(1), tcalpha_sxyz_gen, tcbeta_sxyz_gen];
-    let tdetgen_sxyz_nsr_p1_ref: SlaterDeterminant<C128> = SlaterDeterminant::new(
-        &[tcgen_sxyz_ref.clone()],
-        &[ogen.clone()],
-        &bao_c3,
-        &mol_c3,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    );
+    let tdetgen_sxyz_nsr_p1_ref = SlaterDeterminant::<C128>::builder()
+        .coefficients(&[tcgen_sxyz_ref.clone()])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_c3)
+        .mol(&mol_c3)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
     let sxyz_nsr_p1 = group.get_index(6).unwrap();
     let tdetgen_sxyz_nsr_p1 = detgen.sym_transform_spin(&sxyz_nsr_p1).unwrap();
     assert_eq!(tdetgen_sxyz_nsr_p1, tdetgen_sxyz_nsr_p1_ref);
@@ -801,16 +826,17 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
     let cbeta_gen = concatenate!(Axis(0), Array2::zeros((40, 2)), cbeta);
     let cgen = concatenate![Axis(1), calpha_gen, cbeta_gen];
     let ogen = array![1.0, 1.0, 1.0, 1.0];
-    let detgen: SlaterDeterminant<C128> = SlaterDeterminant::new(
-        &[cgen.clone()],
-        &[ogen.clone()],
-        &bao_h4,
-        &mol_h4,
-        SpinConstraint::Generalised(2, false),
-        false,
-        1e-14,
-    )
-    .into();
+    let detgen: SlaterDeterminant<C128> = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[cgen.clone()])
+        .occupations(&[ogen.clone()])
+        .bao(&bao_h4)
+        .mol(&mol_h4)
+        .spin_constraint(SpinConstraint::Generalised(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap()
+        .into();
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
@@ -899,15 +925,16 @@ fn test_determinant_analysis_overlap() {
         [0.34371360619810287229,  0.57240233082859204305],
     ];
     let oa0 = array![1.0, 1.0];
-    let det0: SlaterDeterminant<f64> = SlaterDeterminant::new(
-        &[ca0.clone(), ca0],
-        &[oa0.clone(), oa0],
-        &bao_h4,
-        &mol_h4,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let det0 = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[ca0.clone(), ca0])
+        .occupations(&[oa0.clone(), oa0])
+        .bao(&bao_h4)
+        .mol(&mol_h4)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     // State 1
     #[rustfmt::skip]
@@ -918,15 +945,16 @@ fn test_determinant_analysis_overlap() {
         [-0.57240232967141368992,  0.83588564075800564357],
     ];
     let oa1 = array![1.0, 1.0];
-    let det1: SlaterDeterminant<f64> = SlaterDeterminant::new(
-        &[ca1.clone(), ca1],
-        &[oa1.clone(), oa1],
-        &bao_h4,
-        &mol_h4,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let det1 = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[ca1.clone(), ca1])
+        .occupations(&[oa1.clone(), oa1])
+        .bao(&bao_h4)
+        .mol(&mol_h4)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     // State 2
     #[rustfmt::skip]
@@ -937,15 +965,16 @@ fn test_determinant_analysis_overlap() {
         [ 0.57240158866710411090, -0.57240307169209303506],
     ];
     let oa2 = array![1.0, 1.0];
-    let det2: SlaterDeterminant<f64> = SlaterDeterminant::new(
-        &[ca2.clone(), ca2],
-        &[oa2.clone(), oa2],
-        &bao_h4,
-        &mol_h4,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let det2 = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[ca2.clone(), ca2])
+        .occupations(&[oa2.clone(), oa2])
+        .bao(&bao_h4)
+        .mol(&mol_h4)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     // State 3
     #[rustfmt::skip]
@@ -956,15 +985,16 @@ fn test_determinant_analysis_overlap() {
         [0.34371360625918873088, -0.83588564051937619404],
     ];
     let oa3 = array![1.0, 1.0];
-    let det3: SlaterDeterminant<f64> = SlaterDeterminant::new(
-        &[ca3.clone(), ca3],
-        &[oa3.clone(), oa3],
-        &bao_h4,
-        &mol_h4,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let det3 = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[ca3.clone(), ca3])
+        .occupations(&[oa3.clone(), oa3])
+        .bao(&bao_h4)
+        .mol(&mol_h4)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     // State 4
     #[rustfmt::skip]
@@ -975,15 +1005,16 @@ fn test_determinant_analysis_overlap() {
         [-0.57240232947273528286,  0.83588563874351851091],
     ];
     let oa4 = array![1.0, 1.0];
-    let det4: SlaterDeterminant<f64> = SlaterDeterminant::new(
-        &[ca4.clone(), ca4],
-        &[oa4.clone(), oa4],
-        &bao_h4,
-        &mol_h4,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let det4 = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[ca4.clone(), ca4])
+        .occupations(&[oa4.clone(), oa4])
+        .bao(&bao_h4)
+        .mol(&mol_h4)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     // State 5
     #[rustfmt::skip]
@@ -994,15 +1025,16 @@ fn test_determinant_analysis_overlap() {
         [ 0.68548050399669979704,  0.98383466332982305591],
     ];
     let oa5 = array![1.0, 1.0];
-    let det5: SlaterDeterminant<f64> = SlaterDeterminant::new(
-        &[ca5.clone(), ca5],
-        &[oa5.clone(), oa5],
-        &bao_h4,
-        &mol_h4,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let det5 = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[ca5.clone(), ca5])
+        .occupations(&[oa5.clone(), oa5])
+        .bao(&bao_h4)
+        .mol(&mol_h4)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
     // Real, UHF
     let mut smat = Array2::<f64>::zeros((6, 6));
@@ -1032,7 +1064,9 @@ fn test_determinant_analysis_overlap() {
     let nbas = sao.nrows();
     let mut sao_g = Array2::<f64>::zeros((2 * nbas, 2 * nbas));
     sao_g.slice_mut(s![0..nbas, 0..nbas]).assign(&sao);
-    sao_g.slice_mut(s![nbas..(2 * nbas), nbas..(2 * nbas)]).assign(&sao);
+    sao_g
+        .slice_mut(s![nbas..(2 * nbas), nbas..(2 * nbas)])
+        .assign(&sao);
     let mut smat_g = Array2::<f64>::zeros((6, 6));
     [&det0, &det1, &det2, &det3, &det4, &det5]
         .iter()
@@ -1146,17 +1180,18 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
     ];
     let oalpha = array![1.0];
     let obeta = array![1.0];
-    let det = SlaterDeterminant::<f64>::new(
-        &[calpha.clone(), cbeta.clone()],
-        &[oalpha.clone(), obeta.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let det = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[calpha.clone(), cbeta.clone()])
+        .occupations(&[oalpha.clone(), obeta.clone()])
+        .bao(&bao_s4)
+        .mol(&mol_s4)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap();
 
-    let mut orbit = SlaterDeterminantSpatialSymmetryOrbit::builder()
+    let mut orbit = SlaterDeterminantSymmetryOrbit::builder()
         .group(&group)
         .origin(&det)
         .build()
@@ -1173,7 +1208,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
 
     let det_c = SlaterDeterminant::<C128>::from(det.clone());
     let sao_c = sao.mapv(|x| C128::from(x));
-    let mut orbit_c = SlaterDeterminantSpatialSymmetryOrbit::builder()
+    let mut orbit_c = SlaterDeterminantSymmetryOrbit::builder()
         .group(&group)
         .origin(&det_c)
         .build()
@@ -1190,8 +1225,8 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
 }
 
 #[test]
-fn test_determinant_orbit_mat_s4_sqpl_pz() {
-    // env_logger::init();
+fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
+    env_logger::init();
     let emap = ElementMap::new();
     let atm_s0 = Atom::from_xyz("S +1.0 +1.0 0.0", &emap, 1e-7).unwrap();
     let atm_s1 = Atom::from_xyz("S -1.0 +1.0 0.0", &emap, 1e-7).unwrap();
@@ -1206,7 +1241,7 @@ fn test_determinant_orbit_mat_s4_sqpl_pz() {
     let batm_s3 = BasisAtom::new(&atm_s3, &[bsp_p.clone()]);
 
     let bao_s4 = BasisAngularOrder::new(&[batm_s0, batm_s1, batm_s2, batm_s3]);
-    let mol_s4 = Molecule::from_atoms(
+    let mut mol_s4 = Molecule::from_atoms(
         &[
             atm_s0.clone(),
             atm_s1.clone(),
@@ -1216,6 +1251,7 @@ fn test_determinant_orbit_mat_s4_sqpl_pz() {
         1e-7,
     )
     .recentre();
+    mol_s4.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
@@ -1224,66 +1260,70 @@ fn test_determinant_orbit_mat_s4_sqpl_pz() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
+
+    // ---------------
+    // 1-electron case
+    // ---------------
 
     #[rustfmt::skip]
     let calpha = array![
-        [1.0], [0.0], [0.0],
+        [0.0], [1.0], [0.0],
         [0.0], [0.0], [0.0],
         [0.0], [0.0], [0.0],
         [0.0], [0.0], [0.0],
     ];
     #[rustfmt::skip]
     let cbeta = array![
-        [1.0], [0.0], [0.0],
+        [0.0], [1.0], [0.0],
         [0.0], [0.0], [0.0],
         [0.0], [0.0], [0.0],
         [0.0], [0.0], [0.0],
     ];
     let oalpha = array![1.0];
     let obeta = array![0.0];
-    let det = SlaterDeterminant::<f64>::new(
-        &[calpha.clone(), cbeta.clone()],
-        &[oalpha.clone(), obeta.clone()],
-        &bao_s4,
-        &mol_s4,
-        SpinConstraint::Unrestricted(2, false),
-        false,
-        1e-14,
-    );
+    let det_cg: SlaterDeterminant<C128> = SlaterDeterminant::<f64>::builder()
+        .coefficients(&[calpha.clone(), cbeta.clone()])
+        .occupations(&[oalpha.clone(), obeta.clone()])
+        .bao(&bao_s4)
+        .mol(&mol_s4)
+        .spin_constraint(SpinConstraint::Unrestricted(2, false))
+        .complex_symmetric(false)
+        .threshold(1e-14)
+        .build()
+        .unwrap()
+        .to_generalised()
+        .into();
 
-    let mut orbit = SlaterDeterminantSpatialSymmetryOrbit::builder()
+    let sao_cg = Array2::<C128>::eye(24);
+
+    let mut orbit_cg_spatial = SlaterDeterminantSymmetryOrbit::builder()
         .group(&group)
-        .origin(&det)
+        .origin(&det_cg)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
+    orbit_cg_spatial.calc_smat(&sao_cg).calc_xmat(false);
 
-    let sao = Array2::<f64>::eye(12);
-    orbit.calc_smat(&sao).calc_xmat(false);
-    let smat = orbit.smat.as_ref().unwrap().clone();
-    let xmat = orbit.xmat.as_ref().unwrap();
-
-    let os = xmat.t().dot(&smat).dot(xmat);
-    // assert_eq!(os.shape(), &[4, 4]);
-    assert_close_l2!(&os, &Array2::<f64>::eye(os.shape()[0]), 1e-7);
-
-    let det_c = SlaterDeterminant::<C128>::from(det.clone());
-    let sao_c = sao.mapv(|x| C128::from(x));
-    let mut orbit_c = SlaterDeterminantSpatialSymmetryOrbit::builder()
+    let mut orbit_cg_spin = SlaterDeterminantSymmetryOrbit::builder()
         .group(&group)
-        .origin(&det_c)
+        .origin(&det_cg)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
-    orbit_c.calc_smat(&sao_c).calc_xmat(false);
-    let smat_c = orbit_c.smat.as_ref().unwrap().clone();
-    let xmat_c = orbit_c.xmat.as_ref().unwrap();
+    orbit_cg_spin.calc_smat(&sao_cg).calc_xmat(false);
 
-    let os_c = xmat_c.t().mapv(|x| x.conj()).dot(&smat_c).dot(xmat_c);
-    // assert_eq!(os_c.shape(), &[4, 4]);
-    assert_close_l2!(&os_c, &Array2::<C128>::eye(os.shape()[0]), 1e-7);
+    let mut orbit_cg = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group)
+        .origin(&det_cg)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .build()
+        .unwrap();
+    orbit_cg.calc_smat(&sao_cg).calc_xmat(false);
 
-    assert_close_l2!(&os.map(|x| C128::from(x)), &os_c, 1e-7);
-
-    println!("{}", orbit.analyse_rep().unwrap());
-    println!("{}", orbit_c.analyse_rep().unwrap());
+    println!("Spatial     : {}", orbit_cg_spatial.analyse_rep().unwrap());
+    println!("Spin        : {}", orbit_cg_spin.analyse_rep().unwrap());
+    // println!("{:?}", group.ircorep_character_table.as_ref().unwrap());
+    // println!("{:?}", group.irrep_character_table.as_ref().unwrap());
+    println!("Spin-spatial: {}", orbit_cg.analyse_rep().unwrap());
 }
