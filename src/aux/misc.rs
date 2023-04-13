@@ -4,9 +4,11 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 
 use itertools::{Itertools, MultiProduct};
+use log;
 use ndarray::{stack, Array1, Array2, Axis};
 use num_complex::ComplexFloat;
 
+/// A trait to enable floating point numbers to be hashed.
 pub trait HashableFloat {
     /// Returns a float rounded after being multiplied by a factor.
     ///
@@ -113,7 +115,7 @@ impl<'a, T: fmt::Display + fmt::Debug> fmt::Display for GramSchmidtError<'a, T> 
                 writeln!(f, "{vec}")?;
             }
         } else {
-            writeln!(f, "Unspecified basis vectors.")?;
+            writeln!(f, "Unspecified basis vectors for Gram--Schmidt.")?;
         }
         Ok(())
     }
@@ -121,8 +123,8 @@ impl<'a, T: fmt::Display + fmt::Debug> fmt::Display for GramSchmidtError<'a, T> 
 
 impl<'a, T: fmt::Display + fmt::Debug> Error for GramSchmidtError<'a, T> {}
 
-/// Performs Gram--Schmidt orthonormalisation on a set of column vectors in a matrix with respect
-/// to the complex-symmetric or Hermitian dot product.
+/// Performs modified Gram--Schmidt orthonormalisation on a set of column vectors in a matrix with
+/// respect to the complex-symmetric or Hermitian dot product.
 ///
 /// # Arguments
 ///
@@ -140,7 +142,7 @@ impl<'a, T: fmt::Display + fmt::Debug> Error for GramSchmidtError<'a, T> {}
 ///
 /// Errors when the orthonormalisation procedure fails, which occurs when there is linear dependency
 /// between the basis vectors and/or when self-orthogonal vectors are encountered.
-pub fn complex_gram_schmidt_orthonormalisation<T>(
+pub fn complex_modified_gram_schmidt<T>(
     vmat: &Array2<T>,
     complex_symmetric: bool,
     thresh: T::Real,
@@ -154,22 +156,24 @@ where
         // u[i] now initialised with v[i]
         us.push(vi.to_owned());
 
-        // Project vi onto all uj (0 <= j < i)
+        // Project ui onto all uj (0 <= j < i)
+        // This is the 'modified' part of Gram--Schmidt. We project the current (and being updated)
+        // ui onto uj, rather than projecting vi onto uj. This enhances numerical stability.
         for j in 0..i {
-            let p_uj_vi = if complex_symmetric {
-                vi.dot(&us[j]) / us_sq_norm[j]
+            let p_uj_ui = if complex_symmetric {
+                us[j].t().dot(&us[i]) / us_sq_norm[j]
             } else {
-                vi.map(|x| x.conj()).dot(&us[j]) / us_sq_norm[j]
+                us[j].t().map(|x| x.conj()).dot(&us[i]) / us_sq_norm[j]
             };
-            us[i] = &us[i] - us[j].map(|&x| x * p_uj_vi);
+            us[i] = &us[i] - us[j].map(|&x| x * p_uj_ui);
         }
 
         // Evaluate the squared norm of ui which will no longer be changed after this iteration.
         // us_sq_norm[i] now available.
         let us_sq_norm_i = if complex_symmetric {
-            us[i].dot(&us[i])
+            us[i].t().dot(&us[i])
         } else {
-            us[i].map(|x| x.conj()).dot(&us[i])
+            us[i].t().map(|x| x.conj()).dot(&us[i])
         };
         if us_sq_norm_i.abs() < thresh {
             log::error!("A zero-norm vector found: {}", us[i]);
@@ -186,20 +190,26 @@ where
         us[i].mapv_inplace(|x| x / us_sq_norm[i].sqrt());
     }
 
-    debug_assert!({
-        us.iter().enumerate().all(|(i, ui)| {
-            us.iter().enumerate().all(|(j, uj)| {
-                let ov_ij = if complex_symmetric {
-                    ui.dot(uj)
-                } else {
-                    ui.map(|x| x.conj()).dot(uj)
-                };
-                i == j || ov_ij.abs() < thresh
-            })
+    let ortho_check = us.iter().enumerate().all(|(i, ui)| {
+        us.iter().enumerate().all(|(j, uj)| {
+            let ov_ij = if complex_symmetric {
+                ui.dot(uj)
+            } else {
+                ui.map(|x| x.conj()).dot(uj)
+            };
+            i == j || ov_ij.abs() < thresh
         })
     });
 
-    let umat = stack(Axis(1), &us.iter().map(|u| u.view()).collect_vec())
-        .expect("Unable to concatenate the orthogonal vectors into a matrix.");
-    Ok(umat)
+    if ortho_check {
+        let umat = stack(Axis(1), &us.iter().map(|u| u.view()).collect_vec())
+            .expect("Unable to concatenate the orthogonal vectors into a matrix.");
+        Ok(umat)
+    } else {
+        log::error!("Post-Gram--Schmidt orthogonality check failed.");
+        Err(GramSchmidtError {
+            mat: Some(vmat),
+            vecs: None,
+        })
+    }
 }
