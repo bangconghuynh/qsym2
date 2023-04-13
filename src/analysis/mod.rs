@@ -65,6 +65,9 @@ where
     #[must_use]
     fn xmat(&self) -> &Array2<T>;
 
+    #[must_use]
+    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T;
+
     // ----------------
     // Provided methods
     // ----------------
@@ -117,7 +120,7 @@ where
 
             for w in 0..order {
                 let ixinv_w = ctb[(ixinv, w)];
-                twx[(w, x)] = self.smat()[(ixinv_w, 0)];
+                twx[(w, x)] = self.norm_preserving_scalar_map(ixinv)(self.smat()[(ixinv_w, 0)]);
             }
         }
         twx
