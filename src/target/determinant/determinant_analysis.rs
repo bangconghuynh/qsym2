@@ -19,10 +19,11 @@ use num_traits::{Float, Zero};
 
 use crate::analysis::{Orbit, Overlap, RepAnalysis, RepAnalysisError};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::misc::complex_gram_schmidt_orthonormalisation;
+use crate::aux::misc::complex_modified_gram_schmidt;
 use crate::chartab::SubspaceDecomposable;
+use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
-use crate::symmetry::symmetry_transformation::SymmetryTransformable;
+use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::determinant::SlaterDeterminant;
 
 // -------
@@ -113,7 +114,7 @@ where
 }
 
 // =====================================
-// SlaterDeterminantSpatialSymmetryOrbit
+// SlaterDeterminantSymmetryOrbit
 // =====================================
 
 // -----------------
@@ -121,7 +122,7 @@ where
 // -----------------
 
 #[derive(Builder, Clone)]
-pub struct SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
+pub struct SlaterDeterminantSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
@@ -130,6 +131,8 @@ where
     group: &'a G,
 
     origin: &'a SlaterDeterminant<'a, T>,
+
+    symmetry_transformation_kind: SymmetryTransformationKind,
 
     #[builder(setter(skip), default = "None")]
     pub smat: Option<Array2<T>>,
@@ -142,18 +145,18 @@ where
 // Struct method implementation
 // ----------------------------
 
-impl<'a, G, T> SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
+impl<'a, G, T> SlaterDeterminantSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + fmt::Debug + Lapack,
     SlaterDeterminant<'a, T>: SymmetryTransformable,
 {
-    pub fn builder() -> SlaterDeterminantSpatialSymmetryOrbitBuilder<'a, G, T> {
-        SlaterDeterminantSpatialSymmetryOrbitBuilder::default()
+    pub fn builder() -> SlaterDeterminantSymmetryOrbitBuilder<'a, G, T> {
+        SlaterDeterminantSymmetryOrbitBuilder::default()
     }
 }
 
-impl<'a, G> SlaterDeterminantSpatialSymmetryOrbit<'a, G, f64>
+impl<'a, G> SlaterDeterminantSymmetryOrbit<'a, G, f64>
 where
     G: SymmetryGroupProperties,
 {
@@ -181,7 +184,7 @@ where
     }
 }
 
-impl<'a, G, T> SlaterDeterminantSpatialSymmetryOrbit<'a, G, Complex<T>>
+impl<'a, G, T> SlaterDeterminantSymmetryOrbit<'a, G, Complex<T>>
 where
     G: SymmetryGroupProperties,
     T: Float + Scalar<Complex = Complex<T>>,
@@ -206,7 +209,7 @@ where
 
         // `eig` does not guarantee orthogonality of `nonzero_umat_nonortho`.
         // Gram--Schmidt is therefore required.
-        let nonzero_umat = complex_gram_schmidt_orthonormalisation(
+        let nonzero_umat = complex_modified_gram_schmidt(
             &nonzero_umat_nonortho,
             self.origin.complex_symmetric(),
             thresh,
@@ -236,8 +239,7 @@ where
 // Orbit
 // ~~~~~
 
-impl<'a, G, T> Orbit<G, SlaterDeterminant<'a, T>>
-    for SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
+impl<'a, G, T> Orbit<G, SlaterDeterminant<'a, T>> for SlaterDeterminantSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
@@ -258,7 +260,28 @@ where
             .elements()
             .clone()
             .into_iter()
-            .map(|op| self.origin.sym_transform_spatial(&op).unwrap())
+            .map(|op| match self.symmetry_transformation_kind {
+                SymmetryTransformationKind::Spatial => self
+                    .origin
+                    .sym_transform_spatial(&op)
+                    .unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        panic!("Unable to apply `{op}` spatially on the origin determinant.")
+                    }),
+                SymmetryTransformationKind::Spin => {
+                    self.origin.sym_transform_spin(&op).unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        panic!("Unable to apply `{op}` spin-wise on the origin determinant.")
+                    })
+                }
+                SymmetryTransformationKind::SpinSpatial => self
+                    .origin
+                    .sym_transform_spin_spatial(&op)
+                    .unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        panic!("Unable to apply `{op}` spin-spatially on the origin determinant.")
+                    }),
+            })
             .collect::<Vec<_>>()
     }
 }
@@ -268,7 +291,7 @@ where
 // ~~~~~~~~~~~
 
 impl<'a, G, T> RepAnalysis<G, SlaterDeterminant<'a, T>, T>
-    for SlaterDeterminantSpatialSymmetryOrbit<'a, G, T>
+    for SlaterDeterminantSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
     G::CharTab: SubspaceDecomposable<T>,
@@ -294,5 +317,13 @@ where
         self.xmat
             .as_ref()
             .expect("Orbit overlap orthogonalisation matrix not found.")
+    }
+
+    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
+        if self.group.get_index(i).unwrap().is_antiunitary() {
+            ComplexFloat::conj
+        } else {
+            |x| x
+        }
     }
 }
