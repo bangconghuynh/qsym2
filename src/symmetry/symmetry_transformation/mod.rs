@@ -18,6 +18,17 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
 #[path = "symmetry_transformation_tests.rs"]
 mod symmetry_transformation_tests;
 
+// ================
+// Enum definitions
+// ================
+
+#[derive(Debug, Clone)]
+pub enum SymmetryTransformationKind {
+    Spatial,
+    Spin,
+    SpinSpatial,
+}
+
 // =================
 // Trait definitions
 // =================
@@ -215,9 +226,6 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         let rmat = symop.get_3d_spatial_matrix();
         let perm = self.sym_permute_sites_spatial(symop)?;
         self.transform_spatial_mut(&rmat, Some(&perm));
-        if symop.is_antiunitary() {
-            self.transform_timerev_mut()?;
-        }
         Ok(self)
     }
 
@@ -262,10 +270,12 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
             } else {
                 dmat_angleaxis(angle, axis, false)
             };
-            self.transform_spin_mut(&dmat)
-        } else {
-            Ok(self)
+            self.transform_spin_mut(&dmat)?;
         }
+        if symop.is_antiunitary() {
+            self.transform_timerev_mut()?;
+        }
+        Ok(self)
     }
 
     /// Performs a spin transformation according to a specified symmetry operation and returns the
