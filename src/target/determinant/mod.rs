@@ -11,6 +11,7 @@ use num_traits::float::{Float, FloatConst};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::molecule::Molecule;
+use crate::target::orbital::MolecularOrbital;
 
 #[cfg(test)]
 mod determinant_tests;
@@ -24,6 +25,7 @@ mod determinant_transformation;
 
 /// A structure to manage single-determinantal wavefunctions.
 #[derive(Builder, Clone)]
+#[builder(build_fn(validate = "Self::validate"))]
 pub struct SlaterDeterminant<'a, T>
 where
     T: ComplexFloat + Lapack,
@@ -43,13 +45,100 @@ where
     mol: &'a Molecule,
 
     /// The coefficients describing this determinant.
+    #[builder(setter(custom))]
     coefficients: Vec<Array2<T>>,
 
     /// The occupation patterns of the molecular orbitals in [`Self::coefficients`].
+    #[builder(setter(custom))]
     occupations: Vec<Array1<<T as ComplexFloat>::Real>>,
 
     /// The threshold for comparing determinants.
     threshold: <T as ComplexFloat>::Real,
+}
+
+impl<'a, T> SlaterDeterminantBuilder<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    fn coefficients(&mut self, cs: &[Array2<T>]) -> &mut Self {
+        self.coefficients = Some(cs.to_vec());
+        self
+    }
+
+    fn occupations(&mut self, occs: &[Array1<<T as ComplexFloat>::Real>]) -> &mut Self {
+        self.occupations = Some(occs.to_vec());
+        self
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        let bao = self
+            .bao
+            .ok_or("No `BasisAngularOrder` found.".to_string())?;
+        let nbas = bao.n_funcs();
+        let coefficients = self
+            .coefficients
+            .as_ref()
+            .ok_or("No coefficients found.".to_string())?;
+        let spincons = match self
+            .spin_constraint
+            .as_ref()
+            .ok_or("No spin constraint found.".to_string())?
+        {
+            SpinConstraint::Restricted(_) => {
+                coefficients.len() == 1 && coefficients[0].shape()[0] == nbas
+            }
+            SpinConstraint::Unrestricted(nspins, _) => {
+                coefficients.len() == usize::from(*nspins)
+                    && coefficients.iter().all(|c| c.shape()[0] == nbas)
+            }
+            SpinConstraint::Generalised(nspins, _) => {
+                coefficients.len() == 1
+                    && coefficients[0].shape()[0].rem_euclid(nbas) == 0
+                    && coefficients[0].shape()[0].div_euclid(nbas) == usize::from(*nspins)
+            }
+        };
+        if !spincons {
+            log::error!("The coefficient matrices fail to satisfy the specified spin constraint.");
+        }
+
+        let occupations = self
+            .occupations
+            .as_ref()
+            .ok_or("No occupations found.".to_string())?;
+        let occs = match self
+            .spin_constraint
+            .as_ref()
+            .ok_or("No spin constraint found.".to_string())?
+        {
+            SpinConstraint::Restricted(_) => {
+                occupations.len() == 1 && occupations[0].shape()[0] == coefficients[0].shape()[1]
+            }
+            SpinConstraint::Unrestricted(nspins, _) => {
+                occupations.len() == usize::from(*nspins)
+                    && occupations
+                        .iter()
+                        .zip(coefficients.iter())
+                        .all(|(occs, coeffs)| occs.shape()[0] == coeffs.shape()[1])
+            }
+            SpinConstraint::Generalised(_, _) => {
+                occupations.len() == 1 && occupations[0].shape()[0] == coefficients[0].shape()[1]
+            }
+        };
+        if !occs {
+            log::error!("The occupation patterns do not match the coefficient patterns.");
+        }
+
+        let mol = self.mol.ok_or("No molecule found.".to_string())?;
+        let natoms = mol.atoms.len() == bao.n_atoms();
+        if !natoms {
+            log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
+        }
+        if spincons && occs && natoms {
+            Ok(())
+        } else {
+            Err("Slater determinant validation failed.".to_string())
+        }
+    }
 }
 
 impl<'a, T> SlaterDeterminant<'a, T>
@@ -57,45 +146,45 @@ where
     T: ComplexFloat + Clone + Lapack,
 {
     /// Returns a builder to construct a new [`SlaterDeterminant`].
-    fn builder() -> SlaterDeterminantBuilder<'a, T> {
+    pub fn builder() -> SlaterDeterminantBuilder<'a, T> {
         SlaterDeterminantBuilder::default()
     }
 
-    /// Constructs a new [`SlaterDeterminant`] from its coefficients, occupation patterns, and associated
-    /// molecular information.
-    ///
-    /// # Arguments
-    ///
-    /// * `cs` - Coefficient arrays, one for each spin-subspace.
-    /// * `occs` - Occupation arrays, one for each spin-subspace.
-    /// * `bao` - A shared reference to a [`BasisAngularOrder`] structure which encapsulates
-    /// angular-momentum information about the shells in the basis set.
-    /// * `mol` - A shared reference to a [`Molecule`] structure which encapsulates information
-    /// about the molecular structure.
-    /// * `spincons` - The spin constraint in which the coefficient arrays are defined.
-    /// * `thresh` - The threshold for numerical comparisons of determinants.
-    pub fn new(
-        cs: &[Array2<T>],
-        occs: &[Array1<<T as ComplexFloat>::Real>],
-        bao: &'a BasisAngularOrder<'a>,
-        mol: &'a Molecule,
-        spincons: SpinConstraint,
-        complex_symmetric: bool,
-        thresh: <T as ComplexFloat>::Real,
-    ) -> Self {
-        let det = Self::builder()
-            .coefficients(cs.to_vec())
-            .occupations(occs.to_vec())
-            .bao(bao)
-            .mol(mol)
-            .spin_constraint(spincons)
-            .complex_symmetric(complex_symmetric)
-            .threshold(thresh)
-            .build()
-            .expect("Unable to construct a single determinant structure.");
-        assert!(det.verify(), "Invalid determinant requested.");
-        det
-    }
+    ///// Constructs a new [`SlaterDeterminant`] from its coefficients, occupation patterns, and associated
+    ///// molecular information.
+    /////
+    ///// # Arguments
+    /////
+    ///// * `cs` - Coefficient arrays, one for each spin-subspace.
+    ///// * `occs` - Occupation arrays, one for each spin-subspace.
+    ///// * `bao` - A shared reference to a [`BasisAngularOrder`] structure which encapsulates
+    ///// angular-momentum information about the shells in the basis set.
+    ///// * `mol` - A shared reference to a [`Molecule`] structure which encapsulates information
+    ///// about the molecular structure.
+    ///// * `spincons` - The spin constraint in which the coefficient arrays are defined.
+    ///// * `thresh` - The threshold for numerical comparisons of determinants.
+    //pub fn new(
+    //    cs: &[Array2<T>],
+    //    occs: &[Array1<<T as ComplexFloat>::Real>],
+    //    bao: &'a BasisAngularOrder<'a>,
+    //    mol: &'a Molecule,
+    //    spincons: SpinConstraint,
+    //    complex_symmetric: bool,
+    //    thresh: <T as ComplexFloat>::Real,
+    //) -> Self {
+    //    let det = Self::builder()
+    //        .coefficients(cs.to_vec())
+    //        .occupations(occs.to_vec())
+    //        .bao(bao)
+    //        .mol(mol)
+    //        .spin_constraint(spincons)
+    //        .complex_symmetric(complex_symmetric)
+    //        .threshold(thresh)
+    //        .build()
+    //        .expect("Unable to construct a single determinant structure.");
+    //    // assert!(det.verify(), "Invalid determinant requested.");
+    //    det
+    //}
 
     pub fn to_generalised(&self) -> Self {
         match self.spin_constraint {
@@ -116,15 +205,16 @@ where
                         .assign(cr);
                     occg.slice_mut(s![col_start..col_end]).assign(occr);
                 });
-                Self::new(
-                    &[cg],
-                    &[occg],
-                    self.bao,
-                    self.mol,
-                    SpinConstraint::Generalised(n, false),
-                    self.complex_symmetric,
-                    self.threshold,
-                )
+                Self::builder()
+                    .coefficients(&[cg])
+                    .occupations(&[occg])
+                    .bao(self.bao)
+                    .mol(self.mol)
+                    .spin_constraint(SpinConstraint::Generalised(n, false))
+                    .complex_symmetric(self.complex_symmetric)
+                    .threshold(self.threshold)
+                    .build()
+                    .expect("Unable to spin-generalise a `SlaterDeterminant`.")
             }
             SpinConstraint::Unrestricted(n, increasingm) => {
                 let nbas = self.bao.n_funcs();
@@ -148,17 +238,59 @@ where
                     occg.slice_mut(s![col_start..col_end])
                         .assign(&self.occupations[i]);
                 });
-                Self::new(
-                    &[cg],
-                    &[occg],
-                    self.bao,
-                    self.mol,
-                    SpinConstraint::Generalised(n, increasingm),
-                    self.complex_symmetric,
-                    self.threshold,
-                )
+                Self::builder()
+                    .coefficients(&[cg])
+                    .occupations(&[occg])
+                    .bao(self.bao)
+                    .mol(self.mol)
+                    .spin_constraint(SpinConstraint::Generalised(n, increasingm))
+                    .complex_symmetric(self.complex_symmetric)
+                    .threshold(self.threshold)
+                    .build()
+                    .expect("Unable to spin-generalise a `SlaterDeterminant`.")
             }
-            SpinConstraint::Generalised(_, _) => self.clone()
+            SpinConstraint::Generalised(_, _) => self.clone(),
+        }
+    }
+
+    pub fn to_orbitals(&self) -> Vec<MolecularOrbital<'a, T>> {
+        match self.spin_constraint {
+            SpinConstraint::Restricted(_) | SpinConstraint::Generalised(_, _) => {
+                assert_eq!(self.coefficients.len(), 1);
+                self.coefficients[0]
+                    .columns()
+                    .into_iter()
+                    .map(|c| {
+                        MolecularOrbital::new(
+                            c.to_owned(),
+                            self.bao,
+                            self.mol,
+                            self.spin_constraint.clone(),
+                            0,
+                            self.complex_symmetric,
+                            self.threshold,
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            }
+            SpinConstraint::Unrestricted(_, _) => self
+                .coefficients
+                .iter()
+                .enumerate()
+                .flat_map(|(spini, cs_spini)| {
+                    cs_spini.columns().into_iter().map(move |c| {
+                        MolecularOrbital::new(
+                            c.to_owned(),
+                            self.bao,
+                            self.mol,
+                            self.spin_constraint.clone(),
+                            spini,
+                            self.complex_symmetric,
+                            self.threshold,
+                        )
+                    })
+                })
+                .collect::<Vec<_>>(),
         }
     }
 
@@ -199,54 +331,54 @@ where
         }
     }
 
-    /// Verifies the validity of the determinant, *i.e.* checks for consistency between
-    /// coefficients, basis set shell structure, and spin constraint.
-    fn verify(&self) -> bool {
-        let nbas = self.bao.n_funcs();
-        let spincons = match self.spin_constraint {
-            SpinConstraint::Restricted(_) => {
-                self.coefficients.len() == 1 && self.coefficients[0].shape()[0] == nbas
-            }
-            SpinConstraint::Unrestricted(nspins, _) => {
-                self.coefficients.len() == usize::from(nspins)
-                    && self.coefficients.iter().all(|c| c.shape()[0] == nbas)
-            }
-            SpinConstraint::Generalised(nspins, _) => {
-                self.coefficients.len() == 1
-                    && self.coefficients[0].shape()[0].rem_euclid(nbas) == 0
-                    && self.coefficients[0].shape()[0].div_euclid(nbas) == usize::from(nspins)
-            }
-        };
-        if !spincons {
-            log::error!("The coefficient matrices fail to satisfy the specified spin constraint.");
-        }
-        let occs = match self.spin_constraint {
-            SpinConstraint::Restricted(_) => {
-                self.occupations.len() == 1
-                    && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
-            }
-            SpinConstraint::Unrestricted(nspins, _) => {
-                self.occupations.len() == usize::from(nspins)
-                    && self
-                        .occupations
-                        .iter()
-                        .zip(self.coefficients.iter())
-                        .all(|(occs, coeffs)| occs.shape()[0] == coeffs.shape()[1])
-            }
-            SpinConstraint::Generalised(_, _) => {
-                self.occupations.len() == 1
-                    && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
-            }
-        };
-        if !occs {
-            log::error!("The occupation patterns do not match the coefficient patterns.");
-        }
-        let natoms = self.mol.atoms.len() == self.bao.n_atoms();
-        if !natoms {
-            log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
-        }
-        spincons && occs && natoms
-    }
+    // /// Verifies the validity of the determinant, *i.e.* checks for consistency between
+    // /// coefficients, basis set shell structure, and spin constraint.
+    // fn verify(&self) -> bool {
+    //     let nbas = self.bao.n_funcs();
+    //     let spincons = match self.spin_constraint {
+    //         SpinConstraint::Restricted(_) => {
+    //             self.coefficients.len() == 1 && self.coefficients[0].shape()[0] == nbas
+    //         }
+    //         SpinConstraint::Unrestricted(nspins, _) => {
+    //             self.coefficients.len() == usize::from(nspins)
+    //                 && self.coefficients.iter().all(|c| c.shape()[0] == nbas)
+    //         }
+    //         SpinConstraint::Generalised(nspins, _) => {
+    //             self.coefficients.len() == 1
+    //                 && self.coefficients[0].shape()[0].rem_euclid(nbas) == 0
+    //                 && self.coefficients[0].shape()[0].div_euclid(nbas) == usize::from(nspins)
+    //         }
+    //     };
+    //     if !spincons {
+    //         log::error!("The coefficient matrices fail to satisfy the specified spin constraint.");
+    //     }
+    //     let occs = match self.spin_constraint {
+    //         SpinConstraint::Restricted(_) => {
+    //             self.occupations.len() == 1
+    //                 && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
+    //         }
+    //         SpinConstraint::Unrestricted(nspins, _) => {
+    //             self.occupations.len() == usize::from(nspins)
+    //                 && self
+    //                     .occupations
+    //                     .iter()
+    //                     .zip(self.coefficients.iter())
+    //                     .all(|(occs, coeffs)| occs.shape()[0] == coeffs.shape()[1])
+    //         }
+    //         SpinConstraint::Generalised(_, _) => {
+    //             self.occupations.len() == 1
+    //                 && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
+    //         }
+    //     };
+    //     if !occs {
+    //         log::error!("The occupation patterns do not match the coefficient patterns.");
+    //     }
+    //     let natoms = self.mol.atoms.len() == self.bao.n_atoms();
+    //     if !natoms {
+    //         log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
+    //     }
+    //     spincons && occs && natoms
+    // }
 }
 
 // =====================
@@ -262,19 +394,22 @@ where
     Complex<T>: Lapack,
 {
     fn from(value: SlaterDeterminant<'a, T>) -> Self {
-        SlaterDeterminant::<'a, Complex<T>>::new(
-            &value
-                .coefficients
-                .into_iter()
-                .map(|coeffs| coeffs.map(|x| Complex::from(x)))
-                .collect::<Vec<_>>(),
-            &value.occupations,
-            value.bao,
-            value.mol,
-            value.spin_constraint,
-            value.complex_symmetric,
-            value.threshold,
-        )
+        SlaterDeterminant::<'a, Complex<T>>::builder()
+            .coefficients(
+                &value
+                    .coefficients
+                    .into_iter()
+                    .map(|coeffs| coeffs.map(|x| Complex::from(x)))
+                    .collect::<Vec<_>>(),
+            )
+            .occupations(&value.occupations)
+            .bao(value.bao)
+            .mol(value.mol)
+            .spin_constraint(value.spin_constraint)
+            .complex_symmetric(value.complex_symmetric)
+            .threshold(value.threshold)
+            .build()
+            .expect("Unable to complexify a `SlaterDeterminant`.")
     }
 }
 
