@@ -17,10 +17,12 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, Zero};
 
 use crate::analysis::{Orbit, Overlap, RepAnalysis, RepAnalysisError};
-use crate::aux::misc::complex_gram_schmidt_orthonormalisation;
+use crate::aux::misc::complex_modified_gram_schmidt;
 use crate::chartab::SubspaceDecomposable;
+use crate::group::HasUnitarySubgroup;
+use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
-use crate::symmetry::symmetry_transformation::SymmetryTransformable;
+use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
 use crate::target::orbital::MolecularOrbital;
 
 // -------
@@ -59,7 +61,11 @@ where
         let ov = if self.complex_symmetric() {
             self.coefficients.t().dot(sao).dot(&other.coefficients)
         } else {
-            self.coefficients.t().mapv(|x| x.conj()).dot(sao).dot(&other.coefficients)
+            self.coefficients
+                .t()
+                .mapv(|x| x.conj())
+                .dot(sao)
+                .dot(&other.coefficients)
         };
         Ok(ov)
     }
@@ -83,6 +89,8 @@ where
     group: &'a G,
 
     origin: &'a MolecularOrbital<'a, T>,
+
+    symmetry_transformation_kind: SymmetryTransformationKind,
 
     #[builder(setter(skip), default = "None")]
     pub smat: Option<Array2<T>>,
@@ -159,7 +167,7 @@ where
 
         // `eig` does not guarantee orthogonality of `nonzero_umat_nonortho`.
         // Gram--Schmidt is therefore required.
-        let nonzero_umat = complex_gram_schmidt_orthonormalisation(
+        let nonzero_umat = complex_modified_gram_schmidt(
             &nonzero_umat_nonortho,
             self.origin.complex_symmetric(),
             thresh,
@@ -189,10 +197,9 @@ where
 // Orbit
 // ~~~~~
 
-impl<'a, G, T> Orbit<G, MolecularOrbital<'a, T>>
-    for MolecularOrbitalSpatialSymmetryOrbit<'a, G, T>
+impl<'a, G, T> Orbit<G, MolecularOrbital<'a, T>> for MolecularOrbitalSpatialSymmetryOrbit<'a, G, T>
 where
-    G: SymmetryGroupProperties,
+    G: SymmetryGroupProperties + HasUnitarySubgroup,
     T: ComplexFloat + fmt::Debug + Lapack,
     MolecularOrbital<'a, T>: SymmetryTransformable,
 {
@@ -211,7 +218,31 @@ where
             .elements()
             .clone()
             .into_iter()
-            .map(|op| self.origin.sym_transform_spatial(&op).unwrap())
+            .map(|op| match self.symmetry_transformation_kind {
+                SymmetryTransformationKind::Spatial => self
+                    .origin
+                    .sym_transform_spatial(&op)
+                    .unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        panic!("Unable to apply `{op}` spatially on `{}`.", self.origin)
+                    }),
+                SymmetryTransformationKind::Spin => {
+                    self.origin.sym_transform_spin(&op).unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        panic!("Unable to apply `{op}` spin-wise on `{}`.", self.origin)
+                    })
+                }
+                SymmetryTransformationKind::SpinSpatial => self
+                    .origin
+                    .sym_transform_spin_spatial(&op)
+                    .unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        panic!(
+                            "Unable to apply `{op}` spin-spatially on `{}`.",
+                            self.origin
+                        )
+                    }),
+            })
             .collect::<Vec<_>>()
     }
 }
@@ -223,7 +254,7 @@ where
 impl<'a, G, T> RepAnalysis<G, MolecularOrbital<'a, T>, T>
     for MolecularOrbitalSpatialSymmetryOrbit<'a, G, T>
 where
-    G: SymmetryGroupProperties,
+    G: SymmetryGroupProperties + HasUnitarySubgroup,
     G::CharTab: SubspaceDecomposable<T>,
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>
@@ -247,5 +278,13 @@ where
         self.xmat
             .as_ref()
             .expect("Orbit overlap orthogonalisation matrix not found.")
+    }
+
+    fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T {
+        if self.group.get_index(i).unwrap().is_antiunitary() {
+            ComplexFloat::conj
+        } else {
+            |x| x
+        }
     }
 }

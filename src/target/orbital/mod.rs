@@ -11,6 +11,7 @@ use num_traits::float::{Float, FloatConst};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::molecule::Molecule;
+use crate::target::determinant::SlaterDeterminant;
 
 // #[cfg(test)]
 // mod determinant_tests;
@@ -242,7 +243,6 @@ impl<'a, T> Eq for MolecularOrbital<'a, T> where T: ComplexFloat<Real = f64> + L
 impl<'a, T> fmt::Debug for MolecularOrbital<'a, T>
 where
     T: fmt::Debug + ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: Sum + From<u16> + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
@@ -262,7 +262,6 @@ where
 impl<'a, T> fmt::Display for MolecularOrbital<'a, T>
 where
     T: fmt::Display + ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: Sum + From<u16> + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
