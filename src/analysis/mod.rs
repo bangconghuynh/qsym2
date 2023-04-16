@@ -5,6 +5,7 @@ use itertools::Itertools;
 use ndarray::{s, Array2, Ix0, Ix2};
 use ndarray_einsum_beta::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
+use num_traits::ToPrimitive;
 use num_complex::ComplexFloat;
 
 use crate::chartab::chartab_group::CharacterProperties;
@@ -47,6 +48,7 @@ where
 pub(crate) trait RepAnalysis<G, I, T>: Orbit<G, I>
 where
     T: ComplexFloat + Lapack + fmt::Debug,
+    <T as ComplexFloat>::Real: ToPrimitive,
     G: GroupProperties + ClassProperties + CharacterProperties,
     G::GroupElement: fmt::Display,
     G::CharTab: SubspaceDecomposable<T>,
@@ -67,6 +69,9 @@ where
 
     #[must_use]
     fn norm_preserving_scalar_map(&self, i: usize) -> fn(T) -> T;
+
+    #[must_use]
+    fn threshold(&self) -> <T as ComplexFloat>::Real;
 
     // ----------------
     // Provided methods
@@ -212,7 +217,7 @@ where
         let chis = self.calc_characters();
         let res = self.group().character_table().reduce_characters(
             &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
-            1e-7,
+            self.threshold(),
         );
         res
     }

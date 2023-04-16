@@ -439,10 +439,10 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
         rls.push(rl);
     }
 
-    let cart2rss: Vec<Vec<Array2<f64>>> = (0..=lmax)
+    let cart2rss_lex: Vec<Vec<Array2<f64>>> = (0..=lmax)
         .map(|lcart| sh_cart2r(lcart, &CartOrder::lex(lcart), true, true))
         .collect();
-    let r2cartss: Vec<Vec<Array2<f64>>> = (0..=lmax)
+    let r2cartss_lex: Vec<Vec<Array2<f64>>> = (0..=lmax)
         .map(|lcart| sh_r2cart(lcart, &CartOrder::lex(lcart), true, true))
         .collect();
 
@@ -468,8 +468,10 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
                 ShellOrder::Cart(cart_order) => {
                     // Cartesian functions. Convert them to real solid harmonics first, then
                     // applying the transformation, then convert back.
-                    let cart2rs = &cart2rss[l];
-                    let r2carts = &r2cartss[l];
+                    // TODO: Fix this! cart2rss and r2cartss do not take into account per-shell
+                    // cart_order!!!
+                    let cart2rs = &cart2rss_lex[l];
+                    let r2carts = &r2cartss_lex[l];
                     let rl = cart2rs.iter().zip(r2carts.iter()).enumerate().fold(
                         Array2::zeros((cart_order.ncomps(), cart_order.ncomps())),
                         |acc, (i, (xmat, wmat))| {

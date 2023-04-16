@@ -194,10 +194,6 @@ impl Molecule {
             tot_m += m;
         }
         com *= 1.0 / tot_m;
-        log::debug!("Centre of mass:");
-        for component in com.iter() {
-            log::debug!("  {component:+.14}");
-        }
         com
     }
 

@@ -150,42 +150,6 @@ where
         SlaterDeterminantBuilder::default()
     }
 
-    ///// Constructs a new [`SlaterDeterminant`] from its coefficients, occupation patterns, and associated
-    ///// molecular information.
-    /////
-    ///// # Arguments
-    /////
-    ///// * `cs` - Coefficient arrays, one for each spin-subspace.
-    ///// * `occs` - Occupation arrays, one for each spin-subspace.
-    ///// * `bao` - A shared reference to a [`BasisAngularOrder`] structure which encapsulates
-    ///// angular-momentum information about the shells in the basis set.
-    ///// * `mol` - A shared reference to a [`Molecule`] structure which encapsulates information
-    ///// about the molecular structure.
-    ///// * `spincons` - The spin constraint in which the coefficient arrays are defined.
-    ///// * `thresh` - The threshold for numerical comparisons of determinants.
-    //pub fn new(
-    //    cs: &[Array2<T>],
-    //    occs: &[Array1<<T as ComplexFloat>::Real>],
-    //    bao: &'a BasisAngularOrder<'a>,
-    //    mol: &'a Molecule,
-    //    spincons: SpinConstraint,
-    //    complex_symmetric: bool,
-    //    thresh: <T as ComplexFloat>::Real,
-    //) -> Self {
-    //    let det = Self::builder()
-    //        .coefficients(cs.to_vec())
-    //        .occupations(occs.to_vec())
-    //        .bao(bao)
-    //        .mol(mol)
-    //        .spin_constraint(spincons)
-    //        .complex_symmetric(complex_symmetric)
-    //        .threshold(thresh)
-    //        .build()
-    //        .expect("Unable to construct a single determinant structure.");
-    //    // assert!(det.verify(), "Invalid determinant requested.");
-    //    det
-    //}
-
     pub fn to_generalised(&self) -> Self {
         match self.spin_constraint {
             SpinConstraint::Restricted(n) => {
@@ -330,55 +294,6 @@ where
                 .sum(),
         }
     }
-
-    // /// Verifies the validity of the determinant, *i.e.* checks for consistency between
-    // /// coefficients, basis set shell structure, and spin constraint.
-    // fn verify(&self) -> bool {
-    //     let nbas = self.bao.n_funcs();
-    //     let spincons = match self.spin_constraint {
-    //         SpinConstraint::Restricted(_) => {
-    //             self.coefficients.len() == 1 && self.coefficients[0].shape()[0] == nbas
-    //         }
-    //         SpinConstraint::Unrestricted(nspins, _) => {
-    //             self.coefficients.len() == usize::from(nspins)
-    //                 && self.coefficients.iter().all(|c| c.shape()[0] == nbas)
-    //         }
-    //         SpinConstraint::Generalised(nspins, _) => {
-    //             self.coefficients.len() == 1
-    //                 && self.coefficients[0].shape()[0].rem_euclid(nbas) == 0
-    //                 && self.coefficients[0].shape()[0].div_euclid(nbas) == usize::from(nspins)
-    //         }
-    //     };
-    //     if !spincons {
-    //         log::error!("The coefficient matrices fail to satisfy the specified spin constraint.");
-    //     }
-    //     let occs = match self.spin_constraint {
-    //         SpinConstraint::Restricted(_) => {
-    //             self.occupations.len() == 1
-    //                 && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
-    //         }
-    //         SpinConstraint::Unrestricted(nspins, _) => {
-    //             self.occupations.len() == usize::from(nspins)
-    //                 && self
-    //                     .occupations
-    //                     .iter()
-    //                     .zip(self.coefficients.iter())
-    //                     .all(|(occs, coeffs)| occs.shape()[0] == coeffs.shape()[1])
-    //         }
-    //         SpinConstraint::Generalised(_, _) => {
-    //             self.occupations.len() == 1
-    //                 && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
-    //         }
-    //     };
-    //     if !occs {
-    //         log::error!("The occupation patterns do not match the coefficient patterns.");
-    //     }
-    //     let natoms = self.mol.atoms.len() == self.bao.n_atoms();
-    //     if !natoms {
-    //         log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
-    //     }
-    //     spincons && occs && natoms
-    // }
 }
 
 // =====================

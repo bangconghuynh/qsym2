@@ -287,4 +287,8 @@ where
             |x| x
         }
     }
+
+    fn threshold(&self) -> <T as ComplexFloat>::Real {
+        self.origin.threshold
+    }
 }

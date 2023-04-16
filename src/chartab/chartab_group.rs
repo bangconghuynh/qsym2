@@ -49,6 +49,13 @@ where
 
     /// Returns a shared reference to the character table of this group.
     fn character_table(&self) -> &Self::CharTab;
+
+    /// Returns a boolean indicating if this character table contains irreducible representations
+    /// of a unitary-represented group.
+    ///
+    /// If `false`, then some elements in the group are not unitary-represented and one has
+    /// corepresentations instead of representations.
+    fn unitary_represented(&self) -> bool;
 }
 
 /// A trait for the ability to construct an irrep character table for the group.
@@ -936,6 +943,10 @@ where
             .as_ref()
             .expect("Irrep character table not found for this group.")
     }
+
+    fn unitary_represented(&self) -> bool {
+        true
+    }
 }
 
 impl<T, RowSymbol, ColSymbol> IrrepCharTabConstruction
@@ -988,6 +999,10 @@ where
         self.ircorep_character_table
             .as_ref()
             .expect("Ircorep character table not found for this group.")
+    }
+
+    fn unitary_represented(&self) -> bool {
+        false
     }
 }
 

@@ -121,6 +121,7 @@ where
 pub trait SubspaceDecomposable<T>: CharacterTable
 where
     T: ComplexFloat,
+    <T as ComplexFloat>::Real: ToPrimitive,
     Self::Decomposition: ReducibleLinearSpaceSymbol<Subspace = Self::RowSymbol>,
 {
     type Decomposition;
@@ -138,7 +139,7 @@ where
     fn reduce_characters(
         &self,
         characters: &[(&Self::ColSymbol, T)],
-        thresh: f64,
+        thresh: T::Real,
     ) -> Result<Self::Decomposition, DecompositionError>;
 }
 
@@ -516,6 +517,7 @@ where
     RowSymbol: LinearSpaceSymbol + PartialOrd,
     ColSymbol: CollectionSymbol,
     T: ComplexFloat,
+    <T as ComplexFloat>::Real: ToPrimitive,
     for <'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
 {
     type Decomposition = DecomposedSymbol<RowSymbol>;
@@ -533,7 +535,7 @@ where
     fn reduce_characters(
         &self,
         characters: &[(&Self::ColSymbol, T)],
-        thresh: f64,
+        thresh: T::Real,
     ) -> Result<Self::Decomposition, DecompositionError> {
         assert_eq!(characters.len(), self.classes.len());
         let rep_syms: Result<Vec<Option<(RowSymbol, usize)>>, _> = self
@@ -561,7 +563,8 @@ where
                         DecompositionError("The group order cannot be converted to `f64`.".to_string())
                     )?;
 
-                if approx::relative_ne!(c.im, 0.0, epsilon = thresh, max_relative = thresh) {
+                let thresh_f64 = thresh.to_f64().expect("Unable to convert the threshold to `f64`.");
+                if approx::relative_ne!(c.im, 0.0, epsilon = thresh_f64, max_relative = thresh_f64) {
                     Err(
                         DecompositionError(
                             format!(
@@ -570,7 +573,7 @@ where
                             )
                         )
                     )
-                } else if c.re < -thresh {
+                } else if c.re < -thresh_f64 {
                     Err(
                         DecompositionError(
                             format!(
@@ -580,7 +583,7 @@ where
                         )
                     )
                 } else if approx::relative_ne!(
-                    c.re, c.re.round(), epsilon = thresh, max_relative = thresh
+                    c.re, c.re.round(), epsilon = thresh_f64, max_relative = thresh_f64
                 ) {
                     Err(
                         DecompositionError(
@@ -997,6 +1000,7 @@ where
     RowSymbol: ReducibleLinearSpaceSymbol + PartialOrd,
     UC: CharacterTable,
     T: ComplexFloat,
+    <T as ComplexFloat>::Real: ToPrimitive,
     for <'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
 {
     type Decomposition = DecomposedSymbol<RowSymbol>;
@@ -1014,7 +1018,7 @@ where
     fn reduce_characters(
         &self,
         characters: &[(&Self::ColSymbol, T)],
-        thresh: f64,
+        thresh: T::Real,
     ) -> Result<Self::Decomposition, DecompositionError> {
         assert_eq!(characters.len(), self.classes.len());
         let rep_syms: Result<Vec<Option<(RowSymbol, usize)>>, _> = self
@@ -1048,7 +1052,8 @@ where
                         )
                     )?);
 
-                if approx::relative_ne!(c.im, 0.0, epsilon = thresh, max_relative = thresh) {
+                let thresh_f64 = thresh.to_f64().expect("Unable to convert the threshold to `f64`.");
+                if approx::relative_ne!(c.im, 0.0, epsilon = thresh_f64, max_relative = thresh_f64) {
                     Err(
                         DecompositionError(
                             format!(
@@ -1057,7 +1062,7 @@ where
                             )
                         )
                     )
-                } else if c.re < -thresh {
+                } else if c.re < -thresh_f64 {
                     Err(
                         DecompositionError(
                             format!(
@@ -1067,7 +1072,7 @@ where
                         )
                     )
                 } else if approx::relative_ne!(
-                    c.re, c.re.round(), epsilon = thresh, max_relative = thresh
+                    c.re, c.re.round(), epsilon = thresh_f64, max_relative = thresh_f64
                 ) {
                     Err(
                         DecompositionError(

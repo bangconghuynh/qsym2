@@ -15,12 +15,14 @@ use ndarray_linalg::{
     UPLO,
 };
 use num_complex::{Complex, ComplexFloat};
-use num_traits::{Float, Zero};
+use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{Orbit, Overlap, RepAnalysis, RepAnalysisError};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::misc::complex_modified_gram_schmidt;
-use crate::chartab::SubspaceDecomposable;
+use crate::chartab::chartab_group::CharacterProperties;
+use crate::chartab::{DecompositionError, SubspaceDecomposable};
+use crate::group::GroupType;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
@@ -301,6 +303,8 @@ where
         + Mul<<T as ComplexFloat>::Real, Output = T>,
     <T as ComplexFloat>::Real: fmt::Debug
         + Zero
+        + From<u16>
+        + ToPrimitive
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
     SlaterDeterminant<'a, T>: SymmetryTransformable,
@@ -324,6 +328,66 @@ where
             ComplexFloat::conj
         } else {
             |x| x
+        }
+    }
+
+    fn threshold(&self) -> <T as ComplexFloat>::Real {
+        self.origin.threshold
+    }
+
+    #[must_use]
+    fn analyse_rep(
+        &self,
+    ) -> Result<
+        <<G as CharacterProperties>::CharTab as SubspaceDecomposable<T>>::Decomposition,
+        DecompositionError,
+    > {
+        let nelectrons_float = self.origin().nelectrons();
+        if approx::relative_eq!(
+            nelectrons_float.round(),
+            nelectrons_float,
+            epsilon = self.origin().threshold,
+            max_relative = self.origin().threshold
+        ) {
+            let nelectrons_usize = nelectrons_float.round().to_usize().unwrap_or_else(|| {
+                panic!(
+                    "Unable to convert the number of electrons `{nelectrons_float:.7}` to `usize`."
+                );
+            });
+            let (valid_symmetry, err_str) = if nelectrons_usize.rem_euclid(2) == 0 {
+                // Even number of electrons; always valid
+                (true, String::new())
+            } else {
+                // Odd number of electrons; validity depends on group and orbit type
+                match self.symmetry_transformation_kind {
+                    SymmetryTransformationKind::Spatial => (true, String::new()),
+                    SymmetryTransformationKind::Spin | SymmetryTransformationKind::SpinSpatial => {
+                        match self.group().group_type() {
+                            GroupType::Ordinary(_) => (true, String::new()),
+                            GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
+                                (!self.group().unitary_represented(),
+                                format!("Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems."))
+                            }
+                        }
+                    }
+                }
+            };
+
+            if valid_symmetry {
+                let chis = self.calc_characters();
+                let res = self.group().character_table().reduce_characters(
+                    &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
+                    self.threshold(),
+                );
+                res
+            } else {
+                Err(DecompositionError(err_str))
+            }
+        } else {
+            Err(DecompositionError(format!(
+                "Symmetry analysis for determinant with non-integer number of electrons `{:.7}` not supported.",
+                nelectrons_float
+            )))
         }
     }
 }

@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 use log;
 use ndarray::{Array2, Zip};
 use num::Integer;
-use num_traits::Inv;
+use num_traits::{Inv, Pow};
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
@@ -52,7 +52,6 @@ where
 
     /// The finite subgroup name of this group, if any.
     fn finite_subgroup_name(&self) -> Option<&String>;
-
 
     /// A iterable collection of the elements in the group.
     fn elements(&self) -> &Self::ElementCollection;
@@ -621,11 +620,14 @@ where
     }
 
     fn unitary_subgroup(&mut self, uni_subgrp: UG) -> &mut Self {
-        assert!(uni_subgrp.elements().clone().into_iter().all(|op| self
-            .abstract_group
-            .as_ref()
-            .expect("Abstract group not yet set for this magnetic-represented group.")
-            .contains(&op)), "Some unitary operations cannot be found in the magnetic group.");
+        assert!(
+            uni_subgrp.elements().clone().into_iter().all(|op| self
+                .abstract_group
+                .as_ref()
+                .expect("Abstract group not yet set for this magnetic-represented group.")
+                .contains(&op)),
+            "Some unitary operations cannot be found in the magnetic group."
+        );
         self.unitary_subgroup = Some(uni_subgrp);
         self
     }
