@@ -10,7 +10,7 @@ use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
-fn test_chartab_symmetric_h2_alt_magnetic_field_bw_c4_c2() {
+fn test_chartab_symmetric_h2_alt_magnetic_field_bw_d2h_c2v() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/h2.xyz");
     let thresh = 1e-7;

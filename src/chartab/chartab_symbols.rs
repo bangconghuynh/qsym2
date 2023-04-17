@@ -583,7 +583,7 @@ where
     fn from_str(symstr: &str) -> Result<Self, Self::Err> {
         let re = Regex::new(r"(\d?)(.*)").expect("Regex pattern invalid.");
         let symbols = symstr
-            .split('+')
+            .split('⊕')
             .map(|irrep_str| {
                 let cap = re
                     .captures(irrep_str.trim())
