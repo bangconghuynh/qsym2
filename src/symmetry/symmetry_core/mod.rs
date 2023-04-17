@@ -42,7 +42,7 @@ pub struct PreSymmetry {
 
     /// The groups of symmetry-equivalent atoms in [`Self::molecule`].
     #[builder(setter(skip), default = "self.calc_sea_groups()")]
-    sea_groups: Vec<Vec<Atom>>,
+    pub sea_groups: Vec<Vec<Atom>>,
 
     /// Threshold for relative comparisons of moments of inertia.
     #[builder(setter(custom))]
@@ -1790,6 +1790,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
 
             // Case B: C2 might cross through any two atoms
             if let Some(proper_kind) = presym.check_proper(&ORDER_2, &atom_i_pos.coords, tr) {
+                log::debug!("Case B: C2 crosses through any two atoms.");
                 count_c2 += usize::from(sym.add_proper(
                     ORDER_2,
                     &atom_i_pos.coords,
@@ -1803,6 +1804,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
             let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
             let c2_check = presym.check_proper(&ORDER_2, &midvec, tr);
             if midvec.norm() > presym.dist_threshold && c2_check.is_some() {
+                log::debug!("Case A: C2 crosses through the midpoint of two atoms.");
                 count_c2 += usize::from(
                     sym.add_proper(
                         ORDER_2,
@@ -1833,11 +1835,12 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
     log::debug!("SEA group analysis ends.");
     log::debug!("++++++++++++++++++++++++");
 
+    // Search for any remaining C2 axes.
     if asymmetric && count_c2 == 3 {
     } else {
-        // Search for any remaining C2 axes.
         // Case C: Molecules with two or more sets of non-parallel linear diatomic SEA groups
         if linear_sea_groups.len() >= 2 {
+            log::debug!("Case C: Molecules with two or more sets of non-parallel linear diatomic SEA groups.");
             let normal_option = linear_sea_groups.iter().combinations(2).find_map(|pair| {
                 let vec_0 = pair[0][1].coordinates - pair[0][0].coordinates;
                 let vec_1 = pair[1][1].coordinates - pair[1][0].coordinates;

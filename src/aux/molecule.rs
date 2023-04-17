@@ -29,7 +29,7 @@ pub struct Molecule {
     pub atoms: Vec<Atom>,
 
     /// Optional special atom to represent the electric field applied to this molecule.
-    pub electric_atoms: Option<[Atom; 1]>,
+    pub electric_atoms: Option<Vec<Atom>>,
 
     /// Optional special atoms to represent the magnetic field applied to this molecule.
     pub magnetic_atoms: Option<Vec<Atom>>,
@@ -121,7 +121,7 @@ impl Molecule {
             .filter(|atom| matches!(atom.kind, AtomKind::Magnetic(_)))
             .cloned()
             .collect();
-        assert_eq!(magnetic_atoms_vec.len() % 2, 0);
+        // assert_eq!(magnetic_atoms_vec.len() % 2, 0, "{:?}", magnetic_atoms_vec);
         let magnetic_atoms = if magnetic_atoms_vec.is_empty() {
             None
         } else {
@@ -133,11 +133,11 @@ impl Molecule {
             .filter(|atom| matches!(atom.kind, AtomKind::Electric(_)))
             .cloned()
             .collect();
-        assert!(electric_atoms_vec.len() == 1 || electric_atoms_vec.is_empty());
-        let electric_atoms = if electric_atoms_vec.len() == 1 {
-            Some([electric_atoms_vec[0].clone()])
-        } else {
+        // assert!(electric_atoms_vec.len() == 1 || electric_atoms_vec.is_empty());
+        let electric_atoms = if electric_atoms_vec.is_empty() {
             None
+        } else {
+            Some(electric_atoms_vec)
         };
 
         Molecule {
@@ -368,7 +368,48 @@ impl Molecule {
             .collect();
 
         if let Some(magnetic_atoms) = &self.magnetic_atoms {
-            sea_groups.push(vec![magnetic_atoms[0].clone(), magnetic_atoms[1].clone()]);
+            // sea_groups.push(vec![magnetic_atoms[0].clone(), magnetic_atoms[1].clone()]);
+
+            let mag_coords: Vec<_> = magnetic_atoms.iter().map(|atm| atm.coordinates).collect();
+            let mut equiv_mag_indicess: Vec<Vec<usize>> = vec![vec![0]];
+            let mut mag_dist_columns: Vec<DVector<f64>> = vec![];
+            for (j, coord_j) in mag_coords.iter().enumerate() {
+                // column_j is the j-th column in the mass-weighted interatomic
+                // distance matrix. This column contains distances from ordinary atom j
+                // to all other atoms (both ordinary and fictitious) in the molecule.
+                // So this distance matrix is tall and thin when fictitious atoms are present.
+                let mut column_j: Vec<f64> = vec![];
+                for (i, coord_i) in all_coords.iter().enumerate() {
+                    let diff = coord_j - coord_i;
+                    column_j.push(diff.norm() / all_masses[i]);
+                }
+                column_j.sort_by(|a, b| {
+                    a.partial_cmp(b)
+                        .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
+                });
+                let column_j_vec = DVector::from_vec(column_j);
+                if j == 0 {
+                    mag_dist_columns.push(column_j_vec);
+                } else {
+                    let equiv_set_search = equiv_mag_indicess.iter().position(|equiv_indices| {
+                        mag_dist_columns[equiv_indices[0]].relative_eq(
+                            &column_j_vec,
+                            self.threshold,
+                            self.threshold,
+                        )
+                    });
+                    mag_dist_columns.push(column_j_vec);
+                    if let Some(index) = equiv_set_search {
+                        equiv_mag_indicess[index].push(j);
+                    } else {
+                        equiv_mag_indicess.push(vec![j]);
+                    };
+                }
+            }
+            equiv_mag_indicess.iter().for_each(|equiv_mag_indices| {
+                let equiv_mag_atoms = equiv_mag_indices.iter().map(|index| magnetic_atoms[*index].clone()).collect();
+                sea_groups.push(equiv_mag_atoms);
+            });
         }
         if let Some(electric_atoms) = &self.electric_atoms {
             sea_groups.push(vec![electric_atoms[0].clone()]);
@@ -449,7 +490,7 @@ impl Molecule {
                     }
                 };
                 let e_vec_norm = e_vec.normalize() * ave_mag * 0.5;
-                self.electric_atoms = Some([Atom::new_special(
+                self.electric_atoms = Some(vec![Atom::new_special(
                     AtomKind::Electric(true),
                     com + e_vec_norm,
                     self.threshold,
