@@ -430,7 +430,10 @@ impl SymmetryGroupProperties
             .clone();
 
         let handles_infinite_group = if sym.is_infinite() {
-            assert_ne!(infinite_order_to_finite, None);
+            assert!(
+                infinite_order_to_finite.is_some(),
+                "No finite orders specified for an infinite-order group."
+            );
             infinite_order_to_finite
         } else {
             None
@@ -688,7 +691,10 @@ impl SymmetryGroupProperties
             .clone();
 
         let handles_infinite_group = if sym.is_infinite() {
-            assert_ne!(infinite_order_to_finite, None);
+            assert!(
+                infinite_order_to_finite.is_some(),
+                "No finite orders specified for an infinite-order group."
+            );
             infinite_order_to_finite
         } else {
             None

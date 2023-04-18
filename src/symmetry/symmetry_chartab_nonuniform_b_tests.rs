@@ -23,13 +23,13 @@ fn test_chartab_symmetric_h2_alt_magnetic_field_bw_d2h_c2v() {
             [
                 Atom::new_special(
                     AtomKind::Magnetic(i % 2 == 0),
-                    atom.coordinates + 0.1*Vector3::z(),
+                    atom.coordinates + 0.1*Vector3::x(),
                     thresh,
                 )
                 .expect("Unable to construct a special magnetic atom."),
                 Atom::new_special(
                     AtomKind::Magnetic(i % 2 != 0),
-                    atom.coordinates - 0.1*Vector3::z(),
+                    atom.coordinates - 0.1*Vector3::x(),
                     thresh,
                 )
                 .expect("Unable to construct a special magnetic atom."),

@@ -1241,8 +1241,8 @@ where
                 #[allow(clippy::cast_possible_truncation)]
                 let char_trev_c = char_trev_c.re.round() as i32;
                 match char_trev_c.cmp(&0) {
-                    Ordering::Greater => "",
-                    Ordering::Less => "m",
+                    Ordering::Greater => "+",
+                    Ordering::Less => "-",
                     Ordering::Equal => panic!("Real time-reversal character must not be zero."),
                 }
             } else {

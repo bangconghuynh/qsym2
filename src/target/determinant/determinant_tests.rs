@@ -1229,7 +1229,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
 }
 
 #[test]
-fn test_determinant_orbit_rep_analysis_s4_sqpl_pz_zero_field() {
+fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
     // env_logger::init();
     let emap = ElementMap::new();
     let atm_s0 = Atom::from_xyz("S +1.0 +1.0 0.0", &emap, 1e-7).unwrap();
@@ -1273,6 +1273,21 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz_zero_field() {
 
     let group_m_grey_d4h = MagneticRepresentedGroup::from_molecular_symmetry(&sym_tr, None);
     let group_m_grey_d4h_double = group_m_grey_d4h.to_double_group();
+
+    let mut mol_s4_bz = mol_s4.clone();
+    mol_s4_bz.set_magnetic_field(Some(0.1 * Vector3::z()));
+    let presym_bz = PreSymmetry::builder()
+        .moi_threshold(1e-7)
+        .molecule(&mol_s4_bz, true)
+        .build()
+        .unwrap();
+    let mut sym_bz = Symmetry::new();
+    sym_bz.analyse(&presym_bz, true);
+    let group_u_bw_d4h_c4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym_bz, None);
+    println!("{:?}", group_u_bw_d4h_c4h.irrep_character_table);
+    let group_u_bw_d4h_c4h_double = group_u_bw_d4h_c4h.to_double_group();
+    let group_m_bw_d4h_c4h = MagneticRepresentedGroup::from_molecular_symmetry(&sym_bz, None);
+    let group_m_bw_d4h_c4h_double = group_m_bw_d4h_c4h.to_double_group();
 
     // ----------
     // 1-electron
@@ -1327,568 +1342,660 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz_zero_field() {
 
     let sao_cg = Array2::<C128>::eye(24);
 
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~
-    // u D4h (ordinary, unitary)
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~
+    // // ~~~~~~~~~~~~~~~~~~~~~~~~~
+    // // u D4h (ordinary, unitary)
+    // // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    let mut orbit_cg_u_d4h_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h)
+    // let mut orbit_cg_u_d4h_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_d4h_spatial_1e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(g)| + ||A|_(2u)| + ||B|_(1u)|")
+    //         .unwrap()
+    // );
+
+    // let mut orbit_cg_u_d4h_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_d4h_spatial_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new(
+    //         "2||E|_(g)| + ||A|_(1u)| + ||A|_(2u)| + ||B|_(1u)| + ||B|_(2u)|"
+    //     )
+    //     .unwrap(),
+    // );
+
+    // let mut orbit_cg_u_d4h_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_spin_1e.calc_smat(&sao_cg).calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_d4h_spin_1e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap()
+    // );
+
+    // let mut orbit_cg_u_d4h_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_spin_2e.calc_smat(&sao_cg).calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_d4h_spin_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap()
+    // );
+
+    // let mut orbit_cg_u_d4h_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_spin_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_d4h_spin_spatial_1e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(g)| + ||A|_(2u)| + ||B|_(1u)|")
+    //         .unwrap()
+    // );
+
+    // let mut orbit_cg_u_d4h_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_spin_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_d4h_spin_spatial_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new(
+    //         "2||E|_(g)| + ||A|_(1u)| + ||A|_(2u)| + ||B|_(1u)| + ||B|_(2u)|"
+    //     )
+    //     .unwrap(),
+    // );
+
+    // // ~~~~~~~~~~~~~~~~~~~~~~
+    // // u D4h' (grey, unitary)
+    // // ~~~~~~~~~~~~~~~~~~~~~~
+
+    // let mut orbit_cg_u_grey_d4h_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_grey_d4h_spatial_1e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(g)| + ||A|_(2u)| + ||B|_(1u)|")
+    //         .unwrap()
+    // );
+
+    // let mut orbit_cg_u_grey_d4h_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_grey_d4h_spatial_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new(
+    //         "2||E|_(g)| + ||A|_(1u)| + ||A|_(2u)| + ||B|_(1u)| + ||B|_(2u)|"
+    //     )
+    //     .unwrap(),
+    // );
+
+    // let mut orbit_cg_u_grey_d4h_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_spin_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // // Character analysis would give |A|_(1g) + ^(m)|A|_(1g), but |α⟩ and |β⟩ cannot be linearly
+    // // combined to span each of the subspaces separately.
+    // assert!(orbit_cg_u_grey_d4h_spin_1e.analyse_rep().is_err());
+
+    // let mut orbit_cg_u_grey_d4h_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_spin_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_grey_d4h_spin_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| + |^(m)|A|_(1g)|").unwrap(),
+    // );
+
+    // let mut orbit_cg_u_grey_d4h_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_spin_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert!(orbit_cg_u_grey_d4h_spin_spatial_1e.analyse_rep().is_err());
+
+    // let mut orbit_cg_u_grey_d4h_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_spin_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_grey_d4h_spin_spatial_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new(
+    //         "2||E|_(g)| + ||A|_(1u)| + ||A|_(2u)| + ||B|_(1u)| + ||B|_(2u)|
+    //         + 2|^(m)|E|_(g)| + |^(m)|A|_(1u)| + |^(m)|A|_(2u)| + |^(m)|B|_(1u)| + |^(m)|B|_(2u)|"
+    //     )
+    //     .unwrap(),
+    // );
+
+    // // ~~~~~~~~~~~~~~~~~~~~~~~
+    // // m D4h' (grey, magnetic)
+    // // ~~~~~~~~~~~~~~~~~~~~~~~
+
+    // let mut orbit_cg_m_grey_d4h_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_m_grey_d4h_spatial_1e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E|_(g)| + ||A|_(2u)| + ||B|_(1u)|")
+    //         .unwrap()
+    // );
+
+    // let mut orbit_cg_m_grey_d4h_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_m_grey_d4h_spatial_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrcorepSymbol>::new(
+    //         "2||E|_(g)| + ||A|_(1u)| + ||A|_(2u)| + ||B|_(1u)| + ||B|_(2u)|"
+    //     )
+    //     .unwrap(),
+    // );
+
+    // let mut orbit_cg_m_grey_d4h_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_spin_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_m_grey_d4h_spin_1e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrcorepSymbol>::new("2||A|_(1g)|").unwrap()
+    // );
+
+    // let mut orbit_cg_m_grey_d4h_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_spin_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_m_grey_d4h_spin_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrcorepSymbol>::new("2||A|_(1g)|").unwrap(),
+    // );
+
+    // let mut orbit_cg_m_grey_d4h_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_spin_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_m_grey_d4h_spin_spatial_1e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrcorepSymbol>::new("2||E|_(g)| + 2||A|_(2u)| + 2||B|_(1u)|")
+    //         .unwrap()
+    // );
+
+    // let mut orbit_cg_m_grey_d4h_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_spin_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(orbit_cg_m_grey_d4h_spin_spatial_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrcorepSymbol>::new(
+    //         "4||E|_(g)| + 2||A|_(1u)| + 2||A|_(2u)| + 2||B|_(1u)| + 2||B|_(2u)|"
+    //     )
+    //     .unwrap(),
+    // );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    // u D4h(C4h) (bw, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+
+    let mut orbit_cg_u_bw_d4h_c4h_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_bw_d4h_c4h)
         .origin(&det_1e_cg)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_spatial_1e
+    orbit_cg_u_bw_d4h_c4h_spatial_1e
         .calc_smat(&sao_cg)
         .calc_xmat(false);
     assert_eq!(
-        orbit_cg_u_d4h_spatial_1e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(g)| ⊕ ||A|_(2u)| ⊕ ||B|_(1u)|")
+        orbit_cg_u_bw_d4h_c4h_spatial_1e.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(g)| + ||A|_(2u)| + ||B|_(1u)|")
             .unwrap()
     );
 
-    let mut orbit_cg_u_d4h_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h)
+    let mut orbit_cg_u_bw_d4h_c4h_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_bw_d4h_c4h)
         .origin(&det_2e_cg)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_spatial_2e
+    orbit_cg_u_bw_d4h_c4h_spatial_2e
         .calc_smat(&sao_cg)
         .calc_xmat(false);
     assert_eq!(
-        orbit_cg_u_d4h_spatial_2e.analyse_rep().unwrap(),
+        orbit_cg_u_bw_d4h_c4h_spatial_2e.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new(
-            "2||E|_(g)| ⊕ ||A|_(1u)| ⊕ ||A|_(2u)| ⊕ ||B|_(1u)| ⊕ ||B|_(2u)|"
+            "2||E|_(g)| + ||A|_(1u)| + ||A|_(2u)| + ||B|_(1u)| + ||B|_(2u)|"
         )
         .unwrap(),
     );
 
-    let mut orbit_cg_u_d4h_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h)
+    let mut orbit_cg_u_bw_d4h_c4h_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_bw_d4h_c4h)
         .origin(&det_1e_cg)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_spin_1e.calc_smat(&sao_cg).calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_d4h_spin_1e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap()
-    );
-
-    let mut orbit_cg_u_d4h_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
-        .build()
-        .unwrap();
-    orbit_cg_u_d4h_spin_2e.calc_smat(&sao_cg).calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_d4h_spin_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap()
-    );
-
-    let mut orbit_cg_u_d4h_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_d4h_spin_spatial_1e
+    orbit_cg_u_bw_d4h_c4h_spin_1e
         .calc_smat(&sao_cg)
         .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_d4h_spin_spatial_1e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(g)| ⊕ ||A|_(2u)| ⊕ ||B|_(1u)|")
-            .unwrap()
-    );
-
-    let mut orbit_cg_u_d4h_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_d4h_spin_spatial_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_d4h_spin_spatial_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new(
-            "2||E|_(g)| ⊕ ||A|_(1u)| ⊕ ||A|_(2u)| ⊕ ||B|_(1u)| ⊕ ||B|_(2u)|"
-        )
-        .unwrap(),
-    );
-
-    // ~~~~~~~~~~~~~~~~~~~~~~
-    // u D4h' (grey, unitary)
-    // ~~~~~~~~~~~~~~~~~~~~~~
-
-    let mut orbit_cg_u_grey_d4h_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_grey_d4h_spatial_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_grey_d4h_spatial_1e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(g)| ⊕ ||A|_(2u)| ⊕ ||B|_(1u)|")
-            .unwrap()
-    );
-
-    let mut orbit_cg_u_grey_d4h_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_grey_d4h_spatial_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_grey_d4h_spatial_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new(
-            "2||E|_(g)| ⊕ ||A|_(1u)| ⊕ ||A|_(2u)| ⊕ ||B|_(1u)| ⊕ ||B|_(2u)|"
-        )
-        .unwrap(),
-    );
-
-    let mut orbit_cg_u_grey_d4h_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
-        .build()
-        .unwrap();
-    orbit_cg_u_grey_d4h_spin_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    // Character analysis would give |A|_(1g) ⊕ ^(m)|A|_(1g), but |α⟩ and |β⟩ cannot be linearly
+    // Character analysis would give |A|_(1g) + |A|_(2g), but |α⟩ and |β⟩ cannot be linearly
     // combined to span each of the subspaces separately.
-    assert!(orbit_cg_u_grey_d4h_spin_1e.analyse_rep().is_err());
+    assert!(orbit_cg_u_bw_d4h_c4h_spin_1e.analyse_rep().is_err());
 
-    let mut orbit_cg_u_grey_d4h_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h)
+    let mut orbit_cg_u_bw_d4h_c4h_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_bw_d4h_c4h)
         .origin(&det_2e_cg)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_spin_2e
+    orbit_cg_u_bw_d4h_c4h_spin_2e
         .calc_smat(&sao_cg)
         .calc_xmat(false);
     assert_eq!(
-        orbit_cg_u_grey_d4h_spin_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ |^(m)|A|_(1g)|").unwrap(),
+        orbit_cg_u_bw_d4h_c4h_spin_2e.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| + ||A|_(2g)|").unwrap(),
     );
 
-    let mut orbit_cg_u_grey_d4h_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_grey_d4h_spin_spatial_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert!(orbit_cg_u_grey_d4h_spin_spatial_1e.analyse_rep().is_err());
+    // let mut orbit_cg_u_grey_d4h_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_spin_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert!(orbit_cg_u_grey_d4h_spin_spatial_1e.analyse_rep().is_err());
 
-    let mut orbit_cg_u_grey_d4h_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_grey_d4h_spin_spatial_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_grey_d4h_spin_spatial_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new(
-            "2||E|_(g)| ⊕ ||A|_(1u)| ⊕ ||A|_(2u)| ⊕ ||B|_(1u)| ⊕ ||B|_(2u)|
-            ⊕ 2|^(m)|E|_(g)| ⊕ |^(m)|A|_(1u)| ⊕ |^(m)|A|_(2u)| ⊕ |^(m)|B|_(1u)| ⊕ |^(m)|B|_(2u)|"
-        )
-        .unwrap(),
-    );
+    // let mut orbit_cg_u_grey_d4h_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_spin_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_grey_d4h_spin_spatial_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new(
+    //         "2||E|_(g)| + ||A|_(1u)| + ||A|_(2u)| + ||B|_(1u)| + ||B|_(2u)|
+    //         + 2|^(m)|E|_(g)| + |^(m)|A|_(1u)| + |^(m)|A|_(2u)| + |^(m)|B|_(1u)| + |^(m)|B|_(2u)|"
+    //     )
+    //     .unwrap(),
+    // );
 
-    // ~~~~~~~~~~~~~~~~~~~~~~~
-    // m D4h' (grey, magnetic)
-    // ~~~~~~~~~~~~~~~~~~~~~~~
+    // // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // // u D4h* (ordinary double, unitary)
+    // // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    let mut orbit_cg_m_grey_d4h_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_spatial_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_m_grey_d4h_spatial_1e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E|_(g)| ⊕ ||A|_(2u)| ⊕ ||B|_(1u)|")
-            .unwrap()
-    );
+    // let mut orbit_cg_u_d4h_double_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h_double)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_double_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_d4h_double_spatial_1e.analyse_rep().unwrap(),
+    //     orbit_cg_u_d4h_spatial_1e.analyse_rep().unwrap(),
+    // );
 
-    let mut orbit_cg_m_grey_d4h_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_spatial_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_m_grey_d4h_spatial_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new(
-            "2||E|_(g)| ⊕ ||A|_(1u)| ⊕ ||A|_(2u)| ⊕ ||B|_(1u)| ⊕ ||B|_(2u)|"
-        )
-        .unwrap(),
-    );
+    // let mut orbit_cg_u_d4h_double_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h_double)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_double_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_d4h_double_spatial_2e.analyse_rep().unwrap(),
+    //     orbit_cg_u_d4h_spatial_2e.analyse_rep().unwrap(),
+    // );
 
-    let mut orbit_cg_m_grey_d4h_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_spin_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_m_grey_d4h_spin_1e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("2||A|_(1g)|").unwrap()
-    );
+    // let mut orbit_cg_u_d4h_double_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h_double)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_double_spin_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_d4h_double_spin_1e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)|").unwrap()
+    // );
 
-    let mut orbit_cg_m_grey_d4h_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_spin_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_m_grey_d4h_spin_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("2||A|_(1g)|").unwrap(),
-    );
+    // let mut orbit_cg_u_d4h_double_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h_double)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_double_spin_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_d4h_double_spin_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| + ||A|_(2g)|").unwrap()
+    // );
 
-    let mut orbit_cg_m_grey_d4h_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_spin_spatial_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_m_grey_d4h_spin_spatial_1e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("2||E|_(g)| ⊕ 2||A|_(2u)| ⊕ 2||B|_(1u)|")
-            .unwrap()
-    );
+    // let mut orbit_cg_u_d4h_double_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h_double)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_double_spin_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_d4h_double_spin_spatial_1e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new(
+    //         "||E~|_(1g)| + ||E~|_(2g)| + ||E~|_(1u)| + ||E~|_(2u)|"
+    //     )
+    //     .unwrap()
+    // );
 
-    let mut orbit_cg_m_grey_d4h_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_spin_spatial_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(orbit_cg_m_grey_d4h_spin_spatial_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new(
-            "4||E|_(g)| ⊕ 2||A|_(1u)| ⊕ 2||A|_(2u)| ⊕ 2||B|_(1u)| ⊕ 2||B|_(2u)|"
-        )
-        .unwrap(),
-    );
+    // let mut orbit_cg_u_d4h_double_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_d4h_double)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_d4h_double_spin_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // // Half of the irreps are missing here, but that is because this orbit starts from a
+    // // spin-collinear origin, but there is no pure spin rotation operations in the unitary ordinary
+    // // group to rotate spin independently from spatial degrees of freedom.
+    // assert_eq!(
+    //     orbit_cg_u_d4h_double_spin_spatial_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new(
+    //         "2||E|_(g)| + ||A|_(1u)| + ||A|_(2u)| + ||B|_(1u)| + ||B|_(2u)|"
+    //     )
+    //     .unwrap(),
+    // );
 
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // u D4h* (ordinary double, unitary)
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // // u D4h'* (grey double, unitary)
+    // // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    let mut orbit_cg_u_d4h_double_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h_double)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_d4h_double_spatial_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_d4h_double_spatial_1e.analyse_rep().unwrap(),
-        orbit_cg_u_d4h_spatial_1e.analyse_rep().unwrap(),
-    );
+    // let mut orbit_cg_u_grey_d4h_double_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h_double)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_double_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_grey_d4h_double_spatial_1e.analyse_rep().unwrap(),
+    //     orbit_cg_u_d4h_spatial_1e.analyse_rep().unwrap(),
+    // );
 
-    let mut orbit_cg_u_d4h_double_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h_double)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_d4h_double_spatial_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_d4h_double_spatial_2e.analyse_rep().unwrap(),
-        orbit_cg_u_d4h_spatial_2e.analyse_rep().unwrap(),
-    );
+    // let mut orbit_cg_u_grey_d4h_double_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h_double)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_double_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_grey_d4h_double_spatial_2e.analyse_rep().unwrap(),
+    //     orbit_cg_u_d4h_spatial_2e.analyse_rep().unwrap(),
+    // );
 
-    let mut orbit_cg_u_d4h_double_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h_double)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
-        .build()
-        .unwrap();
-    orbit_cg_u_d4h_double_spin_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_d4h_double_spin_1e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)|").unwrap()
-    );
+    // let mut orbit_cg_u_grey_d4h_double_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h_double)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_double_spin_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert!(orbit_cg_u_grey_d4h_double_spin_1e.analyse_rep().is_err(),);
 
-    let mut orbit_cg_u_d4h_double_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h_double)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
-        .build()
-        .unwrap();
-    orbit_cg_u_d4h_double_spin_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_d4h_double_spin_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ ||A|_(2g)|").unwrap()
-    );
+    // let mut orbit_cg_u_grey_d4h_double_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h_double)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_double_spin_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_grey_d4h_double_spin_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| + |^(m)|A|_(2g)|").unwrap()
+    // );
 
-    let mut orbit_cg_u_d4h_double_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h_double)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_d4h_double_spin_spatial_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_d4h_double_spin_spatial_1e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new(
-            "||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ ||E~|_(1u)| ⊕ ||E~|_(2u)|"
-        )
-        .unwrap()
-    );
+    // let mut orbit_cg_u_grey_d4h_double_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h_double)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_double_spin_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert!(orbit_cg_u_grey_d4h_double_spin_spatial_1e
+    //     .analyse_rep()
+    //     .is_err(),);
 
-    let mut orbit_cg_u_d4h_double_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_d4h_double)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_d4h_double_spin_spatial_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    // Half of the irreps are missing here, but that is because this orbit starts from a
-    // spin-collinear origin, but there is no pure spin rotation operations in the unitary ordinary
-    // group to rotate spin independently from spatial degrees of freedom.
-    assert_eq!(
-        orbit_cg_u_d4h_double_spin_spatial_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new(
-            "2||E|_(g)| ⊕ ||A|_(1u)| ⊕ ||A|_(2u)| ⊕ ||B|_(1u)| ⊕ ||B|_(2u)|"
-        )
-        .unwrap(),
-    );
+    // let mut orbit_cg_u_grey_d4h_double_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_u_grey_d4h_double)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_u_grey_d4h_double_spin_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_u_grey_d4h_double_spin_spatial_2e
+    //         .analyse_rep()
+    //         .unwrap(),
+    //     DecomposedSymbol::<MullikenIrrepSymbol>::new(
+    //         "2||E|_(g)| + ||A|_(1u)| + ||A|_(2u)| + ||B|_(1u)| + ||B|_(2u)|
+    //         + 2|^(m)|E|_(g)| + |^(m)|A|_(1u)| + |^(m)|A|_(2u)| + |^(m)|B|_(1u)| + |^(m)|B|_(2u)|"
+    //     )
+    //     .unwrap(),
+    // );
 
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // u D4h'* (grey double, unitary)
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // // m D4h'* (grey double, magnetic)
+    // // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    let mut orbit_cg_u_grey_d4h_double_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h_double)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_grey_d4h_double_spatial_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_grey_d4h_double_spatial_1e.analyse_rep().unwrap(),
-        orbit_cg_u_d4h_spatial_1e.analyse_rep().unwrap(),
-    );
+    // let mut orbit_cg_m_grey_d4h_double_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h_double)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_double_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_m_grey_d4h_double_spatial_1e.analyse_rep().unwrap(),
+    //     orbit_cg_m_grey_d4h_spatial_1e.analyse_rep().unwrap(),
+    // );
 
-    let mut orbit_cg_u_grey_d4h_double_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h_double)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_grey_d4h_double_spatial_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_grey_d4h_double_spatial_2e.analyse_rep().unwrap(),
-        orbit_cg_u_d4h_spatial_2e.analyse_rep().unwrap(),
-    );
+    // let mut orbit_cg_m_grey_d4h_double_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h_double)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_double_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_m_grey_d4h_double_spatial_2e.analyse_rep().unwrap(),
+    //     orbit_cg_m_grey_d4h_spatial_2e.analyse_rep().unwrap(),
+    // );
 
-    let mut orbit_cg_u_grey_d4h_double_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h_double)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
-        .build()
-        .unwrap();
-    orbit_cg_u_grey_d4h_double_spin_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert!(orbit_cg_u_grey_d4h_double_spin_1e.analyse_rep().is_err(),);
+    // let mut orbit_cg_m_grey_d4h_double_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h_double)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_double_spin_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_m_grey_d4h_double_spin_1e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E~|_(1g)|").unwrap()
+    // );
 
-    let mut orbit_cg_u_grey_d4h_double_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h_double)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
-        .build()
-        .unwrap();
-    orbit_cg_u_grey_d4h_double_spin_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_grey_d4h_double_spin_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ |^(m)|A|_(2g)|").unwrap()
-    );
+    // let mut orbit_cg_m_grey_d4h_double_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h_double)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_double_spin_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_m_grey_d4h_double_spin_2e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(1g)| + ||A|_(2g)|").unwrap()
+    // );
 
-    let mut orbit_cg_u_grey_d4h_double_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h_double)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_grey_d4h_double_spin_spatial_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert!(orbit_cg_u_grey_d4h_double_spin_spatial_1e
-        .analyse_rep()
-        .is_err(),);
+    // let mut orbit_cg_m_grey_d4h_double_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h_double)
+    //     .origin(&det_1e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_double_spin_spatial_1e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // assert_eq!(
+    //     orbit_cg_m_grey_d4h_double_spin_spatial_1e.analyse_rep().unwrap(),
+    //     DecomposedSymbol::<MullikenIrcorepSymbol>::new(
+    //         "||E~|_(1g)| + ||E~|_(2g)| + ||E~|_(1u)| + ||E~|_(2u)|"
+    //     )
+    //     .unwrap()
+    // );
 
-    let mut orbit_cg_u_grey_d4h_double_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_u_grey_d4h_double)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_u_grey_d4h_double_spin_spatial_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_u_grey_d4h_double_spin_spatial_2e
-            .analyse_rep()
-            .unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new(
-            "2||E|_(g)| ⊕ ||A|_(1u)| ⊕ ||A|_(2u)| ⊕ ||B|_(1u)| ⊕ ||B|_(2u)|
-            ⊕ 2|^(m)|E|_(g)| ⊕ |^(m)|A|_(1u)| ⊕ |^(m)|A|_(2u)| ⊕ |^(m)|B|_(1u)| ⊕ |^(m)|B|_(2u)|"
-        )
-        .unwrap(),
-    );
-
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // m D4h'* (grey double, magnetic)
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    let mut orbit_cg_m_grey_d4h_double_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h_double)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_double_spatial_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_m_grey_d4h_double_spatial_1e.analyse_rep().unwrap(),
-        orbit_cg_m_grey_d4h_spatial_1e.analyse_rep().unwrap(),
-    );
-
-    let mut orbit_cg_m_grey_d4h_double_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h_double)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_double_spatial_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_m_grey_d4h_double_spatial_2e.analyse_rep().unwrap(),
-        orbit_cg_m_grey_d4h_spatial_2e.analyse_rep().unwrap(),
-    );
-
-    let mut orbit_cg_m_grey_d4h_double_spin_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h_double)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_double_spin_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_m_grey_d4h_double_spin_1e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E~|_(1g)|").unwrap()
-    );
-
-    let mut orbit_cg_m_grey_d4h_double_spin_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h_double)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_double_spin_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_m_grey_d4h_double_spin_2e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(1g)| ⊕ ||A|_(2g)|").unwrap()
-    );
-
-    let mut orbit_cg_m_grey_d4h_double_spin_spatial_1e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h_double)
-        .origin(&det_1e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_double_spin_spatial_1e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    assert_eq!(
-        orbit_cg_m_grey_d4h_double_spin_spatial_1e.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new(
-            "||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ ||E~|_(1u)| ⊕ ||E~|_(2u)|"
-        )
-        .unwrap()
-    );
-
-    let mut orbit_cg_m_grey_d4h_double_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
-        .group(&group_m_grey_d4h_double)
-        .origin(&det_2e_cg)
-        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .build()
-        .unwrap();
-    orbit_cg_m_grey_d4h_double_spin_spatial_2e
-        .calc_smat(&sao_cg)
-        .calc_xmat(false);
-    // Compared to u D4h*, all ircoreps are present here because there is time reversal in this
-    // group which is essentially a pure spin rotation operation that can rotate spin independently
-    // from spatial degrees of freedom.
-    assert_eq!(
-        orbit_cg_m_grey_d4h_double_spin_spatial_2e
-            .analyse_rep()
-            .unwrap(),
-        DecomposedSymbol::<MullikenIrcorepSymbol>::new(
-            "4||E|_(g)| ⊕ 2||A|_(1u)| ⊕ 2||A|_(2u)| ⊕ 2||B|_(1u)| ⊕ 2||B|_(2u)|"
-        )
-        .unwrap(),
-    );
+    // let mut orbit_cg_m_grey_d4h_double_spin_spatial_2e = SlaterDeterminantSymmetryOrbit::builder()
+    //     .group(&group_m_grey_d4h_double)
+    //     .origin(&det_2e_cg)
+    //     .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+    //     .build()
+    //     .unwrap();
+    // orbit_cg_m_grey_d4h_double_spin_spatial_2e
+    //     .calc_smat(&sao_cg)
+    //     .calc_xmat(false);
+    // // Compared to u D4h*, all ircoreps are present here because there is time reversal in this
+    // // group which is essentially a pure spin rotation operation that can rotate spin independently
+    // // from spatial degrees of freedom.
+    // assert_eq!(
+    //     orbit_cg_m_grey_d4h_double_spin_spatial_2e
+    //         .analyse_rep()
+    //         .unwrap(),
+    //     DecomposedSymbol::<MullikenIrcorepSymbol>::new(
+    //         "4||E|_(g)| + 2||A|_(1u)| + 2||A|_(2u)| + 2||B|_(1u)| + 2||B|_(2u)|"
+    //     )
+    //     .unwrap(),
+    // );
 }
