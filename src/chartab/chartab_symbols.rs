@@ -8,6 +8,7 @@ use std::str::FromStr;
 use counter::Counter;
 use derive_builder::Builder;
 use itertools::Itertools;
+use indexmap::IndexMap;
 use phf::phf_map;
 use regex::Regex;
 
@@ -129,7 +130,7 @@ where
     fn main(&self) -> String {
         format!(
             "{}",
-            self.sorted_subspaces()
+            self.subspaces()
                 .iter()
                 .map(|(irrep, &mult)| format!(
                     "{}{irrep}",
@@ -502,7 +503,7 @@ pub struct DecomposedSymbol<S>
 where
     S: LinearSpaceSymbol + PartialOrd,
 {
-    symbols: HashMap<S, usize>,
+    symbols: IndexMap<S, usize>,
 }
 
 impl<S> DecomposedSymbol<S>
@@ -544,7 +545,7 @@ where
                     .iter()
                     .filter(|(_, mult)| *mult != 0)
                     .cloned()
-                    .collect::<HashMap<_, _>>(),
+                    .collect::<IndexMap<_, _>>(),
             )
             .build()
             .expect("Unable to construct a decomposed symbol from a slice of symbols.")
@@ -583,7 +584,7 @@ where
     fn from_str(symstr: &str) -> Result<Self, Self::Err> {
         let re = Regex::new(r"(\d?)(.*)").expect("Regex pattern invalid.");
         let symbols = symstr
-            .split('+')
+            .split('⊕')
             .map(|irrep_str| {
                 let cap = re
                     .captures(irrep_str.trim())
@@ -605,7 +606,7 @@ where
                     mult,
                 )
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<IndexMap<_, _>>();
         Self::builder().symbols(symbols).build()
     }
 }
