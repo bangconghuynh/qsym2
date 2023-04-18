@@ -439,12 +439,12 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
         rls.push(rl);
     }
 
-    let cart2rss_lex: Vec<Vec<Array2<f64>>> = (0..=lmax)
-        .map(|lcart| sh_cart2r(lcart, &CartOrder::lex(lcart), true, true))
-        .collect();
-    let r2cartss_lex: Vec<Vec<Array2<f64>>> = (0..=lmax)
-        .map(|lcart| sh_r2cart(lcart, &CartOrder::lex(lcart), true, true))
-        .collect();
+    // let cart2rss_lex: Vec<Vec<Array2<f64>>> = (0..=lmax)
+    //     .map(|lcart| sh_cart2r(lcart, &CartOrder::lex(lcart), true, true))
+    //     .collect();
+    // let r2cartss_lex: Vec<Vec<Array2<f64>>> = (0..=lmax)
+    //     .map(|lcart| sh_r2cart(lcart, &CartOrder::lex(lcart), true, true))
+    //     .collect();
 
     pbao.basis_shells()
         .map(|shl| {
@@ -470,8 +470,10 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
                     // applying the transformation, then convert back.
                     // TODO: Fix this! cart2rss and r2cartss do not take into account per-shell
                     // cart_order!!!
-                    let cart2rs = &cart2rss_lex[l];
-                    let r2carts = &r2cartss_lex[l];
+                    // let cart2rs = &cart2rss_lex[l];
+                    // let r2carts = &r2cartss_lex[l];
+                    let cart2rs = &sh_cart2r(shl.l, &cart_order, true, true);
+                    let r2carts = &sh_r2cart(shl.l, &cart_order, true, true);
                     let rl = cart2rs.iter().zip(r2carts.iter()).enumerate().fold(
                         Array2::zeros((cart_order.ncomps(), cart_order.ncomps())),
                         |acc, (i, (xmat, wmat))| {

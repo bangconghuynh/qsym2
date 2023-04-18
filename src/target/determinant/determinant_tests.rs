@@ -1,4 +1,4 @@
-use env_logger;
+// use env_logger;
 use itertools::Itertools;
 use nalgebra::{Point3, Vector3};
 use ndarray::{array, concatenate, s, Array2, Axis};
