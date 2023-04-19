@@ -1,5 +1,4 @@
 use std::fmt;
-use std::iter::Sum;
 
 use approx;
 use derive_builder::Builder;
@@ -11,13 +10,12 @@ use num_traits::float::{Float, FloatConst};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::molecule::Molecule;
-use crate::target::determinant::SlaterDeterminant;
 
-// #[cfg(test)]
-// mod determinant_tests;
+#[cfg(test)]
+mod orbital_tests;
 
-mod orbital_analysis;
-mod orbital_transformation;
+pub mod orbital_analysis;
+pub mod orbital_transformation;
 
 // ==================
 // Struct definitions

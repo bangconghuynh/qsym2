@@ -19,7 +19,6 @@ use num_traits::{Float, Zero};
 use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis, RepAnalysisError};
 use crate::aux::misc::complex_modified_gram_schmidt;
 use crate::chartab::SubspaceDecomposable;
-use crate::group::HasUnitarySubgroup;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
@@ -54,10 +53,7 @@ where
             "Inconsistent numbers of coefficient matrices between `self` and `other`."
         );
 
-        let thresh = Float::sqrt(self.threshold * other.threshold);
-
         let sao = metric;
-
         let ov = if self.complex_symmetric() {
             self.coefficients.t().dot(sao).dot(&other.coefficients)
         } else {
@@ -71,16 +67,16 @@ where
     }
 }
 
-// ====================================
-// MolecularOrbitalSpatialSymmetryOrbit
-// ====================================
+// =============================
+// MolecularOrbitalSymmetryOrbit
+// =============================
 
 // -----------------
 // Struct definition
 // -----------------
 
 #[derive(Builder, Clone)]
-pub struct MolecularOrbitalSpatialSymmetryOrbit<'a, G, T>
+pub struct MolecularOrbitalSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
@@ -103,18 +99,36 @@ where
 // Struct method implementation
 // ----------------------------
 
-impl<'a, G, T> MolecularOrbitalSpatialSymmetryOrbit<'a, G, T>
+impl<'a, G, T> MolecularOrbitalSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + fmt::Debug + Lapack,
     MolecularOrbital<'a, T>: SymmetryTransformable,
 {
-    pub fn builder() -> MolecularOrbitalSpatialSymmetryOrbitBuilder<'a, G, T> {
-        MolecularOrbitalSpatialSymmetryOrbitBuilder::default()
+    pub fn builder() -> MolecularOrbitalSymmetryOrbitBuilder<'a, G, T> {
+        MolecularOrbitalSymmetryOrbitBuilder::default()
+    }
+
+    pub fn from_orbitals(
+        group: &'a G,
+        orbitals: &'a [MolecularOrbital<'a, T>],
+        sym_kind: SymmetryTransformationKind,
+    ) -> Vec<Self> {
+        orbitals
+            .iter()
+            .map(|orb| {
+                MolecularOrbitalSymmetryOrbit::builder()
+                    .group(group)
+                    .origin(&orb)
+                    .symmetry_transformation_kind(sym_kind.clone())
+                    .build()
+                    .expect("Unable to construct a molecular orbital symmetry orbit.")
+            })
+            .collect_vec()
     }
 }
 
-impl<'a, G> MolecularOrbitalSpatialSymmetryOrbit<'a, G, f64>
+impl<'a, G> MolecularOrbitalSymmetryOrbit<'a, G, f64>
 where
     G: SymmetryGroupProperties,
 {
@@ -142,7 +156,7 @@ where
     }
 }
 
-impl<'a, G, T> MolecularOrbitalSpatialSymmetryOrbit<'a, G, Complex<T>>
+impl<'a, G, T> MolecularOrbitalSymmetryOrbit<'a, G, Complex<T>>
 where
     G: SymmetryGroupProperties,
     T: Float + Scalar<Complex = Complex<T>>,
@@ -197,9 +211,9 @@ where
 // Orbit
 // ~~~~~
 
-impl<'a, G, T> Orbit<G, MolecularOrbital<'a, T>> for MolecularOrbitalSpatialSymmetryOrbit<'a, G, T>
+impl<'a, G, T> Orbit<G, MolecularOrbital<'a, T>> for MolecularOrbitalSymmetryOrbit<'a, G, T>
 where
-    G: SymmetryGroupProperties + HasUnitarySubgroup,
+    G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
     MolecularOrbital<'a, T>: SymmetryTransformable,
 {
@@ -246,9 +260,9 @@ where
 // ~~~~~~~~~~~
 
 impl<'a, G, T> RepAnalysis<G, MolecularOrbital<'a, T>, T>
-    for MolecularOrbitalSpatialSymmetryOrbit<'a, G, T>
+    for MolecularOrbitalSymmetryOrbit<'a, G, T>
 where
-    G: SymmetryGroupProperties + HasUnitarySubgroup,
+    G: SymmetryGroupProperties,
     G::CharTab: SubspaceDecomposable<T>,
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>

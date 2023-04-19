@@ -16,8 +16,8 @@ use crate::target::orbital::MolecularOrbital;
 #[cfg(test)]
 mod determinant_tests;
 
-mod determinant_analysis;
-mod determinant_transformation;
+pub mod determinant_analysis;
+pub mod determinant_transformation;
 
 // ==================
 // Struct definitions
@@ -60,12 +60,12 @@ impl<'a, T> SlaterDeterminantBuilder<'a, T>
 where
     T: ComplexFloat + Lapack,
 {
-    fn coefficients(&mut self, cs: &[Array2<T>]) -> &mut Self {
+    pub fn coefficients(&mut self, cs: &[Array2<T>]) -> &mut Self {
         self.coefficients = Some(cs.to_vec());
         self
     }
 
-    fn occupations(&mut self, occs: &[Array1<<T as ComplexFloat>::Real>]) -> &mut Self {
+    pub fn occupations(&mut self, occs: &[Array1<<T as ComplexFloat>::Real>]) -> &mut Self {
         self.occupations = Some(occs.to_vec());
         self
     }
