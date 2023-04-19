@@ -93,22 +93,22 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     let sao_cg = sao_g.mapv(|x| C128::from(x));
 
     // -----------------------------
-    // αdxy αdyy αdzz βdxz βdxx βdyz
+    // αdxy αdyy αdzz αdx2-y2 βdxz βdxx βdyz
     // -----------------------------
     #[rustfmt::skip]
     let calpha = array![
-        [0.0, 0.0, 0.0],
-        [1.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0],
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, -1.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0],
     ];
     #[rustfmt::skip]
     let cbeta = array![
@@ -125,7 +125,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
     ];
-    let oalpha = array![1.0, 1.0, 0.0];
+    let oalpha = array![1.0, 1.0, 0.0, 0.0];
     let obeta = array![1.0, 0.0, 0.0];
     let det_d3_cg: SlaterDeterminant<C128> = SlaterDeterminant::<f64>::builder()
         .coefficients(&[calpha, cbeta])
@@ -163,6 +163,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ ||E|_(g)|").unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ ||E|_(g)|").unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(g)|").unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ ||E|_(g)|").unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap(),
