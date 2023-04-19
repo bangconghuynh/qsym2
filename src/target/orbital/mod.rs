@@ -26,6 +26,7 @@ mod orbital_transformation;
 /// A structure to manage molecular orbitals. Each molecular orbital is essentially a one-electron
 /// Slater determinant.
 #[derive(Builder, Clone)]
+#[builder(build_fn(validate = "Self::validate"))]
 pub struct MolecularOrbital<'a, T>
 where
     T: ComplexFloat + Lapack,
@@ -53,48 +54,62 @@ where
     threshold: <T as ComplexFloat>::Real,
 }
 
+impl<'a, T> MolecularOrbitalBuilder<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    fn validate(&self) -> Result<(), String> {
+        let bao = self
+            .bao
+            .ok_or("No `BasisAngularOrder` found.".to_string())?;
+        let nbas = bao.n_funcs();
+        let coefficients = self
+            .coefficients
+            .as_ref()
+            .ok_or("No coefficients found.".to_string())?;
+        let spin_index = self
+            .spin_index
+            .ok_or("No `spin_index` found.".to_string())?;
+
+        let spincons = match self
+            .spin_constraint
+            .as_ref()
+            .ok_or("No spin constraint found.".to_string())?
+        {
+            SpinConstraint::Restricted(n) | SpinConstraint::Unrestricted(n, _) => {
+                spin_index < usize::from(*n) && coefficients.shape()[0] == nbas
+            }
+            SpinConstraint::Generalised(nspins, _) => {
+                spin_index == 0
+                    && coefficients.shape()[0].rem_euclid(nbas) == 0
+                    && coefficients.shape()[0].div_euclid(nbas) == usize::from(*nspins)
+            }
+        };
+        if !spincons {
+            log::error!("The coefficient vector fails to satisfy the specified spin constraint.");
+        }
+
+        let mol = self.mol.ok_or("No molecule found.".to_string())?;
+        let natoms = mol.atoms.len() == bao.n_atoms();
+        if !natoms {
+            log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
+        }
+
+        if spincons && natoms {
+            Ok(())
+        } else {
+            Err("Molecular orbital validation failed.".to_string())
+        }
+    }
+}
+
 impl<'a, T> MolecularOrbital<'a, T>
 where
     T: ComplexFloat + Clone + Lapack,
 {
     /// Returns a builder to construct a new [`SlaterDeterminant`].
-    fn builder() -> MolecularOrbitalBuilder<'a, T> {
+    pub fn builder() -> MolecularOrbitalBuilder<'a, T> {
         MolecularOrbitalBuilder::default()
-    }
-
-    /// Constructs a new [`MolecularOrbital`] from its coefficients and associated molecular
-    /// information.
-    ///
-    /// # Arguments
-    ///
-    /// * `c` - Coefficient array.
-    /// * `bao` - A shared reference to a [`BasisAngularOrder`] structure which encapsulates
-    /// angular-momentum information about the shells in the basis set.
-    /// * `mol` - A shared reference to a [`Molecule`] structure which encapsulates information
-    /// about the molecular structure.
-    /// * `spincons` - The spin constraint in which the coefficient arrays are defined.
-    /// * `thresh` - The threshold for numerical comparisons of determinants.
-    pub fn new(
-        c: Array1<T>,
-        bao: &'a BasisAngularOrder<'a>,
-        mol: &'a Molecule,
-        spincons: SpinConstraint,
-        spin_index: usize,
-        complex_symmetric: bool,
-        thresh: <T as ComplexFloat>::Real,
-    ) -> Self {
-        let mo = Self::builder()
-            .coefficients(c)
-            .bao(bao)
-            .mol(mol)
-            .spin_constraint(spincons)
-            .spin_index(spin_index)
-            .complex_symmetric(complex_symmetric)
-            .threshold(thresh)
-            .build()
-            .expect("Unable to construct a molecular orbital structure.");
-        assert!(mo.verify(), "Invalid molecular orbital requested.");
-        mo
     }
 
     pub fn to_generalised(&self) -> Self {
@@ -107,15 +122,16 @@ where
                 let start = nbas * self.spin_index;
                 let end = nbas * (self.spin_index + 1);
                 cg.slice_mut(s![start..end]).assign(cr);
-                Self::new(
-                    cg,
-                    self.bao,
-                    self.mol,
-                    SpinConstraint::Generalised(n, false),
-                    0,
-                    self.complex_symmetric,
-                    self.threshold,
-                )
+                Self::builder()
+                    .coefficients(cg)
+                    .bao(self.bao)
+                    .mol(self.mol)
+                    .spin_constraint(SpinConstraint::Generalised(n, false))
+                    .spin_index(0)
+                    .complex_symmetric(self.complex_symmetric)
+                    .threshold(self.threshold)
+                    .build()
+                    .expect("Unable to construct a generalised molecular orbital.")
             }
             SpinConstraint::Unrestricted(n, increasingm) => {
                 let nbas = self.bao.n_funcs();
@@ -125,15 +141,16 @@ where
                 let start = nbas * self.spin_index;
                 let end = nbas * (self.spin_index + 1);
                 cg.slice_mut(s![start..end]).assign(cr);
-                Self::new(
-                    cg,
-                    self.bao,
-                    self.mol,
-                    SpinConstraint::Generalised(n, increasingm),
-                    0,
-                    self.complex_symmetric,
-                    self.threshold,
-                )
+                Self::builder()
+                    .coefficients(cg)
+                    .bao(self.bao)
+                    .mol(self.mol)
+                    .spin_constraint(SpinConstraint::Generalised(n, increasingm))
+                    .spin_index(0)
+                    .complex_symmetric(self.complex_symmetric)
+                    .threshold(self.threshold)
+                    .build()
+                    .expect("Unable to construct a generalised molecular orbital.")
             }
             SpinConstraint::Generalised(_, _) => self.clone(),
         }
@@ -153,30 +170,6 @@ where
     pub fn bao(&self) -> &BasisAngularOrder {
         &self.bao
     }
-
-    /// Verifies the validity of the molecular orbital, *i.e.* checks for consistency between
-    /// coefficients, basis set shell structure, and spin constraint.
-    fn verify(&self) -> bool {
-        let nbas = self.bao.n_funcs();
-        let spincons = match self.spin_constraint {
-            SpinConstraint::Restricted(n) | SpinConstraint::Unrestricted(n, _) => {
-                self.spin_index < usize::from(n) && self.coefficients.shape()[0] == nbas
-            }
-            SpinConstraint::Generalised(nspins, _) => {
-                self.spin_index == 0
-                    && self.coefficients.shape()[0].rem_euclid(nbas) == 0
-                    && self.coefficients.shape()[0].div_euclid(nbas) == usize::from(nspins)
-            }
-        };
-        if !spincons {
-            log::error!("The coefficient vector fails to satisfy the specified spin constraint.");
-        }
-        let natoms = self.mol.atoms.len() == self.bao.n_atoms();
-        if !natoms {
-            log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
-        }
-        spincons && natoms
-    }
 }
 
 // =====================
@@ -192,17 +185,16 @@ where
     Complex<T>: Lapack,
 {
     fn from(value: MolecularOrbital<'a, T>) -> Self {
-        MolecularOrbital::<'a, Complex<T>>::new(
-            value
-                .coefficients
-                .map(|x| Complex::from(x)),
-            value.bao,
-            value.mol,
-            value.spin_constraint,
-            value.spin_index,
-            value.complex_symmetric,
-            value.threshold,
-        )
+        MolecularOrbital::<'a, Complex<T>>::builder()
+            .coefficients(value.coefficients.map(|x| Complex::from(x)))
+            .bao(value.bao)
+            .mol(value.mol)
+            .spin_constraint(value.spin_constraint)
+            .spin_index(value.spin_index)
+            .complex_symmetric(value.complex_symmetric)
+            .threshold(value.threshold)
+            .build()
+            .expect("Unable to construct a complex molecular orbital.")
     }
 }
 

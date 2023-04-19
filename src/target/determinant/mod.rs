@@ -150,6 +150,13 @@ where
         SlaterDeterminantBuilder::default()
     }
 
+    /// Augments the encoding of coefficients in this Slater determinant to that in the
+    /// corresponding generalised spin constraint.
+    ///
+    /// # Returns
+    ///
+    /// The equivalent Slater determinant with the coefficients encoded in the generalised spin
+    /// constraint.
     pub fn to_generalised(&self) -> Self {
         match self.spin_constraint {
             SpinConstraint::Restricted(n) => {
@@ -217,6 +224,13 @@ where
         }
     }
 
+    /// Extracts the molecular orbitals in this Slater determinant.
+    ///
+    /// # Returns
+    ///
+    /// A vector of the molecular orbitals constituting this Slater determinant. In the restricted
+    /// spin constraint, the identical molecular orbitals across different spin spaces are only
+    /// given once. Each molecular orbital does contain an index of the spin space it is in.
     pub fn to_orbitals(&self) -> Vec<MolecularOrbital<'a, T>> {
         match self.spin_constraint {
             SpinConstraint::Restricted(_) | SpinConstraint::Generalised(_, _) => {
@@ -225,15 +239,16 @@ where
                     .columns()
                     .into_iter()
                     .map(|c| {
-                        MolecularOrbital::new(
-                            c.to_owned(),
-                            self.bao,
-                            self.mol,
-                            self.spin_constraint.clone(),
-                            0,
-                            self.complex_symmetric,
-                            self.threshold,
-                        )
+                        MolecularOrbital::builder()
+                            .coefficients(c.to_owned())
+                            .bao(self.bao)
+                            .mol(self.mol)
+                            .spin_constraint(self.spin_constraint.clone())
+                            .spin_index(0)
+                            .complex_symmetric(self.complex_symmetric)
+                            .threshold(self.threshold)
+                            .build()
+                            .expect("Unable to construct a molecular orbital.")
                     })
                     .collect::<Vec<_>>()
             }
@@ -243,15 +258,16 @@ where
                 .enumerate()
                 .flat_map(|(spini, cs_spini)| {
                     cs_spini.columns().into_iter().map(move |c| {
-                        MolecularOrbital::new(
-                            c.to_owned(),
-                            self.bao,
-                            self.mol,
-                            self.spin_constraint.clone(),
-                            spini,
-                            self.complex_symmetric,
-                            self.threshold,
-                        )
+                        MolecularOrbital::builder()
+                            .coefficients(c.to_owned())
+                            .bao(self.bao)
+                            .mol(self.mol)
+                            .spin_constraint(self.spin_constraint.clone())
+                            .spin_index(spini)
+                            .complex_symmetric(self.complex_symmetric)
+                            .threshold(self.threshold)
+                            .build()
+                            .expect("Unable to construct a molecular orbital.")
                     })
                 })
                 .collect::<Vec<_>>(),
