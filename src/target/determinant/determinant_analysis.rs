@@ -17,7 +17,7 @@ use ndarray_linalg::{
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
-use crate::analysis::{Orbit, Overlap, RepAnalysis, RepAnalysisError};
+use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis, RepAnalysisError};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
@@ -247,7 +247,7 @@ where
     T: ComplexFloat + fmt::Debug + Lapack,
     SlaterDeterminant<'a, T>: SymmetryTransformable,
 {
-    type OrbitIntoIter = Vec<SlaterDeterminant<'a, T>>;
+    type OrbitIter = OrbitIterator<'a, G, SlaterDeterminant<'a, T>>;
 
     fn group(&self) -> &G {
         self.group
@@ -257,34 +257,31 @@ where
         self.origin
     }
 
-    fn orbit(&self) -> Self::OrbitIntoIter {
-        self.group
-            .elements()
-            .clone()
-            .into_iter()
-            .map(|op| match self.symmetry_transformation_kind {
-                SymmetryTransformationKind::Spatial => self
-                    .origin
-                    .sym_transform_spatial(&op)
-                    .unwrap_or_else(|err| {
+    fn iter(&self) -> Self::OrbitIter {
+        OrbitIterator::new(
+            self.group,
+            self.origin,
+            match self.symmetry_transformation_kind {
+                SymmetryTransformationKind::Spatial => |op, det| {
+                    det.sym_transform_spatial(op).unwrap_or_else(|err| {
                         log::error!("{err}");
                         panic!("Unable to apply `{op}` spatially on the origin determinant.")
-                    }),
-                SymmetryTransformationKind::Spin => {
-                    self.origin.sym_transform_spin(&op).unwrap_or_else(|err| {
+                    })
+                },
+                SymmetryTransformationKind::Spin => |op, det| {
+                    det.sym_transform_spin(op).unwrap_or_else(|err| {
                         log::error!("{err}");
                         panic!("Unable to apply `{op}` spin-wise on the origin determinant.")
                     })
-                }
-                SymmetryTransformationKind::SpinSpatial => self
-                    .origin
-                    .sym_transform_spin_spatial(&op)
-                    .unwrap_or_else(|err| {
+                },
+                SymmetryTransformationKind::SpinSpatial => |op, det| {
+                    det.sym_transform_spin_spatial(op).unwrap_or_else(|err| {
                         log::error!("{err}");
                         panic!("Unable to apply `{op}` spin-spatially on the origin determinant.")
-                    }),
-            })
-            .collect::<Vec<_>>()
+                    })
+                },
+            },
+        )
     }
 }
 
@@ -331,7 +328,7 @@ where
         }
     }
 
-    fn threshold(&self) -> <T as ComplexFloat>::Real {
+    fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
         self.origin.threshold
     }
 
@@ -377,7 +374,7 @@ where
                 let chis = self.calc_characters();
                 let res = self.group().character_table().reduce_characters(
                     &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
-                    self.threshold(),
+                    self.integrality_threshold(),
                 );
                 res
             } else {

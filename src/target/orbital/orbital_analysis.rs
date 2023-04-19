@@ -16,7 +16,7 @@ use ndarray_linalg::{
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, Zero};
 
-use crate::analysis::{Orbit, Overlap, RepAnalysis, RepAnalysisError};
+use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis, RepAnalysisError};
 use crate::aux::misc::complex_modified_gram_schmidt;
 use crate::chartab::SubspaceDecomposable;
 use crate::group::HasUnitarySubgroup;
@@ -203,7 +203,7 @@ where
     T: ComplexFloat + fmt::Debug + Lapack,
     MolecularOrbital<'a, T>: SymmetryTransformable,
 {
-    type OrbitIntoIter = Vec<MolecularOrbital<'a, T>>;
+    type OrbitIter = OrbitIterator<'a, G, MolecularOrbital<'a, T>>;
 
     fn group(&self) -> &G {
         self.group
@@ -213,37 +213,31 @@ where
         self.origin
     }
 
-    fn orbit(&self) -> Self::OrbitIntoIter {
-        self.group
-            .elements()
-            .clone()
-            .into_iter()
-            .map(|op| match self.symmetry_transformation_kind {
-                SymmetryTransformationKind::Spatial => self
-                    .origin
-                    .sym_transform_spatial(&op)
-                    .unwrap_or_else(|err| {
+    fn iter(&self) -> Self::OrbitIter {
+        OrbitIterator::new(
+            self.group,
+            self.origin,
+            match self.symmetry_transformation_kind {
+                SymmetryTransformationKind::Spatial => |op, orb| {
+                    orb.sym_transform_spatial(&op).unwrap_or_else(|err| {
                         log::error!("{err}");
-                        panic!("Unable to apply `{op}` spatially on `{}`.", self.origin)
-                    }),
-                SymmetryTransformationKind::Spin => {
-                    self.origin.sym_transform_spin(&op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spin-wise on `{}`.", self.origin)
+                        panic!("Unable to apply `{op}` spatially on the origin orbital.")
                     })
-                }
-                SymmetryTransformationKind::SpinSpatial => self
-                    .origin
-                    .sym_transform_spin_spatial(&op)
-                    .unwrap_or_else(|err| {
+                },
+                SymmetryTransformationKind::Spin => |op, orb| {
+                    orb.sym_transform_spin(&op).unwrap_or_else(|err| {
                         log::error!("{err}");
-                        panic!(
-                            "Unable to apply `{op}` spin-spatially on `{}`.",
-                            self.origin
-                        )
-                    }),
-            })
-            .collect::<Vec<_>>()
+                        panic!("Unable to apply `{op}` spin-wise on the origin orbital.")
+                    })
+                },
+                SymmetryTransformationKind::SpinSpatial => |op, orb| {
+                    orb.sym_transform_spin_spatial(&op).unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        panic!("Unable to apply `{op}` spin-spatially on the origin orbital.",)
+                    })
+                },
+            },
+        )
     }
 }
 
@@ -288,7 +282,7 @@ where
         }
     }
 
-    fn threshold(&self) -> <T as ComplexFloat>::Real {
+    fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
         self.origin.threshold
     }
 }
