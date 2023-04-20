@@ -105,7 +105,7 @@ impl<'a, T> MolecularOrbital<'a, T>
 where
     T: ComplexFloat + Clone + Lapack,
 {
-    /// Returns a builder to construct a new [`SlaterDeterminant`].
+    /// Returns a builder to construct a new [`MolecularOrbital`].
     pub fn builder() -> MolecularOrbitalBuilder<'a, T> {
         MolecularOrbitalBuilder::default()
     }
@@ -154,7 +154,7 @@ where
         }
     }
 
-    /// Returns a shared reference to a vector of coefficient arrays.
+    /// Returns a shared reference to the vector of coefficient arrays.
     pub fn coefficients(&self) -> &Array1<T> {
         &self.coefficients
     }
