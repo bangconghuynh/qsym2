@@ -5,7 +5,7 @@ use std::ops::Mul;
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
-use ndarray::{Array2, Axis};
+use ndarray::{Array2, Axis, Ix2};
 use ndarray_linalg::{
     assert_close_l2,
     eig::Eig,
@@ -28,7 +28,7 @@ use crate::target::orbital::MolecularOrbital;
 // Overlap
 // -------
 
-impl<'a, T> Overlap<T> for MolecularOrbital<'a, T>
+impl<'a, T> Overlap<T, Ix2> for MolecularOrbital<'a, T>
 where
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>
@@ -42,7 +42,7 @@ where
         self.complex_symmetric
     }
 
-    fn overlap(&self, other: &Self, metric: &Array2<T>) -> Result<T, RepAnalysisError> {
+    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, RepAnalysisError> {
         assert_eq!(
             self.spin_constraint, other.spin_constraint,
             "Inconsistent spin constraints between `self` and `other`."
@@ -53,7 +53,7 @@ where
             "Inconsistent numbers of coefficient matrices between `self` and `other`."
         );
 
-        let sao = metric;
+        let sao = metric.expect("No atomic-orbital metric found.");
         let ov = if self.complex_symmetric() {
             self.coefficients.t().dot(sao).dot(&other.coefficients)
         } else {
@@ -161,7 +161,7 @@ where
     G: SymmetryGroupProperties,
     T: Float + Scalar<Complex = Complex<T>>,
     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
-    MolecularOrbital<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>>,
+    MolecularOrbital<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
 {
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) {
         // Complex S, symmetric or Hermitian
@@ -259,7 +259,7 @@ where
 // RepAnalysis
 // ~~~~~~~~~~~
 
-impl<'a, G, T> RepAnalysis<G, MolecularOrbital<'a, T>, T>
+impl<'a, G, T> RepAnalysis<G, MolecularOrbital<'a, T>, T, Ix2>
     for MolecularOrbitalSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,

@@ -1,5 +1,5 @@
 // use env_logger;
-use ndarray::{array, concatenate, s, Array2, Axis};
+use ndarray::{array, s, Array2};
 use num_complex::Complex;
 
 use crate::analysis::{Orbit, Overlap, RepAnalysis};
@@ -9,17 +9,14 @@ use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::geometry::Transform;
 use crate::aux::molecule::Molecule;
 use crate::chartab::chartab_symbols::DecomposedSymbol;
-use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
+use crate::group::UnitaryRepresentedGroup;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
-use crate::symmetry::symmetry_symbols::{MullikenIrcorepSymbol, MullikenIrrepSymbol};
-use crate::symmetry::symmetry_transformation::{
-    SymmetryTransformable, SymmetryTransformationKind, TimeReversalTransformable,
-};
+use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
+use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::orbital::orbital_analysis::MolecularOrbitalSymmetryOrbit;
-use crate::target::orbital::MolecularOrbital;
 
 type C128 = Complex<f64>;
 
@@ -148,7 +145,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
-    orbit_cg_u_oh_spatial_d3.calc_smat(&sao_cg).calc_xmat(false);
+    orbit_cg_u_oh_spatial_d3.calc_smat(Some(&sao_cg)).calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_spatial_d3.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(1g)| ⊕ ||T|_(2g)|").unwrap()
@@ -172,7 +169,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .iter_mut()
         .zip(orbs_d3_cg_ref.iter())
         .for_each(|(orb_orbit, sym_ref)| {
-            orb_orbit.calc_smat(&sao_cg).calc_xmat(false);
+            orb_orbit.calc_smat(Some(&sao_cg)).calc_xmat(false);
             assert_eq!(orb_orbit.analyse_rep().unwrap(), *sym_ref);
         });
 }

@@ -5,7 +5,7 @@ use std::ops::Mul;
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
-use ndarray::{Array2, Axis};
+use ndarray::{Array2, Axis, Ix2};
 use ndarray_linalg::{
     assert_close_l2,
     eig::Eig,
@@ -28,7 +28,7 @@ use crate::target::vibration::VibrationalCoordinate;
 // Overlap
 // -------
 
-impl<'a, T> Overlap<T> for VibrationalCoordinate<'a, T>
+impl<'a, T> Overlap<T, Ix2> for VibrationalCoordinate<'a, T>
 where
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>
@@ -42,18 +42,27 @@ where
         false
     }
 
-    fn overlap(&self, other: &Self, _metric: &Array2<T>) -> Result<T, RepAnalysisError> {
+    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, RepAnalysisError> {
         assert_eq!(
             self.coefficients.len(),
             other.coefficients.len(),
             "Inconsistent numbers of coefficient matrices between `self` and `other`."
         );
 
-        let ov = self
-            .coefficients
-            .t()
-            .mapv(|x| x.conj())
-            .dot(&other.coefficients);
+        let ov = if let Some(s) = metric {
+            self
+                .coefficients
+                .t()
+                .mapv(|x| x.conj())
+                .dot(s)
+                .dot(&other.coefficients)
+        } else {
+            self
+                .coefficients
+                .t()
+                .mapv(|x| x.conj())
+                .dot(&other.coefficients)
+        };
         Ok(ov)
     }
 }
@@ -134,7 +143,7 @@ where
     G: SymmetryGroupProperties,
     T: Float + Scalar<Complex = Complex<T>>,
     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
-    VibrationalCoordinate<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>>,
+    VibrationalCoordinate<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
 {
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) {
         // Complex S, symmetric or Hermitian
@@ -233,7 +242,7 @@ where
 // RepAnalysis
 // ~~~~~~~~~~~
 
-impl<'a, G, T> RepAnalysis<G, VibrationalCoordinate<'a, T>, T>
+impl<'a, G, T> RepAnalysis<G, VibrationalCoordinate<'a, T>, T, Ix2>
     for VibrationalCoordinateSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,

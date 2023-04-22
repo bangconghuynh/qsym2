@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt;
 
 use itertools::Itertools;
-use ndarray::{s, Array2, Ix0, Ix2};
+use ndarray::{s, Array, Array2, Ix0, Ix2, Dimension};
 use ndarray_einsum_beta::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
 use num_complex::ComplexFloat;
@@ -24,9 +24,10 @@ use crate::group::{class::ClassProperties, GroupProperties};
 /// $`\langle \hat{\iota} \mathbf{v}_i, \mathbf{v}_j \rangle`$ between two linear-space quantities
 /// $`\mathbf{v}_i`$ and $`\mathbf{v}_j`$. The involutory operator $`\hat{\iota}`$ determines
 /// whether the inner product is a sesquilinear form or a bilinear form.
-pub trait Overlap<T>
+pub trait Overlap<T, D>
 where
     T: ComplexFloat + fmt::Debug + Lapack,
+    D: Dimension
 {
     /// If `true`, the inner product is bilinear and $`\hat{\iota} = \hat{\kappa}`$. If `false`,
     /// the inner product is sesquilinear and $`\hat{\iota} = \mathrm{id}`$.
@@ -34,7 +35,7 @@ where
 
     /// Returns the overlap between `self` and `other`, with respect to a metric `metric` of the
     /// underlying basis in which `self` and `other` are expressed.
-    fn overlap(&self, other: &Self, metric: &Array2<T>) -> Result<T, RepAnalysisError>;
+    fn overlap(&self, other: &Self, metric: Option<&Array<T, D>>) -> Result<T, RepAnalysisError>;
 }
 
 // =====
@@ -145,14 +146,15 @@ impl Error for RepAnalysisError {}
 
 /// A trait for representation or corepresentation analysis on an orbit of items spanning a
 /// linear space.
-pub(crate) trait RepAnalysis<G, I, T>: Orbit<G, I>
+pub(crate) trait RepAnalysis<G, I, T, D>: Orbit<G, I>
 where
     T: ComplexFloat + Lapack + fmt::Debug,
     <T as ComplexFloat>::Real: ToPrimitive,
     G: GroupProperties + ClassProperties + CharacterProperties,
     G::GroupElement: fmt::Display,
     G::CharTab: SubspaceDecomposable<T>,
-    I: Overlap<T> + Clone,
+    D: Dimension,
+    I: Overlap<T, D> + Clone,
     Self::OrbitIter: Iterator<Item = I>,
 {
     // ----------------
@@ -220,7 +222,7 @@ where
     /// # Arguments
     ///
     /// * `metric` - The metric of the basis in which the orbit items are expressed.
-    fn calc_smat(&mut self, metric: &Array2<T>) -> &mut Self {
+    fn calc_smat(&mut self, metric: Option<&Array<T, D>>) -> &mut Self {
         let order = self.group().order();
         let mut smat = Array2::<T>::zeros((order, order));
         self.iter()

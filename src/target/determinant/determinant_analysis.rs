@@ -5,7 +5,7 @@ use std::ops::Mul;
 use approx;
 use derive_builder::Builder;
 use itertools::{izip, Itertools};
-use ndarray::{Array2, Axis};
+use ndarray::{Array2, Axis, Ix2};
 use ndarray_linalg::{
     assert_close_l2,
     eig::Eig,
@@ -32,7 +32,7 @@ use crate::target::determinant::SlaterDeterminant;
 // Overlap
 // =======
 
-impl<'a, T> Overlap<T> for SlaterDeterminant<'a, T>
+impl<'a, T> Overlap<T, Ix2> for SlaterDeterminant<'a, T>
 where
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>
@@ -54,7 +54,7 @@ where
     ///
     /// Panics if `self` and `other` have mismatched spin constraints or numbers of coefficient
     /// matrices, or if fractional occupation numbers are detected.
-    fn overlap(&self, other: &Self, metric: &Array2<T>) -> Result<T, RepAnalysisError> {
+    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, RepAnalysisError> {
         assert_eq!(
             self.spin_constraint, other.spin_constraint,
             "Inconsistent spin constraints between `self` and `other`."
@@ -89,7 +89,7 @@ where
             "`other` contains fractional occupation numbers. Overlaps between determinants with fractional occupation numbers are currently not supported."
         );
 
-        let sao = metric;
+        let sao = metric.expect("No atomic-orbital metric found.");
 
         let ov = izip!(
             &self.coefficients,
@@ -220,7 +220,7 @@ where
     G: SymmetryGroupProperties,
     T: Float + Scalar<Complex = Complex<T>>,
     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
-    SlaterDeterminant<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>>,
+    SlaterDeterminant<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
 {
     /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap matrix
     /// $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
@@ -330,7 +330,7 @@ where
 // RepAnalysis
 // ~~~~~~~~~~~
 
-impl<'a, G, T> RepAnalysis<G, SlaterDeterminant<'a, T>, T>
+impl<'a, G, T> RepAnalysis<G, SlaterDeterminant<'a, T>, T, Ix2>
     for SlaterDeterminantSymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
