@@ -73,15 +73,8 @@ where
 {
     /// Performs a spin transformation in-place.
     ///
-    /// # Arguments
-    ///
-    /// * `dmat` - The two-dimensional representation matrix of the transformation in the basis of
-    /// the $`\{ \alpha, \beta \}`$ spinors (*i.e.* decreasing $`m`$ order).
-    ///
-    /// # Panics
-    ///
-    /// Panics if the spin constraint is not generalised. Spin transformations can only be
-    /// performed with generalised spin constraint.
+    /// This has no effects on the vibrational coordinate as vibrational coordinates are entirely
+    /// spatial.
     fn transform_spin_mut(
         &mut self,
         _dmat: &Array2<Complex<f64>>,

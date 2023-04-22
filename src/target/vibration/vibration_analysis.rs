@@ -42,6 +42,14 @@ where
         false
     }
 
+    /// Computes the overlap between two vibrational coordinates.
+    ///
+    /// Typically, `metric` is `None`, which means that the local orthogonal Cartesian coordinates
+    /// are non-overlapping.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `self` and `other` have mismatched coefficient array lengths.
     fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, RepAnalysisError> {
         assert_eq!(
             self.coefficients.len(),

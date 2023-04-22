@@ -110,6 +110,13 @@ where
         MolecularOrbitalBuilder::default()
     }
 
+    /// Augments the encoding of coefficients in this molecular orbital to that in the
+    /// corresponding generalised spin constraint.
+    ///
+    /// # Returns
+    ///
+    /// The equivalent molecular orbital with the coefficients encoded in the generalised spin
+    /// constraint.
     pub fn to_generalised(&self) -> Self {
         match self.spin_constraint {
             SpinConstraint::Restricted(n) => {
@@ -154,7 +161,7 @@ where
         }
     }
 
-    /// Returns a shared reference to the vector of coefficient arrays.
+    /// Returns a shared reference to the coefficient array.
     pub fn coefficients(&self) -> &Array1<T> {
         &self.coefficients
     }

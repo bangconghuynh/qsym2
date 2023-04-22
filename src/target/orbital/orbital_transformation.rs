@@ -123,12 +123,6 @@ where
 // ~~~~~~~~~~~~~~~~~
 
 impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
-    /// Performs a spin transformation in-place.
-    ///
-    /// # Arguments
-    ///
-    /// * `dmat` - The two-dimensional representation matrix of the transformation in the basis of
-    /// the $`\{ \alpha, \beta \}`$ spinors (*i.e.* decreasing $`m`$ order).
     fn transform_spin_mut(
         &mut self,
         dmat: &Array2<Complex<f64>>,
@@ -320,17 +314,6 @@ where
         + Mul<Complex<T>, Output = Complex<T>>
         + Mul<Complex<f64>, Output = Complex<T>>,
 {
-    /// Performs a spin transformation in-place.
-    ///
-    /// # Arguments
-    ///
-    /// * `dmat` - The two-dimensional representation matrix of the transformation in the basis of
-    /// the $`\{ \alpha, \beta \}`$ spinors (*i.e.* decreasing $`m`$ order).
-    ///
-    /// # Panics
-    ///
-    /// Panics if the spin constraint is not generalised. Spin transformations can only be
-    /// performed with generalised spin constraint.
     fn transform_spin_mut(
         &mut self,
         dmat: &Array2<Complex<f64>>,
@@ -502,7 +485,6 @@ impl<'a, T> ComplexConjugationTransformable for MolecularOrbital<'a, T>
 where
     T: ComplexFloat + Lapack,
 {
-    /// Performs a complex conjugation in-place.
     fn transform_cc_mut(&mut self) -> &mut Self {
         self.coefficients.mapv_inplace(|x| x.conj());
         self
