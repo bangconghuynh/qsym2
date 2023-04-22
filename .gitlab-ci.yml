@@ -16,6 +16,7 @@ stages:
 
 before_script:
   - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin -Clink-dead-code"
+  - apt-get install build-essential
 
 check:
   stage: Build
