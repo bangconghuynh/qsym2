@@ -558,6 +558,9 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
     sym.analyse(&presym, true);
     let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
 
+    // All normal modes are obtained at zero field. The finite-field symmetry analysis is for a
+    // fictitious field.
+
     // --------------
     // Mode 1: -41.66
     // --------------
