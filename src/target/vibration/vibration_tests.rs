@@ -249,8 +249,6 @@ fn test_vibration_orbit_rep_analysis_ch4() {
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false);
     let group_u_td = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    println!("{}", group_u_td.irrep_character_table.as_ref().unwrap());
-    let group_u_td_double = group_u_td.to_double_group();
 
     // ---------------
     // Mode 1: 1530.98
@@ -279,9 +277,264 @@ fn test_vibration_orbit_rep_analysis_ch4() {
     orbit_u_ch4_spatial_vib1
         .calc_smat(None)
         .calc_xmat(false);
-    println!("{}", orbit_u_ch4_spatial_vib1.analyse_rep().unwrap());
     assert_eq!(
         orbit_u_ch4_spatial_vib1.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2)|").unwrap()
+    );
+
+    // ---------------
+    // Mode 2: 1530.98
+    // ---------------
+    #[rustfmt::skip]
+    let c2 = array![
+       -0.104,  0.062,  0.030,
+        0.251, -0.046, -0.399,
+        0.368, -0.434, -0.011,
+        0.138,  0.067,  0.219,
+        0.481, -0.322, -0.169,
+    ];
+    let vib2 = VibrationalCoordinate::<f64>::builder()
+        .coefficients(c2)
+        .mol(&mol_ch4)
+        .threshold(1e-3)
+        .build()
+        .unwrap();
+
+    let mut orbit_u_ch4_spatial_vib2 = VibrationalCoordinateSymmetryOrbit::builder()
+        .group(&group_u_td)
+        .origin(&vib2)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .build()
+        .unwrap();
+    orbit_u_ch4_spatial_vib2
+        .calc_smat(None)
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_u_ch4_spatial_vib2.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2)|").unwrap()
+    );
+
+    // ---------------
+    // Mode 3: 1530.98
+    // ---------------
+    #[rustfmt::skip]
+    let c3 = array![
+       -0.031,  0.008, -0.121,
+       -0.149,  0.259,  0.288,
+        0.330,  0.145,  0.402,
+        0.301, -0.191,  0.431,
+       -0.120, -0.305,  0.317,
+    ];
+    let vib3 = VibrationalCoordinate::<f64>::builder()
+        .coefficients(c3)
+        .mol(&mol_ch4)
+        .threshold(1e-3)
+        .build()
+        .unwrap();
+
+    let mut orbit_u_ch4_spatial_vib3 = VibrationalCoordinateSymmetryOrbit::builder()
+        .group(&group_u_td)
+        .origin(&vib3)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .build()
+        .unwrap();
+    orbit_u_ch4_spatial_vib3
+        .calc_smat(None)
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_u_ch4_spatial_vib3.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2)|").unwrap()
+    );
+
+    // ---------------
+    // Mode 4: 1714.14
+    // ---------------
+    #[rustfmt::skip]
+    let c4 = array![
+       -0.000, -0.000,  0.000,
+        0.362,  0.345, -0.017,
+        0.362, -0.345,  0.017,
+       -0.362, -0.345, -0.017,
+       -0.362,  0.345,  0.017,
+    ];
+    let vib4 = VibrationalCoordinate::<f64>::builder()
+        .coefficients(c4)
+        .mol(&mol_ch4)
+        .threshold(1e-3)
+        .build()
+        .unwrap();
+
+    let mut orbit_u_ch4_spatial_vib4 = VibrationalCoordinateSymmetryOrbit::builder()
+        .group(&group_u_td)
+        .origin(&vib4)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .build()
+        .unwrap();
+    orbit_u_ch4_spatial_vib4
+        .calc_smat(None)
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_u_ch4_spatial_vib4.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E||").unwrap()
+    );
+
+    // ---------------
+    // Mode 5: 1714.14
+    // ---------------
+    #[rustfmt::skip]
+    let c5 = array![
+       -0.000,  0.000, -0.000,
+       -0.189,  0.219,  0.408,
+       -0.189, -0.219, -0.408,
+        0.189, -0.219,  0.408,
+        0.189,  0.219, -0.408,
+    ];
+    let vib5 = VibrationalCoordinate::<f64>::builder()
+        .coefficients(c5)
+        .mol(&mol_ch4)
+        .threshold(1e-3)
+        .build()
+        .unwrap();
+
+    let mut orbit_u_ch4_spatial_vib5 = VibrationalCoordinateSymmetryOrbit::builder()
+        .group(&group_u_td)
+        .origin(&vib5)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .build()
+        .unwrap();
+    orbit_u_ch4_spatial_vib5
+        .calc_smat(None)
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_u_ch4_spatial_vib5.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E||").unwrap()
+    );
+
+    // ---------------
+    // Mode 6: 2984.48
+    // ---------------
+    #[rustfmt::skip]
+    let c6 = array![
+        0.000, -0.000, -0.000,
+       -0.289,  0.289, -0.289,
+       -0.289, -0.289,  0.289,
+        0.289, -0.289, -0.289,
+        0.289,  0.289,  0.289,
+    ];
+    let vib6 = VibrationalCoordinate::<f64>::builder()
+        .coefficients(c6)
+        .mol(&mol_ch4)
+        .threshold(1e-3)
+        .build()
+        .unwrap();
+
+    let mut orbit_u_ch4_spatial_vib6 = VibrationalCoordinateSymmetryOrbit::builder()
+        .group(&group_u_td)
+        .origin(&vib6)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .build()
+        .unwrap();
+    orbit_u_ch4_spatial_vib6
+        .calc_smat(None)
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_u_ch4_spatial_vib6.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1)|").unwrap()
+    );
+
+    // ---------------
+    // Mode 7: 3064.80
+    // ---------------
+    #[rustfmt::skip]
+    let c7 = array![
+       -0.002, -0.074,  0.055,
+       -0.405,  0.390, -0.394,
+        0.416,  0.402, -0.405,
+       -0.055,  0.040,  0.065,
+        0.066,  0.051,  0.077,
+    ];
+    let vib7 = VibrationalCoordinate::<f64>::builder()
+        .coefficients(c7)
+        .mol(&mol_ch4)
+        .threshold(1e-3)
+        .build()
+        .unwrap();
+
+    let mut orbit_u_ch4_spatial_vib7 = VibrationalCoordinateSymmetryOrbit::builder()
+        .group(&group_u_td)
+        .origin(&vib7)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .build()
+        .unwrap();
+    orbit_u_ch4_spatial_vib7
+        .calc_smat(None)
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_u_ch4_spatial_vib7.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2)|").unwrap()
+    );
+
+    // ---------------
+    // Mode 8: 3064.80
+    // ---------------
+    #[rustfmt::skip]
+    let c8 = array![
+       -0.071, -0.034, -0.048,
+        0.256, -0.277,  0.260,
+        0.166,  0.173, -0.190,
+       -0.051,  0.031,  0.028,
+        0.473,  0.481,  0.478,
+    ];
+    let vib8 = VibrationalCoordinate::<f64>::builder()
+        .coefficients(c8)
+        .mol(&mol_ch4)
+        .threshold(1e-3)
+        .build()
+        .unwrap();
+
+    let mut orbit_u_ch4_spatial_vib8 = VibrationalCoordinateSymmetryOrbit::builder()
+        .group(&group_u_td)
+        .origin(&vib8)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .build()
+        .unwrap();
+    orbit_u_ch4_spatial_vib8
+        .calc_smat(None)
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_u_ch4_spatial_vib8.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2)|").unwrap()
+    );
+
+    // ---------------
+    // Mode 9: 3064.80
+    // ---------------
+    #[rustfmt::skip]
+    let c9 = array![
+        0.059, -0.043, -0.056,
+       -0.135,  0.139, -0.158,
+       -0.218, -0.238,  0.218,
+       -0.492,  0.495,  0.493,
+        0.139,  0.119,  0.116,
+    ];
+    let vib9 = VibrationalCoordinate::<f64>::builder()
+        .coefficients(c9)
+        .mol(&mol_ch4)
+        .threshold(1e-3)
+        .build()
+        .unwrap();
+
+    let mut orbit_u_ch4_spatial_vib9 = VibrationalCoordinateSymmetryOrbit::builder()
+        .group(&group_u_td)
+        .origin(&vib9)
+        .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .build()
+        .unwrap();
+    orbit_u_ch4_spatial_vib9
+        .calc_smat(None)
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_u_ch4_spatial_vib9.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2)|").unwrap()
     );
 }

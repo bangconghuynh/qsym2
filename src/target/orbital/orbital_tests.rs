@@ -2,7 +2,7 @@
 use ndarray::{array, s, Array2};
 use num_complex::Complex;
 
-use crate::analysis::{Orbit, Overlap, RepAnalysis};
+use crate::analysis::RepAnalysis;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::aux::atom::{Atom, ElementMap};
