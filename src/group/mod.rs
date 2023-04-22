@@ -7,7 +7,7 @@ use indexmap::IndexSet;
 use log;
 use ndarray::{Array2, Zip};
 use num::Integer;
-use num_traits::{Inv, Pow};
+use num_traits::Inv;
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{

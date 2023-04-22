@@ -7,7 +7,7 @@ use std::panic;
 
 use itertools::Itertools;
 use log;
-use ndarray::{s, stack, Array1, Array2, Axis, LinalgScalar, ShapeBuilder, Zip};
+use ndarray::{s, Array1, Array2, Axis, LinalgScalar, ShapeBuilder, Zip};
 use num_modular::ModularInteger;
 use num_traits::{Inv, Pow, ToPrimitive, Zero};
 use rayon::prelude::*;
