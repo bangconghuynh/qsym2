@@ -18,7 +18,9 @@ use num_traits::{Float, Zero};
 
 use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis, RepAnalysisError};
 use crate::aux::misc::complex_modified_gram_schmidt;
-use crate::chartab::SubspaceDecomposable;
+use crate::chartab::chartab_group::CharacterProperties;
+use crate::chartab::{DecompositionError, SubspaceDecomposable};
+use crate::group::GroupType;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
@@ -298,5 +300,52 @@ where
 
     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
         self.origin.threshold
+    }
+
+    /// Reduces the representation or corepresentation spanned by the molecular orbitals in the
+    /// orbit to a direct sum of the irreducible representations or corepresentations of the
+    /// generating symmetry group.
+    ///
+    /// # Returns
+    ///
+    /// The decomposed result.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the decomposition fails, *e.g.* because one or more calculated multiplicities
+    /// are non-integral, or also because the combination of group type and transformation type
+    /// would not give sensible symmetry results for a single-electron molecular orbital. In
+    /// particular, spin or spin-spatial symmetry analysis in unitary-represented magnetic groups
+    /// is not valid for a one-electron system.
+    #[must_use]
+    fn analyse_rep(
+        &self,
+    ) -> Result<
+        <<G as CharacterProperties>::CharTab as SubspaceDecomposable<T>>::Decomposition,
+        DecompositionError,
+    > {
+        // A single electron; validity depends on group and orbit type
+        let (valid_symmetry, err_str) = match self.symmetry_transformation_kind {
+                SymmetryTransformationKind::Spatial => (true, String::new()),
+                SymmetryTransformationKind::Spin | SymmetryTransformationKind::SpinSpatial => {
+                    match self.group().group_type() {
+                        GroupType::Ordinary(_) => (true, String::new()),
+                        GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
+                            (!self.group().unitary_represented(),
+                            format!("Unitary-represented magnetic groups cannot be used for symmetry analysis of a one-electron molecular orbital."))
+                        }
+                    }
+                }
+        };
+        if valid_symmetry {
+            let chis = self.calc_characters();
+            let res = self.group().character_table().reduce_characters(
+                &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
+                self.integrality_threshold(),
+            );
+            res
+        } else {
+            Err(DecompositionError(err_str))
+        }
     }
 }

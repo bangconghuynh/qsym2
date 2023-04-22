@@ -89,9 +89,9 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     sao_g.slice_mut(s![12..24, 12..24]).assign(&sao);
     let sao_cg = sao_g.mapv(|x| C128::from(x));
 
-    // -----------------------------
+    // -------------------------------------
     // αdxy αdyy αdzz αdx2-y2 βdxz βdxx βdyz
-    // -----------------------------
+    // -------------------------------------
     #[rustfmt::skip]
     let calpha = array![
         [0.0, 0.0, 0.0, 1.0],
@@ -139,13 +139,19 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
 
     let orbs_d3_cg = det_d3_cg.to_orbitals();
 
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh (ordinary, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~
+
     let mut orbit_cg_u_oh_spatial_d3 = SlaterDeterminantSymmetryOrbit::builder()
         .group(&group_u_oh)
         .origin(&det_d3_cg)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
-    orbit_cg_u_oh_spatial_d3.calc_smat(Some(&sao_cg)).calc_xmat(false);
+    orbit_cg_u_oh_spatial_d3
+        .calc_smat(Some(&sao_cg))
+        .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_spatial_d3.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(1g)| ⊕ ||T|_(2g)|").unwrap()
@@ -168,6 +174,47 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     orbit_cg_u_oh_spatial_d3_orbs
         .iter_mut()
         .zip(orbs_d3_cg_ref.iter())
+        .for_each(|(orb_orbit, sym_ref)| {
+            orb_orbit.calc_smat(Some(&sao_cg)).calc_xmat(false);
+            assert_eq!(orb_orbit.analyse_rep().unwrap(), *sym_ref);
+        });
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh* (ordinary double, unitary)
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    let mut orbit_cg_u_oh_double_spin_spatial_d3 = SlaterDeterminantSymmetryOrbit::builder()
+        .group(&group_u_oh_double)
+        .origin(&det_d3_cg)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .build()
+        .unwrap();
+    orbit_cg_u_oh_double_spin_spatial_d3
+        .calc_smat(Some(&sao_cg))
+        .calc_xmat(false);
+    assert_eq!(
+        orbit_cg_u_oh_double_spin_spatial_d3.analyse_rep().unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||G~|_(g)|")
+            .unwrap()
+    );
+
+    let mut orbit_cg_u_oh_double_spin_spatial_d3_orbs = MolecularOrbitalSymmetryOrbit::from_orbitals(
+        &group_u_oh_double,
+        &orbs_d3_cg,
+        SymmetryTransformationKind::SpinSpatial,
+    );
+    let orbs_d3_cg_spin_spatial_ref = vec![
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||G~|_(g)|").unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||G~|_(g)|").unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||G~|_(g)|").unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||G~|_(g)|").unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||G~|_(g)|").unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||G~|_(g)|").unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||G~|_(g)|").unwrap(),
+    ];
+    orbit_cg_u_oh_double_spin_spatial_d3_orbs
+        .iter_mut()
+        .zip(orbs_d3_cg_spin_spatial_ref.iter())
         .for_each(|(orb_orbit, sym_ref)| {
             orb_orbit.calc_smat(Some(&sao_cg)).calc_xmat(false);
             assert_eq!(orb_orbit.analyse_rep().unwrap(), *sym_ref);
