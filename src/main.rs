@@ -1,11 +1,11 @@
-use clap::{app_from_crate, arg};
+use clap::{command, arg};
 use std::process;
 
 use qsym2::aux::molecule::Molecule;
 use qsym2::rotsym;
 
 fn main() {
-    let matches = app_from_crate!()
+    let matches = command!()
         .arg(arg!([XYZ_FILE] "xyz file"))
         .arg(
             arg!(-t --threshold <THRESHOLD> "Threshold for moment of inertia comparison")
@@ -14,12 +14,12 @@ fn main() {
         )
         .get_matches();
 
-    let filename = matches.value_of("XYZ_FILE").unwrap_or_else(|| {
+    let filename = matches.get_one::<String>("XYZ_FILE").unwrap_or_else(|| {
         println!("No xyz file provided.");
         process::exit(1);
     });
     let thresh = matches
-        .value_of("threshold")
+        .get_one::<String>("threshold")
         .expect("Threshold value not found.")
         .parse::<f64>()
         .expect("Unable to parse threshold value.");
