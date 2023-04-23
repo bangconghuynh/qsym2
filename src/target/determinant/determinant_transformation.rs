@@ -1,16 +1,11 @@
-use std::fmt;
-use std::iter::Sum;
 use std::ops::Mul;
 
 use approx;
-use derive_builder::Builder;
-use ndarray::{array, concatenate, s, Array1, Array2, Axis, LinalgScalar, ScalarOperand};
+use ndarray::{array, concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
+use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
-use num_traits::float::{Float, FloatConst};
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::ao_basis::BasisAngularOrder;
-use crate::aux::molecule::Molecule;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
@@ -18,203 +13,14 @@ use crate::symmetry::symmetry_transformation::{
     SpatialUnitaryTransformable, SpinUnitaryTransformable, SymmetryTransformable,
     TimeReversalTransformable, TransformationError,
 };
-
-#[cfg(test)]
-mod determinant_tests;
-
-// ==================
-// Struct definitions
-// ==================
-
-/// A structure to manage single-determinantal wavefunctions.
-#[derive(Builder, Clone)]
-struct Determinant<'a, T>
-where
-    T: ComplexFloat,
-{
-    /// The spin constraint associated with the coefficients describing this determinant.
-    spin_constraint: SpinConstraint,
-
-    /// The angular order of the basis functions with respect to which the coefficients are
-    /// expressed.
-    bao: &'a BasisAngularOrder<'a>,
-
-    /// The associated molecule.
-    mol: &'a Molecule,
-
-    /// The coefficients describing this determinant.
-    coefficients: Vec<Array2<T>>,
-
-    /// The occupation patterns of the molecular orbitals in [`Self::coefficients`].
-    occupations: Vec<Array1<T::Real>>,
-
-    /// The threshold for comparing determinants.
-    threshold: T::Real,
-}
-
-impl<'a, T> Determinant<'a, T>
-where
-    T: ComplexFloat + Clone,
-{
-    /// Returns a builder to construct a new [`Determinant`].
-    fn builder() -> DeterminantBuilder<'a, T> {
-        DeterminantBuilder::default()
-    }
-
-    /// Constructs a new [`Determinant`] from its coefficients, occupation patterns, and associated
-    /// molecular information.
-    ///
-    /// # Arguments
-    ///
-    /// * `cs` - Coefficient arrays, one for each spin-subspace.
-    /// * `occs` - Occupation arrays, one for each spin-subspace.
-    /// * `bao` - A shared reference to a [`BasisAngularOrder`] structure which encapsulates
-    /// angular-momentum information about the shells in the basis set.
-    /// * `mol` - A shared reference to a [`Molecule`] structure which encapsulates information
-    /// about the molecular structure.
-    /// * `spincons` - The spin constraint in which the coefficient arrays are defined.
-    /// * `thresh` - The threshold for numerical comparisons of determinants.
-    pub fn new(
-        cs: &[Array2<T>],
-        occs: &[Array1<T::Real>],
-        bao: &'a BasisAngularOrder<'a>,
-        mol: &'a Molecule,
-        spincons: SpinConstraint,
-        thresh: T::Real,
-    ) -> Self {
-        let det = Self::builder()
-            .coefficients(cs.to_vec())
-            .occupations(occs.to_vec())
-            .bao(bao)
-            .mol(mol)
-            .spin_constraint(spincons)
-            .threshold(thresh)
-            .build()
-            .expect("Unable to construct a single determinant structure.");
-        assert!(det.verify(), "Invalid determinant requested.");
-        det
-    }
-
-    /// Returns a shared reference to a vector of coefficient arrays.
-    pub fn coefficients(&self) -> &Vec<Array2<T>> {
-        &self.coefficients
-    }
-
-    /// Returns a shared reference to the spin constraint.
-    pub fn spin_constraint(&self) -> &SpinConstraint {
-        &self.spin_constraint
-    }
-
-    /// Returns a shared reference to the [`BasisAngularOrder`].
-    pub fn bao(&self) -> &BasisAngularOrder {
-        &self.bao
-    }
-
-    /// Returns the total number of electrons in the determinant.
-    pub fn nelectrons(&self) -> T::Real
-    where
-        <T as ComplexFloat>::Real: Sum + From<u16>,
-    {
-        match self.spin_constraint {
-            SpinConstraint::Restricted(nspins) => {
-                <T as ComplexFloat>::Real::from(nspins)
-                    * self
-                        .occupations
-                        .iter()
-                        .map(|occ| occ.iter().copied().sum())
-                        .sum()
-            }
-            SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => self
-                .occupations
-                .iter()
-                .map(|occ| occ.iter().copied().sum())
-                .sum(),
-        }
-    }
-
-    /// Verifies the validity of the determinant, *i.e.* checks for consistency between
-    /// coefficients, basis set shell structure, and spin constraint.
-    fn verify(&self) -> bool {
-        let nbas = self.bao.n_funcs();
-        let spincons = match self.spin_constraint {
-            SpinConstraint::Restricted(_) => {
-                self.coefficients.len() == 1 && self.coefficients[0].shape()[0] == nbas
-            }
-            SpinConstraint::Unrestricted(nspins, _) => {
-                self.coefficients.len() == usize::from(nspins)
-                    && self.coefficients[0].shape()[0] == nbas
-            }
-            SpinConstraint::Generalised(nspins, _) => {
-                self.coefficients.len() == 1
-                    && self.coefficients[0].shape()[0].rem_euclid(nbas) == 0
-                    && self.coefficients[0].shape()[0].div_euclid(nbas) == usize::from(nspins)
-            }
-        };
-        if !spincons {
-            log::error!("The coefficient matrices fail to satisfy the specified spin constraint.");
-        }
-        let occs = match self.spin_constraint {
-            SpinConstraint::Restricted(_) => {
-                self.occupations.len() == 1
-                    && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
-            }
-            SpinConstraint::Unrestricted(nspins, _) => {
-                self.occupations.len() == usize::from(nspins)
-                    && self
-                        .occupations
-                        .iter()
-                        .zip(self.coefficients.iter())
-                        .all(|(occs, coeffs)| occs.shape()[0] == coeffs.shape()[1])
-            }
-            SpinConstraint::Generalised(_, _) => {
-                self.occupations.len() == 1
-                    && self.occupations[0].shape()[0] == self.coefficients[0].shape()[1]
-            }
-        };
-        if !occs {
-            log::error!("The occupation patterns do not match the coefficient patterns.");
-        }
-        let natoms = self.mol.atoms.len() == self.bao.n_atoms();
-        if !natoms {
-            log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
-        }
-        spincons && occs && natoms
-    }
-}
-
-// =====================
-// Trait implementations
-// =====================
-
-// ----
-// From
-// ----
-impl<'a, T> From<Determinant<'a, T>> for Determinant<'a, Complex<T>>
-where
-    T: Float + FloatConst,
-{
-    fn from(value: Determinant<'a, T>) -> Self {
-        Determinant::<'a, Complex<T>>::new(
-            &value
-                .coefficients
-                .into_iter()
-                .map(|coeffs| coeffs.map(|x| Complex::from(x)))
-                .collect::<Vec<_>>(),
-            &value.occupations,
-            value.bao,
-            value.mol,
-            value.spin_constraint,
-            value.threshold,
-        )
-    }
-}
+use crate::target::determinant::SlaterDeterminant;
 
 // ---------------------------
 // SpatialUnitaryTransformable
 // ---------------------------
-impl<'a, T> SpatialUnitaryTransformable for Determinant<'a, T>
+impl<'a, T> SpatialUnitaryTransformable for SlaterDeterminant<'a, T>
 where
-    T: ComplexFloat + LinalgScalar + ScalarOperand + Copy,
+    T: ComplexFloat + LinalgScalar + ScalarOperand + Copy + Lapack,
     f64: Into<T>,
 {
     fn transform_spatial_mut(
@@ -308,7 +114,12 @@ where
 // ------------------------
 // SpinUnitaryTransformable
 // ------------------------
-impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
+
+// ~~~~~~~~~~~~~~~~~~~~~
+// For real determinants
+// ~~~~~~~~~~~~~~~~~~~~~
+
+impl<'a> SpinUnitaryTransformable for SlaterDeterminant<'a, f64> {
     /// Performs a spin transformation in-place.
     ///
     /// # Arguments
@@ -368,7 +179,7 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
                         ))
                     }
                 }
-                SpinConstraint::Unrestricted(nspins, _) => {
+                SpinConstraint::Unrestricted(nspins, increasingm) => {
                     // Only spin flip possible, so the order of the basis in which `dmat` is
                     // expressed and the order of the spin blocks do not need to match.
                     if nspins != 2 {
@@ -377,7 +188,7 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
                                 .to_string(),
                         ));
                     }
-                    let dmat_y = array![[0.0, -1.0], [1.0, 0.0],];
+                    let dmat_y = array![[0.0, -1.0], [1.0, 0.0]];
                     if approx::relative_eq!(
                         (&rdmat - Array2::<f64>::eye(2))
                             .map(|x| x.abs().powi(2))
@@ -410,8 +221,11 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
                         max_relative = 1e-14,
                     ) {
                         // π-rotation about y-axis, effectively spin-flip
-                        let new_coefficients =
-                            vec![-self.coefficients[1].clone(), self.coefficients[0].clone()];
+                        let new_coefficients = if increasingm {
+                            vec![self.coefficients[1].clone(), -self.coefficients[0].clone()]
+                        } else {
+                            vec![-self.coefficients[1].clone(), self.coefficients[0].clone()]
+                        };
                         let new_occupations =
                             vec![self.occupations[1].clone(), self.occupations[0].clone()];
                         self.coefficients = new_coefficients;
@@ -424,8 +238,11 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
                         max_relative = 1e-14,
                     ) {
                         // 3π-rotation about y-axis, effectively negative spin-flip
-                        let new_coefficients =
-                            vec![self.coefficients[1].clone(), -self.coefficients[0].clone()];
+                        let new_coefficients = if increasingm {
+                            vec![-self.coefficients[1].clone(), self.coefficients[0].clone()]
+                        } else {
+                            vec![self.coefficients[1].clone(), -self.coefficients[0].clone()]
+                        };
                         let new_occupations =
                             vec![self.occupations[1].clone(), self.occupations[0].clone()];
                         self.coefficients = new_coefficients;
@@ -479,12 +296,17 @@ impl<'a> SpinUnitaryTransformable for Determinant<'a, f64> {
     }
 }
 
-impl<'a, T> SpinUnitaryTransformable for Determinant<'a, Complex<T>>
+// ~~~~~~~~~~~~~~~~~~~~~~~~
+// For complex determinants
+// ~~~~~~~~~~~~~~~~~~~~~~~~
+
+impl<'a, T> SpinUnitaryTransformable for SlaterDeterminant<'a, Complex<T>>
 where
     T: Clone,
     Complex<T>: ComplexFloat<Real = T>
         + LinalgScalar
         + ScalarOperand
+        + Lapack
         + Mul<Complex<T>, Output = Complex<T>>
         + Mul<Complex<f64>, Output = Complex<T>>,
 {
@@ -538,7 +360,7 @@ where
                     ))
                 }
             }
-            SpinConstraint::Unrestricted(nspins, _) => {
+            SpinConstraint::Unrestricted(nspins, increasingm) => {
                 // Only spin flip possible, so the order of the basis in which `dmat` is
                 // expressed and the order of the spin blocks do not need to match.
                 if nspins != 2 {
@@ -583,8 +405,11 @@ where
                     max_relative = 1e-14,
                 ) {
                     // π-rotation about y-axis, effectively spin-flip
-                    let new_coefficients =
-                        vec![-self.coefficients[1].clone(), self.coefficients[0].clone()];
+                    let new_coefficients = if increasingm {
+                        vec![self.coefficients[1].clone(), -self.coefficients[0].clone()]
+                    } else {
+                        vec![-self.coefficients[1].clone(), self.coefficients[0].clone()]
+                    };
                     let new_occupations =
                         vec![self.occupations[1].clone(), self.occupations[0].clone()];
                     self.coefficients = new_coefficients;
@@ -597,8 +422,11 @@ where
                     max_relative = 1e-14,
                 ) {
                     // 3π-rotation about y-axis, effectively negative spin-flip
-                    let new_coefficients =
-                        vec![self.coefficients[1].clone(), -self.coefficients[0].clone()];
+                    let new_coefficients = if increasingm {
+                        vec![-self.coefficients[1].clone(), self.coefficients[0].clone()]
+                    } else {
+                        vec![self.coefficients[1].clone(), -self.coefficients[0].clone()]
+                    };
                     let new_occupations =
                         vec![self.occupations[1].clone(), self.occupations[0].clone()];
                     self.coefficients = new_coefficients;
@@ -623,20 +451,20 @@ where
                     .coefficients
                     .iter()
                     .map(|old_coeff| {
-                        if !increasingm {
-                            let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
-                            let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
-                            let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
-                            let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
-                            concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
-                                "Unable to concatenate the transformed rows for the various shells.",
-                            )
-                        } else {
+                        if increasingm {
                             let b_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
                             let a_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
                             let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
                             let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
                             concatenate(Axis(0), &[t_b_coeff.view(), t_a_coeff.view()]).expect(
+                                "Unable to concatenate the transformed rows for the various shells.",
+                            )
+                        } else {
+                            let a_coeff = old_coeff.slice(s![0..nspatial, ..]).to_owned();
+                            let b_coeff = old_coeff.slice(s![nspatial..2 * nspatial, ..]).to_owned();
+                            let t_a_coeff = &a_coeff * dmat[[0, 0]] + &b_coeff * dmat[[0, 1]];
+                            let t_b_coeff = &a_coeff * dmat[[1, 0]] + &b_coeff * dmat[[1, 1]];
+                            concatenate(Axis(0), &[t_a_coeff.view(), t_b_coeff.view()]).expect(
                                 "Unable to concatenate the transformed rows for the various shells.",
                             )
                         }
@@ -653,9 +481,9 @@ where
 // ComplexConjugationTransformable
 // -------------------------------
 
-impl<'a, T> ComplexConjugationTransformable for Determinant<'a, T>
+impl<'a, T> ComplexConjugationTransformable for SlaterDeterminant<'a, T>
 where
-    T: ComplexFloat,
+    T: ComplexFloat + Lapack,
 {
     /// Performs a complex conjugation in-place.
     fn transform_cc_mut(&mut self) -> &mut Self {
@@ -669,10 +497,10 @@ where
 // ---------------------
 // SymmetryTransformable
 // ---------------------
-impl<'a, T> SymmetryTransformable for Determinant<'a, T>
+impl<'a, T> SymmetryTransformable for SlaterDeterminant<'a, T>
 where
-    T: ComplexFloat,
-    Determinant<'a, T>: SpatialUnitaryTransformable + TimeReversalTransformable,
+    T: ComplexFloat + Lapack,
+    SlaterDeterminant<'a, T>: SpatialUnitaryTransformable + TimeReversalTransformable,
 {
     fn sym_permute_sites_spatial(
         &self,
@@ -683,122 +511,5 @@ where
             .ok_or(TransformationError(format!(
             "Unable to determine the atom permutation corresponding to the operation `{symop}`."
         )))
-    }
-}
-
-// ---------
-// PartialEq
-// ---------
-impl<'a, T> PartialEq for Determinant<'a, T>
-where
-    T: ComplexFloat<Real = f64>,
-{
-    fn eq(&self, other: &Self) -> bool {
-        let thresh = (self.threshold * other.threshold).sqrt();
-        let coefficients_eq =
-            self.coefficients.len() == other.coefficients.len()
-                && self.coefficients.iter().zip(other.coefficients.iter()).all(
-                    |(scoeffs, ocoeffs)| {
-                        approx::relative_eq!(
-                            (scoeffs - ocoeffs).map(|x| x.abs().powi(2)).sum().sqrt(),
-                            0.0,
-                            epsilon = thresh,
-                            max_relative = thresh,
-                        )
-                    },
-                );
-        let occs_eq = self.occupations.len() == other.occupations.len()
-            && self
-                .occupations
-                .iter()
-                .zip(other.occupations.iter())
-                .all(|(soccs, ooccs)| {
-                    approx::relative_eq!(
-                        (soccs - ooccs).map(|x| x.abs().powi(2)).sum().sqrt(),
-                        0.0,
-                        epsilon = thresh,
-                        max_relative = thresh,
-                    )
-                });
-        self.spin_constraint == other.spin_constraint
-            && self.bao == other.bao
-            && self.mol == other.mol
-            && coefficients_eq
-            && occs_eq
-    }
-}
-
-// --
-// Eq
-// --
-impl<'a, T> Eq for Determinant<'a, T> where T: ComplexFloat<Real = f64> {}
-
-// -----
-// Debug
-// -----
-impl<'a, T> fmt::Debug for Determinant<'a, T>
-where
-    T: fmt::Debug + ComplexFloat,
-    <T as ComplexFloat>::Real: Sum + From<u16> + fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Determinant[{:?}: {:?} electrons, {} coefficient {} of dimensions {}]",
-            self.spin_constraint,
-            self.nelectrons(),
-            self.coefficients.len(),
-            if self.coefficients.len() != 1 {
-                "matrices"
-            } else {
-                "matrix"
-            },
-            self.coefficients
-                .iter()
-                .map(|coeff| coeff
-                    .shape()
-                    .iter()
-                    .map(|x| x.to_string())
-                    .collect::<Vec<_>>()
-                    .join("×"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )?;
-        Ok(())
-    }
-}
-
-// -------
-// Display
-// -------
-impl<'a, T> fmt::Display for Determinant<'a, T>
-where
-    T: fmt::Display + ComplexFloat,
-    <T as ComplexFloat>::Real: Sum + From<u16> + fmt::Display,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Determinant[{:?}: {} electrons, {} coefficient {} of dimensions {}]",
-            self.spin_constraint,
-            self.nelectrons(),
-            self.coefficients.len(),
-            if self.coefficients.len() != 1 {
-                "matrices"
-            } else {
-                "matrix"
-            },
-            self.coefficients
-                .iter()
-                .map(|coeff| coeff
-                    .shape()
-                    .iter()
-                    .map(|x| x.to_string())
-                    .collect::<Vec<_>>()
-                    .join("×"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        )?;
-        Ok(())
     }
 }

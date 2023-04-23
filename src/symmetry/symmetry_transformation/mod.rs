@@ -14,11 +14,20 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
 
-mod determinant;
-
 #[cfg(test)]
 #[path = "symmetry_transformation_tests.rs"]
 mod symmetry_transformation_tests;
+
+// ================
+// Enum definitions
+// ================
+
+#[derive(Debug, Clone)]
+pub enum SymmetryTransformationKind {
+    Spatial,
+    Spin,
+    SpinSpatial,
+}
 
 // =================
 // Trait definitions
@@ -217,9 +226,6 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
         let rmat = symop.get_3d_spatial_matrix();
         let perm = self.sym_permute_sites_spatial(symop)?;
         self.transform_spatial_mut(&rmat, Some(&perm));
-        if symop.is_antiunitary() {
-            self.transform_timerev_mut()?;
-        }
         Ok(self)
     }
 
@@ -264,10 +270,12 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
             } else {
                 dmat_angleaxis(angle, axis, false)
             };
-            self.transform_spin_mut(&dmat)
-        } else {
-            Ok(self)
+            self.transform_spin_mut(&dmat)?;
         }
+        if symop.is_antiunitary() {
+            self.transform_timerev_mut()?;
+        }
+        Ok(self)
     }
 
     /// Performs a spin transformation according to a specified symmetry operation and returns the
@@ -354,7 +362,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
 /// Panics if the number of generalised rows along any of the dimensions in `axes` does not match
 /// the number of functions in the basis, or if the permutation rank does not match the number of
 /// atoms in the basis.
-fn permute_array_by_atoms<T, D>(
+pub(crate) fn permute_array_by_atoms<T, D>(
     arr: &Array<T, D>,
     atom_perm: &Permutation<usize>,
     axes: &[Axis],
@@ -405,7 +413,7 @@ where
 ///
 /// A vector of spherical-harmonic rotation matrices, one for each shells in `bao`. Non-standard
 /// orderings of functions in shells are taken into account.
-fn assemble_sh_rotation_3d_matrices(
+pub(crate) fn assemble_sh_rotation_3d_matrices(
     bao: &BasisAngularOrder,
     rmat: &Array2<f64>,
     perm: Option<&Permutation<usize>>,
@@ -431,10 +439,10 @@ fn assemble_sh_rotation_3d_matrices(
         rls.push(rl);
     }
 
-    let cart2rss: Vec<Vec<Array2<f64>>> = (0..=lmax)
+    let cart2rss_lex: Vec<Vec<Array2<f64>>> = (0..=lmax)
         .map(|lcart| sh_cart2r(lcart, &CartOrder::lex(lcart), true, true))
         .collect();
-    let r2cartss: Vec<Vec<Array2<f64>>> = (0..=lmax)
+    let r2cartss_lex: Vec<Vec<Array2<f64>>> = (0..=lmax)
         .map(|lcart| sh_r2cart(lcart, &CartOrder::lex(lcart), true, true))
         .collect();
 
@@ -460,8 +468,12 @@ fn assemble_sh_rotation_3d_matrices(
                 ShellOrder::Cart(cart_order) => {
                     // Cartesian functions. Convert them to real solid harmonics first, then
                     // applying the transformation, then convert back.
-                    let cart2rs = &cart2rss[l];
-                    let r2carts = &r2cartss[l];
+                    // The actual Cartesian order will be taken into account.
+
+                    // Perform the conversion using lexicographic order first. This allows for the
+                    // conversion matrices to be computed only once in the lexicographic order.
+                    let cart2rs = &cart2rss_lex[l];
+                    let r2carts = &r2cartss_lex[l];
                     let rl = cart2rs.iter().zip(r2carts.iter()).enumerate().fold(
                         Array2::zeros((cart_order.ncomps(), cart_order.ncomps())),
                         |acc, (i, (xmat, wmat))| {
@@ -470,6 +482,8 @@ fn assemble_sh_rotation_3d_matrices(
                         },
                     );
                     let lex_cart_order = CartOrder::lex(shl.l);
+
+                    // Now deal with the actual Cartesian order by permutations.
                     if *cart_order != lex_cart_order {
                         // `rl` is in lexicographic order (because of `wmat` and `xmat`) by default.
                         // Consider a transformation R and its representation matrix D in a
@@ -481,8 +495,8 @@ fn assemble_sh_rotation_3d_matrices(
                         //      R πb = πb D(π).
                         // To relate D(π) to D, we first note the representation matrix for π, P:
                         //      πb = π b = b P,
-                        // which, when acts on a left row vector, permutes its entry normally, but
-                        // when acts on a right column vector, permutes its entry inversely.
+                        // which, when acts on a left row vector, permutes its entries normally, but
+                        // when acts on a right column vector, permutes its entries inversely.
                         // Then,
                         //      R πb = R b P = b P D(π) => R b = b PD(π)P^(-1).
                         // Thus,
@@ -491,7 +505,9 @@ fn assemble_sh_rotation_3d_matrices(
                         // according to π.
                         let perm = lex_cart_order
                             .get_perm_of(cart_order)
-                            .expect("Unable to find a permutation to ");
+                            .unwrap_or_else(
+                                || panic!("Unable to find a permutation to map `{lex_cart_order}` to `{cart_order}`.")
+                            );
                         rl.select(Axis(0), &perm.image())
                             .select(Axis(1), &perm.image())
                     } else {

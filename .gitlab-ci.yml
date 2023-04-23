@@ -16,6 +16,8 @@ stages:
 
 before_script:
   - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin -Clink-dead-code"
+  - apt-get update
+  - apt-get install gfortran build-essential -y
 
 check:
   stage: Build

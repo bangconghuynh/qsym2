@@ -9,7 +9,7 @@ use nalgebra::Vector3;
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
 use crate::symmetry::symmetry_element::{
-    AntiunitaryKind, SymmetryElement, INV, ROT, SIG, TRROT, TRSIG,
+    SymmetryElement, INV, ROT, SIG, TRROT, TRSIG,
 };
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;

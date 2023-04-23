@@ -10,8 +10,58 @@ use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
-fn test_chartab_symmetric_h8_twisted_alt_magnetic_field_bw_c4_c2() {
+fn test_chartab_symmetric_h2_alt_magnetic_field_bw_d2h_c2v() {
     // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h2.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    let magnetic_atoms: Vec<Atom> = mol
+        .atoms
+        .iter()
+        .enumerate()
+        .map(|(i, atom)| {
+            [
+                Atom::new_special(
+                    AtomKind::Magnetic(i % 2 == 0),
+                    atom.coordinates + 0.1*Vector3::x(),
+                    thresh,
+                )
+                .expect("Unable to construct a special magnetic atom."),
+                Atom::new_special(
+                    AtomKind::Magnetic(i % 2 != 0),
+                    atom.coordinates - 0.1*Vector3::x(),
+                    thresh,
+                )
+                .expect("Unable to construct a special magnetic atom."),
+            ]
+        })
+        .flatten()
+        .collect();
+    mol.magnetic_atoms = Some(magnetic_atoms);
+
+    let expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2)|").unwrap(),
+    ];
+    test_chartab_ordinary_group(&mol, thresh, "C2v", &expected_irreps, None);
+
+    let mag_expected_irreps = vec![
+        MullikenIrrepSymbol::new("||A|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1g)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2g)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||A|_(2u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(1u)|").unwrap(),
+        MullikenIrrepSymbol::new("||B|_(2u)|").unwrap(),
+    ];
+    test_chartab_magnetic_group(&mol, thresh, "D2h", &mag_expected_irreps, None);
+}
+
+#[test]
+fn test_chartab_symmetric_h8_twisted_alt_magnetic_field_bw_c4_c2() {
     let thresh = 1e-7;
     let angle = 0.2;
     let mut mol = template_molecules::gen_twisted_h8(angle);

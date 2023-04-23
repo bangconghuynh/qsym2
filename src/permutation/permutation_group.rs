@@ -500,6 +500,10 @@ impl CharacterProperties for PermutationGroup {
             .as_ref()
             .expect("Irrep character table not found for this group.")
     }
+
+    fn unitary_represented(&self) -> bool {
+        true
+    }
 }
 
 impl IrrepCharTabConstruction for PermutationGroup {

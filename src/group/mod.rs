@@ -47,15 +47,11 @@ where
     type GroupElement;
     type ElementCollection: Clone + IntoIterator<Item = Self::GroupElement>;
 
-    // /// The underlying abstract group of the possibly concrete group.
-    // fn abstract_group(&self) -> &Group<Self::GroupElement>;
-
     /// The name of the group.
     fn name(&self) -> String;
 
     /// The finite subgroup name of this group, if any.
     fn finite_subgroup_name(&self) -> Option<&String>;
-
 
     /// A iterable collection of the elements in the group.
     fn elements(&self) -> &Self::ElementCollection;
@@ -624,11 +620,14 @@ where
     }
 
     fn unitary_subgroup(&mut self, uni_subgrp: UG) -> &mut Self {
-        assert!(uni_subgrp.elements().clone().into_iter().all(|op| self
-            .abstract_group
-            .as_ref()
-            .expect("Abstract group not yet set for this magnetic-represented group.")
-            .contains(&op)), "Some unitary operations cannot be found in the magnetic group.");
+        assert!(
+            uni_subgrp.elements().clone().into_iter().all(|op| self
+                .abstract_group
+                .as_ref()
+                .expect("Abstract group not yet set for this magnetic-represented group.")
+                .contains(&op)),
+            "Some unitary operations cannot be found in the magnetic group."
+        );
         self.unitary_subgroup = Some(uni_subgrp);
         self
     }
