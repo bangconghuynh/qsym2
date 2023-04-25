@@ -6,6 +6,7 @@ authors = ["Bang C. Huynh <bang.cong.huynh@gmail.com>"]
 description = "Quantum Symbolic Symmetry - A program to perform symmetry transformation and analysis on wavefunctions."
 
 [dependencies]
+anyhow = "1.0.70"
 approx = "0.5.1"
 bitvec = "1.0.1"
 clap = { version = "4.2.4", features = ["cargo"] }

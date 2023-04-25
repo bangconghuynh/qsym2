@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::fmt;
 
+use anyhow;
+
 pub mod point_group_detection;
 
 // =================
@@ -10,9 +12,9 @@ pub mod point_group_detection;
 pub trait QSym2Driver {
     type Outcome;
 
-    fn run(&mut self);
+    fn run(&mut self) -> Result<(), anyhow::Error>;
 
-    fn result(&self) -> Result<&Self::Outcome, &QSym2Error>;
+    fn result(&self) -> Result<&Self::Outcome, anyhow::Error>;
 }
 
 // ==================
@@ -28,13 +30,13 @@ pub struct QSym2Error<'a>
 {
     source: Option<&'a dyn Error>,
 
-    msg: Option<&'a str>,
+    msg: Option<String>,
 }
 
 impl<'a> fmt::Display for QSym2Error<'a>
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if let Some(msg) = self.msg {
+        if let Some(msg) = &self.msg {
             writeln!(f, "QSym2 has encountered an error with the following message:")?;
             writeln!(f, "{}", msg)?;
         } else {

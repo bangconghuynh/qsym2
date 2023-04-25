@@ -25,7 +25,7 @@ fn test_chartab_reduction_vf6_oh() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     let chartab = group.character_table();
 
@@ -246,7 +246,7 @@ fn test_chartab_reduction_vf6_oh_double() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
     let chartab = group.character_table();
 
@@ -376,7 +376,7 @@ fn test_chartab_reduction_b2cl4_magnetic_field_s4_double() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
     let chartab = group.character_table();
 
@@ -466,7 +466,7 @@ fn test_chartab_reduction_bf3_magnetic_field_bw_d3h_c3h() {
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
     let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
     let ircorep_chartab = magnetic_group.character_table();
 
@@ -578,7 +578,7 @@ fn test_chartab_reduction_h8_alt_x_magnetic_field_bw_c4h_c2h() {
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
     let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
     let ircorep_chartab = magnetic_group.character_table();
 

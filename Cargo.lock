@@ -1314,6 +1314,7 @@ dependencies = [
 name = "qsym2"
 version = "0.2.0"
 dependencies = [
+ "anyhow",
  "approx 0.5.1",
  "bitvec",
  "clap",

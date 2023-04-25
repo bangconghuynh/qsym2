@@ -65,7 +65,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group_u_oh = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     let group_u_oh_double = group_u_oh.to_double_group();
 

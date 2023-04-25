@@ -1,6 +1,6 @@
 use crate::aux::molecule::Molecule;
 use crate::symmetry::symmetry_core::PreSymmetry;
-use crate::symmetry::symmetry_element::{SymmetryElementKind, INV, SIG};
+use crate::symmetry::symmetry_element::{INV, SIG};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use nalgebra::Vector3;
 

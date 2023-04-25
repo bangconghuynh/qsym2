@@ -1,3 +1,4 @@
+use anyhow::{self, ensure};
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
@@ -36,15 +37,25 @@ impl Symmetry {
     ///
     /// Panics when any inconsistencies are encountered along the point-group detection path.
     #[allow(clippy::too_many_lines)]
-    pub fn analyse_asymmetric(&mut self, presym: &PreSymmetry, tr: bool) {
+    pub fn analyse_asymmetric(
+        &mut self,
+        presym: &PreSymmetry,
+        tr: bool,
+    ) -> Result<(), anyhow::Error> {
         let (_mois, principal_axes) = presym.molecule.calc_moi();
 
-        assert!(matches!(
-            presym.rotational_symmetry,
-            RotationalSymmetry::AsymmetricPlanar | RotationalSymmetry::AsymmetricNonPlanar
-        ));
+        ensure!(
+            matches!(
+                presym.rotational_symmetry,
+                RotationalSymmetry::AsymmetricPlanar | RotationalSymmetry::AsymmetricNonPlanar
+            ),
+            "Unexpected rotational symmetry -- expected: {} or {}, actual: {}",
+            RotationalSymmetry::AsymmetricPlanar,
+            RotationalSymmetry::AsymmetricNonPlanar,
+            presym.rotational_symmetry
+        );
 
-        _search_proper_rotations(presym, self, true, tr);
+        _search_proper_rotations(presym, self, true, tr)?;
         log::debug!("Proper elements found: {:?}", self.get_elements(&ROT));
         log::debug!(
             "Time-reversed proper elements found: {:?}",
@@ -55,14 +66,20 @@ impl Symmetry {
         let count_c2 = self
             .get_proper(&ORDER_2)
             .map_or(0, |proper_elements| proper_elements.len());
-        assert!(count_c2 == 0 || count_c2 == 1 || count_c2 == 3);
+        ensure!(
+            count_c2 == 0 || count_c2 == 1 || count_c2 == 3,
+            "Unexpected number of C2 axes: {count_c2}."
+        );
 
         let max_ord = self.get_max_proper_order();
 
         if count_c2 == 3 {
             // Dihedral, either D2h or D2.
             log::debug!("Dihedral family (asymmetric top).");
-            assert_eq!(max_ord, ORDER_2);
+            ensure!(
+                max_ord == ORDER_2,
+                "Unexpected principal order -- expected: 2, actual: {max_ord}."
+            );
 
             // Principal axis, which is C2, is also a generator.
             // If the group is a black-white magnetic group, then one C2 axis is non-time-reversed,
@@ -121,7 +138,10 @@ impl Symmetry {
                     .collect_vec();
                 for c2 in &c2s {
                     let improper_check = presym.check_improper(&ORDER_1, c2.raw_axis(), &SIG, tr);
-                    assert!(improper_check.is_some());
+                    ensure!(
+                        improper_check.is_some(),
+                        "Expected improper element not found."
+                    );
                     self.add_improper(
                         ORDER_1,
                         c2.raw_axis(),
@@ -144,7 +164,10 @@ impl Symmetry {
                 let principal_element_axis = self.get_proper_principal_element().raw_axis().clone();
                 let improper_check =
                     presym.check_improper(&ORDER_1, &principal_element_axis, &SIG, tr);
-                assert!(improper_check.is_some());
+                ensure!(
+                    improper_check.is_some(),
+                    "Expected improper element not found."
+                );
                 self.add_improper(
                     ORDER_1,
                     &principal_element_axis,
@@ -165,7 +188,10 @@ impl Symmetry {
         } else if count_c2 == 1 {
             // Non-dihedral, either C2, C2v, or C2h
             log::debug!("Non-dihedral family (asymmetric top).");
-            assert_eq!(max_ord, ORDER_2);
+            ensure!(
+                max_ord == ORDER_2,
+                "Unexpected principal order -- expected: 2, actual: {max_ord}."
+            );
 
             // Principal axis, which is C2, is also a generator.
             let c2s = self.get_proper(&ORDER_2).expect(" No C2 elements found.");
@@ -203,7 +229,10 @@ impl Symmetry {
                 .clone();
 
                 let improper_check = presym.check_improper(&ORDER_1, c2.raw_axis(), &SIG, tr);
-                assert!(improper_check.is_some());
+                ensure!(
+                    improper_check.is_some(),
+                    "Expected improper element not found."
+                );
                 self.add_improper(
                     ORDER_1,
                     c2.raw_axis(),
@@ -253,7 +282,10 @@ impl Symmetry {
                         presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr)
                     {
                         if presym.molecule.magnetic_atoms.is_some() {
-                            assert!(improper_kind.contains_time_reversal());
+                            ensure!(
+                                improper_kind.contains_time_reversal(),
+                                "Expected time-reversed improper element not found."
+                            );
                         }
                         count_sigma += u32::from(self.add_improper(
                             ORDER_1,
@@ -347,7 +379,10 @@ impl Symmetry {
                         sigma.contains_time_reversal(),
                     );
                 } else {
-                    assert_eq!(count_sigma, 0);
+                    ensure!(
+                        count_sigma == 0,
+                        "Unexpected number of σ mirror planes: {count_sigma}."
+                    );
                     self.set_group_name("C2".to_owned());
                 }
             }
@@ -416,11 +451,11 @@ impl Symmetry {
                     log::debug!("Planar molecule based on MoIs but no σ found from SEA groups.");
                     log::debug!("Locating the planar mirror plane based on MoIs...");
                     let sigma_check = presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr);
-                    assert!(
+                    ensure!(
                         sigma_check.is_some(),
                         "Failed to check reflection symmetry perpendicular to the highest-MoI principal axis."
                     );
-                    assert!(
+                    ensure!(
                         self.add_improper(
                             ORDER_1,
                             &principal_axes[2],
@@ -474,7 +509,10 @@ impl Symmetry {
 
                 log::debug!("Located {} σ.", count_sigma);
                 if count_sigma > 0 {
-                    assert_eq!(count_sigma, 1);
+                    ensure!(
+                        count_sigma == 1,
+                        "Unexpected number of σ mirror planes: {count_sigma}."
+                    );
                     let old_sigmas = self
                         .get_elements_mut(&SIG)
                         .expect("No improper elements found.")
@@ -485,7 +523,11 @@ impl Symmetry {
                                 .remove(&ORDER_1)
                                 .expect("No σ found.")
                         });
-                    assert_eq!(old_sigmas.len(), 1);
+                    ensure!(
+                        old_sigmas.len() == 1,
+                        "Unexpected number of old σ mirror planes: {}.",
+                        old_sigmas.len()
+                    );
                     let old_sigma = old_sigmas.into_iter().next().expect("No σ found.");
                     self.add_improper(
                         ORDER_1,
@@ -527,5 +569,7 @@ impl Symmetry {
                 }
             }
         }
+
+        Ok(())
     }
 }

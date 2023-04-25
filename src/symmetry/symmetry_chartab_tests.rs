@@ -229,7 +229,7 @@ fn test_chartab_ordinary_group(
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     let chartab = group.character_table();
     assert_eq!(chartab.name, expected_name);
@@ -257,7 +257,7 @@ fn test_chartab_ordinary_double_group(
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
     let chartab = group.character_table();
     assert_eq!(chartab.name, expected_name);
@@ -285,7 +285,7 @@ fn test_chartab_magnetic_group(
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
 
     let unitary_group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
     let irrep_chartab = unitary_group.character_table();
@@ -319,7 +319,7 @@ fn test_chartab_magnetic_double_group(
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
 
     let unitary_group =
         UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None).to_double_group();
@@ -356,7 +356,7 @@ fn test_chartab_ordinary_group_from_infinite(
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(finite_order));
     let chartab = group.irrep_character_table.as_ref().unwrap();
     assert_eq!(chartab.name, expected_name);
@@ -385,7 +385,7 @@ fn test_chartab_magnetic_group_from_infinite(
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
 
     let unitary_group =
         UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order));
@@ -11140,7 +11140,7 @@ fn test_chartab_symmetric_8_eclipsed_sandwich_grey_d8h() {
 //         .build()
 //         .unwrap();
 //     let mut sym = Symmetry::new();
-//     sym.analyse(&presym, false);
+//     sym.analyse(&presym, false).unwrap();
 //     let uni_group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
 //     let irrep_chartab = uni_group
 //         .character_table();

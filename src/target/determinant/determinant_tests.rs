@@ -93,7 +93,7 @@ fn test_determinant_transformation_bf4_sqpl() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
 
     let c4p1 = group.get_index(1).unwrap();
@@ -162,7 +162,7 @@ fn test_determinant_transformation_s4_sqpl() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
 
     // Unrestricted spin constraint
@@ -369,7 +369,7 @@ fn test_determinant_transformation_b3_real_timerev() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     let c3p1 = group.get_index(1).unwrap();
 
@@ -588,7 +588,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
 
     #[rustfmt::skip]
@@ -846,7 +846,7 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
 
     let elements_i = group.elements();
@@ -1163,7 +1163,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
 
     #[rustfmt::skip]
@@ -1262,12 +1262,12 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     let group_u_d4h_double = group_u_d4h.to_double_group();
 
     let mut sym_tr = Symmetry::new();
-    sym_tr.analyse(&presym, true);
+    sym_tr.analyse(&presym, true).unwrap();
     let group_u_grey_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym_tr, None);
     let group_u_grey_d4h_double = group_u_grey_d4h.to_double_group();
 
@@ -1282,7 +1282,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .build()
         .unwrap();
     let mut sym_bz = Symmetry::new();
-    sym_bz.analyse(&presym_bz, true);
+    sym_bz.analyse(&presym_bz, true).unwrap();
     let group_u_bw_d4h_c4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym_bz, None);
     let group_u_bw_d4h_c4h_double = group_u_bw_d4h_c4h.to_double_group();
     let group_m_bw_d4h_c4h = MagneticRepresentedGroup::from_molecular_symmetry(&sym_bz, None);
@@ -2363,7 +2363,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group_u_oh = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     let group_u_oh_double = group_u_oh.to_double_group();
 

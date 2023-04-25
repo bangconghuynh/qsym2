@@ -1,3 +1,5 @@
+use anyhow::{self, ensure};
+
 use super::{PreSymmetry, Symmetry};
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_element::SIG;
@@ -20,32 +22,50 @@ impl Symmetry {
     /// # Panics
     ///
     /// Panics when any inconsistencies are encountered along the point-group detection path.
-    pub fn analyse_linear(&mut self, presym: &PreSymmetry, tr: bool) {
+    pub fn analyse_linear(
+        &mut self,
+        presym: &PreSymmetry,
+        tr: bool,
+    ) -> Result<(), anyhow::Error> {
         let (mois, principal_axes) = presym.molecule.calc_moi();
 
-        assert!(matches!(
-            presym.rotational_symmetry,
-            RotationalSymmetry::ProlateLinear
-        ));
-        assert!(presym
-            .sea_groups
-            .iter()
-            .all(|sea_group| sea_group.len() <= 2));
+        ensure!(
+            matches!(
+                presym.rotational_symmetry,
+                RotationalSymmetry::ProlateLinear
+            ),
+            "Unexpected rotational symmetry -- expected: {}, actual: {}",
+            RotationalSymmetry::ProlateLinear,
+            presym.rotational_symmetry
+        );
+        ensure!(
+            presym
+                .sea_groups
+                .iter()
+                .all(|sea_group| sea_group.len() <= 2),
+            "Unexpected SEA groups of more than two atoms found for a linear molecule."
+        );
 
         // C∞
-        assert!(approx::relative_eq!(
-            mois[0],
-            0.0,
-            epsilon = presym.dist_threshold,
-            max_relative = presym.dist_threshold
-        ));
-        assert!(self.add_proper(
-            ORDER_I,
-            &principal_axes[0],
-            true,
-            presym.dist_threshold,
-            false
-        ));
+        ensure!(
+            approx::relative_eq!(
+                mois[0],
+                0.0,
+                epsilon = presym.dist_threshold,
+                max_relative = presym.dist_threshold
+            ),
+            "Unexpected non-zero smallest principal moment of inertia."
+        );
+        ensure!(
+            self.add_proper(
+                ORDER_I,
+                &principal_axes[0],
+                true,
+                presym.dist_threshold,
+                false
+            ),
+            "Expected C∞ axis not added."
+        );
         if let Some(improper_kind) = presym.check_improper(
             &ElementOrder::Int(2),
             &Vector3::new(0.0, 0.0, 1.0),
@@ -54,31 +74,40 @@ impl Symmetry {
         ) {
             // i
             log::debug!("Located an inversion centre.");
-            assert!(self.add_improper(
-                ORDER_2,
-                &Vector3::new(0.0, 0.0, 1.0),
-                false,
-                SIG.clone(),
-                None,
-                presym.dist_threshold,
-                improper_kind.contains_time_reversal()
-            ));
+            ensure!(
+                self.add_improper(
+                    ORDER_2,
+                    &Vector3::new(0.0, 0.0, 1.0),
+                    false,
+                    SIG.clone(),
+                    None,
+                    presym.dist_threshold,
+                    improper_kind.contains_time_reversal()
+                ),
+                "Expected inversion centre not added."
+            );
 
             // σh must exist if C∞ and i both exist.
             log::debug!("σh implied from C∞ and i.");
             let sigma_check = presym.check_improper(&ORDER_1, &principal_axes[0], &SIG, tr);
-            assert!(sigma_check.is_some());
-            assert!(self.add_improper(
-                ORDER_1,
-                &principal_axes[0],
-                true,
-                SIG.clone(),
-                Some("h".to_owned()),
-                presym.dist_threshold,
-                sigma_check
-                    .expect("Expected mirror plane implied by C∞ and i not found.",)
-                    .contains_time_reversal(),
-            ));
+            ensure!(
+                sigma_check.is_some(),
+                "Expected σh implied by C∞ and i not found."
+            );
+            ensure!(
+                self.add_improper(
+                    ORDER_1,
+                    &principal_axes[0],
+                    true,
+                    SIG.clone(),
+                    Some("h".to_owned()),
+                    presym.dist_threshold,
+                    sigma_check
+                        .expect("Expected mirror plane implied by C∞ and i not found.",)
+                        .contains_time_reversal(),
+                ),
+                "Expected σh implied by C∞ and i not added."
+            );
 
             if let Some(proper_kind) = presym.check_proper(&ORDER_2, &principal_axes[1], tr) {
                 // C2
@@ -120,5 +149,7 @@ impl Symmetry {
                 self.set_group_name("C∞".to_owned());
             }
         }
+
+        Ok(())
     }
 }

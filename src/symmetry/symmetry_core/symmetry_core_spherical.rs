@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use anyhow::{self, ensure, format_err};
 use itertools::{self, Itertools};
 use log;
 use nalgebra::Vector3;
@@ -26,11 +27,17 @@ impl Symmetry {
     /// # Returns
     ///
     /// The number of distinct $`C_2`$ axes located.
-    fn search_c2_spherical(&mut self, presym: &PreSymmetry, tr: bool) -> u32 {
-        assert!(matches!(
-            presym.rotational_symmetry,
-            RotationalSymmetry::Spherical
-        ));
+    fn search_c2_spherical(
+        &mut self,
+        presym: &PreSymmetry,
+        tr: bool,
+    ) -> Result<u32, anyhow::Error> {
+        ensure!(
+            matches!(presym.rotational_symmetry, RotationalSymmetry::Spherical),
+            "Unexpected rotational symmetry -- expected: {}, actual: {}",
+            RotationalSymmetry::Spherical,
+            presym.rotational_symmetry
+        );
 
         let start_guard: u32 = 30;
         let stable_c2_ratio: f64 = 0.5;
@@ -95,7 +102,7 @@ impl Symmetry {
                 break;
             }
         }
-        count_c2
+        Ok(count_c2)
     }
 
     /// Performs point-group detection analysis for a spherical top.
@@ -107,16 +114,18 @@ impl Symmetry {
     /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
     /// symmetry element will only be considered if its non-time-reversed version turns out to be
     /// not a symmetry element.
-    ///
-    /// # Panics
-    ///
-    /// Panics when any inconsistencies are encountered along the point-group detection path.
     #[allow(clippy::too_many_lines)]
-    pub fn analyse_spherical(&mut self, presym: &PreSymmetry, tr: bool) {
-        assert!(matches!(
-            presym.rotational_symmetry,
-            RotationalSymmetry::Spherical
-        ));
+    pub fn analyse_spherical(
+        &mut self,
+        presym: &PreSymmetry,
+        tr: bool,
+    ) -> Result<(), anyhow::Error> {
+        ensure!(
+            matches!(presym.rotational_symmetry, RotationalSymmetry::Spherical),
+            "Unexpected rotational symmetry -- expected: {}, actual: {}",
+            RotationalSymmetry::Spherical,
+            presym.rotational_symmetry
+        );
         if presym.molecule.atoms.len() == 1 {
             self.set_group_name("O(3)".to_owned());
             self.add_proper(
@@ -149,13 +158,16 @@ impl Symmetry {
                 presym.molecule.threshold,
                 false,
             );
-            return;
+            return Ok(());
         }
 
         // Locating all possible and distinct C2 axes
-        let count_c2 = self.search_c2_spherical(presym, tr);
+        let count_c2 = self.search_c2_spherical(presym, tr)?;
         log::debug!("Located {} C2 axes.", count_c2);
-        assert!(HashSet::from([3, 9, 15]).contains(&count_c2));
+        ensure!(
+            HashSet::from([3, 9, 15]).contains(&count_c2),
+            "Unexpected number of C2 axes -- expected: 3 or 9 or 15, actual: {count_c2}"
+        );
 
         // Locating improper elements
         match count_c2 {
@@ -168,24 +180,30 @@ impl Symmetry {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
                     self.set_group_name("Th".to_owned());
-                    assert!(self.add_improper(
-                        ORDER_2,
-                        &Vector3::z(),
-                        false,
-                        SIG.clone(),
-                        None,
-                        presym.molecule.threshold,
-                        improper_kind.contains_time_reversal()
-                    ));
-                    assert!(self.add_improper(
-                        ORDER_2,
-                        &Vector3::z(),
-                        true,
-                        SIG.clone(),
-                        None,
-                        presym.molecule.threshold,
-                        improper_kind.contains_time_reversal()
-                    ));
+                    ensure!(
+                        self.add_improper(
+                            ORDER_2,
+                            &Vector3::z(),
+                            false,
+                            SIG.clone(),
+                            None,
+                            presym.molecule.threshold,
+                            improper_kind.contains_time_reversal()
+                        ),
+                        "Expected improper element not added."
+                    );
+                    ensure!(
+                        self.add_improper(
+                            ORDER_2,
+                            &Vector3::z(),
+                            true,
+                            SIG.clone(),
+                            None,
+                            presym.molecule.threshold,
+                            improper_kind.contains_time_reversal()
+                        ),
+                        "Expected improper generator not added."
+                    );
                 } else {
                     let mut c2s = self
                         .get_proper(&ORDER_2)
@@ -215,22 +233,28 @@ impl Symmetry {
                                 let axis_p = c2s[0].raw_axis() + c2s[1].raw_axis();
                                 let p_improper_check =
                                     presym.check_improper(&ORDER_1, &axis_p, &SIG, tr);
-                                assert!(p_improper_check.is_some());
+                                ensure!(
+                                    p_improper_check.is_some(),
+                                    "Expected mirror plane perpendicular to {axis_p} not found."
+                                );
                                 axes.push((
                                     axis_p,
                                     p_improper_check
-                                        .unwrap_or_else(|| panic!("Expected mirror plane perpendicular to {axis_p} not found."))
+                                        .ok_or_else(|| format_err!("Expected mirror plane perpendicular to {axis_p} not found."))?
                                         .contains_time_reversal(),
                                 ));
 
                                 let axis_m = c2s[0].raw_axis() - c2s[1].raw_axis();
                                 let m_improper_check =
                                     presym.check_improper(&ORDER_1, &axis_m, &SIG, tr);
-                                assert!(m_improper_check.is_some());
+                                ensure!(
+                                    m_improper_check.is_some(),
+                                    "Expected mirror plane perpendicular to {axis_m} not found."
+                                );
                                 axes.push((
                                     axis_m,
                                     m_improper_check
-                                        .unwrap_or_else(|| panic!("Expected mirror plane perpendicular to {axis_m} not found."))
+                                        .ok_or_else(|| format_err!("Expected mirror plane perpendicular to {axis_m} not found."))?
                                         .contains_time_reversal(),
                                 ));
                             }
@@ -238,25 +262,31 @@ impl Symmetry {
                         };
                         let sigmad_generator_normal = sigmad_normals[0];
                         for (axis, axis_tr) in sigmad_normals {
-                            assert!(self.add_improper(
+                            ensure!(
+                                self.add_improper(
+                                    ORDER_1,
+                                    &axis,
+                                    false,
+                                    SIG.clone(),
+                                    Some("d".to_owned()),
+                                    presym.molecule.threshold,
+                                    axis_tr
+                                ),
+                                "Expected improper element not added."
+                            );
+                        }
+                        ensure!(
+                            self.add_improper(
                                 ORDER_1,
-                                &axis,
-                                false,
+                                &sigmad_generator_normal.0,
+                                true,
                                 SIG.clone(),
                                 Some("d".to_owned()),
                                 presym.molecule.threshold,
-                                axis_tr
-                            ));
-                        }
-                        assert!(self.add_improper(
-                            ORDER_1,
-                            &sigmad_generator_normal.0,
-                            true,
-                            SIG.clone(),
-                            Some("d".to_owned()),
-                            presym.molecule.threshold,
-                            sigmad_generator_normal.1
-                        ));
+                                sigmad_generator_normal.1
+                            ),
+                            "Expected improper generator not added."
+                        );
                     } else {
                         // No σd => chiral
                         self.set_group_name("T".to_owned());
@@ -272,24 +302,30 @@ impl Symmetry {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
                     self.set_group_name("Oh".to_owned());
-                    assert!(self.add_improper(
-                        ORDER_2,
-                        &Vector3::z(),
-                        false,
-                        SIG.clone(),
-                        None,
-                        presym.molecule.threshold,
-                        improper_kind.contains_time_reversal()
-                    ));
-                    assert!(self.add_improper(
-                        ORDER_2,
-                        &Vector3::z(),
-                        true,
-                        SIG.clone(),
-                        None,
-                        presym.molecule.threshold,
-                        improper_kind.contains_time_reversal()
-                    ));
+                    ensure!(
+                        self.add_improper(
+                            ORDER_2,
+                            &Vector3::z(),
+                            false,
+                            SIG.clone(),
+                            None,
+                            presym.molecule.threshold,
+                            improper_kind.contains_time_reversal()
+                        ),
+                        "Expected improper element not added."
+                    );
+                    ensure!(
+                        self.add_improper(
+                            ORDER_2,
+                            &Vector3::z(),
+                            true,
+                            SIG.clone(),
+                            None,
+                            presym.molecule.threshold,
+                            improper_kind.contains_time_reversal()
+                        ),
+                        "Expected improper generator not added."
+                    );
                 } else {
                     // No inversion centre => chiral
                     self.set_group_name("O".to_owned());
@@ -304,30 +340,36 @@ impl Symmetry {
                     // Inversion centre
                     log::debug!("Located an inversion centre.");
                     self.set_group_name("Ih".to_owned());
-                    assert!(self.add_improper(
-                        ORDER_2,
-                        &Vector3::z(),
-                        false,
-                        SIG.clone(),
-                        None,
-                        presym.molecule.threshold,
-                        improper_kind.contains_time_reversal()
-                    ));
-                    assert!(self.add_improper(
-                        ORDER_2,
-                        &Vector3::z(),
-                        true,
-                        SIG.clone(),
-                        None,
-                        presym.molecule.threshold,
-                        improper_kind.contains_time_reversal()
-                    ));
+                    ensure!(
+                        self.add_improper(
+                            ORDER_2,
+                            &Vector3::z(),
+                            false,
+                            SIG.clone(),
+                            None,
+                            presym.molecule.threshold,
+                            improper_kind.contains_time_reversal()
+                        ),
+                        "Expected improper element not added."
+                    );
+                    ensure!(
+                        self.add_improper(
+                            ORDER_2,
+                            &Vector3::z(),
+                            true,
+                            SIG.clone(),
+                            None,
+                            presym.molecule.threshold,
+                            improper_kind.contains_time_reversal()
+                        ),
+                        "Expected improper generator not added."
+                    );
                 } else {
                     // No inversion centre => chiral
                     self.set_group_name("I".to_owned());
                 }
             } // end count_c2 = 15
-            _ => panic!("Invalid number of C2 axes."),
+            _ => return Err(format_err!("Invalid number of C2 axes.")),
         } // end match count_c2
 
         // Locating all possible and distinct C3 axes
@@ -352,7 +394,10 @@ impl Symmetry {
                 let vec_ij = atom_j.coordinates - atom_i.coordinates;
                 let vec_ik = atom_k.coordinates - atom_i.coordinates;
                 let vec_normal = vec_ij.cross(&vec_ik);
-                assert!(vec_normal.norm() > presym.molecule.threshold);
+                ensure!(
+                    vec_normal.norm() > presym.molecule.threshold,
+                    "Unexpected zero-norm vector."
+                );
                 if let Some(proper_kind) = presym.check_proper(&order_3, &vec_normal, tr) {
                     count_c3 += i32::from(self.add_proper(
                         order_3,
@@ -379,7 +424,10 @@ impl Symmetry {
                 }
             }
         }
-        assert!(found_consistent_c3);
+        ensure!(
+            found_consistent_c3,
+            "Unexpected number of C3 axes: {count_c3}."
+        );
 
         if count_c3 == 4 {
             // Tetrahedral or octahedral, C3 axes are also generators.
@@ -424,7 +472,10 @@ impl Symmetry {
                     let vec_ij = atom_j.coordinates - atom_i.coordinates;
                     let vec_ik = atom_k.coordinates - atom_i.coordinates;
                     let vec_normal = vec_ij.cross(&vec_ik);
-                    assert!(vec_normal.norm() > presym.molecule.threshold);
+                    ensure!(
+                        vec_normal.norm() > presym.molecule.threshold,
+                        "Unexpected zero-norm vector."
+                    );
                     if let Some(proper_kind) = presym.check_proper(&order_4, &vec_normal, tr) {
                         count_c4 += i32::from(self.add_proper(
                             order_4,
@@ -440,7 +491,10 @@ impl Symmetry {
                     }
                 }
             }
-            assert!(found_consistent_c4);
+            ensure!(
+                found_consistent_c4,
+                "Unexpected number of C4 axes: {count_c4}."
+            );
 
             // Add a C4 as a generator
             let c4 = *self
@@ -484,7 +538,10 @@ impl Symmetry {
                     let vec_ij = atom_j.coordinates - atom_i.coordinates;
                     let vec_ik = atom_k.coordinates - atom_i.coordinates;
                     let vec_normal = vec_ij.cross(&vec_ik);
-                    assert!(vec_normal.norm() > presym.molecule.threshold);
+                    ensure!(
+                        vec_normal.norm() > presym.molecule.threshold,
+                        "Unexpected zero-norm vector."
+                    );
                     if let Some(proper_kind) = presym.check_proper(&order_5, &vec_normal, tr) {
                         count_c5 += i32::from(self.add_proper(
                             order_5,
@@ -507,7 +564,10 @@ impl Symmetry {
                     }
                 }
             }
-            assert!(found_consistent_c5);
+            ensure!(
+                found_consistent_c5,
+                "Unexpected number of C5 axes: {count_c5}."
+            );
         } // end locating C5 axes for I and Ih
 
         // Locating any other improper rotation axes for the non-chinal groups
@@ -542,23 +602,12 @@ impl Symmetry {
                     s4_axis_tr,
                 ));
             }
-            assert_eq!(count_s4, 3);
+            ensure!(count_s4 == 3, "Unexpected number of S4 axes: {count_s4}.");
         }
         // end locating improper axes for Td
         else if *self.group_name.as_ref().expect("No point groups found.") == "Th" {
             // Locating σh
             let sigmah_normals: Vec<(Vector3<f64>, bool)> = {
-                // self.get_elements(&ROT)
-                //     .unwrap_or(&HashMap::new())
-                //     .get(&ORDER_2)
-                //     .unwrap_or(&HashSet::new())
-                //     .iter()
-                //     .chain(
-                //         self.get_elements(&TRROT)
-                //             .unwrap_or(&HashMap::new())
-                //             .get(&ORDER_2)
-                //             .unwrap_or(&HashSet::new()),
-                //     )
                 self.get_proper(&ORDER_2)
                     .expect("Expected C2 elements not found.")
                     .iter()
@@ -586,7 +635,10 @@ impl Symmetry {
                     sigmah_normal_tr,
                 ));
             }
-            assert_eq!(count_sigmah, 3);
+            ensure!(
+                count_sigmah == 3,
+                "Unexpected number of σh mirror planes: {count_sigmah}."
+            );
 
             // Locating S6
             let order_6 = ElementOrder::Int(6);
@@ -618,7 +670,7 @@ impl Symmetry {
                     s6_axis_tr,
                 ));
             }
-            assert_eq!(count_s6, 4);
+            ensure!(count_s6 == 4, "Unexpected number of S6 axes: {count_s6}.");
         }
         // end locating improper axes for Th
         else if *self.group_name.as_ref().expect("No point groups found.") == "Oh" {
@@ -652,7 +704,7 @@ impl Symmetry {
                     *s4_axis_tr,
                 ));
             }
-            assert_eq!(count_s4, 3);
+            ensure!(count_s4 == 3, "Unexpected number of S4 axes: {count_s4}.");
 
             let sigmah_axes: Vec<(Vector3<f64>, bool)> = {
                 s4_axes
@@ -676,7 +728,10 @@ impl Symmetry {
                     sigmah_axis_tr,
                 ));
             }
-            assert_eq!(count_sigmah, 3);
+            ensure!(
+                count_sigmah == 3,
+                "Unexpected number of σh mirror planes: {count_sigmah}."
+            );
 
             // Locating σd
             let sigmad_normals: Vec<(Vector3<f64>, bool)> = {
@@ -714,7 +769,10 @@ impl Symmetry {
                     sigmad_normal_tr,
                 ));
             }
-            assert_eq!(count_sigmad, 6);
+            ensure!(
+                count_sigmad == 6,
+                "Unexpected number of σd mirror planes: {count_sigmad}."
+            );
 
             // Locating S6
             let order_6 = ElementOrder::Int(6);
@@ -746,7 +804,7 @@ impl Symmetry {
                     s6_axis_tr,
                 ));
             }
-            assert_eq!(count_s6, 4);
+            ensure!(count_s6 == 4, "Unexpected number of S6 axes: {count_s6}.");
         }
         // end locating improper axes for Oh
         else if *self.group_name.as_ref().expect("No point groups found.") == "Ih" {
@@ -781,7 +839,10 @@ impl Symmetry {
                     s10_axis_tr,
                 ));
             }
-            assert_eq!(count_s10, 6);
+            ensure!(
+                count_s10 == 6,
+                "Unexpected number of S10 axes: {count_s10}."
+            );
 
             // Locating S6
             let order_6 = ElementOrder::Int(6);
@@ -813,7 +874,7 @@ impl Symmetry {
                     s6_axis_tr,
                 ));
             }
-            assert_eq!(count_s6, 10);
+            ensure!(count_s6 == 10, "Unexpected number of S6 axes: {count_s6}.");
 
             // Locating σ
             let sigma_normals: Vec<(Vector3<f64>, bool)> = {
@@ -844,7 +905,12 @@ impl Symmetry {
                     sigma_normal_tr,
                 ));
             }
-            assert_eq!(count_sigma, 15);
+            ensure!(
+                count_sigma == 15,
+                "Unexpected number of σ mirror planes: {count_sigma}."
+            );
         } // end locating improper axes for Ih
+
+        Ok(())
     }
 }

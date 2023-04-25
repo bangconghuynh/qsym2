@@ -1,14 +1,12 @@
-use std::panic::catch_unwind;
-
+use anyhow::{bail, format_err};
 use derive_builder::Builder;
 use itertools::Itertools;
 use log;
 use nalgebra::{Point3, Vector3};
 
 use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::geometry::Transform;
 use crate::aux::molecule::Molecule;
-use crate::drivers::{QSym2Driver, QSym2Error};
+use crate::drivers::QSym2Driver;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 
 // ==================
@@ -70,17 +68,18 @@ pub struct PointGroupDetectionDriver<'a> {
 
     molecule: &'a Molecule,
 
-    result: Result<PointGroupDetectionResult, QSym2Error<'static>>,
+    #[builder(default = "None")]
+    result: Option<PointGroupDetectionResult>,
 }
 
 impl<'a> PointGroupDetectionDriver<'a> {
-    fn detect_point_group(&mut self) -> Result<&mut Self, QSym2Error<'static>> {
+    fn detect_point_group(&mut self) -> Result<(), anyhow::Error> {
         let params = &self.parameters;
         let threshs = params
             .moi_thresholds
             .iter()
             .cartesian_product(params.distance_thresholds.iter());
-        let nthreshs = threshs.peekable().count();
+        let nthreshs = threshs.clone().count();
         if nthreshs == 1 {
             log::info!("§ Fixed-Threshold Point-Group Detection §");
             log::info!("MoI threshold     : {:.3e}", params.moi_thresholds[0]);
@@ -107,9 +106,8 @@ impl<'a> PointGroupDetectionDriver<'a> {
             );
         }
 
-        let count_length = usize::try_from(nthreshs.ilog10() + 1).map_err(|_| QSym2Error {
-            source: None,
-            msg: Some("Unable to convert `nthreshs.ilog10() + 1` to `usize`."),
+        let count_length = usize::try_from(nthreshs.ilog10() + 1).map_err(|_| {
+            format_err!("Unable to convert `{}` to `usize`.", nthreshs.ilog10() + 1)
         })?;
         log::info!(
             "{:>width$} {:>12} {:>12} {:>11} {:>8}",
@@ -132,26 +130,15 @@ impl<'a> PointGroupDetectionDriver<'a> {
             // Add any fictitious magnetic fields
             if let Some(fictitious_magnetic_fields) = params.fictitious_magnetic_fields.as_ref() {
                 if let Some(_) = mol.magnetic_atoms {
-                    return Err(
-                        QSym2Error {
-                            source: None,
-                            msg: Some("Cannot set fictitious magnetic fields in the presence of actual magnetic fields.")
-                        }
-                    );
+                    bail!("Cannot set fictitious magnetic fields in the presence of actual magnetic fields.")
                 } else {
                     let fictitious_magnetic_atoms = fictitious_magnetic_fields.iter().flat_map(|(origin, vec)| {
-                        Ok([
-                            Atom::new_special(AtomKind::Magnetic(true), origin + vec, *dist_thresh).ok_or(
-                                QSym2Error {
-                                    source: None,
-                                    msg: Some("Cannot construct a fictitious magnetic atom.")
-                                }
+                        Ok::<[Atom; 2], anyhow::Error>([
+                            Atom::new_special(AtomKind::Magnetic(true), origin + vec, *dist_thresh).ok_or_else(||
+                                format_err!("Cannot construct a fictitious magnetic atom.")
                             )?,
-                            Atom::new_special(AtomKind::Magnetic(false), origin - vec, *dist_thresh).ok_or(
-                                QSym2Error {
-                                    source: None,
-                                    msg: Some("Cannot construct a fictitious magnetic atom.")
-                                }
+                            Atom::new_special(AtomKind::Magnetic(false), origin - vec, *dist_thresh).ok_or_else(||
+                                format_err!("Cannot construct a fictitious magnetic atom.".to_string())
                             )?,
                         ])
                     }).flatten().collect_vec();
@@ -162,20 +149,12 @@ impl<'a> PointGroupDetectionDriver<'a> {
             // Add any fictitious electric fields
             if let Some(fictitious_electric_fields) = params.fictitious_electric_fields.as_ref() {
                 if let Some(_) = mol.electric_atoms {
-                    return Err(
-                        QSym2Error {
-                            source: None,
-                            msg: Some("Cannot set fictitious electric fields in the presence of actual electric fields.")
-                        }
-                    );
+                    bail!("Cannot set fictitious electric fields in the presence of actual electric fields.")
                 } else {
                     let fictitious_electric_atoms = fictitious_electric_fields.iter().flat_map(|(origin, vec)| {
-                        Ok(
-                            Atom::new_special(AtomKind::Electric(true), origin + vec, *dist_thresh).ok_or(
-                                QSym2Error {
-                                    source: None,
-                                    msg: Some("Cannot construct a fictitious electric atom.")
-                                }
+                        Ok::<Atom, anyhow::Error>(
+                            Atom::new_special(AtomKind::Electric(true), origin + vec, *dist_thresh).ok_or_else(||
+                                format_err!("Cannot construct a fictitious electric atom.")
                             )?
                         )
                     }).collect_vec();
@@ -189,12 +168,9 @@ impl<'a> PointGroupDetectionDriver<'a> {
                 .moi_threshold(*moi_thresh)
                 .molecule(&mol, true)
                 .build()
-                .map_err(|_| QSym2Error {
-                    source: None,
-                    msg: Some("Cannot construct a pre-symmetry structure.")
-                })?;
+                .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
             let mut sym = Symmetry::new();
-            let result = catch_unwind(|| sym.analyse(&presym, params.time_reversal));
+            let result = sym.analyse(&presym, params.time_reversal);
             i += 1;
             if result.is_ok() {
                 log::info!(
@@ -202,7 +178,7 @@ impl<'a> PointGroupDetectionDriver<'a> {
                     i,
                     moi_thresh,
                     dist_thresh,
-                    sym.group_name.unwrap_or("?".to_string()),
+                    sym.group_name.as_ref().unwrap_or(&"?".to_string()),
                     sym.n_elements(),
                     width = count_length
                 );
@@ -217,21 +193,18 @@ impl<'a> PointGroupDetectionDriver<'a> {
                     "--",
                     width = count_length
                 );
-                Err(QSym2Error{
-                    source: None,
-                    msg: Some(&format!(
-                            "Point-group determination with MoI threshold {:.3e} and distance threshold {:.3e} has failed.",
-                            moi_thresh,
-                            dist_thresh
-                        ))
-                })
+                bail!(
+                    "Point-group determination with MoI threshold {:.3e} and distance threshold {:.3e} has failed.",
+                    moi_thresh,
+                    dist_thresh
+                )
             }
         })
         .filter_map(|res_sym| res_sym.ok())
         .collect_vec();
 
         let (highest_presym, highest_sym) = syms
-            .iter()
+            .into_iter()
             .max_by(|(presym_a, sym_a), (presym_b, sym_b)| {
                 (
                     sym_a.n_elements(),
@@ -245,15 +218,14 @@ impl<'a> PointGroupDetectionDriver<'a> {
                     ))
                     .expect("Unable to perform a comparison.")
             })
-            .ok_or(QSym2Error {
-                source: None,
-                msg: Some("Unable to identify the highest-symmetry group."),
+            .ok_or_else(|| {
+                format_err!("Unable to identify the highest-symmetry group.".to_string())
             })?;
 
         let n_elements = highest_sym.n_elements();
         log::info!(
             "Highest point group found: {} ({} {})",
-            highest_sym.group_name.unwrap_or("?".to_string()),
+            highest_sym.group_name.as_ref().unwrap_or(&"?".to_string()),
             n_elements,
             if n_elements != 1 {
                 "symmetry elements"
@@ -261,19 +233,33 @@ impl<'a> PointGroupDetectionDriver<'a> {
                 "symmetry element"
             }
         );
-        log::info!("  Associated MoI threshold     : {:.3e}", highest_presym.moi_threshold);
-        log::info!("  Associated distance threshold: {:.3e}", highest_presym.dist_threshold);
+        log::info!(
+            "  Associated MoI threshold     : {:.3e}",
+            highest_presym.moi_threshold
+        );
+        log::info!(
+            "  Associated distance threshold: {:.3e}",
+            highest_presym.dist_threshold
+        );
 
-        Ok(self)
+        self.result = Some(PointGroupDetectionResult {
+            symmetry: highest_sym,
+        });
+
+        Ok(())
     }
 }
 
 impl<'a> QSym2Driver for PointGroupDetectionDriver<'a> {
     type Outcome = PointGroupDetectionResult;
 
-    fn result(&self) -> Result<&Self::Outcome, &QSym2Error> {
-        self.result.as_ref()
+    fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
+        self.result
+            .as_ref()
+            .ok_or_else(|| format_err!("No point-group detection results found."))
     }
 
-    fn run(&mut self) {}
+    fn run(&mut self) -> Result<(), anyhow::Error> {
+        self.detect_point_group()
+    }
 }
