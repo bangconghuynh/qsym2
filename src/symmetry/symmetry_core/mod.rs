@@ -13,7 +13,7 @@ use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    SpecialSymmetryTransformation, SymmetryOperation, sort_operations
+    sort_operations, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
     AntiunitaryKind, SymmetryElement, SymmetryElementKind, ROT, SIG, SO3, TRROT, TRSIG,
@@ -28,7 +28,7 @@ mod symmetry_core_tests;
 mod symmetry_group_detection_tests;
 
 /// A struct for storing and managing information required for symmetry analysis.
-#[derive(Builder)]
+#[derive(Clone, Builder)]
 pub struct PreSymmetry {
     /// The molecule to be symmetry-analysed. This molecule will have bee
     /// translated to put its centre of mass at the origin.
@@ -46,11 +46,11 @@ pub struct PreSymmetry {
 
     /// Threshold for relative comparisons of moments of inertia.
     #[builder(setter(custom))]
-    moi_threshold: f64,
+    pub moi_threshold: f64,
 
     /// Threshold for relative distance comparisons.
     #[builder(setter(skip), default = "self.get_dist_threshold()")]
-    dist_threshold: f64,
+    pub dist_threshold: f64,
 }
 
 impl PreSymmetryBuilder {
@@ -253,7 +253,7 @@ impl PreSymmetry {
 }
 
 /// A struct for storing and managing symmetry analysis results.
-#[derive(Builder, Debug)]
+#[derive(Builder, Clone, Debug)]
 pub struct Symmetry {
     /// The determined point group in Schönflies notation.
     #[builder(setter(skip, strip_option), default = "None")]
@@ -598,7 +598,11 @@ impl Symmetry {
         let order = *element.raw_proper_order();
         let simplified_symbol = element.get_simplified_symbol();
         let full_symbol = element.get_full_symbol();
-        let au = if tr { Some(AntiunitaryKind::TimeReversal) } else { None };
+        let au = if tr {
+            Some(AntiunitaryKind::TimeReversal)
+        } else {
+            None
+        };
         let is_o3_mirror_plane = element.is_o3_mirror_plane(au);
         let is_o3_inversion_centre = element.is_o3_inversion_centre(au);
         let improper_kind = if tr { TRSIG } else { SIG };
@@ -705,6 +709,11 @@ impl Symmetry {
         result
     }
 
+    /// Sets the name of the symmetry group.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name to be given to the symmetry group.
     fn set_group_name(&mut self, name: String) {
         self.group_name = Some(name);
         log::debug!(
@@ -989,7 +998,7 @@ impl Symmetry {
     ///
     /// # Returns
     ///
-    /// A flag indicating if this group is an infinite group.
+    /// A boolean indicating if this group is an infinite group.
     #[must_use]
     pub fn is_infinite(&self) -> bool {
         self.get_max_proper_order() == ElementOrder::Inf
@@ -1007,6 +1016,14 @@ impl Symmetry {
                 .max()
                 .unwrap_or(&ElementOrder::Int(0))
                 == ElementOrder::Inf
+    }
+
+    /// Returns the total number of symmetry elements (*NOT* symmetry operations).
+    pub fn n_elements(&self) -> usize {
+        self.elements
+            .values()
+            .flat_map(|kind_elements| kind_elements.values())
+            .count()
     }
 
     /// Generates all possible symmetry operations from the available symmetry elements.

@@ -110,30 +110,32 @@ impl Molecule {
     /// Panics when the numbers of fictitious special atoms, if any, are invalid. It is expected
     /// that, when present, there are two magnetic special atoms and/or one electric special atom.
     #[must_use]
-    pub fn from_atoms(all_atoms: &[Atom], threshold: f64) -> Self {
-        let atoms: Vec<Atom> = all_atoms
+    pub fn from_atoms(all_atoms: &[Atom], thresh: f64) -> Self {
+        let mut atoms: Vec<Atom> = all_atoms
             .iter()
             .filter(|atom| matches!(atom.kind, AtomKind::Ordinary))
             .cloned()
             .collect();
-        let magnetic_atoms_vec: Vec<Atom> = all_atoms
+        atoms.iter_mut().for_each(|atom| atom.threshold = thresh);
+
+        let mut magnetic_atoms_vec: Vec<Atom> = all_atoms
             .iter()
             .filter(|atom| matches!(atom.kind, AtomKind::Magnetic(_)))
             .cloned()
             .collect();
-        // assert_eq!(magnetic_atoms_vec.len() % 2, 0, "{:?}", magnetic_atoms_vec);
+        magnetic_atoms_vec.iter_mut().for_each(|atom| atom.threshold = thresh);
         let magnetic_atoms = if magnetic_atoms_vec.is_empty() {
             None
         } else {
             Some(magnetic_atoms_vec)
         };
 
-        let electric_atoms_vec: Vec<Atom> = all_atoms
+        let mut electric_atoms_vec: Vec<Atom> = all_atoms
             .iter()
             .filter(|atom| matches!(atom.kind, AtomKind::Electric(_)))
             .cloned()
             .collect();
-        // assert!(electric_atoms_vec.len() == 1 || electric_atoms_vec.is_empty());
+        electric_atoms_vec.iter_mut().for_each(|atom| atom.threshold = thresh);
         let electric_atoms = if electric_atoms_vec.is_empty() {
             None
         } else {
@@ -144,7 +146,7 @@ impl Molecule {
             atoms,
             electric_atoms,
             magnetic_atoms,
-            threshold,
+            threshold: thresh,
         }
     }
 
