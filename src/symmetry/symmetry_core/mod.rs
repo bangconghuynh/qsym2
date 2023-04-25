@@ -1042,6 +1042,7 @@ impl Symmetry {
         self.elements
             .values()
             .flat_map(|kind_elements| kind_elements.values())
+            .flatten()
             .count()
     }
 

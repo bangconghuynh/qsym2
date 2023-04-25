@@ -5,9 +5,14 @@ use log;
 use nalgebra::{Point3, Vector3};
 
 use crate::aux::atom::{Atom, AtomKind};
+use crate::aux::misc::log_title;
 use crate::aux::molecule::Molecule;
 use crate::drivers::QSym2Driver;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
+
+#[cfg(test)]
+#[path = "point_group_detection_tests.rs"]
+mod point_group_detection_tests;
 
 // ==================
 // Struct definitions
@@ -25,13 +30,7 @@ pub struct PointGroupDetectionParams {
     #[builder(setter(custom), default = "vec![1.0e-4, 1.0e-5, 1.0e-6]")]
     distance_thresholds: Vec<f64>,
 
-    recentre_molecule: bool,
-
-    reorientate_molecule: bool,
-
     time_reversal: bool,
-
-    double_group: bool,
 
     #[builder(default = "None")]
     infinite_order_to_finite: Option<usize>,
@@ -47,6 +46,24 @@ pub struct PointGroupDetectionParams {
 
     #[builder(default = "true")]
     print_class_transversal: bool,
+}
+
+impl PointGroupDetectionParams {
+    pub fn builder() -> PointGroupDetectionParamsBuilder {
+        PointGroupDetectionParamsBuilder::default()
+    }
+}
+
+impl PointGroupDetectionParamsBuilder {
+    fn moi_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
+        self.moi_thresholds = Some(threshs.to_vec());
+        self
+    }
+
+    fn distance_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
+        self.distance_thresholds = Some(threshs.to_vec());
+        self
+    }
 }
 
 // ------
@@ -66,13 +83,21 @@ pub struct PointGroupDetectionResult {
 pub struct PointGroupDetectionDriver<'a> {
     parameters: PointGroupDetectionParams,
 
-    molecule: &'a Molecule,
+    #[builder(default = "None")]
+    xyz: Option<String>,
+
+    #[builder(default = "None")]
+    molecule: Option<&'a Molecule>,
 
     #[builder(default = "None")]
     result: Option<PointGroupDetectionResult>,
 }
 
 impl<'a> PointGroupDetectionDriver<'a> {
+    pub fn builder() -> PointGroupDetectionDriverBuilder<'a> {
+        PointGroupDetectionDriverBuilder::default()
+    }
+
     fn detect_point_group(&mut self) -> Result<(), anyhow::Error> {
         let params = &self.parameters;
         let threshs = params
@@ -81,15 +106,21 @@ impl<'a> PointGroupDetectionDriver<'a> {
             .cartesian_product(params.distance_thresholds.iter());
         let nthreshs = threshs.clone().count();
         if nthreshs == 1 {
-            log::info!("§ Fixed-Threshold Point-Group Detection §");
-            log::info!("MoI threshold     : {:.3e}", params.moi_thresholds[0]);
-            log::info!("Distance threshold: {:.3e}", params.distance_thresholds[0]);
+            // log::info!("┌─────────────────────────────────────────┐");
+            // log::info!("│§ Fixed-Threshold Point-Group Detection §│");
+            // log::info!("└─────────────────────────────────────────┘");
+            log_title("§ Fixed-Threshold Point-Group Detection §");
+            log::info!("");
+            log::info!("MoI threshold: {:.3e}", params.moi_thresholds[0]);
+            log::info!("Geo threshold: {:.3e}", params.distance_thresholds[0]);
         } else {
-            log::info!("────────────────────────────────────────────");
-            log::info!("§ Variable-Threshold Point-Group Detection §");
-            log::info!("────────────────────────────────────────────");
+            // log::info!("┌────────────────────────────────────────────┐");
+            // log::info!("│§ Variable-Threshold Point-Group Detection §│");
+            // log::info!("└────────────────────────────────────────────┘");
+            log_title("§ Variable-Threshold Point-Group Detection §");
+            log::info!("");
             log::info!(
-                "MoI thresholds     : {}",
+                "MoI thresholds: {}",
                 params
                     .moi_thresholds
                     .iter()
@@ -97,35 +128,70 @@ impl<'a> PointGroupDetectionDriver<'a> {
                     .join(", ")
             );
             log::info!(
-                "Distance thresholds: {}",
+                "Geo thresholds: {}",
                 params
                     .distance_thresholds
                     .iter()
                     .map(|v| format!("{v:.3e}"))
                     .join(", ")
             );
+            log::info!("");
         }
 
-        let count_length = usize::try_from(nthreshs.ilog10() + 1).map_err(|_| {
-            format_err!("Unable to convert `{}` to `usize`.", nthreshs.ilog10() + 1)
+        if let Some(fictitious_magnetic_fields) = params.fictitious_magnetic_fields.as_ref() {
+            log::info!("Fictitious magnetic fields:");
+            for (origin, field) in fictitious_magnetic_fields.iter() {
+                log::info!(
+                    "  ({}) ± ({})",
+                    origin.iter().map(|x| format!("{x:.3}")).join(", "),
+                    field.iter().map(|x| format!("{x:.3}")).join(", "),
+                );
+            }
+            log::info!("");
+        }
+
+        if let Some(fictitious_electric_fields) = params.fictitious_electric_fields.as_ref() {
+            log::info!("Fictitious electric fields:");
+            for (origin, field) in fictitious_electric_fields.iter() {
+                log::info!(
+                    "  ({}) + ({})",
+                    origin.iter().map(|x| format!("{x:.3}")).join(", "),
+                    field.iter().map(|x| format!("{x:.3}")).join(", "),
+                );
+            }
+            log::info!("");
+        }
+
+        log::info!("Considering time reversal: {}", if params.time_reversal { "yes" } else { "no" });
+
+        let count_length = usize::try_from(nthreshs.ilog10() + 2).map_err(|_| {
+            format_err!("Unable to convert `{}` to `usize`.", nthreshs.ilog10() + 2)
         })?;
+        log::info!("{}", "┈".repeat(count_length + 49));
         log::info!(
-            "{:>width$} {:>12} {:>12} {:>11} {:>8}",
+            "{:>width$} {:>12} {:>12} {:>12} {:>9}",
             "#",
-            "MoI Thresh",
-            "Dist Thresh",
-            "Point Group",
+            "MoI thresh",
+            "Geo thresh",
+            "Point group",
             "Elements",
             width = count_length
         );
-        log::info!("{}", "┈".repeat(count_length + 47));
+        log::info!("{}", "┈".repeat(count_length + 49));
         let mut i = 0;
         let syms = threshs.map(|(moi_thresh, dist_thresh)| {
             // Create a new molecule with the current distance threshold for symmetry analysis
-            let mut mol = Molecule::from_atoms(
-                &self.molecule.get_all_atoms().into_iter().cloned().collect_vec(),
-                *dist_thresh
-            );
+            let mut mol = match (self.molecule, self.xyz.as_ref()) {
+                (Some(molecule), None) => Molecule::from_atoms(
+                    &molecule.get_all_atoms().into_iter().cloned().collect_vec(),
+                    *dist_thresh
+                ),
+                (None, Some(xyz)) => Molecule::from_xyz(
+                    xyz,
+                    *dist_thresh
+                ),
+                _ => bail!("Both `molecule` and `xyz` are specified.")
+            };
 
             // Add any fictitious magnetic fields
             if let Some(fictitious_magnetic_fields) = params.fictitious_magnetic_fields.as_ref() {
@@ -174,7 +240,7 @@ impl<'a> PointGroupDetectionDriver<'a> {
             i += 1;
             if result.is_ok() {
                 log::info!(
-                    "{:>width$} {:>12} {:>12} {:>11} {:>8}",
+                    "{:>width$} {:>12.3e} {:>12.3e} {:>12} {:>9}",
                     i,
                     moi_thresh,
                     dist_thresh,
@@ -185,7 +251,7 @@ impl<'a> PointGroupDetectionDriver<'a> {
                 Ok((presym, sym))
             } else {
                 log::info!(
-                    "{:>width$} {:>12} {:>12} {:>11} {:>8}",
+                    "{:>width$} {:>12.3e} {:>12.3e} {:>12} {:>9}",
                     i,
                     moi_thresh,
                     dist_thresh,
@@ -202,6 +268,8 @@ impl<'a> PointGroupDetectionDriver<'a> {
         })
         .filter_map(|res_sym| res_sym.ok())
         .collect_vec();
+        log::info!("{}", "┈".repeat(count_length + 49));
+        log::info!("");
 
         let (highest_presym, highest_sym) = syms
             .into_iter()
@@ -234,11 +302,11 @@ impl<'a> PointGroupDetectionDriver<'a> {
             }
         );
         log::info!(
-            "  Associated MoI threshold     : {:.3e}",
+            "  Associated MoI threshold: {:.3e}",
             highest_presym.moi_threshold
         );
         log::info!(
-            "  Associated distance threshold: {:.3e}",
+            "  Associated geo threshold: {:.3e}",
             highest_presym.dist_threshold
         );
 
