@@ -221,3 +221,11 @@ pub(crate) fn log_title(title: &str) {
     log::info!(target: "output", "│{}│", title);
     log::info!(target: "output", "└{}┘", bar);
 }
+
+pub(crate) fn log_subtitle(subtitle: &str) {
+    let length = subtitle.chars().count();
+    let bar = "-".repeat(length);
+    log::info!(target: "output", "{}", bar);
+    log::info!(target: "output", "{}", subtitle);
+    log::info!(target: "output", "{}", bar);
+}

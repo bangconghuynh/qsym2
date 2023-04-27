@@ -1,16 +1,20 @@
+use std::collections::HashMap;
 use std::fmt;
 
 use anyhow::{bail, format_err};
 use derive_builder::Builder;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use log;
 use nalgebra::{Point3, Vector3};
 
 use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::misc::log_title;
+use crate::aux::misc::{log_title, log_subtitle};
 use crate::aux::molecule::Molecule;
 use crate::drivers::{QSym2Driver, QSym2Output};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
+use crate::symmetry::symmetry_element::{AntiunitaryKind, SymmetryElement, SymmetryElementKind};
+use crate::symmetry::symmetry_element_order::ElementOrder;
 
 #[cfg(test)]
 #[path = "point_group_detection_tests.rs"]
@@ -42,9 +46,6 @@ pub struct PointGroupDetectionParams {
 
     #[builder(default = "false")]
     print_symmetry_elements: bool,
-
-    #[builder(default = "true")]
-    print_class_transversal: bool,
 }
 
 impl PointGroupDetectionParams {
@@ -152,6 +153,107 @@ pub struct PointGroupDetectionResult {
 impl PointGroupDetectionResult {
     fn builder() -> PointGroupDetectionResultBuilder {
         PointGroupDetectionResultBuilder::default()
+    }
+
+    fn log_symmetry_elements(&self) {
+        if let Some(magnetic_symmetry) = self.magnetic_symmetry.as_ref() {
+            log_subtitle(&format!(
+                "Symmetry element report for magnetic group {}",
+                magnetic_symmetry.group_name.as_ref().unwrap_or(&"?".to_string()),
+            ));
+            log::info!(target: "output", "");
+            magnetic_symmetry
+                .elements
+                .iter()
+                .sorted_by_key(|(kind, _)| {
+                    (
+                        kind.contains_antiunitary(),
+                        !matches!(kind, SymmetryElementKind::Proper(_)),
+                    )
+                })
+                .for_each(|(kind, kind_elements)| {
+                    log::info!(target: "output", "> {kind} elements");
+                    log_element_table(kind_elements);
+                    log::info!(target: "output", "");
+                });
+            log::info!(target: "output", "");
+        }
+
+        log_subtitle(&format!(
+            "Symmetry element report for unitary group {}",
+            self.unitary_symmetry
+                .group_name
+                .as_ref()
+                .unwrap_or(&"?".to_string())
+        ));
+        log::info!(target: "output", "");
+        self.unitary_symmetry
+            .elements
+            .iter()
+            .sorted_by_key(|(kind, _)| {
+                (
+                    kind.contains_antiunitary(),
+                    !matches!(kind, SymmetryElementKind::Proper(_)),
+                )
+            })
+            .for_each(|(kind, kind_elements)| {
+                log::info!(target: "output", "> {kind} elements");
+                log_element_table(kind_elements);
+                log::info!(target: "output", "");
+            });
+    }
+}
+
+impl QSym2Output for PointGroupDetectionResult {
+    fn log_output(&self) {
+        if let Some(highest_mag_sym) = self.magnetic_symmetry.as_ref() {
+            let n_mag_elements = if highest_mag_sym.is_infinite() {
+                "∞".to_string()
+            } else {
+                highest_mag_sym.n_elements().to_string()
+            };
+            log::info!(
+                target: "output",
+                "Highest mag. group found: {} ({} {})",
+                highest_mag_sym.group_name.as_ref().unwrap_or(&"?".to_string()),
+                n_mag_elements,
+                if n_mag_elements != "1" {
+                    "symmetry elements"
+                } else {
+                    "symmetry element"
+                }
+            );
+        }
+
+        let n_uni_elements = if self.unitary_symmetry.is_infinite() {
+            "∞".to_string()
+        } else {
+            self.unitary_symmetry.n_elements().to_string()
+        };
+        log::info!(
+            target: "output",
+            "Highest uni. group found: {} ({} {})",
+            self.unitary_symmetry.group_name.as_ref().unwrap_or(&"?".to_string()),
+            n_uni_elements,
+            if n_uni_elements != "1" {
+                "symmetry elements"
+            } else {
+                "symmetry element"
+            }
+        );
+        log::info!(
+            target: "output",
+            "  Associated MoI threshold: {:.3e}",
+            self.pre_symmetry.moi_threshold
+        );
+        log::info!(
+            target: "output",
+            "  Associated geo threshold: {:.3e}",
+            self.pre_symmetry.dist_threshold
+        );
+        log::info!(target: "output", "");
+
+        self.log_symmetry_elements();
     }
 }
 
@@ -398,58 +500,16 @@ impl<'a> PointGroupDetectionDriver<'a> {
                 format_err!("Unable to identify the highest-symmetry group.".to_string())
             })?;
 
-        if let Some(highest_mag_sym) = &highest_mag_sym_opt {
-            let n_mag_elements = if highest_mag_sym.is_infinite() {
-                "∞".to_string()
-            } else {
-                highest_mag_sym.n_elements().to_string()
-            };
-            log::info!(
-                target: "output",
-                "Highest mag. group found: {} ({} {})",
-                highest_mag_sym.group_name.as_ref().unwrap_or(&"?".to_string()),
-                n_mag_elements,
-                if n_mag_elements != "1" {
-                    "symmetry elements"
-                } else {
-                    "symmetry element"
-                }
-            );
-        }
-
-        let n_uni_elements = if highest_uni_sym.is_infinite() {
-            "∞".to_string()
-        } else {
-            highest_uni_sym.n_elements().to_string()
-        };
-        log::info!(
-            target: "output",
-            "Highest uni. group found: {} ({} {})",
-            highest_uni_sym.group_name.as_ref().unwrap_or(&"?".to_string()),
-            n_uni_elements,
-            if n_uni_elements != "1" {
-                "symmetry elements"
-            } else {
-                "symmetry element"
-            }
-        );
-        log::info!(
-            target: "output",
-            "  Associated MoI threshold: {:.3e}",
-            highest_presym.moi_threshold
-        );
-        log::info!(
-            target: "output",
-            "  Associated geo threshold: {:.3e}",
-            highest_presym.dist_threshold
-        );
-
         self.result = PointGroupDetectionResult::builder()
             .pre_symmetry(highest_presym)
             .unitary_symmetry(highest_uni_sym)
             .magnetic_symmetry(highest_mag_sym_opt)
             .build()
             .ok();
+
+        if let Some(pd_res) = self.result.as_ref() {
+            pd_res.log_output();
+        }
 
         Ok(())
     }
@@ -467,4 +527,45 @@ impl<'a> QSym2Driver for PointGroupDetectionDriver<'a> {
     fn run(&mut self) -> Result<(), anyhow::Error> {
         self.detect_point_group()
     }
+}
+
+// ---------
+// Functions
+// ---------
+
+fn log_element_table(elements: &HashMap<ElementOrder, IndexSet<SymmetryElement>>) {
+    log::info!(target: "output", "{}", "┈".repeat(46));
+    log::info!(target: "output", "{:>7} {:>11}  {:>11}  {:>11}", "Symbol", "x", "y", "z");
+    log::info!(target: "output", "{}", "┈".repeat(46));
+    elements.keys().sorted().into_iter().for_each(|order| {
+        let order_elements = elements
+            .get(order)
+            .unwrap_or_else(|| panic!("Elements of order `{order}` cannot be retrieved."));
+        let any_element = order_elements
+            .get_index(0)
+            .expect("Unable to retrieve an element of order `{order}`.");
+        let kind_str = match any_element.kind() {
+            SymmetryElementKind::Proper(_) => "",
+            SymmetryElementKind::ImproperInversionCentre(_) => " (inversion-centre)",
+            SymmetryElementKind::ImproperMirrorPlane(_) => " (mirror-plane)",
+        };
+        let au_str = match any_element.contains_antiunitary() {
+            None => "",
+            Some(AntiunitaryKind::TimeReversal) => " (time-reversed)",
+            Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",
+        };
+        log::info!(target: "output", "Order: {order}{kind_str}{au_str}");
+        order_elements.iter().for_each(|element| {
+            let axis = element.raw_axis();
+            log::info!(
+                target: "output",
+                "{:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
+                element.get_full_symbol(),
+                axis[0],
+                axis[1],
+                axis[2]
+            );
+        });
+    });
+    log::info!(target: "output", "{}", "┈".repeat(46));
 }

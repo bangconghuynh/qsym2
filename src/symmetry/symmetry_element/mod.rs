@@ -69,6 +69,16 @@ impl SymmetryElementKind {
         }
     }
 
+    /// Indicates if an antiunitary operation is associated with this element.
+    #[must_use]
+    pub fn contains_antiunitary(&self) -> bool {
+        match self {
+            Self::Proper(au)
+            | Self::ImproperMirrorPlane(au)
+            | Self::ImproperInversionCentre(au) => au.is_some()
+        }
+    }
+
     /// Converts the current kind to the desired time-reversal form.
     ///
     /// # Arguments
