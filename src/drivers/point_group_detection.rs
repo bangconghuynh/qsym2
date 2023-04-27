@@ -107,8 +107,8 @@ impl QSym2Output for PointGroupDetectionParams {
                 log::info!(
                     target: "output",
                     "  ({}) ± ({})",
-                    origin.iter().map(|x| format!("{x:.3}")).join(", "),
-                    field.iter().map(|x| format!("{x:.3}")).join(", "),
+                    origin.iter().map(|x| format!("{x:+.3}")).join(", "),
+                    field.iter().map(|x| format!("{x:+.3}")).join(", "),
                 );
             }
             log::info!(target: "output", "");
@@ -119,8 +119,8 @@ impl QSym2Output for PointGroupDetectionParams {
             for (origin, field) in fictitious_electric_fields.iter() {
                 log::info!(target: "output",
                     "  ({}) + ({})",
-                    origin.iter().map(|x| format!("{x:.3}")).join(", "),
-                    field.iter().map(|x| format!("{x:.3}")).join(", "),
+                    origin.iter().map(|x| format!("{x:+.3}")).join(", "),
+                    field.iter().map(|x| format!("{x:+.3}")).join(", "),
                 );
             }
             log::info!(target: "output", "");
