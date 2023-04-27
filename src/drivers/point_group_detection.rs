@@ -169,22 +169,7 @@ impl PointGroupDetectionResult {
                 ),
             )?;
             writeln!(f, "")?;
-            magnetic_symmetry
-                .elements
-                .iter()
-                .sorted_by_key(|(kind, _)| {
-                    (
-                        kind.contains_antiunitary(),
-                        !matches!(kind, SymmetryElementKind::Proper(_)),
-                    )
-                })
-                .map(|(kind, kind_elements)| {
-                    writeln!(f, "> {kind} elements")?;
-                    write_element_table(f, kind_elements)?;
-                    writeln!(f, "")?;
-                    Ok::<(), fmt::Error>(())
-                })
-                .collect::<fmt::Result>()?;
+            write_element_table(f, magnetic_symmetry)?;
             writeln!(f, "")?;
         }
 
@@ -199,23 +184,7 @@ impl PointGroupDetectionResult {
             ),
         )?;
         writeln!(f, "")?;
-        self.unitary_symmetry
-            .elements
-            .iter()
-            .sorted_by_key(|(kind, _)| {
-                (
-                    kind.contains_antiunitary(),
-                    !matches!(kind, SymmetryElementKind::Proper(_)),
-                )
-            })
-            .map(|(kind, kind_elements)| {
-                writeln!(f, "> {kind} elements")?;
-                write_element_table(f, kind_elements)?;
-                writeln!(f, "")?;
-                Ok::<(), fmt::Error>(())
-            })
-            .collect::<fmt::Result>()?;
-
+        write_element_table(f, &self.unitary_symmetry)?;
         Ok(())
     }
 }
@@ -559,52 +528,65 @@ impl<'a> QSym2Driver for PointGroupDetectionDriver<'a> {
 
 fn write_element_table(
     f: &mut fmt::Formatter<'_>,
-    elements: &HashMap<ElementOrder, IndexSet<SymmetryElement>>,
+    sym: &Symmetry
 ) -> fmt::Result {
-    writeln!(f, "{}", "┈".repeat(46))?;
-    writeln!(f, "{:>7} {:>11}  {:>11}  {:>11}", "Symbol", "x", "y", "z")?;
-    writeln!(f, "{}", "┈".repeat(46))?;
-    elements
-        .keys()
-        .sorted()
-        .into_iter()
-        .map(|order| {
-            let order_elements = elements
-                .get(order)
-                .unwrap_or_else(|| panic!("Elements of order `{order}` cannot be retrieved."));
-            let any_element = order_elements
-                .get_index(0)
-                .expect("Unable to retrieve an element of order `{order}`.");
-            let kind_str = match any_element.kind() {
-                SymmetryElementKind::Proper(_) => "",
-                SymmetryElementKind::ImproperInversionCentre(_) => " (inversion-centre)",
-                SymmetryElementKind::ImproperMirrorPlane(_) => " (mirror-plane)",
-            };
-            let au_str = match any_element.contains_antiunitary() {
-                None => "",
-                Some(AntiunitaryKind::TimeReversal) => " (time-reversed)",
-                Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",
-            };
-            writeln!(f, "Order: {order}{kind_str}{au_str}")?;
-            order_elements
-                .iter()
-                .map(|element| {
-                    let axis = element.raw_axis();
-                    writeln!(
-                        f,
-                        "{:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
-                        element.get_full_symbol(),
-                        axis[0],
-                        axis[1],
-                        axis[2]
-                    )?;
+    sym.elements
+        .iter()
+        .sorted_by_key(|(kind, _)| {
+            (
+                kind.contains_antiunitary(),
+                !matches!(kind, SymmetryElementKind::Proper(_)),
+            )
+        })
+        .map(|(kind, kind_elements)| {
+            writeln!(f, "> {kind} elements")?;
+            writeln!(f, "{}", "┈".repeat(46))?;
+            writeln!(f, "{:>7} {:>11}  {:>11}  {:>11}", "Symbol", "x", "y", "z")?;
+            writeln!(f, "{}", "┈".repeat(46))?;
+            kind_elements
+                .keys()
+                .sorted()
+                .into_iter()
+                .map(|order| {
+                    let order_elements = kind_elements
+                        .get(order)
+                        .unwrap_or_else(|| panic!("Elements of order `{order}` cannot be retrieved."));
+                    let any_element = order_elements
+                        .get_index(0)
+                        .expect("Unable to retrieve an element of order `{order}`.");
+                    let kind_str = match any_element.kind() {
+                        SymmetryElementKind::Proper(_) => "",
+                        SymmetryElementKind::ImproperInversionCentre(_) => " (inversion-centre)",
+                        SymmetryElementKind::ImproperMirrorPlane(_) => " (mirror-plane)",
+                    };
+                    let au_str = match any_element.contains_antiunitary() {
+                        None => "",
+                        Some(AntiunitaryKind::TimeReversal) => " (time-reversed)",
+                        Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",
+                    };
+                    writeln!(f, "Order: {order}{kind_str}{au_str}")?;
+                    order_elements
+                        .iter()
+                        .map(|element| {
+                            let axis = element.raw_axis();
+                            writeln!(
+                                f,
+                                "{:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
+                                element.get_full_symbol(),
+                                axis[0],
+                                axis[1],
+                                axis[2]
+                            )?;
+                            Ok::<(), fmt::Error>(())
+                        })
+                        .collect::<fmt::Result>()?;
                     Ok::<(), fmt::Error>(())
                 })
                 .collect::<fmt::Result>()?;
+            writeln!(f, "{}", "┈".repeat(46))?;
+            writeln!(f, "")?;
             Ok::<(), fmt::Error>(())
         })
         .collect::<fmt::Result>()?;
-    writeln!(f, "{}", "┈".repeat(46))?;
-
     Ok(())
 }
