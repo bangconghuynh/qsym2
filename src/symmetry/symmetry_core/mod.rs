@@ -42,7 +42,7 @@ impl fmt::Display for PointGroupDetectionError {
 impl Error for PointGroupDetectionError {}
 
 /// A struct for storing and managing information required for symmetry analysis.
-#[derive(Clone, Builder)]
+#[derive(Clone, Builder, Debug)]
 pub struct PreSymmetry {
     /// The molecule to be symmetry-analysed. This molecule will have bee
     /// translated to put its centre of mass at the origin.

@@ -9,7 +9,7 @@ use log;
 use nalgebra::{Point3, Vector3};
 
 use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::misc::{log_title, log_subtitle};
+use crate::aux::misc::{write_subtitle, write_title};
 use crate::aux::molecule::Molecule;
 use crate::drivers::{QSym2Driver, QSym2Output};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
@@ -66,73 +66,74 @@ impl PointGroupDetectionParamsBuilder {
     }
 }
 
-impl QSym2Output for PointGroupDetectionParams {
-    fn log_output(&self) {
+impl fmt::Display for PointGroupDetectionParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let threshs = self
             .moi_thresholds
             .iter()
             .cartesian_product(self.distance_thresholds.iter());
         let nthreshs = threshs.clone().count();
         if nthreshs == 1 {
-            log_title("§ Fixed-Threshold Point-Group Detection §");
-            log::info!(target: "output", "");
-            log::info!(target: "output", "MoI threshold: {:.3e}", self.moi_thresholds[0]);
-            log::info!(target: "output", "Geo threshold: {:.3e}", self.distance_thresholds[0]);
+            write_title(f, "§ Fixed-Threshold Point-Group Detection §")?;
+            writeln!(f, "")?;
+            writeln!(f, "MoI threshold: {:.3e}", self.moi_thresholds[0])?;
+            writeln!(f, "Geo threshold: {:.3e}", self.distance_thresholds[0])?;
         } else {
-            log_title("§ Variable-Threshold Point-Group Detection §");
-            log::info!(target: "output", "");
-            log::info!(
-                target: "output",
+            write_title(f, "§ Variable-Threshold Point-Group Detection §")?;
+            writeln!(f, "")?;
+            writeln!(
+                f,
                 "MoI thresholds: {}",
-                self
-                    .moi_thresholds
+                self.moi_thresholds
                     .iter()
                     .map(|v| format!("{v:.3e}"))
                     .join(", ")
-            );
-            log::info!(
-                target: "output",
+            )?;
+            writeln!(
+                f,
                 "Geo thresholds: {}",
-                self
-                    .distance_thresholds
+                self.distance_thresholds
                     .iter()
                     .map(|v| format!("{v:.3e}"))
                     .join(", ")
-            );
-            log::info!(target: "output", "");
+            )?;
+            writeln!(f, "")?;
         }
 
         if let Some(fictitious_magnetic_fields) = self.fictitious_magnetic_fields.as_ref() {
-            log::info!(target: "output", "Fictitious magnetic fields:");
+            writeln!(f, "Fictitious magnetic fields:")?;
             for (origin, field) in fictitious_magnetic_fields.iter() {
-                log::info!(
-                    target: "output",
+                writeln!(
+                    f,
                     "  ({}) ± ({})",
                     origin.iter().map(|x| format!("{x:+.3}")).join(", "),
                     field.iter().map(|x| format!("{x:+.3}")).join(", "),
-                );
+                )?;
             }
-            log::info!(target: "output", "");
+            writeln!(f, "")?;
         }
 
         if let Some(fictitious_electric_fields) = self.fictitious_electric_fields.as_ref() {
-            log::info!(target: "output", "Fictitious electric fields:");
+            writeln!(f, "Fictitious electric fields:")?;
             for (origin, field) in fictitious_electric_fields.iter() {
-                log::info!(target: "output",
+                writeln!(
+                    f,
                     "  ({}) + ({})",
                     origin.iter().map(|x| format!("{x:+.3}")).join(", "),
                     field.iter().map(|x| format!("{x:+.3}")).join(", "),
-                );
+                )?;
             }
-            log::info!(target: "output", "");
+            writeln!(f, "")?;
         }
 
-        log::info!(
-            target: "output",
+        writeln!(
+            f,
             "Considering time reversal: {}",
             if self.time_reversal { "yes" } else { "no" }
-        );
-        log::info!(target: "output", "");
+        )?;
+        writeln!(f, "")?;
+
+        Ok(())
     }
 }
 
@@ -140,7 +141,7 @@ impl QSym2Output for PointGroupDetectionParams {
 // Result
 // ------
 
-#[derive(Clone, Builder)]
+#[derive(Clone, Builder, Debug)]
 pub struct PointGroupDetectionResult {
     pre_symmetry: PreSymmetry,
 
@@ -155,13 +156,19 @@ impl PointGroupDetectionResult {
         PointGroupDetectionResultBuilder::default()
     }
 
-    fn log_symmetry_elements(&self) {
+    fn write_symmetry_elements(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(magnetic_symmetry) = self.magnetic_symmetry.as_ref() {
-            log_subtitle(&format!(
-                "Symmetry element report for magnetic group {}",
-                magnetic_symmetry.group_name.as_ref().unwrap_or(&"?".to_string()),
-            ));
-            log::info!(target: "output", "");
+            write_subtitle(
+                f,
+                &format!(
+                    "Symmetry element report for magnetic group {}",
+                    magnetic_symmetry
+                        .group_name
+                        .as_ref()
+                        .unwrap_or(&"?".to_string()),
+                ),
+            )?;
+            writeln!(f, "")?;
             magnetic_symmetry
                 .elements
                 .iter()
@@ -171,22 +178,27 @@ impl PointGroupDetectionResult {
                         !matches!(kind, SymmetryElementKind::Proper(_)),
                     )
                 })
-                .for_each(|(kind, kind_elements)| {
-                    log::info!(target: "output", "> {kind} elements");
-                    log_element_table(kind_elements);
-                    log::info!(target: "output", "");
-                });
-            log::info!(target: "output", "");
+                .map(|(kind, kind_elements)| {
+                    writeln!(f, "> {kind} elements")?;
+                    write_element_table(f, kind_elements)?;
+                    writeln!(f, "")?;
+                    Ok::<(), fmt::Error>(())
+                })
+                .collect::<fmt::Result>()?;
+            writeln!(f, "")?;
         }
 
-        log_subtitle(&format!(
-            "Symmetry element report for unitary group {}",
-            self.unitary_symmetry
-                .group_name
-                .as_ref()
-                .unwrap_or(&"?".to_string())
-        ));
-        log::info!(target: "output", "");
+        write_subtitle(
+            f,
+            &format!(
+                "Symmetry element report for unitary group {}",
+                self.unitary_symmetry
+                    .group_name
+                    .as_ref()
+                    .unwrap_or(&"?".to_string())
+            ),
+        )?;
+        writeln!(f, "")?;
         self.unitary_symmetry
             .elements
             .iter()
@@ -196,33 +208,40 @@ impl PointGroupDetectionResult {
                     !matches!(kind, SymmetryElementKind::Proper(_)),
                 )
             })
-            .for_each(|(kind, kind_elements)| {
-                log::info!(target: "output", "> {kind} elements");
-                log_element_table(kind_elements);
-                log::info!(target: "output", "");
-            });
+            .map(|(kind, kind_elements)| {
+                writeln!(f, "> {kind} elements")?;
+                write_element_table(f, kind_elements)?;
+                writeln!(f, "")?;
+                Ok::<(), fmt::Error>(())
+            })
+            .collect::<fmt::Result>()?;
+
+        Ok(())
     }
 }
 
-impl QSym2Output for PointGroupDetectionResult {
-    fn log_output(&self) {
+impl fmt::Display for PointGroupDetectionResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(highest_mag_sym) = self.magnetic_symmetry.as_ref() {
             let n_mag_elements = if highest_mag_sym.is_infinite() {
                 "∞".to_string()
             } else {
                 highest_mag_sym.n_elements().to_string()
             };
-            log::info!(
-                target: "output",
+            writeln!(
+                f,
                 "Highest mag. group found: {} ({} {})",
-                highest_mag_sym.group_name.as_ref().unwrap_or(&"?".to_string()),
+                highest_mag_sym
+                    .group_name
+                    .as_ref()
+                    .unwrap_or(&"?".to_string()),
                 n_mag_elements,
                 if n_mag_elements != "1" {
                     "symmetry elements"
                 } else {
                     "symmetry element"
                 }
-            );
+            )?;
         }
 
         let n_uni_elements = if self.unitary_symmetry.is_infinite() {
@@ -230,30 +249,35 @@ impl QSym2Output for PointGroupDetectionResult {
         } else {
             self.unitary_symmetry.n_elements().to_string()
         };
-        log::info!(
-            target: "output",
+        writeln!(
+            f,
             "Highest uni. group found: {} ({} {})",
-            self.unitary_symmetry.group_name.as_ref().unwrap_or(&"?".to_string()),
+            self.unitary_symmetry
+                .group_name
+                .as_ref()
+                .unwrap_or(&"?".to_string()),
             n_uni_elements,
             if n_uni_elements != "1" {
                 "symmetry elements"
             } else {
                 "symmetry element"
             }
-        );
-        log::info!(
-            target: "output",
+        )?;
+        writeln!(
+            f,
             "  Associated MoI threshold: {:.3e}",
             self.pre_symmetry.moi_threshold
-        );
-        log::info!(
-            target: "output",
+        )?;
+        writeln!(
+            f,
             "  Associated geo threshold: {:.3e}",
             self.pre_symmetry.dist_threshold
-        );
-        log::info!(target: "output", "");
+        )?;
+        writeln!(f, "")?;
 
-        self.log_symmetry_elements();
+        self.write_symmetry_elements(f)?;
+
+        Ok(())
     }
 }
 
@@ -282,7 +306,7 @@ impl<'a> PointGroupDetectionDriver<'a> {
 
     fn detect_point_group(&mut self) -> Result<(), anyhow::Error> {
         let params = &self.parameters;
-        params.log_output();
+        params.log_output_display();
 
         let threshs = params
             .moi_thresholds
@@ -508,7 +532,7 @@ impl<'a> PointGroupDetectionDriver<'a> {
             .ok();
 
         if let Some(pd_res) = self.result.as_ref() {
-            pd_res.log_output();
+            pd_res.log_output_display();
         }
 
         Ok(())
@@ -533,39 +557,54 @@ impl<'a> QSym2Driver for PointGroupDetectionDriver<'a> {
 // Functions
 // ---------
 
-fn log_element_table(elements: &HashMap<ElementOrder, IndexSet<SymmetryElement>>) {
-    log::info!(target: "output", "{}", "┈".repeat(46));
-    log::info!(target: "output", "{:>7} {:>11}  {:>11}  {:>11}", "Symbol", "x", "y", "z");
-    log::info!(target: "output", "{}", "┈".repeat(46));
-    elements.keys().sorted().into_iter().for_each(|order| {
-        let order_elements = elements
-            .get(order)
-            .unwrap_or_else(|| panic!("Elements of order `{order}` cannot be retrieved."));
-        let any_element = order_elements
-            .get_index(0)
-            .expect("Unable to retrieve an element of order `{order}`.");
-        let kind_str = match any_element.kind() {
-            SymmetryElementKind::Proper(_) => "",
-            SymmetryElementKind::ImproperInversionCentre(_) => " (inversion-centre)",
-            SymmetryElementKind::ImproperMirrorPlane(_) => " (mirror-plane)",
-        };
-        let au_str = match any_element.contains_antiunitary() {
-            None => "",
-            Some(AntiunitaryKind::TimeReversal) => " (time-reversed)",
-            Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",
-        };
-        log::info!(target: "output", "Order: {order}{kind_str}{au_str}");
-        order_elements.iter().for_each(|element| {
-            let axis = element.raw_axis();
-            log::info!(
-                target: "output",
-                "{:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
-                element.get_full_symbol(),
-                axis[0],
-                axis[1],
-                axis[2]
-            );
-        });
-    });
-    log::info!(target: "output", "{}", "┈".repeat(46));
+fn write_element_table(
+    f: &mut fmt::Formatter<'_>,
+    elements: &HashMap<ElementOrder, IndexSet<SymmetryElement>>,
+) -> fmt::Result {
+    writeln!(f, "{}", "┈".repeat(46))?;
+    writeln!(f, "{:>7} {:>11}  {:>11}  {:>11}", "Symbol", "x", "y", "z")?;
+    writeln!(f, "{}", "┈".repeat(46))?;
+    elements
+        .keys()
+        .sorted()
+        .into_iter()
+        .map(|order| {
+            let order_elements = elements
+                .get(order)
+                .unwrap_or_else(|| panic!("Elements of order `{order}` cannot be retrieved."));
+            let any_element = order_elements
+                .get_index(0)
+                .expect("Unable to retrieve an element of order `{order}`.");
+            let kind_str = match any_element.kind() {
+                SymmetryElementKind::Proper(_) => "",
+                SymmetryElementKind::ImproperInversionCentre(_) => " (inversion-centre)",
+                SymmetryElementKind::ImproperMirrorPlane(_) => " (mirror-plane)",
+            };
+            let au_str = match any_element.contains_antiunitary() {
+                None => "",
+                Some(AntiunitaryKind::TimeReversal) => " (time-reversed)",
+                Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",
+            };
+            writeln!(f, "Order: {order}{kind_str}{au_str}")?;
+            order_elements
+                .iter()
+                .map(|element| {
+                    let axis = element.raw_axis();
+                    writeln!(
+                        f,
+                        "{:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
+                        element.get_full_symbol(),
+                        axis[0],
+                        axis[1],
+                        axis[2]
+                    )?;
+                    Ok::<(), fmt::Error>(())
+                })
+                .collect::<fmt::Result>()?;
+            Ok::<(), fmt::Error>(())
+        })
+        .collect::<fmt::Result>()?;
+    writeln!(f, "{}", "┈".repeat(46))?;
+
+    Ok(())
 }

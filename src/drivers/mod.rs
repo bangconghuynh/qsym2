@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt;
 
 use anyhow;
+use log;
 
 pub mod point_group_detection;
 
@@ -17,9 +18,23 @@ pub trait QSym2Driver {
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error>;
 }
 
-pub trait QSym2Output {
-    fn log_output(&self);
+pub trait QSym2Output: fmt::Debug + fmt::Display {
+    fn log_output_display(&self) {
+        let lines = self.to_string();
+        lines.lines().for_each(|line| {
+            log::info!(target: "output", "{line}");
+        })
+    }
+
+    fn log_output_debug(&self) {
+        let lines = format!("{:?}", self);
+        lines.lines().for_each(|line| {
+            log::info!(target: "output", "{line}");
+        })
+    }
 }
+
+impl<T> QSym2Output for T where T: fmt::Debug + fmt::Display {}
 
 // ==================
 // Struct definitions
