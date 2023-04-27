@@ -19,6 +19,7 @@ fraction = "0.13.1"
 itertools = "0.10.3"
 indexmap = { version = "1.9.1", features = ["rayon"] }
 log = "0.4.17"
+log4rs = { version = "1.2.0", features = ["file_appender", "pattern_encoder"] }
 nalgebra = "0.32.2"
 ndarray = { version = "0.15.6", features = ["rayon"] }
 ndarray_einsum_beta = "0.7.0"

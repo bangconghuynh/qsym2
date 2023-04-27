@@ -17,6 +17,10 @@ pub trait QSym2Driver {
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error>;
 }
 
+pub trait QSym2Output {
+    fn log_output(&self);
+}
+
 // ==================
 // Struct definitions
 // ==================

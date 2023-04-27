@@ -217,7 +217,7 @@ where
 pub(crate) fn log_title(title: &str) {
     let length = title.chars().count();
     let bar = "─".repeat(length);
-    log::info!("┌{}┐", bar);
-    log::info!("│{}│", title);
-    log::info!("└{}┘", bar);
+    log::info!(target: "output", "┌{}┐", bar);
+    log::info!(target: "output", "│{}│", title);
+    log::info!(target: "output", "└{}┘", bar);
 }

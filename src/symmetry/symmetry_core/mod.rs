@@ -1037,13 +1037,24 @@ impl Symmetry {
                 == ElementOrder::Inf
     }
 
-    /// Returns the total number of symmetry elements (*NOT* symmetry operations).
+    /// Returns the total number of symmetry elements (*NOT* symmetry operations). In
+    /// infinite-order groups, this is the sum of the number of discrete symmetry elements and the
+    /// number of discrete symmetry generators.
     pub fn n_elements(&self) -> usize {
-        self.elements
+        let n_elements = self.elements
+            .values()
+            .flat_map(|kind_elements| kind_elements.values())
+            .flatten()
+            .count();
+        if self.is_infinite() {
+            n_elements + self.generators
             .values()
             .flat_map(|kind_elements| kind_elements.values())
             .flatten()
             .count()
+        } else {
+            n_elements
+        }
     }
 
     /// Generates all possible symmetry operations from the available symmetry elements.

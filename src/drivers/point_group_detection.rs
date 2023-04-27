@@ -1,3 +1,5 @@
+use std::fmt;
+
 use anyhow::{bail, format_err};
 use derive_builder::Builder;
 use itertools::Itertools;
@@ -7,7 +9,7 @@ use nalgebra::{Point3, Vector3};
 use crate::aux::atom::{Atom, AtomKind};
 use crate::aux::misc::log_title;
 use crate::aux::molecule::Molecule;
-use crate::drivers::QSym2Driver;
+use crate::drivers::{QSym2Driver, QSym2Output};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 
 #[cfg(test)]
@@ -22,7 +24,7 @@ mod point_group_detection_tests;
 // Parameters
 // ----------
 
-#[derive(Clone, Builder)]
+#[derive(Clone, Builder, Debug)]
 pub struct PointGroupDetectionParams {
     #[builder(setter(custom), default = "vec![1.0e-4, 1.0e-5, 1.0e-6]")]
     moi_thresholds: Vec<f64>,
@@ -31,9 +33,6 @@ pub struct PointGroupDetectionParams {
     distance_thresholds: Vec<f64>,
 
     time_reversal: bool,
-
-    #[builder(default = "None")]
-    infinite_order_to_finite: Option<usize>,
 
     #[builder(default = "None")]
     fictitious_magnetic_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
@@ -66,13 +65,94 @@ impl PointGroupDetectionParamsBuilder {
     }
 }
 
+impl QSym2Output for PointGroupDetectionParams {
+    fn log_output(&self) {
+        let threshs = self
+            .moi_thresholds
+            .iter()
+            .cartesian_product(self.distance_thresholds.iter());
+        let nthreshs = threshs.clone().count();
+        if nthreshs == 1 {
+            log_title("§ Fixed-Threshold Point-Group Detection §");
+            log::info!(target: "output", "");
+            log::info!(target: "output", "MoI threshold: {:.3e}", self.moi_thresholds[0]);
+            log::info!(target: "output", "Geo threshold: {:.3e}", self.distance_thresholds[0]);
+        } else {
+            log_title("§ Variable-Threshold Point-Group Detection §");
+            log::info!(target: "output", "");
+            log::info!(
+                target: "output",
+                "MoI thresholds: {}",
+                self
+                    .moi_thresholds
+                    .iter()
+                    .map(|v| format!("{v:.3e}"))
+                    .join(", ")
+            );
+            log::info!(
+                target: "output",
+                "Geo thresholds: {}",
+                self
+                    .distance_thresholds
+                    .iter()
+                    .map(|v| format!("{v:.3e}"))
+                    .join(", ")
+            );
+            log::info!(target: "output", "");
+        }
+
+        if let Some(fictitious_magnetic_fields) = self.fictitious_magnetic_fields.as_ref() {
+            log::info!(target: "output", "Fictitious magnetic fields:");
+            for (origin, field) in fictitious_magnetic_fields.iter() {
+                log::info!(
+                    target: "output",
+                    "  ({}) ± ({})",
+                    origin.iter().map(|x| format!("{x:.3}")).join(", "),
+                    field.iter().map(|x| format!("{x:.3}")).join(", "),
+                );
+            }
+            log::info!(target: "output", "");
+        }
+
+        if let Some(fictitious_electric_fields) = self.fictitious_electric_fields.as_ref() {
+            log::info!(target: "output", "Fictitious electric fields:");
+            for (origin, field) in fictitious_electric_fields.iter() {
+                log::info!(target: "output",
+                    "  ({}) + ({})",
+                    origin.iter().map(|x| format!("{x:.3}")).join(", "),
+                    field.iter().map(|x| format!("{x:.3}")).join(", "),
+                );
+            }
+            log::info!(target: "output", "");
+        }
+
+        log::info!(
+            target: "output",
+            "Considering time reversal: {}",
+            if self.time_reversal { "yes" } else { "no" }
+        );
+        log::info!(target: "output", "");
+    }
+}
+
 // ------
 // Result
 // ------
 
 #[derive(Clone, Builder)]
 pub struct PointGroupDetectionResult {
-    symmetry: Symmetry,
+    pre_symmetry: PreSymmetry,
+
+    unitary_symmetry: Symmetry,
+
+    #[builder(default = "None")]
+    magnetic_symmetry: Option<Symmetry>,
+}
+
+impl PointGroupDetectionResult {
+    fn builder() -> PointGroupDetectionResultBuilder {
+        PointGroupDetectionResultBuilder::default()
+    }
 }
 
 // ------
@@ -100,84 +180,31 @@ impl<'a> PointGroupDetectionDriver<'a> {
 
     fn detect_point_group(&mut self) -> Result<(), anyhow::Error> {
         let params = &self.parameters;
+        params.log_output();
+
         let threshs = params
             .moi_thresholds
             .iter()
             .cartesian_product(params.distance_thresholds.iter());
         let nthreshs = threshs.clone().count();
-        if nthreshs == 1 {
-            // log::info!("┌─────────────────────────────────────────┐");
-            // log::info!("│§ Fixed-Threshold Point-Group Detection §│");
-            // log::info!("└─────────────────────────────────────────┘");
-            log_title("§ Fixed-Threshold Point-Group Detection §");
-            log::info!("");
-            log::info!("MoI threshold: {:.3e}", params.moi_thresholds[0]);
-            log::info!("Geo threshold: {:.3e}", params.distance_thresholds[0]);
-        } else {
-            // log::info!("┌────────────────────────────────────────────┐");
-            // log::info!("│§ Variable-Threshold Point-Group Detection §│");
-            // log::info!("└────────────────────────────────────────────┘");
-            log_title("§ Variable-Threshold Point-Group Detection §");
-            log::info!("");
-            log::info!(
-                "MoI thresholds: {}",
-                params
-                    .moi_thresholds
-                    .iter()
-                    .map(|v| format!("{v:.3e}"))
-                    .join(", ")
-            );
-            log::info!(
-                "Geo thresholds: {}",
-                params
-                    .distance_thresholds
-                    .iter()
-                    .map(|v| format!("{v:.3e}"))
-                    .join(", ")
-            );
-            log::info!("");
-        }
-
-        if let Some(fictitious_magnetic_fields) = params.fictitious_magnetic_fields.as_ref() {
-            log::info!("Fictitious magnetic fields:");
-            for (origin, field) in fictitious_magnetic_fields.iter() {
-                log::info!(
-                    "  ({}) ± ({})",
-                    origin.iter().map(|x| format!("{x:.3}")).join(", "),
-                    field.iter().map(|x| format!("{x:.3}")).join(", "),
-                );
-            }
-            log::info!("");
-        }
-
-        if let Some(fictitious_electric_fields) = params.fictitious_electric_fields.as_ref() {
-            log::info!("Fictitious electric fields:");
-            for (origin, field) in fictitious_electric_fields.iter() {
-                log::info!(
-                    "  ({}) + ({})",
-                    origin.iter().map(|x| format!("{x:.3}")).join(", "),
-                    field.iter().map(|x| format!("{x:.3}")).join(", "),
-                );
-            }
-            log::info!("");
-        }
-
-        log::info!("Considering time reversal: {}", if params.time_reversal { "yes" } else { "no" });
 
         let count_length = usize::try_from(nthreshs.ilog10() + 2).map_err(|_| {
             format_err!("Unable to convert `{}` to `usize`.", nthreshs.ilog10() + 2)
         })?;
-        log::info!("{}", "┈".repeat(count_length + 49));
+        log::info!(target: "output", "{}", "┈".repeat(count_length + 75));
         log::info!(
-            "{:>width$} {:>12} {:>12} {:>12} {:>9}",
+            target: "output",
+            "{:>width$} {:>12} {:>12} {:>14} {:>9} {:>12} {:>9}",
             "#",
             "MoI thresh",
             "Geo thresh",
-            "Point group",
+            "Mag. group",
+            "Elements",
+            "Uni. group",
             "Elements",
             width = count_length
         );
-        log::info!("{}", "┈".repeat(count_length + 49));
+        log::info!(target: "output", "{}", "┈".repeat(count_length + 75));
         let mut i = 0;
         let syms = threshs.map(|(moi_thresh, dist_thresh)| {
             // Create a new molecule with the current distance threshold for symmetry analysis
@@ -235,32 +262,92 @@ impl<'a> PointGroupDetectionDriver<'a> {
                 .molecule(&mol, true)
                 .build()
                 .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
-            let mut sym = Symmetry::new();
-            let result = sym.analyse(&presym, params.time_reversal);
+            let mut uni_sym = Symmetry::new();
+            let uni_res = uni_sym.analyse(&presym, false);
+            let uni_ok = uni_res.is_ok();
+            if !uni_ok {
+                log::error!("{}", uni_res.unwrap_err())
+            }
+            let uni_group_name = uni_sym.group_name.clone().unwrap_or("?".to_string());
+            let uni_group_nele = if uni_sym.is_infinite() {
+                "∞".to_string()
+            } else {
+                uni_sym.n_elements().to_string()
+            };
+
+            let (mag_sym_opt, mag_ok) = if params.time_reversal {
+                let mut mag_sym = Symmetry::new();
+                let mag_res = mag_sym.analyse(&presym, true);
+                let mag_ok = mag_res.is_ok();
+                if !mag_ok {
+                    log::error!("{}", mag_res.unwrap_err())
+                }
+                (Some(mag_sym), mag_ok)
+            } else {
+                (None, true)
+            };
+            let mag_group_name = mag_sym_opt
+                .as_ref()
+                .map(|mag_sym| {
+                    mag_sym
+                        .group_name
+                        .clone()
+                        .unwrap_or("?".to_string())
+                })
+                .unwrap_or_else(|| "--".to_string());
+            let mag_group_nele = mag_sym_opt
+                .as_ref()
+                .map(|mag_sym| if mag_sym.is_infinite() {
+                    "∞".to_string()
+                } else {
+                    mag_sym.n_elements().to_string()
+                })
+                .unwrap_or_else(|| "--".to_string());
+
             i += 1;
-            if result.is_ok() {
+            if uni_ok && mag_ok {
                 log::info!(
-                    "{:>width$} {:>12.3e} {:>12.3e} {:>12} {:>9}",
+                    target: "output",
+                    "{:>width$} {:>12.3e} {:>12.3e} {:>14} {:>9} {:>12} {:>9}",
                     i,
                     moi_thresh,
                     dist_thresh,
-                    sym.group_name.as_ref().unwrap_or(&"?".to_string()),
-                    sym.n_elements(),
+                    mag_group_name,
+                    mag_group_nele,
+                    uni_group_name,
+                    uni_group_nele,
                     width = count_length
                 );
-                Ok((presym, sym))
+                Ok((presym, uni_sym, mag_sym_opt))
             } else {
+                if !uni_ok {
+                    log::debug!(
+                        "Unitary group detection with MoI threshold {:.3e} and distance threshold {:.3e} has failed.",
+                        moi_thresh,
+                        dist_thresh
+                    );
+                }
+                if !mag_ok {
+                    log::debug!(
+                        "Magnetic group detection with MoI threshold {:.3e} and distance threshold {:.3e} has failed.",
+                        moi_thresh,
+                        dist_thresh
+                    );
+                }
                 log::info!(
-                    "{:>width$} {:>12.3e} {:>12.3e} {:>12} {:>9}",
+                    target: "output",
+                    "{:>width$} {:>12.3e} {:>12.3e} {:>14} {:>9} {:>12} {:>9}",
                     i,
                     moi_thresh,
                     dist_thresh,
+                    "--",
+                    "--",
                     "--",
                     "--",
                     width = count_length
                 );
                 bail!(
-                    "Point-group determination with MoI threshold {:.3e} and distance threshold {:.3e} has failed.",
+                    "Group determination with MoI threshold {:.3e} and distance threshold {:.3e} has failed.",
                     moi_thresh,
                     dist_thresh
                 )
@@ -268,51 +355,101 @@ impl<'a> PointGroupDetectionDriver<'a> {
         })
         .filter_map(|res_sym| res_sym.ok())
         .collect_vec();
-        log::info!("{}", "┈".repeat(count_length + 49));
-        log::info!("");
+        log::info!(target: "output", "{}", "┈".repeat(count_length + 75));
+        log::info!(target: "output", "(The number of symmetry elements is not the same as the order of the group.)");
+        log::info!(target: "output", "");
 
-        let (highest_presym, highest_sym) = syms
+        let (highest_presym, highest_uni_sym, highest_mag_sym_opt) = syms
             .into_iter()
-            .max_by(|(presym_a, sym_a), (presym_b, sym_b)| {
-                (
-                    sym_a.n_elements(),
-                    1.0 / presym_a.moi_threshold,
-                    1.0 / presym_a.dist_threshold,
-                )
-                    .partial_cmp(&(
-                        sym_b.n_elements(),
-                        1.0 / presym_b.moi_threshold,
-                        1.0 / presym_b.dist_threshold,
-                    ))
-                    .expect("Unable to perform a comparison.")
-            })
+            .max_by(
+                |(presym_a, uni_sym_a, mag_sym_opt_a), (presym_b, uni_sym_b, mag_sym_opt_b)| {
+                    (
+                        mag_sym_opt_a
+                            .as_ref()
+                            .map(|mag_sym| mag_sym.is_infinite())
+                            .unwrap_or(false),
+                        mag_sym_opt_a
+                            .as_ref()
+                            .map(|mag_sym| mag_sym.n_elements())
+                            .unwrap_or(0),
+                        uni_sym_a.is_infinite(),
+                        uni_sym_a.n_elements(),
+                        1.0 / presym_a.moi_threshold,
+                        1.0 / presym_a.dist_threshold,
+                    )
+                        .partial_cmp(&(
+                            mag_sym_opt_b
+                                .as_ref()
+                                .map(|mag_sym| mag_sym.is_infinite())
+                                .unwrap_or(false),
+                            mag_sym_opt_b
+                                .as_ref()
+                                .map(|mag_sym| mag_sym.n_elements())
+                                .unwrap_or(0),
+                            uni_sym_b.is_infinite(),
+                            uni_sym_b.n_elements(),
+                            1.0 / presym_b.moi_threshold,
+                            1.0 / presym_b.dist_threshold,
+                        ))
+                        .expect("Unable to perform a comparison.")
+                },
+            )
             .ok_or_else(|| {
                 format_err!("Unable to identify the highest-symmetry group.".to_string())
             })?;
 
-        let n_elements = highest_sym.n_elements();
+        if let Some(highest_mag_sym) = &highest_mag_sym_opt {
+            let n_mag_elements = if highest_mag_sym.is_infinite() {
+                "∞".to_string()
+            } else {
+                highest_mag_sym.n_elements().to_string()
+            };
+            log::info!(
+                target: "output",
+                "Highest mag. group found: {} ({} {})",
+                highest_mag_sym.group_name.as_ref().unwrap_or(&"?".to_string()),
+                n_mag_elements,
+                if n_mag_elements != "1" {
+                    "symmetry elements"
+                } else {
+                    "symmetry element"
+                }
+            );
+        }
+
+        let n_uni_elements = if highest_uni_sym.is_infinite() {
+            "∞".to_string()
+        } else {
+            highest_uni_sym.n_elements().to_string()
+        };
         log::info!(
-            "Highest point group found: {} ({} {})",
-            highest_sym.group_name.as_ref().unwrap_or(&"?".to_string()),
-            n_elements,
-            if n_elements != 1 {
+            target: "output",
+            "Highest uni. group found: {} ({} {})",
+            highest_uni_sym.group_name.as_ref().unwrap_or(&"?".to_string()),
+            n_uni_elements,
+            if n_uni_elements != "1" {
                 "symmetry elements"
             } else {
                 "symmetry element"
             }
         );
         log::info!(
+            target: "output",
             "  Associated MoI threshold: {:.3e}",
             highest_presym.moi_threshold
         );
         log::info!(
+            target: "output",
             "  Associated geo threshold: {:.3e}",
             highest_presym.dist_threshold
         );
 
-        self.result = Some(PointGroupDetectionResult {
-            symmetry: highest_sym,
-        });
+        self.result = PointGroupDetectionResult::builder()
+            .pre_symmetry(highest_presym)
+            .unitary_symmetry(highest_uni_sym)
+            .magnetic_symmetry(highest_mag_sym_opt)
+            .build()
+            .ok();
 
         Ok(())
     }

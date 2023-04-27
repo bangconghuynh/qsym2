@@ -1,0 +1,22 @@
+appenders:
+  stdout:
+    kind: console
+
+  # Appender for output files
+  output_ap:
+    kind: file
+    path: output.log
+    append: false
+    encoder:
+      pattern: "{m}{n}"
+
+root:
+  level: debug
+  appenders:
+    - stdout
+
+loggers:
+  output:
+    level: info
+    appenders:
+      - output_ap

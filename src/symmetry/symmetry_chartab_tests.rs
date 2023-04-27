@@ -38,7 +38,7 @@ fn test_irrep_character_table_algebraic_validity(
             .irreps
             .keys()
             .map(|irrep| irrep.dimensionality().pow(2))
-            .sum()
+            .sum::<usize>(),
     );
 
     // Square character table
@@ -204,7 +204,7 @@ fn test_ircorep_character_table_algebraic_validity(
                 .dimensionality()
                 .pow(2)
                 .div_euclid(intertwining_number.into()))
-            .sum(),
+            .sum::<usize>(),
     );
 }
 
