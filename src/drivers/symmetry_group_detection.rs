@@ -52,7 +52,7 @@ pub struct SymmetryGroupDetectionParams {
     #[builder(default = "None")]
     fictitious_electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
-    /// Boolean indicating if a summetry of the located symmetry elements is to be written to the
+    /// Boolean indicating if a summary of the located symmetry elements is to be written to the
     /// output file.
     #[builder(default = "false")]
     write_symmetry_elements: bool,

@@ -5,6 +5,7 @@ use anyhow;
 use log;
 
 pub mod symmetry_group_detection;
+pub mod molecule_symmetrisation;
 
 // =================
 // Trait definitions
