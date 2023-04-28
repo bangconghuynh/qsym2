@@ -42,7 +42,7 @@ pub struct PointGroupDetectionParams {
     fictitious_electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
     #[builder(default = "false")]
-    print_symmetry_elements: bool,
+    write_symmetry_elements: bool,
 }
 
 impl PointGroupDetectionParams {
@@ -139,7 +139,9 @@ impl fmt::Display for PointGroupDetectionParams {
 // ------
 
 #[derive(Clone, Builder, Debug)]
-pub struct PointGroupDetectionResult {
+pub struct PointGroupDetectionResult<'a> {
+    parameters: &'a PointGroupDetectionParams,
+
     pre_symmetry: PreSymmetry,
 
     unitary_symmetry: Symmetry,
@@ -148,8 +150,8 @@ pub struct PointGroupDetectionResult {
     magnetic_symmetry: Option<Symmetry>,
 }
 
-impl PointGroupDetectionResult {
-    fn builder() -> PointGroupDetectionResultBuilder {
+impl<'a> PointGroupDetectionResult<'a> {
+    fn builder() -> PointGroupDetectionResultBuilder<'a> {
         PointGroupDetectionResultBuilder::default()
     }
 
@@ -186,7 +188,7 @@ impl PointGroupDetectionResult {
     }
 }
 
-impl fmt::Display for PointGroupDetectionResult {
+impl<'a> fmt::Display for PointGroupDetectionResult<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(highest_mag_sym) = self.magnetic_symmetry.as_ref() {
             let n_mag_elements = if highest_mag_sym.is_infinite() {
@@ -241,7 +243,9 @@ impl fmt::Display for PointGroupDetectionResult {
         )?;
         writeln!(f, "")?;
 
-        self.write_symmetry_elements(f)?;
+        if self.parameters.write_symmetry_elements {
+            self.write_symmetry_elements(f)?;
+        }
 
         Ok(())
     }
@@ -253,7 +257,7 @@ impl fmt::Display for PointGroupDetectionResult {
 
 #[derive(Clone, Builder)]
 pub struct PointGroupDetectionDriver<'a> {
-    parameters: PointGroupDetectionParams,
+    parameters: &'a PointGroupDetectionParams,
 
     #[builder(default = "None")]
     xyz: Option<String>,
@@ -262,7 +266,7 @@ pub struct PointGroupDetectionDriver<'a> {
     molecule: Option<&'a Molecule>,
 
     #[builder(default = "None")]
-    result: Option<PointGroupDetectionResult>,
+    result: Option<PointGroupDetectionResult<'a>>,
 }
 
 impl<'a> PointGroupDetectionDriver<'a> {
@@ -271,7 +275,7 @@ impl<'a> PointGroupDetectionDriver<'a> {
     }
 
     fn detect_point_group(&mut self) -> Result<(), anyhow::Error> {
-        let params = &self.parameters;
+        let params = self.parameters;
         params.log_output_display();
 
         let threshs = params
@@ -491,6 +495,7 @@ impl<'a> PointGroupDetectionDriver<'a> {
             })?;
 
         self.result = PointGroupDetectionResult::builder()
+            .parameters(params)
             .pre_symmetry(highest_presym)
             .unitary_symmetry(highest_uni_sym)
             .magnetic_symmetry(highest_mag_sym_opt)
@@ -506,7 +511,7 @@ impl<'a> PointGroupDetectionDriver<'a> {
 }
 
 impl<'a> QSym2Driver for PointGroupDetectionDriver<'a> {
-    type Outcome = PointGroupDetectionResult;
+    type Outcome = PointGroupDetectionResult<'a>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result

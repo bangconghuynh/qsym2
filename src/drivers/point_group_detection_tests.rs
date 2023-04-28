@@ -16,10 +16,11 @@ fn test_drivers_point_group_detection_vf6() {
         .moi_thresholds(&[1e-6, 1e-7])
         .fictitious_magnetic_fields(Some(vec![(Point3::origin(), Vector3::new(1.0, 1.0, 1.0))]))
         .time_reversal(true)
+        .write_symmetry_elements(true)
         .build()
         .unwrap();
     let mut pd_driver = PointGroupDetectionDriver::builder()
-        .parameters(params)
+        .parameters(&params)
         .xyz(Some(path.clone()))
         .build()
         .unwrap();
@@ -48,7 +49,7 @@ fn test_drivers_point_group_detection_vf6() {
         .build()
         .unwrap();
     let mut pd_driver = PointGroupDetectionDriver::builder()
-        .parameters(params)
+        .parameters(&params)
         .xyz(Some(path.clone()))
         .build()
         .unwrap();
@@ -80,7 +81,7 @@ fn test_drivers_point_group_detection_c2h2() {
         .build()
         .unwrap();
     let mut pd_driver = PointGroupDetectionDriver::builder()
-        .parameters(params)
+        .parameters(&params)
         .xyz(Some(path.clone()))
         .build()
         .unwrap();
@@ -106,7 +107,7 @@ fn test_drivers_point_group_detection_c2h2() {
         .build()
         .unwrap();
     let mut pd_driver = PointGroupDetectionDriver::builder()
-        .parameters(params)
+        .parameters(&params)
         .xyz(Some(path.clone()))
         .build()
         .unwrap();
@@ -134,7 +135,7 @@ fn test_drivers_point_group_detection_c2h2() {
         .build()
         .unwrap();
     let mut pd_driver = PointGroupDetectionDriver::builder()
-        .parameters(params)
+        .parameters(&params)
         .xyz(Some(path.clone()))
         .build()
         .unwrap();
@@ -162,7 +163,7 @@ fn test_drivers_point_group_detection_c2h2() {
         .build()
         .unwrap();
     let mut pd_driver = PointGroupDetectionDriver::builder()
-        .parameters(params)
+        .parameters(&params)
         .xyz(Some(path.clone()))
         .build()
         .unwrap();
@@ -200,7 +201,7 @@ fn test_drivers_point_group_detection_xef4() {
         .build()
         .unwrap();
     let mut pd_driver = PointGroupDetectionDriver::builder()
-        .parameters(params)
+        .parameters(&params)
         .xyz(Some(path.clone()))
         .build()
         .unwrap();
