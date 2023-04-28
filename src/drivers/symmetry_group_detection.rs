@@ -7,15 +7,15 @@ use log;
 use nalgebra::{Point3, Vector3};
 
 use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::format::{write_subtitle, write_title};
+use crate::aux::format::{nice_bool, write_subtitle, write_title};
 use crate::aux::molecule::Molecule;
 use crate::drivers::{QSym2Driver, QSym2Output};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::{AntiunitaryKind, SymmetryElementKind};
 
 #[cfg(test)]
-#[path = "point_group_detection_tests.rs"]
-mod point_group_detection_tests;
+#[path = "symmetry_group_detection_tests.rs"]
+mod symmetry_group_detection_tests;
 
 // ==================
 // Struct definitions
@@ -25,33 +25,47 @@ mod point_group_detection_tests;
 // Parameters
 // ----------
 
+/// A structure containing control parameters for symmetry-group detection.
 #[derive(Clone, Builder, Debug)]
-pub struct PointGroupDetectionParams {
+pub struct SymmetryGroupDetectionParams {
+    /// Thresholds for moment-of-inertia comparisons.
     #[builder(setter(custom), default = "vec![1.0e-4, 1.0e-5, 1.0e-6]")]
     moi_thresholds: Vec<f64>,
 
+    /// Thresholds for distance and geometry comparisons.
     #[builder(setter(custom), default = "vec![1.0e-4, 1.0e-5, 1.0e-6]")]
     distance_thresholds: Vec<f64>,
 
+    /// Boolean indicating if time reversal is to be taken into account.
     time_reversal: bool,
 
+    /// Fictitious magnetic fields to be added to the system. Each fictitious magnetic field is
+    /// specified by an origin $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which a
+    /// `magnetic(+)` special atom will be added at $`\mathbf{O} + \mathbf{v}`$, and a
+    /// `magnetic(-)` special atom will be added at $`\mathbf{O} - \mathbf{v}`$.
     #[builder(default = "None")]
     fictitious_magnetic_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
+    /// Fictitious electric fields to be added to the system. Each fictitious electric field is
+    /// specified by an origin $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which an
+    /// `electric(+)` special atom will be added at $`\mathbf{O} + \mathbf{v}`$.
     #[builder(default = "None")]
     fictitious_electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
+    /// Boolean indicating if a summetry of the located symmetry elements is to be written to the
+    /// output file.
     #[builder(default = "false")]
     write_symmetry_elements: bool,
 }
 
-impl PointGroupDetectionParams {
-    pub fn builder() -> PointGroupDetectionParamsBuilder {
-        PointGroupDetectionParamsBuilder::default()
+impl SymmetryGroupDetectionParams {
+    /// Returns a builder to construct a [`SymmetryGroupDetectionParams`] structure.
+    pub fn builder() -> SymmetryGroupDetectionParamsBuilder {
+        SymmetryGroupDetectionParamsBuilder::default()
     }
 }
 
-impl PointGroupDetectionParamsBuilder {
+impl SymmetryGroupDetectionParamsBuilder {
     fn moi_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
         self.moi_thresholds = Some(threshs.to_vec());
         self
@@ -63,7 +77,7 @@ impl PointGroupDetectionParamsBuilder {
     }
 }
 
-impl fmt::Display for PointGroupDetectionParams {
+impl fmt::Display for SymmetryGroupDetectionParams {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let threshs = self
             .moi_thresholds
@@ -71,12 +85,12 @@ impl fmt::Display for PointGroupDetectionParams {
             .cartesian_product(self.distance_thresholds.iter());
         let nthreshs = threshs.clone().count();
         if nthreshs == 1 {
-            write_title(f, "Fixed-Threshold Point-Group Detection")?;
+            write_title(f, "Fixed-Threshold Symmetry-Group Detection")?;
             writeln!(f, "")?;
             writeln!(f, "MoI threshold: {:.3e}", self.moi_thresholds[0])?;
             writeln!(f, "Geo threshold: {:.3e}", self.distance_thresholds[0])?;
         } else {
-            write_title(f, "Variable-Threshold Point-Group Detection")?;
+            write_title(f, "Variable-Threshold Symmetry-Group Detection")?;
             writeln!(f, "")?;
             writeln!(
                 f,
@@ -125,8 +139,13 @@ impl fmt::Display for PointGroupDetectionParams {
 
         writeln!(
             f,
-            "Considering time reversal: {}",
-            if self.time_reversal { "yes" } else { "no" }
+            "Consider time reversal: {}",
+            nice_bool(self.time_reversal)
+        )?;
+        writeln!(
+            f,
+            "Report symmetry elements/generators: {}",
+            nice_bool(self.write_symmetry_elements)
         )?;
         writeln!(f, "")?;
 
@@ -138,23 +157,33 @@ impl fmt::Display for PointGroupDetectionParams {
 // Result
 // ------
 
+/// A structure to contain symmetry-group detection results.
 #[derive(Clone, Builder, Debug)]
-pub struct PointGroupDetectionResult<'a> {
-    parameters: &'a PointGroupDetectionParams,
+pub struct SymmetryGroupDetectionResult<'a> {
+    /// The control parameters used to obtain this set of result.
+    parameters: &'a SymmetryGroupDetectionParams,
 
+    /// The [`PreSymmetry`] structure containing basic geometrical information of the system prior
+    /// to symmetry-group detection.
     pre_symmetry: PreSymmetry,
 
+    /// The [`Symmetry`] structure containing unitary symmetry information of the system.
     unitary_symmetry: Symmetry,
 
+    /// The [`Symmetry`] structure containing magnetic symmetry information of the system. This is
+    /// only present if time-reversal symmetry has been considered.
     #[builder(default = "None")]
     magnetic_symmetry: Option<Symmetry>,
 }
 
-impl<'a> PointGroupDetectionResult<'a> {
-    fn builder() -> PointGroupDetectionResultBuilder<'a> {
-        PointGroupDetectionResultBuilder::default()
+impl<'a> SymmetryGroupDetectionResult<'a> {
+    /// Returns a builder to construct a [`SymmetryGroupDetectionResult`] structure.
+    fn builder() -> SymmetryGroupDetectionResultBuilder<'a> {
+        SymmetryGroupDetectionResultBuilder::default()
     }
 
+    /// Writes the symmetry elements (unitary and magnetic if available) found in a nicely
+    /// formatted table.
     fn write_symmetry_elements(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(magnetic_symmetry) = self.magnetic_symmetry.as_ref() {
             write_subtitle(
@@ -188,7 +217,7 @@ impl<'a> PointGroupDetectionResult<'a> {
     }
 }
 
-impl<'a> fmt::Display for PointGroupDetectionResult<'a> {
+impl<'a> fmt::Display for SymmetryGroupDetectionResult<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(highest_mag_sym) = self.magnetic_symmetry.as_ref() {
             let n_mag_elements = if highest_mag_sym.is_infinite() {
@@ -255,26 +284,34 @@ impl<'a> fmt::Display for PointGroupDetectionResult<'a> {
 // Driver
 // ------
 
+/// A driver for symmetry-group detection.
 #[derive(Clone, Builder)]
-pub struct PointGroupDetectionDriver<'a> {
-    parameters: &'a PointGroupDetectionParams,
+pub struct SymmetryGroupDetectionDriver<'a> {
+    /// The control parameters for symmetry group detection.
+    parameters: &'a SymmetryGroupDetectionParams,
 
+    /// A path to a `.xyz` file specifying the geometry of the molecule for symmetry analysis.
+    /// Only one of this or [`Self::molecule`] should be specified.
     #[builder(default = "None")]
     xyz: Option<String>,
 
+    /// A molecule for symmetry analysis. Only one of this or [`Self::xyz`] should be specified.
     #[builder(default = "None")]
     molecule: Option<&'a Molecule>,
 
+    /// The result of the symmetry-group detection.
     #[builder(default = "None")]
-    result: Option<PointGroupDetectionResult<'a>>,
+    result: Option<SymmetryGroupDetectionResult<'a>>,
 }
 
-impl<'a> PointGroupDetectionDriver<'a> {
-    pub fn builder() -> PointGroupDetectionDriverBuilder<'a> {
-        PointGroupDetectionDriverBuilder::default()
+impl<'a> SymmetryGroupDetectionDriver<'a> {
+    /// Returns a builder to construct a [`SymmetryGroupDetectionResult`] structure.
+    pub fn builder() -> SymmetryGroupDetectionDriverBuilder<'a> {
+        SymmetryGroupDetectionDriverBuilder::default()
     }
 
-    fn detect_point_group(&mut self) -> Result<(), anyhow::Error> {
+    /// Executes symmetry-group detection.
+    fn detect_symmetry_group(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         params.log_output_display();
 
@@ -351,8 +388,8 @@ impl<'a> PointGroupDetectionDriver<'a> {
                 }
             }
 
-            // Perform point-group detection
-            // A recentred copy of the molecule will be used for all point-group detection.
+            // Perform symmetry-group detection
+            // A recentred copy of the molecule will be used for all symmetry-group detection.
             let presym = PreSymmetry::builder()
                 .moi_threshold(*moi_thresh)
                 .molecule(&mol, true)
@@ -494,7 +531,7 @@ impl<'a> PointGroupDetectionDriver<'a> {
                 format_err!("Unable to identify the highest-symmetry group.".to_string())
             })?;
 
-        self.result = PointGroupDetectionResult::builder()
+        self.result = SymmetryGroupDetectionResult::builder()
             .parameters(params)
             .pre_symmetry(highest_presym)
             .unitary_symmetry(highest_uni_sym)
@@ -510,17 +547,17 @@ impl<'a> PointGroupDetectionDriver<'a> {
     }
 }
 
-impl<'a> QSym2Driver for PointGroupDetectionDriver<'a> {
-    type Outcome = PointGroupDetectionResult<'a>;
+impl<'a> QSym2Driver for SymmetryGroupDetectionDriver<'a> {
+    type Outcome = SymmetryGroupDetectionResult<'a>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result
             .as_ref()
-            .ok_or_else(|| format_err!("No point-group detection results found."))
+            .ok_or_else(|| format_err!("No symmetry-group detection results found."))
     }
 
     fn run(&mut self) -> Result<(), anyhow::Error> {
-        self.detect_point_group()
+        self.detect_symmetry_group()
     }
 }
 
@@ -528,6 +565,7 @@ impl<'a> QSym2Driver for PointGroupDetectionDriver<'a> {
 // Functions
 // ---------
 
+/// Writes symmetry elements/generators in a [`Symmetry`] structure in a nicely formatted table.
 fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Result {
     let all_elements = sym
         .elements
@@ -556,7 +594,11 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                     writeln!(f, "> {kind} elements")?;
                 }
                 writeln!(f, "{}", "┈".repeat(54))?;
-                writeln!(f, "{:>7} {:>7} {:>11}  {:>11}  {:>11}", "", "Symbol", "x", "y", "z")?;
+                writeln!(
+                    f,
+                    "{:>7} {:>7} {:>11}  {:>11}  {:>11}",
+                    "", "Symbol", "x", "y", "z"
+                )?;
                 writeln!(f, "{}", "┈".repeat(54))?;
                 kind_elements
                     .keys()

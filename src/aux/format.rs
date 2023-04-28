@@ -17,3 +17,7 @@ pub(crate) fn write_subtitle(f: &mut fmt::Formatter<'_>, subtitle: &str) -> fmt:
     writeln!(f, "{}", bar)?;
     Ok(())
 }
+
+pub(crate) fn nice_bool(b: bool) -> String {
+    if b { "yes".to_string() } else { "no".to_string() }
+}
