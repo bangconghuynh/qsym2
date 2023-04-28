@@ -1,20 +1,17 @@
-use std::collections::HashMap;
 use std::fmt;
 
 use anyhow::{bail, format_err};
 use derive_builder::Builder;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use log;
 use nalgebra::{Point3, Vector3};
 
 use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::misc::{write_subtitle, write_title};
+use crate::aux::format::{write_subtitle, write_title};
 use crate::aux::molecule::Molecule;
 use crate::drivers::{QSym2Driver, QSym2Output};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
-use crate::symmetry::symmetry_element::{AntiunitaryKind, SymmetryElement, SymmetryElementKind};
-use crate::symmetry::symmetry_element_order::ElementOrder;
+use crate::symmetry::symmetry_element::{AntiunitaryKind, SymmetryElementKind};
 
 #[cfg(test)]
 #[path = "point_group_detection_tests.rs"]
@@ -74,12 +71,12 @@ impl fmt::Display for PointGroupDetectionParams {
             .cartesian_product(self.distance_thresholds.iter());
         let nthreshs = threshs.clone().count();
         if nthreshs == 1 {
-            write_title(f, "§ Fixed-Threshold Point-Group Detection §")?;
+            write_title(f, "Fixed-Threshold Point-Group Detection")?;
             writeln!(f, "")?;
             writeln!(f, "MoI threshold: {:.3e}", self.moi_thresholds[0])?;
             writeln!(f, "Geo threshold: {:.3e}", self.distance_thresholds[0])?;
         } else {
-            write_title(f, "§ Variable-Threshold Point-Group Detection §")?;
+            write_title(f, "Variable-Threshold Point-Group Detection")?;
             writeln!(f, "")?;
             writeln!(
                 f,
@@ -526,66 +523,83 @@ impl<'a> QSym2Driver for PointGroupDetectionDriver<'a> {
 // Functions
 // ---------
 
-fn write_element_table(
-    f: &mut fmt::Formatter<'_>,
-    sym: &Symmetry
-) -> fmt::Result {
-    sym.elements
+fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Result {
+    let all_elements = sym
+        .elements
         .iter()
-        .sorted_by_key(|(kind, _)| {
+        .map(|(kind, kind_elements)| (false, kind, kind_elements))
+        .chain(
+            sym.generators
+                .iter()
+                .map(|(kind, kind_generators)| (true, kind, kind_generators)),
+        );
+    all_elements
+        .sorted_by_key(|(generator, kind, _)| {
             (
+                *generator,
                 kind.contains_antiunitary(),
                 !matches!(kind, SymmetryElementKind::Proper(_)),
             )
         })
-        .map(|(kind, kind_elements)| {
-            writeln!(f, "> {kind} elements")?;
-            writeln!(f, "{}", "┈".repeat(46))?;
-            writeln!(f, "{:>7} {:>11}  {:>11}  {:>11}", "Symbol", "x", "y", "z")?;
-            writeln!(f, "{}", "┈".repeat(46))?;
-            kind_elements
-                .keys()
-                .sorted()
-                .into_iter()
-                .map(|order| {
-                    let order_elements = kind_elements
-                        .get(order)
-                        .unwrap_or_else(|| panic!("Elements of order `{order}` cannot be retrieved."));
-                    let any_element = order_elements
-                        .get_index(0)
-                        .expect("Unable to retrieve an element of order `{order}`.");
-                    let kind_str = match any_element.kind() {
-                        SymmetryElementKind::Proper(_) => "",
-                        SymmetryElementKind::ImproperInversionCentre(_) => " (inversion-centre)",
-                        SymmetryElementKind::ImproperMirrorPlane(_) => " (mirror-plane)",
-                    };
-                    let au_str = match any_element.contains_antiunitary() {
-                        None => "",
-                        Some(AntiunitaryKind::TimeReversal) => " (time-reversed)",
-                        Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",
-                    };
-                    writeln!(f, "Order: {order}{kind_str}{au_str}")?;
-                    order_elements
-                        .iter()
-                        .map(|element| {
-                            let axis = element.raw_axis();
-                            writeln!(
-                                f,
-                                "{:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
-                                element.get_full_symbol(),
-                                axis[0],
-                                axis[1],
-                                axis[2]
-                            )?;
-                            Ok::<(), fmt::Error>(())
-                        })
-                        .collect::<fmt::Result>()?;
-                    Ok::<(), fmt::Error>(())
-                })
-                .collect::<fmt::Result>()?;
-            writeln!(f, "{}", "┈".repeat(46))?;
-            writeln!(f, "")?;
-            Ok::<(), fmt::Error>(())
+        .map(|(generator, kind, kind_elements)| {
+            if !sym.is_infinite() && generator {
+                Ok::<(), fmt::Error>(())
+            } else {
+                if generator {
+                    writeln!(f, "> {kind} generators")?;
+                } else {
+                    writeln!(f, "> {kind} elements")?;
+                }
+                writeln!(f, "{}", "┈".repeat(54))?;
+                writeln!(f, "{:>7} {:>7} {:>11}  {:>11}  {:>11}", "", "Symbol", "x", "y", "z")?;
+                writeln!(f, "{}", "┈".repeat(54))?;
+                kind_elements
+                    .keys()
+                    .sorted()
+                    .into_iter()
+                    .map(|order| {
+                        let order_elements = kind_elements.get(order).unwrap_or_else(|| {
+                            panic!("Elements/generators of order `{order}` cannot be retrieved.")
+                        });
+                        let any_element = order_elements
+                            .get_index(0)
+                            .expect("Unable to retrieve an element/generator of order `{order}`.");
+                        let kind_str = match any_element.kind() {
+                            SymmetryElementKind::Proper(_) => "",
+                            SymmetryElementKind::ImproperInversionCentre(_) => {
+                                " (inversion-centre)"
+                            }
+                            SymmetryElementKind::ImproperMirrorPlane(_) => " (mirror-plane)",
+                        };
+                        let au_str = match any_element.contains_antiunitary() {
+                            None => "",
+                            Some(AntiunitaryKind::TimeReversal) => " (time-reversed)",
+                            Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",
+                        };
+                        writeln!(f, " Order: {order}{au_str}{kind_str}")?;
+                        order_elements
+                            .iter()
+                            .map(|element| {
+                                let axis = element.raw_axis();
+                                writeln!(
+                                    f,
+                                    "{:>7} {:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
+                                    element.get_simplified_symbol(),
+                                    element.get_full_symbol(),
+                                    axis[0],
+                                    axis[1],
+                                    axis[2]
+                                )?;
+                                Ok::<(), fmt::Error>(())
+                            })
+                            .collect::<fmt::Result>()?;
+                        Ok::<(), fmt::Error>(())
+                    })
+                    .collect::<fmt::Result>()?;
+                writeln!(f, "{}", "┈".repeat(54))?;
+                writeln!(f, "")?;
+                Ok::<(), fmt::Error>(())
+            }
         })
         .collect::<fmt::Result>()?;
     Ok(())
