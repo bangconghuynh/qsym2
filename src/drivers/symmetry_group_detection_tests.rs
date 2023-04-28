@@ -9,7 +9,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_drivers_symmetry_group_detection_vf6() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7])
@@ -72,7 +72,7 @@ fn test_drivers_symmetry_group_detection_vf6() {
 
 #[test]
 fn test_drivers_symmetry_group_detection_c2h2() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7])
@@ -186,7 +186,7 @@ fn test_drivers_symmetry_group_detection_c2h2() {
 
 #[test]
 fn test_drivers_symmetry_group_detection_xef4() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7])
