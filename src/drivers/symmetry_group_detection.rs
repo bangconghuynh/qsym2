@@ -161,19 +161,19 @@ impl fmt::Display for SymmetryGroupDetectionParams {
 #[derive(Clone, Builder, Debug)]
 pub struct SymmetryGroupDetectionResult<'a> {
     /// The control parameters used to obtain this set of result.
-    parameters: &'a SymmetryGroupDetectionParams,
+    pub parameters: &'a SymmetryGroupDetectionParams,
 
     /// The [`PreSymmetry`] structure containing basic geometrical information of the system prior
     /// to symmetry-group detection.
-    pre_symmetry: PreSymmetry,
+    pub pre_symmetry: PreSymmetry,
 
     /// The [`Symmetry`] structure containing unitary symmetry information of the system.
-    unitary_symmetry: Symmetry,
+    pub unitary_symmetry: Symmetry,
 
     /// The [`Symmetry`] structure containing magnetic symmetry information of the system. This is
     /// only present if time-reversal symmetry has been considered.
     #[builder(default = "None")]
-    magnetic_symmetry: Option<Symmetry>,
+    pub magnetic_symmetry: Option<Symmetry>,
 }
 
 impl<'a> SymmetryGroupDetectionResult<'a> {

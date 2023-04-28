@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::fmt;
 use std::process;
 
 use log;
@@ -510,6 +511,16 @@ impl Molecule {
 // =====================
 // Trait implementations
 // =====================
+
+impl fmt::Display for Molecule {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Molecule consisting")?;
+        for atom in self.get_all_atoms().iter() {
+            writeln!(f, "  {atom}")?;
+        }
+        Ok(())
+    }
+}
 
 impl Transform for Molecule {
     fn transform_mut(&mut self, mat: &Matrix3<f64>) {

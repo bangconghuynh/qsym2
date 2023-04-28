@@ -44,15 +44,15 @@ impl Error for PointGroupDetectionError {}
 /// A struct for storing and managing information required for symmetry analysis.
 #[derive(Clone, Builder, Debug)]
 pub struct PreSymmetry {
-    /// The molecule to be symmetry-analysed. This molecule will have bee
+    /// The molecule to be symmetry-analysed. This molecule will have been
     /// translated to put its centre of mass at the origin.
     #[builder(setter(custom))]
-    molecule: Molecule,
+    pub molecule: Molecule,
 
     /// The rotational symmetry of [`Self::molecule`] based on its moments of
     /// inertia.
     #[builder(setter(skip), default = "self.calc_rotational_symmetry()")]
-    rotational_symmetry: RotationalSymmetry,
+    pub rotational_symmetry: RotationalSymmetry,
 
     /// The groups of symmetry-equivalent atoms in [`Self::molecule`].
     #[builder(setter(skip), default = "self.calc_sea_groups()")]
