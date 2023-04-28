@@ -88,7 +88,7 @@ fn test_ur_group_from_molecular_symmetry() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     assert_eq!(group.name(), "C3v".to_string());
     assert_eq!(group.order(), 6);
@@ -106,7 +106,7 @@ fn test_ur_group_element_to_conjugacy_class() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     assert_eq!(group.name(), "C5v".to_string());
     assert_eq!(group.order(), 10);
@@ -130,7 +130,7 @@ fn test_ur_group_element_sort() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
         *group
@@ -161,7 +161,7 @@ fn test_ur_group_element_sort() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     approx::assert_relative_eq!(
         *group
@@ -275,7 +275,7 @@ fn test_ur_ordinary_group(
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     assert_eq!(group.group_type(), ORGRP);
     verify_abstract_group(&group, name, order, class_number, abelian);
@@ -300,7 +300,7 @@ fn test_ur_ordinary_double_group(
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
     assert_eq!(group.group_type(), ORGRP2);
     verify_abstract_group(&group, name, order, class_number, abelian);
@@ -321,7 +321,7 @@ fn test_ur_magnetic_group(
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
     assert_eq!(group.group_type(), mag_group_type);
     verify_abstract_group(&group, name, order, class_number, abelian);
@@ -347,7 +347,7 @@ fn test_ur_magnetic_double_group(
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None).to_double_group();
     assert_eq!(group.group_type(), mag_group_type);
     verify_abstract_group(&group, name, order, class_number, abelian);
@@ -373,7 +373,7 @@ fn test_mr_magnetic_group(
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
     let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
     assert_eq!(group.group_type(), mag_group_type);
     verify_abstract_group(&group, name, order, class_number, abelian);
@@ -400,7 +400,7 @@ fn test_ur_ordinary_group_from_infinite(
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(finite_order));
     verify_abstract_group(&group, name, order, class_number, abelian);
 }
@@ -422,7 +422,7 @@ fn test_ur_magnetic_group_from_infinite(
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order));
     assert_eq!(
         group
@@ -457,7 +457,7 @@ fn test_mr_magnetic_group_from_infinite(
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
     let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order));
     assert_eq!(
         group
@@ -482,7 +482,7 @@ fn test_ur_ordinary_group_class_order(mol: &Molecule, thresh: f64, class_order_s
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
     let classes = (0..group.class_number())
         .map(|i| {
@@ -506,7 +506,7 @@ fn test_ur_ordinary_double_group_class_order(
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
     let classes = (0..group.class_number())
         .map(|i| {
@@ -526,7 +526,7 @@ fn test_ur_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_s
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
     let classes = (0..group.class_number())
         .map(|i| {
@@ -550,7 +550,7 @@ fn test_ur_magnetic_double_group_class_order(
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
     let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None).to_double_group();
     let classes = (0..group.class_number())
         .map(|i| {
@@ -570,7 +570,7 @@ fn test_mr_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_s
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
-    magsym.analyse(&presym, true);
+    magsym.analyse(&presym, true).unwrap();
     let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
     let classes = (0..group.class_number())
         .map(|i| {

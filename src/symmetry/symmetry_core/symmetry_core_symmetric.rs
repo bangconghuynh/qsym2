@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use anyhow::{self, ensure};
 use approx;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -8,9 +9,7 @@ use nalgebra::Vector3;
 
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_core::_search_proper_rotations;
-use crate::symmetry::symmetry_element::{
-    SymmetryElement, INV, ROT, SIG, TRROT, TRSIG,
-};
+use crate::symmetry::symmetry_element::{SymmetryElement, INV, ROT, SIG, TRROT, TRSIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};
 use crate::symmetry::symmetry_symbols::deduce_sigma_symbol;
 
@@ -44,17 +43,28 @@ impl Symmetry {
     ///
     /// Panics when any inconsistencies are encountered along the point-group detection path.
     #[allow(clippy::too_many_lines)]
-    pub fn analyse_symmetric(&mut self, presym: &PreSymmetry, tr: bool) {
+    pub fn analyse_symmetric(
+        &mut self,
+        presym: &PreSymmetry,
+        tr: bool,
+    ) -> Result<(), anyhow::Error> {
         let (_mois, _principal_axes) = presym.molecule.calc_moi();
 
-        assert!(matches!(
-            presym.rotational_symmetry,
-            RotationalSymmetry::ProlateNonLinear
-                | RotationalSymmetry::OblateNonPlanar
-                | RotationalSymmetry::OblatePlanar
-        ));
+        ensure!(
+            matches!(
+                presym.rotational_symmetry,
+                RotationalSymmetry::ProlateNonLinear
+                    | RotationalSymmetry::OblateNonPlanar
+                    | RotationalSymmetry::OblatePlanar
+            ),
+            "Unexpected rotational symmetry -- expected: {} or {} or {}, actual: {}",
+            RotationalSymmetry::ProlateNonLinear,
+            RotationalSymmetry::OblateNonPlanar,
+            RotationalSymmetry::OblatePlanar,
+            presym.rotational_symmetry
+        );
 
-        _search_proper_rotations(presym, self, false, tr);
+        _search_proper_rotations(presym, self, false, tr)?;
 
         // Classify into point groups
         let max_ord = self.get_max_proper_order();
@@ -74,13 +84,14 @@ impl Symmetry {
                     .contains_key(&ORDER_2)
             {
                 if max_ord > ORDER_2 {
-                    assert_eq!(
+                    ensure!(
                         self.get_proper(&max_ord)
                             .unwrap_or_else(|| panic!(
                                 "No proper elements of order `{max_ord}` found."
                             ))
-                            .len(),
-                        1
+                            .len()
+                            == 1,
+                        "More than one principal elements of order greater than 2 found."
                     );
 
                     let principal_axis = self.get_proper_principal_element().raw_axis();
@@ -149,7 +160,10 @@ impl Symmetry {
                 presym.check_improper(&ORDER_1, &principal_element.raw_axis(), &SIG, tr)
             {
                 // Dnh (n >= 2)
-                assert!(max_ord >= ORDER_2);
+                ensure!(
+                    max_ord >= ORDER_2,
+                    "Unexpected principal order smaller than 2."
+                );
                 log::debug!("Located σh.");
                 self.set_group_name(format!("D{max_ord}h"));
                 self.add_improper(
@@ -198,7 +212,10 @@ impl Symmetry {
                     // Dnh, n even, an inversion centre is expected.
                     let z_vec = Vector3::new(0.0, 0.0, 1.0);
                     let inversion_check = presym.check_improper(&ORDER_2, &z_vec, &SIG, tr);
-                    assert!(inversion_check.is_some());
+                    ensure!(
+                        inversion_check.is_some(),
+                        "Expected inversion centre not found."
+                    );
                     self.add_improper(
                         ORDER_2,
                         &z_vec,
@@ -226,7 +243,10 @@ impl Symmetry {
                             &INV,
                             tr,
                         );
-                        assert!(icn_check.is_some());
+                        ensure!(
+                            icn_check.is_some(),
+                            "Expected improper element iCn not found."
+                        );
                         self.add_improper(
                             *c_element.raw_proper_order(),
                             c_element.raw_axis(),
@@ -248,7 +268,7 @@ impl Symmetry {
                         .next()
                         .expect("No σh found.")
                         .clone();
-                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym, tr);
+                    _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym, tr)?;
                 }
             }
             // end Dnh
@@ -365,7 +385,10 @@ impl Symmetry {
                         // Dnd, n odd, an inversion centre is expected.
                         let vec_z = Vector3::new(0.0, 0.0, 1.0);
                         let inversion_check = presym.check_improper(&ORDER_2, &vec_z, &SIG, tr);
-                        assert!(inversion_check.is_some());
+                        ensure!(
+                            inversion_check.is_some(),
+                            "Expected inversion centre not found."
+                        );
                         self.add_improper(
                             ORDER_2,
                             &vec_z,
@@ -410,7 +433,10 @@ impl Symmetry {
                                 &INV,
                                 tr,
                             );
-                            assert!(icn_check.is_some());
+                            ensure!(
+                                icn_check.is_some(),
+                                "Expected improper element iCn not found."
+                            );
                             self.add_improper(
                                 *c_element.raw_proper_order(),
                                 c_element.raw_axis(),
@@ -482,7 +508,10 @@ impl Symmetry {
                     presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr)
                 {
                     if presym.molecule.magnetic_atoms.is_some() {
-                        assert!(improper_kind.contains_time_reversal());
+                        ensure!(
+                            improper_kind.contains_time_reversal(),
+                            "Expected time-reversed improper element not found."
+                        );
                     }
                     count_sigma += u32::from(self.add_improper(
                         ORDER_1,
@@ -569,7 +598,11 @@ impl Symmetry {
                             .remove(&ORDER_1)
                             .expect("No σ found.")
                     };
-                    debug_assert_eq!(old_sigmas.len(), 1);
+                    ensure!(
+                        old_sigmas.len() == 1,
+                        "Unexpected number of old σ mirror planes: {}.",
+                        old_sigmas.len()
+                    );
                     let old_sigma = old_sigmas.into_iter().next().expect("No σ found.");
                     self.add_improper(
                         ORDER_1,
@@ -596,7 +629,10 @@ impl Symmetry {
                     presym.check_improper(&ORDER_1, &principal_element.raw_axis(), &SIG, tr)
                 {
                     // Cnh (n > 2)
-                    assert_eq!(count_sigma, 1);
+                    ensure!(
+                        count_sigma == 1,
+                        "Unexpected number of σ mirror planes: {count_sigma}."
+                    );
                     log::debug!("Found no σv planes but one σh plane.");
                     self.set_group_name(format!("C{max_ord}h"));
                     self.add_proper(
@@ -640,7 +676,10 @@ impl Symmetry {
                         // Cnh, n even, an inversion centre is expected.
                         let vec_z = Vector3::new(0.0, 0.0, 1.0);
                         let inversion_check = presym.check_improper(&ORDER_2, &vec_z, &SIG, tr);
-                        assert!(inversion_check.is_some());
+                        ensure!(
+                            inversion_check.is_some(),
+                            "Expected inversion centre not found."
+                        );
                         self.add_improper(
                             ORDER_2,
                             &vec_z,
@@ -667,7 +706,10 @@ impl Symmetry {
                                 &INV,
                                 tr,
                             );
-                            assert!(icn_check.is_some());
+                            ensure!(
+                                icn_check.is_some(),
+                                "Expected improper element iCn not found."
+                            );
                             self.add_improper(
                                 *c_element.raw_proper_order(),
                                 c_element.raw_axis(),
@@ -689,7 +731,7 @@ impl Symmetry {
                             .next()
                             .expect("No σh found.")
                             .clone();
-                        _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym, tr);
+                        _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym, tr)?;
                     }
                 } else {
                     let double_max_ord = ElementOrder::new(2.0 * max_ord.to_float(), f64::EPSILON);
@@ -730,7 +772,10 @@ impl Symmetry {
                             // Odd rotation sub groups, an inversion centre is expected.
                             let vec_z = Vector3::new(0.0, 0.0, 1.0);
                             let inversion_check = presym.check_improper(&ORDER_2, &vec_z, &SIG, tr);
-                            assert!(inversion_check.is_some());
+                            ensure!(
+                                inversion_check.is_some(),
+                                "Expected inversion centre not found."
+                            );
                             self.add_improper(
                                 ORDER_2,
                                 &vec_z,
@@ -757,6 +802,8 @@ impl Symmetry {
                 }
             }
         }
+
+        Ok(())
     }
 }
 
@@ -779,9 +826,9 @@ fn _add_sigmahcn(
     non_id_c_elements: Vec<SymmetryElement>,
     presym: &PreSymmetry,
     tr: bool,
-) {
+) -> Result<(), anyhow::Error> {
     let au = sigma_h.contains_antiunitary();
-    assert!(sigma_h.is_o3_mirror_plane(au));
+    ensure!(sigma_h.is_o3_mirror_plane(au), "Expected σh not found.");
     for c_element in non_id_c_elements {
         if approx::relative_eq!(
             c_element.raw_axis().cross(sigma_h.raw_axis()).norm(),
@@ -793,7 +840,7 @@ fn _add_sigmahcn(
             log::debug!("Cn is orthogonal to σh.");
             let sn_check =
                 presym.check_improper(c_element.raw_proper_order(), c_element.raw_axis(), &SIG, tr);
-            assert!(sn_check.is_some());
+            ensure!(sn_check.is_some(), "Expected Sn not found.");
             let sigma_symbol = if *c_element.raw_proper_order() == ORDER_1 {
                 Some("h".to_owned())
             } else {
@@ -813,17 +860,20 @@ fn _add_sigmahcn(
         } else {
             // Cn is C2 and is contained in σh.
             // The product σh * C2 is a σv plane.
-            approx::assert_relative_eq!(
-                c_element.raw_axis().dot(sigma_h.raw_axis()).abs(),
-                0.0,
-                epsilon = presym.dist_threshold,
-                max_relative = presym.dist_threshold
+            ensure!(
+                approx::relative_eq!(
+                    c_element.raw_axis().dot(sigma_h.raw_axis()).abs(),
+                    0.0,
+                    epsilon = presym.dist_threshold,
+                    max_relative = presym.dist_threshold
+                ),
+                "C2 is not contained in σh."
             );
-            assert_eq!(*c_element.raw_proper_order(), ORDER_2);
+            ensure!(*c_element.raw_proper_order() == ORDER_2, "Cn is not C2.");
             log::debug!("Cn is C2 and must therefore be contained in σh.");
             let s_axis = c_element.raw_axis().cross(sigma_h.raw_axis()).normalize();
             let sigmav_check = presym.check_improper(&ORDER_1, &s_axis, &SIG, tr);
-            assert!(sigmav_check.is_some());
+            ensure!(sigmav_check.is_some(), "Expected σv not found.");
             sym.add_improper(
                 ORDER_1,
                 &s_axis,
@@ -837,4 +887,6 @@ fn _add_sigmahcn(
             );
         }
     }
+
+    Ok(())
 }

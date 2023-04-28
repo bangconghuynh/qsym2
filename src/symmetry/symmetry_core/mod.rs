@@ -1,6 +1,9 @@
 use std::collections::hash_map::Entry::Vacant;
 use std::collections::{HashMap, HashSet};
+use std::error::Error;
+use std::fmt;
 
+use anyhow::{self, ensure, format_err};
 use derive_builder::Builder;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -13,7 +16,7 @@ use crate::aux::geometry::{self, Transform};
 use crate::aux::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::{
-    SpecialSymmetryTransformation, SymmetryOperation, sort_operations
+    sort_operations, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
     AntiunitaryKind, SymmetryElement, SymmetryElementKind, ROT, SIG, SO3, TRROT, TRSIG,
@@ -27,8 +30,19 @@ mod symmetry_core_tests;
 #[cfg(test)]
 mod symmetry_group_detection_tests;
 
+#[derive(Debug)]
+pub struct PointGroupDetectionError(pub String);
+
+impl fmt::Display for PointGroupDetectionError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Point-group detection error: {}.", self.0)
+    }
+}
+
+impl Error for PointGroupDetectionError {}
+
 /// A struct for storing and managing information required for symmetry analysis.
-#[derive(Builder)]
+#[derive(Clone, Builder, Debug)]
 pub struct PreSymmetry {
     /// The molecule to be symmetry-analysed. This molecule will have bee
     /// translated to put its centre of mass at the origin.
@@ -46,11 +60,11 @@ pub struct PreSymmetry {
 
     /// Threshold for relative comparisons of moments of inertia.
     #[builder(setter(custom))]
-    moi_threshold: f64,
+    pub moi_threshold: f64,
 
     /// Threshold for relative distance comparisons.
     #[builder(setter(skip), default = "self.get_dist_threshold()")]
-    dist_threshold: f64,
+    pub dist_threshold: f64,
 }
 
 impl PreSymmetryBuilder {
@@ -253,7 +267,7 @@ impl PreSymmetry {
 }
 
 /// A struct for storing and managing symmetry analysis results.
-#[derive(Builder, Debug)]
+#[derive(Builder, Clone, Debug)]
 pub struct Symmetry {
     /// The determined point group in Schönflies notation.
     #[builder(setter(skip, strip_option), default = "None")]
@@ -308,7 +322,11 @@ impl Symmetry {
     /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
     /// symmetry element will only be considered if its non-time-reversed version turns out to be
     /// not a symmetry element.
-    pub fn analyse(&mut self, presym: &PreSymmetry, tr: bool) {
+    pub fn analyse(
+        &mut self,
+        presym: &PreSymmetry,
+        tr: bool,
+    ) -> Result<&mut Self, anyhow::Error> {
         log::debug!("Rotational symmetry found: {}", presym.rotational_symmetry);
 
         if tr {
@@ -329,13 +347,13 @@ impl Symmetry {
 
         // Identify all symmetry elements and generators
         match &presym.rotational_symmetry {
-            RotationalSymmetry::Spherical => self.analyse_spherical(presym, tr),
-            RotationalSymmetry::ProlateLinear => self.analyse_linear(presym, tr),
+            RotationalSymmetry::Spherical => self.analyse_spherical(presym, tr)?,
+            RotationalSymmetry::ProlateLinear => self.analyse_linear(presym, tr)?,
             RotationalSymmetry::OblatePlanar
             | RotationalSymmetry::OblateNonPlanar
-            | RotationalSymmetry::ProlateNonLinear => self.analyse_symmetric(presym, tr),
+            | RotationalSymmetry::ProlateNonLinear => self.analyse_symmetric(presym, tr)?,
             RotationalSymmetry::AsymmetricPlanar | RotationalSymmetry::AsymmetricNonPlanar => {
-                self.analyse_asymmetric(presym, tr);
+                self.analyse_asymmetric(presym, tr)?
             }
         }
 
@@ -422,6 +440,7 @@ impl Symmetry {
                 );
             }
         }
+        Ok(self)
     }
 
     /// Adds a proper symmetry element to this struct.
@@ -598,7 +617,11 @@ impl Symmetry {
         let order = *element.raw_proper_order();
         let simplified_symbol = element.get_simplified_symbol();
         let full_symbol = element.get_full_symbol();
-        let au = if tr { Some(AntiunitaryKind::TimeReversal) } else { None };
+        let au = if tr {
+            Some(AntiunitaryKind::TimeReversal)
+        } else {
+            None
+        };
         let is_o3_mirror_plane = element.is_o3_mirror_plane(au);
         let is_o3_inversion_centre = element.is_o3_inversion_centre(au);
         let improper_kind = if tr { TRSIG } else { SIG };
@@ -705,6 +728,11 @@ impl Symmetry {
         result
     }
 
+    /// Sets the name of the symmetry group.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name to be given to the symmetry group.
     fn set_group_name(&mut self, name: String) {
         self.group_name = Some(name);
         log::debug!(
@@ -989,7 +1017,7 @@ impl Symmetry {
     ///
     /// # Returns
     ///
-    /// A flag indicating if this group is an infinite group.
+    /// A boolean indicating if this group is an infinite group.
     #[must_use]
     pub fn is_infinite(&self) -> bool {
         self.get_max_proper_order() == ElementOrder::Inf
@@ -1007,6 +1035,26 @@ impl Symmetry {
                 .max()
                 .unwrap_or(&ElementOrder::Int(0))
                 == ElementOrder::Inf
+    }
+
+    /// Returns the total number of symmetry elements (*NOT* symmetry operations). In
+    /// infinite-order groups, this is the sum of the number of discrete symmetry elements and the
+    /// number of discrete symmetry generators.
+    pub fn n_elements(&self) -> usize {
+        let n_elements = self.elements
+            .values()
+            .flat_map(|kind_elements| kind_elements.values())
+            .flatten()
+            .count();
+        if self.is_infinite() {
+            n_elements + self.generators
+            .values()
+            .flat_map(|kind_elements| kind_elements.values())
+            .flatten()
+            .count()
+        } else {
+            n_elements
+        }
     }
 
     /// Generates all possible symmetry operations from the available symmetry elements.
@@ -1537,7 +1585,12 @@ impl Default for Symmetry {
 /// and there can be at most three $`C_2`$ axes.
 /// * `tr` - A flag indicating if time reversal should also be considered.
 #[allow(clippy::too_many_lines)]
-fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric: bool, tr: bool) {
+fn _search_proper_rotations(
+    presym: &PreSymmetry,
+    sym: &mut Symmetry,
+    asymmetric: bool,
+    tr: bool,
+) -> Result<(), anyhow::Error> {
     log::debug!("==============================");
     log::debug!("Proper rotation search begins.");
     log::debug!("==============================");
@@ -1639,7 +1692,10 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                         max_relative = presym.moi_threshold,
                     ) {
                         // The number of atoms in this SEA group must be even.
-                        assert_eq!(k_sea % 2, 0);
+                        ensure!(
+                            k_sea % 2 == 0,
+                            "Unexpected odd number of atoms in this SEA group."
+                        );
                         if approx::relative_eq!(
                             sea_mois[0],
                             sea_mois[1],
@@ -1659,7 +1715,7 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                             log::debug!("-----------------------------------------------");
                             log::debug!("Symmetry analysis for spherical top SEA begins.");
                             log::debug!("-----------------------------------------------");
-                            sea_sym.analyse(&sea_presym, tr);
+                            sea_sym.analyse(&sea_presym, tr)?;
                             log::debug!("---------------------------------------------");
                             log::debug!("Symmetry analysis for spherical top SEA ends.");
                             log::debug!("---------------------------------------------");
@@ -1730,15 +1786,18 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
                     ) {
                         // Oblate symmetry top
                         log::debug!("An oblate symmetric top SEA set detected.");
-                        assert_eq!(k_sea % 2, 0);
+                        ensure!(
+                            k_sea % 2 == 0,
+                            "Unexpected odd number of atoms in this SEA group."
+                        );
                         for k_fac in divisors::get_divisors(k_sea / 2)
                             .iter()
                             .chain(vec![k_sea / 2].iter())
                         {
                             let k_fac_order =
-                                ElementOrder::Int((*k_fac).try_into().unwrap_or_else(|_| {
-                                    panic!("Unable to convert {k_fac} to u32.")
-                                }));
+                                ElementOrder::Int((*k_fac).try_into().map_err(|_| {
+                                    format_err!("Unable to convert `{k_fac}` to `u32`.")
+                                })?);
                             if let Some(proper_kind) =
                                 presym.check_proper(&k_fac_order, &sea_axes[2], tr)
                             {
@@ -1867,6 +1926,8 @@ fn _search_proper_rotations(presym: &PreSymmetry, sym: &mut Symmetry, asymmetric
     log::debug!("============================");
     log::debug!("Proper rotation search ends.");
     log::debug!("============================");
+
+    Ok(())
 }
 
 mod symmetry_core_asymmetric;

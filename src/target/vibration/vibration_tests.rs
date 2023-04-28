@@ -43,7 +43,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group_u_c3v = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
 
     // --------------------
@@ -246,7 +246,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group_u_td = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
 
     // ---------------
@@ -552,10 +552,10 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
-    sym.analyse(&presym, false);
+    sym.analyse(&presym, false).unwrap();
     let group_u_c4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
 
-    sym.analyse(&presym, true);
+    sym.analyse(&presym, true).unwrap();
     let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
 
     // All normal modes are obtained at zero field. The finite-field symmetry analysis is for a
