@@ -39,7 +39,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol_nh3, true)
+        .molecule(&mol_nh3)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -242,7 +242,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol_ch4, true)
+        .molecule(&mol_ch4)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -548,7 +548,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol_xef4, true)
+        .molecule(&mol_xef4)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();

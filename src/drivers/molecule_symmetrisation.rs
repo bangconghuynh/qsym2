@@ -179,7 +179,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 // Determine the atom permutation corresponding to `op`. This uses the molecule in
                 // `target_presym`, which should have the right threshold to be compatible with the
                 // symmetry operations generated from `target_sym`.
-                let perm = op.act_permute(&target_presym.molecule).ok_or_else(|| {
+                let perm = op.act_permute(&target_presym.recentred_molecule).ok_or_else(|| {
                     format_err!("Unable to determine the permutation corresponding to `{op}`.")
                 })?;
                 Ok::<_, anyhow::Error>((tmat, perm))
@@ -192,7 +192,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
 
         let mut trial_presym = PreSymmetry::builder()
             .moi_threshold(self.parameters.target_moi_threshold)
-            .molecule(&trial_mol, true)
+            .molecule(&trial_mol)
             .build()
             .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
         let mut trial_sym = Symmetry::new();
@@ -236,7 +236,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 });
             trial_presym = PreSymmetry::builder()
                 .moi_threshold(self.parameters.target_moi_threshold)
-                .molecule(&trial_mol, true)
+                .molecule(&trial_mol)
                 .build()
                 .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
             trial_sym = Symmetry::new();

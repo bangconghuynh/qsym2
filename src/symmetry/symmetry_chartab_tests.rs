@@ -225,7 +225,7 @@ fn test_chartab_ordinary_group(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -253,7 +253,7 @@ fn test_chartab_ordinary_double_group(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -281,7 +281,7 @@ fn test_chartab_magnetic_group(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -315,7 +315,7 @@ fn test_chartab_magnetic_double_group(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -352,7 +352,7 @@ fn test_chartab_ordinary_group_from_infinite(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -381,7 +381,7 @@ fn test_chartab_magnetic_group_from_infinite(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -11136,7 +11136,7 @@ fn test_chartab_symmetric_8_eclipsed_sandwich_grey_d8h() {
 //     let mol = Molecule::from_xyz(&path, thresh);
 //     let presym = PreSymmetry::builder()
 //         .moi_threshold(thresh)
-//         .molecule(&mol, true)
+//         .molecule(&mol)
 //         .build()
 //         .unwrap();
 //     let mut sym = Symmetry::new();

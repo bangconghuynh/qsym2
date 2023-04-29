@@ -63,7 +63,7 @@ impl Symmetry {
                         ORDER_2,
                         &atom_i_pos.coords,
                         false,
-                        presym.molecule.threshold,
+                        presym.recentred_molecule.threshold,
                         proper_kind.contains_time_reversal(),
                     ) {
                         count_c2 += 1;
@@ -74,12 +74,12 @@ impl Symmetry {
                 // Case A: C2 might cross through the midpoint of two atoms
                 let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
                 if let Some(proper_kind) = presym.check_proper(&ORDER_2, &midvec, tr) {
-                    if midvec.norm() > presym.molecule.threshold
+                    if midvec.norm() > presym.recentred_molecule.threshold
                         && self.add_proper(
                             ORDER_2,
                             &midvec,
                             false,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             proper_kind.contains_time_reversal(),
                         )
                     {
@@ -126,27 +126,27 @@ impl Symmetry {
             RotationalSymmetry::Spherical,
             presym.rotational_symmetry
         );
-        if presym.molecule.atoms.len() == 1 {
+        if presym.recentred_molecule.atoms.len() == 1 {
             self.set_group_name("O(3)".to_owned());
             self.add_proper(
                 ElementOrder::Inf,
                 &Vector3::z(),
                 true,
-                presym.molecule.threshold,
+                presym.recentred_molecule.threshold,
                 false,
             );
             self.add_proper(
                 ElementOrder::Inf,
                 &Vector3::y(),
                 true,
-                presym.molecule.threshold,
+                presym.recentred_molecule.threshold,
                 false,
             );
             self.add_proper(
                 ElementOrder::Inf,
                 &Vector3::x(),
                 true,
-                presym.molecule.threshold,
+                presym.recentred_molecule.threshold,
                 false,
             );
             self.add_improper(
@@ -155,7 +155,7 @@ impl Symmetry {
                 true,
                 SIG.clone(),
                 None,
-                presym.molecule.threshold,
+                presym.recentred_molecule.threshold,
                 false,
             );
             return Ok(());
@@ -187,7 +187,7 @@ impl Symmetry {
                             false,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper element not added."
@@ -199,7 +199,7 @@ impl Symmetry {
                             true,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper generator not added."
@@ -269,7 +269,7 @@ impl Symmetry {
                                     false,
                                     SIG.clone(),
                                     Some("d".to_owned()),
-                                    presym.molecule.threshold,
+                                    presym.recentred_molecule.threshold,
                                     axis_tr
                                 ),
                                 "Expected improper element not added."
@@ -282,7 +282,7 @@ impl Symmetry {
                                 true,
                                 SIG.clone(),
                                 Some("d".to_owned()),
-                                presym.molecule.threshold,
+                                presym.recentred_molecule.threshold,
                                 sigmad_generator_normal.1
                             ),
                             "Expected improper generator not added."
@@ -309,7 +309,7 @@ impl Symmetry {
                             false,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper element not added."
@@ -321,7 +321,7 @@ impl Symmetry {
                             true,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper generator not added."
@@ -347,7 +347,7 @@ impl Symmetry {
                             false,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper element not added."
@@ -359,7 +359,7 @@ impl Symmetry {
                             true,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper generator not added."
@@ -395,7 +395,7 @@ impl Symmetry {
                 let vec_ik = atom_k.coordinates - atom_i.coordinates;
                 let vec_normal = vec_ij.cross(&vec_ik);
                 ensure!(
-                    vec_normal.norm() > presym.molecule.threshold,
+                    vec_normal.norm() > presym.recentred_molecule.threshold,
                     "Unexpected zero-norm vector."
                 );
                 if let Some(proper_kind) = presym.check_proper(&order_3, &vec_normal, tr) {
@@ -403,7 +403,7 @@ impl Symmetry {
                         order_3,
                         &vec_normal,
                         false,
-                        presym.molecule.threshold,
+                        presym.recentred_molecule.threshold,
                         proper_kind.contains_time_reversal(),
                     ));
                 }
@@ -442,7 +442,7 @@ impl Symmetry {
                     order_3,
                     c3.raw_axis(),
                     true,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     c3.contains_time_reversal(),
                 );
             }
@@ -473,7 +473,7 @@ impl Symmetry {
                     let vec_ik = atom_k.coordinates - atom_i.coordinates;
                     let vec_normal = vec_ij.cross(&vec_ik);
                     ensure!(
-                        vec_normal.norm() > presym.molecule.threshold,
+                        vec_normal.norm() > presym.recentred_molecule.threshold,
                         "Unexpected zero-norm vector."
                     );
                     if let Some(proper_kind) = presym.check_proper(&order_4, &vec_normal, tr) {
@@ -481,7 +481,7 @@ impl Symmetry {
                             order_4,
                             &vec_normal,
                             false,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             proper_kind.contains_time_reversal(),
                         ));
                     }
@@ -508,7 +508,7 @@ impl Symmetry {
                 order_4,
                 &c4_axis,
                 true,
-                presym.molecule.threshold,
+                presym.recentred_molecule.threshold,
                 c4.contains_time_reversal(),
             );
         } // end locating C4 axes for O and Oh
@@ -539,7 +539,7 @@ impl Symmetry {
                     let vec_ik = atom_k.coordinates - atom_i.coordinates;
                     let vec_normal = vec_ij.cross(&vec_ik);
                     ensure!(
-                        vec_normal.norm() > presym.molecule.threshold,
+                        vec_normal.norm() > presym.recentred_molecule.threshold,
                         "Unexpected zero-norm vector."
                     );
                     if let Some(proper_kind) = presym.check_proper(&order_5, &vec_normal, tr) {
@@ -547,14 +547,14 @@ impl Symmetry {
                             order_5,
                             &vec_normal,
                             false,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             proper_kind.contains_time_reversal(),
                         ));
                         self.add_proper(
                             order_5,
                             &vec_normal,
                             true,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             proper_kind.contains_time_reversal(),
                         );
                     }
@@ -598,7 +598,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     s4_axis_tr,
                 ));
             }
@@ -631,7 +631,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     Some("h".to_owned()),
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     sigmah_normal_tr,
                 ));
             }
@@ -666,7 +666,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     s6_axis_tr,
                 ));
             }
@@ -700,7 +700,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     *s4_axis_tr,
                 ));
             }
@@ -724,7 +724,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     Some("h".to_owned()),
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     sigmah_axis_tr,
                 ));
             }
@@ -765,7 +765,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     Some("d".to_owned()),
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     sigmad_normal_tr,
                 ));
             }
@@ -800,7 +800,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     s6_axis_tr,
                 ));
             }
@@ -835,7 +835,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     s10_axis_tr,
                 ));
             }
@@ -870,7 +870,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     s6_axis_tr,
                 ));
             }
@@ -901,7 +901,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     sigma_normal_tr,
                 ));
             }

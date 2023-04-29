@@ -392,7 +392,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             // A recentred copy of the molecule will be used for all symmetry-group detection.
             let presym = PreSymmetry::builder()
                 .moi_threshold(*moi_thresh)
-                .molecule(&mol, true)
+                .molecule(&mol)
                 .build()
                 .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
             let mut uni_sym = Symmetry::new();

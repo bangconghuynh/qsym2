@@ -89,7 +89,7 @@ fn test_determinant_transformation_bf4_sqpl() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol_bf4, true)
+        .molecule(&mol_bf4)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -158,7 +158,7 @@ fn test_determinant_transformation_s4_sqpl() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol_s4, true)
+        .molecule(&mol_s4)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -365,7 +365,7 @@ fn test_determinant_transformation_b3_real_timerev() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol_b3, true)
+        .molecule(&mol_b3)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -584,7 +584,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         Molecule::from_atoms(&[atm_c0.clone(), atm_c1.clone(), atm_c2.clone()], 1e-7).recentre();
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol_c3, true)
+        .molecule(&mol_c3)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -842,7 +842,7 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol_h4, true)
+        .molecule(&mol_h4)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -1159,7 +1159,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol_s4, true)
+        .molecule(&mol_s4)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -1258,7 +1258,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol_s4, true)
+        .molecule(&mol_s4)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -1278,7 +1278,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
     mol_s4_bz.set_magnetic_field(Some(0.1 * Vector3::z()));
     let presym_bz = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol_s4_bz, true)
+        .molecule(&mol_s4_bz)
         .build()
         .unwrap();
     let mut sym_bz = Symmetry::new();
@@ -2359,7 +2359,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol_vf6, true)
+        .molecule(&mol_vf6)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();

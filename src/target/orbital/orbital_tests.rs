@@ -61,7 +61,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol_vf6, true)
+        .molecule(&mol_vf6)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();

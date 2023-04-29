@@ -84,7 +84,7 @@ fn test_ur_group_from_molecular_symmetry() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -102,7 +102,7 @@ fn test_ur_group_element_to_conjugacy_class() {
     let mol = Molecule::from_xyz(&path, thresh);
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -126,7 +126,7 @@ fn test_ur_group_element_sort() {
     let mol = Molecule::from_xyz(&path, thresh);
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -157,7 +157,7 @@ fn test_ur_group_element_sort() {
     let mol = Molecule::from_xyz(&path, thresh);
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -271,7 +271,7 @@ fn test_ur_ordinary_group(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -296,7 +296,7 @@ fn test_ur_ordinary_double_group(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -317,7 +317,7 @@ fn test_ur_magnetic_group(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -343,7 +343,7 @@ fn test_ur_magnetic_double_group(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -369,7 +369,7 @@ fn test_mr_magnetic_group(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -396,7 +396,7 @@ fn test_ur_ordinary_group_from_infinite(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -418,7 +418,7 @@ fn test_ur_magnetic_group_from_infinite(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -453,7 +453,7 @@ fn test_mr_magnetic_group_from_infinite(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -478,7 +478,7 @@ fn test_mr_magnetic_group_from_infinite(
 fn test_ur_ordinary_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -502,7 +502,7 @@ fn test_ur_ordinary_double_group_class_order(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -522,7 +522,7 @@ fn test_ur_ordinary_double_group_class_order(
 fn test_ur_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -546,7 +546,7 @@ fn test_ur_magnetic_double_group_class_order(
 ) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -566,7 +566,7 @@ fn test_ur_magnetic_double_group_class_order(
 fn test_mr_magnetic_group_class_order(mol: &Molecule, thresh: f64, class_order_str: &[&str]) {
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(mol, true)
+        .molecule(mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();

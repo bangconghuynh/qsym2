@@ -42,7 +42,7 @@ impl Symmetry {
         presym: &PreSymmetry,
         tr: bool,
     ) -> Result<(), anyhow::Error> {
-        let (_mois, principal_axes) = presym.molecule.calc_moi();
+        let (_mois, principal_axes) = presym.recentred_molecule.calc_moi();
 
         ensure!(
             matches!(
@@ -281,7 +281,7 @@ impl Symmetry {
                     if let Some(improper_kind) =
                         presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr)
                     {
-                        if presym.molecule.magnetic_atoms.is_some() {
+                        if presym.recentred_molecule.magnetic_atoms.is_some() {
                             ensure!(
                                 improper_kind.contains_time_reversal(),
                                 "Expected time-reversed improper element not found."
@@ -475,11 +475,11 @@ impl Symmetry {
                     count_sigma += 1;
 
                     // Old algorithm
-                    // for atom3s in presym.molecule.atoms.iter().combinations(3) {
+                    // for atom3s in presym.recentred_molecule.atoms.iter().combinations(3) {
                     //     let normal = (atom3s[1].coordinates.coords - atom3s[0].coordinates.coords)
                     //         .cross(&(atom3s[2].coordinates.coords - atom3s[0].coordinates.coords));
                     //     if normal.norm() < presym.dist_threshold {
-                    //         if let Some(e_atoms) = &presym.molecule.electric_atoms {
+                    //         if let Some(e_atoms) = &presym.recentred_molecule.electric_atoms {
                     //             let normal = (atom3s[1].coordinates.coords
                     //                 - atom3s[0].coordinates.coords)
                     //                 .cross(

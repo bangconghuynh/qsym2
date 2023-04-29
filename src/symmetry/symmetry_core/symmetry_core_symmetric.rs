@@ -48,7 +48,7 @@ impl Symmetry {
         presym: &PreSymmetry,
         tr: bool,
     ) -> Result<(), anyhow::Error> {
-        let (_mois, _principal_axes) = presym.molecule.calc_moi();
+        let (_mois, _principal_axes) = presym.recentred_molecule.calc_moi();
 
         ensure!(
             matches!(
@@ -503,11 +503,11 @@ impl Symmetry {
                 // principal axis) might be a symmetry element: time-reversed in the presence of
                 // a magnetic field (which must also lie in this plane), or both in the absence
                 // of a magnetic field.
-                let (_, principal_axes) = presym.molecule.calc_moi();
+                let (_, principal_axes) = presym.recentred_molecule.calc_moi();
                 if let Some(improper_kind) =
                     presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr)
                 {
-                    if presym.molecule.magnetic_atoms.is_some() {
+                    if presym.recentred_molecule.magnetic_atoms.is_some() {
                         ensure!(
                             improper_kind.contains_time_reversal(),
                             "Expected time-reversed improper element not found."

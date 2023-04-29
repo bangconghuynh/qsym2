@@ -27,7 +27,7 @@ impl Symmetry {
         presym: &PreSymmetry,
         tr: bool,
     ) -> Result<(), anyhow::Error> {
-        let (mois, principal_axes) = presym.molecule.calc_moi();
+        let (mois, principal_axes) = presym.recentred_molecule.calc_moi();
 
         ensure!(
             matches!(
