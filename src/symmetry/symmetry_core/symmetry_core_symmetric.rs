@@ -533,6 +533,16 @@ impl Symmetry {
                 if max_ord_u32 > 1 {
                     let principal_element = self.get_proper_principal_element();
                     // Cnv
+                    let count_cn = self
+                        .get_proper(&ElementOrder::Int(max_ord_u32))
+                        .ok_or_else(|| {
+                            format_err!("No proper elements found for potential C{max_ord_u32}v.")
+                        })?
+                        .len();
+                    ensure!(
+                        count_cn == 1,
+                        "Unexpected number of C{max_ord_u32} axes -- expected: 1 -- actual: {count_cn}."
+                    );
                     log::debug!("Found {} σv planes.", count_sigma);
                     if max_ord_u32 == 2 && principal_element.contains_time_reversal() {
                         // C2v, but with θ·C2
