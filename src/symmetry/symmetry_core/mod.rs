@@ -336,7 +336,7 @@ impl Symmetry {
             .kind(ROT)
             .rotation_group(SO3)
             .build()
-            .expect("Unable to construct the identity element.");
+            .map_err(|err| format_err!(err))?;
         self.add_proper(ORDER_1, c1.raw_axis(), false, presym.dist_threshold, false);
 
         // Identify all symmetry elements and generators
@@ -367,7 +367,7 @@ impl Symmetry {
                     self.elements.insert(
                         TRROT,
                         self.get_elements(&ROT)
-                            .expect("No proper elements found.")
+                            .ok_or_else(|| format_err!("No proper elements found."))?
                             .iter()
                             .map(|(order, proper_elements)| {
                                 let tr_proper_elements = proper_elements
@@ -393,17 +393,13 @@ impl Symmetry {
                         self.elements.insert(
                             TRSIG,
                             self.get_elements(&SIG)
-                                .expect("No improper elements found.")
+                                .ok_or_else(|| format_err!("No improper elements found."))?
                                 .iter()
                                 .map(|(order, improper_elements)| {
                                     let tr_improper_elements = improper_elements
                                         .iter()
                                         .map(|improper_element| {
                                             improper_element.to_tr(true)
-                                            // let mut tr_improper_element = improper_element.clone();
-                                            // tr_improper_element.kind =
-                                            //     improper_element.kind.to_tr(true);
-                                            // tr_improper_element
                                         })
                                         .collect::<IndexSet<_>>();
                                     (*order, tr_improper_elements)
