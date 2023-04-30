@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{self, ensure};
+use anyhow::{self, ensure, format_err};
 use approx;
 use indexmap::IndexSet;
 use itertools::Itertools;
@@ -38,10 +38,6 @@ impl Symmetry {
     /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
     /// symmetry element will only be considered if its non-time-reversed version turns out to be
     /// not a symmetry element.
-    ///
-    /// # Panics
-    ///
-    /// Panics when any inconsistencies are encountered along the point-group detection path.
     #[allow(clippy::too_many_lines)]
     pub fn analyse_symmetric(
         &mut self,
@@ -72,56 +68,57 @@ impl Symmetry {
             ElementOrder::Int(ord_i) => Some(ord_i),
             ElementOrder::Inf => None,
         }
-        .unwrap_or_else(|| panic!("`{max_ord}` has an unexpected order value."));
-        let dihedral = {
-            if self
-                .get_elements(&ROT)
-                .unwrap_or(&HashMap::new())
-                .contains_key(&ORDER_2)
-                || self
-                    .get_elements(&TRROT)
+        .ok_or_else(|| format_err!("`{max_ord}` has an unexpected order value."))?;
+        let dihedral =
+            {
+                if self
+                    .get_elements(&ROT)
                     .unwrap_or(&HashMap::new())
                     .contains_key(&ORDER_2)
-            {
-                if max_ord > ORDER_2 {
-                    ensure!(
-                        self.get_proper(&max_ord)
-                            .unwrap_or_else(|| panic!(
-                                "No proper elements of order `{max_ord}` found."
-                            ))
-                            .len()
-                            == 1,
-                        "More than one principal elements of order greater than 2 found."
-                    );
+                    || self
+                        .get_elements(&TRROT)
+                        .unwrap_or(&HashMap::new())
+                        .contains_key(&ORDER_2)
+                {
+                    if max_ord > ORDER_2 {
+                        ensure!(
+                            self.get_proper(&max_ord)
+                                .ok_or_else(|| format_err!(
+                                    "No proper elements of order `{max_ord}` found."
+                                ))?
+                                .len()
+                                == 1,
+                            "More than one principal elements of order greater than 2 found."
+                        );
 
-                    let principal_axis = self.get_proper_principal_element().raw_axis();
-                    let n_c2_perp = self
-                        .get_proper(&ORDER_2)
-                        .unwrap_or_else(|| panic!("No proper elements of order `{ORDER_2}` found."))
-                        .iter()
-                        .filter(|c2_ele| {
-                            c2_ele.raw_axis().dot(&principal_axis).abs() < presym.dist_threshold
-                        })
-                        .count();
-                    ElementOrder::Int(
-                        n_c2_perp.try_into().unwrap_or_else(|_| {
-                            panic!("Unable to convert `{n_c2_perp}` to `u32`.")
-                        }),
-                    ) == max_ord
-                } else {
-                    max_ord == ORDER_2
-                        && self
+                        let principal_axis = self.get_proper_principal_element().raw_axis();
+                        let n_c2_perp = self
                             .get_proper(&ORDER_2)
-                            .unwrap_or_else(|| {
-                                panic!("No proper elements of order `{ORDER_2}` found.")
+                            .ok_or_else(|| {
+                                format_err!("No proper elements of order `{ORDER_2}` found.")
+                            })?
+                            .iter()
+                            .filter(|c2_ele| {
+                                c2_ele.raw_axis().dot(&principal_axis).abs() < presym.dist_threshold
                             })
-                            .len()
-                            == 3
+                            .count();
+                        ElementOrder::Int(n_c2_perp.try_into().map_err(|_| {
+                            format_err!("Unable to convert `{n_c2_perp}` to `u32`.")
+                        })?) == max_ord
+                    } else {
+                        max_ord == ORDER_2
+                            && self
+                                .get_proper(&ORDER_2)
+                                .ok_or_else(|| {
+                                    format_err!("No proper elements of order `{ORDER_2}` found.")
+                                })?
+                                .len()
+                                == 3
+                    }
+                } else {
+                    false
                 }
-            } else {
-                false
-            }
-        };
+            };
 
         if dihedral {
             // Dihedral family
@@ -140,13 +137,15 @@ impl Symmetry {
             // A C2 axis perpendicular to the principal axis is also a generator.
             let perp_c2_element = &(*self
                 .get_proper(&ORDER_2)
-                .expect("No C2 elements found.")
+                .ok_or_else(|| format_err!("No C2 elements found."))?
                 .iter()
                 .find(|c2_ele| {
                     c2_ele.raw_axis().dot(principal_element.raw_axis()).abs()
                         < presym.dist_threshold
                 })
-                .expect("No C2 axes perpendicular to the principal axis found."))
+                .ok_or_else(|| {
+                    format_err!("No C2 axes perpendicular to the principal axis found.")
+                })?)
             .clone();
             self.add_proper(
                 ORDER_2,
@@ -224,7 +223,7 @@ impl Symmetry {
                         None,
                         presym.dist_threshold,
                         inversion_check
-                            .expect("Expected inversion centre not found.")
+                            .ok_or_else(|| format_err!("Expected inversion centre not found."))?
                             .contains_time_reversal(),
                     );
 
@@ -255,7 +254,7 @@ impl Symmetry {
                             sigma_symbol,
                             presym.dist_threshold,
                             icn_check
-                                .expect("Expected iCn not found.")
+                                .ok_or_else(|| format_err!("Expected iCn not found."))?
                                 .contains_time_reversal(),
                         );
                     }
@@ -263,10 +262,10 @@ impl Symmetry {
                     // Dnh, n odd, only σh is expected.
                     let sigma_h = self
                         .get_sigma_elements("h")
-                        .expect("No σh found.")
+                        .ok_or_else(|| format_err!("No σh found."))?
                         .into_iter()
                         .next()
-                        .expect("No σh found.")
+                        .ok_or_else(|| format_err!("No σh found."))?
                         .clone();
                     _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym, tr)?;
                 }
@@ -324,8 +323,13 @@ impl Symmetry {
 
                 if count_sigmad == max_ord_u32 {
                     // Dnd
-                    let sigmads = self.get_sigma_elements("d").expect("No σd found.");
-                    let sigmad = sigmads.iter().next().expect("No σd found.");
+                    let sigmads = self
+                        .get_sigma_elements("d")
+                        .ok_or_else(|| format_err!("No σd found."))?;
+                    let sigmad = sigmads
+                        .iter()
+                        .next()
+                        .ok_or_else(|| format_err!("No σd found."))?;
                     let sigmad_axis = sigmad.raw_axis().clone();
                     self.add_improper(
                         ORDER_1,
@@ -397,7 +401,7 @@ impl Symmetry {
                             None,
                             presym.dist_threshold,
                             inversion_check
-                                .expect("Expected inversion centre not found.")
+                                .ok_or_else(|| format_err!("Expected inversion centre not found."))?
                                 .contains_time_reversal(),
                         );
                         let non_id_c_elements = self
@@ -445,7 +449,7 @@ impl Symmetry {
                                 sigma_symbol,
                                 presym.dist_threshold,
                                 icn_check
-                                    .expect("Expected iCn not found.")
+                                    .ok_or_else(|| format_err!("Expected iCn not found."))?
                                     .contains_time_reversal(),
                             );
                         }
@@ -535,10 +539,12 @@ impl Symmetry {
                         log::debug!("The C2 axis is actually θ·C2. The non-time-reversed σv will be reassigned as σh.");
                         let old_sigmas = self
                             .get_elements_mut(&SIG)
-                            .expect("No improper elements found.")
-                            .remove(&ORDER_1)
-                            .expect("No σv found.");
-                        let old_sigma = old_sigmas.iter().next().expect("No σv found.");
+                            .and_then(|sigmas| sigmas.remove(&ORDER_1))
+                            .ok_or_else(|| format_err!("No σv found."))?;
+                        let old_sigma = old_sigmas
+                            .iter()
+                            .next()
+                            .ok_or_else(|| format_err!("No σv found."))?;
                         self.add_improper(
                             ORDER_1,
                             old_sigma.raw_axis(),
@@ -564,16 +570,19 @@ impl Symmetry {
                     // as the generator.
                     let mut sigmas = self
                         .get_sigma_elements("v")
-                        .unwrap_or_else(|| {
+                        .or_else(|| {
                             log::debug!("No σv found. Searching for σh instead.");
-                            self.get_sigma_elements("h").expect("No σh found either.")
+                            self.get_sigma_elements("h")
                         })
+                        .ok_or_else(|| format_err!("No σh found either."))?
                         .into_iter()
                         .chain(self.get_sigma_elements("h").unwrap_or_default().into_iter())
                         .cloned()
                         .collect_vec();
                     sigmas.sort_by_key(SymmetryElement::contains_time_reversal);
-                    let sigma = sigmas.first().expect("No σv or σh found.");
+                    let sigma = sigmas
+                        .first()
+                        .ok_or_else(|| format_err!("No σv or σh found."))?;
                     self.add_improper(
                         ORDER_1,
                         sigma.raw_axis(),
@@ -589,21 +598,22 @@ impl Symmetry {
                     self.set_group_name("Cs".to_owned());
                     let old_sigmas = if self.elements.contains_key(&SIG) {
                         self.get_elements_mut(&SIG)
-                            .expect("No improper elements found.")
-                            .remove(&ORDER_1)
-                            .expect("No σ found.")
+                            .and_then(|sigmas| sigmas.remove(&ORDER_1))
+                            .ok_or_else(|| format_err!("No σ found."))?
                     } else {
                         self.get_elements_mut(&TRSIG)
-                            .expect("No time-reversed improper elements found.")
-                            .remove(&ORDER_1)
-                            .expect("No σ found.")
+                            .and_then(|sigmas| sigmas.remove(&ORDER_1))
+                            .ok_or_else(|| format_err!("No time-reversed σ found."))?
                     };
                     ensure!(
                         old_sigmas.len() == 1,
                         "Unexpected number of old σ mirror planes: {}.",
                         old_sigmas.len()
                     );
-                    let old_sigma = old_sigmas.into_iter().next().expect("No σ found.");
+                    let old_sigma = old_sigmas
+                        .into_iter()
+                        .next()
+                        .ok_or_else(|| format_err!("No σ found."))?;
                     self.add_improper(
                         ORDER_1,
                         old_sigma.raw_axis(),
@@ -688,7 +698,7 @@ impl Symmetry {
                             None,
                             presym.dist_threshold,
                             inversion_check
-                                .expect("Expected inversion centre not found.")
+                                .ok_or_else(|| format_err!("Expected inversion centre not found."))?
                                 .contains_time_reversal(),
                         );
                         for c_element in non_id_c_elements {
@@ -718,7 +728,7 @@ impl Symmetry {
                                 sigma_symbol,
                                 presym.dist_threshold,
                                 icn_check
-                                    .expect("Expected iCn not found.")
+                                    .ok_or_else(|| format_err!("Expected iCn not found."))?
                                     .contains_time_reversal(),
                             );
                         }
@@ -726,10 +736,10 @@ impl Symmetry {
                         // Cnh, n odd, only σh is present.
                         let sigma_h = self
                             .get_sigma_elements("h")
-                            .expect("No σh found.")
+                            .ok_or_else(|| format_err!("No σh found."))?
                             .into_iter()
                             .next()
-                            .expect("No σh found.")
+                            .ok_or_else(|| format_err!("No σh found."))?
                             .clone();
                         _add_sigmahcn(self, &sigma_h, non_id_c_elements, presym, tr)?;
                     }
@@ -784,7 +794,9 @@ impl Symmetry {
                                 None,
                                 presym.dist_threshold,
                                 inversion_check
-                                    .expect("Expected inversion centre not found.")
+                                    .ok_or_else(|| {
+                                        format_err!("Expected inversion centre not found.")
+                                    })?
                                     .contains_time_reversal(),
                             );
                         }
@@ -854,7 +866,7 @@ fn _add_sigmahcn(
                 sigma_symbol,
                 presym.dist_threshold,
                 sn_check
-                    .expect("Expected Sn axis not found.")
+                    .ok_or_else(|| format_err!("Expected Sn axis not found."))?
                     .contains_time_reversal(),
             );
         } else {
@@ -882,7 +894,7 @@ fn _add_sigmahcn(
                 Some("v".to_owned()),
                 presym.dist_threshold,
                 sigmav_check
-                    .expect("Expected σv not found.")
+                    .ok_or_else(|| format_err!("Expected σv not found."))?
                     .contains_time_reversal(),
             );
         }
