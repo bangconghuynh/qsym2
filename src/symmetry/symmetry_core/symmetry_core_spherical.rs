@@ -207,16 +207,21 @@ impl Symmetry {
                 } else {
                     let mut c2s = self
                         .get_proper(&ORDER_2)
-                        .expect(" No C2 elements found.")
+                        .ok_or_else(|| format_err!("No C2 elements found."))?
                         .into_iter()
                         .take(2)
                         .cloned()
                         .collect_vec()
                         .into_iter();
-                    let normal = c2s.next().expect("No C2 elements found.").raw_axis()
+                    let normal = c2s
+                        .next()
+                        .ok_or_else(|| format_err!("No C2 elements found."))?
+                        .raw_axis()
                         + c2s
                             .next()
-                            .expect("Two C2 elements expected, but only one found.")
+                            .ok_or_else(|| {
+                                format_err!("Two C2 elements expected, but only one found.")
+                            })?
                             .raw_axis();
                     if presym.check_improper(&ORDER_1, &normal, &SIG, tr).is_some() {
                         // σd
@@ -226,7 +231,7 @@ impl Symmetry {
                             let mut axes = vec![];
                             for c2s in self
                                 .get_proper(&ORDER_2)
-                                .expect(" No C2 elements found.")
+                                .ok_or_else(|| format_err!("No C2 elements found."))?
                                 .iter()
                                 .combinations(2)
                             {
@@ -433,7 +438,7 @@ impl Symmetry {
             // Tetrahedral or octahedral, C3 axes are also generators.
             let c3s = self
                 .get_proper(&order_3)
-                .expect(" No C3 elements found.")
+                .ok_or_else(|| format_err!(" No C3 elements found."))?
                 .into_iter()
                 .cloned()
                 .collect_vec();
@@ -499,10 +504,10 @@ impl Symmetry {
             // Add a C4 as a generator
             let c4 = *self
                 .get_proper(&order_4)
-                .expect(" No C4 elements found.")
+                .ok_or_else(|| format_err!(" No C4 elements found."))?
                 .iter()
                 .next()
-                .expect("Expected C4 not found.");
+                .ok_or_else(|| format_err!("Expected C4 not found."))?;
             let c4_axis = c4.raw_axis().clone();
             self.add_proper(
                 order_4,
@@ -571,12 +576,17 @@ impl Symmetry {
         } // end locating C5 axes for I and Ih
 
         // Locating any other improper rotation axes for the non-chinal groups
-        if *self.group_name.as_ref().expect("No point groups found.") == "Td" {
+        if *self
+            .group_name
+            .as_ref()
+            .ok_or_else(|| format_err!("No point groups found."))?
+            == "Td"
+        {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let improper_s4_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&ORDER_2)
-                    .expect("Expected C2 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C2 elements not found."))?
                     .iter()
                     .filter_map(|c2_ele| {
                         presym
@@ -605,11 +615,16 @@ impl Symmetry {
             ensure!(count_s4 == 3, "Unexpected number of S4 axes: {count_s4}.");
         }
         // end locating improper axes for Td
-        else if *self.group_name.as_ref().expect("No point groups found.") == "Th" {
+        else if *self
+            .group_name
+            .as_ref()
+            .ok_or_else(|| format_err!("No point groups found."))?
+            == "Th"
+        {
             // Locating σh
             let sigmah_normals: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&ORDER_2)
-                    .expect("Expected C2 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C2 elements not found."))?
                     .iter()
                     .filter_map(|c2_ele| {
                         presym
@@ -644,7 +659,7 @@ impl Symmetry {
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&order_3)
-                    .expect("Expected C3 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C3 elements not found."))?
                     .iter()
                     .filter_map(|c3_ele| {
                         presym
@@ -673,12 +688,17 @@ impl Symmetry {
             ensure!(count_s6 == 4, "Unexpected number of S6 axes: {count_s6}.");
         }
         // end locating improper axes for Th
-        else if *self.group_name.as_ref().expect("No point groups found.") == "Oh" {
+        else if *self
+            .group_name
+            .as_ref()
+            .ok_or_else(|| format_err!("No point groups found."))?
+            == "Oh"
+        {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let s4_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&ORDER_2)
-                    .expect("Expected C2 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C2 elements not found."))?
                     .iter()
                     .filter_map(|c2_ele| {
                         presym
@@ -736,7 +756,7 @@ impl Symmetry {
             // Locating σd
             let sigmad_normals: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&ORDER_2)
-                    .expect("Expected C2 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C2 elements not found."))?
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym
@@ -778,7 +798,7 @@ impl Symmetry {
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&order_3)
-                    .expect("Expected C3 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C3 elements not found."))?
                     .iter()
                     .filter_map(|c3_ele| {
                         presym
@@ -807,13 +827,18 @@ impl Symmetry {
             ensure!(count_s6 == 4, "Unexpected number of S6 axes: {count_s6}.");
         }
         // end locating improper axes for Oh
-        else if *self.group_name.as_ref().expect("No point groups found.") == "Ih" {
+        else if *self
+            .group_name
+            .as_ref()
+            .ok_or_else(|| format_err!("No point groups found."))?
+            == "Ih"
+        {
             // Locating S10
             let order_5 = ElementOrder::Int(5);
             let order_10 = ElementOrder::Int(10);
             let s10_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&order_5)
-                    .expect("Expected C5 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C5 elements not found."))?
                     .iter()
                     .filter_map(|c5_ele| {
                         presym
@@ -848,7 +873,7 @@ impl Symmetry {
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&order_3)
-                    .expect("Expected C3 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C3 elements not found."))?
                     .iter()
                     .filter_map(|c3_ele| {
                         presym
@@ -879,7 +904,7 @@ impl Symmetry {
             // Locating σ
             let sigma_normals: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&ORDER_2)
-                    .expect("Expected C2 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C2 elements not found."))?
                     .iter()
                     .filter_map(|c2_ele| {
                         presym
