@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
-use std::fs;
 use std::fmt;
+use std::fs;
 use std::process;
 
 use log;
@@ -9,7 +9,7 @@ use num_traits::ToPrimitive;
 
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
 use crate::aux::geometry::{self, ImproperRotationKind, Transform};
-use crate::permutation::{PermutableCollection, Permutation, permute_inplace};
+use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
 
 #[cfg(test)]
 #[path = "sea_tests.rs"]
@@ -124,7 +124,9 @@ impl Molecule {
             .filter(|atom| matches!(atom.kind, AtomKind::Magnetic(_)))
             .cloned()
             .collect();
-        magnetic_atoms_vec.iter_mut().for_each(|atom| atom.threshold = thresh);
+        magnetic_atoms_vec
+            .iter_mut()
+            .for_each(|atom| atom.threshold = thresh);
         let magnetic_atoms = if magnetic_atoms_vec.is_empty() {
             None
         } else {
@@ -136,7 +138,9 @@ impl Molecule {
             .filter(|atom| matches!(atom.kind, AtomKind::Electric(_)))
             .cloned()
             .collect();
-        electric_atoms_vec.iter_mut().for_each(|atom| atom.threshold = thresh);
+        electric_atoms_vec
+            .iter_mut()
+            .for_each(|atom| atom.threshold = thresh);
         let electric_atoms = if electric_atoms_vec.is_empty() {
             None
         } else {
@@ -410,7 +414,10 @@ impl Molecule {
                 }
             }
             equiv_mag_indicess.iter().for_each(|equiv_mag_indices| {
-                let equiv_mag_atoms = equiv_mag_indices.iter().map(|index| magnetic_atoms[*index].clone()).collect();
+                let equiv_mag_atoms = equiv_mag_indices
+                    .iter()
+                    .map(|index| magnetic_atoms[*index].clone())
+                    .collect();
                 sea_groups.push(equiv_mag_atoms);
             });
         }
@@ -505,6 +512,26 @@ impl Molecule {
         } else {
             self.electric_atoms = None;
         }
+    }
+
+    /// Clones this molecule and adjusts all comparison thresholds to that specified by `thresh`.
+    ///
+    /// # Arguments
+    ///
+    /// * `thresh` - The new threshold to be assigned to the cloned molecule.
+    ///
+    /// # Returns
+    ///
+    /// A cloned copy of the molecule wit the adjusted threshold.
+    pub fn adjust_threshold(&self, thresh: f64) -> Self {
+        Self::from_atoms(
+            &self
+                .get_all_atoms()
+                .into_iter()
+                .cloned()
+                .collect::<Vec<_>>(),
+            thresh,
+        )
     }
 }
 

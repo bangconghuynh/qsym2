@@ -1,20 +1,24 @@
 use std::fmt;
 
-use anyhow::format_err;
+use anyhow::{ensure, format_err};
 use derive_builder::Builder;
 use nalgebra::Point3;
 use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
 
-use crate::aux::format::nice_bool;
-use crate::aux::geometry::Transform;
+use crate::aux::format::{nice_bool, write_title};
 use crate::aux::molecule::Molecule;
-use crate::drivers::{QSym2Driver, QSym2Output};
+use crate::aux::geometry::Transform;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
+use crate::drivers::{QSym2Driver, QSym2Output};
 use crate::group::{GroupProperties, UnitaryRepresentedGroup};
 use crate::permutation::{IntoPermutation, Permutation};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
+
+#[cfg(test)]
+#[path = "molecule_symmetrisation_tests.rs"]
+mod molecule_symmetrisation_tests;
 
 // ==================
 // Struct definitions
@@ -52,6 +56,11 @@ impl MoleculeSymmetrisationParams {
 
 impl fmt::Display for MoleculeSymmetrisationParams {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_title(f, "Molecule Symmetrisation")?;
+        writeln!(f, "")?;
+        writeln!(f, "Target MoI threshold: {:.3e}", self.target_moi_threshold)?;
+        writeln!(f, "Target geo threshold: {:.3e}", self.target_distance_threshold)?;
+        writeln!(f, "")?;
         writeln!(
             f,
             "Use magnetic symmetry: {}",
@@ -97,8 +106,6 @@ impl<'a> MoleculeSymmetrisationResult<'a> {
 pub struct MoleculeSymmetrisationDriver<'a> {
     parameters: &'a MoleculeSymmetrisationParams,
 
-    molecule: &'a Molecule,
-
     target_symmetry_result: &'a SymmetryGroupDetectionResult<'a>,
 
     #[builder(default = "None")]
@@ -142,18 +149,28 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
 
     /// Executes symmetry-group detection.
     fn symmetrise_molecule(&mut self) -> Result<(), anyhow::Error> {
+        let params = self.parameters;
+        params.log_output_display();
+
+        let loose_moi_threshold = self.target_symmetry_result.pre_symmetry.moi_threshold;
+        let loose_dist_threshold = self.target_symmetry_result.pre_symmetry.dist_threshold;
+        let tight_moi_threshold = params.target_moi_threshold;
+        let tight_dist_threshold = params.target_distance_threshold;
+
         let mut trial_mol = Molecule::from_atoms(
             &self
-                .molecule
+                .target_symmetry_result
+                .pre_symmetry
+                .recentred_molecule
                 .get_all_atoms()
                 .into_iter()
                 .cloned()
                 .collect::<Vec<_>>(),
-            self.parameters.target_distance_threshold,
+            tight_dist_threshold,
         );
-        trial_mol.recentre_mut();
+        log::info!(target: "output", "Unsymmetrised molecule");
+        trial_mol.log_output_display();
 
-        let target_presym = &self.target_symmetry_result.pre_symmetry;
         let target_sym = if self.parameters.use_magnetic_symmetry {
             self.target_symmetry_result
                 .magnetic_symmetry
@@ -162,36 +179,9 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
         } else {
             &self.target_symmetry_result.unitary_symmetry
         };
-        let target_group = UnitaryRepresentedGroup::from_molecular_symmetry(
-            target_sym,
-            self.parameters.infinite_order_to_finite,
-        );
-        let ts = target_group
-            .elements()
-            .clone()
-            .into_iter()
-            .flat_map(|op| {
-                let tmat = op
-                    .get_3d_spatial_matrix()
-                    .select(Axis(0), &[2, 0, 1])
-                    .select(Axis(1), &[2, 0, 1]);
-
-                // Determine the atom permutation corresponding to `op`. This uses the molecule in
-                // `target_presym`, which should have the right threshold to be compatible with the
-                // symmetry operations generated from `target_sym`.
-                let perm = op.act_permute(&target_presym.recentred_molecule).ok_or_else(|| {
-                    format_err!("Unable to determine the permutation corresponding to `{op}`.")
-                })?;
-                Ok::<_, anyhow::Error>((tmat, perm))
-            })
-            .collect::<Vec<(Array2<f64>, Permutation<usize>)>>();
-        let order_f64 = target_group
-            .order()
-            .to_f64()
-            .ok_or_else(|| format_err!("Unable to convert the group order to `f64`."))?;
 
         let mut trial_presym = PreSymmetry::builder()
-            .moi_threshold(self.parameters.target_moi_threshold)
+            .moi_threshold(tight_moi_threshold)
             .molecule(&trial_mol)
             .build()
             .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
@@ -201,9 +191,36 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
         let mut symmetrisation_count = 0;
         while symmetrisation_count == 0
             || (trial_sym.group_name != target_sym.group_name
-                && symmetrisation_count <= self.parameters.max_iterations)
+                && symmetrisation_count < self.parameters.max_iterations)
         {
             symmetrisation_count += 1;
+
+            // Re-locate the symmetry elements of the target symmetry group using the trial
+            // molecule since the symmeteisation process might move the symmetry elements slightly.
+            let high_trial_mol = trial_mol.adjust_threshold(loose_dist_threshold);
+            let high_presym = PreSymmetry::builder()
+                .moi_threshold(loose_moi_threshold)
+                .molecule(&high_trial_mol)
+                .build()
+                .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
+            let mut high_sym = Symmetry::new();
+            let high_res = high_sym.analyse(&high_presym, self.parameters.use_magnetic_symmetry);
+            ensure!(
+                high_sym.group_name == target_sym.group_name,
+                "Inconsistent target symmetry group -- the target symmetry group is {}, but the symmetry group of the trial molecule at the same thresholds is {}.",
+                target_sym.group_name.as_ref().expect("Target symmetry group name not found."),
+                high_sym.group_name.as_ref().expect("Trial symmetry group name not found.")
+            );
+
+            let high_group = UnitaryRepresentedGroup::from_molecular_symmetry(
+                &high_sym,
+                self.parameters.infinite_order_to_finite,
+            );
+            let order_f64 = high_group
+                .order()
+                .to_f64()
+                .ok_or_else(|| format_err!("Unable to convert the group order to `f64`."))?;
+
             let trial_coords = Array2::from_shape_vec(
                 (trial_mol.atoms.len(), 3),
                 trial_mol
@@ -212,6 +229,28 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                     .flat_map(|atom| atom.coordinates.coords.iter().cloned())
                     .collect::<Vec<_>>(),
             )?;
+
+            let ts = high_group
+                .elements()
+                .clone()
+                .into_iter()
+                .flat_map(|op| {
+                    let tmat = op
+                        .get_3d_spatial_matrix()
+                        .select(Axis(0), &[2, 0, 1])
+                        .select(Axis(1), &[2, 0, 1])
+                        .reversed_axes();
+
+                    let perm = op
+                        .act_permute(&high_trial_mol)
+                        .ok_or_else(|| {
+                            format_err!(
+                                "Unable to determine the permutation corresponding to `{op}`."
+                            )
+                        })?;
+                    Ok::<_, anyhow::Error>((tmat, perm))
+                })
+                .collect::<Vec<(Array2<f64>, Permutation<usize>)>>();
             let ave_coords = ts.iter().fold(
                 Array2::<f64>::zeros(trial_coords.raw_dim()),
                 |acc, (tmat, perm)| {
@@ -234,17 +273,28 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                             .expect("Unable to convert a row of averaged coordinates to a slice."),
                     )
                 });
+            log::info!(target: "output", "Molecule is now:");
+            trial_mol.log_output_display();
             trial_presym = PreSymmetry::builder()
                 .moi_threshold(self.parameters.target_moi_threshold)
                 .molecule(&trial_mol)
                 .build()
                 .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
             trial_sym = Symmetry::new();
-            trial_sym.analyse(&trial_presym, self.parameters.use_magnetic_symmetry)?;
+            let res = trial_sym.analyse(&trial_presym, self.parameters.use_magnetic_symmetry);
         }
         if trial_sym.group_name != target_sym.group_name {
-            Err(format_err!("Molecule symmetrisation has failed after {symmetrisation_count} iterations."))
+            log::error!(
+                "Molecule symmetrisation has failed after {symmetrisation_count} iterations.",
+            );
+            Err(format_err!(
+                "Molecule symmetrisation has failed after {symmetrisation_count} iterations."
+            ))
         } else {
+            log::info!(
+                target: "output",
+                "Molecule symmetrisation has completed after {symmetrisation_count} iterations.",
+            );
             log::info!(target: "output", "Symmetrised molecule");
             trial_mol.log_output_display();
             Ok(())

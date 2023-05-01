@@ -66,12 +66,12 @@ impl SymmetryGroupDetectionParams {
 }
 
 impl SymmetryGroupDetectionParamsBuilder {
-    fn moi_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
+    pub fn moi_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
         self.moi_thresholds = Some(threshs.to_vec());
         self
     }
 
-    fn distance_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
+    pub fn distance_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
         self.distance_thresholds = Some(threshs.to_vec());
         self
     }
