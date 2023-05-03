@@ -319,7 +319,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 })
                 .collect::<Vec<(Array2<f64>, Permutation<usize>)>>();
 
-            // Apply the totally-symmetric projection operator
+            // Apply the totally-symmetric projection operator to ordinary atoms
             let trial_coords = Array2::from_shape_vec(
                 (trial_mol.atoms.len(), 3),
                 trial_mol
@@ -334,6 +334,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                     // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
                     // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
                     // go back to approximately where they were originally.
+                    println!("{perm}");
                     acc + trial_coords.dot(tmat).select(Axis(0), perm.image())
                 },
             ) / order_f64;

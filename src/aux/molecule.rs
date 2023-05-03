@@ -155,6 +155,27 @@ impl Molecule {
         }
     }
 
+    #[must_use]
+    pub fn molecule_ordinary_atoms(&self) -> Self {
+        Self::from_atoms(&self.atoms, self.threshold)
+    }
+
+    #[must_use]
+    pub fn molecule_magnetic_atoms(&self) -> Option<Self> {
+        Some(Self::from_atoms(
+            self.magnetic_atoms.as_ref()?,
+            self.threshold,
+        ))
+    }
+
+    #[must_use]
+    pub fn molecule_electric_atoms(&self) -> Option<Self> {
+        Some(Self::from_atoms(
+            self.electric_atoms.as_ref()?,
+            self.threshold,
+        ))
+    }
+
     /// Retrieves a vector of references to all atoms in this molecule,
     /// including special ones, if any.
     ///
@@ -174,6 +195,31 @@ impl Molecule {
         }
         if let Some(electric_atoms) = &self.electric_atoms {
             for electric_atom in electric_atoms.iter() {
+                atoms.push(electric_atom);
+            }
+        }
+        atoms
+    }
+
+    /// Retrieves a vector of mutable references to all atoms in this molecule,
+    /// including special ones, if any.
+    ///
+    /// # Returns
+    ///
+    /// All atoms in this molecule.
+    #[must_use]
+    pub fn get_all_atoms_mut(&mut self) -> Vec<&mut Atom> {
+        let mut atoms: Vec<&mut Atom> = vec![];
+        for atom in self.atoms.iter_mut() {
+            atoms.push(atom);
+        }
+        if let Some(magnetic_atoms) = self.magnetic_atoms.as_mut() {
+            for magnetic_atom in magnetic_atoms.iter_mut() {
+                atoms.push(magnetic_atom);
+            }
+        }
+        if let Some(electric_atoms) = self.electric_atoms.as_mut() {
+            for electric_atom in electric_atoms.iter_mut() {
                 atoms.push(electric_atom);
             }
         }
@@ -828,8 +874,8 @@ impl PartialEq for Molecule {
 impl PermutableCollection for Molecule {
     type Rank = usize;
 
-    /// Determines the permutation of *ordinary* atoms to map `self` to `other`. Special fictitious
-    /// atoms are not included.
+    /// Determines the permutation of *all* atoms to map `self` to `other`. Special fictitious
+    /// atoms are included after ordinary atoms, with magnetic atoms before electric atoms.
     ///
     /// # Arguments
     ///
@@ -837,20 +883,24 @@ impl PermutableCollection for Molecule {
     ///
     /// # Returns
     ///
-    /// Returns a permutation that permutes the *ordinary* atoms of `self` to give `other`, or
-    /// `None` if no such permutation exists.
+    /// Returns a permutation that permutes *all* atoms of `self` to give `other`, or `None` if no
+    /// such permutation exists.
     fn get_perm_of(&self, other: &Self) -> Option<Permutation<Self::Rank>> {
         let self_recentred = self.recentre();
         let other_recentred = other.recentre();
         let o_atoms: HashMap<Atom, usize> = other_recentred
             .atoms
             .into_iter()
+            .chain(other_recentred.magnetic_atoms.unwrap_or_default().into_iter())
+            .chain(other_recentred.electric_atoms.unwrap_or_default().into_iter())
             .enumerate()
             .map(|(i, atom)| (atom, i))
             .collect();
         let image_opt: Option<Vec<Self::Rank>> = self_recentred
             .atoms
             .iter()
+            .chain(self_recentred.magnetic_atoms.unwrap_or_default().iter())
+            .chain(self_recentred.electric_atoms.unwrap_or_default().iter())
             .map(|s_atom| {
                 o_atoms
                     .get(s_atom)
@@ -874,8 +924,8 @@ impl PermutableCollection for Molecule {
         image_opt.map(|image| Permutation::from_image(image))
     }
 
-    /// Permutes the ordinary atoms in this molecule and places them in a new molecule to be
-    /// returned.
+    /// Permutes *all* atoms in this molecule (including special fictitious atoms) and places them
+    /// in a new molecule to be returned.
     ///
     /// # Arguments
     ///
@@ -883,18 +933,20 @@ impl PermutableCollection for Molecule {
     ///
     /// # Returns
     ///
-    /// A new molecule with the permuted ordinary atoms.
+    /// A new molecule with the permuted atoms.
     ///
     /// # Panics
     ///
-    /// Panics if the rank of `perm` does not match the number of atoms in this molecule.
+    /// Panics if the rank of `perm` does not match the number of atoms in this molecule, or if the
+    /// permutation results in atoms of different kind (*e.g.* ordinary and magnetic) are permuted
+    /// into each other.
     fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
         let mut p_mol = self.clone();
         p_mol.permute_mut(perm);
         p_mol
     }
 
-    /// Permutes in-place the ordinary atoms in this molecule.
+    /// Permutes in-place *all* atoms in this molecule (including special fictitious atoms).
     ///
     /// The in-place rearrangement implementation is taken from
     /// [here](https://stackoverflow.com/a/69774341/5112668).
@@ -905,8 +957,37 @@ impl PermutableCollection for Molecule {
     ///
     /// # Panics
     ///
-    /// Panics if the rank of `perm` does not match the number of atoms in this molecule.
+    /// Panics if the rank of `perm` does not match the number of atoms in this molecule, or if the
+    /// permutation results in atoms of different kind (*e.g.* ordinary and magnetic) are permuted
+    /// into each other.
     fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
-        permute_inplace(&mut self.atoms, perm);
+        let n_ordinary = self.atoms.len();
+        let perm_ordinary = Permutation::from_image(perm.image()[0..n_ordinary].to_vec());
+        permute_inplace(&mut self.atoms, &perm_ordinary);
+
+        let n_last = if let Some(mag_atoms) = self.magnetic_atoms.as_mut() {
+            let n_magnetic = mag_atoms.len();
+            let perm_magnetic = Permutation::from_image(
+                perm.image()[n_ordinary..(n_ordinary + n_magnetic)]
+                    .iter()
+                    .map(|x| x - n_ordinary)
+                    .collect::<Vec<_>>(),
+            );
+            permute_inplace(mag_atoms, &perm_magnetic);
+            n_ordinary + n_magnetic
+        } else {
+            n_ordinary
+        };
+
+        if let Some(elec_atoms) = self.electric_atoms.as_mut() {
+            let n_electric = elec_atoms.len();
+            let perm_electric = Permutation::from_image(
+                perm.image()[n_last..(n_last + n_electric)]
+                    .iter()
+                    .map(|x| x - n_last)
+                    .collect::<Vec<_>>(),
+            );
+            permute_inplace(elec_atoms, &perm_electric);
+        }
     }
 }
