@@ -52,6 +52,12 @@ pub struct SymmetryGroupDetectionParams {
     #[builder(default = "None")]
     fictitious_electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
+    /// Boolean indicating if the origins specified in [`Self::fictitious_magnetic_fields`] and
+    /// [`Self::fictitious_electric_fields`] are to be taken relative to the molecule's centre of
+    /// mass rather than to the space-fixed origin.
+    #[builder(default = "false")]
+    fictitious_origin_com: bool,
+
     /// Boolean indicating if a summary of the located symmetry elements is to be written to the
     /// output file.
     #[builder(default = "false")]
@@ -109,6 +115,20 @@ impl fmt::Display for SymmetryGroupDetectionParams {
                     .join(", ")
             )?;
             writeln!(f, "")?;
+        }
+
+        if self.fictitious_magnetic_fields.is_some() || self.fictitious_electric_fields.is_some() {
+            if self.fictitious_origin_com {
+                writeln!(
+                    f,
+                    "Fictitious field origins relative to: molecule's centre of mass"
+                )?;
+            } else {
+                writeln!(
+                    f,
+                    "Fictitious field origins relative to: space-fixed origin"
+                )?;
+            }
         }
 
         if let Some(fictitious_magnetic_fields) = self.fictitious_magnetic_fields.as_ref() {
@@ -354,16 +374,21 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             };
 
             // Add any fictitious magnetic fields
+            let global_origin = if params.fictitious_origin_com {
+                mol.calc_com() - Point3::origin()
+            } else {
+                Vector3::zeros()
+            };
             if let Some(fictitious_magnetic_fields) = params.fictitious_magnetic_fields.as_ref() {
                 if let Some(_) = mol.magnetic_atoms {
                     bail!("Cannot set fictitious magnetic fields in the presence of actual magnetic fields.")
                 } else {
                     let fictitious_magnetic_atoms = fictitious_magnetic_fields.iter().flat_map(|(origin, vec)| {
                         Ok::<[Atom; 2], anyhow::Error>([
-                            Atom::new_special(AtomKind::Magnetic(true), origin + vec, *dist_thresh).ok_or_else(||
+                            Atom::new_special(AtomKind::Magnetic(true), origin + global_origin + vec, *dist_thresh).ok_or_else(||
                                 format_err!("Cannot construct a fictitious magnetic atom.")
                             )?,
-                            Atom::new_special(AtomKind::Magnetic(false), origin - vec, *dist_thresh).ok_or_else(||
+                            Atom::new_special(AtomKind::Magnetic(false), origin + global_origin - vec, *dist_thresh).ok_or_else(||
                                 format_err!("Cannot construct a fictitious magnetic atom.".to_string())
                             )?,
                         ])
@@ -379,7 +404,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                 } else {
                     let fictitious_electric_atoms = fictitious_electric_fields.iter().flat_map(|(origin, vec)| {
                         Ok::<Atom, anyhow::Error>(
-                            Atom::new_special(AtomKind::Electric(true), origin + vec, *dist_thresh).ok_or_else(||
+                            Atom::new_special(AtomKind::Electric(true), origin + global_origin + vec, *dist_thresh).ok_or_else(||
                                 format_err!("Cannot construct a fictitious electric atom.")
                             )?
                         )

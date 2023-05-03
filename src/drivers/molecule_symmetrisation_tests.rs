@@ -20,7 +20,9 @@ fn test_drivers_molecule_symmetrisation_vf6() {
     let pd_params = SymmetryGroupDetectionParams::builder()
         .moi_thresholds(&[1e-2, 1e-3, 1e-4])
         .distance_thresholds(&[1e-2, 1e-3, 1e-4])
-        .time_reversal(false)
+        .fictitious_magnetic_fields(Some(vec![(Point3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 1.0, 1.0))]))
+        .fictitious_origin_com(true)
+        .time_reversal(true)
         .write_symmetry_elements(true)
         .build()
         .unwrap();
@@ -36,7 +38,8 @@ fn test_drivers_molecule_symmetrisation_vf6() {
         .use_magnetic_symmetry(false)
         .target_moi_threshold(1e-8)
         .target_distance_threshold(1e-8)
-        .max_iterations(5)
+        .max_iterations(100)
+        .verbose(2)
         .build()
         .unwrap();
     let mut ms_driver = MoleculeSymmetrisationDriver::builder()
