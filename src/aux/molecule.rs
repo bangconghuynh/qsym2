@@ -533,6 +533,69 @@ impl Molecule {
             thresh,
         )
     }
+
+    /// Reorientates the molecule in-place into a canonical alignment with the space-fixed axes of
+    /// the coordinate system.
+    ///
+    /// Fictitious special atoms are also moved during the reorientation.
+    ///
+    /// If the molecule has a unique principal axis, then this axis becomes aligned with the
+    /// $`z`$-axis and the other two degenerate axes become aligned with the $`x`$- and $`y`$-axes
+    /// of the coordinate system. If the molecule has no unique principal axes, then the axes are
+    /// aligned with $`x`$-, $`y`$-,  and $`z`$-axes in ascending order of moments of inertia.
+    ///
+    /// # Arguments
+    ///
+    /// * `moi_thresh` - Threshold for comparing moments of inertia.
+    pub fn reorientate_mut(&mut self, moi_thresh: f64) {
+        let (moi, principal_axes) = self.calc_moi();
+        let rotmat = if approx::relative_ne!(
+            moi[0],
+            moi[1],
+            max_relative = moi_thresh,
+            epsilon = moi_thresh
+        ) && approx::relative_eq!(
+            moi[1],
+            moi[2],
+            max_relative = moi_thresh,
+            epsilon = moi_thresh
+        ) {
+            // principal_axes[0] is unique.
+            Matrix3::from_columns(&[principal_axes[1], principal_axes[2], principal_axes[0]])
+                .transpose()
+        } else {
+            // principal_axes[2] is unique, or no unique axis, or isotropic.
+            Matrix3::from_columns(&[principal_axes[0], principal_axes[1], principal_axes[2]])
+                .transpose()
+        };
+        let com = self.calc_com();
+        self.recentre_mut();
+        self.transform_mut(&rotmat);
+        self.translate_mut(&(com - Point3::origin()));
+    }
+
+    /// Clones and reorientates the molecule into a canonical alignment with the space-fixed axes
+    /// of the coordinate system.
+    ///
+    /// Fictitious special atoms are also moved during the reorientation.
+    ///
+    /// If the molecule has a unique principal axis, then this axis becomes aligned with the
+    /// $`z`$-axis and the other two degenerate axes become aligned with the $`x`$- and $`y`$-axes
+    /// of the coordinate system. If the molecule has no unique principal axes, then the axes are
+    /// aligned with $`x`$-, $`y`$-,  and $`z`$-axes in ascending order of moments of inertia.
+    ///
+    /// # Arguments
+    ///
+    /// * `moi_thresh` - Threshold for comparing moments of inertia.
+    ///
+    /// # Returns
+    ///
+    /// A reoriented copy of the molecule.
+    pub fn reorientate(&self, moi_thresh: f64) -> Self {
+        let mut reoriented_mol = self.clone();
+        reoriented_mol.reorientate_mut(moi_thresh);
+        reoriented_mol
+    }
 }
 
 // =====================
