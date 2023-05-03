@@ -177,8 +177,8 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 .collect::<Vec<_>>(),
             tight_dist_threshold,
         );
-        let target_uni_sym = &self.target_symmetry_result.unitary_symmetry;
-        let target_mag_sym = &self.target_symmetry_result.magnetic_symmetry.as_ref();
+        let target_unisym = &self.target_symmetry_result.unitary_symmetry;
+        let target_magsym = &self.target_symmetry_result.magnetic_symmetry.as_ref();
         // let target_sym = if self.parameters.use_magnetic_symmetry {
         //     self.target_symmetry_result
         //         .magnetic_symmetry
@@ -190,8 +190,17 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
 
         log::info!(
             target: "output",
-            "Target symmetry group: {}",
-            target_sym.group_name.as_ref().unwrap_or(&"--".to_string()),
+            "Target mag. group: {}",
+            target_magsym
+                .as_ref()
+                .map(|magsym| magsym.group_name.as_ref())
+                .unwrap_or(None)
+                .unwrap_or(&"--".to_string()),
+        );
+        log::info!(
+            target: "output",
+            "Target uni. group: {}",
+            target_unisym.group_name.as_ref().unwrap_or(&"--".to_string()),
         );
         log::info!(
             target: "output",
@@ -219,8 +228,9 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             .molecule(&trial_mol)
             .build()
             .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
-        let mut trial_sym = Symmetry::new();
-        trial_sym.analyse(&trial_presym, self.parameters.use_magnetic_symmetry)?;
+        let mut trial_magsym = target_magsym.map(|_| Symmetry::new());
+        let mut trial_unisym = Symmetry::new();
+        trial_unisym.analyse(&trial_presym, false)?;
 
         log_subtitle("Iterative molecule symmetrisation");
         log::info!(target: "output", "");
@@ -230,20 +240,27 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 params.max_iterations.ilog10() + 2
             )
         })?;
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 42));
+        log::info!(target: "output", "{}", "┈".repeat(count_length + 55));
         log::info!(
             target: "output",
-            "{:>count_length$} {:>12} {:>12} {:>14}",
+            "{:>count_length$} {:>12} {:>12} {:>14} {:>12}",
             "#",
             "MoI thresh",
             "Geo thresh",
-            "Sym. group",
+            "Mag. group",
+            "Uni. group",
         );
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 42));
+        log::info!(target: "output", "{}", "┈".repeat(count_length + 55));
 
         let mut symmetrisation_count = 0;
+        let mut unisym_check = trial_unisym.group_name == target_unisym.group_name;
+        let mut magsym_check = match (trial_magsym.as_ref(), target_magsym) {
+            (Some(tri_magsym), Some(tar_magsym)) => tri_magsym.group_name == tar_magsym.group_name,
+            _ => true,
+        };
+
         while symmetrisation_count == 0
-            || (trial_sym.group_name != target_sym.group_name
+            || (!(unisym_check && magsym_check)
                 && symmetrisation_count < self.parameters.max_iterations)
         {
             symmetrisation_count += 1;
@@ -258,12 +275,21 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
             let mut high_sym = Symmetry::new();
             let _high_res = high_sym.analyse(&high_presym, self.parameters.use_magnetic_symmetry);
-            ensure!(
-                high_sym.group_name == target_sym.group_name,
-                "Inconsistent target symmetry group -- the target symmetry group is {}, but the symmetry group of the trial molecule at the same thresholds is {}.",
-                target_sym.group_name.as_ref().expect("Target symmetry group name not found."),
-                high_sym.group_name.as_ref().expect("Trial symmetry group name not found.")
-            );
+            if self.parameters.use_magnetic_symmetry {
+                ensure!(
+                    high_sym.group_name.as_ref() == target_magsym.map(|magsym| magsym.group_name.as_ref()).unwrap_or(None),
+                    "Inconsistent target magnetic group -- the target magnetic group is {}, but the magnetic group of the trial molecule at the same thresholds is {}.",
+                    target_magsym.map(|magsym| magsym.group_name.as_ref()).unwrap_or(None).unwrap_or(&"--".to_string()),
+                    high_sym.group_name.as_ref().unwrap_or(&"--".to_string())
+                );
+            } else {
+                ensure!(
+                    high_sym.group_name == target_unisym.group_name,
+                    "Inconsistent target unitary group -- the target unitary group is {}, but the unitary group of the trial molecule at the same thresholds is {}.",
+                    target_unisym.group_name.as_ref().unwrap_or(&"--".to_string()),
+                    high_sym.group_name.as_ref().unwrap_or(&"--".to_string())
+                );
+            }
 
             let high_group = UnitaryRepresentedGroup::from_molecular_symmetry(
                 &high_sym,
@@ -330,23 +356,50 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 .molecule(&trial_mol)
                 .build()
                 .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
-            trial_sym = Symmetry::new();
-            let _res = trial_sym.analyse(&trial_presym, self.parameters.use_magnetic_symmetry);
+            trial_unisym = Symmetry::new();
+            let _unires = trial_unisym.analyse(&trial_presym, false);
+            trial_magsym.as_mut().and_then(|tri_magsym| {
+                *tri_magsym = Symmetry::new();
+                let _magres = tri_magsym.analyse(&trial_presym, true);
+                Some(tri_magsym)
+            });
+
+            unisym_check = trial_unisym.group_name == target_unisym.group_name;
+            magsym_check = match (trial_magsym.as_ref(), target_magsym) {
+                (Some(tri_magsym), Some(tar_magsym)) => {
+                    tri_magsym.group_name == tar_magsym.group_name
+                }
+                _ => true,
+            };
+
             log::info!(
                 target: "output",
-                "{:>count_length$} {:>12.3e} {:>12.3e} {:>14}",
+                "{:>count_length$} {:>12.3e} {:>12.3e} {:>14} {:>12}",
                 symmetrisation_count,
                 tight_moi_threshold,
                 tight_dist_threshold,
-                trial_sym.group_name.as_ref().unwrap_or(&"--".to_string()),
+                trial_magsym.as_ref().map(|magsym| magsym.group_name.as_ref()).unwrap_or(None).unwrap_or(&"--".to_string()),
+                trial_unisym.group_name.as_ref().unwrap_or(&"--".to_string()),
             );
         }
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 42));
+        log::info!(target: "output", "{}", "┈".repeat(count_length + 55));
         log::info!(target: "output", "");
 
-        if trial_sym.group_name != target_sym.group_name {
+        if unisym_check && magsym_check {
+            log::info!(
+                target: "output",
+                "Molecule symmetrisation has completed after {symmetrisation_count} {}.",
+                if symmetrisation_count != 1 { "iterations" } else { "iteration" }
+            );
+            log::info!(target: "output", "");
+            log::info!(target: "output", "Symmetrised molecule");
+            trial_mol.log_output_display();
+            log::info!(target: "output", "");
+            Ok(())
+        } else {
             log::error!(
-                "Molecule symmetrisation has failed after {symmetrisation_count} iterations.",
+                "Molecule symmetrisation has failed after {symmetrisation_count} {}.",
+                if symmetrisation_count != 1 { "iterations" } else { "iteration" }
             );
             log::info!(target: "output", "");
             if params.verbose >= 1 {
@@ -355,18 +408,9 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 log::info!(target: "output", "");
             }
             Err(format_err!(
-                "Molecule symmetrisation has failed after {symmetrisation_count} iterations."
+                "Molecule symmetrisation has failed after {symmetrisation_count} {}.",
+                if symmetrisation_count != 1 { "iterations" } else { "iteration" }
             ))
-        } else {
-            log::info!(
-                target: "output",
-                "Molecule symmetrisation has completed after {symmetrisation_count} iterations.",
-            );
-            log::info!(target: "output", "");
-            log::info!(target: "output", "Symmetrised molecule");
-            trial_mol.log_output_display();
-            log::info!(target: "output", "");
-            Ok(())
         }
     }
 }

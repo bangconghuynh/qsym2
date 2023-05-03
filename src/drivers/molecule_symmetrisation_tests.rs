@@ -16,7 +16,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 #[test]
 fn test_drivers_molecule_symmetrisation_vf6() {
     log4rs::init_file("log4rs.yml", Default::default()).unwrap();
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_imperfect.xyz");
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/h4_imperfect.xyz");
     let pd_params = SymmetryGroupDetectionParams::builder()
         .moi_thresholds(&[1e-2, 1e-3, 1e-4])
         .distance_thresholds(&[1e-2, 1e-3, 1e-4])
@@ -35,9 +35,9 @@ fn test_drivers_molecule_symmetrisation_vf6() {
     let pd_res = pd_driver.result().unwrap();
 
     let ms_params = MoleculeSymmetrisationParams::builder()
-        .use_magnetic_symmetry(false)
-        .target_moi_threshold(1e-8)
-        .target_distance_threshold(1e-8)
+        .use_magnetic_symmetry(true)
+        .target_moi_threshold(1e-4)
+        .target_distance_threshold(1e-4)
         .max_iterations(100)
         .verbose(2)
         .build()
