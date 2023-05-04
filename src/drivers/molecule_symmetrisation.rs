@@ -30,13 +30,20 @@ mod molecule_symmetrisation_tests;
 /// A structure containing control parameters for symmetry-group detection.
 #[derive(Clone, Builder, Debug)]
 pub struct MoleculeSymmetrisationParams {
-    /// Boolean indicating if any available magnetic symmetry should be used for symmetrisation.
+    /// Boolean indicating if any available magnetic group should be used for symmetrisation
+    /// instead of the unitary group.
     use_magnetic_group: bool,
 
+    /// The target moment-of-inertia threshold for the symmetrisation, *i.e.* the symmetrised
+    /// molecule will have the target symmetry group at this target moment-of-inertia threshold.
     target_moi_threshold: f64,
 
+    /// The target distance threshold for the symmetrisation, *i.e.* the symmetrised molecule will
+    /// have the target symmetry group at this target distance threshold.
     target_distance_threshold: f64,
 
+    /// Boolean indicating if the symmetrised molecule is also reoriented to align its principal
+    /// axes with the space-fixed Cartesian axes.
     reorientate_molecule: bool,
 
     /// The maximum number of symmetrisation iterations.
@@ -71,8 +78,15 @@ impl fmt::Display for MoleculeSymmetrisationParams {
         writeln!(
             f,
             "Group used for symmetrisation: {}",
-            if self.use_magnetic_group { "magnetic group" } else { "unitary group" }
+            if self.use_magnetic_group {
+                "magnetic group"
+            } else {
+                "unitary group"
+            }
         )?;
+        if let Some(finite_order) = self.infinite_order_to_finite {
+            writeln!(f, "Infinite order to finite: {finite_order}")?;
+        }
         writeln!(
             f,
             "Maximum symmetrisation iterations: {}",
