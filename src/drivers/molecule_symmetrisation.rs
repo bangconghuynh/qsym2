@@ -32,9 +32,8 @@ mod molecule_symmetrisation_tests;
 /// A structure containing control parameters for symmetry-group detection.
 #[derive(Clone, Builder, Debug)]
 pub struct MoleculeSymmetrisationParams {
-    /// Boolean indicating if a summetry of the located symmetry elements is to be written to the
-    /// output file.
-    use_magnetic_symmetry: bool,
+    /// Boolean indicating if any available magnetic symmetry should be used for symmetrisation.
+    use_magnetic_group: bool,
 
     target_moi_threshold: f64,
 
@@ -71,8 +70,8 @@ impl fmt::Display for MoleculeSymmetrisationParams {
         writeln!(f, "")?;
         writeln!(
             f,
-            "Use magnetic symmetry: {}",
-            nice_bool(self.use_magnetic_symmetry)
+            "Use magnetic group for symmetrisation: {}",
+            nice_bool(self.use_magnetic_group)
         )?;
         writeln!(
             f,
@@ -129,7 +128,7 @@ impl<'a> MoleculeSymmetrisationDriverBuilder<'a> {
         let sym_res = self
             .target_symmetry_result
             .ok_or("No target symmetry group result for symmetrisation found.".to_string())?;
-        let sym = if params.use_magnetic_symmetry {
+        let sym = if params.use_magnetic_group {
             sym_res
                 .magnetic_symmetry
                 .as_ref()
@@ -166,27 +165,13 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
         let tight_moi_threshold = params.target_moi_threshold;
         let tight_dist_threshold = params.target_distance_threshold;
 
-        let mut trial_mol = Molecule::from_atoms(
-            &self
-                .target_symmetry_result
-                .pre_symmetry
-                .recentred_molecule
-                .get_all_atoms()
-                .into_iter()
-                .cloned()
-                .collect::<Vec<_>>(),
-            tight_dist_threshold,
-        );
+        let mut trial_mol = self
+            .target_symmetry_result
+            .pre_symmetry
+            .recentred_molecule
+            .adjust_threshold(tight_dist_threshold);
         let target_unisym = &self.target_symmetry_result.unitary_symmetry;
         let target_magsym = &self.target_symmetry_result.magnetic_symmetry.as_ref();
-        // let target_sym = if self.parameters.use_magnetic_symmetry {
-        //     self.target_symmetry_result
-        //         .magnetic_symmetry
-        //         .as_ref()
-        //         .ok_or_else(|| format_err!("Magnetic symmetry requested as symmetrisation target, but no magnetic symmetry found."))?
-        // } else {
-        //     &self.target_symmetry_result.unitary_symmetry
-        // };
 
         log::info!(
             target: "output",
@@ -218,7 +203,16 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
         );
 
         if params.verbose >= 1 {
-            log::info!(target: "output", "Unsymmetrised molecule:");
+            let orig_mol = self
+                .target_symmetry_result
+                .pre_symmetry
+                .original_molecule
+                .adjust_threshold(tight_dist_threshold);
+            log::info!(target: "output", "Unsymmetrised original molecule:");
+            orig_mol.log_output_display();
+            log::info!(target: "output", "");
+
+            log::info!(target: "output", "Unsymmetrised recentred molecule:");
             trial_mol.log_output_display();
             log::info!(target: "output", "");
         }
@@ -274,8 +268,8 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 .build()
                 .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
             let mut high_sym = Symmetry::new();
-            let _high_res = high_sym.analyse(&high_presym, self.parameters.use_magnetic_symmetry);
-            if self.parameters.use_magnetic_symmetry {
+            let _high_res = high_sym.analyse(&high_presym, self.parameters.use_magnetic_group);
+            if self.parameters.use_magnetic_group {
                 ensure!(
                     high_sym.group_name.as_ref() == target_magsym.map(|magsym| magsym.group_name.as_ref()).unwrap_or(None),
                     "Inconsistent target magnetic group -- the target magnetic group is {}, but the magnetic group of the trial molecule at the same thresholds is {}.",
@@ -300,7 +294,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 .to_f64()
                 .ok_or_else(|| format_err!("Unable to convert the group order to `f64`."))?;
 
-            // Generate transformation matrix and ordinary-atom permutation for each operation
+            // Generate transformation matrix and atom permutations for each operation
             let ts = high_group
                 .elements()
                 .clone()
@@ -319,15 +313,15 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                                 "Unable to determine the ordinary-atom permutation corresponding to `{op}`."
                             )
                         })?;
-                    let mag_perm =
-                        if let Some(high_trial_mag_mol) = high_trial_mol.molecule_magnetic_atoms() {
-                        op.act_permute(&high_trial_mag_mol)
-                    } else { None };
-                    let elec_perm =
-                        if let Some(high_trial_elec_mol) = high_trial_mol.molecule_electric_atoms() {
-                        op.act_permute(&high_trial_elec_mol)
-                    } else { None };
-                    Ok::<_, anyhow::Error>((tmat, ord_perm, mag_perm, elec_perm))
+                    let mag_perm_opt = high_trial_mol
+                        .molecule_magnetic_atoms()
+                        .as_ref()
+                        .and_then(|high_trial_mag_mol| op.act_permute(high_trial_mag_mol));
+                    let elec_perm_opt = high_trial_mol
+                        .molecule_electric_atoms()
+                        .as_ref()
+                        .and_then(|high_trial_elec_mol| op.act_permute(high_trial_elec_mol));
+                    Ok::<_, anyhow::Error>((tmat, ord_perm, mag_perm_opt, elec_perm_opt))
                 })
                 .collect::<Vec<_>>();
 
@@ -362,7 +356,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                     )
                 });
 
-            // Apply the totally-symmetric projection operator to the magnetic atoms
+            // Apply the totally-symmetric projection operator to the magnetic atoms, if any
             if let Some(mag_atoms) = trial_mol.magnetic_atoms.as_mut() {
                 let trial_mag_coords = Array2::from_shape_vec(
                     (mag_atoms.len(), 3),
@@ -372,28 +366,71 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                         .collect::<Vec<_>>(),
                 )?;
                 let ave_mag_coords = ts.iter().fold(
-                    Array2::<f64>::zeros(trial_mag_coords.raw_dim()),
-                    |acc, (tmat, _, mag_perm_opt, _)| {
+                    Ok(Array2::<f64>::zeros(trial_mag_coords.raw_dim())),
+                    |acc: Result<Array2<f64>, anyhow::Error>, (tmat, _, mag_perm_opt, _)| {
                         // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
                         // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
                         // go back to approximately where they were originally.
-                        acc + trial_mag_coords
-                            .dot(tmat)
-                            .select(Axis(0), mag_perm_opt.as_ref().unwrap().image())
-                    },
-                ) / order_f64;
-                mag_atoms
-                    .iter_mut()
-                    .enumerate()
-                    .for_each(|(i, atom)| {
-                        atom.coordinates =
-                            Point3::<f64>::from_slice(ave_mag_coords.row(i).as_slice().expect(
-                                "Unable to convert a row of averaged coordinates to a slice.",
+                        Ok(acc?
+                            + trial_mag_coords.dot(tmat).select(
+                                Axis(0),
+                                mag_perm_opt
+                                    .as_ref()
+                                    .ok_or_else(|| {
+                                        format_err!("Expected magnetic atom permutation not found.")
+                                    })?
+                                    .image(),
                             ))
-                    });
+                    },
+                )? / order_f64;
+                mag_atoms.iter_mut().enumerate().for_each(|(i, atom)| {
+                    atom.coordinates = Point3::<f64>::from_slice(
+                        ave_mag_coords
+                            .row(i)
+                            .as_slice()
+                            .expect("Unable to convert a row of averaged coordinates to a slice."),
+                    )
+                });
             }
 
-            // Re-analyse symmetry of the projected molecule
+            // Apply the totally-symmetric projection operator to the electric atoms, if any
+            if let Some(elec_atoms) = trial_mol.electric_atoms.as_mut() {
+                let trial_elec_coords = Array2::from_shape_vec(
+                    (elec_atoms.len(), 3),
+                    elec_atoms
+                        .iter()
+                        .flat_map(|atom| atom.coordinates.coords.iter().cloned())
+                        .collect::<Vec<_>>(),
+                )?;
+                let ave_elec_coords = ts.iter().fold(
+                    Ok(Array2::<f64>::zeros(trial_elec_coords.raw_dim())),
+                    |acc: Result<Array2<f64>, anyhow::Error>, (tmat, _, _, elec_perm_opt)| {
+                        // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
+                        // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
+                        // go back to approximately where they were originally.
+                        Ok(acc?
+                            + trial_elec_coords.dot(tmat).select(
+                                Axis(0),
+                                elec_perm_opt
+                                    .as_ref()
+                                    .ok_or_else(|| {
+                                        format_err!("Expected electric atom permutation not found.")
+                                    })?
+                                    .image(),
+                            ))
+                    },
+                )? / order_f64;
+                elec_atoms.iter_mut().enumerate().for_each(|(i, atom)| {
+                    atom.coordinates = Point3::<f64>::from_slice(
+                        ave_elec_coords
+                            .row(i)
+                            .as_slice()
+                            .expect("Unable to convert a row of averaged coordinates to a slice."),
+                    )
+                });
+            }
+
+            // Re-analyse symmetry of the symmetrised molecule
             trial_presym = PreSymmetry::builder()
                 .moi_threshold(self.parameters.target_moi_threshold)
                 .molecule(&trial_mol)
@@ -435,7 +472,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 if symmetrisation_count != 1 { "iterations" } else { "iteration" }
             );
             log::info!(target: "output", "");
-            log::info!(target: "output", "Symmetrised molecule");
+            log::info!(target: "output", "Symmetrised molecule:");
             trial_mol.log_output_display();
             log::info!(target: "output", "");
             Ok(())

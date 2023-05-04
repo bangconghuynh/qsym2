@@ -23,7 +23,7 @@ fn test_drivers_molecule_symmetrisation_vf6() {
         .fictitious_magnetic_fields(Some(vec![(Point3::new(0.0, 0.0, 0.0), Vector3::new(1.0, 1.0, 1.0))]))
         .fictitious_origin_com(true)
         .time_reversal(true)
-        .write_symmetry_elements(true)
+        .write_symmetry_elements(false)
         .build()
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
@@ -35,7 +35,7 @@ fn test_drivers_molecule_symmetrisation_vf6() {
     let pd_res = pd_driver.result().unwrap();
 
     let ms_params = MoleculeSymmetrisationParams::builder()
-        .use_magnetic_symmetry(true)
+        .use_magnetic_group(false)
         .target_moi_threshold(1e-8)
         .target_distance_threshold(1e-8)
         .max_iterations(100)
