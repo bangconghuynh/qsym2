@@ -312,15 +312,27 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                         .select(Axis(1), &[2, 0, 1])
                         .reversed_axes();
 
-                    let perm = op.act_permute(&high_trial_mol).ok_or_else(|| {
-                        format_err!("Unable to determine the permutation corresponding to `{op}`.")
-                    })?;
-                    Ok::<_, anyhow::Error>((tmat, perm))
+                    let ord_perm = op
+                        .act_permute(&high_trial_mol.molecule_ordinary_atoms())
+                        .ok_or_else(|| {
+                            format_err!(
+                                "Unable to determine the ordinary-atom permutation corresponding to `{op}`."
+                            )
+                        })?;
+                    let mag_perm =
+                        if let Some(high_trial_mag_mol) = high_trial_mol.molecule_magnetic_atoms() {
+                        op.act_permute(&high_trial_mag_mol)
+                    } else { None };
+                    let elec_perm =
+                        if let Some(high_trial_elec_mol) = high_trial_mol.molecule_electric_atoms() {
+                        op.act_permute(&high_trial_elec_mol)
+                    } else { None };
+                    Ok::<_, anyhow::Error>((tmat, ord_perm, mag_perm, elec_perm))
                 })
-                .collect::<Vec<(Array2<f64>, Permutation<usize>)>>();
+                .collect::<Vec<_>>();
 
-            // Apply the totally-symmetric projection operator to ordinary atoms
-            let trial_coords = Array2::from_shape_vec(
+            // Apply the totally-symmetric projection operator to the ordinary atoms
+            let trial_ord_coords = Array2::from_shape_vec(
                 (trial_mol.atoms.len(), 3),
                 trial_mol
                     .atoms
@@ -328,14 +340,13 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                     .flat_map(|atom| atom.coordinates.coords.iter().cloned())
                     .collect::<Vec<_>>(),
             )?;
-            let ave_coords = ts.iter().fold(
-                Array2::<f64>::zeros(trial_coords.raw_dim()),
-                |acc, (tmat, perm)| {
+            let ave_ord_coords = ts.iter().fold(
+                Array2::<f64>::zeros(trial_ord_coords.raw_dim()),
+                |acc, (tmat, ord_perm, _, _)| {
                     // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
                     // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
                     // go back to approximately where they were originally.
-                    println!("{perm}");
-                    acc + trial_coords.dot(tmat).select(Axis(0), perm.image())
+                    acc + trial_ord_coords.dot(tmat).select(Axis(0), ord_perm.image())
                 },
             ) / order_f64;
             trial_mol
@@ -344,12 +355,43 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 .enumerate()
                 .for_each(|(i, atom)| {
                     atom.coordinates = Point3::<f64>::from_slice(
-                        ave_coords
+                        ave_ord_coords
                             .row(i)
                             .as_slice()
                             .expect("Unable to convert a row of averaged coordinates to a slice."),
                     )
                 });
+
+            // Apply the totally-symmetric projection operator to the magnetic atoms
+            if let Some(mag_atoms) = trial_mol.magnetic_atoms.as_mut() {
+                let trial_mag_coords = Array2::from_shape_vec(
+                    (mag_atoms.len(), 3),
+                    mag_atoms
+                        .iter()
+                        .flat_map(|atom| atom.coordinates.coords.iter().cloned())
+                        .collect::<Vec<_>>(),
+                )?;
+                let ave_mag_coords = ts.iter().fold(
+                    Array2::<f64>::zeros(trial_mag_coords.raw_dim()),
+                    |acc, (tmat, _, mag_perm_opt, _)| {
+                        // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
+                        // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
+                        // go back to approximately where they were originally.
+                        acc + trial_mag_coords
+                            .dot(tmat)
+                            .select(Axis(0), mag_perm_opt.as_ref().unwrap().image())
+                    },
+                ) / order_f64;
+                mag_atoms
+                    .iter_mut()
+                    .enumerate()
+                    .for_each(|(i, atom)| {
+                        atom.coordinates =
+                            Point3::<f64>::from_slice(ave_mag_coords.row(i).as_slice().expect(
+                                "Unable to convert a row of averaged coordinates to a slice.",
+                            ))
+                    });
+            }
 
             // Re-analyse symmetry of the projected molecule
             trial_presym = PreSymmetry::builder()
@@ -400,7 +442,11 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
         } else {
             log::error!(
                 "Molecule symmetrisation has failed after {symmetrisation_count} {}.",
-                if symmetrisation_count != 1 { "iterations" } else { "iteration" }
+                if symmetrisation_count != 1 {
+                    "iterations"
+                } else {
+                    "iteration"
+                }
             );
             log::info!(target: "output", "");
             if params.verbose >= 1 {
@@ -410,7 +456,11 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             }
             Err(format_err!(
                 "Molecule symmetrisation has failed after {symmetrisation_count} {}.",
-                if symmetrisation_count != 1 { "iterations" } else { "iteration" }
+                if symmetrisation_count != 1 {
+                    "iterations"
+                } else {
+                    "iteration"
+                }
             ))
         }
     }
