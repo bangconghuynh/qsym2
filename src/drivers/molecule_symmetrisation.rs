@@ -39,6 +39,8 @@ pub struct MoleculeSymmetrisationParams {
 
     target_distance_threshold: f64,
 
+    reorientate_molecule: bool,
+
     /// The maximum number of symmetrisation iterations.
     #[builder(default = "5")]
     max_iterations: usize,
@@ -70,8 +72,8 @@ impl fmt::Display for MoleculeSymmetrisationParams {
         writeln!(f, "")?;
         writeln!(
             f,
-            "Use magnetic group for symmetrisation: {}",
-            nice_bool(self.use_magnetic_group)
+            "Group used for symmetrisation: {}",
+            if self.use_magnetic_group { "magnetic group" } else { "unitary group" }
         )?;
         writeln!(
             f,
@@ -95,7 +97,7 @@ pub struct MoleculeSymmetrisationResult<'a> {
     /// The control parameters used to obtain this set of result.
     parameters: &'a MoleculeSymmetrisationParams,
 
-    symmetrised_group_detection_result: SymmetryGroupDetectionResult<'a>,
+    symmetrised_molecule: Molecule,
 }
 
 impl<'a> MoleculeSymmetrisationResult<'a> {
@@ -472,9 +474,21 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 if symmetrisation_count != 1 { "iterations" } else { "iteration" }
             );
             log::info!(target: "output", "");
-            log::info!(target: "output", "Symmetrised molecule:");
+            log::info!(target: "output", "Symmetrised recentred molecule:");
             trial_mol.log_output_display();
             log::info!(target: "output", "");
+            if params.reorientate_molecule {
+                trial_mol.reorientate_mut(tight_moi_threshold);
+                log::info!(target: "output", "Symmetrised recentred and reoriented molecule:");
+                trial_mol.log_output_display();
+                log::info!(target: "output", "");
+            }
+            self.result = Some(
+                MoleculeSymmetrisationResult::builder()
+                    .parameters(self.parameters)
+                    .symmetrised_molecule(trial_mol)
+                    .build()?,
+            );
             Ok(())
         } else {
             log::error!(

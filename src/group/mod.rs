@@ -2,6 +2,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
 
+use anyhow::{self, format_err};
 use derive_builder::Builder;
 use indexmap::IndexSet;
 use log;

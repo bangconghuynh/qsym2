@@ -335,6 +335,26 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
         let params = self.parameters;
         params.log_output_display();
 
+        let smallest_dist_thresh = *params
+            .distance_thresholds
+            .iter()
+            .min_by(|x, y| {
+                x.partial_cmp(y)
+                    .expect("Unable to determine the smallest distance threshold.")
+            })
+            .ok_or_else(|| format_err!("Unable to determine the smallest distance threshold."))?;
+        let target_mol = match (self.molecule, self.xyz.as_ref()) {
+            (Some(molecule), None) => Molecule::from_atoms(
+                &molecule.get_all_atoms().into_iter().cloned().collect_vec(),
+                smallest_dist_thresh,
+            ),
+            (None, Some(xyz)) => Molecule::from_xyz(xyz, smallest_dist_thresh),
+            _ => bail!("Neither or both `molecule` and `xyz` are specified."),
+        };
+        log::info!(target: "output", "Molecule for symmetry-group detection:");
+        target_mol.log_output_display();
+        log::info!(target: "output", "");
+
         let threshs = params
             .moi_thresholds
             .iter()
@@ -370,7 +390,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                     xyz,
                     *dist_thresh
                 ),
-                _ => bail!("Both `molecule` and `xyz` are specified.")
+                _ => bail!("Neither or both `molecule` and `xyz` are specified.")
             };
 
             // Add any fictitious magnetic fields
