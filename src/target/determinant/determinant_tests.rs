@@ -94,7 +94,7 @@ fn test_determinant_transformation_bf4_sqpl() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
 
     let c4p1 = group.get_index(1).unwrap();
     let tdet_c4p1 = det.sym_transform_spatial(&c4p1).unwrap();
@@ -163,7 +163,7 @@ fn test_determinant_transformation_s4_sqpl() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
 
     // Unrestricted spin constraint
     #[rustfmt::skip]
@@ -370,7 +370,7 @@ fn test_determinant_transformation_b3_real_timerev() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
     let c3p1 = group.get_index(1).unwrap();
 
     let sqr = 3.0f64.sqrt() / 2.0;
@@ -589,7 +589,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap().to_double_group().unwrap();
 
     #[rustfmt::skip]
     let calpha = array![
@@ -847,7 +847,7 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap().to_double_group().unwrap();
 
     let elements_i = group.elements();
     let elements_j = group.elements();
@@ -1164,7 +1164,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
 
     #[rustfmt::skip]
     let calpha = array![
@@ -1263,16 +1263,16 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    let group_u_d4h_double = group_u_d4h.to_double_group();
+    let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+    let group_u_d4h_double = group_u_d4h.to_double_group().unwrap();
 
     let mut sym_tr = Symmetry::new();
     sym_tr.analyse(&presym, true).unwrap();
-    let group_u_grey_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym_tr, None);
-    let group_u_grey_d4h_double = group_u_grey_d4h.to_double_group();
+    let group_u_grey_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym_tr, None).unwrap();
+    let group_u_grey_d4h_double = group_u_grey_d4h.to_double_group().unwrap();
 
-    let group_m_grey_d4h = MagneticRepresentedGroup::from_molecular_symmetry(&sym_tr, None);
-    let group_m_grey_d4h_double = group_m_grey_d4h.to_double_group();
+    let group_m_grey_d4h = MagneticRepresentedGroup::from_molecular_symmetry(&sym_tr, None).unwrap();
+    let group_m_grey_d4h_double = group_m_grey_d4h.to_double_group().unwrap();
 
     let mut mol_s4_bz = mol_s4.clone();
     mol_s4_bz.set_magnetic_field(Some(0.1 * Vector3::z()));
@@ -1283,10 +1283,10 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .unwrap();
     let mut sym_bz = Symmetry::new();
     sym_bz.analyse(&presym_bz, true).unwrap();
-    let group_u_bw_d4h_c4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym_bz, None);
-    let group_u_bw_d4h_c4h_double = group_u_bw_d4h_c4h.to_double_group();
-    let group_m_bw_d4h_c4h = MagneticRepresentedGroup::from_molecular_symmetry(&sym_bz, None);
-    let group_m_bw_d4h_c4h_double = group_m_bw_d4h_c4h.to_double_group();
+    let group_u_bw_d4h_c4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym_bz, None).unwrap();
+    let group_u_bw_d4h_c4h_double = group_u_bw_d4h_c4h.to_double_group().unwrap();
+    let group_m_bw_d4h_c4h = MagneticRepresentedGroup::from_molecular_symmetry(&sym_bz, None).unwrap();
+    let group_m_bw_d4h_c4h_double = group_m_bw_d4h_c4h.to_double_group().unwrap();
 
     // ----------
     // 1-electron
@@ -2364,8 +2364,8 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group_u_oh = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    let group_u_oh_double = group_u_oh.to_double_group();
+    let group_u_oh = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+    let group_u_oh_double = group_u_oh.to_double_group().unwrap();
 
     let thr = 1.0 / 3.0;
     let sao = array![

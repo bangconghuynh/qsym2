@@ -6,14 +6,12 @@ use nalgebra::Point3;
 use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
 
-use crate::aux::format::{log_subtitle, nice_bool, write_title};
+use crate::aux::format::{log_subtitle, write_title};
 use crate::aux::molecule::Molecule;
-use crate::drivers::symmetry_group_detection::{
-    SymmetryGroupDetectionDriver, SymmetryGroupDetectionResult,
-};
+use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::{QSym2Driver, QSym2Output};
 use crate::group::{GroupProperties, UnitaryRepresentedGroup};
-use crate::permutation::{IntoPermutation, Permutation};
+use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
@@ -290,7 +288,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             let high_group = UnitaryRepresentedGroup::from_molecular_symmetry(
                 &high_sym,
                 self.parameters.infinite_order_to_finite,
-            );
+            )?;
             let order_f64 = high_group
                 .order()
                 .to_f64()

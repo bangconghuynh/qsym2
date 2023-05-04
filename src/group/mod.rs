@@ -224,14 +224,14 @@ where
     ///
     /// An abstract group with its Cayley table constructed.
     #[must_use]
-    pub fn new(name: &str, elements: Vec<T>) -> Self {
+    pub fn new(name: &str, elements: Vec<T>) -> Result<Self, anyhow::Error> {
         let mut group = Self::builder()
             .name(name.to_string())
             .elements(elements)
             .build()
             .expect("Unable to construct a group.");
-        group.compute_cayley_table();
-        group
+        group.compute_cayley_table()?;
+        Ok(group)
     }
 
     /// Constructs an abstract group from its elements but without calculating its Cayley table.
@@ -264,14 +264,17 @@ where
     ///
     /// An abstract group with its Cayley table constructed.
     #[must_use]
-    pub fn from_iter(name: &str, elements_iter: impl Iterator<Item = T>) -> Self {
+    pub fn from_iter(
+        name: &str,
+        elements_iter: impl Iterator<Item = T>,
+    ) -> Result<Self, anyhow::Error> {
         let mut group = Self::builder()
             .name(name.to_string())
             .elements_iter(elements_iter)
             .build()
             .expect("Unable to construct a group.");
-        group.compute_cayley_table();
-        group
+        group.compute_cayley_table()?;
+        Ok(group)
     }
 
     /// Constructs an abstract group from an iterator of its elements but without calculating its
@@ -294,28 +297,30 @@ where
     }
 
     /// Constructs the Cayley table for the abstract group.
-    fn compute_cayley_table(&mut self) {
+    fn compute_cayley_table(&mut self) -> Result<(), anyhow::Error> {
         log::debug!("Constructing Cayley table in parallel...");
         let mut ctb = Array2::<usize>::zeros((self.order(), self.order()));
-        Zip::indexed(&mut ctb).par_for_each(|(i, j), k| {
+        Zip::indexed(&mut ctb).par_map_collect(|(i, j), k| {
             let op_i_ref = self.elements
                 .get_index(i)
-                .unwrap_or_else(|| panic!("Element with index {i} cannot be retrieved."));
+                .ok_or_else(|| format_err!("Element with index {i} cannot be retrieved."))?;
             let op_j_ref = self.elements
                 .get_index(j)
-                .unwrap_or_else(|| panic!("Element with index {j} cannot be retrieved."));
+                .ok_or_else(|| format_err!("Element with index {j} cannot be retrieved."))?;
             let op_k = op_i_ref * op_j_ref;
             *k = self.elements
                 .get_index_of(&op_k)
-                .unwrap_or_else(||
-                    panic!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try changing thresholds.",
+                .ok_or_else(||
+                    format_err!("Group closure not fulfilled. The composition {:?} * {:?} = {:?} is not contained in the group. Try relaxing distance thresholds.",
                         op_i_ref,
                         op_j_ref,
                         &op_k)
-                    );
-        });
+                    )?;
+            Ok::<(), anyhow::Error>(())
+        }).into_iter().collect::<Result<(), anyhow::Error>>()?;
         self.cayley_table = Some(ctb);
         log::debug!("Constructing Cayley table in parallel... Done.");
+        Ok(())
     }
 }
 
@@ -484,15 +489,15 @@ where
     /// A unitary-represented group with its Cayley table constructed and conjugacy classes
     /// determined.
     #[must_use]
-    pub fn new(name: &str, elements: Vec<T>) -> Self {
+    pub fn new(name: &str, elements: Vec<T>) -> Result<Self, anyhow::Error> {
         let abstract_group = EagerGroup::<T>::new(name, elements);
         let mut unitary_group = UnitaryRepresentedGroup::<T, RowSymbol, ColSymbol>::builder()
             .name(name.to_string())
-            .abstract_group(abstract_group)
+            .abstract_group(abstract_group?)
             .build()
             .expect("Unable to construct a unitary group.");
         unitary_group.compute_class_structure();
-        unitary_group
+        Ok(unitary_group)
     }
 }
 
@@ -684,16 +689,16 @@ where
     ///
     /// A magnetic-represented group with its Cayley table constructed and conjugacy classes
     /// determined.
-    pub fn new(name: &str, elements: Vec<T>, unitary_subgroup: UG) -> Self {
+    pub fn new(name: &str, elements: Vec<T>, unitary_subgroup: UG) -> Result<Self, anyhow::Error> {
         let abstract_group = EagerGroup::<T>::new(name, elements);
         let mut magnetic_group = MagneticRepresentedGroup::<T, UG, RowSymbol>::builder()
             .name(name.to_string())
-            .abstract_group(abstract_group)
+            .abstract_group(abstract_group?)
             .unitary_subgroup(unitary_subgroup)
             .build()
             .expect("Unable to construct a magnetic group.");
         magnetic_group.compute_class_structure();
-        magnetic_group
+        Ok(magnetic_group)
     }
 }
 

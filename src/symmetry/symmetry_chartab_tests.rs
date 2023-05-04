@@ -230,7 +230,7 @@ fn test_chartab_ordinary_group(
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
     let chartab = group.character_table();
     assert_eq!(chartab.name, expected_name);
     test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
@@ -258,7 +258,10 @@ fn test_chartab_ordinary_double_group(
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None)
+        .unwrap()
+        .to_double_group()
+        .unwrap();
     let chartab = group.character_table();
     assert_eq!(chartab.name, expected_name);
     test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
@@ -287,12 +290,12 @@ fn test_chartab_magnetic_group(
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true).unwrap();
 
-    let unitary_group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None);
+    let unitary_group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None).unwrap();
     let irrep_chartab = unitary_group.character_table();
     assert_eq!(irrep_chartab.name, expected_name);
     test_irrep_character_table_validity(irrep_chartab, expected_irreps, expected_chars_option);
 
-    let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
+    let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None).unwrap();
     let ircorep_chartab = magnetic_group.character_table();
     assert_eq!(ircorep_chartab.name, expected_name);
     test_ircorep_character_table_algebraic_validity(ircorep_chartab, &magnetic_group);
@@ -321,14 +324,18 @@ fn test_chartab_magnetic_double_group(
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true).unwrap();
 
-    let unitary_group =
-        UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None).to_double_group();
+    let unitary_group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, None)
+        .unwrap()
+        .to_double_group()
+        .unwrap();
     let irrep_chartab = unitary_group.character_table();
     assert_eq!(irrep_chartab.name, expected_name);
     test_irrep_character_table_validity(irrep_chartab, expected_irreps, expected_chars_option);
 
-    let magnetic_group =
-        MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None).to_double_group();
+    let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None)
+        .unwrap()
+        .to_double_group()
+        .unwrap();
     let ircorep_chartab = magnetic_group.character_table();
     assert_eq!(ircorep_chartab.name, expected_name);
     test_ircorep_character_table_algebraic_validity(ircorep_chartab, &magnetic_group);
@@ -357,7 +364,7 @@ fn test_chartab_ordinary_group_from_infinite(
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(finite_order));
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, Some(finite_order)).unwrap();
     let chartab = group.irrep_character_table.as_ref().unwrap();
     assert_eq!(chartab.name, expected_name);
     test_irrep_character_table_validity(chartab, expected_irreps, expected_chars_option);
@@ -388,13 +395,13 @@ fn test_chartab_magnetic_group_from_infinite(
     magsym.analyse(&presym, true).unwrap();
 
     let unitary_group =
-        UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order));
+        UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
     let irrep_chartab = unitary_group.character_table();
     assert_eq!(irrep_chartab.name, expected_name);
     test_irrep_character_table_validity(irrep_chartab, expected_irreps, expected_chars_option);
 
     let magnetic_group =
-        MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order));
+        MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
     let ircorep_chartab = magnetic_group.character_table();
     assert_eq!(ircorep_chartab.name, expected_name);
     test_ircorep_character_table_algebraic_validity(ircorep_chartab, &magnetic_group);
@@ -2983,75 +2990,51 @@ fn test_chartab_spherical_vf6_grey_oh_double() {
         ),
         (
             (&expected_irreps[20], &tc3),
-            Character::new(&[
-                (UnityRoot::new(1, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(1, 4), 1)]),
         ),
         (
             (&expected_irreps[21], &tc3),
-            Character::new(&[
-                (UnityRoot::new(1, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(1, 4), 1)]),
         ),
         (
             (&expected_irreps[22], &tc3),
-            Character::new(&[
-                (UnityRoot::new(3, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
         (
             (&expected_irreps[23], &tc3),
-            Character::new(&[
-                (UnityRoot::new(1, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(1, 4), 1)]),
         ),
         (
             (&expected_irreps[24], &tc3),
-            Character::new(&[
-                (UnityRoot::new(1, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(1, 4), 1)]),
         ),
         (
             (&expected_irreps[25], &tc3),
-            Character::new(&[
-                (UnityRoot::new(3, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
         (
             (&expected_irreps[26], &tc3),
-            Character::new(&[
-                (UnityRoot::new(3, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
         (
             (&expected_irreps[27], &tc3),
-            Character::new(&[
-                (UnityRoot::new(3, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
         (
             (&expected_irreps[28], &tc3),
-            Character::new(&[
-                (UnityRoot::new(1, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(1, 4), 1)]),
         ),
         (
             (&expected_irreps[29], &tc3),
-            Character::new(&[
-                (UnityRoot::new(3, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
         (
             (&expected_irreps[30], &tc3),
-            Character::new(&[
-                (UnityRoot::new(3, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(3, 4), 1)]),
         ),
         (
             (&expected_irreps[31], &tc3),
-            Character::new(&[
-                (UnityRoot::new(1, 4), 1),
-            ]),
+            Character::new(&[(UnityRoot::new(1, 4), 1)]),
         ),
     ]);
     test_chartab_magnetic_double_group(
@@ -11141,7 +11124,7 @@ fn test_chartab_symmetric_8_eclipsed_sandwich_grey_d8h() {
 //         .unwrap();
 //     let mut sym = Symmetry::new();
 //     sym.analyse(&presym, false).unwrap();
-//     let uni_group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+//     let uni_group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
 //     let irrep_chartab = uni_group
 //         .character_table();
 //     println!("Irreps of unitary subgroup");
@@ -11269,7 +11252,8 @@ fn test_chartab_symmetric_arbitrary_eclipsed_sandwich_grey_dnh() {
                         );
                     } else {
                         s_irreps.extend((1..=n.div_euclid(2)).map(|k| {
-                            MullikenIrrepSymbol::new(&format!("|^(+)|E|^({s_parity})_({k})|")).unwrap()
+                            MullikenIrrepSymbol::new(&format!("|^(+)|E|^({s_parity})_({k})|"))
+                                .unwrap()
                         }));
                     }
                     s_irreps

@@ -106,7 +106,7 @@ fn test_irrep_character_table_algebraic_validity(
 fn test_permutation_group_chartab() {
     // env_logger::init();
     for p in 1..=10 {
-        let sym = PermutationGroup::from_rank(p);
+        let sym = PermutationGroup::from_rank(p).unwrap();
         test_irrep_character_table_algebraic_validity(sym.character_table());
     }
 }
