@@ -917,7 +917,8 @@ impl PermutableCollection for Molecule {
     ///
     /// # Arguments
     ///
-    /// * `perm` - A permutation for the atoms.
+    /// * `perm` - A permutation for the atoms. Special fictitious atoms are included after
+    /// ordinary atoms, with magnetic atoms before electric atoms.
     ///
     /// # Returns
     ///
@@ -941,7 +942,8 @@ impl PermutableCollection for Molecule {
     ///
     /// # Arguments
     ///
-    /// * `perm` - A permutation for the atoms.
+    /// * `perm` - A permutation for the atoms. Special fictitious atoms are included after
+    /// ordinary atoms, with magnetic atoms before electric atoms.
     ///
     /// # Panics
     ///
