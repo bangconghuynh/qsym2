@@ -155,11 +155,18 @@ impl Molecule {
         }
     }
 
+    /// Constructs a new molecule containing only the ordinary atoms in this molecule.
     #[must_use]
     pub fn molecule_ordinary_atoms(&self) -> Self {
         Self::from_atoms(&self.atoms, self.threshold)
     }
 
+    /// Constructs a new molecule containing only the fictitious magnetic atoms in this molecule,
+    /// if any.
+    ///
+    /// # Returns
+    ///
+    /// Returns `None` if this molecule has no fictitious magnetic atoms.
     #[must_use]
     pub fn molecule_magnetic_atoms(&self) -> Option<Self> {
         Some(Self::from_atoms(
@@ -168,6 +175,12 @@ impl Molecule {
         ))
     }
 
+    /// Constructs a new molecule containing only the fictitious electric atoms in this molecule,
+    /// if any.
+    ///
+    /// # Returns
+    ///
+    /// Returns `None` if this molecule has no fictitious electric atoms.
     #[must_use]
     pub fn molecule_electric_atoms(&self) -> Option<Self> {
         Some(Self::from_atoms(
@@ -176,8 +189,8 @@ impl Molecule {
         ))
     }
 
-    /// Retrieves a vector of references to all atoms in this molecule,
-    /// including special ones, if any.
+    /// Retrieves a vector of references to all atoms in this molecule, including special ones, if
+    /// any.
     ///
     /// # Returns
     ///
@@ -195,31 +208,6 @@ impl Molecule {
         }
         if let Some(electric_atoms) = &self.electric_atoms {
             for electric_atom in electric_atoms.iter() {
-                atoms.push(electric_atom);
-            }
-        }
-        atoms
-    }
-
-    /// Retrieves a vector of mutable references to all atoms in this molecule,
-    /// including special ones, if any.
-    ///
-    /// # Returns
-    ///
-    /// All atoms in this molecule.
-    #[must_use]
-    pub fn get_all_atoms_mut(&mut self) -> Vec<&mut Atom> {
-        let mut atoms: Vec<&mut Atom> = vec![];
-        for atom in self.atoms.iter_mut() {
-            atoms.push(atom);
-        }
-        if let Some(magnetic_atoms) = self.magnetic_atoms.as_mut() {
-            for magnetic_atom in magnetic_atoms.iter_mut() {
-                atoms.push(magnetic_atom);
-            }
-        }
-        if let Some(electric_atoms) = self.electric_atoms.as_mut() {
-            for electric_atom in electric_atoms.iter_mut() {
                 atoms.push(electric_atom);
             }
         }

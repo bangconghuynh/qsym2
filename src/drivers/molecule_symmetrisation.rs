@@ -44,6 +44,8 @@ pub struct MoleculeSymmetrisationParams {
 
     /// Boolean indicating if the symmetrised molecule is also reoriented to align its principal
     /// axes with the space-fixed Cartesian axes.
+    ///
+    /// See [`Molecule::reorientate`] for more information.
     reorientate_molecule: bool,
 
     /// The maximum number of symmetrisation iterations.
@@ -126,7 +128,11 @@ impl<'a> MoleculeSymmetrisationResult<'a> {
 // Driver
 // ------
 
-/// A driver for molecule symmetrisation.
+/// A driver for iterative molecule symmetrisation.
+///
+/// Each symmetrisation iteration involves applying the totally symmetric projection operator of
+/// the target group to the molecule. This process is repeated until the molecule attains the
+/// desired symmetry group at the desired thresholding level.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct MoleculeSymmetrisationDriver<'a> {
