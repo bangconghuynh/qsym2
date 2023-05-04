@@ -27,7 +27,7 @@ mod molecule_symmetrisation_tests;
 // Parameters
 // ----------
 
-/// A structure containing control parameters for symmetry-group detection.
+/// A structure containing control parameters for molecule symmetrisation.
 #[derive(Clone, Builder, Debug)]
 pub struct MoleculeSymmetrisationParams {
     /// Boolean indicating if any available magnetic group should be used for symmetrisation
@@ -50,9 +50,12 @@ pub struct MoleculeSymmetrisationParams {
     #[builder(default = "5")]
     max_iterations: usize,
 
+    /// The finite order to which any infinite-order symmetry element is reduced, so that a finite
+    /// subgroup of an infinite group can be used for the symmetrisation.
     #[builder(default = "None")]
     infinite_order_to_finite: Option<u32>,
 
+    /// The output verbosity level.
     #[builder(default = "0")]
     verbose: u8,
 }
@@ -103,12 +106,13 @@ impl fmt::Display for MoleculeSymmetrisationParams {
 // Result
 // ------
 
-/// A structure to contain symmetry-group detection results.
+/// A structure to contain molecule symmetrisation results.
 #[derive(Clone, Builder, Debug)]
 pub struct MoleculeSymmetrisationResult<'a> {
-    /// The control parameters used to obtain this set of result.
+    /// The control parameters used to obtain this set of molecule symmetrisation results.
     parameters: &'a MoleculeSymmetrisationParams,
 
+    /// The symmetrised molecule.
     symmetrised_molecule: Molecule,
 }
 
@@ -122,14 +126,20 @@ impl<'a> MoleculeSymmetrisationResult<'a> {
 // Driver
 // ------
 
-/// A driver for symmetry-group detection.
+/// A driver for molecule symmetrisation.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct MoleculeSymmetrisationDriver<'a> {
+    /// The control parameters for molecule symmetrisation.
     parameters: &'a MoleculeSymmetrisationParams,
 
+    /// The target symmetry for symmetrisation. This is the result of a symmetry-group detection
+    /// calculation where the symmetry of the molecule has been detected at a certain thresholding
+    /// level, and now the molecule is to be symmetrised to attain the same symmetry but at a
+    /// tighter thresholding level.
     target_symmetry_result: &'a SymmetryGroupDetectionResult<'a>,
 
+    /// The result of the symmetrisation.
     #[builder(default = "None")]
     result: Option<MoleculeSymmetrisationResult<'a>>,
 }
@@ -169,7 +179,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
         MoleculeSymmetrisationDriverBuilder::default()
     }
 
-    /// Executes symmetry-group detection.
+    /// Executes molecule symmetrisation.
     fn symmetrise_molecule(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         params.log_output_display();

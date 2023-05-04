@@ -180,7 +180,7 @@ impl fmt::Display for SymmetryGroupDetectionParams {
 /// A structure to contain symmetry-group detection results.
 #[derive(Clone, Builder, Debug)]
 pub struct SymmetryGroupDetectionResult<'a> {
-    /// The control parameters used to obtain this set of result.
+    /// The control parameters used to obtain this set of results.
     pub parameters: &'a SymmetryGroupDetectionParams,
 
     /// The [`PreSymmetry`] structure containing basic geometrical information of the system prior
