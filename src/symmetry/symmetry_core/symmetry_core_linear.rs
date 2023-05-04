@@ -1,4 +1,4 @@
-use anyhow::{self, ensure};
+use anyhow::{self, ensure, format_err};
 
 use super::{PreSymmetry, Symmetry};
 use crate::rotsym::RotationalSymmetry;
@@ -18,16 +18,12 @@ impl Symmetry {
     /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
     /// symmetry element will only be considered if its non-time-reversed version turns out to be
     /// not a symmetry element.
-    ///
-    /// # Panics
-    ///
-    /// Panics when any inconsistencies are encountered along the point-group detection path.
     pub fn analyse_linear(
         &mut self,
         presym: &PreSymmetry,
         tr: bool,
     ) -> Result<(), anyhow::Error> {
-        let (mois, principal_axes) = presym.molecule.calc_moi();
+        let (mois, principal_axes) = presym.recentred_molecule.calc_moi();
 
         ensure!(
             matches!(
@@ -103,7 +99,7 @@ impl Symmetry {
                     Some("h".to_owned()),
                     presym.dist_threshold,
                     sigma_check
-                        .expect("Expected mirror plane implied by C∞ and i not found.",)
+                        .ok_or_else(|| format_err!("Expected mirror plane implied by C∞ and i not found."))?
                         .contains_time_reversal(),
                 ),
                 "Expected σh implied by C∞ and i not added."

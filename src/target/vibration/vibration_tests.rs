@@ -39,12 +39,12 @@ fn test_vibration_orbit_rep_analysis_nh3() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol_nh3, true)
+        .molecule(&mol_nh3)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group_u_c3v = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let group_u_c3v = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
 
     // --------------------
     // Mode 1: 1149.58 cm-1
@@ -242,12 +242,12 @@ fn test_vibration_orbit_rep_analysis_ch4() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol_ch4, true)
+        .molecule(&mol_ch4)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group_u_td = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let group_u_td = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
 
     // ---------------
     // Mode 1: 1530.98
@@ -548,15 +548,15 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol_xef4, true)
+        .molecule(&mol_xef4)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group_u_c4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let group_u_c4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
 
     sym.analyse(&presym, true).unwrap();
-    let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
 
     // All normal modes are obtained at zero field. The finite-field symmetry analysis is for a
     // fictitious field.

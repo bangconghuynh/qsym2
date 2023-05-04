@@ -63,7 +63,7 @@ impl Symmetry {
                         ORDER_2,
                         &atom_i_pos.coords,
                         false,
-                        presym.molecule.threshold,
+                        presym.recentred_molecule.threshold,
                         proper_kind.contains_time_reversal(),
                     ) {
                         count_c2 += 1;
@@ -74,12 +74,12 @@ impl Symmetry {
                 // Case A: C2 might cross through the midpoint of two atoms
                 let midvec = 0.5 * (atom_i_pos.coords + atom_j_pos.coords);
                 if let Some(proper_kind) = presym.check_proper(&ORDER_2, &midvec, tr) {
-                    if midvec.norm() > presym.molecule.threshold
+                    if midvec.norm() > presym.recentred_molecule.threshold
                         && self.add_proper(
                             ORDER_2,
                             &midvec,
                             false,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             proper_kind.contains_time_reversal(),
                         )
                     {
@@ -126,27 +126,27 @@ impl Symmetry {
             RotationalSymmetry::Spherical,
             presym.rotational_symmetry
         );
-        if presym.molecule.atoms.len() == 1 {
+        if presym.recentred_molecule.atoms.len() == 1 {
             self.set_group_name("O(3)".to_owned());
             self.add_proper(
                 ElementOrder::Inf,
                 &Vector3::z(),
                 true,
-                presym.molecule.threshold,
+                presym.recentred_molecule.threshold,
                 false,
             );
             self.add_proper(
                 ElementOrder::Inf,
                 &Vector3::y(),
                 true,
-                presym.molecule.threshold,
+                presym.recentred_molecule.threshold,
                 false,
             );
             self.add_proper(
                 ElementOrder::Inf,
                 &Vector3::x(),
                 true,
-                presym.molecule.threshold,
+                presym.recentred_molecule.threshold,
                 false,
             );
             self.add_improper(
@@ -155,7 +155,7 @@ impl Symmetry {
                 true,
                 SIG.clone(),
                 None,
-                presym.molecule.threshold,
+                presym.recentred_molecule.threshold,
                 false,
             );
             return Ok(());
@@ -187,7 +187,7 @@ impl Symmetry {
                             false,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper element not added."
@@ -199,7 +199,7 @@ impl Symmetry {
                             true,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper generator not added."
@@ -207,16 +207,21 @@ impl Symmetry {
                 } else {
                     let mut c2s = self
                         .get_proper(&ORDER_2)
-                        .expect(" No C2 elements found.")
+                        .ok_or_else(|| format_err!("No C2 elements found."))?
                         .into_iter()
                         .take(2)
                         .cloned()
                         .collect_vec()
                         .into_iter();
-                    let normal = c2s.next().expect("No C2 elements found.").raw_axis()
+                    let normal = c2s
+                        .next()
+                        .ok_or_else(|| format_err!("No C2 elements found."))?
+                        .raw_axis()
                         + c2s
                             .next()
-                            .expect("Two C2 elements expected, but only one found.")
+                            .ok_or_else(|| {
+                                format_err!("Two C2 elements expected, but only one found.")
+                            })?
                             .raw_axis();
                     if presym.check_improper(&ORDER_1, &normal, &SIG, tr).is_some() {
                         // σd
@@ -226,7 +231,7 @@ impl Symmetry {
                             let mut axes = vec![];
                             for c2s in self
                                 .get_proper(&ORDER_2)
-                                .expect(" No C2 elements found.")
+                                .ok_or_else(|| format_err!("No C2 elements found."))?
                                 .iter()
                                 .combinations(2)
                             {
@@ -269,7 +274,7 @@ impl Symmetry {
                                     false,
                                     SIG.clone(),
                                     Some("d".to_owned()),
-                                    presym.molecule.threshold,
+                                    presym.recentred_molecule.threshold,
                                     axis_tr
                                 ),
                                 "Expected improper element not added."
@@ -282,7 +287,7 @@ impl Symmetry {
                                 true,
                                 SIG.clone(),
                                 Some("d".to_owned()),
-                                presym.molecule.threshold,
+                                presym.recentred_molecule.threshold,
                                 sigmad_generator_normal.1
                             ),
                             "Expected improper generator not added."
@@ -309,7 +314,7 @@ impl Symmetry {
                             false,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper element not added."
@@ -321,7 +326,7 @@ impl Symmetry {
                             true,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper generator not added."
@@ -347,7 +352,7 @@ impl Symmetry {
                             false,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper element not added."
@@ -359,7 +364,7 @@ impl Symmetry {
                             true,
                             SIG.clone(),
                             None,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
                         ),
                         "Expected improper generator not added."
@@ -395,7 +400,7 @@ impl Symmetry {
                 let vec_ik = atom_k.coordinates - atom_i.coordinates;
                 let vec_normal = vec_ij.cross(&vec_ik);
                 ensure!(
-                    vec_normal.norm() > presym.molecule.threshold,
+                    vec_normal.norm() > presym.recentred_molecule.threshold,
                     "Unexpected zero-norm vector."
                 );
                 if let Some(proper_kind) = presym.check_proper(&order_3, &vec_normal, tr) {
@@ -403,7 +408,7 @@ impl Symmetry {
                         order_3,
                         &vec_normal,
                         false,
-                        presym.molecule.threshold,
+                        presym.recentred_molecule.threshold,
                         proper_kind.contains_time_reversal(),
                     ));
                 }
@@ -433,7 +438,7 @@ impl Symmetry {
             // Tetrahedral or octahedral, C3 axes are also generators.
             let c3s = self
                 .get_proper(&order_3)
-                .expect(" No C3 elements found.")
+                .ok_or_else(|| format_err!(" No C3 elements found."))?
                 .into_iter()
                 .cloned()
                 .collect_vec();
@@ -442,7 +447,7 @@ impl Symmetry {
                     order_3,
                     c3.raw_axis(),
                     true,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     c3.contains_time_reversal(),
                 );
             }
@@ -473,7 +478,7 @@ impl Symmetry {
                     let vec_ik = atom_k.coordinates - atom_i.coordinates;
                     let vec_normal = vec_ij.cross(&vec_ik);
                     ensure!(
-                        vec_normal.norm() > presym.molecule.threshold,
+                        vec_normal.norm() > presym.recentred_molecule.threshold,
                         "Unexpected zero-norm vector."
                     );
                     if let Some(proper_kind) = presym.check_proper(&order_4, &vec_normal, tr) {
@@ -481,7 +486,7 @@ impl Symmetry {
                             order_4,
                             &vec_normal,
                             false,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             proper_kind.contains_time_reversal(),
                         ));
                     }
@@ -499,16 +504,16 @@ impl Symmetry {
             // Add a C4 as a generator
             let c4 = *self
                 .get_proper(&order_4)
-                .expect(" No C4 elements found.")
+                .ok_or_else(|| format_err!(" No C4 elements found."))?
                 .iter()
                 .next()
-                .expect("Expected C4 not found.");
+                .ok_or_else(|| format_err!("Expected C4 not found."))?;
             let c4_axis = c4.raw_axis().clone();
             self.add_proper(
                 order_4,
                 &c4_axis,
                 true,
-                presym.molecule.threshold,
+                presym.recentred_molecule.threshold,
                 c4.contains_time_reversal(),
             );
         } // end locating C4 axes for O and Oh
@@ -539,7 +544,7 @@ impl Symmetry {
                     let vec_ik = atom_k.coordinates - atom_i.coordinates;
                     let vec_normal = vec_ij.cross(&vec_ik);
                     ensure!(
-                        vec_normal.norm() > presym.molecule.threshold,
+                        vec_normal.norm() > presym.recentred_molecule.threshold,
                         "Unexpected zero-norm vector."
                     );
                     if let Some(proper_kind) = presym.check_proper(&order_5, &vec_normal, tr) {
@@ -547,14 +552,14 @@ impl Symmetry {
                             order_5,
                             &vec_normal,
                             false,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             proper_kind.contains_time_reversal(),
                         ));
                         self.add_proper(
                             order_5,
                             &vec_normal,
                             true,
-                            presym.molecule.threshold,
+                            presym.recentred_molecule.threshold,
                             proper_kind.contains_time_reversal(),
                         );
                     }
@@ -571,12 +576,17 @@ impl Symmetry {
         } // end locating C5 axes for I and Ih
 
         // Locating any other improper rotation axes for the non-chinal groups
-        if *self.group_name.as_ref().expect("No point groups found.") == "Td" {
+        if *self
+            .group_name
+            .as_ref()
+            .ok_or_else(|| format_err!("No point groups found."))?
+            == "Td"
+        {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let improper_s4_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&ORDER_2)
-                    .expect("Expected C2 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C2 elements not found."))?
                     .iter()
                     .filter_map(|c2_ele| {
                         presym
@@ -598,18 +608,23 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     s4_axis_tr,
                 ));
             }
             ensure!(count_s4 == 3, "Unexpected number of S4 axes: {count_s4}.");
         }
         // end locating improper axes for Td
-        else if *self.group_name.as_ref().expect("No point groups found.") == "Th" {
+        else if *self
+            .group_name
+            .as_ref()
+            .ok_or_else(|| format_err!("No point groups found."))?
+            == "Th"
+        {
             // Locating σh
             let sigmah_normals: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&ORDER_2)
-                    .expect("Expected C2 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C2 elements not found."))?
                     .iter()
                     .filter_map(|c2_ele| {
                         presym
@@ -631,7 +646,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     Some("h".to_owned()),
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     sigmah_normal_tr,
                 ));
             }
@@ -644,7 +659,7 @@ impl Symmetry {
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&order_3)
-                    .expect("Expected C3 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C3 elements not found."))?
                     .iter()
                     .filter_map(|c3_ele| {
                         presym
@@ -666,19 +681,24 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     s6_axis_tr,
                 ));
             }
             ensure!(count_s6 == 4, "Unexpected number of S6 axes: {count_s6}.");
         }
         // end locating improper axes for Th
-        else if *self.group_name.as_ref().expect("No point groups found.") == "Oh" {
+        else if *self
+            .group_name
+            .as_ref()
+            .ok_or_else(|| format_err!("No point groups found."))?
+            == "Oh"
+        {
             // Locating S4
             let order_4 = ElementOrder::Int(4);
             let s4_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&ORDER_2)
-                    .expect("Expected C2 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C2 elements not found."))?
                     .iter()
                     .filter_map(|c2_ele| {
                         presym
@@ -700,7 +720,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     *s4_axis_tr,
                 ));
             }
@@ -724,7 +744,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     Some("h".to_owned()),
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     sigmah_axis_tr,
                 ));
             }
@@ -736,7 +756,7 @@ impl Symmetry {
             // Locating σd
             let sigmad_normals: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&ORDER_2)
-                    .expect("Expected C2 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C2 elements not found."))?
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym
@@ -765,7 +785,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     Some("d".to_owned()),
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     sigmad_normal_tr,
                 ));
             }
@@ -778,7 +798,7 @@ impl Symmetry {
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&order_3)
-                    .expect("Expected C3 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C3 elements not found."))?
                     .iter()
                     .filter_map(|c3_ele| {
                         presym
@@ -800,20 +820,25 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     s6_axis_tr,
                 ));
             }
             ensure!(count_s6 == 4, "Unexpected number of S6 axes: {count_s6}.");
         }
         // end locating improper axes for Oh
-        else if *self.group_name.as_ref().expect("No point groups found.") == "Ih" {
+        else if *self
+            .group_name
+            .as_ref()
+            .ok_or_else(|| format_err!("No point groups found."))?
+            == "Ih"
+        {
             // Locating S10
             let order_5 = ElementOrder::Int(5);
             let order_10 = ElementOrder::Int(10);
             let s10_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&order_5)
-                    .expect("Expected C5 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C5 elements not found."))?
                     .iter()
                     .filter_map(|c5_ele| {
                         presym
@@ -835,7 +860,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     s10_axis_tr,
                 ));
             }
@@ -848,7 +873,7 @@ impl Symmetry {
             let order_6 = ElementOrder::Int(6);
             let s6_axes: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&order_3)
-                    .expect("Expected C3 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C3 elements not found."))?
                     .iter()
                     .filter_map(|c3_ele| {
                         presym
@@ -870,7 +895,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     s6_axis_tr,
                 ));
             }
@@ -879,7 +904,7 @@ impl Symmetry {
             // Locating σ
             let sigma_normals: Vec<(Vector3<f64>, bool)> = {
                 self.get_proper(&ORDER_2)
-                    .expect("Expected C2 elements not found.")
+                    .ok_or_else(|| format_err!("Expected C2 elements not found."))?
                     .iter()
                     .filter_map(|c2_ele| {
                         presym
@@ -901,7 +926,7 @@ impl Symmetry {
                     false,
                     SIG.clone(),
                     None,
-                    presym.molecule.threshold,
+                    presym.recentred_molecule.threshold,
                     sigma_normal_tr,
                 ));
             }

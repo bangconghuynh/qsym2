@@ -18,7 +18,7 @@ fn test_symmetry_group_detection_spherical_atom_o3() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-14)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -38,7 +38,7 @@ fn test_symmetry_group_detection_spherical_atom_grey_o3() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-14)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -66,7 +66,7 @@ fn test_symmetry_group_detection_spherical_c60_ih() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -122,7 +122,7 @@ fn test_symmetry_group_detection_spherical_c60_grey_ih() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -257,7 +257,7 @@ fn test_symmetry_group_detection_spherical_ch4_td() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_td(&presym);
@@ -269,7 +269,7 @@ fn test_symmetry_group_detection_spherical_ch4_grey_td() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_td(&presym);
@@ -281,7 +281,7 @@ fn test_symmetry_group_detection_spherical_adamantane_td() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_td(&presym);
@@ -294,7 +294,7 @@ fn test_symmetry_group_detection_spherical_adamantane_grey_td() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_td(&presym);
@@ -306,7 +306,7 @@ fn test_symmetry_group_detection_spherical_c165_diamond_nanoparticle_td() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_td(&presym);
@@ -318,7 +318,7 @@ fn test_symmetry_group_detection_spherical_c165_diamond_nanoparticle_grey_td() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_td(&presym);
@@ -330,7 +330,7 @@ fn test_symmetry_group_detection_spherical_vh2o6_th() {
     let mol = Molecule::from_xyz(&path, 1e-12);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -378,7 +378,7 @@ fn test_symmetry_group_detection_spherical_vh2o6_grey_th() {
     let mol = Molecule::from_xyz(&path, 1e-12);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -486,7 +486,7 @@ fn test_symmetry_group_detection_spherical_vf6_oh() {
     let mol = Molecule::from_xyz(&path, 1e-12);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -550,7 +550,7 @@ fn test_symmetry_group_detection_spherical_vf6_grey_oh() {
     let mol = Molecule::from_xyz(&path, 1e-12);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -839,7 +839,7 @@ fn test_symmetry_group_detection_linear_atom_magnetic_field_cinfh() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-14)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -867,7 +867,7 @@ fn test_symmetry_group_detection_linear_atom_magnetic_field_bw_dinfh_cinfh() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-14)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dinfh_cinfh(&presym);
@@ -880,7 +880,7 @@ fn test_symmetry_group_detection_linear_atom_electric_field_cinfv() {
     mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-14)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cinfv(&presym);
@@ -893,7 +893,7 @@ fn test_symmetry_group_detection_linear_atom_electric_field_grey_cinfv() {
     mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-14)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cinfv(&presym);
@@ -905,7 +905,7 @@ fn test_symmetry_group_detection_linear_c2h2_dinfh() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dinfh(&presym);
@@ -917,7 +917,7 @@ fn test_symmetry_group_detection_linear_c2h2_grey_dinfh() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dinfh(&presym);
@@ -932,7 +932,7 @@ fn test_symmetry_group_detection_linear_c2h2_magnetic_field_cinfh() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -962,7 +962,7 @@ fn test_symmetry_group_detection_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dinfh_cinfh(&presym);
@@ -977,7 +977,7 @@ fn test_symmetry_group_detection_linear_c2h2_electric_field_cinfv() {
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cinfv(&presym);
@@ -992,7 +992,7 @@ fn test_symmetry_group_detection_linear_c2h2_electric_field_grey_cinfv() {
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cinfv(&presym);
@@ -1004,7 +1004,7 @@ fn test_symmetry_group_detection_linear_n3_cinfv() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cinfv(&presym);
@@ -1016,7 +1016,7 @@ fn test_symmetry_group_detection_linear_n3_grey_cinfv() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cinfv(&presym);
@@ -1031,7 +1031,7 @@ fn test_symmetry_group_detection_linear_n3_magnetic_field_cinf() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
@@ -1054,7 +1054,7 @@ fn test_symmetry_group_detection_linear_n3_magnetic_field_bw_cinfv_cinf() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_cinfv_cinf(&presym);
@@ -1069,7 +1069,7 @@ fn test_symmetry_group_detection_linear_n3_electric_field_cinfv() {
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cinfv(&presym);
@@ -1084,7 +1084,7 @@ fn test_symmetry_group_detection_linear_n3_electric_field_grey_cinfv() {
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cinfv(&presym);
@@ -1323,7 +1323,7 @@ fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_c3() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 3);
@@ -1337,7 +1337,7 @@ fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_bw_c3v_c3() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_cnv_cn(&presym, 3);
@@ -1351,7 +1351,7 @@ fn test_symmetry_group_detection_symmetric_adamantane_magnetic_field_c3() {
     mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.1)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 3);
@@ -1365,7 +1365,7 @@ fn test_symmetry_group_detection_symmetric_adamantane_magnetic_field_bw_c3v_c3()
     mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.1)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_cnv_cn(&presym, 3);
@@ -1378,7 +1378,7 @@ fn test_symmetry_group_detection_symmetric_vh2o6_electric_field_c3() {
     mol.set_electric_field(Some(Vector3::new(-0.2, -0.2, -0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 3);
@@ -1391,7 +1391,7 @@ fn test_symmetry_group_detection_symmetric_65coronane_electric_field_c3() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 3);
@@ -1404,7 +1404,7 @@ fn test_symmetry_group_detection_symmetric_65coronane_electric_field_grey_c3() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cn(&presym, 3);
@@ -1417,7 +1417,7 @@ fn test_symmetry_group_detection_symmetric_h8_twisted_magnetic_field_c4() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 4);
@@ -1430,7 +1430,7 @@ fn test_symmetry_group_detection_symmetric_h8_twisted_magnetic_field_bw_d4_c4() 
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
 
@@ -1485,7 +1485,7 @@ fn test_symmetry_group_detection_symmetric_h8_twisted_electric_field_c4() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -0.1)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 4);
@@ -1497,7 +1497,7 @@ fn test_symmetry_group_detection_symmetric_h8_twisted_electric_field_grey_c4() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, -0.1)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cn(&presym, 4);
@@ -1511,7 +1511,7 @@ fn test_symmetry_group_detection_symmetric_cpnico_magnetic_field_c5() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 5);
@@ -1525,7 +1525,7 @@ fn test_symmetry_group_detection_symmetric_cpnico_magnetic_field_bw_c5v_c5() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_cnv_cn(&presym, 5);
@@ -1539,7 +1539,7 @@ fn test_symmetry_group_detection_symmetric_b7_magnetic_field_c6() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 6);
@@ -1553,7 +1553,7 @@ fn test_symmetry_group_detection_symmetric_b7_magnetic_field_bw_c6v_c6() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_cnv_cn(&presym, 6);
@@ -1566,7 +1566,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_half_sandwich_magnetic_fiel
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_cn(&presym, n);
@@ -1580,7 +1580,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_half_sandwich_magnetic_fiel
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_bw_cnv_cn(&presym, n);
@@ -1719,7 +1719,7 @@ fn test_symmetry_group_detection_symmetric_nh3_c3v() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 3);
@@ -1732,7 +1732,7 @@ fn test_symmetry_group_detection_symmetric_bf3_electric_field_c3v() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 3);
@@ -1746,7 +1746,7 @@ fn test_symmetry_group_detection_symmetric_adamantane_electric_field_c3v() {
     mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.1)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 3);
@@ -1759,7 +1759,7 @@ fn test_symmetry_group_detection_symmetric_ch4_electric_field_c3v() {
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 3);
@@ -1772,7 +1772,7 @@ fn test_symmetry_group_detection_symmetric_vf6_electric_field_c3v() {
     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 3);
@@ -1784,7 +1784,7 @@ fn test_symmetry_group_detection_symmetric_sf5cl_c4v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 4);
@@ -1798,7 +1798,7 @@ fn test_symmetry_group_detection_symmetric_h8_electric_field_c4v() {
     mol.set_electric_field(Some(0.2 * Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 4);
@@ -1811,7 +1811,7 @@ fn test_symmetry_group_detection_symmetric_vf6_electric_field_c4v() {
     mol.set_electric_field(Some(0.2 * Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 4);
@@ -1824,7 +1824,7 @@ fn test_symmetry_group_detection_symmetric_antiprism_pb10_electric_field_c4v() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 4);
@@ -1837,7 +1837,7 @@ fn test_symmetry_group_detection_symmetric_cpnico_c5v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 5);
@@ -1851,7 +1851,7 @@ fn test_symmetry_group_detection_symmetric_staggered_ferrocene_electric_field_c5
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 5);
@@ -1864,7 +1864,7 @@ fn test_symmetry_group_detection_symmetric_c60_electric_field_c5v() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 5);
@@ -1876,7 +1876,7 @@ fn test_symmetry_group_detection_symmetric_b7_c6v() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 6);
@@ -1889,7 +1889,7 @@ fn test_symmetry_group_detection_symmetric_au26_electric_field_c6v() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 6);
@@ -1903,7 +1903,7 @@ fn test_symmetry_group_detection_symmetric_benzene_electric_field_c6v() {
     mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 6);
@@ -1915,7 +1915,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_half_sandwich_cnv() {
         let mol = template_molecules::gen_arbitrary_half_sandwich(n);
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_cnv(&presym, n);
@@ -1930,7 +1930,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_electric
         mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 1.0)));
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_cnv(&presym, n);
@@ -2055,7 +2055,7 @@ fn test_symmetry_group_detection_symmetric_bf3_magnetic_field_c3h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 3);
@@ -2068,7 +2068,7 @@ fn test_symmetry_group_detection_symmetric_bf3_magnetic_field_bw_d3h_c3h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnh_cnh(&presym, 3);
@@ -2082,7 +2082,7 @@ fn test_symmetry_group_detection_symmetric_xef4_magnetic_field_c4h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 4);
@@ -2096,7 +2096,7 @@ fn test_symmetry_group_detection_symmetric_xef4_magnetic_field_bw_d4h_c4h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnh_cnh(&presym, 4);
@@ -2109,7 +2109,7 @@ fn test_symmetry_group_detection_symmetric_vf6_magnetic_field_c4h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 4);
@@ -2122,7 +2122,7 @@ fn test_symmetry_group_detection_symmetric_vf6_magnetic_field_bw_d4h_c4h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnh_cnh(&presym, 4);
@@ -2136,7 +2136,7 @@ fn test_symmetry_group_detection_symmetric_h8_magnetic_field_c4h() {
     mol.set_magnetic_field(Some(0.2 * Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 4);
@@ -2150,7 +2150,7 @@ fn test_symmetry_group_detection_symmetric_h8_magnetic_field_bw_d4h_c4h() {
     mol.set_magnetic_field(Some(0.2 * Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnh_cnh(&presym, 4);
@@ -2164,7 +2164,7 @@ fn test_symmetry_group_detection_symmetric_eclipsed_ferrocene_magnetic_field_c5h
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 5);
@@ -2178,7 +2178,7 @@ fn test_symmetry_group_detection_symmetric_eclipsed_ferrocene_magnetic_field_bw_
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnh_cnh(&presym, 5);
@@ -2192,7 +2192,7 @@ fn test_symmetry_group_detection_symmetric_benzene_magnetic_field_c6h() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 6);
@@ -2206,7 +2206,7 @@ fn test_symmetry_group_detection_symmetric_benzene_magnetic_field_bw_d6h_c6h() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnh_cnh(&presym, 6);
@@ -2220,7 +2220,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_cnh(&presym, n);
@@ -2235,7 +2235,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_eclipsed_sandwich_magnetic_
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.1)));
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_bw_dnh_cnh(&presym, n);
@@ -2572,7 +2572,7 @@ fn test_symmetry_group_detection_symmetric_triphenyl_radical_d3() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dn(&presym, 3);
@@ -2584,7 +2584,7 @@ fn test_symmetry_group_detection_symmetric_triphenyl_radical_grey_d3() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dn(&presym, 3);
@@ -2595,7 +2595,7 @@ fn test_symmetry_group_detection_symmetric_h8_twisted_d4() {
     let mol = template_molecules::gen_twisted_h8(0.1);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dn(&presym, 4);
@@ -2606,7 +2606,7 @@ fn test_symmetry_group_detection_symmetric_h8_twisted_grey_d4() {
     let mol = template_molecules::gen_twisted_h8(0.1);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dn(&presym, 4);
@@ -2618,7 +2618,7 @@ fn test_symmetry_group_detection_symmetric_c5ph5_d5() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dn(&presym, 5);
@@ -2630,7 +2630,7 @@ fn test_symmetry_group_detection_symmetric_c5ph5_grey_d5() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dn(&presym, 5);
@@ -2642,7 +2642,7 @@ fn test_symmetry_group_detection_symmetric_c6ph6_d6() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dn(&presym, 6);
@@ -2654,7 +2654,7 @@ fn test_symmetry_group_detection_symmetric_c6ph6_grey_d6() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dn(&presym, 6);
@@ -2667,7 +2667,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_twisted_sandwich_dn() {
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.1);
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_dn(&presym, n);
@@ -2681,7 +2681,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_twisted_sandwich_grey_dn() 
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.1);
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_grey_dn(&presym, n);
@@ -2869,7 +2869,7 @@ fn test_symmetry_group_detection_symmetric_bf3_d3h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnh(&presym, 3);
@@ -2881,7 +2881,7 @@ fn test_symmetry_group_detection_symmetric_bf3_grey_d3h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnh(&presym, 3);
@@ -2894,7 +2894,7 @@ fn test_symmetry_group_detection_symmetric_xef4_d4h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnh(&presym, 4);
@@ -2907,7 +2907,7 @@ fn test_symmetry_group_detection_symmetric_xef4_grey_d4h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnh(&presym, 4);
@@ -2920,7 +2920,7 @@ fn test_symmetry_group_detection_symmetric_h8_d4h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnh(&presym, 4);
@@ -2933,7 +2933,7 @@ fn test_symmetry_group_detection_symmetric_h8_grey_d4h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnh(&presym, 4);
@@ -2946,7 +2946,7 @@ fn test_symmetry_group_detection_symmetric_eclipsed_ferrocene_d5h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnh(&presym, 5);
@@ -2959,7 +2959,7 @@ fn test_symmetry_group_detection_symmetric_eclipsed_ferrocene_grey_d5h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnh(&presym, 5);
@@ -2972,7 +2972,7 @@ fn test_symmetry_group_detection_symmetric_benzene_d6h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnh(&presym, 6);
@@ -2985,7 +2985,7 @@ fn test_symmetry_group_detection_symmetric_benzene_grey_d6h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnh(&presym, 6);
@@ -2997,7 +2997,7 @@ fn test_symmetry_group_detection_symmetric_h100_d100h() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnh(&presym, 100);
@@ -3009,7 +3009,7 @@ fn test_symmetry_group_detection_symmetric_h100_grey_d100h() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnh(&presym, 100);
@@ -3022,7 +3022,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_eclipsed_sandwich_dnh() {
         let mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_dnh(&presym, n);
@@ -3036,7 +3036,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_eclipsed_sandwich_grey_dnh(
         let mol = template_molecules::gen_arbitrary_eclipsed_sandwich(n);
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_grey_dnh(&presym, n);
@@ -3336,7 +3336,7 @@ fn test_symmetry_group_detection_symmetric_b2cl4_d2d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnd(&presym, 2);
@@ -3349,7 +3349,7 @@ fn test_symmetry_group_detection_symmetric_b2cl4_grey_d2d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnd(&presym, 2);
@@ -3361,7 +3361,7 @@ fn test_symmetry_group_detection_symmetric_s4n4_d2d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnd(&presym, 2);
@@ -3373,7 +3373,7 @@ fn test_symmetry_group_detection_symmetric_s4n4_grey_d2d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnd(&presym, 2);
@@ -3385,7 +3385,7 @@ fn test_symmetry_group_detection_symmetric_pbet4_d2d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnd(&presym, 2);
@@ -3397,7 +3397,7 @@ fn test_symmetry_group_detection_symmetric_pbet4_grey_d2d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnd(&presym, 2);
@@ -3409,7 +3409,7 @@ fn test_symmetry_group_detection_symmetric_allene_d2d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnd(&presym, 2);
@@ -3421,7 +3421,7 @@ fn test_symmetry_group_detection_symmetric_allene_grey_d2d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnd(&presym, 2);
@@ -3433,7 +3433,7 @@ fn test_symmetry_group_detection_symmetric_staggered_c2h6_d3d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnd(&presym, 3);
@@ -3445,7 +3445,7 @@ fn test_symmetry_group_detection_symmetric_staggered_c2h6_grey_d3d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnd(&presym, 3);
@@ -3457,7 +3457,7 @@ fn test_symmetry_group_detection_symmetric_cyclohexane_chair_d3d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnd(&presym, 3);
@@ -3469,7 +3469,7 @@ fn test_symmetry_group_detection_symmetric_cyclohexane_chair_grey_d3d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnd(&presym, 3);
@@ -3481,7 +3481,7 @@ fn test_symmetry_group_detection_symmetric_s8_d4d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnd(&presym, 4);
@@ -3493,7 +3493,7 @@ fn test_symmetry_group_detection_symmetric_s8_grey_d4d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnd(&presym, 4);
@@ -3504,7 +3504,7 @@ fn test_symmetry_group_detection_symmetric_antiprism_h8_d4d() {
     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnd(&presym, 4);
@@ -3515,7 +3515,7 @@ fn test_symmetry_group_detection_symmetric_antiprism_h8_grey_d4d() {
     let mol = template_molecules::gen_twisted_h8(std::f64::consts::FRAC_PI_4);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnd(&presym, 4);
@@ -3527,7 +3527,7 @@ fn test_symmetry_group_detection_symmetric_antiprism_pb10_d4d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnd(&presym, 4);
@@ -3539,7 +3539,7 @@ fn test_symmetry_group_detection_symmetric_antiprism_pb10_grey_d4d() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnd(&presym, 4);
@@ -3552,7 +3552,7 @@ fn test_symmetry_group_detection_symmetric_staggered_ferrocene_d5d() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnd(&presym, 5);
@@ -3565,7 +3565,7 @@ fn test_symmetry_group_detection_symmetric_staggered_ferrocene_grey_d5d() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnd(&presym, 5);
@@ -3577,7 +3577,7 @@ fn test_symmetry_group_detection_symmetric_au26_d6d() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnd(&presym, 6);
@@ -3589,7 +3589,7 @@ fn test_symmetry_group_detection_symmetric_au26_grey_d6d() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnd(&presym, 6);
@@ -3602,7 +3602,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_dnd() {
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_dnd(&presym, n);
@@ -3616,7 +3616,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_grey_dnd
         let mol = template_molecules::gen_arbitrary_twisted_sandwich(n, 0.5);
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_grey_dnd(&presym, n);
@@ -3933,7 +3933,7 @@ fn test_symmetry_group_detection_symmetric_b2cl4_magnetic_field_s4() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 2, false);
@@ -3947,7 +3947,7 @@ fn test_symmetry_group_detection_symmetric_b2cl4_magnetic_field_bw_d2d_s4() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnd_s2n(&presym, 2);
@@ -3960,7 +3960,7 @@ fn test_symmetry_group_detection_symmetric_adamantane_magnetic_field_s4() {
     mol.set_magnetic_field(Some(Vector3::new(-0.1, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 2, false);
@@ -3973,7 +3973,7 @@ fn test_symmetry_group_detection_symmetric_adamantane_magnetic_field_bw_d2d_s4()
     mol.set_magnetic_field(Some(Vector3::new(-0.1, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnd_s2n(&presym, 2);
@@ -3986,7 +3986,7 @@ fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_s4() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 2, false);
@@ -3999,7 +3999,7 @@ fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_bw_d2d_s4() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnd_s2n(&presym, 2);
@@ -4011,7 +4011,7 @@ fn test_symmetry_group_detection_symmetric_65coronane_s6() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 3, false);
@@ -4024,7 +4024,7 @@ fn test_symmetry_group_detection_symmetric_65coronane_magnetic_field_s6() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 3, false);
@@ -4037,7 +4037,7 @@ fn test_symmetry_group_detection_symmetric_65coronane_magnetic_field_nonbw_s6() 
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 3, true);
@@ -4050,7 +4050,7 @@ fn test_symmetry_group_detection_symmetric_staggered_c2h6_magnetic_field_s6() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 3, false);
@@ -4063,7 +4063,7 @@ fn test_symmetry_group_detection_symmetric_staggered_c2h6_magnetic_field_bw_d3d_
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnd_s2n(&presym, 3);
@@ -4080,7 +4080,7 @@ fn test_symmetry_group_detection_symmetric_c60_magnetic_field_s6() {
     )));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 3, false);
@@ -4097,7 +4097,7 @@ fn test_symmetry_group_detection_symmetric_c60_magnetic_field_bw_d3d_s6() {
     )));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnd_s2n(&presym, 3);
@@ -4110,7 +4110,7 @@ fn test_symmetry_group_detection_symmetric_vh2o6_magnetic_field_s6() {
     mol.set_magnetic_field(Some(Vector3::new(-0.2, 0.2, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 3, false);
@@ -4123,7 +4123,7 @@ fn test_symmetry_group_detection_symmetric_vh2o6_magnetic_field_nonbw_s6() {
     mol.set_magnetic_field(Some(Vector3::new(-0.2, 0.2, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 3, true);
@@ -4136,7 +4136,7 @@ fn test_symmetry_group_detection_symmetric_vf6_magnetic_field_s6() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 3, false);
@@ -4149,7 +4149,7 @@ fn test_symmetry_group_detection_symmetric_vf6_magnetic_field_bw_d3d_s6() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnd_s2n(&presym, 3);
@@ -4162,7 +4162,7 @@ fn test_symmetry_group_detection_symmetric_s8_magnetic_field_s8() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 4, false);
@@ -4175,7 +4175,7 @@ fn test_symmetry_group_detection_symmetric_s8_magnetic_field_bw_d4d_s8() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnd_s2n(&presym, 4);
@@ -4188,7 +4188,7 @@ fn test_symmetry_group_detection_symmetric_antiprism_pb10_magnetic_field_s8() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 4, false);
@@ -4201,7 +4201,7 @@ fn test_symmetry_group_detection_symmetric_antiprism_pb10_magnetic_field_bw_d4d_
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnd_s2n(&presym, 4);
@@ -4215,7 +4215,7 @@ fn test_symmetry_group_detection_symmetric_staggered_ferrocene_magnetic_field_s1
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 5, false);
@@ -4229,7 +4229,7 @@ fn test_symmetry_group_detection_symmetric_staggered_ferrocene_magnetic_field_bw
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnd_s2n(&presym, 5);
@@ -4242,7 +4242,7 @@ fn test_symmetry_group_detection_symmetric_c60_magnetic_field_s10() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 5, false);
@@ -4255,7 +4255,7 @@ fn test_symmetry_group_detection_symmetric_c60_magnetic_field_bw_d5d_s10() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnd_s2n(&presym, 5);
@@ -4268,7 +4268,7 @@ fn test_symmetry_group_detection_symmetric_au26_magnetic_field_s12() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_s2n(&presym, 6, false);
@@ -4281,7 +4281,7 @@ fn test_symmetry_group_detection_symmetric_au26_magnetic_field_bw_d6d_s12() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnd_s2n(&presym, 6);
@@ -4295,7 +4295,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_s2n(&presym, n, false);
@@ -4311,7 +4311,7 @@ fn test_symmetry_group_detection_symmetric_arbitrary_staggered_sandwich_magnetic
         mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
         let presym = PreSymmetry::builder()
             .moi_threshold(1e-7)
-            .molecule(&mol, true)
+            .molecule(&mol)
             .build()
             .unwrap();
         verify_bw_dnd_s2n(&presym, n);
@@ -4464,7 +4464,7 @@ fn test_symmetry_group_detection_asymmetric_spiroketal_c2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 2);
@@ -4476,7 +4476,7 @@ fn test_symmetry_group_detection_asymmetric_spiroketal_grey_c2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cn(&presym, 2);
@@ -4488,7 +4488,7 @@ fn test_symmetry_group_detection_asymmetric_cyclohexene_c2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 2);
@@ -4500,7 +4500,7 @@ fn test_symmetry_group_detection_asymmetric_cyclohexene_grey_c2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cn(&presym, 2);
@@ -4512,7 +4512,7 @@ fn test_symmetry_group_detection_asymmetric_thf_c2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 2);
@@ -4524,7 +4524,7 @@ fn test_symmetry_group_detection_asymmetric_thf_grey_c2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cn(&presym, 2);
@@ -4536,7 +4536,7 @@ fn test_symmetry_group_detection_asymmetric_tartaricacid_c2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 2);
@@ -4548,7 +4548,7 @@ fn test_symmetry_group_detection_asymmetric_tartaricacid_grey_c2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cn(&presym, 2);
@@ -4560,7 +4560,7 @@ fn test_symmetry_group_detection_asymmetric_f2allene_c2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 2);
@@ -4572,7 +4572,7 @@ fn test_symmetry_group_detection_asymmetric_f2allene_grey_c2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cn(&presym, 2);
@@ -4586,7 +4586,7 @@ fn test_symmetry_group_detection_asymmetric_water_magnetic_field_c2() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 1.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 2);
@@ -4600,7 +4600,7 @@ fn test_symmetry_group_detection_asymmetric_water_magnetic_field_bw_c2v_c2() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 1.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_cnv_cn(&presym, 2);
@@ -4613,7 +4613,7 @@ fn test_symmetry_group_detection_asymmetric_pyridine_magnetic_field_c2() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.2, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 2);
@@ -4626,7 +4626,7 @@ fn test_symmetry_group_detection_asymmetric_pyridine_magnetic_field_bw_c2v_c2() 
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.2, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_cnv_cn(&presym, 2);
@@ -4640,7 +4640,7 @@ fn test_symmetry_group_detection_asymmetric_cyclobutene_magnetic_field_c2() {
     mol.set_magnetic_field(Some(Vector3::new(0.2, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 2);
@@ -4654,7 +4654,7 @@ fn test_symmetry_group_detection_asymmetric_cyclobutene_magnetic_field_bw_c2v_c2
     mol.set_magnetic_field(Some(Vector3::new(0.2, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_cnv_cn(&presym, 2);
@@ -4668,7 +4668,7 @@ fn test_symmetry_group_detection_asymmetric_azulene_magnetic_field_c2() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 2);
@@ -4682,7 +4682,7 @@ fn test_symmetry_group_detection_asymmetric_azulene_magnetic_field_bw_c2v_c2() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_cnv_cn(&presym, 2);
@@ -4696,7 +4696,7 @@ fn test_symmetry_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_c2() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.2, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 2);
@@ -4710,7 +4710,7 @@ fn test_symmetry_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.2, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_cnv_cn(&presym, 2);
@@ -4724,7 +4724,7 @@ fn test_symmetry_group_detection_asymmetric_cuneane_magnetic_field_c2() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cn(&presym, 2);
@@ -4738,7 +4738,7 @@ fn test_symmetry_group_detection_asymmetric_cuneane_magnetic_field_bw_c2v_c2() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_cnv_cn(&presym, 2);
@@ -4754,7 +4754,7 @@ fn test_symmetry_group_detection_asymmetric_water_c2v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 2);
@@ -4766,7 +4766,7 @@ fn test_symmetry_group_detection_asymmetric_water_grey_c2v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cnv(&presym, 2);
@@ -4778,7 +4778,7 @@ fn test_symmetry_group_detection_asymmetric_pyridine_c2v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 2);
@@ -4790,7 +4790,7 @@ fn test_symmetry_group_detection_asymmetric_pyridine_grey_c2v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cnv(&presym, 2);
@@ -4803,7 +4803,7 @@ fn test_symmetry_group_detection_asymmetric_cyclobutene_c2v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 2);
@@ -4816,7 +4816,7 @@ fn test_symmetry_group_detection_asymmetric_cyclobutene_grey_c2v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cnv(&presym, 2);
@@ -4829,7 +4829,7 @@ fn test_symmetry_group_detection_asymmetric_azulene_c2v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 2);
@@ -4842,7 +4842,7 @@ fn test_symmetry_group_detection_asymmetric_azulene_grey_c2v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cnv(&presym, 2);
@@ -4855,7 +4855,7 @@ fn test_symmetry_group_detection_asymmetric_cuneane_c2v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 2);
@@ -4868,7 +4868,7 @@ fn test_symmetry_group_detection_asymmetric_cuneane_grey_c2v() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cnv(&presym, 2);
@@ -4881,7 +4881,7 @@ fn test_symmetry_group_detection_asymmetric_bf3_electric_field_c2v() {
     mol.set_electric_field(Some(Vector3::new(0.2, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnv(&presym, 2);
@@ -4894,7 +4894,7 @@ fn test_symmetry_group_detection_asymmetric_bf3_electric_field_grey_c2v() {
     mol.set_electric_field(Some(Vector3::new(0.2, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cnv(&presym, 2);
@@ -4911,7 +4911,7 @@ fn test_symmetry_group_detection_asymmetric_h2o2_c2h() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 2);
@@ -4924,7 +4924,7 @@ fn test_symmetry_group_detection_asymmetric_h2o2_grey_c2h() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cnh(&presym, 2);
@@ -4937,7 +4937,7 @@ fn test_symmetry_group_detection_asymmetric_zethrene_c2h() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 2);
@@ -4950,7 +4950,7 @@ fn test_symmetry_group_detection_asymmetric_zethrene_grey_c2h() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cnh(&presym, 2);
@@ -4964,7 +4964,7 @@ fn test_symmetry_group_detection_asymmetric_distorted_vf6_magnetic_field_c2h() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 2);
@@ -4978,7 +4978,7 @@ fn test_symmetry_group_detection_asymmetric_distorted_vf6_magnetic_field_bw_d2h_
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnh_cnh(&presym, 2);
@@ -4992,7 +4992,7 @@ fn test_symmetry_group_detection_asymmetric_b2h6_magnetic_field_c2h() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 2);
@@ -5006,7 +5006,7 @@ fn test_symmetry_group_detection_asymmetric_b2h6_magnetic_field_bw_d2h_c2h() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnh_cnh(&presym, 2);
@@ -5020,7 +5020,7 @@ fn test_symmetry_group_detection_asymmetric_naphthalene_magnetic_field_c2h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 1.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 2);
@@ -5034,7 +5034,7 @@ fn test_symmetry_group_detection_asymmetric_naphthalene_magnetic_field_bw_d2h_c2
     mol.set_magnetic_field(Some(Vector3::new(0.0, 1.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnh_cnh(&presym, 2);
@@ -5048,7 +5048,7 @@ fn test_symmetry_group_detection_asymmetric_pyrene_magnetic_field_c2h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 2);
@@ -5062,7 +5062,7 @@ fn test_symmetry_group_detection_asymmetric_pyrene_magnetic_field_bw_d2h_c2h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnh_cnh(&presym, 2);
@@ -5076,7 +5076,7 @@ fn test_symmetry_group_detection_asymmetric_c6o6_magnetic_field_c2h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cnh(&presym, 2);
@@ -5090,7 +5090,7 @@ fn test_symmetry_group_detection_asymmetric_c6o6_magnetic_field_bw_d2h_c2h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_dnh_cnh(&presym, 2);
@@ -5106,7 +5106,7 @@ fn test_symmetry_group_detection_asymmetric_propene_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5118,7 +5118,7 @@ fn test_symmetry_group_detection_asymmetric_propene_grey_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5130,7 +5130,7 @@ fn test_symmetry_group_detection_asymmetric_socl2_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5142,7 +5142,7 @@ fn test_symmetry_group_detection_asymmetric_socl2_grey_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5155,7 +5155,7 @@ fn test_symmetry_group_detection_asymmetric_hocl_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5168,7 +5168,7 @@ fn test_symmetry_group_detection_asymmetric_hocl_grey_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5181,7 +5181,7 @@ fn test_symmetry_group_detection_asymmetric_hocn_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5194,7 +5194,7 @@ fn test_symmetry_group_detection_asymmetric_hocn_grey_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5207,7 +5207,7 @@ fn test_symmetry_group_detection_asymmetric_nh2f_cs() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5220,7 +5220,7 @@ fn test_symmetry_group_detection_asymmetric_nh2f_grey_cs() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5233,7 +5233,7 @@ fn test_symmetry_group_detection_asymmetric_phenol_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5246,7 +5246,7 @@ fn test_symmetry_group_detection_asymmetric_phenol_grey_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5259,7 +5259,7 @@ fn test_symmetry_group_detection_asymmetric_f_pyrrole_cs() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5272,7 +5272,7 @@ fn test_symmetry_group_detection_asymmetric_f_pyrrole_grey_cs() {
     let mol = Molecule::from_xyz(&path, 1e-6);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5285,7 +5285,7 @@ fn test_symmetry_group_detection_asymmetric_n2o_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5298,7 +5298,7 @@ fn test_symmetry_group_detection_asymmetric_n2o_grey_cs() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5311,7 +5311,7 @@ fn test_symmetry_group_detection_asymmetric_fclbenzene_cs() {
     let mol = Molecule::from_xyz(&path, 1e-5);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5324,7 +5324,7 @@ fn test_symmetry_group_detection_asymmetric_fclbenzene_grey_cs() {
     let mol = Molecule::from_xyz(&path, 1e-5);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5337,7 +5337,7 @@ fn test_symmetry_group_detection_asymmetric_water_magnetic_field_cs() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5351,7 +5351,7 @@ fn test_symmetry_group_detection_asymmetric_water_magnetic_field_bw_c2v_cs() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_c2v_cs(&presym);
@@ -5364,7 +5364,7 @@ fn test_symmetry_group_detection_asymmetric_pyridine_magnetic_field_cs() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5377,7 +5377,7 @@ fn test_symmetry_group_detection_asymmetric_pyridine_magnetic_field_bw_c2v_cs() 
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_c2v_cs(&presym);
@@ -5391,7 +5391,7 @@ fn test_symmetry_group_detection_asymmetric_cyclobutene_magnetic_field_cs() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5405,7 +5405,7 @@ fn test_symmetry_group_detection_asymmetric_cyclobutene_magnetic_field_bw_c2v_cs
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_c2v_cs(&presym);
@@ -5419,7 +5419,7 @@ fn test_symmetry_group_detection_asymmetric_azulene_magnetic_field_cs() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5433,7 +5433,7 @@ fn test_symmetry_group_detection_asymmetric_azulene_magnetic_field_bw_c2v_cs() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_c2v_cs(&presym);
@@ -5447,7 +5447,7 @@ fn test_symmetry_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_cs() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5461,7 +5461,7 @@ fn test_symmetry_group_detection_asymmetric_cis_cocl2h4o2_magnetic_field_bw_c2v_
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_c2v_cs(&presym);
@@ -5475,7 +5475,7 @@ fn test_symmetry_group_detection_asymmetric_cuneane_magnetic_field_cs() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5489,7 +5489,7 @@ fn test_symmetry_group_detection_asymmetric_cuneane_magnetic_field_bw_c2v_cs() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_c2v_cs(&presym);
@@ -5502,7 +5502,7 @@ fn test_symmetry_group_detection_asymmetric_water_electric_field_cs() {
     mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5515,7 +5515,7 @@ fn test_symmetry_group_detection_asymmetric_water_electric_field_grey_cs() {
     mol.set_electric_field(Some(Vector3::new(1.0, 0.0, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5528,7 +5528,7 @@ fn test_symmetry_group_detection_asymmetric_pyridine_electric_field_cs() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5541,7 +5541,7 @@ fn test_symmetry_group_detection_asymmetric_pyridine_electric_field_grey_cs() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5555,7 +5555,7 @@ fn test_symmetry_group_detection_asymmetric_cyclobutene_electric_field_cs() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5569,7 +5569,7 @@ fn test_symmetry_group_detection_asymmetric_cyclobutene_electric_field_grey_cs()
     mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5583,7 +5583,7 @@ fn test_symmetry_group_detection_asymmetric_azulene_electric_field_cs() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5597,7 +5597,7 @@ fn test_symmetry_group_detection_asymmetric_azulene_electric_field_grey_cs() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5611,7 +5611,7 @@ fn test_symmetry_group_detection_asymmetric_cis_cocl2h4o2_electric_field_cs() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5625,7 +5625,7 @@ fn test_symmetry_group_detection_asymmetric_cis_cocl2h4o2_electric_field_grey_cs
     mol.set_electric_field(Some(Vector3::new(0.0, 0.0, 0.2)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5639,7 +5639,7 @@ fn test_symmetry_group_detection_asymmetric_cuneane_electric_field_cs() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.5, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5653,7 +5653,7 @@ fn test_symmetry_group_detection_asymmetric_cuneane_electric_field_grey_cs() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.5, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5666,7 +5666,7 @@ fn test_symmetry_group_detection_asymmetric_bf3_magnetic_field_cs() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.5, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5681,7 +5681,7 @@ fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_cs() {
     mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5696,7 +5696,7 @@ fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_bw_c2v_cs() {
     mol.set_magnetic_field(Some(Vector3::new(0.1, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_c2v_cs(&presym);
@@ -5711,7 +5711,7 @@ fn test_symmetry_group_detection_symmetric_ch4_electric_field_cs() {
     mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5725,7 +5725,7 @@ fn test_symmetry_group_detection_symmetric_ch4_electric_field_grey_cs() {
     mol.set_electric_field(Some(Vector3::new(0.1, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_cs(&presym);
@@ -5740,7 +5740,7 @@ fn test_symmetry_group_detection_asymmetric_atom_magnetic_electric_field_cs() {
     mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_cs(&presym);
@@ -5755,7 +5755,7 @@ fn test_symmetry_group_detection_asymmetric_atom_magnetic_electric_field_bw_c2v_
     mol.set_electric_field(Some(Vector3::new(0.0, 0.1, 0.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_c2v_cs(&presym);
@@ -5909,7 +5909,7 @@ fn test_symmetry_group_detection_asymmetric_i4_biphenyl_d2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dn(&presym, 2);
@@ -5921,7 +5921,7 @@ fn test_symmetry_group_detection_asymmetric_i4_biphenyl_grey_d2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dn(&presym, 2);
@@ -5933,7 +5933,7 @@ fn test_symmetry_group_detection_asymmetric_twistane_d2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dn(&presym, 2);
@@ -5945,7 +5945,7 @@ fn test_symmetry_group_detection_asymmetric_twistane_grey_d2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dn(&presym, 2);
@@ -5957,7 +5957,7 @@ fn test_symmetry_group_detection_asymmetric_22_paracyclophane_d2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dn(&presym, 2);
@@ -5969,7 +5969,7 @@ fn test_symmetry_group_detection_asymmetric_22_paracyclophane_grey_d2() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dn(&presym, 2);
@@ -5986,7 +5986,7 @@ fn test_symmetry_group_detection_asymmetric_b2h6_d2h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnh(&presym, 2);
@@ -5999,7 +5999,7 @@ fn test_symmetry_group_detection_asymmetric_b2h6_grey_d2h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnh(&presym, 2);
@@ -6012,7 +6012,7 @@ fn test_symmetry_group_detection_asymmetric_naphthalene_d2h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnh(&presym, 2);
@@ -6025,7 +6025,7 @@ fn test_symmetry_group_detection_asymmetric_naphthalene_grey_d2h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnh(&presym, 2);
@@ -6038,7 +6038,7 @@ fn test_symmetry_group_detection_asymmetric_pyrene_d2h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnh(&presym, 2);
@@ -6051,7 +6051,7 @@ fn test_symmetry_group_detection_asymmetric_pyrene_grey_d2h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnh(&presym, 2);
@@ -6064,7 +6064,7 @@ fn test_symmetry_group_detection_asymmetric_c6o6_d2h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnh(&presym, 2);
@@ -6077,7 +6077,7 @@ fn test_symmetry_group_detection_asymmetric_c6o6_grey_d2h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnh(&presym, 2);
@@ -6090,7 +6090,7 @@ fn test_symmetry_group_detection_asymmetric_distorted_vf6_d2h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_dnh(&presym, 2);
@@ -6103,7 +6103,7 @@ fn test_symmetry_group_detection_asymmetric_distorted_vf6_grey_d2h() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_dnh(&presym, 2);
@@ -6120,7 +6120,7 @@ fn test_symmetry_group_detection_asymmetric_meso_tartaricacid_ci() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ci(&presym);
@@ -6133,7 +6133,7 @@ fn test_symmetry_group_detection_asymmetric_meso_tartaricacid_grey_ci() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_ci(&presym);
@@ -6146,7 +6146,7 @@ fn test_symmetry_group_detection_asymmetric_dibromodimethylcyclohexane_ci() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ci(&presym);
@@ -6159,7 +6159,7 @@ fn test_symmetry_group_detection_asymmetric_dibromodimethylcyclohexane_grey_ci()
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_ci(&presym);
@@ -6173,7 +6173,7 @@ fn test_symmetry_group_detection_asymmetric_h2o2_magnetic_field_ci() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ci(&presym);
@@ -6187,7 +6187,7 @@ fn test_symmetry_group_detection_asymmetric_h2o2_magnetic_field_ordinary_ci() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ordinary_ci(&presym);
@@ -6201,7 +6201,7 @@ fn test_symmetry_group_detection_asymmetric_h2o2_magnetic_field_bw_c2h_ci() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 2.0, -1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_bw_c2h_ci(&presym);
@@ -6215,7 +6215,7 @@ fn test_symmetry_group_detection_symmetric_xef4_magnetic_field_ci() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -2.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ci(&presym);
@@ -6229,7 +6229,7 @@ fn test_symmetry_group_detection_symmetric_xef4_magnetic_field_ordinary_ci() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -2.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ordinary_ci(&presym);
@@ -6242,7 +6242,7 @@ fn test_symmetry_group_detection_asymmetric_c2h2_magnetic_field_ci() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ci(&presym);
@@ -6255,7 +6255,7 @@ fn test_symmetry_group_detection_asymmetric_c2h2_magnetic_field_bw_c2h_ci() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
@@ -6310,7 +6310,7 @@ fn test_symmetry_group_detection_symmetric_vf6_magnetic_field_ci() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ci(&presym);
@@ -6323,7 +6323,7 @@ fn test_symmetry_group_detection_symmetric_vf6_magnetic_field_ordinary_ci() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ordinary_ci(&presym);
@@ -6337,7 +6337,7 @@ fn test_symmetry_group_detection_symmetric_c60_magnetic_field_ci() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ci(&presym);
@@ -6350,7 +6350,7 @@ fn test_symmetry_group_detection_symmetric_c60_magnetic_field_ordinary_ci() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, -2.0, 3.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ordinary_ci(&presym);
@@ -6512,7 +6512,7 @@ fn test_symmetry_group_detection_asymmetric_butan1ol_c1() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_c1(&presym);
@@ -6525,7 +6525,7 @@ fn test_symmetry_group_detection_asymmetric_butan1ol_grey_c1() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_c1(&presym);
@@ -6538,7 +6538,7 @@ fn test_symmetry_group_detection_asymmetric_subst_5m_ring_c1() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_c1(&presym);
@@ -6551,7 +6551,7 @@ fn test_symmetry_group_detection_asymmetric_subst_5m_ring_grey_c1() {
     let mol = Molecule::from_xyz(&path, 1e-7);
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_c1(&presym);
@@ -6564,7 +6564,7 @@ fn test_symmetry_group_detection_asymmetric_bf3_magnetic_field_c1() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_c1(&presym);
@@ -6577,7 +6577,7 @@ fn test_symmetry_group_detection_asymmetric_bf3_magnetic_field_ordinary_c1() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ordinary_c1(&presym);
@@ -6591,7 +6591,7 @@ fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_c1() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, -3.0, 2.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_c1(&presym);
@@ -6604,7 +6604,7 @@ fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_ordinary_c1() {
     mol.set_magnetic_field(Some(Vector3::new(1.0, -3.0, 2.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_ordinary_c1(&presym);
@@ -6618,7 +6618,7 @@ fn test_symmetry_group_detection_symmetric_vf6_electric_field_c1() {
     mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_c1(&presym);
@@ -6631,7 +6631,7 @@ fn test_symmetry_group_detection_symmetric_vf6_electric_field_grey_c1() {
     mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-12)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_c1(&presym);
@@ -6645,7 +6645,7 @@ fn test_symmetry_group_detection_symmetric_c60_electric_field_c1() {
     mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_c1(&presym);
@@ -6658,7 +6658,7 @@ fn test_symmetry_group_detection_symmetric_c60_electric_field_grey_c1() {
     mol.set_electric_field(Some(Vector3::new(1.0, -2.0, 3.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     verify_grey_c1(&presym);

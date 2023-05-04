@@ -1,11 +1,14 @@
-use crate::aux::geometry::{self, ImproperRotationKind, Transform};
-use crate::aux::misc::{self, HashableFloat};
-use approx;
-use nalgebra::{Matrix3, Point3, Rotation3, Translation3, UnitVector3, Vector3};
-use periodic_table;
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+
+use approx;
+use nalgebra::{Matrix3, Point3, Rotation3, Translation3, UnitVector3, Vector3};
+use num_traits::ToPrimitive;
+use periodic_table;
+
+use crate::aux::geometry::{self, ImproperRotationKind, Transform};
+use crate::aux::misc::{self, HashableFloat};
 
 /// A struct storing a look-up of element symbols to give atomic numbers
 /// and atomic masses.
@@ -139,7 +142,12 @@ impl Atom {
     ///
     /// The required ordinary atom.
     #[must_use]
-    pub fn new_ordinary(atomic_symbol: &str, coordinates: Point3<f64>, emap: &ElementMap, thresh: f64) -> Atom {
+    pub fn new_ordinary(
+        atomic_symbol: &str,
+        coordinates: Point3<f64>,
+        emap: &ElementMap,
+        thresh: f64,
+    ) -> Atom {
         let (atomic_number, atomic_mass) = emap
             .map
             .get(atomic_symbol)
@@ -183,17 +191,33 @@ impl Atom {
 
 impl fmt::Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let precision = self
+            .threshold
+            .log10()
+            .abs()
+            .round()
+            .to_usize()
+            .ok_or_else(|| fmt::Error)?
+            + 1;
         if let AtomKind::Ordinary = self.kind {
             write!(
                 f,
-                "Atom {}({:+.3}, {:+.3}, {:+.3})",
-                self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2]
+                "Atom {}({:+.precision$}, {:+.precision$}, {:+.precision$})",
+                self.atomic_symbol,
+                self.coordinates[0],
+                self.coordinates[1],
+                self.coordinates[2],
+                precision = precision
             )
         } else {
             write!(
                 f,
-                "{}({:+.3}, {:+.3}, {:+.3})",
-                self.kind, self.coordinates[0], self.coordinates[1], self.coordinates[2]
+                "{}({:+.precision$}, {:+.precision$}, {:+.precision$})",
+                self.kind,
+                self.coordinates[0],
+                self.coordinates[1],
+                self.coordinates[2],
+                precision = precision
             )
         }
     }
@@ -201,17 +225,27 @@ impl fmt::Display for Atom {
 
 impl fmt::Debug for Atom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let precision = self
+            .threshold
+            .log10()
+            .abs()
+            .round()
+            .to_usize()
+            .ok_or_else(|| fmt::Error)?
+            + 1;
         if let AtomKind::Ordinary = self.kind {
             write!(
                 f,
-                "Atom {}({:+.3}, {:+.3}, {:+.3})",
-                self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2]
+                "Atom {}({:+.precision$}, {:+.precision$}, {:+.precision$})",
+                self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2],
+                precision = precision
             )
         } else {
             write!(
                 f,
-                "{}({:+.3}, {:+.3}, {:+.3})",
-                self.kind, self.coordinates[0], self.coordinates[1], self.coordinates[2]
+                "{}({:+.precision$}, {:+.precision$}, {:+.precision$})",
+                self.kind, self.coordinates[0], self.coordinates[1], self.coordinates[2],
+                precision = precision
             )
         }
     }

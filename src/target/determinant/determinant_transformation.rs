@@ -507,7 +507,7 @@ where
         symop: &SymmetryOperation,
     ) -> Result<Permutation<usize>, TransformationError> {
         symop
-            .act_permute(self.mol)
+            .act_permute(&self.mol.molecule_ordinary_atoms())
             .ok_or(TransformationError(format!(
             "Unable to determine the atom permutation corresponding to the operation `{symop}`."
         )))

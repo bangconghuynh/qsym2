@@ -52,7 +52,13 @@ pub struct SymmetryGroupDetectionParams {
     #[builder(default = "None")]
     fictitious_electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
-    /// Boolean indicating if a summetry of the located symmetry elements is to be written to the
+    /// Boolean indicating if the origins specified in [`Self::fictitious_magnetic_fields`] and
+    /// [`Self::fictitious_electric_fields`] are to be taken relative to the molecule's centre of
+    /// mass rather than to the space-fixed origin.
+    #[builder(default = "false")]
+    fictitious_origin_com: bool,
+
+    /// Boolean indicating if a summary of the located symmetry elements is to be written to the
     /// output file.
     #[builder(default = "false")]
     write_symmetry_elements: bool,
@@ -66,12 +72,12 @@ impl SymmetryGroupDetectionParams {
 }
 
 impl SymmetryGroupDetectionParamsBuilder {
-    fn moi_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
+    pub fn moi_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
         self.moi_thresholds = Some(threshs.to_vec());
         self
     }
 
-    fn distance_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
+    pub fn distance_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
         self.distance_thresholds = Some(threshs.to_vec());
         self
     }
@@ -109,6 +115,20 @@ impl fmt::Display for SymmetryGroupDetectionParams {
                     .join(", ")
             )?;
             writeln!(f, "")?;
+        }
+
+        if self.fictitious_magnetic_fields.is_some() || self.fictitious_electric_fields.is_some() {
+            if self.fictitious_origin_com {
+                writeln!(
+                    f,
+                    "Fictitious field origins relative to: molecule's centre of mass"
+                )?;
+            } else {
+                writeln!(
+                    f,
+                    "Fictitious field origins relative to: space-fixed origin"
+                )?;
+            }
         }
 
         if let Some(fictitious_magnetic_fields) = self.fictitious_magnetic_fields.as_ref() {
@@ -160,20 +180,20 @@ impl fmt::Display for SymmetryGroupDetectionParams {
 /// A structure to contain symmetry-group detection results.
 #[derive(Clone, Builder, Debug)]
 pub struct SymmetryGroupDetectionResult<'a> {
-    /// The control parameters used to obtain this set of result.
-    parameters: &'a SymmetryGroupDetectionParams,
+    /// The control parameters used to obtain this set of results.
+    pub parameters: &'a SymmetryGroupDetectionParams,
 
     /// The [`PreSymmetry`] structure containing basic geometrical information of the system prior
     /// to symmetry-group detection.
-    pre_symmetry: PreSymmetry,
+    pub pre_symmetry: PreSymmetry,
 
     /// The [`Symmetry`] structure containing unitary symmetry information of the system.
-    unitary_symmetry: Symmetry,
+    pub unitary_symmetry: Symmetry,
 
     /// The [`Symmetry`] structure containing magnetic symmetry information of the system. This is
     /// only present if time-reversal symmetry has been considered.
     #[builder(default = "None")]
-    magnetic_symmetry: Option<Symmetry>,
+    pub magnetic_symmetry: Option<Symmetry>,
 }
 
 impl<'a> SymmetryGroupDetectionResult<'a> {
@@ -315,6 +335,26 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
         let params = self.parameters;
         params.log_output_display();
 
+        let smallest_dist_thresh = *params
+            .distance_thresholds
+            .iter()
+            .min_by(|x, y| {
+                x.partial_cmp(y)
+                    .expect("Unable to determine the smallest distance threshold.")
+            })
+            .ok_or_else(|| format_err!("Unable to determine the smallest distance threshold."))?;
+        let target_mol = match (self.molecule, self.xyz.as_ref()) {
+            (Some(molecule), None) => Molecule::from_atoms(
+                &molecule.get_all_atoms().into_iter().cloned().collect_vec(),
+                smallest_dist_thresh,
+            ),
+            (None, Some(xyz)) => Molecule::from_xyz(xyz, smallest_dist_thresh),
+            _ => bail!("Neither or both `molecule` and `xyz` are specified."),
+        };
+        log::info!(target: "output", "Molecule for symmetry-group detection:");
+        target_mol.log_output_display();
+        log::info!(target: "output", "");
+
         let threshs = params
             .moi_thresholds
             .iter()
@@ -350,20 +390,25 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                     xyz,
                     *dist_thresh
                 ),
-                _ => bail!("Both `molecule` and `xyz` are specified.")
+                _ => bail!("Neither or both `molecule` and `xyz` are specified.")
             };
 
             // Add any fictitious magnetic fields
+            let global_origin = if params.fictitious_origin_com {
+                mol.calc_com() - Point3::origin()
+            } else {
+                Vector3::zeros()
+            };
             if let Some(fictitious_magnetic_fields) = params.fictitious_magnetic_fields.as_ref() {
                 if let Some(_) = mol.magnetic_atoms {
                     bail!("Cannot set fictitious magnetic fields in the presence of actual magnetic fields.")
                 } else {
                     let fictitious_magnetic_atoms = fictitious_magnetic_fields.iter().flat_map(|(origin, vec)| {
                         Ok::<[Atom; 2], anyhow::Error>([
-                            Atom::new_special(AtomKind::Magnetic(true), origin + vec, *dist_thresh).ok_or_else(||
+                            Atom::new_special(AtomKind::Magnetic(true), origin + global_origin + vec, *dist_thresh).ok_or_else(||
                                 format_err!("Cannot construct a fictitious magnetic atom.")
                             )?,
-                            Atom::new_special(AtomKind::Magnetic(false), origin - vec, *dist_thresh).ok_or_else(||
+                            Atom::new_special(AtomKind::Magnetic(false), origin + global_origin - vec, *dist_thresh).ok_or_else(||
                                 format_err!("Cannot construct a fictitious magnetic atom.".to_string())
                             )?,
                         ])
@@ -379,7 +424,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                 } else {
                     let fictitious_electric_atoms = fictitious_electric_fields.iter().flat_map(|(origin, vec)| {
                         Ok::<Atom, anyhow::Error>(
-                            Atom::new_special(AtomKind::Electric(true), origin + vec, *dist_thresh).ok_or_else(||
+                            Atom::new_special(AtomKind::Electric(true), origin + global_origin + vec, *dist_thresh).ok_or_else(||
                                 format_err!("Cannot construct a fictitious electric atom.")
                             )?
                         )
@@ -392,7 +437,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             // A recentred copy of the molecule will be used for all symmetry-group detection.
             let presym = PreSymmetry::builder()
                 .moi_threshold(*moi_thresh)
-                .molecule(&mol, true)
+                .molecule(&mol)
                 .build()
                 .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
             let mut uni_sym = Symmetry::new();

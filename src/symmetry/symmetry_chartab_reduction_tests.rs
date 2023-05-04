@@ -21,12 +21,12 @@ fn test_chartab_reduction_vf6_oh() {
     let mol = Molecule::from_xyz(&path, thresh);
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
     let chartab = group.character_table();
 
     // Single irreps
@@ -242,12 +242,15 @@ fn test_chartab_reduction_vf6_oh_double() {
     let mol = Molecule::from_xyz(&path, thresh);
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None)
+        .unwrap()
+        .to_double_group()
+        .unwrap();
     let chartab = group.character_table();
 
     // Direct products
@@ -372,12 +375,15 @@ fn test_chartab_reduction_b2cl4_magnetic_field_s4_double() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).to_double_group();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None)
+        .unwrap()
+        .to_double_group()
+        .unwrap();
     let chartab = group.character_table();
 
     // Direct products
@@ -462,12 +468,12 @@ fn test_chartab_reduction_bf3_magnetic_field_bw_d3h_c3h() {
     mol.set_magnetic_field(Some(Vector3::new(0.0, 0.0, 1.0)));
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true).unwrap();
-    let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
+    let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None).unwrap();
     let ircorep_chartab = magnetic_group.character_table();
 
     // Single ircoreps
@@ -574,12 +580,12 @@ fn test_chartab_reduction_h8_alt_x_magnetic_field_bw_c4h_c2h() {
     mol.magnetic_atoms = Some(magnetic_atoms);
     let presym = PreSymmetry::builder()
         .moi_threshold(thresh)
-        .molecule(&mol, true)
+        .molecule(&mol)
         .build()
         .unwrap();
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true).unwrap();
-    let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None);
+    let magnetic_group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, None).unwrap();
     let ircorep_chartab = magnetic_group.character_table();
 
     // Single ircoreps

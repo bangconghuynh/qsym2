@@ -596,6 +596,12 @@ where
 // =========
 // Functions
 // =========
+/// Permutes the items in a vector in-place.
+///
+/// # Arguments
+///
+/// * `vec` - An exclusive reference to a vector of items to be permuted.
+/// * `perm` - A shared reference to a permutation determining how the items are to be permuted.
 pub(crate) fn permute_inplace<T>(vec: &mut Vec<T>, perm: &Permutation<usize>) {
     assert_eq!(
         perm.rank(),

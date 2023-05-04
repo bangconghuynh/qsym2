@@ -44,15 +44,18 @@ impl Error for PointGroupDetectionError {}
 /// A struct for storing and managing information required for symmetry analysis.
 #[derive(Clone, Builder, Debug)]
 pub struct PreSymmetry {
-    /// The molecule to be symmetry-analysed. This molecule will have bee
-    /// translated to put its centre of mass at the origin.
+    /// The original molecule.
     #[builder(setter(custom))]
-    molecule: Molecule,
+    pub original_molecule: Molecule,
+
+    /// The recentred molecule to be symmetry-analysed.
+    #[builder(setter(custom))]
+    pub recentred_molecule: Molecule,
 
     /// The rotational symmetry of [`Self::molecule`] based on its moments of
     /// inertia.
     #[builder(setter(skip), default = "self.calc_rotational_symmetry()")]
-    rotational_symmetry: RotationalSymmetry,
+    pub rotational_symmetry: RotationalSymmetry,
 
     /// The groups of symmetry-equivalent atoms in [`Self::molecule`].
     #[builder(setter(skip), default = "self.calc_sea_groups()")]
@@ -73,17 +76,12 @@ impl PreSymmetryBuilder {
     /// # Arguments
     ///
     /// * molecule - The molecule to be symmetry-analysed.
-    /// * recentre - A flag indicating if the molecule shall be recentred.
     ///
     /// # Returns
     /// A mutable borrow of `[Self]`.
-    pub fn molecule(&mut self, molecule: &Molecule, recentre: bool) -> &mut Self {
-        if recentre {
-            // The Symmetry struct now owns a recentred copy of `molecule`.
-            self.molecule = Some(molecule.recentre());
-        } else {
-            self.molecule = Some(molecule.clone());
-        }
+    pub fn molecule(&mut self, molecule: &Molecule) -> &mut Self {
+        self.recentred_molecule = Some(molecule.recentre());
+        self.original_molecule = Some(molecule.clone());
         self
     }
 
@@ -110,12 +108,12 @@ impl PreSymmetryBuilder {
 
     fn calc_rotational_symmetry(&self) -> RotationalSymmetry {
         let com = self
-            .molecule
+            .recentred_molecule
             .as_ref()
             .expect("A molecule has not been set.")
             .calc_com();
         let inertia = self
-            .molecule
+            .recentred_molecule
             .as_ref()
             .expect("A molecule has not been set.")
             .calc_inertia_tensor(&com);
@@ -123,12 +121,12 @@ impl PreSymmetryBuilder {
             com,
             Point3::origin(),
             epsilon = self
-                .molecule
+                .recentred_molecule
                 .as_ref()
                 .expect("A molecule has not been set.")
                 .threshold,
             max_relative = self
-                .molecule
+                .recentred_molecule
                 .as_ref()
                 .expect("A molecule has not been set.")
                 .threshold
@@ -140,14 +138,14 @@ impl PreSymmetryBuilder {
     }
 
     fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
-        self.molecule
+        self.recentred_molecule
             .as_ref()
             .expect("A molecule has not been set.")
             .calc_sea_groups()
     }
 
     fn get_dist_threshold(&self) -> f64 {
-        self.molecule
+        self.recentred_molecule
             .as_ref()
             .expect("A molecule has not been set.")
             .threshold
@@ -195,12 +193,12 @@ impl PreSymmetry {
             "This method does not work for infinite-order elements."
         );
         let angle = 2.0 * std::f64::consts::PI / order.to_float();
-        let rotated_mol = self.molecule.rotate(angle, axis);
-        if rotated_mol == self.molecule {
+        let rotated_mol = self.recentred_molecule.rotate(angle, axis);
+        if rotated_mol == self.recentred_molecule {
             Some(ROT)
         } else if tr {
             let tr_rotated_mol = rotated_mol.reverse_time();
-            if tr_rotated_mol == self.molecule {
+            if tr_rotated_mol == self.recentred_molecule {
                 Some(TRROT)
             } else {
                 None
@@ -243,7 +241,7 @@ impl PreSymmetry {
             "This method does not work for infinite-order elements."
         );
         let angle = 2.0 * std::f64::consts::PI / order.to_float();
-        let transformed_mol = self.molecule.improper_rotate(
+        let transformed_mol = self.recentred_molecule.improper_rotate(
             angle,
             axis,
             &kind.to_tr(false).try_into().unwrap_or_else(|err| {
@@ -251,11 +249,11 @@ impl PreSymmetry {
                 panic!("Error detected: {err}.")
             }),
         );
-        if transformed_mol == self.molecule {
+        if transformed_mol == self.recentred_molecule {
             Some(kind.to_tr(false))
         } else if tr {
             let tr_transformed_mol = transformed_mol.reverse_time();
-            if tr_transformed_mol == self.molecule {
+            if tr_transformed_mol == self.recentred_molecule {
                 Some(kind.to_tr(true))
             } else {
                 None
@@ -322,11 +320,7 @@ impl Symmetry {
     /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
     /// symmetry element will only be considered if its non-time-reversed version turns out to be
     /// not a symmetry element.
-    pub fn analyse(
-        &mut self,
-        presym: &PreSymmetry,
-        tr: bool,
-    ) -> Result<&mut Self, anyhow::Error> {
+    pub fn analyse(&mut self, presym: &PreSymmetry, tr: bool) -> Result<&mut Self, anyhow::Error> {
         log::debug!("Rotational symmetry found: {}", presym.rotational_symmetry);
 
         if tr {
@@ -342,7 +336,7 @@ impl Symmetry {
             .kind(ROT)
             .rotation_group(SO3)
             .build()
-            .expect("Unable to construct the identity element.");
+            .map_err(|err| format_err!(err))?;
         self.add_proper(ORDER_1, c1.raw_axis(), false, presym.dist_threshold, false);
 
         // Identify all symmetry elements and generators
@@ -367,13 +361,13 @@ impl Symmetry {
                 // Time-reversal requested, but the above analysis gives only non-time-reversed
                 // elements, which means the system must also contain time reversal as a symmetry
                 // operation. This implies that the group is a grey group.
-                if presym.molecule == presym.molecule.reverse_time() {
+                if presym.recentred_molecule == presym.recentred_molecule.reverse_time() {
                     log::debug!("Time reversal is a symmetry element. This is a grey group.");
                     // Add time-reversed copies of proper elements
                     self.elements.insert(
                         TRROT,
                         self.get_elements(&ROT)
-                            .expect("No proper elements found.")
+                            .ok_or_else(|| format_err!("No proper elements found."))?
                             .iter()
                             .map(|(order, proper_elements)| {
                                 let tr_proper_elements = proper_elements
@@ -399,17 +393,13 @@ impl Symmetry {
                         self.elements.insert(
                             TRSIG,
                             self.get_elements(&SIG)
-                                .expect("No improper elements found.")
+                                .ok_or_else(|| format_err!("No improper elements found."))?
                                 .iter()
                                 .map(|(order, improper_elements)| {
                                     let tr_improper_elements = improper_elements
                                         .iter()
                                         .map(|improper_element| {
                                             improper_element.to_tr(true)
-                                            // let mut tr_improper_element = improper_element.clone();
-                                            // tr_improper_element.kind =
-                                            //     improper_element.kind.to_tr(true);
-                                            // tr_improper_element
                                         })
                                         .collect::<IndexSet<_>>();
                                     (*order, tr_improper_elements)
@@ -1041,17 +1031,20 @@ impl Symmetry {
     /// infinite-order groups, this is the sum of the number of discrete symmetry elements and the
     /// number of discrete symmetry generators.
     pub fn n_elements(&self) -> usize {
-        let n_elements = self.elements
+        let n_elements = self
+            .elements
             .values()
             .flat_map(|kind_elements| kind_elements.values())
             .flatten()
             .count();
         if self.is_infinite() {
-            n_elements + self.generators
-            .values()
-            .flat_map(|kind_elements| kind_elements.values())
-            .flatten()
-            .count()
+            n_elements
+                + self
+                    .generators
+                    .values()
+                    .flat_map(|kind_elements| kind_elements.values())
+                    .flatten()
+                    .count()
         } else {
             n_elements
         }
@@ -1706,7 +1699,7 @@ fn _search_proper_rotations(
                             log::debug!("A spherical top SEA set detected: {:?}", sea_group);
                             let sea_presym = PreSymmetry::builder()
                                 .moi_threshold(presym.moi_threshold)
-                                .molecule(&sea_mol, true)
+                                .molecule(&sea_mol)
                                 .build()
                                 .expect("Unable to construct a `PreSymmetry` structure.");
                             let mut sea_sym = Symmetry::builder()
@@ -1875,8 +1868,8 @@ fn _search_proper_rotations(
                             .contains_time_reversal(),
                     ),
                 );
-            } else if let Some(electric_atoms) = &presym.molecule.electric_atoms {
-                let com = presym.molecule.calc_com();
+            } else if let Some(electric_atoms) = &presym.recentred_molecule.electric_atoms {
+                let com = presym.recentred_molecule.calc_com();
                 let e_vector = electric_atoms[0].coordinates - com;
                 if let Some(proper_kind) = presym.check_proper(&ORDER_2, &e_vector, tr) {
                     count_c2 += usize::from(sym.add_proper(

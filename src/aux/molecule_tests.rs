@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
 use approx;
-use nalgebra::Vector3;
+use nalgebra::{Point3, Vector3};
 
-use crate::aux::atom::{Atom, ElementMap};
+use crate::aux::atom::{Atom, AtomKind, ElementMap};
 use crate::aux::geometry::{Transform, IMINV, IMSIG};
 use crate::aux::molecule::Molecule;
 use crate::permutation::{PermutableCollection, Permutation};
@@ -175,6 +175,85 @@ fn test_calc_moi_n3() {
 }
 
 #[test]
+fn test_reorientate_c2h2() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.recentre_mut();
+    mol.reorientate_mut(1e-7);
+    let emap = ElementMap::new();
+    let reoriented_mol = Molecule::from_atoms(
+        &[
+            Atom::new_ordinary(
+                "C",
+                Point3::new(0.0, 0.0, -3.0f64.sqrt() / 2.0),
+                &emap,
+                1e-7,
+            ),
+            Atom::new_ordinary("C", Point3::new(0.0, 0.0, 3.0f64.sqrt() / 2.0), &emap, 1e-7),
+            Atom::new_ordinary(
+                "H",
+                Point3::new(0.0, 0.0, -27.0f64.sqrt() / 2.0),
+                &emap,
+                1e-7,
+            ),
+            Atom::new_ordinary(
+                "H",
+                Point3::new(0.0, 0.0, 27.0f64.sqrt() / 2.0),
+                &emap,
+                1e-7,
+            ),
+        ],
+        1e-7,
+    );
+    assert_eq!(mol, reoriented_mol);
+}
+
+#[test]
+fn test_reorientate_water() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/water.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.recentre_mut();
+    mol.reorientate_mut(1e-7);
+    let emap = ElementMap::new();
+    let reoriented_mol = Molecule::from_atoms(
+        &[
+            Atom::new_ordinary("O", Point3::new(0.0, 0.05741214, 0.0), &emap, 1e-7),
+            Atom::new_ordinary("H", Point3::new(-0.79200060, -0.45566096, 0.0), &emap, 1e-7),
+            Atom::new_ordinary("H", Point3::new(0.79200060, -0.45566096, 0.0), &emap, 1e-7),
+        ],
+        1e-7,
+    );
+    assert_eq!(mol, reoriented_mol);
+}
+
+#[test]
+fn test_reorientate_benzene() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.reorientate_mut(1e-7);
+    let mut reoriented_mol = Molecule::from_xyz(&path, 1e-7);
+    reoriented_mol.rotate_mut(
+        -2.0 * std::f64::consts::PI / 3.0,
+        &Vector3::new(1.0, 1.0, 1.0),
+    );
+    assert_eq!(mol, reoriented_mol);
+}
+
+#[test]
+fn test_reorientate_vf6_field() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-7);
+    mol.set_magnetic_field(Some(Vector3::x()));
+    let mut reoriented_mol = mol.clone();
+    mol.reorientate_mut(1e-7);
+    reoriented_mol.rotate_mut(
+        -2.0 * std::f64::consts::PI / 3.0,
+        &Vector3::new(1.0, 1.0, 1.0),
+    );
+    assert_eq!(mol, reoriented_mol);
+}
+
+#[test]
 fn test_molecule_get_perm_of() {
     let emap = ElementMap::new();
     let atom_0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
@@ -299,6 +378,122 @@ fn test_molecule_permute() {
             atom_3.clone(),
             atom_1.clone(),
             atom_2.clone(),
+        ]
+    );
+}
+
+#[test]
+fn test_molecule_permute_with_special_atoms() {
+    let emap = ElementMap::new();
+    let atom_0 = Atom::from_xyz("B 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_1 = Atom::from_xyz("H 1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_2 = Atom::from_xyz("H 0.0 1.0 0.0", &emap, 1e-7).unwrap();
+    let atom_3 = Atom::from_xyz("H -1.0 0.0 0.0", &emap, 1e-7).unwrap();
+    let atom_4 = Atom::from_xyz("H 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
+    let atom_b1 =
+        Atom::new_special(AtomKind::Magnetic(true), Point3::new(0.1, 0.1, 0.1), 1e-7).unwrap();
+    let atom_b2 =
+        Atom::new_special(AtomKind::Magnetic(false), Point3::new(-0.1, -0.1, -0.1), 1e-7).unwrap();
+    let atom_e1 =
+        Atom::new_special(AtomKind::Electric(true), Point3::new(0.0, 0.0, 0.1), 1e-7).unwrap();
+    let atom_e2 =
+        Atom::new_special(AtomKind::Electric(false), Point3::new(0.0, 0.0, -0.1), 1e-7).unwrap();
+    let mol1 = Molecule::from_atoms(
+        &[
+            atom_0.clone(),
+            atom_1.clone(),
+            atom_2.clone(),
+            atom_3.clone(),
+            atom_4.clone(),
+            atom_b1.clone(),
+            atom_b2.clone(),
+            atom_e1.clone(),
+        ],
+        1e-7,
+    );
+
+    let perm = Permutation::<usize>::from_image(vec![0, 4, 3, 1, 2, 5, 6, 7]);
+    let mol2 = mol1.permute(&perm);
+    assert_eq!(
+        mol2.atoms,
+        &[
+            atom_0.clone(),
+            atom_4.clone(),
+            atom_3.clone(),
+            atom_1.clone(),
+            atom_2.clone(),
+        ]
+    );
+    assert_eq!(
+        mol2.magnetic_atoms.unwrap(),
+        &[
+            atom_b1.clone(),
+            atom_b2.clone(),
+        ]
+    );
+    assert_eq!(
+        mol2.electric_atoms.unwrap(),
+        &[
+            atom_e1.clone(),
+        ]
+    );
+
+    let perm2 = Permutation::<usize>::from_image(vec![1, 4, 3, 0, 2, 6, 5, 7]);
+    let mol3 = mol1.permute(&perm2);
+    assert_eq!(
+        mol3.atoms,
+        &[
+            atom_1.clone(),
+            atom_4.clone(),
+            atom_3.clone(),
+            atom_0.clone(),
+            atom_2.clone(),
+        ]
+    );
+    assert_eq!(
+        mol3.magnetic_atoms.unwrap(),
+        &[
+            atom_b2.clone(),
+            atom_b1.clone(),
+        ]
+    );
+    assert_eq!(
+        mol3.electric_atoms.unwrap(),
+        &[
+            atom_e1.clone(),
+        ]
+    );
+
+    let mol4 = Molecule::from_atoms(
+        &[
+            atom_0.clone(),
+            atom_1.clone(),
+            atom_2.clone(),
+            atom_3.clone(),
+            atom_4.clone(),
+            atom_e1.clone(),
+            atom_e2.clone(),
+        ],
+        1e-7,
+    );
+
+    let perm3 = Permutation::<usize>::from_image(vec![0, 1, 3, 4, 2, 6, 5]);
+    let mol5 = mol4.permute(&perm3);
+    assert_eq!(
+        mol5.atoms,
+        &[
+            atom_0.clone(),
+            atom_1.clone(),
+            atom_3.clone(),
+            atom_4.clone(),
+            atom_2.clone(),
+        ]
+    );
+    assert_eq!(
+        mol5.electric_atoms.unwrap(),
+        &[
+            atom_e2.clone(),
+            atom_e1.clone(),
         ]
     );
 }

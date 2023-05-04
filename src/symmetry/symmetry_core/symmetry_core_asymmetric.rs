@@ -1,4 +1,4 @@
-use anyhow::{self, ensure};
+use anyhow::{self, ensure, format_err};
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
@@ -32,17 +32,13 @@ impl Symmetry {
     /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
     /// symmetry element will only be considered if its non-time-reversed version turns out to be
     /// not a symmetry element.
-    ///
-    /// # Panics
-    ///
-    /// Panics when any inconsistencies are encountered along the point-group detection path.
     #[allow(clippy::too_many_lines)]
     pub fn analyse_asymmetric(
         &mut self,
         presym: &PreSymmetry,
         tr: bool,
     ) -> Result<(), anyhow::Error> {
-        let (_mois, principal_axes) = presym.molecule.calc_moi();
+        let (_mois, principal_axes) = presym.recentred_molecule.calc_moi();
 
         ensure!(
             matches!(
@@ -88,13 +84,15 @@ impl Symmetry {
             // first.
             let mut c2s = self
                 .get_proper(&ORDER_2)
-                .expect(" No C2 elements found.")
+                .ok_or_else(|| format_err!("No C2 elements found."))?
                 .into_iter()
                 .cloned()
                 .collect_vec();
             c2s.sort_by_key(SymmetryElement::contains_time_reversal);
             let mut c2s = c2s.into_iter();
-            let c2 = c2s.next().expect(" No C2 elements found.");
+            let c2 = c2s
+                .next()
+                .ok_or_else(|| format_err!("No C2 elements found."))?;
             self.add_proper(
                 max_ord,
                 c2.raw_axis(),
@@ -104,7 +102,9 @@ impl Symmetry {
             );
 
             // One other C2 axis is also a generator.
-            let another_c2 = c2s.next().expect("No more C2s found.");
+            let another_c2 = c2s
+                .next()
+                .ok_or_else(|| format_err!("No more C2s found."))?;
             self.add_proper(
                 max_ord,
                 another_c2.raw_axis(),
@@ -132,7 +132,7 @@ impl Symmetry {
                 // perpendicular to a C2 axis.
                 let c2s = self
                     .get_proper(&ORDER_2)
-                    .expect(" No C2 elements found.")
+                    .ok_or_else(|| format_err!("No C2 elements found."))?
                     .into_iter()
                     .cloned()
                     .collect_vec();
@@ -150,17 +150,15 @@ impl Symmetry {
                         None,
                         presym.dist_threshold,
                         improper_check
-                            .unwrap_or_else(|| {
-                                panic!(
+                            .ok_or_else(|| {
+                                format_err!(
                                     "Expected mirror plane perpendicular to `{}` not found.",
                                     c2.raw_axis()
                                 )
-                            })
+                            })?
                             .contains_time_reversal(),
                     );
                 }
-                // let sigmas = self.get_sigma_elements("").expect("No σ found.");
-                // let sigma = sigmas.iter().next().expect("No σ found.");
                 let principal_element_axis = self.get_proper_principal_element().raw_axis().clone();
                 let improper_check =
                     presym.check_improper(&ORDER_1, &principal_element_axis, &SIG, tr);
@@ -176,9 +174,9 @@ impl Symmetry {
                     None,
                     presym.dist_threshold,
                     improper_check
-                        .expect(
-                            "Expected mirror plane perpendicular to the principal axis not found.",
-                        )
+                        .ok_or_else(||
+                            format_err!("Expected mirror plane perpendicular to the principal axis not found.")
+                        )?
                         .contains_time_reversal(),
                 );
             } else {
@@ -194,8 +192,14 @@ impl Symmetry {
             );
 
             // Principal axis, which is C2, is also a generator.
-            let c2s = self.get_proper(&ORDER_2).expect(" No C2 elements found.");
-            let c2 = (*c2s.iter().next().expect(" No C2 elements found.")).clone();
+            let c2s = self
+                .get_proper(&ORDER_2)
+                .ok_or_else(|| format_err!("No C2 elements found."))?;
+            let c2 = (*c2s
+                .iter()
+                .next()
+                .ok_or_else(|| format_err!("No C2 elements found."))?)
+            .clone();
             self.add_proper(
                 max_ord,
                 c2.raw_axis(),
@@ -222,10 +226,10 @@ impl Symmetry {
                 // There is one σh.
                 let c2 = (*self
                     .get_proper(&ORDER_2)
-                    .expect(" No C2 elements found.")
+                    .ok_or_else(|| format_err!("No C2 elements found."))?
                     .iter()
                     .next()
-                    .expect(" No C2 elements found."))
+                    .ok_or_else(|| format_err!("No C2 elements found."))?)
                 .clone();
 
                 let improper_check = presym.check_improper(&ORDER_1, c2.raw_axis(), &SIG, tr);
@@ -242,12 +246,12 @@ impl Symmetry {
                     presym.dist_threshold,
                     improper_check
                         .as_ref()
-                        .unwrap_or_else(|| {
-                            panic!(
+                        .ok_or_else(|| {
+                            format_err!(
                                 "Expected mirror plane perpendicular to {} not found.",
                                 c2.raw_axis()
                             )
-                        })
+                        })?
                         .contains_time_reversal(),
                 );
                 self.add_improper(
@@ -258,12 +262,12 @@ impl Symmetry {
                     Some("h".to_owned()),
                     presym.dist_threshold,
                     improper_check
-                        .unwrap_or_else(|| {
-                            panic!(
+                        .ok_or_else(|| {
+                            format_err!(
                                 "Expected mirror plane perpendicular to {} not found.",
                                 c2.raw_axis()
                             )
-                        })
+                        })?
                         .contains_time_reversal(),
                 );
             } else {
@@ -281,7 +285,7 @@ impl Symmetry {
                     if let Some(improper_kind) =
                         presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr)
                     {
-                        if presym.molecule.magnetic_atoms.is_some() {
+                        if presym.recentred_molecule.magnetic_atoms.is_some() {
                             ensure!(
                                 improper_kind.contains_time_reversal(),
                                 "Expected time-reversed improper element not found."
@@ -359,16 +363,19 @@ impl Symmetry {
                     // non-time-reversed one as the generator.
                     let mut sigmas = self
                         .get_sigma_elements("v")
-                        .unwrap_or_else(|| {
+                        .or_else(|| {
                             log::debug!("No σv found. Searching for σh instead.");
-                            self.get_sigma_elements("h").expect("No σh found either.")
+                            self.get_sigma_elements("h")
                         })
+                        .ok_or_else(|| format_err!("No σv nor σh found."))?
                         .into_iter()
                         .chain(self.get_sigma_elements("h").unwrap_or_default().into_iter())
                         .cloned()
                         .collect_vec();
                     sigmas.sort_by_key(SymmetryElement::contains_time_reversal);
-                    let sigma = sigmas.first().expect("No σv or σh found.");
+                    let sigma = sigmas
+                        .first()
+                        .ok_or_else(|| format_err!("No σv or σh found."))?;
                     self.add_improper(
                         ORDER_1,
                         sigma.raw_axis(),
@@ -464,9 +471,9 @@ impl Symmetry {
                             None,
                             presym.dist_threshold,
                             sigma_check
-                                .expect(
+                                .ok_or_else(|| format_err!(
                                     "Expected mirror plane perpendicular to the highest-MoI principal axis not found.",
-                                )
+                                ))?
                                 .contains_time_reversal(),
                         ),
                         "Failed to add mirror plane perpendicular to the highest-MoI principal axis."
@@ -475,11 +482,11 @@ impl Symmetry {
                     count_sigma += 1;
 
                     // Old algorithm
-                    // for atom3s in presym.molecule.atoms.iter().combinations(3) {
+                    // for atom3s in presym.recentred_molecule.atoms.iter().combinations(3) {
                     //     let normal = (atom3s[1].coordinates.coords - atom3s[0].coordinates.coords)
                     //         .cross(&(atom3s[2].coordinates.coords - atom3s[0].coordinates.coords));
                     //     if normal.norm() < presym.dist_threshold {
-                    //         if let Some(e_atoms) = &presym.molecule.electric_atoms {
+                    //         if let Some(e_atoms) = &presym.recentred_molecule.electric_atoms {
                     //             let normal = (atom3s[1].coordinates.coords
                     //                 - atom3s[0].coordinates.coords)
                     //                 .cross(
@@ -515,20 +522,23 @@ impl Symmetry {
                     );
                     let old_sigmas = self
                         .get_elements_mut(&SIG)
-                        .expect("No improper elements found.")
-                        .remove(&ORDER_1)
-                        .unwrap_or_else(|| {
+                        .and_then(|sigmas| sigmas.remove(&ORDER_1))
+                        .or_else(|| {
                             self.get_elements_mut(&TRSIG)
-                                .expect("No improper elements found.")
-                                .remove(&ORDER_1)
-                                .expect("No σ found.")
-                        });
+                                .and_then(|tr_sigmas| tr_sigmas.remove(&ORDER_1))
+                        })
+                        .ok_or_else(|| {
+                            format_err!("No normal or time-reversed mirror planes found.")
+                        })?;
                     ensure!(
                         old_sigmas.len() == 1,
                         "Unexpected number of old σ mirror planes: {}.",
                         old_sigmas.len()
                     );
-                    let old_sigma = old_sigmas.into_iter().next().expect("No σ found.");
+                    let old_sigma = old_sigmas
+                        .into_iter()
+                        .next()
+                        .ok_or_else(|| format_err!("No σ found."))?;
                     self.add_improper(
                         ORDER_1,
                         old_sigma.raw_axis(),
@@ -552,10 +562,10 @@ impl Symmetry {
                 } else {
                     let identity = (*self
                         .get_proper(&ORDER_1)
-                        .expect("No identity found.")
+                        .ok_or_else(|| format_err!("No identity found."))?
                         .iter()
                         .next()
-                        .expect("No identity found."))
+                        .ok_or_else(|| format_err!("No identity found."))?)
                     .clone();
 
                     self.add_proper(

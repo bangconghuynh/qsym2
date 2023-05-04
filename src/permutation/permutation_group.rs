@@ -2,6 +2,7 @@ use std::collections::{VecDeque, HashSet};
 use std::ops::Range;
 use std::fmt;
 
+use anyhow;
 use derive_builder::Builder;
 use factorial::Factorial;
 use indexmap::IndexSet;
@@ -102,7 +103,7 @@ impl PermutationGroup {
 /// `u64` on most modern machines.
 pub trait PermutationGroupProperties:
     ClassProperties<GroupElement = Permutation<u8>, ClassSymbol = PermutationClassSymbol<u8>>
-    + CharacterProperties
+    + CharacterProperties + Sized
 {
     /// Constructs a permutation group $`Sym(n)`$ from a given rank $`n`$ (*i.e.* the number of
     /// elements in the set to be permuted).
@@ -114,7 +115,7 @@ pub trait PermutationGroupProperties:
     /// # Returns
     ///
     /// A finite group of permutations.
-    fn from_rank(rank: u8) -> Self;
+    fn from_rank(rank: u8) -> Result<Self, anyhow::Error>;
 
     /// Sets class symbols from cycle patterns.
     ///
@@ -186,7 +187,7 @@ pub trait PermutationGroupProperties:
 impl PermutationGroupProperties
     for UnitaryRepresentedGroup<Permutation<u8>, PermutationIrrepSymbol, PermutationClassSymbol<u8>>
 {
-    fn from_rank(rank: u8) -> Self {
+    fn from_rank(rank: u8) -> Result<Self, anyhow::Error> {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
         assert!(
             rank <= 20,
@@ -203,12 +204,12 @@ impl PermutationGroupProperties
             Permutation<u8>,
             PermutationIrrepSymbol,
             PermutationClassSymbol<u8>,
-        >::new(format!("Sym({rank})").as_str(), perms);
+        >::new(format!("Sym({rank})").as_str(), perms)?;
         log::debug!("Collecting all permutations into a unitary-represented group... Done.");
         group.set_class_symbols_from_cycle_patterns();
         group.construct_irrep_character_table();
         group.canonicalise_character_table();
-        group
+        Ok(group)
     }
 
     fn canonicalise_character_table(&mut self) {
@@ -513,7 +514,7 @@ impl IrrepCharTabConstruction for PermutationGroup {
 }
 
 impl PermutationGroupProperties for PermutationGroup {
-    fn from_rank(rank: u8) -> Self {
+    fn from_rank(rank: u8) -> Result<Self, anyhow::Error> {
         assert!(rank > 0, "A permutation rank must be a positive integer.");
         assert!(
             rank <= 20,
@@ -534,7 +535,7 @@ impl PermutationGroupProperties for PermutationGroup {
         group.set_class_symbols_from_cycle_patterns();
         group.construct_irrep_character_table();
         group.canonicalise_character_table();
-        group
+        Ok(group)
     }
 
     fn canonicalise_character_table(&mut self) {

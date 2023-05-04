@@ -61,13 +61,13 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-7)
-        .molecule(&mol_vf6, true)
+        .molecule(&mol_vf6)
         .build()
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group_u_oh = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None);
-    let group_u_oh_double = group_u_oh.to_double_group();
+    let group_u_oh = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+    let group_u_oh_double = group_u_oh.to_double_group().unwrap();
 
     let thr = 1.0 / 3.0;
     let sao = array![
