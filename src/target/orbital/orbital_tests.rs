@@ -146,6 +146,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     let mut orbit_cg_u_oh_spatial_d3 = SlaterDeterminantSymmetryOrbit::builder()
         .group(&group_u_oh)
         .origin(&det_d3_cg)
+        .integrality_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -161,6 +162,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         &group_u_oh,
         &orbs_d3_cg,
         SymmetryTransformationKind::Spatial,
+        1e-14,
     );
     let orbs_d3_cg_ref = vec![
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap(),
@@ -186,6 +188,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     let mut orbit_cg_u_oh_double_spin_spatial_d3 = SlaterDeterminantSymmetryOrbit::builder()
         .group(&group_u_oh_double)
         .origin(&det_d3_cg)
+        .integrality_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -198,11 +201,13 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
             .unwrap()
     );
 
-    let mut orbit_cg_u_oh_double_spin_spatial_d3_orbs = MolecularOrbitalSymmetryOrbit::from_orbitals(
-        &group_u_oh_double,
-        &orbs_d3_cg,
-        SymmetryTransformationKind::SpinSpatial,
-    );
+    let mut orbit_cg_u_oh_double_spin_spatial_d3_orbs =
+        MolecularOrbitalSymmetryOrbit::from_orbitals(
+            &group_u_oh_double,
+            &orbs_d3_cg,
+            SymmetryTransformationKind::SpinSpatial,
+            1e-14,
+        );
     let orbs_d3_cg_spin_spatial_ref = vec![
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||G~|_(g)|").unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||G~|_(g)|").unwrap(),

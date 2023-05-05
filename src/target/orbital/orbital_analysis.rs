@@ -131,10 +131,24 @@ where
         MolecularOrbitalSymmetryOrbitBuilder::default()
     }
 
+    /// Constructs multiple molecular orbital orbits, each from one of the supplied orbitals.
+    ///
+    /// # Arguments
+    ///
+    /// * `group` - The orbit-generating group.
+    /// * `orbitals` - The origin orbitals, each of which generates its own orbit.
+    /// * `sym_kind` - The symmetry transformation kind.
+    /// * `integrality_thresh` - The threshold of integrality check of multiplicity coefficients in
+    /// each orbit.
+    ///
+    /// # Returns
+    ///
+    /// A vector of molecular orbital orbits.
     pub fn from_orbitals(
         group: &'a G,
         orbitals: &'a [MolecularOrbital<'a, T>],
         sym_kind: SymmetryTransformationKind,
+        integrality_thresh: <T as ComplexFloat>::Real,
     ) -> Vec<Self> {
         orbitals
             .iter()
@@ -142,6 +156,7 @@ where
                 MolecularOrbitalSymmetryOrbit::builder()
                     .group(group)
                     .origin(&orb)
+                    .integrality_threshold(integrality_thresh)
                     .symmetry_transformation_kind(sym_kind.clone())
                     .build()
                     .expect("Unable to construct a molecular orbital symmetry orbit.")
@@ -337,7 +352,7 @@ where
     }
 
     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
-        self.origin.threshold
+        self.integrality_threshold
     }
 
     /// Reduces the representation or corepresentation spanned by the molecular orbitals in the
