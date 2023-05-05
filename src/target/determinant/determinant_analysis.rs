@@ -146,6 +146,10 @@ where
     /// The origin Slater determinant of the orbit.
     origin: &'a SlaterDeterminant<'a, T>,
 
+    /// The threshold for determining if calculated multiplicities in representation analysis are
+    /// integral.
+    integrality_threshold: <T as ComplexFloat>::Real,
+
     /// The kind of transformation determining the way the symmetry operations in `group` act on
     /// `origin`.
     symmetry_transformation_kind: SymmetryTransformationKind,
@@ -370,7 +374,7 @@ where
     }
 
     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
-        self.origin.integrality_threshold
+        self.integrality_threshold
     }
 
     /// Reduces the representation or corepresentation spanned by the determinants in the orbit to

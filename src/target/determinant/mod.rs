@@ -58,10 +58,6 @@ where
 
     /// The threshold for comparing determinants.
     threshold: <T as ComplexFloat>::Real,
-
-    /// The threshold for determining if calculated multiplicities in representation analysis are
-    /// integral.
-    integrality_threshold: <T as ComplexFloat>::Real,
 }
 
 impl<'a, T> SlaterDeterminantBuilder<'a, T>
@@ -202,7 +198,6 @@ where
                     .spin_constraint(SpinConstraint::Generalised(n, false))
                     .complex_symmetric(self.complex_symmetric)
                     .threshold(self.threshold)
-                    .integrality_threshold(self.integrality_threshold)
                     .build()
                     .expect("Unable to spin-generalise a `SlaterDeterminant`.")
             }
@@ -247,7 +242,6 @@ where
                     .spin_constraint(SpinConstraint::Generalised(n, increasingm))
                     .complex_symmetric(self.complex_symmetric)
                     .threshold(self.threshold)
-                    .integrality_threshold(self.integrality_threshold)
                     .build()
                     .expect("Unable to spin-generalise a `SlaterDeterminant`.")
             }
@@ -375,7 +369,6 @@ where
             .spin_constraint(value.spin_constraint)
             .complex_symmetric(value.complex_symmetric)
             .threshold(value.threshold)
-            .integrality_threshold(value.integrality_threshold)
             .build()
             .expect("Unable to complexify a `SlaterDeterminant`.")
     }

@@ -97,6 +97,10 @@ where
     /// The origin molecular orbital of the orbit.
     origin: &'a MolecularOrbital<'a, T>,
 
+    /// The threshold for determining if calculated multiplicities in representation analysis are
+    /// integral.
+    integrality_threshold: <T as ComplexFloat>::Real,
+
     /// The kind of transformation determining the way the symmetry operations in `group` act on
     /// `origin`.
     symmetry_transformation_kind: SymmetryTransformationKind,
