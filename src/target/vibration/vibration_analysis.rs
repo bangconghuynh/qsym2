@@ -102,6 +102,9 @@ where
     /// integral.
     integrality_threshold: <T as ComplexFloat>::Real,
 
+    /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
+    linear_independence_threshold: <T as ComplexFloat>::Real,
+
     /// The kind of transformation determining the way the symmetry operations in `group` act on
     /// [`Self::origin`].
     symmetry_transformation_kind: SymmetryTransformationKind,
@@ -139,7 +142,7 @@ where
 {
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) -> &mut Self {
         // Real, symmetric S
-        let thresh = self.origin.threshold;
+        let thresh = self.linear_independence_threshold;
         let smat = self
             .smat
             .as_ref()
@@ -170,7 +173,7 @@ where
 {
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) {
         // Complex S, symmetric or Hermitian
-        let thresh = self.origin.threshold;
+        let thresh = self.linear_independence_threshold;
         let smat = self
             .smat
             .as_ref()

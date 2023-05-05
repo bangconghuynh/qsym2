@@ -67,6 +67,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .group(&group_u_c3v)
         .origin(&vib1)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -99,6 +100,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .group(&group_u_c3v)
         .origin(&vib2)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -131,6 +133,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .group(&group_u_c3v)
         .origin(&vib3)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -163,6 +166,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .group(&group_u_c3v)
         .origin(&vib4)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -195,6 +199,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .group(&group_u_c3v)
         .origin(&vib5)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -227,6 +232,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .group(&group_u_c3v)
         .origin(&vib6)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -277,6 +283,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .group(&group_u_td)
         .origin(&vib1)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -310,6 +317,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .group(&group_u_td)
         .origin(&vib2)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -343,6 +351,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .group(&group_u_td)
         .origin(&vib3)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -376,6 +385,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .group(&group_u_td)
         .origin(&vib4)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -409,6 +419,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .group(&group_u_td)
         .origin(&vib5)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -442,6 +453,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .group(&group_u_td)
         .origin(&vib6)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -475,6 +487,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .group(&group_u_td)
         .origin(&vib7)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -508,6 +521,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .group(&group_u_td)
         .origin(&vib8)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -541,6 +555,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .group(&group_u_td)
         .origin(&vib9)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -598,6 +613,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_d4h)
         .origin(&vib1)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -613,6 +629,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_c4h)
         .origin(&vib1)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -646,6 +663,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_d4h)
         .origin(&vib2)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -661,6 +679,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_c4h)
         .origin(&vib2)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -694,6 +713,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_d4h)
         .origin(&vib3)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -709,6 +729,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_c4h)
         .origin(&vib3)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -742,6 +763,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_d4h)
         .origin(&vib4)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -757,6 +779,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_c4h)
         .origin(&vib4)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -790,6 +813,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_d4h)
         .origin(&vib5)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -805,6 +829,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_c4h)
         .origin(&vib5)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -838,6 +863,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_d4h)
         .origin(&vib6)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -853,6 +879,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_c4h)
         .origin(&vib6)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -886,6 +913,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_d4h)
         .origin(&vib7)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -901,6 +929,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_c4h)
         .origin(&vib7)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -934,6 +963,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_d4h)
         .origin(&vib8)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -949,6 +979,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_c4h)
         .origin(&vib8)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -982,6 +1013,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_d4h)
         .origin(&vib9)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -997,6 +1029,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .group(&group_u_c4h)
         .origin(&vib9)
         .integrality_threshold(1e-7)
+        .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();

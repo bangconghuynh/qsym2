@@ -147,6 +147,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .group(&group_u_oh)
         .origin(&det_d3_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -163,6 +164,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         &orbs_d3_cg,
         SymmetryTransformationKind::Spatial,
         1e-14,
+        1e-14
     );
     let orbs_d3_cg_ref = vec![
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap(),
@@ -189,6 +191,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .group(&group_u_oh_double)
         .origin(&det_d3_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -206,6 +209,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
             &group_u_oh_double,
             &orbs_d3_cg,
             SymmetryTransformationKind::SpinSpatial,
+            1e-14,
             1e-14,
         );
     let orbs_d3_cg_spin_spatial_ref = vec![

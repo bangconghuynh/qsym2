@@ -1197,6 +1197,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
         .group(&group)
         .origin(&det)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1216,6 +1217,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
         .group(&group)
         .origin(&det_c)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1351,6 +1353,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1367,6 +1370,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1385,6 +1389,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1398,6 +1403,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1411,6 +1417,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1427,6 +1434,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1449,6 +1457,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1467,6 +1476,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1485,6 +1495,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1499,6 +1510,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1514,6 +1526,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1526,6 +1539,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1549,6 +1563,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1565,6 +1580,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1583,6 +1599,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1598,6 +1615,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1613,6 +1631,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1629,6 +1648,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1651,6 +1671,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_bw_d4h_c4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1667,6 +1688,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_bw_d4h_c4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1685,6 +1707,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_bw_d4h_c4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1699,6 +1722,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_bw_d4h_c4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1714,6 +1738,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_bw_d4h_c4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1726,6 +1751,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_bw_d4h_c4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1751,6 +1777,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_bw_d4h_c4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1769,6 +1796,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_bw_d4h_c4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1787,6 +1815,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_bw_d4h_c4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1802,6 +1831,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_bw_d4h_c4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1817,6 +1847,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_bw_d4h_c4h)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1835,6 +1866,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_bw_d4h_c4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1860,6 +1892,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1875,6 +1908,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1890,6 +1924,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1905,6 +1940,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -1920,6 +1956,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1938,6 +1975,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_d4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -1963,6 +2001,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1978,6 +2017,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -1993,6 +2033,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -2005,6 +2046,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -2020,6 +2062,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -2034,6 +2077,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_grey_d4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -2059,6 +2103,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -2074,6 +2119,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -2089,6 +2135,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -2104,6 +2151,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -2119,6 +2167,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -2139,6 +2188,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_grey_d4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -2166,6 +2216,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_bw_d4h_c4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -2183,6 +2234,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_bw_d4h_c4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -2200,6 +2252,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_bw_d4h_c4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -2212,6 +2265,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_u_bw_d4h_c4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -2228,6 +2282,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
             .group(&group_u_bw_d4h_c4h_double)
             .origin(&det_1e_cg)
             .integrality_threshold(1e-14)
+            .linear_independence_threshold(1e-14)
             .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
             .build()
             .unwrap();
@@ -2243,6 +2298,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
             .group(&group_u_bw_d4h_c4h_double)
             .origin(&det_2e_cg)
             .integrality_threshold(1e-14)
+            .linear_independence_threshold(1e-14)
             .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
             .build()
             .unwrap();
@@ -2267,6 +2323,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_bw_d4h_c4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -2287,6 +2344,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_bw_d4h_c4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -2307,6 +2365,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_bw_d4h_c4h_double)
         .origin(&det_1e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -2322,6 +2381,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_bw_d4h_c4h_double)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
@@ -2338,6 +2398,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
             .group(&group_m_bw_d4h_c4h_double)
             .origin(&det_1e_cg)
             .integrality_threshold(1e-14)
+            .linear_independence_threshold(1e-14)
             .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
             .build()
             .unwrap();
@@ -2358,6 +2419,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .group(&group_m_bw_d4h_c4h)
         .origin(&det_2e_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -2513,6 +2575,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .group(&group_u_oh)
         .origin(&det_dyy_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -2529,6 +2592,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .group(&group_u_oh)
         .origin(&det_dxz_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
         .build()
         .unwrap();
@@ -2549,6 +2613,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .group(&group_u_oh_double)
         .origin(&det_dyy_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();
@@ -2565,6 +2630,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .group(&group_u_oh_double)
         .origin(&det_dxz_cg)
         .integrality_threshold(1e-14)
+        .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .build()
         .unwrap();

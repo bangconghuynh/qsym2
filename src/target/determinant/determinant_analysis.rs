@@ -146,6 +146,9 @@ where
     /// The origin Slater determinant of the orbit.
     origin: &'a SlaterDeterminant<'a, T>,
 
+    /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
+    linear_independence_threshold: <T as ComplexFloat>::Real,
+
     /// The threshold for determining if calculated multiplicities in representation analysis are
     /// integral.
     integrality_threshold: <T as ComplexFloat>::Real,
@@ -197,7 +200,7 @@ where
     /// rank.
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) -> &mut Self {
         // Real, symmetric S
-        let thresh = self.origin.threshold;
+        let thresh = self.linear_independence_threshold;
         let smat = self
             .smat
             .as_ref()
@@ -239,7 +242,7 @@ where
         // Complex S, symmetric or Hermitian
         // eigh cannot be used here because complex symmetric S does not necessarily yield all real
         // eigenvalues.
-        let thresh = self.origin.threshold;
+        let thresh = self.linear_independence_threshold;
         let smat = self
             .smat
             .as_ref()

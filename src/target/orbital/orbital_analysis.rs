@@ -101,6 +101,9 @@ where
     /// integral.
     integrality_threshold: <T as ComplexFloat>::Real,
 
+    /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
+    linear_independence_threshold: <T as ComplexFloat>::Real,
+
     /// The kind of transformation determining the way the symmetry operations in `group` act on
     /// [`Self::origin`].
     symmetry_transformation_kind: SymmetryTransformationKind,
@@ -149,6 +152,7 @@ where
         orbitals: &'a [MolecularOrbital<'a, T>],
         sym_kind: SymmetryTransformationKind,
         integrality_thresh: <T as ComplexFloat>::Real,
+        linear_independence_thresh: <T as ComplexFloat>::Real,
     ) -> Vec<Self> {
         orbitals
             .iter()
@@ -157,6 +161,7 @@ where
                     .group(group)
                     .origin(&orb)
                     .integrality_threshold(integrality_thresh)
+                    .linear_independence_threshold(linear_independence_thresh)
                     .symmetry_transformation_kind(sym_kind.clone())
                     .build()
                     .expect("Unable to construct a molecular orbital symmetry orbit.")
@@ -180,7 +185,7 @@ where
     /// already of full rank.
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) -> &mut Self {
         // Real, symmetric S
-        let thresh = self.origin.threshold;
+        let thresh = self.linear_independence_threshold;
         let smat = self
             .smat
             .as_ref()
@@ -220,7 +225,7 @@ where
     /// already of full rank.
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) {
         // Complex S, symmetric or Hermitian
-        let thresh = self.origin.threshold;
+        let thresh = self.linear_independence_threshold;
         let smat = self
             .smat
             .as_ref()
