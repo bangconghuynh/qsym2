@@ -151,7 +151,7 @@ where
     integrality_threshold: <T as ComplexFloat>::Real,
 
     /// The kind of transformation determining the way the symmetry operations in `group` act on
-    /// `origin`.
+    /// [`Self::origin`].
     symmetry_transformation_kind: SymmetryTransformationKind,
 
     /// The overlap matrix between the symmetry-equivalent Slater determinants in the orbit.
