@@ -52,8 +52,16 @@ where
     #[builder(setter(custom))]
     occupations: Vec<Array1<<T as ComplexFloat>::Real>>,
 
+    /// The energies of the molecular orbitals in [`Self::coefficients`].
+    #[builder(default = "None")]
+    mo_energies: Option<Vec<Array1<T>>>,
+
     /// The threshold for comparing determinants.
     threshold: <T as ComplexFloat>::Real,
+
+    /// The threshold for determining if calculated multiplicities in representation analysis are
+    /// integral.
+    integrality_threshold: <T as ComplexFloat>::Real,
 }
 
 impl<'a, T> SlaterDeterminantBuilder<'a, T>
@@ -176,14 +184,25 @@ where
                         .assign(cr);
                     occg.slice_mut(s![col_start..col_end]).assign(occr);
                 });
+                let moeg_opt = self.mo_energies.as_ref().map(|moer| {
+                    let mut moeg = Array1::<T>::zeros((norb * usize::from(n),));
+                    (0..usize::from(n)).for_each(|i| {
+                        let col_start = norb * i;
+                        let col_end = norb * (i + 1);
+                        moeg.slice_mut(s![col_start..col_end]).assign(&moer[0]);
+                    });
+                    vec![moeg]
+                });
                 Self::builder()
                     .coefficients(&[cg])
                     .occupations(&[occg])
+                    .mo_energies(moeg_opt)
                     .bao(self.bao)
                     .mol(self.mol)
                     .spin_constraint(SpinConstraint::Generalised(n, false))
                     .complex_symmetric(self.complex_symmetric)
                     .threshold(self.threshold)
+                    .integrality_threshold(self.integrality_threshold)
                     .build()
                     .expect("Unable to spin-generalise a `SlaterDeterminant`.")
             }
@@ -209,14 +228,26 @@ where
                     occg.slice_mut(s![col_start..col_end])
                         .assign(&self.occupations[i]);
                 });
+
+                let moeg_opt = self.mo_energies.as_ref().map(|moer| {
+                    let mut moeg = Array1::<T>::zeros((norb_tot,));
+                    (0..usize::from(n)).for_each(|i| {
+                        let (col_start, col_end) = col_boundary_indices[i];
+                        moeg.slice_mut(s![col_start..col_end]).assign(&moer[i]);
+                    });
+                    vec![moeg]
+                });
+
                 Self::builder()
                     .coefficients(&[cg])
                     .occupations(&[occg])
+                    .mo_energies(moeg_opt)
                     .bao(self.bao)
                     .mol(self.mol)
                     .spin_constraint(SpinConstraint::Generalised(n, increasingm))
                     .complex_symmetric(self.complex_symmetric)
                     .threshold(self.threshold)
+                    .integrality_threshold(self.integrality_threshold)
                     .build()
                     .expect("Unable to spin-generalise a `SlaterDeterminant`.")
             }
@@ -334,11 +365,17 @@ where
                     .collect::<Vec<_>>(),
             )
             .occupations(&value.occupations)
+            .mo_energies(value.mo_energies.map(|moes| {
+                moes.iter()
+                    .map(|moe| moe.map(|x| Complex::from(x)))
+                    .collect::<Vec<_>>()
+            }))
             .bao(value.bao)
             .mol(value.mol)
             .spin_constraint(value.spin_constraint)
             .complex_symmetric(value.complex_symmetric)
             .threshold(value.threshold)
+            .integrality_threshold(value.integrality_threshold)
             .build()
             .expect("Unable to complexify a `SlaterDeterminant`.")
     }

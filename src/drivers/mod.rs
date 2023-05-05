@@ -4,6 +4,7 @@ use std::fmt;
 use anyhow;
 use log;
 
+pub mod representation_analysis;
 pub mod symmetry_group_detection;
 pub mod molecule_symmetrisation;
 

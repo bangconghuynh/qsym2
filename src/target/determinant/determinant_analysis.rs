@@ -370,7 +370,7 @@ where
     }
 
     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
-        self.origin.threshold
+        self.origin.integrality_threshold
     }
 
     /// Reduces the representation or corepresentation spanned by the determinants in the orbit to

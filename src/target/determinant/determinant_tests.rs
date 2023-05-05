@@ -84,6 +84,7 @@ fn test_determinant_transformation_bf4_sqpl() {
         .spin_constraint(SpinConstraint::Restricted(2))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -123,6 +124,7 @@ fn test_determinant_transformation_bf4_sqpl() {
         .spin_constraint(SpinConstraint::Restricted(2))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     assert_eq!(tdet_c4p1, tdet_c4p1_ref);
@@ -190,6 +192,7 @@ fn test_determinant_transformation_s4_sqpl() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -216,6 +219,7 @@ fn test_determinant_transformation_s4_sqpl() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetunres_c4p1 = detunres.sym_transform_spatial(&c4p1).unwrap();
@@ -248,6 +252,7 @@ fn test_determinant_transformation_s4_sqpl() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -262,6 +267,7 @@ fn test_determinant_transformation_s4_sqpl() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetgen_c4p1 = detgen.sym_transform_spatial(&c4p1).unwrap();
@@ -277,6 +283,7 @@ fn test_determinant_transformation_s4_sqpl() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetgen_s1zp1 = detgen.sym_transform_spatial(&s1zp1).unwrap();
@@ -292,6 +299,7 @@ fn test_determinant_transformation_s4_sqpl() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetgen_s1yp1 = detgen.sym_transform_spatial(&s1yp1).unwrap();
@@ -307,6 +315,7 @@ fn test_determinant_transformation_s4_sqpl() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetgen_s1xp1 = detgen.sym_transform_spatial(&s1xp1).unwrap();
@@ -322,6 +331,7 @@ fn test_determinant_transformation_s4_sqpl() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetgen_ip1 = detgen.sym_transform_spatial(&ip1).unwrap();
@@ -338,6 +348,7 @@ fn test_determinant_transformation_s4_sqpl() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetgen_s4p1 = detgen.sym_transform_spatial(&s4p1).unwrap();
@@ -425,6 +436,7 @@ fn test_determinant_transformation_b3_real_timerev() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -437,6 +449,7 @@ fn test_determinant_transformation_b3_real_timerev() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     assert_eq!(tdetunres_tr, tdetunres_tr_ref);
@@ -454,6 +467,7 @@ fn test_determinant_transformation_b3_real_timerev() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     assert_eq!(tdetunres_c3p1_tr, tdetunres_c3p1_tr_ref);
@@ -470,6 +484,7 @@ fn test_determinant_transformation_b3_real_timerev() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -483,6 +498,7 @@ fn test_determinant_transformation_b3_real_timerev() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     assert_eq!(tdetgen_tr, tdetgen_tr_ref);
@@ -501,6 +517,7 @@ fn test_determinant_transformation_b3_real_timerev() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     assert_eq!(tdetgen_c3p1_tr, tdetgen_c3p1_tr_ref);
@@ -544,6 +561,7 @@ fn test_determinant_transformation_c2_complex_timerev() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -558,6 +576,7 @@ fn test_determinant_transformation_c2_complex_timerev() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetgen_tr = detgen.transform_timerev().unwrap();
@@ -621,6 +640,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap()
         .into();
@@ -650,6 +670,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetgen_c2_nsr_p1 = detgen.sym_transform_spin(&c2_nsr_p1).unwrap();
@@ -664,6 +685,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap()
         .into();
@@ -683,6 +705,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetgen_c2_nsr_p3 = detgen.sym_transform_spin(&c2_nsr_p3).unwrap();
@@ -716,6 +739,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetgen_sxy_nsr = detgen.sym_transform_spin(&sxy_nsr_p1).unwrap();
@@ -732,6 +756,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let tdetgen_sxy_nsr_p3 = detgen.sym_transform_spin(&(&sxy_nsr_p1).pow(3)).unwrap();
@@ -756,6 +781,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
     let sxyz_nsr_p1 = group.get_index(6).unwrap();
@@ -836,6 +862,7 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
         .spin_constraint(SpinConstraint::Generalised(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap()
         .into();
@@ -935,6 +962,7 @@ fn test_determinant_analysis_overlap() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -955,6 +983,7 @@ fn test_determinant_analysis_overlap() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -975,6 +1004,7 @@ fn test_determinant_analysis_overlap() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -995,6 +1025,7 @@ fn test_determinant_analysis_overlap() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -1015,6 +1046,7 @@ fn test_determinant_analysis_overlap() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -1035,6 +1067,7 @@ fn test_determinant_analysis_overlap() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -1190,6 +1223,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap();
 
@@ -1316,6 +1350,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap()
         .to_generalised()
@@ -1334,6 +1369,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap()
         .to_generalised()
@@ -2410,6 +2446,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap()
         .to_generalised()
@@ -2438,6 +2475,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
+        .integrality_threshold(1e-14)
         .build()
         .unwrap()
         .to_generalised()
