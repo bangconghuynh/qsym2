@@ -320,7 +320,7 @@ pub struct SymmetryGroupDetectionDriver<'a> {
     molecule: Option<&'a Molecule>,
 
     /// The result of the symmetry-group detection.
-    #[builder(default = "None")]
+    #[builder(setter(skip), default = "None")]
     result: Option<SymmetryGroupDetectionResult<'a>>,
 }
 

@@ -48,6 +48,10 @@ where
     /// The coefficients describing this molecular orbital.
     coefficients: Array1<T>,
 
+    /// The energy of this molecular orbital.
+    #[builder(default = "None")]
+    energy: Option<T>,
+
     /// The threshold for comparing determinants.
     threshold: <T as ComplexFloat>::Real,
 }

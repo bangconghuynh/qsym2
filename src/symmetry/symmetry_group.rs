@@ -31,6 +31,22 @@ mod symmetry_group_tests;
 #[path = "symmetry_chartab_tests.rs"]
 mod symmetry_chartab_tests;
 
+// ======================
+// Type alias definitions
+// ======================
+
+pub type UnitaryRepresentedSymmetryGroup = UnitaryRepresentedGroup<
+    SymmetryOperation,
+    MullikenIrrepSymbol,
+    SymmetryClassSymbol<SymmetryOperation>,
+>;
+
+pub type MagneticRepresentedSymmetryGroup = MagneticRepresentedGroup<
+    SymmetryOperation,
+    UnitaryRepresentedSymmetryGroup,
+    MullikenIrcorepSymbol,
+>;
+
 // =================
 // Trait definitions
 // =================

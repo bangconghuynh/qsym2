@@ -56,6 +56,10 @@ where
     #[builder(default = "None")]
     mo_energies: Option<Vec<Array1<T>>>,
 
+    /// The energy of this determinant.
+    #[builder(default = "None")]
+    energy: Option<T>,
+
     /// The threshold for comparing determinants.
     threshold: <T as ComplexFloat>::Real,
 }
@@ -152,6 +156,14 @@ where
     /// Returns a builder to construct a new [`SlaterDeterminant`].
     pub fn builder() -> SlaterDeterminantBuilder<'a, T> {
         SlaterDeterminantBuilder::default()
+    }
+
+    pub fn spin_constraint(&self) -> &SpinConstraint {
+        &self.spin_constraint
+    }
+
+    pub fn bao(&self) -> &BasisAngularOrder {
+        self.bao
     }
 
     /// Augments the encoding of coefficients in this Slater determinant to that in the
@@ -263,9 +275,11 @@ where
                 self.coefficients[0]
                     .columns()
                     .into_iter()
-                    .map(|c| {
+                    .enumerate()
+                    .map(|(i, c)| {
                         MolecularOrbital::builder()
                             .coefficients(c.to_owned())
+                            .energy(self.mo_energies.as_ref().map(|moes| moes[0][i]))
                             .bao(self.bao)
                             .mol(self.mol)
                             .spin_constraint(self.spin_constraint.clone())
@@ -282,9 +296,10 @@ where
                 .iter()
                 .enumerate()
                 .flat_map(|(spini, cs_spini)| {
-                    cs_spini.columns().into_iter().map(move |c| {
+                    cs_spini.columns().into_iter().enumerate().map(move |(i, c)| {
                         MolecularOrbital::builder()
                             .coefficients(c.to_owned())
+                            .energy(self.mo_energies.as_ref().map(|moes| moes[spini][i]))
                             .bao(self.bao)
                             .mol(self.mol)
                             .spin_constraint(self.spin_constraint.clone())
@@ -302,16 +317,6 @@ where
     /// Returns a shared reference to a vector of coefficient arrays.
     pub fn coefficients(&self) -> &Vec<Array2<T>> {
         &self.coefficients
-    }
-
-    /// Returns a shared reference to the spin constraint.
-    pub fn spin_constraint(&self) -> &SpinConstraint {
-        &self.spin_constraint
-    }
-
-    /// Returns a shared reference to the [`BasisAngularOrder`].
-    pub fn bao(&self) -> &BasisAngularOrder {
-        &self.bao
     }
 
     /// Returns the total number of electrons in the determinant.

@@ -146,7 +146,7 @@ pub struct MoleculeSymmetrisationDriver<'a> {
     target_symmetry_result: &'a SymmetryGroupDetectionResult<'a>,
 
     /// The result of the symmetrisation.
-    #[builder(default = "None")]
+    #[builder(setter(skip), default = "None")]
     result: Option<MoleculeSymmetrisationResult<'a>>,
 }
 
