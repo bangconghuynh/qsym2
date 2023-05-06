@@ -6,7 +6,7 @@ use nalgebra::Point3;
 use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
 
-use crate::aux::format::{log_subtitle, write_title};
+use crate::aux::format::{log_subtitle, log_title};
 use crate::aux::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::{QSym2Driver, QSym2Output};
@@ -71,8 +71,6 @@ impl MoleculeSymmetrisationParams {
 
 impl fmt::Display for MoleculeSymmetrisationParams {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_title(f, "Molecule Symmetrisation")?;
-        writeln!(f, "")?;
         writeln!(f, "Target MoI threshold: {:.3e}", self.target_moi_threshold)?;
         writeln!(
             f,
@@ -187,6 +185,8 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
 
     /// Executes molecule symmetrisation.
     fn symmetrise_molecule(&mut self) -> Result<(), anyhow::Error> {
+        log_title("Molecule Symmetrisation");
+        log::info!(target: "output", "");
         let params = self.parameters;
         params.log_output_display();
 

@@ -14,7 +14,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_drivers_molecule_symmetrisation_vf6_magnetic_field() {
-    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6_imperfect.xyz");
     let pd_params = SymmetryGroupDetectionParams::builder()
         .moi_thresholds(&[1e-2, 1e-3, 1e-4])
