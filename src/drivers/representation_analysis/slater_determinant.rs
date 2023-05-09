@@ -8,11 +8,11 @@ use num_complex::{Complex, ComplexFloat};
 
 use crate::analysis::RepAnalysis;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::format::{nice_bool, write_title};
+use crate::aux::format::{nice_bool, write_subtitle, write_title};
 use crate::chartab::chartab_symbols::{DecomposedSymbol, ReducibleLinearSpaceSymbol};
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::QSym2Driver;
-use crate::group::{MagneticRepresentedGroup, UnitaryRepresentedGroup};
+use crate::drivers::{QSym2Driver, QSym2Output};
+use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
@@ -22,9 +22,9 @@ use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryO
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::orbital::orbital_analysis::MolecularOrbitalSymmetryOrbit;
 
-// #[cfg(test)]
-// #[path = "molecule_symmetrisation_tests.rs"]
-// mod molecule_symmetrisation_tests;
+#[cfg(test)]
+#[path = "slater_determinant_tests.rs"]
+mod slater_determinant_tests;
 
 // ==================
 // Struct definitions
@@ -121,7 +121,7 @@ where
 // ------
 
 /// A structure to contain Slater determinant representation analysis results.
-#[derive(Clone, Builder, Debug)]
+#[derive(Clone, Builder)]
 pub struct SlaterDeterminantRepAnalysisResult<'a, R, T>
 where
     R: ReducibleLinearSpaceSymbol,
@@ -132,9 +132,11 @@ where
     /// analysis results.
     parameters: &'a SlaterDeterminantRepAnalysisParams<T>,
 
+    determinant: &'a SlaterDeterminant<'a, T>,
+
     determinant_symmetry: Option<R>,
 
-    mo_symmetries: Option<Vec<Option<R>>>,
+    mo_symmetries: Option<Vec<Vec<Option<R>>>>,
 }
 
 impl<'a, R, T> SlaterDeterminantRepAnalysisResult<'a, R, T>
@@ -145,6 +147,119 @@ where
 {
     fn builder() -> SlaterDeterminantRepAnalysisResultBuilder<'a, R, T> {
         SlaterDeterminantRepAnalysisResultBuilder::default()
+    }
+}
+
+impl<'a, R, T> fmt::Display for SlaterDeterminantRepAnalysisResult<'a, R, T>
+where
+    R: ReducibleLinearSpaceSymbol,
+    T: ComplexFloat + Lapack,
+    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_subtitle(f, "Orbit-based symmetry analysis results")?;
+        writeln!(f, "")?;
+        writeln!(f, "> Overall determinantal result")?;
+        writeln!(
+            f,
+            "  Energy  : {}",
+            self.determinant
+                .energy()
+                .as_ref()
+                .map(|e| e.to_string())
+                .unwrap_or("--".to_string())
+        )?;
+        writeln!(
+            f,
+            "  Symmetry: {}",
+            self.determinant_symmetry
+                .as_ref()
+                .map(|s| s.to_string())
+                .unwrap_or("--".to_string())
+        )?;
+        writeln!(f, "")?;
+
+        if let Some(mo_symmetries) = self.mo_symmetries.as_ref() {
+            let mo_symmetry_length = mo_symmetries
+                .iter()
+                .flat_map(|spin_mo_symmetries| {
+                    spin_mo_symmetries.iter().map(|mo_sym| {
+                        mo_sym
+                            .as_ref()
+                            .map(|sym| sym.to_string())
+                            .unwrap_or("--".to_string())
+                            .chars()
+                            .count()
+                    })
+                })
+                .max()
+                .unwrap_or(0)
+                .max(8);
+            let mo_energies_opt = self.determinant.mo_energies();
+            let mo_energy_length = mo_energies_opt
+                .map(|mo_energies| {
+                    mo_energies
+                        .iter()
+                        .flat_map(|spin_mo_energies| {
+                            spin_mo_energies.map(|v| format!("{v:+.7}").chars().count())
+                        })
+                        .max()
+                        .unwrap_or(0)
+                })
+                .unwrap_or(0)
+                .max(6);
+            writeln!(f, "> Molecular orbital results")?;
+            writeln!(
+                f,
+                "{}",
+                "┈".repeat(16 + mo_energy_length + mo_symmetry_length)
+            )?;
+            writeln!(
+                f,
+                "{:>5}  {:>4}  {:<mo_energy_length$}  {}",
+                "Spin", "MO", "Energy", "Symmetry"
+            )?;
+            writeln!(
+                f,
+                "{}",
+                "┈".repeat(16 + mo_energy_length + mo_symmetry_length)
+            )?;
+            for (spini, spin_mo_symmetries) in mo_symmetries.iter().enumerate() {
+                for (moi, mo_sym) in spin_mo_symmetries.iter().enumerate() {
+                    let mo_energy_str = mo_energies_opt
+                        .and_then(|mo_energies| mo_energies.get(spini))
+                        .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
+                        .map(|mo_energy| format!("{:>+mo_energy_length$.7}", mo_energy))
+                        .unwrap_or("--".to_string());
+                    let mo_sym_str = mo_sym
+                        .as_ref()
+                        .map(|sym| sym.to_string())
+                        .unwrap_or("--".to_string());
+                    writeln!(
+                        f,
+                        "{spini:>5}  {moi:>4}  {mo_energy_str:<mo_energy_length$}  {mo_sym_str}"
+                    )?;
+                }
+            }
+            writeln!(
+                f,
+                "{}",
+                "┈".repeat(16 + mo_energy_length + mo_symmetry_length)
+            )?;
+        }
+
+        Ok(())
+    }
+}
+
+impl<'a, R, T> fmt::Debug for SlaterDeterminantRepAnalysisResult<'a, R, T>
+where
+    R: ReducibleLinearSpaceSymbol,
+    T: ComplexFloat + Lapack,
+    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{self}")
     }
 }
 
@@ -257,6 +372,31 @@ where
     }
 }
 
+impl<'a, R, T> fmt::Display for SlaterDeterminantRepAnalysisDriver<'a, R, T>
+where
+    R: ReducibleLinearSpaceSymbol,
+    T: ComplexFloat + Lapack,
+    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_title(f, "Slater Determinant Symmetry Analysis")?;
+        writeln!(f, "")?;
+        writeln!(f, "{}", self.parameters)?;
+        Ok(())
+    }
+}
+
+impl<'a, R, T> fmt::Debug for SlaterDeterminantRepAnalysisDriver<'a, R, T>
+where
+    R: ReducibleLinearSpaceSymbol,
+    T: ComplexFloat + Lapack,
+    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{self}")
+    }
+}
+
 impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrrepSymbol>, T>
 where
     T: ComplexFloat + Lapack,
@@ -283,6 +423,13 @@ where
             UnitaryRepresentedGroup::from_molecular_symmetry(sym, params.infinite_order_to_finite)?
         };
 
+        log::info!(
+            target: "output",
+            "Unitary-represented group for representation analysis: {}",
+            group.name()
+        );
+        log::info!(target: "output", "");
+
         Ok(group)
     }
 }
@@ -305,28 +452,37 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrrepSy
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
-            let mut mos_orbit = MolecularOrbitalSymmetryOrbit::from_orbitals(
+            let mut mos_orbits = MolecularOrbitalSymmetryOrbit::from_orbitals(
                 &group,
                 &mos,
                 params.symmetry_transformation_kind.clone(),
                 params.integrality_threshold,
                 params.linear_independence_threshold,
             );
-            let m = mos_orbit.iter_mut().map(|mo_orbit| {
-                mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-                mo_orbit.analyse_rep().ok()
-            }).collect::<Vec<_>>();
+            let m = mos_orbits
+                .iter_mut()
+                .map(|mos_orbit| {
+                    mos_orbit
+                        .iter_mut()
+                        .map(|mo_orbit| {
+                            mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
+                            mo_orbit.analyse_rep().ok()
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
             Some(m)
         } else {
             None
         };
 
-        self.result = SlaterDeterminantRepAnalysisResult::builder()
+        let result = SlaterDeterminantRepAnalysisResult::builder()
             .parameters(params)
+            .determinant(self.determinant)
             .determinant_symmetry(det_symmetry)
             .mo_symmetries(mo_symmetries)
-            .build()
-            .ok();
+            .build()?;
+        self.result = Some(result);
 
         Ok(())
     }
@@ -352,28 +508,37 @@ impl<'a>
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
-            let mut mos_orbit = MolecularOrbitalSymmetryOrbit::from_orbitals(
+            let mut mos_orbits = MolecularOrbitalSymmetryOrbit::from_orbitals(
                 &group,
                 &mos,
                 params.symmetry_transformation_kind.clone(),
                 params.integrality_threshold,
                 params.linear_independence_threshold,
             );
-            let m = mos_orbit.iter_mut().map(|mo_orbit| {
-                mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-                mo_orbit.analyse_rep().ok()
-            }).collect::<Vec<_>>();
+            let m = mos_orbits
+                .iter_mut()
+                .map(|mos_orbit| {
+                    mos_orbit
+                        .iter_mut()
+                        .map(|mo_orbit| {
+                            mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
+                            mo_orbit.analyse_rep().ok()
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
             Some(m)
         } else {
             None
         };
 
-        self.result = SlaterDeterminantRepAnalysisResult::builder()
+        let result = SlaterDeterminantRepAnalysisResult::builder()
             .parameters(params)
+            .determinant(self.determinant)
             .determinant_symmetry(det_symmetry)
             .mo_symmetries(mo_symmetries)
-            .build()
-            .ok();
+            .build()?;
+        self.result = Some(result);
 
         Ok(())
     }
@@ -405,6 +570,13 @@ where
             MagneticRepresentedGroup::from_molecular_symmetry(sym, params.infinite_order_to_finite)?
         };
 
+        log::info!(
+            target: "output",
+            "Magnetic-represented group for corepresentation analysis: {}",
+            group.name()
+        );
+        log::info!(target: "output", "");
+
         Ok(group)
     }
 }
@@ -427,28 +599,37 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrcorep
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
-            let mut mos_orbit = MolecularOrbitalSymmetryOrbit::from_orbitals(
+            let mut mos_orbits = MolecularOrbitalSymmetryOrbit::from_orbitals(
                 &group,
                 &mos,
                 params.symmetry_transformation_kind.clone(),
                 params.integrality_threshold,
                 params.linear_independence_threshold,
             );
-            let m = mos_orbit.iter_mut().map(|mo_orbit| {
-                mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-                mo_orbit.analyse_rep().ok()
-            }).collect::<Vec<_>>();
+            let m = mos_orbits
+                .iter_mut()
+                .map(|mos_orbit| {
+                    mos_orbit
+                        .iter_mut()
+                        .map(|mo_orbit| {
+                            mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
+                            mo_orbit.analyse_rep().ok()
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
             Some(m)
         } else {
             None
         };
 
-        self.result = SlaterDeterminantRepAnalysisResult::builder()
+        let result = SlaterDeterminantRepAnalysisResult::builder()
             .parameters(params)
+            .determinant(self.determinant)
             .determinant_symmetry(det_symmetry)
             .mo_symmetries(mo_symmetries)
-            .build()
-            .ok();
+            .build()?;
+        self.result = Some(result);
 
         Ok(())
     }
@@ -474,28 +655,37 @@ impl<'a>
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
-            let mut mos_orbit = MolecularOrbitalSymmetryOrbit::from_orbitals(
+            let mut mos_orbits = MolecularOrbitalSymmetryOrbit::from_orbitals(
                 &group,
                 &mos,
                 params.symmetry_transformation_kind.clone(),
                 params.integrality_threshold,
                 params.linear_independence_threshold,
             );
-            let m = mos_orbit.iter_mut().map(|mo_orbit| {
-                mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-                mo_orbit.analyse_rep().ok()
-            }).collect::<Vec<_>>();
+            let m = mos_orbits
+                .iter_mut()
+                .map(|mos_orbit| {
+                    mos_orbit
+                        .iter_mut()
+                        .map(|mo_orbit| {
+                            mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
+                            mo_orbit.analyse_rep().ok()
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
             Some(m)
         } else {
             None
         };
 
-        self.result = SlaterDeterminantRepAnalysisResult::builder()
+        let result = SlaterDeterminantRepAnalysisResult::builder()
             .parameters(params)
+            .determinant(self.determinant)
             .determinant_symmetry(det_symmetry)
             .mo_symmetries(mo_symmetries)
-            .build()
-            .ok();
+            .build()?;
+        self.result = Some(result);
 
         Ok(())
     }
@@ -514,7 +704,10 @@ impl<'a> QSym2Driver
     }
 
     fn run(&mut self) -> Result<(), anyhow::Error> {
-        self.analyse_representation()
+        self.log_output_display();
+        self.analyse_representation()?;
+        self.result()?.log_output_display();
+        Ok(())
     }
 }
 
@@ -531,7 +724,10 @@ impl<'a> QSym2Driver
     }
 
     fn run(&mut self) -> Result<(), anyhow::Error> {
-        self.analyse_representation()
+        self.log_output_display();
+        self.analyse_representation()?;
+        self.result()?.log_output_display();
+        Ok(())
     }
 }
 
@@ -548,7 +744,10 @@ impl<'a> QSym2Driver
     }
 
     fn run(&mut self) -> Result<(), anyhow::Error> {
-        self.analyse_corepresentation()
+        self.log_output_display();
+        self.analyse_corepresentation()?;
+        self.result()?.log_output_display();
+        Ok(())
     }
 }
 
@@ -572,6 +771,9 @@ impl<'a> QSym2Driver
     }
 
     fn run(&mut self) -> Result<(), anyhow::Error> {
-        self.analyse_corepresentation()
+        self.log_output_display();
+        self.analyse_corepresentation()?;
+        self.result()?.log_output_display();
+        Ok(())
     }
 }

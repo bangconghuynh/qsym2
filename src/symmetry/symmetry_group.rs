@@ -1,4 +1,4 @@
-use anyhow;
+use anyhow::{self, ensure};
 use counter::Counter;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -729,7 +729,7 @@ impl SymmetryGroupProperties
 
         let sorted_operations = sym.generate_all_operations(infinite_order_to_finite);
 
-        assert!(
+        ensure!(
             sorted_operations
                 .iter()
                 .any(SpecialSymmetryTransformation::is_antiunitary),

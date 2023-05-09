@@ -149,22 +149,27 @@ where
     /// A vector of molecular orbital orbits.
     pub fn from_orbitals(
         group: &'a G,
-        orbitals: &'a [MolecularOrbital<'a, T>],
+        orbitals: &'a [Vec<MolecularOrbital<'a, T>>],
         sym_kind: SymmetryTransformationKind,
         integrality_thresh: <T as ComplexFloat>::Real,
         linear_independence_thresh: <T as ComplexFloat>::Real,
-    ) -> Vec<Self> {
+    ) -> Vec<Vec<Self>> {
         orbitals
             .iter()
-            .map(|orb| {
-                MolecularOrbitalSymmetryOrbit::builder()
-                    .group(group)
-                    .origin(&orb)
-                    .integrality_threshold(integrality_thresh)
-                    .linear_independence_threshold(linear_independence_thresh)
-                    .symmetry_transformation_kind(sym_kind.clone())
-                    .build()
-                    .expect("Unable to construct a molecular orbital symmetry orbit.")
+            .map(|orbs_spin| {
+                orbs_spin
+                    .iter()
+                    .map(|orb| {
+                        MolecularOrbitalSymmetryOrbit::builder()
+                            .group(group)
+                            .origin(&orb)
+                            .integrality_threshold(integrality_thresh)
+                            .linear_independence_threshold(linear_independence_thresh)
+                            .symmetry_transformation_kind(sym_kind.clone())
+                            .build()
+                            .expect("Unable to construct a molecular orbital symmetry orbit.")
+                    })
+                    .collect_vec()
             })
             .collect_vec()
     }
