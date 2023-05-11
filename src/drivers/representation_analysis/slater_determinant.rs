@@ -1,4 +1,6 @@
+use std::cmp::Ordering;
 use std::fmt;
+use std::ops::Mul;
 
 use anyhow::{self, format_err};
 use derive_builder::Builder;
@@ -8,15 +10,16 @@ use num_complex::{Complex, ComplexFloat};
 
 use crate::analysis::RepAnalysis;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::format::{nice_bool, write_subtitle, write_title};
-use crate::chartab::chartab_symbols::{DecomposedSymbol, ReducibleLinearSpaceSymbol};
+use crate::aux::format::{log_subtitle, nice_bool, write_subtitle, write_title};
+use crate::chartab::chartab_group::CharacterProperties;
+use crate::chartab::SubspaceDecomposable;
+use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::{QSym2Driver, QSym2Output};
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
-use crate::symmetry::symmetry_symbols::{MullikenIrcorepSymbol, MullikenIrrepSymbol};
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
@@ -53,6 +56,12 @@ where
 
     symmetry_transformation_kind: SymmetryTransformationKind,
 
+    #[builder(default = "Some(CharacterTableDisplay::Symbolic)")]
+    write_character_table: Option<CharacterTableDisplay>,
+
+    #[builder(default = "true")]
+    write_overlap_eigenvalues: bool,
+
     /// The finite order to which any infinite-order symmetry element is reduced, so that a finite
     /// subgroup of an infinite group can be used for the representation analysis.
     #[builder(default = "None")]
@@ -86,6 +95,11 @@ where
             "Linear independence threshold: {:.3e}",
             self.linear_independence_threshold
         )?;
+        writeln!(
+            f,
+            "Write overlap eigenvalues: {}",
+            nice_bool(self.write_overlap_eigenvalues)
+        )?;
         writeln!(f, "")?;
         writeln!(
             f,
@@ -111,6 +125,16 @@ where
             "Symmetry transformation kind: {}",
             self.symmetry_transformation_kind
         )?;
+        writeln!(f, "")?;
+        writeln!(
+            f,
+            "Write character table: {}",
+            if let Some(chartab_display) = self.write_character_table.as_ref() {
+                format!("yes, {}", chartab_display.to_string().to_lowercase())
+            } else {
+                "no".to_string()
+            }
+        )?;
 
         Ok(())
     }
@@ -122,9 +146,10 @@ where
 
 /// A structure to contain Slater determinant representation analysis results.
 #[derive(Clone, Builder)]
-pub struct SlaterDeterminantRepAnalysisResult<'a, R, T>
+pub struct SlaterDeterminantRepAnalysisResult<'a, G, T>
 where
-    R: ReducibleLinearSpaceSymbol,
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
@@ -134,30 +159,41 @@ where
 
     determinant: &'a SlaterDeterminant<'a, T>,
 
-    determinant_symmetry: Option<R>,
+    group: G,
 
-    mo_symmetries: Option<Vec<Vec<Option<R>>>>,
+    determinant_symmetry: Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>,
+
+    mo_symmetries: Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>>,
 }
 
-impl<'a, R, T> SlaterDeterminantRepAnalysisResult<'a, R, T>
+impl<'a, G, T> SlaterDeterminantRepAnalysisResult<'a, G, T>
 where
-    R: ReducibleLinearSpaceSymbol,
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
-    fn builder() -> SlaterDeterminantRepAnalysisResultBuilder<'a, R, T> {
+    fn builder() -> SlaterDeterminantRepAnalysisResultBuilder<'a, G, T> {
         SlaterDeterminantRepAnalysisResultBuilder::default()
     }
 }
 
-impl<'a, R, T> fmt::Display for SlaterDeterminantRepAnalysisResult<'a, R, T>
+impl<'a, G, T> fmt::Display for SlaterDeterminantRepAnalysisResult<'a, G, T>
 where
-    R: ReducibleLinearSpaceSymbol,
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_subtitle(f, "Orbit-based symmetry analysis results")?;
+        writeln!(f, "")?;
+        writeln!(
+            f,
+            "> Group: {} ({})",
+            self.group.name(),
+            self.group.group_type().to_string().to_lowercase()
+        )?;
         writeln!(f, "")?;
         writeln!(f, "> Overall determinantal result")?;
         writeln!(
@@ -165,9 +201,8 @@ where
             "  Energy  : {}",
             self.determinant
                 .energy()
-                .as_ref()
                 .map(|e| e.to_string())
-                .unwrap_or("--".to_string())
+                .unwrap_or_else(|err| err.clone())
         )?;
         writeln!(
             f,
@@ -175,7 +210,7 @@ where
             self.determinant_symmetry
                 .as_ref()
                 .map(|s| s.to_string())
-                .unwrap_or("--".to_string())
+                .unwrap_or_else(|err| err.to_owned())
         )?;
         writeln!(f, "")?;
 
@@ -208,21 +243,27 @@ where
                 })
                 .unwrap_or(0)
                 .max(6);
+            let mo_index_length = mo_symmetries
+                .iter()
+                .map(|spin_mo_symmetries| spin_mo_symmetries.len())
+                .max()
+                .and_then(|max_mo_length| usize::try_from(max_mo_length.ilog10() + 2).ok())
+                .unwrap_or(4);
             writeln!(f, "> Molecular orbital results")?;
             writeln!(
                 f,
                 "{}",
-                "┈".repeat(16 + mo_energy_length + mo_symmetry_length)
+                "┈".repeat(19 + mo_index_length + mo_energy_length + mo_symmetry_length)
             )?;
             writeln!(
                 f,
-                "{:>5}  {:>4}  {:<mo_energy_length$}  {}",
-                "Spin", "MO", "Energy", "Symmetry"
+                "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {}",
+                "Spin", "MO", "Occ.", "Energy", "Symmetry"
             )?;
             writeln!(
                 f,
                 "{}",
-                "┈".repeat(16 + mo_energy_length + mo_symmetry_length)
+                "┈".repeat(19 + mo_index_length + mo_energy_length + mo_symmetry_length)
             )?;
             for (spini, spin_mo_symmetries) in mo_symmetries.iter().enumerate() {
                 for (moi, mo_sym) in spin_mo_symmetries.iter().enumerate() {
@@ -235,16 +276,23 @@ where
                         .as_ref()
                         .map(|sym| sym.to_string())
                         .unwrap_or("--".to_string());
+                    let occ_str = self
+                        .determinant
+                        .occupations()
+                        .get(spini)
+                        .and_then(|spin_occs| spin_occs.get(moi))
+                        .map(|occ| format!("{occ:>.3}"))
+                        .unwrap_or("--".to_string());
                     writeln!(
                         f,
-                        "{spini:>5}  {moi:>4}  {mo_energy_str:<mo_energy_length$}  {mo_sym_str}"
+                        "{spini:>5}  {moi:>mo_index_length$}  {occ_str:<5}  {mo_energy_str:<mo_energy_length$}  {mo_sym_str}"
                     )?;
                 }
             }
             writeln!(
                 f,
                 "{}",
-                "┈".repeat(16 + mo_energy_length + mo_symmetry_length)
+                "┈".repeat(19 + mo_index_length + mo_energy_length + mo_symmetry_length)
             )?;
         }
 
@@ -252,11 +300,12 @@ where
     }
 }
 
-impl<'a, R, T> fmt::Debug for SlaterDeterminantRepAnalysisResult<'a, R, T>
+impl<'a, G, T> fmt::Debug for SlaterDeterminantRepAnalysisResult<'a, G, T>
 where
-    R: ReducibleLinearSpaceSymbol,
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
@@ -269,9 +318,10 @@ where
 
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct SlaterDeterminantRepAnalysisDriver<'a, R, T>
+pub struct SlaterDeterminantRepAnalysisDriver<'a, G, T>
 where
-    R: ReducibleLinearSpaceSymbol,
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
@@ -285,12 +335,13 @@ where
     sao_spatial: &'a Array2<T>,
 
     #[builder(setter(skip), default = "None")]
-    result: Option<SlaterDeterminantRepAnalysisResult<'a, R, T>>,
+    result: Option<SlaterDeterminantRepAnalysisResult<'a, G, T>>,
 }
 
-impl<'a, R, T> SlaterDeterminantRepAnalysisDriverBuilder<'a, R, T>
+impl<'a, G, T> SlaterDeterminantRepAnalysisDriverBuilder<'a, G, T>
 where
-    R: ReducibleLinearSpaceSymbol,
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
@@ -337,14 +388,15 @@ where
     }
 }
 
-impl<'a, R, T> SlaterDeterminantRepAnalysisDriver<'a, R, T>
+impl<'a, G, T> SlaterDeterminantRepAnalysisDriver<'a, G, T>
 where
-    R: ReducibleLinearSpaceSymbol,
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a [`SlaterDeterminantRepAnalysisDriver`] structure.
-    pub fn builder() -> SlaterDeterminantRepAnalysisDriverBuilder<'a, R, T> {
+    pub fn builder() -> SlaterDeterminantRepAnalysisDriverBuilder<'a, G, T> {
         SlaterDeterminantRepAnalysisDriverBuilder::default()
     }
 
@@ -372,9 +424,10 @@ where
     }
 }
 
-impl<'a, R, T> fmt::Display for SlaterDeterminantRepAnalysisDriver<'a, R, T>
+impl<'a, G, T> fmt::Display for SlaterDeterminantRepAnalysisDriver<'a, G, T>
 where
-    R: ReducibleLinearSpaceSymbol,
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
@@ -386,9 +439,10 @@ where
     }
 }
 
-impl<'a, R, T> fmt::Debug for SlaterDeterminantRepAnalysisDriver<'a, R, T>
+impl<'a, G, T> fmt::Debug for SlaterDeterminantRepAnalysisDriver<'a, G, T>
 where
-    R: ReducibleLinearSpaceSymbol,
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
@@ -397,10 +451,11 @@ where
     }
 }
 
-impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrrepSymbol>, T>
+impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T>
 where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
     fn construct_unitary_group(&self) -> Result<UnitaryRepresentedSymmetryGroup, anyhow::Error> {
         let params = self.parameters;
@@ -429,12 +484,43 @@ where
             group.name()
         );
         log::info!(target: "output", "");
+        if let Some(chartab_display) = params.write_character_table.as_ref() {
+            log_subtitle("Character table of irreducible representations");
+            log::info!(target: "output", "");
+            match chartab_display {
+                CharacterTableDisplay::Symbolic => {
+                    group.character_table().log_output_debug();
+                    log::info!(
+                        target: "output",
+                        "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
+                        En = exp(2πi/n)"
+                    );
+                }
+                CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
+            }
+            log::info!(target: "output", "");
+            log::info!(
+                target: "output",
+                "Note 1: `FS` contains the classification of the irreps using the Frobenius--Schur indicator:\n  \
+                `r` = real: the irrep and its complex-conjugate partner are real and identical,\n  \
+                `c` = complex: the irrep and its complex-conjugate partner are complex and inequivalent,\n  \
+                `q` = quaternion: the irrep and its complex-conjugate partner are complex and equivalent.\n\n\
+                Note 2: The conjugacy classes are sorted according to the following order:\n  \
+                E -> C_n (n descending) -> C2 -> i -> S_n (n decending) -> σ\n  \
+                Within each order and power, elements with axes close to Cartesian axes are put first.\n  \
+                Within each equi-inclination from Cartesian axes, z-inclined axes are put first, then y, then x.\n\n\
+                Note 3: The Mulliken labels generated for the irreps in the table above are internally consistent.\n  \
+                However, certain labels might differ from those tabulated elsewhere using other conventions.\n  \
+                If need be, please check with other literature to ensure external consistency."
+            );
+            log::info!(target: "output", "");
+        }
 
         Ok(group)
     }
 }
 
-impl<'a> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrrepSymbol>, f64> {
+impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
     fn analyse_representation(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         let sao = self.construct_sao()?;
@@ -448,7 +534,20 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrrepSy
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
         det_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-        let det_symmetry = det_orbit.analyse_rep().ok();
+        if params.write_overlap_eigenvalues {
+            if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
+                let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
+                smat_eigvals_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                smat_eigvals_sorted.reverse();
+                log_overlap_eigenvalues(
+                    &smat_eigvals_sorted,
+                    params.linear_independence_threshold,
+                    |eigval, thresh| eigval.partial_cmp(&thresh).unwrap(),
+                );
+                log::info!(target: "output", "");
+            }
+        }
+        let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
@@ -479,6 +578,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrrepSy
         let result = SlaterDeterminantRepAnalysisResult::builder()
             .parameters(params)
             .determinant(self.determinant)
+            .group(group)
             .determinant_symmetry(det_symmetry)
             .mo_symmetries(mo_symmetries)
             .build()?;
@@ -488,9 +588,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrrepSy
     }
 }
 
-impl<'a>
-    SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrrepSymbol>, Complex<f64>>
-{
+impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>> {
     fn analyse_representation(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         let sao = self.construct_sao()?;
@@ -504,7 +602,20 @@ impl<'a>
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
         det_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-        let det_symmetry = det_orbit.analyse_rep().ok();
+        if params.write_overlap_eigenvalues {
+            if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
+                let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
+                smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
+                smat_eigvals_sorted.reverse();
+                log_overlap_eigenvalues(
+                    &smat_eigvals_sorted,
+                    params.linear_independence_threshold,
+                    |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
+                );
+                log::info!(target: "output", "");
+            }
+        }
+        let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
@@ -535,6 +646,7 @@ impl<'a>
         let result = SlaterDeterminantRepAnalysisResult::builder()
             .parameters(params)
             .determinant(self.determinant)
+            .group(group)
             .determinant_symmetry(det_symmetry)
             .mo_symmetries(mo_symmetries)
             .build()?;
@@ -544,10 +656,11 @@ impl<'a>
     }
 }
 
-impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrcorepSymbol>, T>
+impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T>
 where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
     fn construct_magnetic_group(&self) -> Result<MagneticRepresentedSymmetryGroup, anyhow::Error> {
         let params = self.parameters;
@@ -577,11 +690,44 @@ where
         );
         log::info!(target: "output", "");
 
+        if let Some(chartab_display) = params.write_character_table.as_ref() {
+            log_subtitle("Character table of irreducible corepresentations");
+            log::info!(target: "output", "");
+            match chartab_display {
+                CharacterTableDisplay::Symbolic => {
+                    group.character_table().log_output_debug();
+                    log::info!(
+                        target: "output",
+                        "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
+                        En = exp(2πi/n)"
+                    );
+                }
+                CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
+            }
+            log::info!(target: "output", "");
+            log::info!(
+                target: "output",
+                "Note 1: The ircorep notation `D[Δ]` means that this ircorep is induced by the representation Δ\n  \
+                of the unitary halving subgroup. The exact nature of Δ determines the kind of D[Δ].\n\n\
+                Note 2: `IN` shows the intertwining numbers of the ircoreps which classify them into three kinds:\n  \
+                `1` = 1st kind: the ircorep is induced by a single irrep of the unitary halving subgroup once,\n  \
+                `4` = 2nd kind: the ircorep is induced by a single irrep of the unitary halving subgroup twice,\n  \
+                `2` = 3rd kind: the ircorep is induced by an irrep of the unitary halving subgroup and its Wigner conjugate.\n\n\
+                Note 3: Only unitary-represented elements are shown in the character table, as characters of\n  \
+                antiunitary-represented elements are not invariant under a change of basis.\n\n\
+                Refs:\n  \
+                Newmarch, J. D. & Golding, R. M. J. Math. Phys. 23, 695–704 (1982)\n  \
+                Bradley, C. J. & Davies, B. L. Rev. Mod. Phys. 40, 359–379 (1968)\n  \
+                Newmarch, J. D. J. Math. Phys. 24, 742–756 (1983)"
+            );
+            log::info!(target: "output", "");
+        }
+
         Ok(group)
     }
 }
 
-impl<'a> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrcorepSymbol>, f64> {
+impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
     fn analyse_corepresentation(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         let sao = self.construct_sao()?;
@@ -595,7 +741,20 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrcorep
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
         det_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-        let det_symmetry = det_orbit.analyse_rep().ok();
+        if params.write_overlap_eigenvalues {
+            if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
+                let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
+                smat_eigvals_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                smat_eigvals_sorted.reverse();
+                log_overlap_eigenvalues(
+                    &smat_eigvals_sorted,
+                    params.linear_independence_threshold,
+                    |eigval, thresh| eigval.partial_cmp(&thresh).unwrap(),
+                );
+                log::info!(target: "output", "");
+            }
+        }
+        let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
@@ -626,6 +785,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrcorep
         let result = SlaterDeterminantRepAnalysisResult::builder()
             .parameters(params)
             .determinant(self.determinant)
+            .group(group)
             .determinant_symmetry(det_symmetry)
             .mo_symmetries(mo_symmetries)
             .build()?;
@@ -635,9 +795,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrcorep
     }
 }
 
-impl<'a>
-    SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrcorepSymbol>, Complex<f64>>
-{
+impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, Complex<f64>> {
     fn analyse_corepresentation(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         let sao = self.construct_sao()?;
@@ -651,7 +809,20 @@ impl<'a>
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
         det_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-        let det_symmetry = det_orbit.analyse_rep().ok();
+        if params.write_overlap_eigenvalues {
+            if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
+                let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
+                smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
+                smat_eigvals_sorted.reverse();
+                log_overlap_eigenvalues(
+                    &smat_eigvals_sorted,
+                    params.linear_independence_threshold,
+                    |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
+                );
+                log::info!(target: "output", "");
+            }
+        }
+        let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
@@ -682,6 +853,7 @@ impl<'a>
         let result = SlaterDeterminantRepAnalysisResult::builder()
             .parameters(params)
             .determinant(self.determinant)
+            .group(group)
             .determinant_symmetry(det_symmetry)
             .mo_symmetries(mo_symmetries)
             .build()?;
@@ -692,10 +864,9 @@ impl<'a>
 }
 
 impl<'a> QSym2Driver
-    for SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrrepSymbol>, f64>
+    for SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, f64>
 {
-    type Outcome =
-        SlaterDeterminantRepAnalysisResult<'a, DecomposedSymbol<MullikenIrrepSymbol>, f64>;
+    type Outcome = SlaterDeterminantRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, f64>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result
@@ -712,10 +883,10 @@ impl<'a> QSym2Driver
 }
 
 impl<'a> QSym2Driver
-    for SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrrepSymbol>, Complex<f64>>
+    for SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>
 {
     type Outcome =
-        SlaterDeterminantRepAnalysisResult<'a, DecomposedSymbol<MullikenIrrepSymbol>, Complex<f64>>;
+        SlaterDeterminantRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result
@@ -732,10 +903,9 @@ impl<'a> QSym2Driver
 }
 
 impl<'a> QSym2Driver
-    for SlaterDeterminantRepAnalysisDriver<'a, DecomposedSymbol<MullikenIrcorepSymbol>, f64>
+    for SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, f64>
 {
-    type Outcome =
-        SlaterDeterminantRepAnalysisResult<'a, DecomposedSymbol<MullikenIrcorepSymbol>, f64>;
+    type Outcome = SlaterDeterminantRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, f64>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result
@@ -752,17 +922,10 @@ impl<'a> QSym2Driver
 }
 
 impl<'a> QSym2Driver
-    for SlaterDeterminantRepAnalysisDriver<
-        'a,
-        DecomposedSymbol<MullikenIrcorepSymbol>,
-        Complex<f64>,
-    >
+    for SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>
 {
-    type Outcome = SlaterDeterminantRepAnalysisResult<
-        'a,
-        DecomposedSymbol<MullikenIrcorepSymbol>,
-        Complex<f64>,
-    >;
+    type Outcome =
+        SlaterDeterminantRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result
@@ -776,4 +939,60 @@ impl<'a> QSym2Driver
         self.result()?.log_output_display();
         Ok(())
     }
+}
+
+// -----------
+// Functions
+// ---------
+fn log_overlap_eigenvalues<T>(
+    eigvals: &[&T],
+    thresh: <T as ComplexFloat>::Real,
+    thresh_cmp: fn(&T, &<T as ComplexFloat>::Real) -> Ordering,
+) where
+    T: std::fmt::LowerExp + ComplexFloat,
+    <T as ComplexFloat>::Real: std::fmt::LowerExp,
+{
+    let eigvals_str = eigvals
+        .iter()
+        .map(|v| format!("{:+.3e}", v))
+        .collect::<Vec<_>>();
+    log_subtitle("Orbit overlap eigenvalues");
+    log::info!(target: "output", "");
+
+    let count_length = usize::try_from(eigvals.len().ilog10() + 2).unwrap_or(2);
+    let eigval_length = eigvals_str
+        .iter()
+        .map(|v| v.chars().count())
+        .max()
+        .unwrap_or(20);
+    log::info!(
+        target: "output", "{}",
+        "┈".repeat(count_length + 3 + eigval_length)
+    );
+    log::info!(
+        target: "output", "{:>count_length$}  Eigenvalue",
+        "#"
+    );
+    log::info!(
+        target: "output", "{}",
+        "┈".repeat(count_length + 3 + eigval_length)
+    );
+    let mut write_thresh = false;
+    for (i, eigval) in eigvals_str.iter().enumerate() {
+        if thresh_cmp(eigvals[i], &thresh) == Ordering::Less && !write_thresh {
+            log::info!(
+                target: "output", "{} <-- linear independence threshold: {:+.3e}",
+                "-".repeat(count_length + 3 + eigval_length),
+                thresh
+            );
+            write_thresh = true;
+        }
+        log::info!(
+            target: "output", "{i:>count_length$}  {eigval}",
+        );
+    }
+    log::info!(
+        target: "output", "{}",
+        "┈".repeat(count_length + 3 + eigval_length)
+    );
 }

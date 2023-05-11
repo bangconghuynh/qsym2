@@ -57,8 +57,8 @@ where
     mo_energies: Option<Vec<Array1<T>>>,
 
     /// The energy of this determinant.
-    #[builder(default = "None")]
-    energy: Option<T>,
+    #[builder(default = "Err(\"Determinant energy not yet set.\".to_string())")]
+    energy: Result<T, String>,
 
     /// The threshold for comparing determinants.
     threshold: <T as ComplexFloat>::Real,
@@ -166,12 +166,16 @@ where
         self.bao
     }
 
-    pub fn energy(&self) -> Option<T> {
-        self.energy
+    pub fn energy(&self) -> Result<&T, &String> {
+        self.energy.as_ref()
     }
 
     pub fn mo_energies(&self) -> Option<&Vec<Array1<T>>> {
         self.mo_energies.as_ref()
+    }
+
+    pub fn occupations(&self) -> &Vec<Array1<<T as ComplexFloat>::Real>> {
+        &self.occupations
     }
 
     /// Returns a shared reference to a vector of coefficient arrays.
@@ -240,7 +244,7 @@ where
                     .coefficients(&[cg])
                     .occupations(&[occg])
                     .mo_energies(moeg_opt)
-                    .energy(self.energy)
+                    .energy(self.energy.clone())
                     .bao(self.bao)
                     .mol(self.mol)
                     .spin_constraint(SpinConstraint::Generalised(n, false))
@@ -285,7 +289,7 @@ where
                     .coefficients(&[cg])
                     .occupations(&[occg])
                     .mo_energies(moeg_opt)
-                    .energy(self.energy)
+                    .energy(self.energy.clone())
                     .bao(self.bao)
                     .mol(self.mol)
                     .spin_constraint(SpinConstraint::Generalised(n, increasingm))

@@ -5,7 +5,7 @@ use std::ops::Mul;
 use approx;
 use derive_builder::Builder;
 use itertools::{izip, Itertools};
-use ndarray::{Array2, Axis, Ix2};
+use ndarray::{Array1, Array2, Axis, Ix2};
 use ndarray_linalg::{
     assert_close_l2,
     eig::Eig,
@@ -161,6 +161,11 @@ where
     #[builder(setter(skip), default = "None")]
     pub smat: Option<Array2<T>>,
 
+    /// The eigenvalues of the overlap matrix between the symmetry-equivalent Slater determinants in
+    /// the orbit.
+    #[builder(setter(skip), default = "None")]
+    pub smat_eigvals: Option<Array1<T>>,
+
     /// The $`\mathbf{X}`$ matrix for the overlap matrix between the symmetry-equivalent Slater
     /// determinants in the orbit.
     ///
@@ -217,6 +222,7 @@ where
             let s_s = Array2::<f64>::from_diag(&nonzero_s_eig.mapv(|x| 1.0 / x.sqrt()));
             nonzero_umat.dot(&s_s)
         };
+        self.smat_eigvals = Some(s_eig);
         self.xmat = Some(xmat);
         self
     }
@@ -276,6 +282,7 @@ where
             );
             nonzero_umat.dot(&s_s)
         };
+        self.smat_eigvals = Some(s_eig);
         self.xmat = Some(xmat);
         self
     }

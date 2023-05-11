@@ -148,7 +148,7 @@ pub struct DecompositionError(pub String);
 
 impl fmt::Display for DecompositionError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Subspace decomposition parsing error: {}.", self.0)
+        write!(f, "Subspace decomposition error: {}", self.0)
     }
 }
 

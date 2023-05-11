@@ -1,10 +1,10 @@
 use nalgebra::{Point3, Vector3};
-use ndarray::{array, s, Array2};
+use ndarray::array;
 use num_complex::Complex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
-use crate::chartab::chartab_symbols::DecomposedSymbol;
+use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
@@ -12,7 +12,9 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
-use crate::symmetry::symmetry_symbols::{MullikenIrrepSymbol, MullikenIrcorepSymbol};
+use crate::symmetry::symmetry_group::{
+    MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
+};
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
 
@@ -31,9 +33,9 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         //     Point3::new(0.0, 0.0, 0.0),
         //     Vector3::new(1.0, 1.0, 1.0),
         // )]))
-        // .fictitious_origin_com(true)
+        .fictitious_origin_com(true)
         .time_reversal(true)
-        .write_symmetry_elements(false)
+        .write_symmetry_elements(true)
         .build()
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
@@ -73,6 +75,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    // ];
     ].mapv(|x| C128::from(x));
 
     // -------------------------------------
@@ -130,17 +133,18 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .use_magnetic_group(true)
         .use_double_group(true)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .write_overlap_eigenvalues(true)
+        .write_character_table(Some(CharacterTableDisplay::Symbolic))
         .build()
         .unwrap();
 
     let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<DecomposedSymbol<MullikenIrcorepSymbol>, C128>::builder()
+        SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, C128>::builder()
         .parameters(&sda_params)
         .determinant(&det_d3_cg)
         .sao_spatial(&sao_spatial)
         .symmetry_group(&pd_res)
         .build()
         .unwrap();
-    let _sda_res = sda_driver.run();
-    println!("{_sda_res:?}");
+    assert!(sda_driver.run().is_ok());
 }
