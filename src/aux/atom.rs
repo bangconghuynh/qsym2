@@ -199,25 +199,25 @@ impl fmt::Display for Atom {
             .to_usize()
             .ok_or_else(|| fmt::Error)?
             + 1;
+        let length = (precision + precision.div_euclid(2)).max(6);
         if let AtomKind::Ordinary = self.kind {
             write!(
                 f,
-                "Atom {}({:+.precision$}, {:+.precision$}, {:+.precision$})",
+                "{:>9} {:>3} {:+length$.precision$} {:+length$.precision$} {:+length$.precision$}",
+                "Atom",
                 self.atomic_symbol,
                 self.coordinates[0],
                 self.coordinates[1],
                 self.coordinates[2],
-                precision = precision
             )
         } else {
             write!(
                 f,
-                "{}({:+.precision$}, {:+.precision$}, {:+.precision$})",
+                "{:>13} {:+length$.precision$} {:+length$.precision$} {:+length$.precision$}",
                 self.kind,
                 self.coordinates[0],
                 self.coordinates[1],
                 self.coordinates[2],
-                precision = precision
             )
         }
     }
@@ -225,29 +225,7 @@ impl fmt::Display for Atom {
 
 impl fmt::Debug for Atom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let precision = self
-            .threshold
-            .log10()
-            .abs()
-            .round()
-            .to_usize()
-            .ok_or_else(|| fmt::Error)?
-            + 1;
-        if let AtomKind::Ordinary = self.kind {
-            write!(
-                f,
-                "Atom {}({:+.precision$}, {:+.precision$}, {:+.precision$})",
-                self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2],
-                precision = precision
-            )
-        } else {
-            write!(
-                f,
-                "{}({:+.precision$}, {:+.precision$}, {:+.precision$})",
-                self.kind, self.coordinates[0], self.coordinates[1], self.coordinates[2],
-                precision = precision
-            )
-        }
+        write!(f, "{self}")
     }
 }
 

@@ -315,19 +315,18 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 );
             }
 
-            let high_group = UnitaryRepresentedGroup::from_molecular_symmetry(
-                &high_sym,
-                self.parameters.infinite_order_to_finite,
-            )?;
-            let order_f64 = high_group
-                .order()
+            // Only the operations are needed for the symmetrisation. We avoid constructing the
+            // full abstract group here, as group closure might not be fulfilled due to the low
+            // thresholds.
+            let high_ops =
+                high_sym.generate_all_operations(self.parameters.infinite_order_to_finite);
+            let order_f64 = high_ops
+                .len()
                 .to_f64()
                 .ok_or_else(|| format_err!("Unable to convert the group order to `f64`."))?;
 
             // Generate transformation matrix and atom permutations for each operation
-            let ts = high_group
-                .elements()
-                .clone()
+            let ts = high_ops
                 .into_iter()
                 .flat_map(|op| {
                     let tmat = op

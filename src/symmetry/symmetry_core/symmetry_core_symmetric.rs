@@ -480,7 +480,6 @@ impl Symmetry {
                     let principal_element = self.get_proper_principal_element();
                     let normal =
                         (atom2s[0].coordinates.coords - atom2s[1].coordinates.coords).normalize();
-                    log::debug!("Checking: {}, {}, {normal}", atom2s[0], atom2s[1]);
                     if let Some(improper_kind) = presym.check_improper(&ORDER_1, &normal, &SIG, tr)
                     {
                         let sigma_symbol = deduce_sigma_symbol(
