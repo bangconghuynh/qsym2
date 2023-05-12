@@ -733,7 +733,8 @@ impl SymmetryGroupProperties
             sorted_operations
                 .iter()
                 .any(SpecialSymmetryTransformation::is_antiunitary),
-            "No antiunitary operations found from the `Symmetry` structure."
+            "A magnetic-represented group is requested, but no antiunitary operations can be found. \
+            Ensure that time reversal is considered during symmetry-group detection."
         );
 
         log::debug!("Constructing the unitary subgroup for the magnetic group...");

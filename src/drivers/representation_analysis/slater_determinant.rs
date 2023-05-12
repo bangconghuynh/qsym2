@@ -44,26 +44,37 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
+    /// Threshold for checking if subspace multiplicities are integral.
     integrality_threshold: <T as ComplexFloat>::Real,
 
+    /// Threshold for determining zero eigenvalues in the orbit overlap matrix.
     linear_independence_threshold: <T as ComplexFloat>::Real,
 
+    /// Boolean indicating if molecular orbital symmetries are to be analysed alongside the overall
+    /// determinantal symmetry.
     analyse_mo_symmetries: bool,
 
+    /// Boolean indicating if the magnetic group is to be used for symmetry analysis.
     use_magnetic_group: bool,
 
+    /// Boolean indicating if the double group is to be used for symmetry analysis.
     use_double_group: bool,
 
+    /// The kind of symmetry transformation to be applied on the reference determinant to generate
+    /// the orbit for symmetry analysis.
     symmetry_transformation_kind: SymmetryTransformationKind,
 
+    /// Boolean indicating if the character table of the group used for symmetry analysis is to be
+    /// printed out.
     #[builder(default = "Some(CharacterTableDisplay::Symbolic)")]
     write_character_table: Option<CharacterTableDisplay>,
 
+    /// Boolean indicating if the eigenvalues of the orbit overlap matrix are to be printed out.
     #[builder(default = "true")]
     write_overlap_eigenvalues: bool,
 
     /// The finite order to which any infinite-order symmetry element is reduced, so that a finite
-    /// subgroup of an infinite group can be used for the representation analysis.
+    /// subgroup of an infinite group can be used for the symmetry analysis.
     #[builder(default = "None")]
     infinite_order_to_finite: Option<u32>,
 }
@@ -157,12 +168,16 @@ where
     /// analysis results.
     parameters: &'a SlaterDeterminantRepAnalysisParams<T>,
 
+    /// The Slater determinant being analysed.
     determinant: &'a SlaterDeterminant<'a, T>,
 
+    /// The group used for the representation analysis.
     group: G,
 
+    /// The deduced overall symmetry of the determinant.
     determinant_symmetry: Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>,
 
+    /// The deduced symmetries of the molecular orbitals constituting the determinant.
     mo_symmetries: Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>>,
 }
 
@@ -173,6 +188,8 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
+    /// Returns a builder to construct a new [`SlaterDeterminantRepAnalysisResultBuilder`]
+    /// structure.
     fn builder() -> SlaterDeterminantRepAnalysisResultBuilder<'a, G, T> {
         SlaterDeterminantRepAnalysisResultBuilder::default()
     }
@@ -324,6 +341,11 @@ where
 // Driver
 // ------
 
+// ~~~~~~~~~~~~~~~~~
+// Struct definition
+// ~~~~~~~~~~~~~~~~~
+
+/// A driver structure for performing representation analysis on Slater determinants.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct SlaterDeterminantRepAnalysisDriver<'a, G, T>
@@ -336,12 +358,18 @@ where
     /// The control parameters for Slater determinant representation analysis.
     parameters: &'a SlaterDeterminantRepAnalysisParams<T>,
 
+    /// The Slater determinant to be analysed.
     determinant: &'a SlaterDeterminant<'a, T>,
 
+    /// The result from symmetry-group detection on the underlying molecular structure of the
+    /// Slater determinant.
     symmetry_group: &'a SymmetryGroupDetectionResult<'a>,
 
+    /// The atomic-orbital spatial overlap matrix of the underlying basis set used to describe the
+    /// determinant.
     sao_spatial: &'a Array2<T>,
 
+    /// The result of the Slater determinant representation analysis.
     #[builder(setter(skip), default = "None")]
     result: Option<SlaterDeterminantRepAnalysisResult<'a, G, T>>,
 }
@@ -396,6 +424,13 @@ where
     }
 }
 
+// ~~~~~~~~~~~~~~~~~~~~~~
+// Struct implementations
+// ~~~~~~~~~~~~~~~~~~~~~~
+
+// Generic for all symmetry groups G and determinant numeric type T
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 impl<'a, G, T> SlaterDeterminantRepAnalysisDriver<'a, G, T>
 where
     G: SymmetryGroupProperties + Clone,
@@ -408,6 +443,8 @@ where
         SlaterDeterminantRepAnalysisDriverBuilder::default()
     }
 
+    /// Constructs the appropriate atomic-orbital overlap matrix based on the spin constraint of
+    /// the determinant.
     fn construct_sao(&self) -> Result<Array2<T>, anyhow::Error> {
         let sao = match self.determinant.spin_constraint() {
             SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
@@ -432,32 +469,8 @@ where
     }
 }
 
-impl<'a, G, T> fmt::Display for SlaterDeterminantRepAnalysisDriver<'a, G, T>
-where
-    G: SymmetryGroupProperties + Clone,
-    G::CharTab: SubspaceDecomposable<T>,
-    T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_title(f, "Slater Determinant Symmetry Analysis")?;
-        writeln!(f, "")?;
-        writeln!(f, "{}", self.parameters)?;
-        Ok(())
-    }
-}
-
-impl<'a, G, T> fmt::Debug for SlaterDeterminantRepAnalysisDriver<'a, G, T>
-where
-    G: SymmetryGroupProperties + Clone,
-    G::CharTab: SubspaceDecomposable<T>,
-    T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "{self}")
-    }
-}
+// Specific for unitary-represented symmetry groups, but generic for determinant numeric type T
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T>
 where
@@ -465,6 +478,8 @@ where
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
+    /// Constructs the unitary-represented group (which itself can be unitary or magnetic) ready
+    /// for representation analysis.
     fn construct_unitary_group(&self) -> Result<UnitaryRepresentedSymmetryGroup, anyhow::Error> {
         let params = self.parameters;
         let sym = if params.use_magnetic_group {
@@ -528,80 +543,14 @@ where
     }
 }
 
+// Specific for unitary-represented symmetry groups and determinant numeric type f64
+// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
-    fn analyse_representation(&mut self) -> Result<(), anyhow::Error> {
-        let params = self.parameters;
-        let sao = self.construct_sao()?;
-        let group = self.construct_unitary_group()?;
-
-        let mut det_orbit = SlaterDeterminantSymmetryOrbit::builder()
-            .group(&group)
-            .origin(self.determinant)
-            .integrality_threshold(params.integrality_threshold)
-            .linear_independence_threshold(params.linear_independence_threshold)
-            .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
-            .build()?;
-        let det_symmetry = det_orbit
-            .calc_smat(Some(&sao))
-            .map_err(|err| err.to_string())
-            .and_then(|det_orb| {
-                det_orb.calc_xmat(false);
-                if params.write_overlap_eigenvalues {
-                    if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
-                        let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                        smat_eigvals_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        smat_eigvals_sorted.reverse();
-                        log_overlap_eigenvalues(
-                            &smat_eigvals_sorted,
-                            params.linear_independence_threshold,
-                            |eigval, thresh| eigval.partial_cmp(&thresh).unwrap(),
-                        );
-                        log::info!(target: "output", "");
-                    }
-                }
-                det_orb.analyse_rep().map_err(|err| err.to_string())
-            });
-
-        let mo_symmetries = if params.analyse_mo_symmetries {
-            let mos = self.determinant.to_orbitals();
-            let mut mos_orbits = MolecularOrbitalSymmetryOrbit::from_orbitals(
-                &group,
-                &mos,
-                params.symmetry_transformation_kind.clone(),
-                params.integrality_threshold,
-                params.linear_independence_threshold,
-            );
-            let m = mos_orbits
-                .iter_mut()
-                .map(|mos_orbit| {
-                    mos_orbit
-                        .iter_mut()
-                        .map(|mo_orbit| {
-                            mo_orbit.calc_smat(Some(&sao)).ok()?.calc_xmat(false);
-                            mo_orbit.analyse_rep().ok()
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>();
-            Some(m)
-        } else {
-            None
-        };
-
-        let result = SlaterDeterminantRepAnalysisResult::builder()
-            .parameters(params)
-            .determinant(self.determinant)
-            .group(group)
-            .determinant_symmetry(det_symmetry)
-            .mo_symmetries(mo_symmetries)
-            .build()?;
-        self.result = Some(result);
-
-        Ok(())
-    }
-}
-
-impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>> {
+    /// Performs representation analysis using a unitary-represented group and stores the result.
+    ///
+    /// Linear independence is checked using the absolute values of the overlap eigenvalues.
+    /// Large negative eigenvalues are thus allowed.
     fn analyse_representation(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         let sao = self.construct_sao()?;
@@ -674,12 +623,98 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
     }
 }
 
+// Specific for unitary-represented symmetry groups and determinant numeric type Complex<f64>
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>> {
+    /// Performs representation analysis using a unitary-represented group and stores the result.
+    ///
+    /// Linear independence is checked using the moduli of the overlap eigenvalues. Complex
+    /// eigenvalues outside the threshold radius centred at the origin on the Argand diagram are
+    /// thus allowed.
+    fn analyse_representation(&mut self) -> Result<(), anyhow::Error> {
+        let params = self.parameters;
+        let sao = self.construct_sao()?;
+        let group = self.construct_unitary_group()?;
+
+        let mut det_orbit = SlaterDeterminantSymmetryOrbit::builder()
+            .group(&group)
+            .origin(self.determinant)
+            .integrality_threshold(params.integrality_threshold)
+            .linear_independence_threshold(params.linear_independence_threshold)
+            .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
+            .build()?;
+        let det_symmetry = det_orbit
+            .calc_smat(Some(&sao))
+            .map_err(|err| err.to_string())
+            .and_then(|det_orb| {
+                det_orb.calc_xmat(false);
+                if params.write_overlap_eigenvalues {
+                    if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
+                        let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
+                        smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
+                        smat_eigvals_sorted.reverse();
+                        log_overlap_eigenvalues(
+                            &smat_eigvals_sorted,
+                            params.linear_independence_threshold,
+                            |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
+                        );
+                        log::info!(target: "output", "");
+                    }
+                }
+                det_orb.analyse_rep().map_err(|err| err.to_string())
+            });
+
+        let mo_symmetries = if params.analyse_mo_symmetries {
+            let mos = self.determinant.to_orbitals();
+            let mut mos_orbits = MolecularOrbitalSymmetryOrbit::from_orbitals(
+                &group,
+                &mos,
+                params.symmetry_transformation_kind.clone(),
+                params.integrality_threshold,
+                params.linear_independence_threshold,
+            );
+            let m = mos_orbits
+                .iter_mut()
+                .map(|mos_orbit| {
+                    mos_orbit
+                        .iter_mut()
+                        .map(|mo_orbit| {
+                            mo_orbit.calc_smat(Some(&sao)).ok()?.calc_xmat(false);
+                            mo_orbit.analyse_rep().ok()
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
+            Some(m)
+        } else {
+            None
+        };
+
+        let result = SlaterDeterminantRepAnalysisResult::builder()
+            .parameters(params)
+            .determinant(self.determinant)
+            .group(group)
+            .determinant_symmetry(det_symmetry)
+            .mo_symmetries(mo_symmetries)
+            .build()?;
+        self.result = Some(result);
+
+        Ok(())
+    }
+}
+
+// Specific for magnetic-represented symmetry groups, but generic for determinant numeric type T
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T>
 where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
+    /// Constructs the magnetic-represented group (which itself can only be magnetic) ready for
+    /// corepresentation analysis.
     fn construct_magnetic_group(&self) -> Result<MagneticRepresentedSymmetryGroup, anyhow::Error> {
         let params = self.parameters;
         let sym = if params.use_magnetic_group {
@@ -745,80 +780,14 @@ where
     }
 }
 
+// Specific for magnetic-represented symmetry groups and determinant numeric type f64
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
-    fn analyse_corepresentation(&mut self) -> Result<(), anyhow::Error> {
-        let params = self.parameters;
-        let sao = self.construct_sao()?;
-        let group = self.construct_magnetic_group()?;
-
-        let mut det_orbit = SlaterDeterminantSymmetryOrbit::builder()
-            .group(&group)
-            .origin(self.determinant)
-            .integrality_threshold(params.integrality_threshold)
-            .linear_independence_threshold(params.linear_independence_threshold)
-            .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
-            .build()?;
-        let det_symmetry = det_orbit
-            .calc_smat(Some(&sao))
-            .map_err(|err| err.to_string())
-            .and_then(|det_orb| {
-                det_orb.calc_xmat(false);
-                if params.write_overlap_eigenvalues {
-                    if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
-                        let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                        smat_eigvals_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                        smat_eigvals_sorted.reverse();
-                        log_overlap_eigenvalues(
-                            &smat_eigvals_sorted,
-                            params.linear_independence_threshold,
-                            |eigval, thresh| eigval.partial_cmp(&thresh).unwrap(),
-                        );
-                        log::info!(target: "output", "");
-                    }
-                }
-                det_orb.analyse_rep().map_err(|err| err.to_string())
-            });
-
-        let mo_symmetries = if params.analyse_mo_symmetries {
-            let mos = self.determinant.to_orbitals();
-            let mut mos_orbits = MolecularOrbitalSymmetryOrbit::from_orbitals(
-                &group,
-                &mos,
-                params.symmetry_transformation_kind.clone(),
-                params.integrality_threshold,
-                params.linear_independence_threshold,
-            );
-            let m = mos_orbits
-                .iter_mut()
-                .map(|mos_orbit| {
-                    mos_orbit
-                        .iter_mut()
-                        .map(|mo_orbit| {
-                            mo_orbit.calc_smat(Some(&sao)).ok()?.calc_xmat(false);
-                            mo_orbit.analyse_rep().ok()
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>();
-            Some(m)
-        } else {
-            None
-        };
-
-        let result = SlaterDeterminantRepAnalysisResult::builder()
-            .parameters(params)
-            .determinant(self.determinant)
-            .group(group)
-            .determinant_symmetry(det_symmetry)
-            .mo_symmetries(mo_symmetries)
-            .build()?;
-        self.result = Some(result);
-
-        Ok(())
-    }
-}
-
-impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, Complex<f64>> {
+    /// Performs corepresentation analysis using a magnetic-represented group and stores the result.
+    ///
+    /// Linear independence is checked using the absolute values of the overlap eigenvalues.
+    /// Large negative eigenvalues are thus allowed.
     fn analyse_corepresentation(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         let sao = self.construct_sao()?;
@@ -891,6 +860,124 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
     }
 }
 
+// Specific for magnetic-represented symmetry groups and determinant numeric type Complex<f64>
+// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, Complex<f64>> {
+    /// Performs corepresentation analysis using a magnetic-represented group and stores the result.
+    ///
+    /// Linear independence is checked using the moduli of the overlap eigenvalues. Complex
+    /// eigenvalues outside the threshold radius centred at the origin on the Argand diagram are
+    /// thus allowed.
+    fn analyse_corepresentation(&mut self) -> Result<(), anyhow::Error> {
+        let params = self.parameters;
+        let sao = self.construct_sao()?;
+        let group = self.construct_magnetic_group()?;
+
+        let mut det_orbit = SlaterDeterminantSymmetryOrbit::builder()
+            .group(&group)
+            .origin(self.determinant)
+            .integrality_threshold(params.integrality_threshold)
+            .linear_independence_threshold(params.linear_independence_threshold)
+            .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
+            .build()?;
+        let det_symmetry = det_orbit
+            .calc_smat(Some(&sao))
+            .map_err(|err| err.to_string())
+            .and_then(|det_orb| {
+                det_orb.calc_xmat(false);
+                if params.write_overlap_eigenvalues {
+                    if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
+                        let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
+                        smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
+                        smat_eigvals_sorted.reverse();
+                        log_overlap_eigenvalues(
+                            &smat_eigvals_sorted,
+                            params.linear_independence_threshold,
+                            |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
+                        );
+                        log::info!(target: "output", "");
+                    }
+                }
+                det_orb.analyse_rep().map_err(|err| err.to_string())
+            });
+
+        let mo_symmetries = if params.analyse_mo_symmetries {
+            let mos = self.determinant.to_orbitals();
+            let mut mos_orbits = MolecularOrbitalSymmetryOrbit::from_orbitals(
+                &group,
+                &mos,
+                params.symmetry_transformation_kind.clone(),
+                params.integrality_threshold,
+                params.linear_independence_threshold,
+            );
+            let m = mos_orbits
+                .iter_mut()
+                .map(|mos_orbit| {
+                    mos_orbit
+                        .iter_mut()
+                        .map(|mo_orbit| {
+                            mo_orbit.calc_smat(Some(&sao)).ok()?.calc_xmat(false);
+                            mo_orbit.analyse_rep().ok()
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
+            Some(m)
+        } else {
+            None
+        };
+
+        let result = SlaterDeterminantRepAnalysisResult::builder()
+            .parameters(params)
+            .determinant(self.determinant)
+            .group(group)
+            .determinant_symmetry(det_symmetry)
+            .mo_symmetries(mo_symmetries)
+            .build()?;
+        self.result = Some(result);
+
+        Ok(())
+    }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~
+// Trait implementations
+// ~~~~~~~~~~~~~~~~~~~~~
+
+// Generic for all symmetry groups G and determinant numeric type T
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+impl<'a, G, T> fmt::Display for SlaterDeterminantRepAnalysisDriver<'a, G, T>
+where
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: ComplexFloat + Lapack,
+    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write_title(f, "Slater Determinant Symmetry Analysis")?;
+        writeln!(f, "")?;
+        writeln!(f, "{}", self.parameters)?;
+        Ok(())
+    }
+}
+
+impl<'a, G, T> fmt::Debug for SlaterDeterminantRepAnalysisDriver<'a, G, T>
+where
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: ComplexFloat + Lapack,
+    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{self}")
+    }
+}
+
+// Specific for unitary-represented symmetry groups and determinant numeric type f64
+// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 impl<'a> QSym2Driver
     for SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, f64>
 {
@@ -909,6 +996,9 @@ impl<'a> QSym2Driver
         Ok(())
     }
 }
+
+// Specific for unitary-represented symmetry groups and determinant numeric type Complex<f64>
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 impl<'a> QSym2Driver
     for SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>
@@ -930,6 +1020,9 @@ impl<'a> QSym2Driver
     }
 }
 
+// Specific for magnetic-represented symmetry groups and determinant numeric type f64
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 impl<'a> QSym2Driver
     for SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, f64>
 {
@@ -948,6 +1041,9 @@ impl<'a> QSym2Driver
         Ok(())
     }
 }
+
+// Specific for magnetic-represented symmetry groups and determinant numeric type Complex<f64>
+// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 impl<'a> QSym2Driver
     for SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>
@@ -969,9 +1065,17 @@ impl<'a> QSym2Driver
     }
 }
 
-// -----------
+// =========
 // Functions
-// ---------
+// =========
+/// Logs overlap eigenvalues nicely and indicates where the threshold has been crossed.
+///
+/// # Arguments
+///
+/// * `eigvals` - The eigenvalues sorted in descending magnitude order.
+/// * `thresh` - The cut-off threshold to be marked out.
+/// * `thresh_cmp` - The function for comparing with threshold. The threshold is marked out when
+/// the function first evaluates to [`Ordering::Less`].
 fn log_overlap_eigenvalues<T>(
     eigvals: &[&T],
     thresh: <T as ComplexFloat>::Real,
@@ -987,6 +1091,10 @@ fn log_overlap_eigenvalues<T>(
     log_subtitle("Orbit overlap eigenvalues");
     log::info!(target: "output", "");
 
+    log::info!(
+        target: "output", "{}",
+        "Eigenvalues are sorted in decreasing magnitude order."
+    );
     let count_length = usize::try_from(eigvals.len().ilog10() + 2).unwrap_or(2);
     let eigval_length = eigvals_str
         .iter()
@@ -1009,7 +1117,7 @@ fn log_overlap_eigenvalues<T>(
     for (i, eigval) in eigvals_str.iter().enumerate() {
         if thresh_cmp(eigvals[i], &thresh) == Ordering::Less && !write_thresh {
             log::info!(
-                target: "output", "{} <-- linear independence threshold: {:+.3e}",
+                target: "output", "{} <-- linear independence threshold (magnitude-based): {:+.3e}",
                 "-".repeat(count_length + 3 + eigval_length),
                 thresh
             );

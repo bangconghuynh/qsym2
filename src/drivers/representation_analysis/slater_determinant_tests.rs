@@ -1,10 +1,9 @@
-use nalgebra::{Point3, Vector3};
 use ndarray::array;
 use num_complex::Complex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
-use crate::drivers::representation_analysis::CharacterTableDisplay;
+use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
@@ -15,6 +14,7 @@ use crate::drivers::QSym2Driver;
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
+use crate::symmetry::symmetry_symbols::{MullikenIrcorepSymbol, MullikenIrrepSymbol};
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
 
@@ -24,15 +24,11 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let pd_params = SymmetryGroupDetectionParams::builder()
         .moi_thresholds(&[1e-6])
         .distance_thresholds(&[1e-6])
-        // .fictitious_magnetic_fields(Some(vec![(
-        //     Point3::new(0.0, 0.0, 0.0),
-        //     Vector3::new(1.0, 1.0, 1.0),
-        // )]))
         .fictitious_origin_com(true)
         .time_reversal(true)
         .write_symmetry_elements(true)
@@ -75,12 +71,12 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
-    // ];
-    ].mapv(|x| C128::from(x));
+    ]
+    .mapv(|x| C128::from(x));
 
-    // -------------------------------------
+    // =====================================
     // αdxy αdyy αdzz αdx2-y2 βdxz βdxx βdyz
-    // -------------------------------------
+    // =====================================
     #[rustfmt::skip]
     let calpha = array![
         [0.0, 0.0, 0.0, 1.0],
@@ -126,6 +122,43 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .to_generalised()
         .into();
 
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh (ordinary, unitary) - spin spatial
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .analyse_mo_symmetries(true)
+        .use_magnetic_group(false)
+        .use_double_group(false)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .write_overlap_eigenvalues(false)
+        .write_character_table(None)
+        .build()
+        .unwrap();
+
+    let mut sda_driver =
+        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
+            .parameters(&sda_params)
+            .determinant(&det_d3_cg)
+            .sao_spatial(&sao_spatial)
+            .symmetry_group(&pd_res)
+            .build()
+            .unwrap();
+    assert!(sda_driver.run().is_ok());
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_symmetry
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(1g)| ⊕ ||T|_(2g)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh* (ordinary double, unitary) - spin spatial
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
@@ -140,11 +173,142 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
 
     let mut sda_driver =
         SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
-        .parameters(&sda_params)
-        .determinant(&det_d3_cg)
-        .sao_spatial(&sao_spatial)
-        .symmetry_group(&pd_res)
+            .parameters(&sda_params)
+            .determinant(&det_d3_cg)
+            .sao_spatial(&sao_spatial)
+            .symmetry_group(&pd_res)
+            .build()
+            .unwrap();
+    assert!(sda_driver.run().is_ok());
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_symmetry
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||G~|_(g)|")
+            .unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // u Oh + θ·Oh (grey, unitary) - spin spatial
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .analyse_mo_symmetries(true)
+        .use_magnetic_group(true)
+        .use_double_group(false)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .write_overlap_eigenvalues(false)
+        .write_character_table(None)
         .build()
         .unwrap();
+
+    let mut sda_driver =
+        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
+            .parameters(&sda_params)
+            .determinant(&det_d3_cg)
+            .sao_spatial(&sao_spatial)
+            .symmetry_group(&pd_res)
+            .build()
+            .unwrap();
     assert!(sda_driver.run().is_ok());
+    assert!(sda_driver.result().unwrap().determinant_symmetry.is_err());
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // u (Oh + θ·Oh)* (grey double, unitary) - spin spatial
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .analyse_mo_symmetries(true)
+        .use_magnetic_group(true)
+        .use_double_group(true)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .write_overlap_eigenvalues(false)
+        .write_character_table(None)
+        .build()
+        .unwrap();
+
+    let mut sda_driver =
+        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
+            .parameters(&sda_params)
+            .determinant(&det_d3_cg)
+            .sao_spatial(&sao_spatial)
+            .symmetry_group(&pd_res)
+            .build()
+            .unwrap();
+    assert!(sda_driver.run().is_ok());
+    assert!(sda_driver.result().unwrap().determinant_symmetry.is_err());
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // m Oh + θ·Oh (grey, magnetic) - spin spatial
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .analyse_mo_symmetries(true)
+        .use_magnetic_group(true)
+        .use_double_group(false)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .write_overlap_eigenvalues(false)
+        .write_character_table(None)
+        .build()
+        .unwrap();
+
+    let mut sda_driver =
+        SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, C128>::builder()
+            .parameters(&sda_params)
+            .determinant(&det_d3_cg)
+            .sao_spatial(&sao_spatial)
+            .symmetry_group(&pd_res)
+            .build()
+            .unwrap();
+    assert!(sda_driver.run().is_ok());
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_symmetry
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("2||T|_(1g)| ⊕ 2||T|_(2g)|").unwrap()
+    );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // m (Oh + θ·Oh)* (grey double, unitary) - spin spatial
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .analyse_mo_symmetries(true)
+        .use_magnetic_group(true)
+        .use_double_group(true)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .write_overlap_eigenvalues(true)
+        .write_character_table(None)
+        .build()
+        .unwrap();
+
+    let mut sda_driver =
+        SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, C128>::builder()
+            .parameters(&sda_params)
+            .determinant(&det_d3_cg)
+            .sao_spatial(&sao_spatial)
+            .symmetry_group(&pd_res)
+            .build()
+            .unwrap();
+    assert!(sda_driver.run().is_ok());
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_symmetry
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||G~|_(g)|")
+            .unwrap()
+    );
 }
