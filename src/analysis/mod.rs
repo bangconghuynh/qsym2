@@ -1,8 +1,8 @@
-use std::error::Error;
 use std::fmt;
 
+use anyhow;
 use itertools::Itertools;
-use ndarray::{s, Array, Array2, Ix0, Ix2, Dimension};
+use ndarray::{s, Array, Array2, Dimension, Ix0, Ix2};
 use ndarray_einsum_beta::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
 use num_complex::ComplexFloat;
@@ -27,7 +27,7 @@ use crate::group::{class::ClassProperties, GroupProperties};
 pub trait Overlap<T, D>
 where
     T: ComplexFloat + fmt::Debug + Lapack,
-    D: Dimension
+    D: Dimension,
 {
     /// If `true`, the inner product is bilinear and $`\hat{\iota} = \hat{\kappa}`$. If `false`,
     /// the inner product is sesquilinear and $`\hat{\iota} = \mathrm{id}`$.
@@ -35,7 +35,7 @@ where
 
     /// Returns the overlap between `self` and `other`, with respect to a metric `metric` of the
     /// underlying basis in which `self` and `other` are expressed.
-    fn overlap(&self, other: &Self, metric: Option<&Array<T, D>>) -> Result<T, RepAnalysisError>;
+    fn overlap(&self, other: &Self, metric: Option<&Array<T, D>>) -> Result<T, anyhow::Error>;
 }
 
 // =====
@@ -81,7 +81,7 @@ where
         Self {
             group_iter: group.elements().clone().into_iter(),
             origin,
-            action
+            action,
         }
     }
 }
@@ -124,21 +124,6 @@ where
 // ========
 // Analysis
 // ========
-
-// --------------------------------------
-// Struct definitions and implementations
-// --------------------------------------
-
-#[derive(Debug, Clone)]
-pub struct RepAnalysisError(pub String);
-
-impl fmt::Display for RepAnalysisError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Representation analysis error: {}.", self.0)
-    }
-}
-
-impl Error for RepAnalysisError {}
 
 // ----------------
 // Trait definition
@@ -222,30 +207,31 @@ where
     /// # Arguments
     ///
     /// * `metric` - The metric of the basis in which the orbit items are expressed.
-    fn calc_smat(&mut self, metric: Option<&Array<T, D>>) -> &mut Self {
+    fn calc_smat(&mut self, metric: Option<&Array<T, D>>) -> Result<&mut Self, anyhow::Error> {
         let order = self.group().order();
         let mut smat = Array2::<T>::zeros((order, order));
-        self.iter()
-            .enumerate()
-            .combinations_with_replacement(2)
-            .for_each(|pair| {
-                let (w, item_w) = &pair[0];
-                let (x, item_x) = &pair[1];
-                smat[(*w, *x)] = item_w.overlap(&item_x, metric).unwrap_or_else(|err| {
-                    log::error!("{err}");
-                    panic!("Unable to calculate the overlap between items `{w}` and `{x}` in the orbit.");
-                });
-                if *w != *x {
-                    smat[(*x, *w)] = item_x.overlap(&item_w, metric).unwrap_or_else(|err| {
+        for pair in self.iter().enumerate().combinations_with_replacement(2) {
+            let (w, item_w) = &pair[0];
+            let (x, item_x) = &pair[1];
+            smat[(*w, *x)] = item_w.overlap(&item_x, metric).map_err(|err| {
+                log::error!("{err}");
+                log::error!(
+                    "Unable to calculate the overlap between items `{w}` and `{x}` in the orbit."
+                );
+                err
+            })?;
+            if *w != *x {
+                smat[(*x, *w)] = item_x.overlap(&item_w, metric).map_err(|err| {
                         log::error!("{err}");
-                        panic!(
+                        log::error!(
                             "Unable to calculate the overlap between items `{x}` and `{w}` in the orbit."
                         );
-                    });
-                }
-            });
+                        err
+                    })?;
+            }
+        }
         self.set_smat(smat);
-        self
+        Ok(self)
     }
 
     /// Computes the $`\mathbf{T}(g)`$ matrix for a particular element $`g`$ of the generating

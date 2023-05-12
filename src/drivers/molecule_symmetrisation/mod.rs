@@ -6,14 +6,12 @@ use nalgebra::Point3;
 use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
 
-use crate::aux::format::{log_subtitle, write_title};
+use crate::aux::format::{log_subtitle, log_title};
 use crate::aux::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::{QSym2Driver, QSym2Output};
-use crate::group::{GroupProperties, UnitaryRepresentedGroup};
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
-use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
 #[cfg(test)]
 #[path = "molecule_symmetrisation_tests.rs"]
@@ -71,8 +69,6 @@ impl MoleculeSymmetrisationParams {
 
 impl fmt::Display for MoleculeSymmetrisationParams {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write_title(f, "Molecule Symmetrisation")?;
-        writeln!(f, "")?;
         writeln!(f, "Target MoI threshold: {:.3e}", self.target_moi_threshold)?;
         writeln!(
             f,
@@ -146,7 +142,7 @@ pub struct MoleculeSymmetrisationDriver<'a> {
     target_symmetry_result: &'a SymmetryGroupDetectionResult<'a>,
 
     /// The result of the symmetrisation.
-    #[builder(default = "None")]
+    #[builder(setter(skip), default = "None")]
     result: Option<MoleculeSymmetrisationResult<'a>>,
 }
 
@@ -187,6 +183,8 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
 
     /// Executes molecule symmetrisation.
     fn symmetrise_molecule(&mut self) -> Result<(), anyhow::Error> {
+        log_title("Molecule Symmetrisation");
+        log::info!(target: "output", "");
         let params = self.parameters;
         params.log_output_display();
 
@@ -315,19 +313,18 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 );
             }
 
-            let high_group = UnitaryRepresentedGroup::from_molecular_symmetry(
-                &high_sym,
-                self.parameters.infinite_order_to_finite,
-            )?;
-            let order_f64 = high_group
-                .order()
+            // Only the operations are needed for the symmetrisation. We avoid constructing the
+            // full abstract group here, as group closure might not be fulfilled due to the low
+            // thresholds.
+            let high_ops =
+                high_sym.generate_all_operations(self.parameters.infinite_order_to_finite);
+            let order_f64 = high_ops
+                .len()
                 .to_f64()
                 .ok_or_else(|| format_err!("Unable to convert the group order to `f64`."))?;
 
             // Generate transformation matrix and atom permutations for each operation
-            let ts = high_group
-                .elements()
-                .clone()
+            let ts = high_ops
                 .into_iter()
                 .flat_map(|op| {
                     let tmat = op

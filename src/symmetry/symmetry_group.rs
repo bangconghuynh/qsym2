@@ -1,4 +1,4 @@
-use anyhow;
+use anyhow::{self, ensure};
 use counter::Counter;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -30,6 +30,22 @@ mod symmetry_group_tests;
 #[cfg(test)]
 #[path = "symmetry_chartab_tests.rs"]
 mod symmetry_chartab_tests;
+
+// ======================
+// Type alias definitions
+// ======================
+
+pub type UnitaryRepresentedSymmetryGroup = UnitaryRepresentedGroup<
+    SymmetryOperation,
+    MullikenIrrepSymbol,
+    SymmetryClassSymbol<SymmetryOperation>,
+>;
+
+pub type MagneticRepresentedSymmetryGroup = MagneticRepresentedGroup<
+    SymmetryOperation,
+    UnitaryRepresentedSymmetryGroup,
+    MullikenIrcorepSymbol,
+>;
 
 // =================
 // Trait definitions
@@ -713,11 +729,12 @@ impl SymmetryGroupProperties
 
         let sorted_operations = sym.generate_all_operations(infinite_order_to_finite);
 
-        assert!(
+        ensure!(
             sorted_operations
                 .iter()
                 .any(SpecialSymmetryTransformation::is_antiunitary),
-            "No antiunitary operations found from the `Symmetry` structure."
+            "A magnetic-represented group is requested, but no antiunitary operations can be found. \
+            Ensure that time reversal is considered during symmetry-group detection."
         );
 
         log::debug!("Constructing the unitary subgroup for the magnetic group...");

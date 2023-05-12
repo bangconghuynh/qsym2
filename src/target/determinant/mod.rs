@@ -52,6 +52,14 @@ where
     #[builder(setter(custom))]
     occupations: Vec<Array1<<T as ComplexFloat>::Real>>,
 
+    /// The energies of the molecular orbitals in [`Self::coefficients`].
+    #[builder(default = "None")]
+    mo_energies: Option<Vec<Array1<T>>>,
+
+    /// The energy of this determinant.
+    #[builder(default = "Err(\"Determinant energy not yet set.\".to_string())")]
+    energy: Result<T, String>,
+
     /// The threshold for comparing determinants.
     threshold: <T as ComplexFloat>::Real,
 }
@@ -150,6 +158,53 @@ where
         SlaterDeterminantBuilder::default()
     }
 
+    pub fn spin_constraint(&self) -> &SpinConstraint {
+        &self.spin_constraint
+    }
+
+    pub fn bao(&self) -> &BasisAngularOrder {
+        self.bao
+    }
+
+    pub fn energy(&self) -> Result<&T, &String> {
+        self.energy.as_ref()
+    }
+
+    pub fn mo_energies(&self) -> Option<&Vec<Array1<T>>> {
+        self.mo_energies.as_ref()
+    }
+
+    pub fn occupations(&self) -> &Vec<Array1<<T as ComplexFloat>::Real>> {
+        &self.occupations
+    }
+
+    /// Returns a shared reference to a vector of coefficient arrays.
+    pub fn coefficients(&self) -> &Vec<Array2<T>> {
+        &self.coefficients
+    }
+
+    /// Returns the total number of electrons in the determinant.
+    pub fn nelectrons(&self) -> <T as ComplexFloat>::Real
+    where
+        <T as ComplexFloat>::Real: Sum + From<u16>,
+    {
+        match self.spin_constraint {
+            SpinConstraint::Restricted(nspins) => {
+                <T as ComplexFloat>::Real::from(nspins)
+                    * self
+                        .occupations
+                        .iter()
+                        .map(|occ| occ.iter().copied().sum())
+                        .sum()
+            }
+            SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => self
+                .occupations
+                .iter()
+                .map(|occ| occ.iter().copied().sum())
+                .sum(),
+        }
+    }
+
     /// Augments the encoding of coefficients in this Slater determinant to that in the
     /// corresponding generalised spin constraint.
     ///
@@ -176,9 +231,20 @@ where
                         .assign(cr);
                     occg.slice_mut(s![col_start..col_end]).assign(occr);
                 });
+                let moeg_opt = self.mo_energies.as_ref().map(|moer| {
+                    let mut moeg = Array1::<T>::zeros((norb * usize::from(n),));
+                    (0..usize::from(n)).for_each(|i| {
+                        let col_start = norb * i;
+                        let col_end = norb * (i + 1);
+                        moeg.slice_mut(s![col_start..col_end]).assign(&moer[0]);
+                    });
+                    vec![moeg]
+                });
                 Self::builder()
                     .coefficients(&[cg])
                     .occupations(&[occg])
+                    .mo_energies(moeg_opt)
+                    .energy(self.energy.clone())
                     .bao(self.bao)
                     .mol(self.mol)
                     .spin_constraint(SpinConstraint::Generalised(n, false))
@@ -209,9 +275,21 @@ where
                     occg.slice_mut(s![col_start..col_end])
                         .assign(&self.occupations[i]);
                 });
+
+                let moeg_opt = self.mo_energies.as_ref().map(|moer| {
+                    let mut moeg = Array1::<T>::zeros((norb_tot,));
+                    (0..usize::from(n)).for_each(|i| {
+                        let (col_start, col_end) = col_boundary_indices[i];
+                        moeg.slice_mut(s![col_start..col_end]).assign(&moer[i]);
+                    });
+                    vec![moeg]
+                });
+
                 Self::builder()
                     .coefficients(&[cg])
                     .occupations(&[occg])
+                    .mo_energies(moeg_opt)
+                    .energy(self.energy.clone())
                     .bao(self.bao)
                     .mol(self.mol)
                     .spin_constraint(SpinConstraint::Generalised(n, increasingm))
@@ -231,84 +309,28 @@ where
     /// A vector of the molecular orbitals constituting this Slater determinant. In the restricted
     /// spin constraint, the identical molecular orbitals across different spin spaces are only
     /// given once. Each molecular orbital does contain an index of the spin space it is in.
-    pub fn to_orbitals(&self) -> Vec<MolecularOrbital<'a, T>> {
-        match self.spin_constraint {
-            SpinConstraint::Restricted(_) | SpinConstraint::Generalised(_, _) => {
-                assert_eq!(self.coefficients.len(), 1);
-                self.coefficients[0]
-                    .columns()
-                    .into_iter()
-                    .map(|c| {
-                        MolecularOrbital::builder()
-                            .coefficients(c.to_owned())
-                            .bao(self.bao)
-                            .mol(self.mol)
-                            .spin_constraint(self.spin_constraint.clone())
-                            .spin_index(0)
-                            .complex_symmetric(self.complex_symmetric)
-                            .threshold(self.threshold)
-                            .build()
-                            .expect("Unable to construct a molecular orbital.")
-                    })
-                    .collect::<Vec<_>>()
-            }
-            SpinConstraint::Unrestricted(_, _) => self
-                .coefficients
-                .iter()
-                .enumerate()
-                .flat_map(|(spini, cs_spini)| {
-                    cs_spini.columns().into_iter().map(move |c| {
-                        MolecularOrbital::builder()
-                            .coefficients(c.to_owned())
-                            .bao(self.bao)
-                            .mol(self.mol)
-                            .spin_constraint(self.spin_constraint.clone())
-                            .spin_index(spini)
-                            .complex_symmetric(self.complex_symmetric)
-                            .threshold(self.threshold)
-                            .build()
-                            .expect("Unable to construct a molecular orbital.")
-                    })
+    pub fn to_orbitals(&self) -> Vec<Vec<MolecularOrbital<'a, T>>> {
+        self
+            .coefficients
+            .iter()
+            .enumerate()
+            .map(|(spini, cs_spini)| {
+                cs_spini.columns().into_iter().enumerate().map(move |(i, c)| {
+                    MolecularOrbital::builder()
+                        .coefficients(c.to_owned())
+                        .energy(self.mo_energies.as_ref().map(|moes| moes[spini][i]))
+                        .bao(self.bao)
+                        .mol(self.mol)
+                        .spin_constraint(self.spin_constraint.clone())
+                        .spin_index(spini)
+                        .complex_symmetric(self.complex_symmetric)
+                        .threshold(self.threshold)
+                        .build()
+                        .expect("Unable to construct a molecular orbital.")
                 })
-                .collect::<Vec<_>>(),
-        }
-    }
-
-    /// Returns a shared reference to a vector of coefficient arrays.
-    pub fn coefficients(&self) -> &Vec<Array2<T>> {
-        &self.coefficients
-    }
-
-    /// Returns a shared reference to the spin constraint.
-    pub fn spin_constraint(&self) -> &SpinConstraint {
-        &self.spin_constraint
-    }
-
-    /// Returns a shared reference to the [`BasisAngularOrder`].
-    pub fn bao(&self) -> &BasisAngularOrder {
-        &self.bao
-    }
-
-    /// Returns the total number of electrons in the determinant.
-    pub fn nelectrons(&self) -> <T as ComplexFloat>::Real
-    where
-        <T as ComplexFloat>::Real: Sum + From<u16>,
-    {
-        match self.spin_constraint {
-            SpinConstraint::Restricted(nspins) => {
-                <T as ComplexFloat>::Real::from(nspins)
-                    * self
-                        .occupations
-                        .iter()
-                        .map(|occ| occ.iter().copied().sum())
-                        .sum()
-            }
-            SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => self
-                .occupations
-                .iter()
-                .map(|occ| occ.iter().copied().sum())
-                .sum(),
-        }
+                .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>()
     }
 }
 
@@ -334,6 +356,11 @@ where
                     .collect::<Vec<_>>(),
             )
             .occupations(&value.occupations)
+            .mo_energies(value.mo_energies.map(|moes| {
+                moes.iter()
+                    .map(|moe| moe.map(|x| Complex::from(x)))
+                    .collect::<Vec<_>>()
+            }))
             .bao(value.bao)
             .mol(value.mol)
             .spin_constraint(value.spin_constraint)

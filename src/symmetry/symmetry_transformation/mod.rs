@@ -22,11 +22,27 @@ mod symmetry_transformation_tests;
 // Enum definitions
 // ================
 
+/// An enumerated type for managing the kind of symmetry transformation on an object.
 #[derive(Debug, Clone)]
 pub enum SymmetryTransformationKind {
+    /// Spatial-only transformation.
     Spatial,
+
+    /// Spin-only transformation.
     Spin,
+
+    /// Spin-spatial coupled transformation.
     SpinSpatial,
+}
+
+impl fmt::Display for SymmetryTransformationKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Self::Spatial => write!(f, "Spatial-only transformation"),
+            Self::Spin => write!(f, "Spin-only transformation"),
+            Self::SpinSpatial => write!(f, "Spin-spatial coupled transformation"),
+        }
+    }
 }
 
 // =================

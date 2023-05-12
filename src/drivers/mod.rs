@@ -4,6 +4,7 @@ use std::fmt;
 use anyhow;
 use log;
 
+pub mod representation_analysis;
 pub mod symmetry_group_detection;
 pub mod molecule_symmetrisation;
 
@@ -44,43 +45,3 @@ pub trait QSym2Output: fmt::Debug + fmt::Display {
 
 // Blanket implementation
 impl<T> QSym2Output for T where T: fmt::Debug + fmt::Display {}
-
-// // ==================
-// // Struct definitions
-// // ==================
-
-// // ----------
-// // QSym2Error
-// // ----------
-
-// #[derive(Clone, Debug)]
-// pub struct QSym2Error<'a>
-// {
-//     source: Option<&'a dyn Error>,
-
-//     msg: Option<String>,
-// }
-
-// impl<'a> fmt::Display for QSym2Error<'a>
-// {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         if let Some(msg) = &self.msg {
-//             writeln!(f, "QSym2 has encountered an error with the following message:")?;
-//             writeln!(f, "{}", msg)?;
-//         } else {
-//             writeln!(f, "QSym2 has encountered an error.")?;
-//         }
-//         if let Some(source) = self.source {
-//             writeln!(f, "This error originates from another error:")?;
-//             writeln!(f, "{}", source)?;
-//         }
-//         write!(f, "Please report this error at https://gitlab.com/bangconghuynh/qsym2/-/issues/ for further support.")
-//     }
-// }
-
-// impl Error for QSym2Error<'static>
-// {
-//     fn source(&self) -> Option<&(dyn Error + 'static)> {
-//         self.source
-//     }
-// }

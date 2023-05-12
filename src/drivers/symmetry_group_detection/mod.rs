@@ -7,7 +7,7 @@ use log;
 use nalgebra::{Point3, Vector3};
 
 use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::format::{nice_bool, write_subtitle, write_title};
+use crate::aux::format::{nice_bool, write_subtitle, log_title, log_subtitle};
 use crate::aux::molecule::Molecule;
 use crate::drivers::{QSym2Driver, QSym2Output};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
@@ -91,16 +91,14 @@ impl fmt::Display for SymmetryGroupDetectionParams {
             .cartesian_product(self.distance_thresholds.iter());
         let nthreshs = threshs.clone().count();
         if nthreshs == 1 {
-            write_title(f, "Fixed-Threshold Symmetry-Group Detection")?;
-            writeln!(f, "")?;
-            writeln!(f, "MoI threshold: {:.3e}", self.moi_thresholds[0])?;
-            writeln!(f, "Geo threshold: {:.3e}", self.distance_thresholds[0])?;
+            writeln!(f, "Fixed thresholds:")?;
+            writeln!(f, "  MoI threshold: {:.3e}", self.moi_thresholds[0])?;
+            writeln!(f, "  Geo threshold: {:.3e}", self.distance_thresholds[0])?;
         } else {
-            write_title(f, "Variable-Threshold Symmetry-Group Detection")?;
-            writeln!(f, "")?;
+            writeln!(f, "Variable thresholds:")?;
             writeln!(
                 f,
-                "MoI thresholds: {}",
+                "  MoI thresholds: {}",
                 self.moi_thresholds
                     .iter()
                     .map(|v| format!("{v:.3e}"))
@@ -108,7 +106,7 @@ impl fmt::Display for SymmetryGroupDetectionParams {
             )?;
             writeln!(
                 f,
-                "Geo thresholds: {}",
+                "  Geo thresholds: {}",
                 self.distance_thresholds
                     .iter()
                     .map(|v| format!("{v:.3e}"))
@@ -320,7 +318,7 @@ pub struct SymmetryGroupDetectionDriver<'a> {
     molecule: Option<&'a Molecule>,
 
     /// The result of the symmetry-group detection.
-    #[builder(default = "None")]
+    #[builder(setter(skip), default = "None")]
     result: Option<SymmetryGroupDetectionResult<'a>>,
 }
 
@@ -332,6 +330,8 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
 
     /// Executes symmetry-group detection.
     fn detect_symmetry_group(&mut self) -> Result<(), anyhow::Error> {
+        log_title("Symmetry-Group Detection");
+        log::info!(target: "output", "");
         let params = self.parameters;
         params.log_output_display();
 
@@ -360,6 +360,9 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             .iter()
             .cartesian_product(params.distance_thresholds.iter());
         let nthreshs = threshs.clone().count();
+
+        log_subtitle("Threshold-scanning symmetry-group detection");
+        log::info!(target: "output", "");
 
         let count_length = usize::try_from(nthreshs.ilog10() + 2).map_err(|_| {
             format_err!("Unable to convert `{}` to `usize`.", nthreshs.ilog10() + 2)
@@ -606,9 +609,9 @@ impl<'a> QSym2Driver for SymmetryGroupDetectionDriver<'a> {
     }
 }
 
-// ---------
+// =========
 // Functions
-// ---------
+// =========
 
 /// Writes symmetry elements/generators in a [`Symmetry`] structure in a nicely formatted table.
 fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Result {

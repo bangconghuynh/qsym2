@@ -9,6 +9,8 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
+use crate::group::{GroupProperties, UnitaryRepresentedGroup};
+use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -286,4 +288,68 @@ fn test_drivers_molecule_symmetrisation_c2h2() {
             .unwrap(),
         "D∞h + θ·D∞h"
     );
+}
+
+#[test]
+fn test_drivers_molecule_symmetrisation_cp10() {
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/cp10_flat.xyz");
+    let params = SymmetryGroupDetectionParams::builder()
+        .distance_thresholds(&[2e-1])
+        .moi_thresholds(&[1e-1])
+        .time_reversal(false)
+        .write_symmetry_elements(false)
+        .build()
+        .unwrap();
+    let mut pd_driver = SymmetryGroupDetectionDriver::builder()
+        .parameters(&params)
+        .xyz(Some(path.clone()))
+        .build()
+        .unwrap();
+    assert!(pd_driver.run().is_ok());
+    let pd_res = pd_driver.result().unwrap();
+    assert_eq!(pd_res.unitary_symmetry.group_name.as_ref().unwrap(), "D10h");
+
+    let ms_params = MoleculeSymmetrisationParams::builder()
+        .use_magnetic_group(false)
+        .target_moi_threshold(1e-8)
+        .target_distance_threshold(1e-8)
+        .reorientate_molecule(true)
+        .max_iterations(10)
+        .verbose(2)
+        .build()
+        .unwrap();
+    let mut ms_driver = MoleculeSymmetrisationDriver::builder()
+        .parameters(&ms_params)
+        .target_symmetry_result(&pd_res)
+        .build()
+        .unwrap();
+    assert!(ms_driver.run().is_ok());
+
+    let verifying_pd_params = SymmetryGroupDetectionParams::builder()
+        .moi_thresholds(&[ms_params.target_moi_threshold])
+        .distance_thresholds(&[ms_params.target_distance_threshold])
+        .time_reversal(false)
+        .write_symmetry_elements(true)
+        .build()
+        .unwrap();
+    let mut verifying_pd_driver = SymmetryGroupDetectionDriver::builder()
+        .parameters(&verifying_pd_params)
+        .molecule(ms_driver.result().ok().map(|res| &res.symmetrised_molecule))
+        .build()
+        .unwrap();
+    assert!(verifying_pd_driver.run().is_ok());
+    let verifying_pd_res = verifying_pd_driver.result().unwrap();
+    assert_eq!(
+        verifying_pd_res
+            .unitary_symmetry
+            .group_name
+            .as_ref()
+            .unwrap(),
+        "D10h"
+    );
+    let group =
+        UnitaryRepresentedGroup::from_molecular_symmetry(&verifying_pd_res.unitary_symmetry, None)
+            .unwrap();
+    assert_eq!(group.name(), "D10h");
 }

@@ -2,6 +2,7 @@ use log;
 use std::fmt;
 use std::ops::Mul;
 
+use anyhow::{self, ensure, format_err};
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
@@ -16,7 +17,7 @@ use ndarray_linalg::{
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, Zero};
 
-use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis, RepAnalysisError};
+use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis};
 use crate::aux::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
@@ -49,18 +50,17 @@ where
     /// # Panics
     ///
     /// Panics if `self` and `other` have mismatched spin constraints or coefficient array lengths.
-    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, RepAnalysisError> {
-        assert_eq!(
-            self.spin_constraint, other.spin_constraint,
+    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, anyhow::Error> {
+        ensure!(
+            self.spin_constraint == other.spin_constraint,
             "Inconsistent spin constraints between `self` and `other`."
         );
-        assert_eq!(
-            self.coefficients.len(),
-            other.coefficients.len(),
+        ensure!(
+            self.coefficients.len() == other.coefficients.len(),
             "Inconsistent numbers of coefficient matrices between `self` and `other`."
         );
 
-        let sao = metric.expect("No atomic-orbital metric found.");
+        let sao = metric.ok_or_else(|| format_err!("No atomic-orbital metric found."))?;
         let ov = if self.complex_symmetric() {
             self.coefficients.t().dot(sao).dot(&other.coefficients)
         } else {
@@ -97,8 +97,15 @@ where
     /// The origin molecular orbital of the orbit.
     origin: &'a MolecularOrbital<'a, T>,
 
+    /// The threshold for determining if calculated multiplicities in representation analysis are
+    /// integral.
+    integrality_threshold: <T as ComplexFloat>::Real,
+
+    /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
+    linear_independence_threshold: <T as ComplexFloat>::Real,
+
     /// The kind of transformation determining the way the symmetry operations in `group` act on
-    /// `origin`.
+    /// [`Self::origin`].
     symmetry_transformation_kind: SymmetryTransformationKind,
 
     /// The overlap matrix between the symmetry-equivalent molecular orbitals in the orbit.
@@ -127,20 +134,42 @@ where
         MolecularOrbitalSymmetryOrbitBuilder::default()
     }
 
+    /// Constructs multiple molecular orbital orbits, each from one of the supplied orbitals.
+    ///
+    /// # Arguments
+    ///
+    /// * `group` - The orbit-generating group.
+    /// * `orbitals` - The origin orbitals, each of which generates its own orbit.
+    /// * `sym_kind` - The symmetry transformation kind.
+    /// * `integrality_thresh` - The threshold of integrality check of multiplicity coefficients in
+    /// each orbit.
+    ///
+    /// # Returns
+    ///
+    /// A vector of molecular orbital orbits.
     pub fn from_orbitals(
         group: &'a G,
-        orbitals: &'a [MolecularOrbital<'a, T>],
+        orbitals: &'a [Vec<MolecularOrbital<'a, T>>],
         sym_kind: SymmetryTransformationKind,
-    ) -> Vec<Self> {
+        integrality_thresh: <T as ComplexFloat>::Real,
+        linear_independence_thresh: <T as ComplexFloat>::Real,
+    ) -> Vec<Vec<Self>> {
         orbitals
             .iter()
-            .map(|orb| {
-                MolecularOrbitalSymmetryOrbit::builder()
-                    .group(group)
-                    .origin(&orb)
-                    .symmetry_transformation_kind(sym_kind.clone())
-                    .build()
-                    .expect("Unable to construct a molecular orbital symmetry orbit.")
+            .map(|orbs_spin| {
+                orbs_spin
+                    .iter()
+                    .map(|orb| {
+                        MolecularOrbitalSymmetryOrbit::builder()
+                            .group(group)
+                            .origin(&orb)
+                            .integrality_threshold(integrality_thresh)
+                            .linear_independence_threshold(linear_independence_thresh)
+                            .symmetry_transformation_kind(sym_kind.clone())
+                            .build()
+                            .expect("Unable to construct a molecular orbital symmetry orbit.")
+                    })
+                    .collect_vec()
             })
             .collect_vec()
     }
@@ -161,7 +190,7 @@ where
     /// already of full rank.
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) -> &mut Self {
         // Real, symmetric S
-        let thresh = self.origin.threshold;
+        let thresh = self.linear_independence_threshold;
         let smat = self
             .smat
             .as_ref()
@@ -201,7 +230,7 @@ where
     /// already of full rank.
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) {
         // Complex S, symmetric or Hermitian
-        let thresh = self.origin.threshold;
+        let thresh = self.linear_independence_threshold;
         let smat = self
             .smat
             .as_ref()
@@ -333,7 +362,7 @@ where
     }
 
     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
-        self.origin.threshold
+        self.integrality_threshold
     }
 
     /// Reduces the representation or corepresentation spanned by the molecular orbitals in the
