@@ -10,10 +10,8 @@ use crate::aux::format::{log_subtitle, log_title};
 use crate::aux::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::{QSym2Driver, QSym2Output};
-use crate::group::{GroupProperties, UnitaryRepresentedGroup};
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
-use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
 #[cfg(test)]
 #[path = "molecule_symmetrisation_tests.rs"]

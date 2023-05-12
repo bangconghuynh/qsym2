@@ -118,12 +118,15 @@ where
     ) -> fmt::Result;
 }
 
+/// A trait for character tables that support decomposing a space into its irreducible subspaces
+/// using characters.
 pub trait SubspaceDecomposable<T>: CharacterTable
 where
     T: ComplexFloat,
     <T as ComplexFloat>::Real: ToPrimitive,
     Self::Decomposition: ReducibleLinearSpaceSymbol<Subspace = Self::RowSymbol>,
 {
+    /// The type for the decomposed result.
     type Decomposition;
 
     /// Reduces a space into subspaces using its characters under the conjugacy classes of the
@@ -162,7 +165,7 @@ impl Error for DecompositionError {}
 // RepCharacterTable
 // -----------------
 
-/// A struct to manage character tables of irreducible representations.
+/// A structure to manage character tables of irreducible representations.
 #[derive(Builder, Clone)]
 pub struct RepCharacterTable<RowSymbol, ColSymbol>
 where

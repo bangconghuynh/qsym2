@@ -609,9 +609,9 @@ impl<'a> QSym2Driver for SymmetryGroupDetectionDriver<'a> {
     }
 }
 
-// ---------
+// =========
 // Functions
-// ---------
+// =========
 
 /// Writes symmetry elements/generators in a [`Symmetry`] structure in a nicely formatted table.
 fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Result {

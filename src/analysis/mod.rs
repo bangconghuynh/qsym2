@@ -1,6 +1,6 @@
 use std::fmt;
 
-use anyhow::{self, format_err};
+use anyhow;
 use itertools::Itertools;
 use ndarray::{s, Array, Array2, Dimension, Ix0, Ix2};
 use ndarray_einsum_beta::*;
