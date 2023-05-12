@@ -130,16 +130,16 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .use_magnetic_group(true)
+        .use_magnetic_group(false)
         .use_double_group(true)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
-        .write_overlap_eigenvalues(true)
-        .write_character_table(Some(CharacterTableDisplay::Symbolic))
+        .write_overlap_eigenvalues(false)
+        .write_character_table(None)
         .build()
         .unwrap();
 
     let mut sda_driver =
-        SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, C128>::builder()
+        SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
         .parameters(&sda_params)
         .determinant(&det_d3_cg)
         .sao_spatial(&sao_spatial)

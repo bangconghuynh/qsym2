@@ -153,6 +153,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .unwrap();
     orbit_cg_u_oh_spatial_d3
         .calc_smat(Some(&sao_cg))
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_spatial_d3.analyse_rep().unwrap(),
@@ -180,7 +181,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     orbit_cg_u_oh_spatial_d3_orbs
         .zip(orbs_d3_cg_ref.iter())
         .for_each(|(mut orb_orbit, sym_ref)| {
-            orb_orbit.calc_smat(Some(&sao_cg)).calc_xmat(false);
+            orb_orbit.calc_smat(Some(&sao_cg)).unwrap().calc_xmat(false);
             assert_eq!(orb_orbit.analyse_rep().unwrap(), *sym_ref);
         });
 
@@ -198,6 +199,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .unwrap();
     orbit_cg_u_oh_double_spin_spatial_d3
         .calc_smat(Some(&sao_cg))
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_double_spin_spatial_d3.analyse_rep().unwrap(),
@@ -227,7 +229,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     orbit_cg_u_oh_double_spin_spatial_d3_orbs
         .zip(orbs_d3_cg_spin_spatial_ref.iter())
         .for_each(|(mut orb_orbit, sym_ref)| {
-            orb_orbit.calc_smat(Some(&sao_cg)).calc_xmat(false);
+            orb_orbit.calc_smat(Some(&sao_cg)).unwrap().calc_xmat(false);
             assert_eq!(orb_orbit.analyse_rep().unwrap(), *sym_ref);
         });
 }

@@ -202,7 +202,7 @@ where
             self.determinant
                 .energy()
                 .map(|e| e.to_string())
-                .unwrap_or_else(|err| err.clone())
+                .unwrap_or_else(|err| format!("-- ({})", err))
         )?;
         writeln!(
             f,
@@ -210,7 +210,7 @@ where
             self.determinant_symmetry
                 .as_ref()
                 .map(|s| s.to_string())
-                .unwrap_or_else(|err| err.to_owned())
+                .unwrap_or_else(|err| format!("-- ({})", err))
         )?;
         writeln!(f, "")?;
 
@@ -250,6 +250,14 @@ where
                 .and_then(|max_mo_length| usize::try_from(max_mo_length.ilog10() + 2).ok())
                 .unwrap_or(4);
             writeln!(f, "> Molecular orbital results")?;
+            writeln!(
+                f,
+                "  Spin constraint: {}",
+                self.determinant
+                    .spin_constraint()
+                    .to_string()
+                    .to_lowercase()
+            )?;
             writeln!(
                 f,
                 "{}",
@@ -533,21 +541,26 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
-        det_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-        if params.write_overlap_eigenvalues {
-            if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
-                let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                smat_eigvals_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                smat_eigvals_sorted.reverse();
-                log_overlap_eigenvalues(
-                    &smat_eigvals_sorted,
-                    params.linear_independence_threshold,
-                    |eigval, thresh| eigval.partial_cmp(&thresh).unwrap(),
-                );
-                log::info!(target: "output", "");
-            }
-        }
-        let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
+        let det_symmetry = det_orbit
+            .calc_smat(Some(&sao))
+            .map_err(|err| err.to_string())
+            .and_then(|det_orb| {
+                det_orb.calc_xmat(false);
+                if params.write_overlap_eigenvalues {
+                    if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
+                        let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
+                        smat_eigvals_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        smat_eigvals_sorted.reverse();
+                        log_overlap_eigenvalues(
+                            &smat_eigvals_sorted,
+                            params.linear_independence_threshold,
+                            |eigval, thresh| eigval.partial_cmp(&thresh).unwrap(),
+                        );
+                        log::info!(target: "output", "");
+                    }
+                }
+                det_orb.analyse_rep().map_err(|err| err.to_string())
+            });
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
@@ -564,7 +577,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                     mos_orbit
                         .iter_mut()
                         .map(|mo_orbit| {
-                            mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
+                            mo_orbit.calc_smat(Some(&sao)).ok()?.calc_xmat(false);
                             mo_orbit.analyse_rep().ok()
                         })
                         .collect::<Vec<_>>()
@@ -601,21 +614,26 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
-        det_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-        if params.write_overlap_eigenvalues {
-            if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
-                let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
-                smat_eigvals_sorted.reverse();
-                log_overlap_eigenvalues(
-                    &smat_eigvals_sorted,
-                    params.linear_independence_threshold,
-                    |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
-                );
-                log::info!(target: "output", "");
-            }
-        }
-        let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
+        let det_symmetry = det_orbit
+            .calc_smat(Some(&sao))
+            .map_err(|err| err.to_string())
+            .and_then(|det_orb| {
+                det_orb.calc_xmat(false);
+                if params.write_overlap_eigenvalues {
+                    if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
+                        let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
+                        smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
+                        smat_eigvals_sorted.reverse();
+                        log_overlap_eigenvalues(
+                            &smat_eigvals_sorted,
+                            params.linear_independence_threshold,
+                            |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
+                        );
+                        log::info!(target: "output", "");
+                    }
+                }
+                det_orb.analyse_rep().map_err(|err| err.to_string())
+            });
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
@@ -632,7 +650,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                     mos_orbit
                         .iter_mut()
                         .map(|mo_orbit| {
-                            mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
+                            mo_orbit.calc_smat(Some(&sao)).ok()?.calc_xmat(false);
                             mo_orbit.analyse_rep().ok()
                         })
                         .collect::<Vec<_>>()
@@ -740,21 +758,26 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
-        det_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-        if params.write_overlap_eigenvalues {
-            if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
-                let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                smat_eigvals_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
-                smat_eigvals_sorted.reverse();
-                log_overlap_eigenvalues(
-                    &smat_eigvals_sorted,
-                    params.linear_independence_threshold,
-                    |eigval, thresh| eigval.partial_cmp(&thresh).unwrap(),
-                );
-                log::info!(target: "output", "");
-            }
-        }
-        let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
+        let det_symmetry = det_orbit
+            .calc_smat(Some(&sao))
+            .map_err(|err| err.to_string())
+            .and_then(|det_orb| {
+                det_orb.calc_xmat(false);
+                if params.write_overlap_eigenvalues {
+                    if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
+                        let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
+                        smat_eigvals_sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                        smat_eigvals_sorted.reverse();
+                        log_overlap_eigenvalues(
+                            &smat_eigvals_sorted,
+                            params.linear_independence_threshold,
+                            |eigval, thresh| eigval.partial_cmp(&thresh).unwrap(),
+                        );
+                        log::info!(target: "output", "");
+                    }
+                }
+                det_orb.analyse_rep().map_err(|err| err.to_string())
+            });
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
@@ -771,7 +794,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                     mos_orbit
                         .iter_mut()
                         .map(|mo_orbit| {
-                            mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
+                            mo_orbit.calc_smat(Some(&sao)).ok()?.calc_xmat(false);
                             mo_orbit.analyse_rep().ok()
                         })
                         .collect::<Vec<_>>()
@@ -808,21 +831,26 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
-        det_orbit.calc_smat(Some(&sao)).calc_xmat(false);
-        if params.write_overlap_eigenvalues {
-            if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
-                let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
-                smat_eigvals_sorted.reverse();
-                log_overlap_eigenvalues(
-                    &smat_eigvals_sorted,
-                    params.linear_independence_threshold,
-                    |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
-                );
-                log::info!(target: "output", "");
-            }
-        }
-        let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
+        let det_symmetry = det_orbit
+            .calc_smat(Some(&sao))
+            .map_err(|err| err.to_string())
+            .and_then(|det_orb| {
+                det_orb.calc_xmat(false);
+                if params.write_overlap_eigenvalues {
+                    if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
+                        let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
+                        smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
+                        smat_eigvals_sorted.reverse();
+                        log_overlap_eigenvalues(
+                            &smat_eigvals_sorted,
+                            params.linear_independence_threshold,
+                            |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
+                        );
+                        log::info!(target: "output", "");
+                    }
+                }
+                det_orb.analyse_rep().map_err(|err| err.to_string())
+            });
 
         let mo_symmetries = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
@@ -839,7 +867,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                     mos_orbit
                         .iter_mut()
                         .map(|mo_orbit| {
-                            mo_orbit.calc_smat(Some(&sao)).calc_xmat(false);
+                            mo_orbit.calc_smat(Some(&sao)).ok()?.calc_xmat(false);
                             mo_orbit.analyse_rep().ok()
                         })
                         .collect::<Vec<_>>()

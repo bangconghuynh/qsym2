@@ -1,4 +1,5 @@
 use std::cmp;
+use std::fmt;
 
 use approx;
 use factorial::Factorial;
@@ -63,6 +64,41 @@ impl SpinConstraint {
             Self::Restricted(nspins) => *nspins,
             Self::Unrestricted(nspins, _) => *nspins,
             Self::Generalised(nspins, _) => *nspins,
+        }
+    }
+}
+
+impl fmt::Display for SpinConstraint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Restricted(nspins) => write!(
+                f,
+                "Restricted ({} spin {})",
+                nspins,
+                if *nspins == 1 { "space" } else { "spaces" }
+            ),
+            Self::Unrestricted(nspins, increasingm) => write!(
+                f,
+                "Unrestricted ({} spin {}, {} m)",
+                nspins,
+                if *nspins == 1 { "space" } else { "spaces" },
+                if *increasingm {
+                    "increasing"
+                } else {
+                    "decreasing"
+                }
+            ),
+            Self::Generalised(nspins, increasingm) => write!(
+                f,
+                "Generalised ({} spin {}, {} m)",
+                nspins,
+                if *nspins == 1 { "space" } else { "spaces" },
+                if *increasingm {
+                    "increasing"
+                } else {
+                    "decreasing"
+                }
+            ),
         }
     }
 }

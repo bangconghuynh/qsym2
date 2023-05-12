@@ -2,6 +2,7 @@ use log;
 use std::fmt;
 use std::ops::Mul;
 
+use anyhow::{self, ensure};
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
@@ -16,7 +17,7 @@ use ndarray_linalg::{
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, Zero};
 
-use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis, RepAnalysisError};
+use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis};
 use crate::aux::misc::complex_modified_gram_schmidt;
 use crate::chartab::SubspaceDecomposable;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
@@ -50,10 +51,9 @@ where
     /// # Panics
     ///
     /// Panics if `self` and `other` have mismatched coefficient array lengths.
-    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, RepAnalysisError> {
-        assert_eq!(
-            self.coefficients.len(),
-            other.coefficients.len(),
+    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, anyhow::Error> {
+        ensure!(
+            self.coefficients.len() == other.coefficients.len(),
             "Inconsistent numbers of coefficient matrices between `self` and `other`."
         );
 

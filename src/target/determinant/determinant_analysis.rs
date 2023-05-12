@@ -2,6 +2,7 @@ use log;
 use std::fmt;
 use std::ops::Mul;
 
+use anyhow::{self, ensure, format_err};
 use approx;
 use derive_builder::Builder;
 use itertools::{izip, Itertools};
@@ -17,7 +18,7 @@ use ndarray_linalg::{
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
-use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis, RepAnalysisError};
+use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
@@ -54,42 +55,31 @@ where
     ///
     /// Panics if `self` and `other` have mismatched spin constraints or numbers of coefficient
     /// matrices, or if fractional occupation numbers are detected.
-    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, RepAnalysisError> {
-        assert_eq!(
-            self.spin_constraint, other.spin_constraint,
+    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, anyhow::Error> {
+        ensure!(
+            self.spin_constraint == other.spin_constraint,
             "Inconsistent spin constraints between `self` and `other`."
         );
-        assert_eq!(
-            self.coefficients.len(),
-            other.coefficients.len(),
+        ensure!(
+            self.coefficients.len() == other.coefficients.len(),
             "Inconsistent numbers of coefficient matrices between `self` and `other`."
         );
 
         let thresh = Float::sqrt(self.threshold * other.threshold);
-        assert!(self
+        ensure!(self
             .occupations
             .iter()
+            .chain(other.occupations.iter())
             .all(|occs| occs.iter().all(|&occ| approx::relative_eq!(
                 occ,
                 occ.round(),
                 epsilon = thresh,
                 max_relative = thresh
             ))),
-            "`self` contains fractional occupation numbers. Overlaps between determinants with fractional occupation numbers are currently not supported."
-        );
-        assert!(other
-            .occupations
-            .iter()
-            .all(|occs| occs.iter().all(|&occ| approx::relative_eq!(
-                occ,
-                occ.round(),
-                epsilon = thresh,
-                max_relative = thresh
-            ))),
-            "`other` contains fractional occupation numbers. Overlaps between determinants with fractional occupation numbers are currently not supported."
+            "Overlaps between determinants with fractional occupation numbers are currently not supported."
         );
 
-        let sao = metric.expect("No atomic-orbital metric found.");
+        let sao = metric.ok_or_else(|| format_err!("No atomic-orbital metric found."))?;
 
         let ov = izip!(
             &self.coefficients,
