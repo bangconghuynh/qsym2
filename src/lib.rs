@@ -4,6 +4,7 @@ pub mod aux;
 pub mod chartab;
 pub mod drivers;
 pub mod group;
+pub mod bindings;
 pub mod permutation;
 pub mod rotsym;
 pub mod symmetry;
