@@ -11,7 +11,7 @@ use crate::drivers::symmetry_group_detection::{
 };
 use crate::drivers::QSym2Driver;
 
-/// A Python-exposed function to perform symmetry group detection.
+/// A Python-exposed function to perform symmetry-group detection.
 #[pyfunction]
 pub(super) fn detect_symmetry_group(
     inp_xyz: String,

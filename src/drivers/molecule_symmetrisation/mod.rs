@@ -30,34 +30,34 @@ mod molecule_symmetrisation_tests;
 pub struct MoleculeSymmetrisationParams {
     /// Boolean indicating if any available magnetic group should be used for symmetrisation
     /// instead of the unitary group.
-    use_magnetic_group: bool,
+    pub use_magnetic_group: bool,
 
     /// The target moment-of-inertia threshold for the symmetrisation, *i.e.* the symmetrised
     /// molecule will have the target symmetry group at this target moment-of-inertia threshold.
-    target_moi_threshold: f64,
+    pub target_moi_threshold: f64,
 
     /// The target distance threshold for the symmetrisation, *i.e.* the symmetrised molecule will
     /// have the target symmetry group at this target distance threshold.
-    target_distance_threshold: f64,
+    pub target_distance_threshold: f64,
 
     /// Boolean indicating if the symmetrised molecule is also reoriented to align its principal
     /// axes with the space-fixed Cartesian axes.
     ///
     /// See [`Molecule::reorientate`] for more information.
-    reorientate_molecule: bool,
+    pub reorientate_molecule: bool,
 
     /// The maximum number of symmetrisation iterations.
     #[builder(default = "5")]
-    max_iterations: usize,
+    pub max_iterations: usize,
 
     /// The finite order to which any infinite-order symmetry element is reduced, so that a finite
     /// subgroup of an infinite group can be used for the symmetrisation.
     #[builder(default = "None")]
-    infinite_order_to_finite: Option<u32>,
+    pub infinite_order_to_finite: Option<u32>,
 
     /// The output verbosity level.
     #[builder(default = "0")]
-    verbose: u8,
+    pub verbose: u8,
 }
 
 impl MoleculeSymmetrisationParams {
@@ -111,7 +111,7 @@ pub struct MoleculeSymmetrisationResult<'a> {
     parameters: &'a MoleculeSymmetrisationParams,
 
     /// The symmetrised molecule.
-    symmetrised_molecule: Molecule,
+    pub symmetrised_molecule: Molecule,
 }
 
 impl<'a> MoleculeSymmetrisationResult<'a> {

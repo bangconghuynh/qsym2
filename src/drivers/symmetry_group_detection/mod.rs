@@ -31,38 +31,38 @@ mod symmetry_group_detection_tests;
 pub struct SymmetryGroupDetectionParams {
     /// Thresholds for moment-of-inertia comparisons.
     #[builder(setter(custom), default = "vec![1.0e-4, 1.0e-5, 1.0e-6]")]
-    moi_thresholds: Vec<f64>,
+    pub moi_thresholds: Vec<f64>,
 
     /// Thresholds for distance and geometry comparisons.
     #[builder(setter(custom), default = "vec![1.0e-4, 1.0e-5, 1.0e-6]")]
-    distance_thresholds: Vec<f64>,
+    pub distance_thresholds: Vec<f64>,
 
     /// Boolean indicating if time reversal is to be taken into account.
-    time_reversal: bool,
+    pub time_reversal: bool,
 
     /// Fictitious magnetic fields to be added to the system. Each fictitious magnetic field is
     /// specified by an origin $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which a
     /// `magnetic(+)` special atom will be added at $`\mathbf{O} + \mathbf{v}`$, and a
     /// `magnetic(-)` special atom will be added at $`\mathbf{O} - \mathbf{v}`$.
     #[builder(default = "None")]
-    fictitious_magnetic_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
+    pub fictitious_magnetic_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
     /// Fictitious electric fields to be added to the system. Each fictitious electric field is
     /// specified by an origin $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which an
     /// `electric(+)` special atom will be added at $`\mathbf{O} + \mathbf{v}`$.
     #[builder(default = "None")]
-    fictitious_electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
+    pub fictitious_electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
     /// Boolean indicating if the origins specified in [`Self::fictitious_magnetic_fields`] and
     /// [`Self::fictitious_electric_fields`] are to be taken relative to the molecule's centre of
     /// mass rather than to the space-fixed origin.
     #[builder(default = "false")]
-    fictitious_origin_com: bool,
+    pub fictitious_origin_com: bool,
 
     /// Boolean indicating if a summary of the located symmetry elements is to be written to the
     /// output file.
     #[builder(default = "false")]
-    write_symmetry_elements: bool,
+    pub write_symmetry_elements: bool,
 }
 
 impl SymmetryGroupDetectionParams {
