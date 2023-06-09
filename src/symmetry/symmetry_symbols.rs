@@ -5,7 +5,6 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use log;
-
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -13,6 +12,7 @@ use nalgebra::Vector3;
 use ndarray::{Array2, ArrayView2, Axis};
 use num_traits::ToPrimitive;
 use phf::{phf_map, phf_set};
+use serde::{Serialize, Deserialize};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
@@ -105,7 +105,7 @@ pub static FORCED_C3_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
 // -------------------
 
 /// A struct to handle Mulliken irreducible representation symbols.
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct MullikenIrrepSymbol {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
@@ -143,7 +143,7 @@ impl MullikenIrrepSymbol {
 // ---------------------
 
 /// A struct to handle Mulliken irreducible corepresentation symbols.
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct MullikenIrcorepSymbol {
     inducing_irreps: DecomposedSymbol<MullikenIrrepSymbol>,
 }
@@ -180,8 +180,8 @@ impl MullikenIrcorepSymbol {
 // -------------------
 
 /// A struct to handle conjugacy class symbols.
-#[derive(Builder, Debug, Clone)]
-pub struct SymmetryClassSymbol<R: Clone> {
+#[derive(Builder, Debug, Clone, Serialize, Deserialize)]
+pub struct SymmetryClassSymbol<R: Clone + Serialize> {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
 
@@ -189,7 +189,7 @@ pub struct SymmetryClassSymbol<R: Clone> {
     representatives: Option<Vec<R>>,
 }
 
-impl<R: Clone> SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> SymmetryClassSymbol<R> {
     fn builder() -> SymmetryClassSymbolBuilder<R> {
         SymmetryClassSymbolBuilder::default()
     }
@@ -449,21 +449,21 @@ impl fmt::Display for MullikenIrcorepSymbol {
 // SymmetryClassSymbol
 // -------------------
 
-impl<R: Clone> PartialEq for SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> PartialEq for SymmetryClassSymbol<R> {
     fn eq(&self, other: &Self) -> bool {
         self.generic_symbol == other.generic_symbol
     }
 }
 
-impl<R: Clone> Eq for SymmetryClassSymbol<R> {}
+impl<R: Clone + Serialize> Eq for SymmetryClassSymbol<R> {}
 
-impl<R: Clone> Hash for SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> Hash for SymmetryClassSymbol<R> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.generic_symbol.hash(state);
     }
 }
 
-impl<R: Clone> MathematicalSymbol for SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> MathematicalSymbol for SymmetryClassSymbol<R> {
     /// The main part of the symbol, which denotes the representative symmetry operation.
     fn main(&self) -> String {
         self.generic_symbol.main()
@@ -506,7 +506,7 @@ impl<R: Clone> MathematicalSymbol for SymmetryClassSymbol<R> {
     }
 }
 
-impl<R: Clone> CollectionSymbol for SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> CollectionSymbol for SymmetryClassSymbol<R> {
     type CollectionElement = R;
 
     fn from_reps(
@@ -525,7 +525,7 @@ impl<R: Clone> CollectionSymbol for SymmetryClassSymbol<R> {
     }
 }
 
-impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
+impl<R: SpecialSymmetryTransformation + Clone + Serialize> SpecialSymmetryTransformation
     for SymmetryClassSymbol<R>
 {
     // ============
@@ -617,7 +617,7 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
     }
 }
 
-impl<R: FiniteOrder + Clone> FiniteOrder for SymmetryClassSymbol<R> {
+impl<R: FiniteOrder + Clone + Serialize> FiniteOrder for SymmetryClassSymbol<R> {
     type Int = R::Int;
 
     fn order(&self) -> Self::Int {
@@ -628,7 +628,7 @@ impl<R: FiniteOrder + Clone> FiniteOrder for SymmetryClassSymbol<R> {
     }
 }
 
-impl<R: Clone> fmt::Display for SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> fmt::Display for SymmetryClassSymbol<R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
     }
@@ -660,7 +660,7 @@ impl<R: Clone> fmt::Display for SymmetryClassSymbol<R> {
 /// # Panics
 ///
 /// Panics when expected classes cannot be found.
-pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
+pub fn sort_irreps<R: Clone + Serialize + SpecialSymmetryTransformation>(
     char_arr: &ArrayView2<Character>,
     frobenius_schur_indicators: &[i8],
     class_symbols: &IndexMap<SymmetryClassSymbol<R>, usize>,
@@ -862,7 +862,7 @@ pub fn deduce_principal_classes<R, P>(
     force_principal: Option<SymmetryClassSymbol<R>>,
 ) -> Vec<SymmetryClassSymbol<R>>
 where
-    R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
+    R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone + Serialize,
     P: Copy + Fn(&SymmetryClassSymbol<R>) -> bool,
 {
     log::debug!("Determining principal classes...");
@@ -961,7 +961,7 @@ pub(super) fn deduce_mulliken_irrep_symbols<R>(
     principal_classes: &[SymmetryClassSymbol<R>],
 ) -> Vec<MullikenIrrepSymbol>
 where
-    R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
+    R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone + Serialize,
 {
     log::debug!("Generating Mulliken irreducible representation symbols...");
 

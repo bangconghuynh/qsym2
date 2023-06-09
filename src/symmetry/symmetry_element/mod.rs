@@ -9,6 +9,7 @@ use log;
 use nalgebra::Vector3;
 use num::integer::gcd;
 use num_traits::{ToPrimitive, Zero};
+use serde::{Deserialize, Serialize};
 
 use crate::aux::geometry;
 use crate::aux::misc::{self, HashableFloat};
@@ -28,7 +29,7 @@ mod symmetry_element_tests;
 
 /// An enumerated type to classify the type of the antiunitary term that contributes to a symmetry
 /// element.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AntiunitaryKind {
     /// Variant for the antiunitary term being a complex-conjugation operation.
     ComplexConjugation,
@@ -38,7 +39,7 @@ pub enum AntiunitaryKind {
 }
 
 /// An enumerated type to classify the types of symmetry element.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SymmetryElementKind {
     /// Proper symmetry element which consists of just a proper rotation axis.
     ///
@@ -118,7 +119,7 @@ impl SymmetryElementKind {
 
 /// An enumerated type to signify whether a spatial symmetry operation has an associated spin
 /// rotation.
-#[derive(Clone, Hash, PartialEq, Eq, Debug)]
+#[derive(Clone, Hash, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum RotationGroup {
     /// Variant indicating that the proper part of the symmetry element generates rotations in
     /// $`mathsf{SO}(3)`$.
@@ -262,7 +263,7 @@ impl fmt::Display for SymmetryElementKind {
 /// angle of rotation $`\phi`$ seems to be the best way to do this. In other words, the angle of
 /// rotation of each element is specified by either a tuple of integers $`(k, n)`$ or a
 /// floating-point number $`\phi`$.
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct SymmetryElement {
     /// The rotational order $`n`$ of the proper rotation part of the symmetry element. This can be
     /// finite or infinite, and will determine whether [`Self::raw_proper_power`] is `None` or

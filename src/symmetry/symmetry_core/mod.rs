@@ -10,6 +10,7 @@ use itertools::Itertools;
 use log;
 use nalgebra::{Point3, Vector3};
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::aux::atom::Atom;
 use crate::aux::geometry::{self, Transform};
@@ -42,7 +43,7 @@ impl fmt::Display for PointGroupDetectionError {
 impl Error for PointGroupDetectionError {}
 
 /// A struct for storing and managing information required for symmetry analysis.
-#[derive(Clone, Builder, Debug)]
+#[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct PreSymmetry {
     /// The original molecule.
     #[builder(setter(custom))]
@@ -265,7 +266,7 @@ impl PreSymmetry {
 }
 
 /// A struct for storing and managing symmetry analysis results.
-#[derive(Builder, Clone, Debug)]
+#[derive(Builder, Clone, Debug, Serialize, Deserialize)]
 pub struct Symmetry {
     /// The determined point group in Schönflies notation.
     #[builder(setter(skip, strip_option), default = "None")]
@@ -398,9 +399,7 @@ impl Symmetry {
                                 .map(|(order, improper_elements)| {
                                     let tr_improper_elements = improper_elements
                                         .iter()
-                                        .map(|improper_element| {
-                                            improper_element.to_tr(true)
-                                        })
+                                        .map(|improper_element| improper_element.to_tr(true))
                                         .collect::<IndexSet<_>>();
                                     (*order, tr_improper_elements)
                                 })

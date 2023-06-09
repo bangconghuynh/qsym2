@@ -7,6 +7,7 @@ use fraction;
 use itertools::{self, Itertools};
 use nalgebra::{ClosedMul, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vector3};
 use num_traits::{One, ToPrimitive};
+use serde::{Deserialize, Serialize};
 
 use crate::aux::atom::Atom;
 use crate::aux::misc::HashableFloat;
@@ -533,7 +534,7 @@ pub trait Transform {
 // ----------------
 
 /// An enumerated type to handle comparisons symbolically.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 enum ImproperOrdering {
     Greater,
     GreaterEqual,
@@ -563,7 +564,7 @@ Coordinates
 ***/
 
 /// An enumerated type to handle Cartesian coordinates symbolically.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 enum CartesianCoordinate {
     X,
     Y,
@@ -596,7 +597,7 @@ Conditions
 ***/
 
 /// A structure to handle inequality conditions written in terms of Cartesian coordinates.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CartesianConditions {
     /// The Cartesian conditions. The condititions are satisfied if all of the tuples in any of the
     /// inner vectors are satisfied.
@@ -679,7 +680,7 @@ Coordinates
 ***/
 
 /// An enumerated type to handle spherical angular coordinates.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SphericalCoordinate {
     Theta,
     Phi,
@@ -699,7 +700,7 @@ Conditions
 ***/
 
 /// A structure to handle inequality conditions written in terms of spherical angular coordinates.
-#[derive(Debug, Clone, Builder, PartialEq)]
+#[derive(Debug, Clone, Builder, PartialEq, Serialize, Deserialize)]
 pub struct SphericalConditions {
     /// The polar axis relative to which the polar angle $`\theta`$ is defined.
     #[builder(setter(custom))]
@@ -965,7 +966,7 @@ impl fmt::Display for SphericalConditions {
 // ------------------
 
 /// An enumerated type to handle positive hemispheres in Cartesian or spherical conditions.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum PositiveHemisphere {
     Cartesian(CartesianConditions),
     Spherical(SphericalConditions),

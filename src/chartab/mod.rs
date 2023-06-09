@@ -1,14 +1,15 @@
-use std::ops::Mul;
 use std::cmp::max;
 use std::error::Error;
 use std::fmt;
 use std::iter;
+use std::ops::Mul;
 
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use ndarray::{Array2, ArrayView1};
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{ToPrimitive, Zero};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
@@ -166,7 +167,7 @@ impl Error for DecompositionError {}
 // -----------------
 
 /// A structure to manage character tables of irreducible representations.
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct RepCharacterTable<RowSymbol, ColSymbol>
 where
     RowSymbol: LinearSpaceSymbol,
@@ -521,7 +522,7 @@ where
     ColSymbol: CollectionSymbol,
     T: ComplexFloat,
     <T as ComplexFloat>::Real: ToPrimitive,
-    for <'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
+    for<'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
 {
     type Decomposition = DecomposedSymbol<RowSymbol>;
 
@@ -648,9 +649,10 @@ where
 // -------------------
 
 /// A structure to manage character tables of irreducible corepresentations of magnetic groups.
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct CorepCharacterTable<RowSymbol, UC>
 where
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
     RowSymbol: ReducibleLinearSpaceSymbol,
     UC: CharacterTable,
 {
@@ -680,6 +682,7 @@ where
 
 impl<RowSymbol, UC> CorepCharacterTable<RowSymbol, UC>
 where
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
     RowSymbol: ReducibleLinearSpaceSymbol,
     UC: CharacterTable,
 {
@@ -757,6 +760,7 @@ where
 
 impl<RowSymbol, UC> CharacterTable for CorepCharacterTable<RowSymbol, UC>
 where
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
     RowSymbol: ReducibleLinearSpaceSymbol,
     UC: CharacterTable,
 {
@@ -1002,9 +1006,10 @@ impl<RowSymbol, UC, T> SubspaceDecomposable<T> for CorepCharacterTable<RowSymbol
 where
     RowSymbol: ReducibleLinearSpaceSymbol + PartialOrd,
     UC: CharacterTable,
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
     T: ComplexFloat,
     <T as ComplexFloat>::Real: ToPrimitive,
-    for <'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
+    for<'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
 {
     type Decomposition = DecomposedSymbol<RowSymbol>;
 
@@ -1116,6 +1121,7 @@ impl<RowSymbol, UC> fmt::Display for CorepCharacterTable<RowSymbol, UC>
 where
     RowSymbol: ReducibleLinearSpaceSymbol,
     UC: CharacterTable,
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, Some(3))
@@ -1126,6 +1132,7 @@ impl<RowSymbol, UC> fmt::Debug for CorepCharacterTable<RowSymbol, UC>
 where
     RowSymbol: ReducibleLinearSpaceSymbol,
     UC: CharacterTable,
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, None)

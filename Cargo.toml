@@ -15,13 +15,13 @@ derive_builder = "0.12.0"
 divisors = "0.2.1"
 env_logger = "0.10.0"
 factorial = "0.3.0"
-fraction = "0.13.1"
+fraction = { version = "0.13.1", features = ["with-serde-support"] }
 itertools = "0.10.3"
-indexmap = { version = "1.9.1", features = ["rayon"] }
+indexmap = { version = "1.9.1", features = ["rayon", "serde"] }
 log = "0.4.17"
 log4rs = { version = "1.2.0", features = ["file_appender", "pattern_encoder"] }
-nalgebra = "0.32.2"
-ndarray = { version = "0.15.6", features = ["rayon"] }
+nalgebra = { version = "0.32.2", features = ["serde-serialize"] }
+ndarray = { version = "0.15.6", features = ["rayon", "serde"] }
 ndarray_einsum_beta = "0.7.0"
 ndarray-linalg = { version = "0.16", features = ["openblas-static"] }
 num = "0.4.0"
@@ -39,6 +39,7 @@ pyo3-log = "0.8.2"
 rand = "0.8.5"
 regex = "1.7.0"
 rayon = "1.5.3"
+serde = { version = "1.0.164", features = ["derive"] }
 
 [package.metadata.docs.rs]
 rustdoc-args = [
@@ -47,10 +48,4 @@ rustdoc-args = [
 ]
 
 [lib]
-# The name of the native library. This is the name which will be used in Python to import the
-# library (i.e. `import string_sum`). If you change this, you must also change the name of the
-# `#[pymodule]`.
-name = "pyqsym2"
-
-# "cdylib" is necessary to produce a shared library for Python to import from.
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]

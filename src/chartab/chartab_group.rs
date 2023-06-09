@@ -12,6 +12,7 @@ use num_ord::NumOrd;
 use num_traits::{Inv, One, Pow, ToPrimitive, Zero};
 use primes::is_prime;
 use rayon::prelude::*;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
@@ -631,6 +632,7 @@ where
             <Self as HasUnitarySubgroup>::UnitarySubgroup as CharacterProperties
         >::RowSymbol
     >,
+    <<Self as HasUnitarySubgroup>::UnitarySubgroup as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
 {
     /// Sets the irrep character table internally.
     fn set_ircorep_character_table(&mut self, chartab: Self::CharTab);
@@ -976,7 +978,7 @@ where
 
 impl<T, RowSymbol, UG> CharacterProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol> + Serialize + DeserializeOwned,
     T: Mul<Output = T>
         + Inv<Output = T>
         + Hash
@@ -991,6 +993,9 @@ where
         + GroupProperties<GroupElement = T>
         + ClassProperties<GroupElement = T>
         + CharacterProperties,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    <UG as CharacterProperties>::CharTab: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
 {
     type RowSymbol = RowSymbol;
     type CharTab = CorepCharacterTable<Self::RowSymbol, UG::CharTab>;
@@ -1008,7 +1013,7 @@ where
 
 impl<T, RowSymbol, UG> IrcorepCharTabConstruction for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol> + Serialize + DeserializeOwned,
     T: Mul<Output = T>
         + Inv<Output = T>
         + Hash
@@ -1023,6 +1028,9 @@ where
         + GroupProperties<GroupElement = T>
         + ClassProperties<GroupElement = T>
         + CharacterProperties,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    <UG as CharacterProperties>::CharTab: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
 {
     fn set_ircorep_character_table(&mut self, chartab: Self::CharTab) {
         self.ircorep_character_table = Some(chartab);

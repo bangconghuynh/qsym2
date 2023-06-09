@@ -6,6 +6,7 @@ use approx;
 use nalgebra::{Matrix3, Point3, Rotation3, Translation3, UnitVector3, Vector3};
 use num_traits::ToPrimitive;
 use periodic_table;
+use serde::{Deserialize, Serialize};
 
 use crate::aux::geometry::{self, ImproperRotationKind, Transform};
 use crate::aux::misc::{self, HashableFloat};
@@ -57,7 +58,7 @@ fn parse_atomic_mass(mass_str: &str) -> f64 {
 }
 
 /// A struct representing an atom.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Atom {
     /// The atom kind.
     pub kind: AtomKind,
@@ -230,7 +231,7 @@ impl fmt::Debug for Atom {
 }
 
 /// An enum describing the atom kind.
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AtomKind {
     /// An ordinary atom.
     Ordinary,

@@ -9,6 +9,7 @@ use log;
 use ndarray::{Array2, Zip};
 use num::Integer;
 use num_traits::Inv;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
@@ -111,7 +112,7 @@ where
 // ====================================
 
 /// An enumerated type to contain information about the type of a group.
-#[derive(Clone, Hash, PartialEq, Eq, Debug)]
+#[derive(Clone, Hash, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum GroupType {
     /// Variant for an ordinary group which contains no time-reversed operations.
     ///
@@ -159,7 +160,7 @@ pub const GRGRP2: GroupType = GroupType::MagneticGrey(true);
 // --------------
 
 /// A structure for managing abstract groups eagerly, *i.e.* all group elements are stored.
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct EagerGroup<T>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
@@ -386,7 +387,7 @@ where
 // -------------------------
 
 /// A structure for managing groups with unitary representations.
-#[derive(Clone, Builder)]
+#[derive(Clone, Builder, Serialize, Deserialize)]
 pub struct UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
@@ -557,12 +558,14 @@ where
 /// antiunitary represented. This division of elements affects the class structure of the group via
 /// an equivalence relation defined in Newmarch, J. D. & Golding, R. M. The character table for the
 /// corepresentations of magnetic groups. *Journal of Mathematical Physics* **23**, 695–704 (1982).
-#[derive(Clone, Builder)]
+#[derive(Clone, Builder, Serialize, Deserialize)]
 pub struct MagneticRepresentedGroup<T, UG, RowSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
 {
     /// A name for the magnetic-represented group.
     name: String,
@@ -605,6 +608,8 @@ where
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
 {
     fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
         if name_opt.is_some() {
@@ -644,6 +649,8 @@ where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
 {
     /// Sets the finite subgroup name of this group.
     ///
@@ -664,8 +671,11 @@ impl<T, UG, RowSymbol> MagneticRepresentedGroup<T, UG, RowSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
-    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol> + Serialize + DeserializeOwned,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    <UG as CharacterProperties>::CharTab: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
 {
     /// Returns a builder to construct a new magnetic-represented group.
     ///
@@ -708,6 +718,8 @@ where
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
 {
     type GroupElement = T;
     type ElementCollection = IndexSet<T>;
@@ -755,6 +767,8 @@ where
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
 {
     type UnitarySubgroup = UG;
 

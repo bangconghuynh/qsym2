@@ -5,6 +5,7 @@ use derive_builder::Builder;
 use fraction::{self, ToPrimitive};
 use num::Complex;
 use num_traits::Pow;
+use serde::{Deserialize, Serialize};
 
 type F = fraction::GenericFraction<u32>;
 
@@ -16,7 +17,7 @@ mod unityroot_tests;
 ///
 /// Partial orders between roots of unity are based on their angular positions
 /// on the unit circle in the Argand diagram, with unity being the smallest.
-#[derive(Builder, Clone, PartialOrd, PartialEq, Eq, Hash)]
+#[derive(Builder, Clone, PartialOrd, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UnityRoot {
     /// The fraction $`k/n \in [0, 1)`$ of the unity root, represented exactly
     /// for hashing and comparison purposes.

@@ -7,6 +7,7 @@ use derive_builder::Builder;
 use indexmap::IndexMap;
 use ndarray::{s, Array2};
 use num_traits::Inv;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
@@ -237,7 +238,7 @@ where
 
 /// A struct for managing class structures eagerly, *i.e.* all elements and their class maps are
 /// stored.
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub(super) struct EagerClassStructure<T, ClassSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
@@ -686,7 +687,9 @@ where
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     <Self as GroupProperties>::GroupElement: Inv,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
-    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol> + Serialize + DeserializeOwned,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    <UG as CharacterProperties>::CharTab: Serialize + DeserializeOwned,
 {
     type ClassSymbol = UG::ClassSymbol;
 

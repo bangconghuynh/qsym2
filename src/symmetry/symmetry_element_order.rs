@@ -2,10 +2,12 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
+use serde::{Serialize, Deserialize};
+
 use crate::aux::misc::HashableFloat;
 
 /// An enum to handle symmetry element orders.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum ElementOrder {
     /// Positive integer order.
     Int(u32),

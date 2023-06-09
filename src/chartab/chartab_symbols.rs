@@ -7,10 +7,11 @@ use std::str::FromStr;
 
 use counter::Counter;
 use derive_builder::Builder;
-use itertools::Itertools;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use phf::phf_map;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 
 pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
     1i8 => "r",
@@ -265,7 +266,7 @@ pub trait CollectionSymbol: MathematicalSymbol {
 /// \ ^{\textrm{postsuper}}_{\textrm{postsub}}
 /// \ \textrm{postfactor}.
 /// ```
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct GenericSymbol {
     /// The main part of the symbol.
     main: String,
@@ -498,7 +499,7 @@ impl Error for GenericSymbolParsingError {}
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 /// A struct to handle Mulliken irreducible corepresentation symbols.
-#[derive(Builder, Debug, Clone, Eq)]
+#[derive(Builder, Debug, Clone, Eq, Serialize, Deserialize)]
 pub struct DecomposedSymbol<S>
 where
     S: LinearSpaceSymbol + PartialOrd,

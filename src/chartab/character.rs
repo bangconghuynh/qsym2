@@ -8,6 +8,7 @@ use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use num::Complex;
 use num_traits::{ToPrimitive, Zero};
+use serde::{Deserialize, Serialize};
 
 use crate::aux::misc::HashableFloat;
 use crate::chartab::unityroot::UnityRoot;
@@ -26,7 +27,7 @@ mod character_tests;
 ///
 /// Partial orders between characters are based on their complex moduli and
 /// phases in the interval `$[0, 2\pi)$` with `$0$` being the smallest.
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct Character {
     /// The unity roots and their multiplicities constituting this character.
     #[builder(setter(custom))]

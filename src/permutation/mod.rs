@@ -10,6 +10,7 @@ use indexmap::IndexSet;
 use log;
 use num::{integer::lcm, Integer, Unsigned};
 use num_traits::{Inv, Pow, PrimInt};
+use serde::{Serialize, Deserialize};
 
 use crate::group::FiniteOrder;
 
@@ -53,14 +54,14 @@ pub trait IntoPermutation<C: PermutableCollection> {
 
 /// A trait for generic permutation rank types.
 pub trait PermutationRank:
-    Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize>
+    Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize> + Serialize
 {
 }
 
 /// Blanket implementation of `PermutationRank`.
 impl<T> PermutationRank for T
 where
-    T: Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize>,
+    T: Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize> + Serialize,
     <T as TryFrom<usize>>::Error: fmt::Debug,
     std::ops::Range<T>: Iterator + DoubleEndedIterator,
     Vec<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
@@ -74,7 +75,7 @@ where
 // ==================
 
 /// A structure to manage permutation actions of a finite set.
-#[derive(Builder, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Builder, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Permutation<T: PermutationRank> {
     /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$
     /// where $`n`$ is [`Self::rank`], then this gives the result of the action.

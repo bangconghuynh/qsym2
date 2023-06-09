@@ -9,6 +9,7 @@ use nalgebra::{Point3, Vector3};
 use ndarray::{Array2, Axis, ShapeBuilder};
 use num_traits::{Inv, Pow, Zero};
 use ordered_float::OrderedFloat;
+use serde::{Deserialize, Serialize};
 
 use crate::aux::geometry::{
     self, improper_rotation_matrix, proper_rotation_matrix, PositiveHemisphere, Transform, IMINV,
@@ -161,7 +162,7 @@ pub trait SpecialSymmetryTransformation {
 /// A symmetry element serves as a generator for symmetry operations. Thus, a symmetry element
 /// together with a signed integer indicating the number of times the symmetry element is applied
 /// (positively or negatively) specifies a symmetry operation.
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct SymmetryOperation {
     /// The generating symmetry element for this symmetry operation.
     pub generating_element: SymmetryElement,

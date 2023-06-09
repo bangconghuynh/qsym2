@@ -6,6 +6,7 @@ use std::process;
 use log;
 use nalgebra::{DVector, Matrix3, Point3, Vector3};
 use num_traits::ToPrimitive;
+use serde::{Deserialize, Serialize};
 
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
 use crate::aux::geometry::{self, ImproperRotationKind, Transform};
@@ -24,7 +25,7 @@ mod molecule_tests;
 // ==================
 
 /// A struct containing the atoms constituting a molecule.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Molecule {
     /// The atoms constituting this molecule.
     pub atoms: Vec<Atom>,
