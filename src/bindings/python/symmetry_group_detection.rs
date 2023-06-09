@@ -1,4 +1,9 @@
+use std::fs::File;
+use std::io::BufWriter;
+
+use bincode;
 use nalgebra::{Point3, Vector3};
+use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
 use crate::drivers::symmetry_group_detection::{
@@ -6,28 +11,18 @@ use crate::drivers::symmetry_group_detection::{
 };
 use crate::drivers::QSym2Driver;
 
-#[pyclass]
-pub(super) struct PySymmetryGroupDetectionResult {
-    #[pyo3(get)]
-    rotational_symmetry: String,
-
-    #[pyo3(get)]
-    unitary_group_name: String,
-
-    #[pyo3(get)]
-    magnetic_group_name: Option<String>,
-}
-
+/// A Python-exposed function to perform symmetry group detection.
 #[pyfunction]
 pub(super) fn detect_symmetry_group(
-    xyz_path: String,
+    inp_xyz: String,
+    out_sym: String,
     moi_thresholds: Vec<f64>,
     distance_thresholds: Vec<f64>,
     time_reversal: bool,
     write_symmetry_elements: bool,
     fictitious_magnetic_field: Option<[f64; 3]>,
     fictitious_electric_field: Option<[f64; 3]>,
-) -> Option<PySymmetryGroupDetectionResult> {
+) -> PyResult<()> {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&distance_thresholds)
         .moi_thresholds(&moi_thresholds)
@@ -43,27 +38,47 @@ pub(super) fn detect_symmetry_group(
         .fictitious_origin_com(true)
         .write_symmetry_elements(write_symmetry_elements)
         .build()
-        .ok()?;
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(xyz_path))
+        .xyz(Some(inp_xyz))
         .build()
-        .ok()?;
-    pd_driver.run().ok()?;
-    let pd_res = pd_driver.result().ok()?;
-    let py_pd_res = PySymmetryGroupDetectionResult {
-        rotational_symmetry: pd_res.pre_symmetry.rotational_symmetry.to_string(),
-        unitary_group_name: pd_res
-            .unitary_symmetry
-            .group_name
-            .as_ref()
-            .expect("No unitary symmetry found.")
-            .clone(),
-        magnetic_group_name: pd_res
-            .magnetic_symmetry
-            .as_ref()
-            .and_then(|magsym| magsym.group_name.as_ref())
-            .cloned(),
-    };
-    Some(py_pd_res)
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    pd_driver
+        .run()
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    let pd_res = pd_driver
+        .result()
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+    {
+        let mut writer = BufWriter::new(
+            File::create(format!("{out_sym}.qsym2.sym")).map_err(PyIOError::new_err)?
+        );
+        bincode::serialize_into(&mut writer, &pd_res)
+            .map_err(|err| PyIOError::new_err(err.to_string()))?;
+    }
+
+    // {
+    //     let mut reader = BufReader::new(File::open("test.sym").unwrap());
+    //     let pd_res_2: SymmetryGroupDetectionResult = bincode::deserialize_from(&mut reader).unwrap();
+    //     println!("{}", pd_res_2.unitary_symmetry.group_name.unwrap());
+    //     println!("{}", pd_res_2.magnetic_symmetry.unwrap().group_name.unwrap());
+    // }
+
+    // let py_pd_res = PySymmetryGroupDetectionResult {
+    //     rotational_symmetry: pd_res.pre_symmetry.rotational_symmetry.to_string(),
+    //     unitary_group_name: pd_res
+    //         .unitary_symmetry
+    //         .group_name
+    //         .as_ref()
+    //         .expect("No unitary symmetry found.")
+    //         .clone(),
+    //     magnetic_group_name: pd_res
+    //         .magnetic_symmetry
+    //         .as_ref()
+    //         .and_then(|magsym| magsym.group_name.as_ref())
+    //         .cloned(),
+    // };
+    Ok(())
 }

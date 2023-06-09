@@ -5,9 +5,10 @@ use derive_builder::Builder;
 use itertools::Itertools;
 use log;
 use nalgebra::{Point3, Vector3};
+use serde::{Deserialize, Serialize};
 
 use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::format::{nice_bool, write_subtitle, log_title, log_subtitle};
+use crate::aux::format::{log_subtitle, log_title, nice_bool, write_subtitle};
 use crate::aux::molecule::Molecule;
 use crate::drivers::{QSym2Driver, QSym2Output};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
@@ -26,7 +27,7 @@ mod symmetry_group_detection_tests;
 // ----------
 
 /// A structure containing control parameters for symmetry-group detection.
-#[derive(Clone, Builder, Debug)]
+#[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct SymmetryGroupDetectionParams {
     /// Thresholds for moment-of-inertia comparisons.
     #[builder(setter(custom), default = "vec![1.0e-4, 1.0e-5, 1.0e-6]")]
@@ -176,10 +177,10 @@ impl fmt::Display for SymmetryGroupDetectionParams {
 // ------
 
 /// A structure to contain symmetry-group detection results.
-#[derive(Clone, Builder, Debug)]
-pub struct SymmetryGroupDetectionResult<'a> {
+#[derive(Clone, Builder, Debug, Serialize, Deserialize)]
+pub struct SymmetryGroupDetectionResult {
     /// The control parameters used to obtain this set of results.
-    pub parameters: &'a SymmetryGroupDetectionParams,
+    pub parameters: SymmetryGroupDetectionParams,
 
     /// The [`PreSymmetry`] structure containing basic geometrical information of the system prior
     /// to symmetry-group detection.
@@ -194,9 +195,9 @@ pub struct SymmetryGroupDetectionResult<'a> {
     pub magnetic_symmetry: Option<Symmetry>,
 }
 
-impl<'a> SymmetryGroupDetectionResult<'a> {
+impl SymmetryGroupDetectionResult {
     /// Returns a builder to construct a [`SymmetryGroupDetectionResult`] structure.
-    fn builder() -> SymmetryGroupDetectionResultBuilder<'a> {
+    fn builder() -> SymmetryGroupDetectionResultBuilder {
         SymmetryGroupDetectionResultBuilder::default()
     }
 
@@ -235,7 +236,7 @@ impl<'a> SymmetryGroupDetectionResult<'a> {
     }
 }
 
-impl<'a> fmt::Display for SymmetryGroupDetectionResult<'a> {
+impl fmt::Display for SymmetryGroupDetectionResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(highest_mag_sym) = self.magnetic_symmetry.as_ref() {
             let n_mag_elements = if highest_mag_sym.is_infinite() {
@@ -319,7 +320,7 @@ pub struct SymmetryGroupDetectionDriver<'a> {
 
     /// The result of the symmetry-group detection.
     #[builder(setter(skip), default = "None")]
-    result: Option<SymmetryGroupDetectionResult<'a>>,
+    result: Option<SymmetryGroupDetectionResult>,
 }
 
 impl<'a> SymmetryGroupDetectionDriver<'a> {
@@ -578,7 +579,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             })?;
 
         self.result = SymmetryGroupDetectionResult::builder()
-            .parameters(params)
+            .parameters(params.clone())
             .pre_symmetry(highest_presym)
             .unitary_symmetry(highest_uni_sym)
             .magnetic_symmetry(highest_mag_sym_opt)
@@ -593,8 +594,8 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
     }
 }
 
-impl<'a> QSym2Driver for SymmetryGroupDetectionDriver<'a> {
-    type Outcome = SymmetryGroupDetectionResult<'a>;
+impl QSym2Driver for SymmetryGroupDetectionDriver<'_> {
+    type Outcome = SymmetryGroupDetectionResult;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result
@@ -629,7 +630,8 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                 kind.contains_antiunitary(),
                 !matches!(kind, SymmetryElementKind::Proper(_)),
             )
-        }).try_for_each(|(generator, kind, kind_elements)| {
+        })
+        .try_for_each(|(generator, kind, kind_elements)| {
             if !sym.is_infinite() && generator {
                 Ok::<(), fmt::Error>(())
             } else {
@@ -648,7 +650,8 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                 kind_elements
                     .keys()
                     .sorted()
-                    .into_iter().try_for_each(|order| {
+                    .into_iter()
+                    .try_for_each(|order| {
                         let order_elements = kind_elements.get(order).unwrap_or_else(|| {
                             panic!("Elements/generators of order `{order}` cannot be retrieved.")
                         });
@@ -668,20 +671,19 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                             Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",
                         };
                         writeln!(f, " Order: {order}{au_str}{kind_str}")?;
-                        order_elements
-                            .iter().try_for_each(|element| {
-                                let axis = element.raw_axis();
-                                writeln!(
-                                    f,
-                                    "{:>7} {:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
-                                    element.get_simplified_symbol(),
-                                    element.get_full_symbol(),
-                                    axis[0],
-                                    axis[1],
-                                    axis[2]
-                                )?;
-                                Ok::<(), fmt::Error>(())
-                            })?;
+                        order_elements.iter().try_for_each(|element| {
+                            let axis = element.raw_axis();
+                            writeln!(
+                                f,
+                                "{:>7} {:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
+                                element.get_simplified_symbol(),
+                                element.get_full_symbol(),
+                                axis[0],
+                                axis[1],
+                                axis[2]
+                            )?;
+                            Ok::<(), fmt::Error>(())
+                        })?;
                         Ok::<(), fmt::Error>(())
                     })?;
                 writeln!(f, "{}", "┈".repeat(54))?;

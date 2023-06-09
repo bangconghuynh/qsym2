@@ -363,7 +363,7 @@ where
 
     /// The result from symmetry-group detection on the underlying molecular structure of the
     /// Slater determinant.
-    symmetry_group: &'a SymmetryGroupDetectionResult<'a>,
+    symmetry_group: &'a SymmetryGroupDetectionResult,
 
     /// The atomic-orbital spatial overlap matrix of the underlying basis set used to describe the
     /// determinant.

@@ -139,7 +139,7 @@ pub struct MoleculeSymmetrisationDriver<'a> {
     /// calculation where the symmetry of the molecule has been detected at a certain thresholding
     /// level, and now the molecule is to be symmetrised to attain the same symmetry but at a
     /// tighter thresholding level.
-    target_symmetry_result: &'a SymmetryGroupDetectionResult<'a>,
+    target_symmetry_result: &'a SymmetryGroupDetectionResult,
 
     /// The result of the symmetrisation.
     #[builder(setter(skip), default = "None")]
