@@ -112,7 +112,7 @@ impl fmt::Display for SymmetryGroupDetectionParams {
                     .map(|v| format!("{v:.3e}"))
                     .join(", ")
             )?;
-            writeln!(f, "")?;
+            writeln!(f)?;
         }
 
         if self.fictitious_magnetic_fields.is_some() || self.fictitious_electric_fields.is_some() {
@@ -139,7 +139,7 @@ impl fmt::Display for SymmetryGroupDetectionParams {
                     field.iter().map(|x| format!("{x:+.3}")).join(", "),
                 )?;
             }
-            writeln!(f, "")?;
+            writeln!(f)?;
         }
 
         if let Some(fictitious_electric_fields) = self.fictitious_electric_fields.as_ref() {
@@ -152,7 +152,7 @@ impl fmt::Display for SymmetryGroupDetectionParams {
                     field.iter().map(|x| format!("{x:+.3}")).join(", "),
                 )?;
             }
-            writeln!(f, "")?;
+            writeln!(f)?;
         }
 
         writeln!(
@@ -165,7 +165,7 @@ impl fmt::Display for SymmetryGroupDetectionParams {
             "Report symmetry elements/generators: {}",
             nice_bool(self.write_symmetry_elements)
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         Ok(())
     }
@@ -214,9 +214,9 @@ impl<'a> SymmetryGroupDetectionResult<'a> {
                         .unwrap_or(&"?".to_string()),
                 ),
             )?;
-            writeln!(f, "")?;
+            writeln!(f)?;
             write_element_table(f, magnetic_symmetry)?;
-            writeln!(f, "")?;
+            writeln!(f)?;
         }
 
         write_subtitle(
@@ -229,7 +229,7 @@ impl<'a> SymmetryGroupDetectionResult<'a> {
                     .unwrap_or(&"?".to_string())
             ),
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
         write_element_table(f, &self.unitary_symmetry)?;
         Ok(())
     }
@@ -288,7 +288,7 @@ impl<'a> fmt::Display for SymmetryGroupDetectionResult<'a> {
             "  Associated geo threshold: {:.3e}",
             self.pre_symmetry.dist_threshold
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         if self.parameters.write_symmetry_elements {
             self.write_symmetry_elements(f)?;
@@ -403,7 +403,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                 Vector3::zeros()
             };
             if let Some(fictitious_magnetic_fields) = params.fictitious_magnetic_fields.as_ref() {
-                if let Some(_) = mol.magnetic_atoms {
+                if mol.magnetic_atoms.is_some() {
                     bail!("Cannot set fictitious magnetic fields in the presence of actual magnetic fields.")
                 } else {
                     let fictitious_magnetic_atoms = fictitious_magnetic_fields.iter().flat_map(|(origin, vec)| {
@@ -422,15 +422,13 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
 
             // Add any fictitious electric fields
             if let Some(fictitious_electric_fields) = params.fictitious_electric_fields.as_ref() {
-                if let Some(_) = mol.electric_atoms {
+                if mol.electric_atoms.is_some() {
                     bail!("Cannot set fictitious electric fields in the presence of actual electric fields.")
                 } else {
                     let fictitious_electric_atoms = fictitious_electric_fields.iter().flat_map(|(origin, vec)| {
-                        Ok::<Atom, anyhow::Error>(
-                            Atom::new_special(AtomKind::Electric(true), origin + global_origin + vec, *dist_thresh).ok_or_else(||
+                        Atom::new_special(AtomKind::Electric(true), origin + global_origin + vec, *dist_thresh).ok_or_else(||
                                 format_err!("Cannot construct a fictitious electric atom.")
-                            )?
-                        )
+                            )
                     }).collect_vec();
                     mol.electric_atoms = Some(fictitious_electric_atoms);
                 }
@@ -631,8 +629,7 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                 kind.contains_antiunitary(),
                 !matches!(kind, SymmetryElementKind::Proper(_)),
             )
-        })
-        .map(|(generator, kind, kind_elements)| {
+        }).try_for_each(|(generator, kind, kind_elements)| {
             if !sym.is_infinite() && generator {
                 Ok::<(), fmt::Error>(())
             } else {
@@ -651,8 +648,7 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                 kind_elements
                     .keys()
                     .sorted()
-                    .into_iter()
-                    .map(|order| {
+                    .into_iter().try_for_each(|order| {
                         let order_elements = kind_elements.get(order).unwrap_or_else(|| {
                             panic!("Elements/generators of order `{order}` cannot be retrieved.")
                         });
@@ -673,8 +669,7 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                         };
                         writeln!(f, " Order: {order}{au_str}{kind_str}")?;
                         order_elements
-                            .iter()
-                            .map(|element| {
+                            .iter().try_for_each(|element| {
                                 let axis = element.raw_axis();
                                 writeln!(
                                     f,
@@ -686,16 +681,13 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                                     axis[2]
                                 )?;
                                 Ok::<(), fmt::Error>(())
-                            })
-                            .collect::<fmt::Result>()?;
+                            })?;
                         Ok::<(), fmt::Error>(())
-                    })
-                    .collect::<fmt::Result>()?;
+                    })?;
                 writeln!(f, "{}", "┈".repeat(54))?;
-                writeln!(f, "")?;
+                writeln!(f)?;
                 Ok::<(), fmt::Error>(())
             }
-        })
-        .collect::<fmt::Result>()?;
+        })?;
     Ok(())
 }

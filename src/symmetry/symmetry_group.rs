@@ -169,7 +169,7 @@ pub trait SymmetryGroupProperties:
             }
         } else {
             // This is already a finite group.
-            self.name().to_string()
+            self.name()
         };
         finite_group
     }
@@ -267,7 +267,7 @@ pub trait SymmetryGroupProperties:
                     // E(Σ) and E(QΣ) cannot be in the same conjugacy class.
                     let id_sym = SymmetryClassSymbol::new(
                         format!("1||E{su2}||").as_str(),
-                        Some(vec![rep_ele.clone()]),
+                        Some(vec![rep_ele]),
                     )
                     .unwrap_or_else(|_| {
                         panic!("Unable to construct a class symbol from `1||E{su2}||`.")
@@ -278,7 +278,7 @@ pub trait SymmetryGroupProperties:
                     // i(Σ) and i(QΣ) cannot be in the same conjugacy class.
                     let inv_sym = SymmetryClassSymbol::new(
                         format!("1||i{su2}||").as_str(),
-                        Some(vec![rep_ele.clone()]),
+                        Some(vec![rep_ele]),
                     )
                     .unwrap_or_else(|_| {
                         panic!("Unable to construct a class symbol from `1||i{su2}||`.")
@@ -289,7 +289,7 @@ pub trait SymmetryGroupProperties:
                     // θ(Σ) and θ(QΣ) cannot be in the same conjugacy class.
                     let trev_sym = SymmetryClassSymbol::new(
                         format!("1||θ{su2}||").as_str(),
-                        Some(vec![rep_ele.clone()]),
+                        Some(vec![rep_ele]),
                     )
                     .unwrap_or_else(|_| {
                         panic!("Unable to construct a class symbol from `1||θ{su2}||`.")
@@ -381,11 +381,10 @@ pub trait SymmetryGroupProperties:
                         )
                     };
                     let undashed_sym =
-                        SymmetryClassSymbol::new(format!("1||{}||", main_symbol).as_str(), None)
+                        SymmetryClassSymbol::new(format!("1||{main_symbol}||").as_str(), None)
                             .unwrap_or_else(|_| {
                                 panic!(
-                                    "Unable to construct a coarse class symbol from `1||{}||`",
-                                    main_symbol
+                                    "Unable to construct a coarse class symbol from `1||{main_symbol}||`"
                                 )
                             });
                     undashed_class_symbols
@@ -398,13 +397,12 @@ pub trait SymmetryGroupProperties:
                         .unwrap();
 
                     SymmetryClassSymbol::new(
-                        format!("{mult}||{}|^({dash})|", main_symbol,).as_str(),
+                        format!("{mult}||{main_symbol}|^({dash})|",).as_str(),
                         Some(reps),
                     )
                     .unwrap_or_else(|_| {
                         panic!(
-                            "Unable to construct a class symbol from `{mult}||{}|^({dash})|`",
-                            main_symbol
+                            "Unable to construct a class symbol from `{mult}||{main_symbol}|^({dash})|`"
                         )
                     })
                 }
@@ -535,14 +533,14 @@ impl SymmetryGroupProperties
         su2_operations.extend(su2_1_operations.into_iter());
         sort_operations(&mut su2_operations);
 
-        let group_name = if self.name().contains("+") {
+        let group_name = if self.name().contains('+') {
             format!("({})*", self.name())
         } else {
-            self.name().clone() + "*"
+            self.name() + "*"
         };
         let finite_group_name = self.finite_subgroup_name().map(|name| {
-            if name.contains("+") {
-                format!("({})*", name)
+            if name.contains('+') {
+                format!("({name})*")
             } else {
                 name.clone() + "*"
             }
@@ -571,7 +569,7 @@ impl SymmetryGroupProperties
             .unwrap_or_else(|_| {
                 panic!("Unable to construct a class symbol from `1||σh{su2_0}||`.")
             });
-        let s2_cc = SymmetryClassSymbol::new(format!("1||σh(Σ), σh(QΣ)||").as_str(), None)
+        let s2_cc = SymmetryClassSymbol::new("1||σh(Σ), σh(QΣ)||".to_string().as_str(), None)
             .unwrap_or_else(|_| {
                 panic!("Unable to construct a class symbol from `1||σh(Σ), σh(QΣ)||`.")
             });
@@ -836,14 +834,14 @@ impl SymmetryGroupProperties
         su2_operations.extend(su2_1_operations.into_iter());
         sort_operations(&mut su2_operations);
 
-        let group_name = if self.name().contains("+") {
+        let group_name = if self.name().contains('+') {
             format!("({})*", self.name())
         } else {
-            self.name().clone() + "*"
+            self.name() + "*"
         };
         let finite_group_name = self.finite_subgroup_name().map(|name| {
-            if name.contains("+") {
-                format!("({})*", name)
+            if name.contains('+') {
+                format!("({name})*")
             } else {
                 name.clone() + "*"
             }
@@ -921,10 +919,10 @@ where
                     &c2x
                         .generating_element
                         .raw_axis()
-                        .cross(&c20.generating_element.raw_axis()),
+                        .cross(c20.generating_element.raw_axis()),
                     c2x.generating_element.threshold(),
                 );
-                let x_basis = c2x.generating_element.raw_axis().clone();
+                let x_basis = *c2x.generating_element.raw_axis();
                 log::debug!("Found a class of odd non-coaxial binary rotations or reflections:");
                 for c2 in all_c2s.iter() {
                     log::debug!("  {c2}");

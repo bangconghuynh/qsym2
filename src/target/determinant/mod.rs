@@ -352,13 +352,13 @@ where
                 &value
                     .coefficients
                     .into_iter()
-                    .map(|coeffs| coeffs.map(|x| Complex::from(x)))
+                    .map(|coeffs| coeffs.map(Complex::from))
                     .collect::<Vec<_>>(),
             )
             .occupations(&value.occupations)
             .mo_energies(value.mo_energies.map(|moes| {
                 moes.iter()
-                    .map(|moe| moe.map(|x| Complex::from(x)))
+                    .map(|moe| moe.map(Complex::from))
                     .collect::<Vec<_>>()
             }))
             .bao(value.bao)

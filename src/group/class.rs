@@ -327,7 +327,7 @@ where
                 (
                     ClassSymbol::from_reps(
                         format!("{}||K{i}||", class_sizes[i]).as_str(),
-                        Some(vec![rep_ele.clone()]),
+                        Some(vec![rep_ele]),
                     )
                     .unwrap_or_else(|_| {
                         panic!(
@@ -618,8 +618,7 @@ where
             .expect("No class structure found.")
             .conjugacy_class_transversal
             .get(cc_idx)
-            .map(|&i| self.get_index(i))
-            .flatten()
+            .and_then(|&i| self.get_index(i))
     }
 
     #[must_use]
@@ -807,8 +806,7 @@ where
             .expect("No class structure found.")
             .conjugacy_class_transversal
             .get(cc_idx)
-            .map(|&i| self.get_index(i))
-            .flatten()
+            .and_then(|&i| self.get_index(i))
     }
 
     #[must_use]

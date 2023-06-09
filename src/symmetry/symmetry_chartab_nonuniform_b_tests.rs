@@ -19,7 +19,7 @@ fn test_chartab_symmetric_h2_alt_magnetic_field_bw_d2h_c2v() {
         .atoms
         .iter()
         .enumerate()
-        .map(|(i, atom)| {
+        .flat_map(|(i, atom)| {
             [
                 Atom::new_special(
                     AtomKind::Magnetic(i % 2 == 0),
@@ -35,7 +35,6 @@ fn test_chartab_symmetric_h2_alt_magnetic_field_bw_d2h_c2v() {
                 .expect("Unable to construct a special magnetic atom."),
             ]
         })
-        .flatten()
         .collect();
     mol.magnetic_atoms = Some(magnetic_atoms);
 
@@ -69,7 +68,7 @@ fn test_chartab_symmetric_h8_twisted_alt_magnetic_field_bw_c4_c2() {
         .atoms
         .iter()
         .enumerate()
-        .map(|(i, atom)| {
+        .flat_map(|(i, atom)| {
             [
                 Atom::new_special(
                     AtomKind::Magnetic(i % 2 == 0),
@@ -95,7 +94,6 @@ fn test_chartab_symmetric_h8_twisted_alt_magnetic_field_bw_c4_c2() {
                 .expect("Unable to construct a special magnetic atom."),
             ]
         })
-        .flatten()
         .collect();
     mol.magnetic_atoms = Some(magnetic_atoms);
 
@@ -573,7 +571,7 @@ fn test_chartab_symmetric_h8_alt_x_magnetic_field_bw_c4h_c2h() {
         .atoms
         .iter()
         .enumerate()
-        .map(|(i, atom)| {
+        .flat_map(|(i, atom)| {
             let direction_id = i.div_euclid(2);
             [
                 Atom::new_special(
@@ -598,7 +596,6 @@ fn test_chartab_symmetric_h8_alt_x_magnetic_field_bw_c4h_c2h() {
                 .expect("Unable to construct a special magnetic atom."),
             ]
         })
-        .flatten()
         .collect();
     mol.magnetic_atoms = Some(magnetic_atoms);
 

@@ -524,8 +524,8 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
                             .unwrap_or_else(
                                 || panic!("Unable to find a permutation to map `{lex_cart_order}` to `{cart_order}`.")
                             );
-                        rl.select(Axis(0), &perm.image())
-                            .select(Axis(1), &perm.image())
+                        rl.select(Axis(0), perm.image())
+                            .select(Axis(1), perm.image())
                     } else {
                         rl
                     }

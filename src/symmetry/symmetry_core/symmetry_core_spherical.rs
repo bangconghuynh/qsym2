@@ -153,7 +153,7 @@ impl Symmetry {
                 ElementOrder::Int(2),
                 &Vector3::z(),
                 true,
-                SIG.clone(),
+                SIG,
                 None,
                 presym.recentred_molecule.threshold,
                 false,
@@ -185,7 +185,7 @@ impl Symmetry {
                             ORDER_2,
                             &Vector3::z(),
                             false,
-                            SIG.clone(),
+                            SIG,
                             None,
                             presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
@@ -197,7 +197,7 @@ impl Symmetry {
                             ORDER_2,
                             &Vector3::z(),
                             true,
-                            SIG.clone(),
+                            SIG,
                             None,
                             presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
@@ -272,7 +272,7 @@ impl Symmetry {
                                     ORDER_1,
                                     &axis,
                                     false,
-                                    SIG.clone(),
+                                    SIG,
                                     Some("d".to_owned()),
                                     presym.recentred_molecule.threshold,
                                     axis_tr
@@ -285,7 +285,7 @@ impl Symmetry {
                                 ORDER_1,
                                 &sigmad_generator_normal.0,
                                 true,
-                                SIG.clone(),
+                                SIG,
                                 Some("d".to_owned()),
                                 presym.recentred_molecule.threshold,
                                 sigmad_generator_normal.1
@@ -312,7 +312,7 @@ impl Symmetry {
                             ORDER_2,
                             &Vector3::z(),
                             false,
-                            SIG.clone(),
+                            SIG,
                             None,
                             presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
@@ -324,7 +324,7 @@ impl Symmetry {
                             ORDER_2,
                             &Vector3::z(),
                             true,
-                            SIG.clone(),
+                            SIG,
                             None,
                             presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
@@ -350,7 +350,7 @@ impl Symmetry {
                             ORDER_2,
                             &Vector3::z(),
                             false,
-                            SIG.clone(),
+                            SIG,
                             None,
                             presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
@@ -362,7 +362,7 @@ impl Symmetry {
                             ORDER_2,
                             &Vector3::z(),
                             true,
-                            SIG.clone(),
+                            SIG,
                             None,
                             presym.recentred_molecule.threshold,
                             improper_kind.contains_time_reversal()
@@ -508,7 +508,7 @@ impl Symmetry {
                 .iter()
                 .next()
                 .ok_or_else(|| format_err!("Expected C4 not found."))?;
-            let c4_axis = c4.raw_axis().clone();
+            let c4_axis = *c4.raw_axis();
             self.add_proper(
                 order_4,
                 &c4_axis,
@@ -593,7 +593,7 @@ impl Symmetry {
                             .check_improper(&order_4, c2_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
                                 (
-                                    c2_ele.raw_axis().clone(),
+                                    *c2_ele.raw_axis(),
                                     improper_kind.contains_time_reversal(),
                                 )
                             })
@@ -606,7 +606,7 @@ impl Symmetry {
                     order_4,
                     &s4_axis,
                     false,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.recentred_molecule.threshold,
                     s4_axis_tr,
@@ -631,7 +631,7 @@ impl Symmetry {
                             .check_improper(&ORDER_1, c2_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
                                 (
-                                    c2_ele.raw_axis().clone(),
+                                    *c2_ele.raw_axis(),
                                     improper_kind.contains_time_reversal(),
                                 )
                             })
@@ -644,7 +644,7 @@ impl Symmetry {
                     ORDER_1,
                     &sigmah_normal,
                     false,
-                    SIG.clone(),
+                    SIG,
                     Some("h".to_owned()),
                     presym.recentred_molecule.threshold,
                     sigmah_normal_tr,
@@ -666,7 +666,7 @@ impl Symmetry {
                             .check_improper(&order_6, c3_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
                                 (
-                                    c3_ele.raw_axis().clone(),
+                                    *c3_ele.raw_axis(),
                                     improper_kind.contains_time_reversal(),
                                 )
                             })
@@ -679,7 +679,7 @@ impl Symmetry {
                     order_6,
                     &s6_axis,
                     false,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.recentred_molecule.threshold,
                     s6_axis_tr,
@@ -705,7 +705,7 @@ impl Symmetry {
                             .check_improper(&order_4, c2_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
                                 (
-                                    c2_ele.raw_axis().clone(),
+                                    *c2_ele.raw_axis(),
                                     improper_kind.contains_time_reversal(),
                                 )
                             })
@@ -718,7 +718,7 @@ impl Symmetry {
                     order_4,
                     s4_axis,
                     false,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.recentred_molecule.threshold,
                     *s4_axis_tr,
@@ -742,7 +742,7 @@ impl Symmetry {
                     ORDER_1,
                     &sigmah_axis,
                     false,
-                    SIG.clone(),
+                    SIG,
                     Some("h".to_owned()),
                     presym.recentred_molecule.threshold,
                     sigmah_axis_tr,
@@ -760,14 +760,14 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c2_ele| {
                         if presym
-                            .check_improper(&order_4, &c2_ele.raw_axis(), &SIG, tr)
+                            .check_improper(&order_4, c2_ele.raw_axis(), &SIG, tr)
                             .is_none()
                         {
                             presym
-                                .check_improper(&ORDER_1, &c2_ele.raw_axis(), &SIG, tr)
+                                .check_improper(&ORDER_1, c2_ele.raw_axis(), &SIG, tr)
                                 .map(|improper_kind| {
                                     (
-                                        c2_ele.raw_axis().clone(),
+                                        *c2_ele.raw_axis(),
                                         improper_kind.contains_time_reversal(),
                                     )
                                 })
@@ -783,7 +783,7 @@ impl Symmetry {
                     ORDER_1,
                     &sigmad_normal,
                     false,
-                    SIG.clone(),
+                    SIG,
                     Some("d".to_owned()),
                     presym.recentred_molecule.threshold,
                     sigmad_normal_tr,
@@ -802,10 +802,10 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c3_ele| {
                         presym
-                            .check_improper(&order_6, &c3_ele.raw_axis(), &SIG, tr)
+                            .check_improper(&order_6, c3_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
                                 (
-                                    c3_ele.raw_axis().clone(),
+                                    *c3_ele.raw_axis(),
                                     improper_kind.contains_time_reversal(),
                                 )
                             })
@@ -818,7 +818,7 @@ impl Symmetry {
                     order_6,
                     &s6_axis,
                     false,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.recentred_molecule.threshold,
                     s6_axis_tr,
@@ -842,10 +842,10 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c5_ele| {
                         presym
-                            .check_improper(&order_10, &c5_ele.raw_axis(), &SIG, tr)
+                            .check_improper(&order_10, c5_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
                                 (
-                                    c5_ele.raw_axis().clone(),
+                                    *c5_ele.raw_axis(),
                                     improper_kind.contains_time_reversal(),
                                 )
                             })
@@ -858,7 +858,7 @@ impl Symmetry {
                     order_10,
                     &s10_axis,
                     false,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.recentred_molecule.threshold,
                     s10_axis_tr,
@@ -877,10 +877,10 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c3_ele| {
                         presym
-                            .check_improper(&order_6, &c3_ele.raw_axis(), &SIG, tr)
+                            .check_improper(&order_6, c3_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
                                 (
-                                    c3_ele.raw_axis().clone(),
+                                    *c3_ele.raw_axis(),
                                     improper_kind.contains_time_reversal(),
                                 )
                             })
@@ -893,7 +893,7 @@ impl Symmetry {
                     order_6,
                     &s6_axis,
                     false,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.recentred_molecule.threshold,
                     s6_axis_tr,
@@ -908,10 +908,10 @@ impl Symmetry {
                     .iter()
                     .filter_map(|c2_ele| {
                         presym
-                            .check_improper(&ORDER_1, &c2_ele.raw_axis(), &SIG, tr)
+                            .check_improper(&ORDER_1, c2_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
                                 (
-                                    c2_ele.raw_axis().clone(),
+                                    *c2_ele.raw_axis(),
                                     improper_kind.contains_time_reversal(),
                                 )
                             })
@@ -924,7 +924,7 @@ impl Symmetry {
                     ORDER_1,
                     &sigma_normal,
                     false,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.recentred_molecule.threshold,
                     sigma_normal_tr,

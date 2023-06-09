@@ -806,7 +806,7 @@ impl SymmetryOperation {
                 ROT
             }
         } else {
-            self.generating_element.kind.clone()
+            self.generating_element.kind
         };
         let additional_superscript = if self.is_proper() {
             String::new()
@@ -831,7 +831,7 @@ impl SymmetryOperation {
                 .cloned()
                 .unwrap_or_default()
                 .get_positive_pole(
-                    &self.generating_element.raw_axis(),
+                    self.generating_element.raw_axis(),
                     self.generating_element.threshold,
                 )
         } else {
@@ -1685,8 +1685,7 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
         )
         .unwrap_or_else(|_| {
             panic!(
-                "Unable to convert the denominator of `{:?}` to `i64`.",
-                total_proper_fraction
+                "Unable to convert the denominator of `{total_proper_fraction:?}` to `i64`."
             )
         });
         let numer = i64::try_from(
@@ -1696,8 +1695,7 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
         )
         .unwrap_or_else(|_| {
             panic!(
-                "Unable to convert the numerator of `{:?}` to `i64`.",
-                total_proper_fraction
+                "Unable to convert the numerator of `{total_proper_fraction:?}` to `i64`."
             )
         });
 

@@ -688,7 +688,7 @@ pub fn sort_irreps<R: Clone + Serialize + SpecialSymmetryTransformation>(
         SymmetryClassSymbol::new(&format!("1||σh{su2_0}||"), None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh{su2_0}||`."));
     let class_s2: SymmetryClassSymbol<R> =
-        SymmetryClassSymbol::new(&format!("1||σh(Σ), σh(QΣ)||"), None)
+        SymmetryClassSymbol::new("1||σh(Σ), σh(QΣ)||", None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh(Σ), σh(QΣ)||`."));
     let class_ts: SymmetryClassSymbol<R> =
         SymmetryClassSymbol::new(&format!("1||θ·σh{su2_0}||"), None)
@@ -708,7 +708,7 @@ pub fn sort_irreps<R: Clone + Serialize + SpecialSymmetryTransformation>(
     // Second highest priority: time-reversal
     if class_symbols.contains_key(&class_t) {
         leading_classes.insert(class_t.clone());
-        sign_only_classes.insert(class_t.clone());
+        sign_only_classes.insert(class_t);
     }
 
     // Third highest priority: inversion, or horizontal mirror plane if inversion not available,
@@ -985,7 +985,7 @@ where
     let s_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new(&format!("1||σh{su2_0}||"), None)
         .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh{su2_0}||`."));
     let s2_cc: SymmetryClassSymbol<R> =
-        SymmetryClassSymbol::new(&format!("1||σh(Σ), σh(QΣ)||"), None)
+        SymmetryClassSymbol::new("1||σh(Σ), σh(QΣ)||", None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh(Σ), σh(QΣ)||`."));
     let ts_cc: SymmetryClassSymbol<R> =
         SymmetryClassSymbol::new(&format!("1||θ·σh{su2_0}||"), None)

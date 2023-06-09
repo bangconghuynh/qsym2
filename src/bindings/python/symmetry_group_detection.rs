@@ -46,7 +46,7 @@ pub(super) fn detect_symmetry_group(
         .ok()?;
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(xyz_path.clone()))
+        .xyz(Some(xyz_path))
         .build()
         .ok()?;
     pd_driver.run().ok()?;

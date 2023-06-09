@@ -111,13 +111,13 @@ where
             "Write overlap eigenvalues: {}",
             nice_bool(self.write_overlap_eigenvalues)
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
         writeln!(
             f,
             "Analyse molecular orbital symmetry: {}",
             nice_bool(self.analyse_mo_symmetries)
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
         writeln!(
             f,
             "Use magnetic group for analysis: {}",
@@ -136,7 +136,7 @@ where
             "Symmetry transformation kind: {}",
             self.symmetry_transformation_kind
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
         writeln!(
             f,
             "Write character table: {}",
@@ -204,14 +204,14 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_subtitle(f, "Orbit-based symmetry analysis results")?;
-        writeln!(f, "")?;
+        writeln!(f)?;
         writeln!(
             f,
             "> Group: {} ({})",
             self.group.name(),
             self.group.group_type().to_string().to_lowercase()
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
         writeln!(f, "> Overall determinantal result")?;
         writeln!(
             f,
@@ -219,7 +219,7 @@ where
             self.determinant
                 .energy()
                 .map(|e| e.to_string())
-                .unwrap_or_else(|err| format!("-- ({})", err))
+                .unwrap_or_else(|err| format!("-- ({err})"))
         )?;
         writeln!(
             f,
@@ -227,9 +227,9 @@ where
             self.determinant_symmetry
                 .as_ref()
                 .map(|s| s.to_string())
-                .unwrap_or_else(|err| format!("-- ({})", err))
+                .unwrap_or_else(|err| format!("-- ({err})"))
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         if let Some(mo_symmetries) = self.mo_symmetries.as_ref() {
             let mo_symmetry_length = mo_symmetries
@@ -282,8 +282,8 @@ where
             )?;
             writeln!(
                 f,
-                "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {}",
-                "Spin", "MO", "Occ.", "Energy", "Symmetry"
+                "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  Symmetry",
+                "Spin", "MO", "Occ.", "Energy"
             )?;
             writeln!(
                 f,
@@ -295,7 +295,7 @@ where
                     let mo_energy_str = mo_energies_opt
                         .and_then(|mo_energies| mo_energies.get(spini))
                         .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
-                        .map(|mo_energy| format!("{:>+mo_energy_length$.7}", mo_energy))
+                        .map(|mo_energy| format!("{mo_energy:>+mo_energy_length$.7}"))
                         .unwrap_or("--".to_string());
                     let mo_sym_str = mo_sym
                         .as_ref()
@@ -576,7 +576,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                         log_overlap_eigenvalues(
                             &smat_eigvals_sorted,
                             params.linear_independence_threshold,
-                            |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
+                            |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                         );
                         log::info!(target: "output", "");
                     }
@@ -657,7 +657,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                         log_overlap_eigenvalues(
                             &smat_eigvals_sorted,
                             params.linear_independence_threshold,
-                            |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
+                            |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                         );
                         log::info!(target: "output", "");
                     }
@@ -813,7 +813,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                         log_overlap_eigenvalues(
                             &smat_eigvals_sorted,
                             params.linear_independence_threshold,
-                            |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
+                            |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                         );
                         log::info!(target: "output", "");
                     }
@@ -894,7 +894,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                         log_overlap_eigenvalues(
                             &smat_eigvals_sorted,
                             params.linear_independence_threshold,
-                            |eigval, thresh| eigval.abs().partial_cmp(&thresh).unwrap(),
+                            |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                         );
                         log::info!(target: "output", "");
                     }
@@ -957,7 +957,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_title(f, "Slater Determinant Symmetry Analysis")?;
-        writeln!(f, "")?;
+        writeln!(f)?;
         writeln!(f, "{}", self.parameters)?;
         Ok(())
     }
@@ -1086,7 +1086,7 @@ fn log_overlap_eigenvalues<T>(
 {
     let eigvals_str = eigvals
         .iter()
-        .map(|v| format!("{:+.3e}", v))
+        .map(|v| format!("{v:+.3e}"))
         .collect::<Vec<_>>();
     log_subtitle("Orbit overlap eigenvalues");
     log::info!(target: "output", "");

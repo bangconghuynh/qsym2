@@ -185,14 +185,14 @@ fn test_reorientate_c2h2() {
         &[
             Atom::new_ordinary(
                 "C",
-                Point3::new(0.0, 0.0, -3.0f64.sqrt() / 2.0),
+                Point3::new(0.0, 0.0, -(3.0f64.sqrt()) / 2.0),
                 &emap,
                 1e-7,
             ),
             Atom::new_ordinary("C", Point3::new(0.0, 0.0, 3.0f64.sqrt() / 2.0), &emap, 1e-7),
             Atom::new_ordinary(
                 "H",
-                Point3::new(0.0, 0.0, -27.0f64.sqrt() / 2.0),
+                Point3::new(0.0, 0.0, -(27.0f64.sqrt()) / 2.0),
                 &emap,
                 1e-7,
             ),
@@ -284,7 +284,7 @@ fn test_molecule_get_perm_of() {
     );
     let mol3 = Molecule::from_atoms(
         &[
-            atom_0.clone(),
+            atom_0,
             atom_1.clone(),
             atom_4.clone(),
             atom_3.clone(),
@@ -294,11 +294,11 @@ fn test_molecule_get_perm_of() {
     );
     let mol4 = Molecule::from_atoms(
         &[
-            atom_0p.clone(),
-            atom_1.clone(),
-            atom_4.clone(),
-            atom_3.clone(),
-            atom_2.clone(),
+            atom_0p,
+            atom_1,
+            atom_4,
+            atom_3,
+            atom_2,
         ],
         1e-7,
     );
@@ -373,11 +373,11 @@ fn test_molecule_permute() {
     assert_ne!(
         mol3.atoms,
         &[
-            atom_0.clone(),
-            atom_4.clone(),
-            atom_3.clone(),
-            atom_1.clone(),
-            atom_2.clone(),
+            atom_0,
+            atom_4,
+            atom_3,
+            atom_1,
+            atom_2,
         ]
     );
 }
@@ -453,8 +453,8 @@ fn test_molecule_permute_with_special_atoms() {
     assert_eq!(
         mol3.magnetic_atoms.unwrap(),
         &[
-            atom_b2.clone(),
-            atom_b1.clone(),
+            atom_b2,
+            atom_b1,
         ]
     );
     assert_eq!(
@@ -482,18 +482,18 @@ fn test_molecule_permute_with_special_atoms() {
     assert_eq!(
         mol5.atoms,
         &[
-            atom_0.clone(),
-            atom_1.clone(),
-            atom_3.clone(),
-            atom_4.clone(),
-            atom_2.clone(),
+            atom_0,
+            atom_1,
+            atom_3,
+            atom_4,
+            atom_2,
         ]
     );
     assert_eq!(
         mol5.electric_atoms.unwrap(),
         &[
-            atom_e2.clone(),
-            atom_e1.clone(),
+            atom_e2,
+            atom_e1,
         ]
     );
 }

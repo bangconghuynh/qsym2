@@ -25,8 +25,8 @@ fn test_permutation_cycles() {
     let rank = 9u8;
     let perms = (0..rank)
         .permutations(usize::from(rank))
-        .map(|image| Permutation::<u8>::from_image(image));
-    for perm in perms.into_iter() {
+        .map(Permutation::<u8>::from_image);
+    for perm in perms {
         assert_eq!(perm, Permutation::<u8>::from_cycles(&perm.cycles()));
     }
 }
@@ -58,8 +58,8 @@ fn test_permutation_composition() {
     let rank = 8u8;
     let perms = (0..rank)
         .permutations(usize::from(rank))
-        .map(|image| Permutation::<u8>::from_image(image));
-    for perm in perms.into_iter() {
+        .map(Permutation::<u8>::from_image);
+    for perm in perms {
         assert!((&perm * (&perm).inv()).is_identity());
     }
 }

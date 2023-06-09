@@ -500,8 +500,7 @@ impl SymmetryElement {
                         .to_f64()
                         .expect("Unable to obtain the sign of the proper fraction.")
                 })
-                .or_else(|| self.proper_angle.map(|proper_angle| proper_angle.signum()))
-                .and_then(|signum| Some(signum * self.raw_axis))
+                .or_else(|| self.proper_angle.map(|proper_angle| proper_angle.signum())).map(|signum| signum * self.raw_axis)
                 .unwrap_or_else(|| {
                     log::warn!("No rotation signs could be obtained. The positive axis will be used for the signed axis.");
                     self.standard_positive_axis()

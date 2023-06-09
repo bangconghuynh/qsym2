@@ -467,7 +467,7 @@ impl Symmetry {
         let simplified_symbol = element.get_simplified_symbol();
         let full_symbol = element.get_full_symbol();
         let result = if generator {
-            if let Vacant(proper_generators) = self.generators.entry(proper_kind.clone()) {
+            if let Vacant(proper_generators) = self.generators.entry(proper_kind) {
                 proper_generators.insert(HashMap::from([(order, IndexSet::from([element]))]));
                 true
             } else {
@@ -494,7 +494,7 @@ impl Symmetry {
                         .insert(element)
                 }
             }
-        } else if let Vacant(proper_elements) = self.elements.entry(proper_kind.clone()) {
+        } else if let Vacant(proper_elements) = self.elements.entry(proper_kind) {
             proper_elements.insert(HashMap::from([(order, IndexSet::from([element]))]));
             true
         } else {
@@ -615,7 +615,7 @@ impl Symmetry {
         let is_o3_inversion_centre = element.is_o3_inversion_centre(au);
         let improper_kind = if tr { TRSIG } else { SIG };
         let result = if generator {
-            if let Vacant(improper_generators) = self.generators.entry(improper_kind.clone()) {
+            if let Vacant(improper_generators) = self.generators.entry(improper_kind) {
                 improper_generators.insert(HashMap::from([(order, IndexSet::from([element]))]));
                 true
             } else {
@@ -646,7 +646,7 @@ impl Symmetry {
                         .insert(element)
                 }
             }
-        } else if let Vacant(improper_elements) = self.elements.entry(improper_kind.clone()) {
+        } else if let Vacant(improper_elements) = self.elements.entry(improper_kind) {
             improper_elements.insert(HashMap::from([(order, IndexSet::from([element]))]));
             true
         } else {
@@ -1159,8 +1159,8 @@ impl Symmetry {
                             .threshold(proper_generator.threshold())
                             .proper_order(ElementOrder::Int(finite_order))
                             .proper_power(1)
-                            .raw_axis(proper_generator.raw_axis().clone())
-                            .kind(proper_generator.kind().clone())
+                            .raw_axis(*proper_generator.raw_axis())
+                            .kind(*proper_generator.kind())
                             .rotation_group(proper_generator.rotation_group().clone())
                             .additional_superscript(proper_generator.additional_superscript.clone())
                             .additional_subscript(proper_generator.additional_subscript.clone())
@@ -1240,8 +1240,8 @@ impl Symmetry {
                                 .threshold(tr_proper_generator.threshold())
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
-                                .raw_axis(tr_proper_generator.raw_axis().clone())
-                                .kind(tr_proper_generator.kind().clone())
+                                .raw_axis(*tr_proper_generator.raw_axis())
+                                .kind(*tr_proper_generator.kind())
                                 .rotation_group(tr_proper_generator.rotation_group().clone())
                                 .additional_superscript(
                                     tr_proper_generator.additional_superscript.clone(),
@@ -1323,8 +1323,8 @@ impl Symmetry {
                                 .threshold(improper_generator.threshold())
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
-                                .raw_axis(improper_generator.raw_axis().clone())
-                                .kind(improper_generator.kind().clone())
+                                .raw_axis(*improper_generator.raw_axis())
+                                .kind(*improper_generator.kind())
                                 .rotation_group(improper_generator.rotation_group().clone())
                                 .additional_superscript(
                                     improper_generator.additional_superscript.clone(),
@@ -1409,8 +1409,8 @@ impl Symmetry {
                                 .threshold(tr_improper_generator.threshold())
                                 .proper_order(ElementOrder::Int(finite_order))
                                 .proper_power(1)
-                                .raw_axis(tr_improper_generator.raw_axis().clone())
-                                .kind(tr_improper_generator.kind().clone())
+                                .raw_axis(*tr_improper_generator.raw_axis())
+                                .kind(*tr_improper_generator.kind())
                                 .rotation_group(tr_improper_generator.rotation_group().clone())
                                 .additional_superscript(
                                     tr_improper_generator.additional_superscript.clone(),
@@ -1522,7 +1522,7 @@ impl Symmetry {
                             && op_k.generating_element.additional_subscript.is_empty()
                         {
                             if let Some(sigma_symbol) = deduce_sigma_symbol(
-                                &op_k.generating_element.raw_axis(),
+                                op_k.generating_element.raw_axis(),
                                 principal_element,
                                 op_k.generating_element.threshold(),
                                 false,
@@ -1724,7 +1724,7 @@ fn _search_proper_rotations(
                             {
                                 for proper_element in proper_elements {
                                     if let Some(proper_kind) =
-                                        presym.check_proper(order, &proper_element.raw_axis(), tr)
+                                        presym.check_proper(order, proper_element.raw_axis(), tr)
                                     {
                                         sym.add_proper(
                                             *order,

@@ -75,7 +75,7 @@ impl fmt::Display for MoleculeSymmetrisationParams {
             "Target geo threshold: {:.3e}",
             self.target_distance_threshold
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
         writeln!(
             f,
             "Group used for symmetrisation: {}",
@@ -94,7 +94,7 @@ impl fmt::Display for MoleculeSymmetrisationParams {
             self.max_iterations
         )?;
         writeln!(f, "Output level: {}", self.verbose)?;
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         Ok(())
     }
@@ -465,10 +465,10 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
             trial_unisym = Symmetry::new();
             let _unires = trial_unisym.analyse(&trial_presym, false);
-            trial_magsym.as_mut().and_then(|tri_magsym| {
+            trial_magsym.as_mut().map(|tri_magsym| {
                 *tri_magsym = Symmetry::new();
                 let _magres = tri_magsym.analyse(&trial_presym, true);
-                Some(tri_magsym)
+                tri_magsym
             });
 
             unisym_check = trial_unisym.group_name == target_unisym.group_name;

@@ -5,9 +5,9 @@ use log;
 pub(crate) fn write_title(f: &mut fmt::Formatter<'_>, title: &str) -> fmt::Result {
     let length = title.chars().count();
     let bar = "─".repeat(length);
-    writeln!(f, "┌──{}──┐", bar)?;
-    writeln!(f, "│§ {} §│", title)?;
-    writeln!(f, "└──{}──┘", bar)?;
+    writeln!(f, "┌──{bar}──┐")?;
+    writeln!(f, "│§ {title} §│")?;
+    writeln!(f, "└──{bar}──┘")?;
     Ok(())
 }
 
@@ -22,8 +22,8 @@ pub(crate) fn log_title(title: &str) {
 pub(crate) fn write_subtitle(f: &mut fmt::Formatter<'_>, subtitle: &str) -> fmt::Result {
     let length = subtitle.chars().count();
     let bar = "═".repeat(length);
-    writeln!(f, "{}", subtitle)?;
-    writeln!(f, "{}", bar)?;
+    writeln!(f, "{subtitle}")?;
+    writeln!(f, "{bar}")?;
     Ok(())
 }
 

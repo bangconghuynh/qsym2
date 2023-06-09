@@ -188,7 +188,7 @@ where
                 let ele = self
                     .get_cc_transversal(i)
                     .unwrap_or_else(|| panic!("No representative of class index `{i}` found."));
-                let elep2 = ele.clone().pow(2);
+                let elep2 = ele.pow(2);
                 let elep2_i = self
                     .get_index_of(&elep2)
                     .unwrap_or_else(|| panic!("Element {elep2:?} not found."));
@@ -521,7 +521,7 @@ where
         let default_principal_classes = vec![self
             .get_cc_symbol_of_index(0)
             .expect("No conjugacy class symbols found.")
-            .clone()];
+            ];
 
         log::debug!("Computing the Frobenius--Schur indicators in GF({p})...");
         let group_order = class_sizes.iter().sum::<usize>();
@@ -595,7 +595,7 @@ where
                             );
                         panic!("Class symbol for conjugacy class `{i}` with representative element `{rep:?}` cannot be found.")
                     })
-                    .clone()
+                    
             })
             .collect::<Vec<_>>();
         self.set_irrep_character_table(RepCharacterTable::new(
@@ -873,7 +873,7 @@ where
                 let mag_cc_rep = mag_cc.representative().unwrap_or_else(|| {
                     panic!("No representative element found for magnetic conjugacy class {mag_cc}.");
                 });
-                let mag_cc_uni_idx = self.unitary_subgroup().get_index_of(&mag_cc_rep).unwrap_or_else(|| {
+                let mag_cc_uni_idx = self.unitary_subgroup().get_index_of(mag_cc_rep).unwrap_or_else(|| {
                     panic!("Index for element {mag_cc_rep:?} not found in the unitary subgroup.");
                 });
                 let uni_cc = uni.get_cc_symbol_of_index(

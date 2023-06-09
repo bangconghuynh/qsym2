@@ -236,13 +236,13 @@ impl<T: PermutationRank> Permutation<T> {
 
     /// The rank of the permutation.
     pub fn rank(&self) -> T {
-        let rank = T::try_from(self.image.len()).unwrap_or_else(|_| {
+        
+        T::try_from(self.image.len()).unwrap_or_else(|_| {
             panic!(
                 "The rank of `{:?}` is too large to be represented as `u8`.",
                 self.image
             )
-        });
-        rank
+        })
     }
 
     /// If the permutation is to act on an ordered sequence of integers, $`0, 1, \ldots`$, then

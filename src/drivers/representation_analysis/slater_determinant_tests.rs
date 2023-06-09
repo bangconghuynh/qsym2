@@ -36,7 +36,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&pd_params)
-        .xyz(Some(path.clone()))
+        .xyz(Some(path))
         .build()
         .unwrap();
     assert!(pd_driver.run().is_ok());
@@ -46,13 +46,13 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     let bsc_d = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
     let bsp_s = BasisShell::new(0, ShellOrder::Pure(true));
 
-    let batm_v = BasisAtom::new(&mol_vf6.atoms[0], &[bsc_d.clone()]);
+    let batm_v = BasisAtom::new(&mol_vf6.atoms[0], &[bsc_d]);
     let batm_f0 = BasisAtom::new(&mol_vf6.atoms[1], &[bsp_s.clone()]);
     let batm_f1 = BasisAtom::new(&mol_vf6.atoms[2], &[bsp_s.clone()]);
     let batm_f2 = BasisAtom::new(&mol_vf6.atoms[3], &[bsp_s.clone()]);
     let batm_f3 = BasisAtom::new(&mol_vf6.atoms[4], &[bsp_s.clone()]);
     let batm_f4 = BasisAtom::new(&mol_vf6.atoms[5], &[bsp_s.clone()]);
-    let batm_f5 = BasisAtom::new(&mol_vf6.atoms[6], &[bsp_s.clone()]);
+    let batm_f5 = BasisAtom::new(&mol_vf6.atoms[6], &[bsp_s]);
 
     let bao_vf6 =
         BasisAngularOrder::new(&[batm_v, batm_f0, batm_f1, batm_f2, batm_f3, batm_f4, batm_f5]);
@@ -72,7 +72,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
         [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
     ]
-    .mapv(|x| C128::from(x));
+    .mapv(C128::from);
 
     // =====================================
     // αdxy αdyy αdzz αdx2-y2 βdxz βdxx βdyz
@@ -113,7 +113,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .coefficients(&[calpha, cbeta])
         .occupations(&[oalpha, obeta])
         .bao(&bao_vf6)
-        .mol(&mol_vf6)
+        .mol(mol_vf6)
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
         .complex_symmetric(false)
         .threshold(1e-14)
@@ -142,7 +142,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
             .parameters(&sda_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
-            .symmetry_group(&pd_res)
+            .symmetry_group(pd_res)
             .build()
             .unwrap();
     assert!(sda_driver.run().is_ok());
@@ -176,7 +176,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
             .parameters(&sda_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
-            .symmetry_group(&pd_res)
+            .symmetry_group(pd_res)
             .build()
             .unwrap();
     assert!(sda_driver.run().is_ok());
@@ -211,7 +211,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
             .parameters(&sda_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
-            .symmetry_group(&pd_res)
+            .symmetry_group(pd_res)
             .build()
             .unwrap();
     assert!(sda_driver.run().is_ok());
@@ -237,7 +237,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
             .parameters(&sda_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
-            .symmetry_group(&pd_res)
+            .symmetry_group(pd_res)
             .build()
             .unwrap();
     assert!(sda_driver.run().is_ok());
@@ -263,7 +263,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
             .parameters(&sda_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
-            .symmetry_group(&pd_res)
+            .symmetry_group(pd_res)
             .build()
             .unwrap();
     assert!(sda_driver.run().is_ok());
@@ -297,7 +297,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
             .parameters(&sda_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
-            .symmetry_group(&pd_res)
+            .symmetry_group(pd_res)
             .build()
             .unwrap();
     assert!(sda_driver.run().is_ok());

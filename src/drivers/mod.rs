@@ -36,7 +36,7 @@ pub trait QSym2Output: fmt::Debug + fmt::Display {
 
     /// Logs debug output nicely.
     fn log_output_debug(&self) {
-        let lines = format!("{:?}", self);
+        let lines = format!("{self:?}");
         lines.lines().for_each(|line| {
             log::info!(target: "output", "{line}");
         })

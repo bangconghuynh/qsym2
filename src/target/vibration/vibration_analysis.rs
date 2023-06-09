@@ -147,7 +147,7 @@ where
             .smat
             .as_ref()
             .expect("No overlap matrix found for this orbit.");
-        assert_close_l2!(&smat, &smat.t(), thresh);
+        assert_close_l2!(smat, &smat.t(), thresh);
         let (s_eig, umat) = smat.eigh(UPLO::Lower).unwrap();
         let nonzero_s_indices = s_eig.iter().positions(|x| x.abs() > thresh).collect_vec();
         let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
@@ -242,19 +242,19 @@ where
             self.origin,
             match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => |op, orb| {
-                    orb.sym_transform_spatial(&op).unwrap_or_else(|err| {
+                    orb.sym_transform_spatial(op).unwrap_or_else(|err| {
                         log::error!("{err}");
                         panic!("Unable to apply `{op}` spatially on the origin orbital.")
                     })
                 },
                 SymmetryTransformationKind::Spin => |op, orb| {
-                    orb.sym_transform_spin(&op).unwrap_or_else(|err| {
+                    orb.sym_transform_spin(op).unwrap_or_else(|err| {
                         log::error!("{err}");
                         panic!("Unable to apply `{op}` spin-wise on the origin orbital.")
                     })
                 },
                 SymmetryTransformationKind::SpinSpatial => |op, orb| {
-                    orb.sym_transform_spin_spatial(&op).unwrap_or_else(|err| {
+                    orb.sym_transform_spin_spatial(op).unwrap_or_else(|err| {
                         log::error!("{err}");
                         panic!("Unable to apply `{op}` spin-spatially on the origin orbital.",)
                     })

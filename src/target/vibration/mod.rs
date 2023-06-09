@@ -89,7 +89,7 @@ where
 {
     fn from(value: VibrationalCoordinate<'a, T>) -> Self {
         VibrationalCoordinate::<'a, Complex<T>>::builder()
-            .coefficients(value.coefficients.map(|x| Complex::from(x)))
+            .coefficients(value.coefficients.map(Complex::from))
             .mol(value.mol)
             .threshold(value.threshold)
             .build()

@@ -617,7 +617,7 @@ where
             DecomposedSymbol::<RowSymbol>::from_subspaces(
                 &syms
                     .into_iter()
-                    .filter_map(|irrep| irrep)
+                    .flatten()
                     .collect::<Vec<_>>(),
             )
         })
@@ -1110,7 +1110,7 @@ where
             DecomposedSymbol::<RowSymbol>::from_subspaces(
                 &syms
                     .into_iter()
-                    .filter_map(|ircorep| ircorep)
+                    .flatten()
                     .collect::<Vec<_>>(),
             )
         })

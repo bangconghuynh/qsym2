@@ -200,7 +200,7 @@ where
             .smat
             .as_ref()
             .expect("No overlap matrix found for this orbit.");
-        assert_close_l2!(&smat, &smat.t(), thresh);
+        assert_close_l2!(smat, &smat.t(), thresh);
         let (s_eig, umat) = smat.eigh(UPLO::Lower).unwrap();
         let nonzero_s_indices = s_eig.iter().positions(|x| x.abs() > thresh).collect_vec();
         let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
@@ -423,7 +423,7 @@ where
                             GroupType::Ordinary(_) => (true, String::new()),
                             GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
                                 (!self.group().unitary_represented(),
-                                format!("Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems."))
+                                "Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems.".to_string())
                             }
                         }
                     }
@@ -442,8 +442,7 @@ where
             }
         } else {
             Err(DecompositionError(format!(
-                "Symmetry analysis for determinant with non-integer number of electrons `{:.7}` not supported.",
-                nelectrons_float
+                "Symmetry analysis for determinant with non-integer number of electrons `{nelectrons_float:.7}` not supported."
             )))
         }
     }

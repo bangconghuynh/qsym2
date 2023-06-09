@@ -177,7 +177,7 @@ where
 
     /// Returns a shared reference to the [`BasisAngularOrder`].
     pub fn bao(&self) -> &BasisAngularOrder {
-        &self.bao
+        self.bao
     }
 }
 
@@ -195,7 +195,7 @@ where
 {
     fn from(value: MolecularOrbital<'a, T>) -> Self {
         MolecularOrbital::<'a, Complex<T>>::builder()
-            .coefficients(value.coefficients.map(|x| Complex::from(x)))
+            .coefficients(value.coefficients.map(Complex::from))
             .bao(value.bao)
             .mol(value.mol)
             .spin_constraint(value.spin_constraint)
