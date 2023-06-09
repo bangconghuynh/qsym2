@@ -198,7 +198,7 @@ impl fmt::Display for Atom {
             .abs()
             .round()
             .to_usize()
-            .ok_or_else(|| fmt::Error)?
+            .ok_or(fmt::Error)?
             + 1;
         let length = (precision + precision.div_euclid(2)).max(6);
         if let AtomKind::Ordinary = self.kind {

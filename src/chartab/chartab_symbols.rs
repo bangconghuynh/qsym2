@@ -129,20 +129,17 @@ where
 {
     /// The main part of the symbol.
     fn main(&self) -> String {
-        format!(
-            "{}",
-            self.subspaces()
-                .iter()
-                .map(|(irrep, &mult)| format!(
-                    "{}{irrep}",
-                    if mult != 1 {
-                        mult.to_string()
-                    } else {
-                        String::new()
-                    }
-                ))
-                .join(" ⊕ ")
-        )
+        self.subspaces()
+            .iter()
+            .map(|(irrep, &mult)| format!(
+                "{}{irrep}",
+                if mult != 1 {
+                    mult.to_string()
+                } else {
+                    String::new()
+                }
+            ))
+            .join(" ⊕ ")
     }
 
     /// The pre-superscript part of the symbol, which is always empty.

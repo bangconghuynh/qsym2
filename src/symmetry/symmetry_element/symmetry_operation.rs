@@ -290,12 +290,10 @@ impl SymmetryOperation {
             } else {
                 ROT
             }
+        } else if tr {
+            TRINV
         } else {
-            if tr {
-                TRINV
-            } else {
-                INV
-            }
+            INV
         };
         let element = if su2 {
             // SU(2)
@@ -909,28 +907,26 @@ impl SymmetryOperation {
                 .select(Axis(0), &[1, 2, 0])
                 .select(Axis(1), &[1, 2, 0])
             }
+        } else if self.is_spatial_inversion() {
+            -Array2::<f64>::eye(3)
         } else {
-            if self.is_spatial_inversion() {
-                -Array2::<f64>::eye(3)
-            } else {
-                // Pole and pole angle are obtained in the inversion-centre convention.
-                let angle = self.calc_pole_angle();
-                let axis = self.calc_pole().coords;
-                let mat = improper_rotation_matrix(angle, &axis, 1, &IMINV);
+            // Pole and pole angle are obtained in the inversion-centre convention.
+            let angle = self.calc_pole_angle();
+            let axis = self.calc_pole().coords;
+            let mat = improper_rotation_matrix(angle, &axis, 1, &IMINV);
 
-                // nalgebra matrix iter is column-major.
-                Array2::<f64>::from_shape_vec(
-                    (3, 3).f(),
-                    mat.iter().copied().collect::<Vec<_>>(),
+            // nalgebra matrix iter is column-major.
+            Array2::<f64>::from_shape_vec(
+                (3, 3).f(),
+                mat.iter().copied().collect::<Vec<_>>(),
+            )
+            .unwrap_or_else(
+                |_| panic!(
+                    "Unable to construct a three-dimensional improper rotation matrix for angle {angle} and axis {axis}."
                 )
-                .unwrap_or_else(
-                    |_| panic!(
-                        "Unable to construct a three-dimensional improper rotation matrix for angle {angle} and axis {axis}."
-                    )
-                )
-                .select(Axis(0), &[1, 2, 0])
-                .select(Axis(1), &[1, 2, 0])
-            }
+            )
+            .select(Axis(0), &[1, 2, 0])
+            .select(Axis(1), &[1, 2, 0])
         }
     }
 
@@ -1673,12 +1669,10 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             || op.generating_element.kind == TRSIG
         {
             op.clone()
+        } else if op.is_antiunitary() {
+            op.convert_to_improper_kind(&TRSIG)
         } else {
-            if op.is_antiunitary() {
-                op.convert_to_improper_kind(&TRSIG)
-            } else {
-                op.convert_to_improper_kind(&SIG)
-            }
+            op.convert_to_improper_kind(&SIG)
         };
 
         let total_proper_fraction = c_op

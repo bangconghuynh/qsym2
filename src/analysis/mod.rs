@@ -213,7 +213,7 @@ where
         for pair in self.iter().enumerate().combinations_with_replacement(2) {
             let (w, item_w) = &pair[0];
             let (x, item_x) = &pair[1];
-            smat[(*w, *x)] = item_w.overlap(&item_x, metric).map_err(|err| {
+            smat[(*w, *x)] = item_w.overlap(item_x, metric).map_err(|err| {
                 log::error!("{err}");
                 log::error!(
                     "Unable to calculate the overlap between items `{w}` and `{x}` in the orbit."
@@ -221,7 +221,7 @@ where
                 err
             })?;
             if *w != *x {
-                smat[(*x, *w)] = item_x.overlap(&item_w, metric).map_err(|err| {
+                smat[(*x, *w)] = item_x.overlap(item_w, metric).map_err(|err| {
                         log::error!("{err}");
                         log::error!(
                             "Unable to calculate the overlap between items `{x}` and `{w}` in the orbit."

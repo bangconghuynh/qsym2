@@ -910,7 +910,7 @@ impl PermutableCollection for Molecule {
                     .copied()
             })
             .collect();
-        image_opt.map(|image| Permutation::from_image(image))
+        image_opt.map(Permutation::from_image)
     }
 
     /// Permutes *all* atoms in this molecule (including special fictitious atoms) and places them

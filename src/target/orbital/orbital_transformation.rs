@@ -222,14 +222,12 @@ impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
                                 assert_eq!(self.spin_index, 1);
                                 self.spin_index = 0;
                             }
+                        } else if self.spin_index == 0 {
+                            self.spin_index = 1;
                         } else {
-                            if self.spin_index == 0 {
-                                self.spin_index = 1;
-                            } else {
-                                assert_eq!(self.spin_index, 1);
-                                self.spin_index = 0;
-                                self.coefficients *= -1.0;
-                            }
+                            assert_eq!(self.spin_index, 1);
+                            self.spin_index = 0;
+                            self.coefficients *= -1.0;
                         }
                         Ok(self)
                     } else if approx::relative_eq!(
@@ -247,14 +245,12 @@ impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
                                 self.spin_index = 0;
                                 self.coefficients *= -1.0;
                             }
+                        } else if self.spin_index == 0 {
+                            self.spin_index = 1;
+                            self.coefficients *= -1.0;
                         } else {
-                            if self.spin_index == 0 {
-                                self.spin_index = 1;
-                                self.coefficients *= -1.0;
-                            } else {
-                                assert_eq!(self.spin_index, 1);
-                                self.spin_index = 0;
-                            }
+                            assert_eq!(self.spin_index, 1);
+                            self.spin_index = 0;
                         }
                         Ok(self)
                     } else {
@@ -402,14 +398,12 @@ where
                             assert_eq!(self.spin_index, 1);
                             self.spin_index = 0;
                         }
+                    } else if self.spin_index == 0 {
+                        self.spin_index = 1;
                     } else {
-                        if self.spin_index == 0 {
-                            self.spin_index = 1;
-                        } else {
-                            assert_eq!(self.spin_index, 1);
-                            self.spin_index = 0;
-                            self.coefficients.map_inplace(|x| *x = -*x);
-                        }
+                        assert_eq!(self.spin_index, 1);
+                        self.spin_index = 0;
+                        self.coefficients.map_inplace(|x| *x = -*x);
                     }
                     Ok(self)
                 } else if approx::relative_eq!(
@@ -427,14 +421,12 @@ where
                             self.spin_index = 0;
                             self.coefficients.map_inplace(|x| *x = -*x);
                         }
+                    } else if self.spin_index == 0 {
+                        self.spin_index = 1;
+                        self.coefficients.map_inplace(|x| *x = -*x);
                     } else {
-                        if self.spin_index == 0 {
-                            self.spin_index = 1;
-                            self.coefficients.map_inplace(|x| *x = -*x);
-                        } else {
-                            assert_eq!(self.spin_index, 1);
-                            self.spin_index = 0;
-                        }
+                        assert_eq!(self.spin_index, 1);
+                        self.spin_index = 0;
                     }
                     Ok(self)
                 } else {

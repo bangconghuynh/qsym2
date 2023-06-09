@@ -582,7 +582,7 @@ where
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
             format!("{} > {finite_name}", self.name())
         } else {
-            self.name().to_string()
+            self.name()
         };
         let ccsyms = (0..self.class_number())
             .map(|i| {
@@ -708,7 +708,7 @@ where
                             panic!("Conjugacy class for `{a2:?}` not found in the unitary subgroup.")
                         })
                     ];
-                    acc + unitary_chartab.get_character(&irrep, &a2_uni_class)
+                    acc + unitary_chartab.get_character(&irrep, a2_uni_class)
                 })
                 .simplify();
             log::debug!("  Dimmock--Wheeler indicator for {irrep}: {char_sum}");
@@ -802,7 +802,7 @@ where
                                 panic!("Unable to retrieve the class for `{a0invua0:?}` in the unitary subgroup.")
                             })
                         ];
-                        unitary_chartab.get_character(&irrep, &a0invua0_unitary_class).complex_conjugate()
+                        unitary_chartab.get_character(&irrep, a0invua0_unitary_class).complex_conjugate()
                 }).collect();
                 let all_irreps = unitary_chartab.get_all_rows();
                 let (_, conj_irrep) = all_irreps
@@ -841,7 +841,7 @@ where
                 });
                 let mag_cc_uni_idx = self
                     .unitary_subgroup()
-                    .get_index_of(&mag_cc_rep)
+                    .get_index_of(mag_cc_rep)
                     .unwrap_or_else(|| {
                         panic!(
                             "Index for element {mag_cc_rep:?} not found in the unitary subgroup."
@@ -857,7 +857,7 @@ where
                     .subspaces()
                     .iter()
                     .fold(Character::zero(), |acc, (irrep, _)| {
-                        acc + unitary_chartab.get_character(irrep, &uni_cc)
+                        acc + unitary_chartab.get_character(irrep, uni_cc)
                     });
                 if *intertwining_number == 4 {
                     // Irreducible corepresentation type b
@@ -895,7 +895,7 @@ where
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
             format!("{} > {finite_name}", self.name())
         } else {
-            self.name().to_string()
+            self.name()
         };
         self.set_ircorep_character_table(Self::CharTab::new(
             chartab_name.as_str(),

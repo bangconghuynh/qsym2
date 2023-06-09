@@ -193,7 +193,7 @@ impl PermutableCollection for CartOrder {
                     .copied()
             })
             .collect();
-        image_opt.map(|image| Permutation::from_image(image))
+        image_opt.map(Permutation::from_image)
     }
 
     fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
@@ -483,7 +483,7 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
             .iter()
             .map(|s_basis_atom| o_basis_atoms.get(s_basis_atom).copied())
             .collect();
-        image_opt.map(|image| Permutation::from_image(image))
+        image_opt.map(Permutation::from_image)
     }
 
     fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
