@@ -298,9 +298,7 @@ where
                                     if subsubspace.len() == 1 {
                                         Some(subsubspace[0].clone())
                                     } else {
-                                        log::error!("Unexpected!");
-                                        panic!("Unexpected");
-                                        // None
+                                        None
                                     }
                                 }));
                                 log::debug!(

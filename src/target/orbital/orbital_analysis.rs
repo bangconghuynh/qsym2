@@ -380,7 +380,6 @@ where
     /// would not give sensible symmetry results for a single-electron orbital. In particular, spin
     /// or spin-spatial symmetry analysis in unitary-represented magnetic groups is not valid for
     /// one-electron orbitals.
-    #[must_use]
     fn analyse_rep(
         &self,
     ) -> Result<

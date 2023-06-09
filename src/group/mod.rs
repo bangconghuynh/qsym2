@@ -224,7 +224,6 @@ where
     /// # Returns
     ///
     /// An abstract group with its Cayley table constructed.
-    #[must_use]
     pub fn new(name: &str, elements: Vec<T>) -> Result<Self, anyhow::Error> {
         let mut group = Self::builder()
             .name(name.to_string())
@@ -264,7 +263,6 @@ where
     /// # Returns
     ///
     /// An abstract group with its Cayley table constructed.
-    #[must_use]
     pub fn from_iter(
         name: &str,
         elements_iter: impl Iterator<Item = T>,
@@ -489,7 +487,6 @@ where
     ///
     /// A unitary-represented group with its Cayley table constructed and conjugacy classes
     /// determined.
-    #[must_use]
     pub fn new(name: &str, elements: Vec<T>) -> Result<Self, anyhow::Error> {
         let abstract_group = EagerGroup::<T>::new(name, elements);
         let mut unitary_group = UnitaryRepresentedGroup::<T, RowSymbol, ColSymbol>::builder()

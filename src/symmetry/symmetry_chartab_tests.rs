@@ -3578,7 +3578,7 @@ fn verify_cinf(mol: &Molecule, thresh: f64) {
         let expected_irreps = if n % 2 == 0 {
             let mut irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
             if n == 4 {
-                irreps.push(MullikenIrrepSymbol::new(&"|_(a)|Γ||".to_string()).unwrap());
+                irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap());
             } else {
                 irreps.extend(
                     (1..(n / 2))
@@ -3587,7 +3587,7 @@ fn verify_cinf(mol: &Molecule, thresh: f64) {
             }
             irreps.push(MullikenIrrepSymbol::new("||B||").unwrap());
             if n == 4 {
-                irreps.push(MullikenIrrepSymbol::new(&"|_(b)|Γ||".to_string()).unwrap());
+                irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap());
             } else {
                 irreps.extend(
                     (1..(n / 2))
@@ -3599,8 +3599,8 @@ fn verify_cinf(mol: &Molecule, thresh: f64) {
         } else {
             let mut irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
             if n == 3 {
-                irreps.push(MullikenIrrepSymbol::new(&"|_(a)|Γ||".to_string()).unwrap());
-                irreps.push(MullikenIrrepSymbol::new(&"|_(b)|Γ||".to_string()).unwrap());
+                irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap());
+                irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap());
             } else {
                 irreps.extend(
                     (1..=n.div_euclid(2))
@@ -4272,7 +4272,7 @@ fn verify_cn(mol: &Molecule, thresh: f64, n: u32) {
     let expected_irreps = if n % 2 == 0 {
         let mut irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
         if n == 4 {
-            irreps.push(MullikenIrrepSymbol::new(&"|_(a)|Γ||".to_string()).unwrap());
+            irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap());
         } else {
             irreps.extend(
                 (1..(n / 2))
@@ -4281,7 +4281,7 @@ fn verify_cn(mol: &Molecule, thresh: f64, n: u32) {
         }
         irreps.push(MullikenIrrepSymbol::new("||B||").unwrap());
         if n == 4 {
-            irreps.push(MullikenIrrepSymbol::new(&"|_(b)|Γ||".to_string()).unwrap());
+            irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap());
         } else {
             irreps.extend(
                 (1..(n / 2))
@@ -4293,8 +4293,8 @@ fn verify_cn(mol: &Molecule, thresh: f64, n: u32) {
     } else {
         let mut irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
         if n == 3 {
-            irreps.push(MullikenIrrepSymbol::new(&"|_(a)|Γ||".to_string()).unwrap());
-            irreps.push(MullikenIrrepSymbol::new(&"|_(b)|Γ||".to_string()).unwrap());
+            irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap());
+            irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap());
         } else {
             irreps.extend(
                 (1..=n.div_euclid(2))

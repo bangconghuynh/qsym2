@@ -265,10 +265,9 @@ impl<'a, T: Display + Debug> Error for ModularEigError<'a, T> {}
 /// # Panics
 ///
 /// Panics when inconsistent ring moduli between matrix elements are encountered.
-#[must_use]
-pub fn modular_eig<'a, T>(
-    mat: &'a Array2<T>,
-) -> Result<HashMap<T, Vec<Array1<T>>>, ModularEigError<'a, T>>
+pub fn modular_eig<T>(
+    mat: &Array2<T>,
+) -> Result<HashMap<T, Vec<Array1<T>>>, ModularEigError<'_, T>>
 where
     T: Clone
         + LinalgScalar

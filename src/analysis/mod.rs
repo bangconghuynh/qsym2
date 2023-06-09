@@ -404,7 +404,6 @@ where
     ///
     /// Errors if the decomposition fails, *e.g.* because one or more calculated multiplicities
     /// are non-integral.
-    #[must_use]
     fn analyse_rep(
         &self,
     ) -> Result<

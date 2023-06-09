@@ -392,7 +392,6 @@ where
     /// oddity of the number of electrons would not give sensible symmetry results. In particular,
     /// spin or spin-spatial symmetry analysis of odd-electron systems in unitary-represented
     /// magnetic groups is not valid.
-    #[must_use]
     fn analyse_rep(
         &self,
     ) -> Result<
