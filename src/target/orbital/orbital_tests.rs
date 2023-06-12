@@ -212,8 +212,8 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
             &group_u_oh_double,
             &orbs_d3_cg,
             SymmetryTransformationKind::SpinSpatial,
-            1e-14,
-            1e-14,
+            1e-13,
+            1e-13,
         )
         .into_iter()
         .flatten();

@@ -6,6 +6,7 @@ use std::ops::Mul;
 
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
+use log;
 use ndarray::{Array2, ArrayView1};
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{ToPrimitive, Zero};
