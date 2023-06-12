@@ -1,9 +1,5 @@
-use std::fs::File;
-use std::io::BufWriter;
-
-use bincode;
 use nalgebra::{Point3, Vector3};
-use pyo3::exceptions::{PyIOError, PyRuntimeError};
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
 use crate::drivers::symmetry_group_detection::{
@@ -49,30 +45,5 @@ pub(super) fn detect_symmetry_group(
     pd_driver
         .run()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    // let pd_res = pd_driver
-    //     .result()
-    //     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-
-    // {
-    //     let mut reader = BufReader::new(File::open("test.sym").unwrap());
-    //     let pd_res_2: SymmetryGroupDetectionResult = bincode::deserialize_from(&mut reader).unwrap();
-    //     println!("{}", pd_res_2.unitary_symmetry.group_name.unwrap());
-    //     println!("{}", pd_res_2.magnetic_symmetry.unwrap().group_name.unwrap());
-    // }
-
-    // let py_pd_res = PySymmetryGroupDetectionResult {
-    //     rotational_symmetry: pd_res.pre_symmetry.rotational_symmetry.to_string(),
-    //     unitary_group_name: pd_res
-    //         .unitary_symmetry
-    //         .group_name
-    //         .as_ref()
-    //         .expect("No unitary symmetry found.")
-    //         .clone(),
-    //     magnetic_group_name: pd_res
-    //         .magnetic_symmetry
-    //         .as_ref()
-    //         .and_then(|magsym| magsym.group_name.as_ref())
-    //         .cloned(),
-    // };
     Ok(())
 }
