@@ -16,7 +16,7 @@ fn test_drivers_symmetry_group_detection_vf6() {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7])
         .moi_thresholds(&[1e-6, 1e-7])
-        .fictitious_magnetic_fields(Some(vec![(Point3::origin(), Vector3::new(1.0, 1.0, 1.0))]))
+        .magnetic_fields(Some(vec![(Point3::origin(), Vector3::new(1.0, 1.0, 1.0))]))
         .time_reversal(true)
         .write_symmetry_elements(true)
         .build()
@@ -45,8 +45,8 @@ fn test_drivers_symmetry_group_detection_vf6() {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7, 1e-8, 1e-9])
         .moi_thresholds(&[1e-6, 1e-7, 1e-8, 1e-9])
-        .fictitious_magnetic_fields(Some(vec![(Point3::origin(), Vector3::x())]))
-        .fictitious_electric_fields(Some(vec![(Point3::origin(), Vector3::y())]))
+        .magnetic_fields(Some(vec![(Point3::origin(), Vector3::x())]))
+        .electric_fields(Some(vec![(Point3::origin(), Vector3::y())]))
         .time_reversal(true)
         .build()
         .unwrap();
@@ -104,7 +104,7 @@ fn test_drivers_symmetry_group_detection_c2h2() {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7])
         .moi_thresholds(&[1e-6, 1e-7])
-        .fictitious_magnetic_fields(Some(vec![(
+        .magnetic_fields(Some(vec![(
             Point3::new(0.5, 0.5, 0.5),
             Vector3::new(1.0, 1.0, 1.0),
         )]))
@@ -135,7 +135,7 @@ fn test_drivers_symmetry_group_detection_c2h2() {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7, 1e-15])
         .moi_thresholds(&[1e-6, 1e-7, 1e-15])
-        .fictitious_electric_fields(Some(vec![(
+        .electric_fields(Some(vec![(
             Point3::new(0.5, 0.5, 0.5),
             Vector3::new(1.0, 1.0, 1.0),
         )]))
@@ -166,7 +166,7 @@ fn test_drivers_symmetry_group_detection_c2h2() {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7, 1e-15])
         .moi_thresholds(&[1e-6, 1e-7, 1e-15])
-        .fictitious_magnetic_fields(Some(vec![(
+        .magnetic_fields(Some(vec![(
             Point3::new(0.5, 0.5, 0.5),
             Vector3::new(-1.0, 1.0, 0.0),
         )]))
@@ -202,7 +202,7 @@ fn test_drivers_symmetry_group_detection_xef4() {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7])
         .moi_thresholds(&[1e-6, 1e-7])
-        .fictitious_magnetic_fields(Some(vec![
+        .magnetic_fields(Some(vec![
             (
                 Point3::new(1.3578799, -1.3578799, 0.0),
                 Vector3::new(0.0, 0.0, 0.1),

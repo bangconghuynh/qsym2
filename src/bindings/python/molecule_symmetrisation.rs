@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{BufReader, BufWriter};
+use std::io::BufReader;
 
 use bincode;
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
@@ -8,16 +8,15 @@ use pyo3::prelude::*;
 use crate::drivers::molecule_symmetrisation::{
     MoleculeSymmetrisationDriver, MoleculeSymmetrisationParams,
 };
-use crate::drivers::symmetry_group_detection::{
-    SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams, SymmetryGroupDetectionResult,
-};
+use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 
 /// A Python-exposed function to perform molecule symmetrisation.
 #[pyfunction]
+#[pyo3(signature = (inp_loose_sym, out_tight_sym, use_magnetic_group, target_moi_threshold, target_distance_threshold, reorientate_molecule, max_iterations, verbose, infinite_order_to_finite=None))]
 pub(super) fn symmetrise_molecule(
     inp_loose_sym: String,
-    out_tight_sym: String,
+    out_tight_sym: Option<String>,
     use_magnetic_group: bool,
     target_moi_threshold: f64,
     target_distance_threshold: f64,
@@ -41,6 +40,7 @@ pub(super) fn symmetrise_molecule(
         .max_iterations(max_iterations)
         .verbose(verbose)
         .infinite_order_to_finite(infinite_order_to_finite)
+        .symmetrised_result_save_name(out_tight_sym)
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
@@ -53,32 +53,32 @@ pub(super) fn symmetrise_molecule(
         .run()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
-    let verifying_pd_params = SymmetryGroupDetectionParams::builder()
-        .moi_thresholds(&[ms_params.target_moi_threshold])
-        .distance_thresholds(&[ms_params.target_distance_threshold])
-        .time_reversal(loose_pd_res.parameters.time_reversal)
-        .write_symmetry_elements(loose_pd_res.parameters.write_symmetry_elements)
-        .build()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    let mut verifying_pd_driver = SymmetryGroupDetectionDriver::builder()
-        .parameters(&verifying_pd_params)
-        .molecule(ms_driver.result().ok().map(|res| &res.symmetrised_molecule))
-        .build()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    verifying_pd_driver
-        .run()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    let verifying_pd_res = verifying_pd_driver
-        .result()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    // let verifying_pd_params = SymmetryGroupDetectionParams::builder()
+    //     .moi_thresholds(&[ms_params.target_moi_threshold])
+    //     .distance_thresholds(&[ms_params.target_distance_threshold])
+    //     .time_reversal(loose_pd_res.parameters.time_reversal)
+    //     .write_symmetry_elements(loose_pd_res.parameters.write_symmetry_elements)
+    //     .build()
+    //     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    // let mut verifying_pd_driver = SymmetryGroupDetectionDriver::builder()
+    //     .parameters(&verifying_pd_params)
+    //     .molecule(ms_driver.result().ok().map(|res| &res.symmetrised_molecule))
+    //     .build()
+    //     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    // verifying_pd_driver
+    //     .run()
+    //     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    // let verifying_pd_res = verifying_pd_driver
+    //     .result()
+    //     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
-    {
-        let mut writer = BufWriter::new(
-            File::create(format!("{out_tight_sym}.qsym2.sym")).map_err(PyIOError::new_err)?,
-        );
-        bincode::serialize_into(&mut writer, &verifying_pd_res)
-            .map_err(|err| PyIOError::new_err(err.to_string()))?;
-    }
+    // {
+    //     let mut writer = BufWriter::new(
+    //         File::create(format!("{out_tight_sym}.qsym2.sym")).map_err(PyIOError::new_err)?,
+    //     );
+    //     bincode::serialize_into(&mut writer, &verifying_pd_res)
+    //         .map_err(|err| PyIOError::new_err(err.to_string()))?;
+    // }
 
     // {
     //     let mut reader = BufReader::new(File::open("test.sym").unwrap());

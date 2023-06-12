@@ -29,7 +29,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     let pd_params = SymmetryGroupDetectionParams::builder()
         .moi_thresholds(&[1e-6])
         .distance_thresholds(&[1e-6])
-        .fictitious_origin_com(true)
+        .field_origin_com(true)
         .time_reversal(true)
         .write_symmetry_elements(true)
         .build()

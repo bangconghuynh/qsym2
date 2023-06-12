@@ -13,30 +13,32 @@ use crate::drivers::QSym2Driver;
 
 /// A Python-exposed function to perform symmetry-group detection.
 #[pyfunction]
+#[pyo3(signature = (inp_xyz, out_sym, moi_thresholds, distance_thresholds, time_reversal, write_symmetry_elements, magnetic_field, electric_field))]
 pub(super) fn detect_symmetry_group(
     inp_xyz: String,
-    out_sym: String,
+    out_sym: Option<String>,
     moi_thresholds: Vec<f64>,
     distance_thresholds: Vec<f64>,
     time_reversal: bool,
     write_symmetry_elements: bool,
-    fictitious_magnetic_field: Option<[f64; 3]>,
-    fictitious_electric_field: Option<[f64; 3]>,
+    magnetic_field: Option<[f64; 3]>,
+    electric_field: Option<[f64; 3]>,
 ) -> PyResult<()> {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&distance_thresholds)
         .moi_thresholds(&moi_thresholds)
         .time_reversal(time_reversal)
-        .fictitious_magnetic_fields(
-            fictitious_magnetic_field
+        .magnetic_fields(
+            magnetic_field
                 .map(|bs| vec![(Point3::<f64>::origin(), Vector3::new(bs[0], bs[1], bs[2]))]),
         )
-        .fictitious_electric_fields(
-            fictitious_electric_field
+        .electric_fields(
+            electric_field
                 .map(|es| vec![(Point3::<f64>::origin(), Vector3::new(es[0], es[1], es[2]))]),
         )
-        .fictitious_origin_com(true)
+        .field_origin_com(true)
         .write_symmetry_elements(write_symmetry_elements)
+        .result_save_name(out_sym)
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
@@ -47,17 +49,9 @@ pub(super) fn detect_symmetry_group(
     pd_driver
         .run()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    let pd_res = pd_driver
-        .result()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-
-    {
-        let mut writer = BufWriter::new(
-            File::create(format!("{out_sym}.qsym2.sym")).map_err(PyIOError::new_err)?
-        );
-        bincode::serialize_into(&mut writer, &pd_res)
-            .map_err(|err| PyIOError::new_err(err.to_string()))?;
-    }
+    // let pd_res = pd_driver
+    //     .result()
+    //     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
     // {
     //     let mut reader = BufReader::new(File::open("test.sym").unwrap());

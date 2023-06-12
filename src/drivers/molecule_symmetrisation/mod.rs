@@ -6,9 +6,11 @@ use nalgebra::Point3;
 use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
 
-use crate::aux::format::{log_subtitle, log_title};
+use crate::aux::format::{log_subtitle, log_title, nice_bool};
 use crate::aux::molecule::Molecule;
-use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
+use crate::drivers::symmetry_group_detection::{
+    SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams, SymmetryGroupDetectionResult,
+};
 use crate::drivers::{QSym2Driver, QSym2Output};
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
@@ -58,6 +60,11 @@ pub struct MoleculeSymmetrisationParams {
     /// The output verbosity level.
     #[builder(default = "0")]
     pub verbose: u8,
+
+    /// Optional name for saving the symmetry-group detection result of the symmetrised system as a
+    /// binary file with extension `.qsym2.sym`. If `None`, the result will not be saved.
+    #[builder(default = "None")]
+    pub symmetrised_result_save_name: Option<String>,
 }
 
 impl MoleculeSymmetrisationParams {
@@ -94,6 +101,15 @@ impl fmt::Display for MoleculeSymmetrisationParams {
             self.max_iterations
         )?;
         writeln!(f, "Output level: {}", self.verbose)?;
+        writeln!(
+            f,
+            "Save symmetry-group detection results of symmetrised system to file: {}",
+            if let Some(name) = self.symmetrised_result_save_name.as_ref() {
+                format!("{name}.qsym2.sym")
+            } else {
+                nice_bool(false)
+            }
+        )?;
         writeln!(f)?;
 
         Ok(())
@@ -514,6 +530,57 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                     .symmetrised_molecule(trial_mol)
                     .build()?,
             );
+
+            // Verify the symmetrisation result
+            log::info!(target: "output", "Verifying symmetrisation results...");
+            log::info!(target: "output", "");
+            let verifying_pd_params = SymmetryGroupDetectionParams::builder()
+                .moi_thresholds(&[params.target_moi_threshold])
+                .distance_thresholds(&[params.target_distance_threshold])
+                .time_reversal(self.target_symmetry_result.parameters.time_reversal)
+                .write_symmetry_elements(
+                    self.target_symmetry_result
+                        .parameters
+                        .write_symmetry_elements,
+                )
+                .result_save_name(params.symmetrised_result_save_name.clone())
+                .build()?;
+            let mut verifying_pd_driver = SymmetryGroupDetectionDriver::builder()
+                .parameters(&verifying_pd_params)
+                .molecule(self.result().ok().map(|res| &res.symmetrised_molecule))
+                .build()?;
+            verifying_pd_driver.run()?;
+            let verifying_pd_res = verifying_pd_driver.result()?;
+            ensure!(
+                verifying_pd_res.unitary_symmetry.group_name
+                    == self.target_symmetry_result.unitary_symmetry.group_name,
+                "Mismatched unitary symmetry: target is {:?}, but symmetrised system has {:?}.",
+                self.target_symmetry_result.unitary_symmetry.group_name,
+                verifying_pd_res.unitary_symmetry.group_name
+            );
+            ensure!(
+                verifying_pd_res
+                    .magnetic_symmetry
+                    .as_ref()
+                    .map(|magsym| magsym.group_name.as_ref())
+                    == self
+                        .target_symmetry_result
+                        .magnetic_symmetry
+                        .as_ref()
+                        .map(|magsym| magsym.group_name.as_ref()),
+                "Mismatched magnetic symmetry: target is {:?}, but symmetrised system has {:?}.",
+                self.target_symmetry_result
+                    .magnetic_symmetry
+                    .as_ref()
+                    .map(|magsym| magsym.group_name.as_ref()),
+                verifying_pd_res
+                    .magnetic_symmetry
+                    .as_ref()
+                    .map(|magsym| magsym.group_name.as_ref())
+            );
+            log::info!(target: "output", "Verifying symmetrisation results... Done.");
+            log::info!(target: "output", "");
+
             Ok(())
         } else {
             log::error!(

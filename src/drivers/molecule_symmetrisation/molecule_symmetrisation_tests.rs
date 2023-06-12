@@ -1,5 +1,3 @@
-
-
 use nalgebra::{Point3, Vector3};
 
 use crate::drivers::molecule_symmetrisation::{
@@ -21,11 +19,11 @@ fn test_drivers_molecule_symmetrisation_vf6_magnetic_field() {
     let pd_params = SymmetryGroupDetectionParams::builder()
         .moi_thresholds(&[1e-2, 1e-3, 1e-4])
         .distance_thresholds(&[1e-2, 1e-3, 1e-4])
-        .fictitious_magnetic_fields(Some(vec![(
+        .magnetic_fields(Some(vec![(
             Point3::new(0.0, 0.0, 0.0),
             Vector3::new(1.0, 1.0, 1.0),
         )]))
-        .fictitious_origin_com(true)
+        .field_origin_com(true)
         .time_reversal(true)
         .write_symmetry_elements(false)
         .build()
@@ -95,8 +93,8 @@ fn test_drivers_molecule_symmetrisation_h4_magnetic_field() {
     let pd_params = SymmetryGroupDetectionParams::builder()
         .moi_thresholds(&[1e-2, 1e-3, 1e-4])
         .distance_thresholds(&[1e-2, 1e-3, 1e-4])
-        .fictitious_magnetic_fields(Some(vec![(Point3::new(0.0, 0.0, 0.0), Vector3::z())]))
-        .fictitious_origin_com(true)
+        .magnetic_fields(Some(vec![(Point3::new(0.0, 0.0, 0.0), Vector3::z())]))
+        .field_origin_com(true)
         .time_reversal(true)
         .write_symmetry_elements(false)
         .build()
@@ -166,8 +164,8 @@ fn test_drivers_molecule_symmetrisation_vf6_electric_field() {
     let pd_params = SymmetryGroupDetectionParams::builder()
         .moi_thresholds(&[1e-2, 5e-3])
         .distance_thresholds(&[1e-2, 5e-3])
-        .fictitious_electric_fields(Some(vec![(Point3::new(0.0, 0.0, 0.0), Vector3::y())]))
-        .fictitious_origin_com(true)
+        .electric_fields(Some(vec![(Point3::new(0.0, 0.0, 0.0), Vector3::y())]))
+        .field_origin_com(true)
         .time_reversal(true)
         .write_symmetry_elements(false)
         .build()
@@ -292,7 +290,7 @@ fn test_drivers_molecule_symmetrisation_c2h2() {
 
 #[test]
 fn test_drivers_molecule_symmetrisation_cp10() {
-    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cp10_flat.xyz");
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[2e-1])
