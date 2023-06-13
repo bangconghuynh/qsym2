@@ -639,7 +639,7 @@ impl Molecule {
 
 impl fmt::Display for Molecule {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Molecule consisting")?;
+        writeln!(f, "Molecule consisting of")?;
         for atom in self.get_all_atoms().iter() {
             writeln!(f, "  {atom}")?;
         }

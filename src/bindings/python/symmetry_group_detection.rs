@@ -2,16 +2,76 @@ use nalgebra::{Point3, Vector3};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
+use crate::aux::atom::{Atom, AtomKind, ElementMap};
+use crate::aux::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
 
+#[pyclass]
+#[derive(Clone)]
+pub struct PyMolecule {
+    atoms: Vec<(String, [f64; 3])>,
+    magnetic_atoms: Option<Vec<(bool, [f64; 3])>>,
+    electric_atoms: Option<Vec<(bool, [f64; 3])>>,
+    threshold: f64,
+}
+
+#[pymethods]
+impl PyMolecule {
+    #[new]
+    fn new(
+        atoms: Vec<(String, [f64; 3])>,
+        threshold: f64,
+        magnetic_atoms: Option<Vec<(bool, [f64; 3])>>,
+        electric_atoms: Option<Vec<(bool, [f64; 3])>>,
+    ) -> Self {
+        Self {
+            atoms,
+            threshold,
+            magnetic_atoms,
+            electric_atoms,
+        }
+    }
+}
+
+impl From<PyMolecule> for Molecule {
+    fn from(pymol: PyMolecule) -> Self {
+        let emap = ElementMap::new();
+        Self::from_atoms(
+            &pymol
+                .atoms
+                .iter()
+                .map(|(ele, r)| {
+                    Atom::new_ordinary(ele, Point3::new(r[0], r[1], r[2]), &emap, pymol.threshold)
+                })
+                .chain(pymol.magnetic_atoms.iter().flatten().flat_map(|(pos, r)| {
+                    Atom::new_special(
+                        AtomKind::Magnetic(*pos),
+                        Point3::new(r[0], r[1], r[2]),
+                        pymol.threshold,
+                    )
+                }))
+                .chain(pymol.electric_atoms.iter().flatten().flat_map(|(pos, r)| {
+                    Atom::new_special(
+                        AtomKind::Electric(*pos),
+                        Point3::new(r[0], r[1], r[2]),
+                        pymol.threshold,
+                    )
+                }))
+                .collect::<Vec<_>>(),
+            pymol.threshold,
+        )
+    }
+}
+
 /// A Python-exposed function to perform symmetry-group detection.
 #[pyfunction]
-#[pyo3(signature = (inp_xyz, out_sym, moi_thresholds, distance_thresholds, time_reversal, write_symmetry_elements, magnetic_field, electric_field))]
+#[pyo3(signature = (inp_xyz, inp_mol, out_sym, moi_thresholds, distance_thresholds, time_reversal, write_symmetry_elements, magnetic_field, electric_field))]
 pub(super) fn detect_symmetry_group(
-    inp_xyz: String,
+    inp_xyz: Option<String>,
+    inp_mol: Option<PyMolecule>,
     out_sym: Option<String>,
     moi_thresholds: Vec<f64>,
     distance_thresholds: Vec<f64>,
@@ -37,9 +97,11 @@ pub(super) fn detect_symmetry_group(
         .result_save_name(out_sym)
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    let inp_mol = inp_mol.map(Molecule::from);
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(inp_xyz))
+        .xyz(inp_xyz)
+        .molecule(inp_mol.as_ref())
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
     pd_driver

@@ -16,7 +16,7 @@ root:
     - stdout
 
 loggers:
-  output:
+  qsym2-output:
     level: info
     appenders:
       - output_ap

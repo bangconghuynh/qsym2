@@ -502,28 +502,28 @@ where
         };
 
         log::info!(
-            target: "output",
+            target: "qsym2-output",
             "Unitary-represented group for representation analysis: {}",
             group.name()
         );
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "");
         if let Some(chartab_display) = params.write_character_table.as_ref() {
             log_subtitle("Character table of irreducible representations");
-            log::info!(target: "output", "");
+            log::info!(target: "qsym2-output", "");
             match chartab_display {
                 CharacterTableDisplay::Symbolic => {
                     group.character_table().log_output_debug();
                     log::info!(
-                        target: "output",
+                        target: "qsym2-output",
                         "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
                         En = exp(2πi/n)"
                     );
                 }
                 CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
             }
-            log::info!(target: "output", "");
+            log::info!(target: "qsym2-output", "");
             log::info!(
-                target: "output",
+                target: "qsym2-output",
                 "Note 1: `FS` contains the classification of the irreps using the Frobenius--Schur indicator:\n  \
                 `r` = real: the irrep and its complex-conjugate partner are real and identical,\n  \
                 `c` = complex: the irrep and its complex-conjugate partner are complex and inequivalent,\n  \
@@ -536,7 +536,7 @@ where
                 However, certain labels might differ from those tabulated elsewhere using other conventions.\n  \
                 If need be, please check with other literature to ensure external consistency."
             );
-            log::info!(target: "output", "");
+            log::info!(target: "qsym2-output", "");
         }
 
         Ok(group)
@@ -578,7 +578,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                             params.linear_independence_threshold,
                             |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                         );
-                        log::info!(target: "output", "");
+                        log::info!(target: "qsym2-output", "");
                     }
                 }
                 det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -659,7 +659,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                             params.linear_independence_threshold,
                             |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                         );
-                        log::info!(target: "output", "");
+                        log::info!(target: "qsym2-output", "");
                     }
                 }
                 det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -737,29 +737,29 @@ where
         };
 
         log::info!(
-            target: "output",
+            target: "qsym2-output",
             "Magnetic-represented group for corepresentation analysis: {}",
             group.name()
         );
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "");
 
         if let Some(chartab_display) = params.write_character_table.as_ref() {
             log_subtitle("Character table of irreducible corepresentations");
-            log::info!(target: "output", "");
+            log::info!(target: "qsym2-output", "");
             match chartab_display {
                 CharacterTableDisplay::Symbolic => {
                     group.character_table().log_output_debug();
                     log::info!(
-                        target: "output",
+                        target: "qsym2-output",
                         "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
                         En = exp(2πi/n)"
                     );
                 }
                 CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
             }
-            log::info!(target: "output", "");
+            log::info!(target: "qsym2-output", "");
             log::info!(
-                target: "output",
+                target: "qsym2-output",
                 "Note 1: The ircorep notation `D[Δ]` means that this ircorep is induced by the representation Δ\n  \
                 of the unitary halving subgroup. The exact nature of Δ determines the kind of D[Δ].\n\n\
                 Note 2: `IN` shows the intertwining numbers of the ircoreps which classify them into three kinds:\n  \
@@ -773,7 +773,7 @@ where
                 Bradley, C. J. & Davies, B. L. Rev. Mod. Phys. 40, 359–379 (1968)\n  \
                 Newmarch, J. D. J. Math. Phys. 24, 742–756 (1983)"
             );
-            log::info!(target: "output", "");
+            log::info!(target: "qsym2-output", "");
         }
 
         Ok(group)
@@ -815,7 +815,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                             params.linear_independence_threshold,
                             |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                         );
-                        log::info!(target: "output", "");
+                        log::info!(target: "qsym2-output", "");
                     }
                 }
                 det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -896,7 +896,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                             params.linear_independence_threshold,
                             |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                         );
-                        log::info!(target: "output", "");
+                        log::info!(target: "qsym2-output", "");
                     }
                 }
                 det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -1089,10 +1089,10 @@ fn log_overlap_eigenvalues<T>(
         .map(|v| format!("{v:+.3e}"))
         .collect::<Vec<_>>();
     log_subtitle("Orbit overlap eigenvalues");
-    log::info!(target: "output", "");
+    log::info!(target: "qsym2-output", "");
 
     log::info!(
-        target: "output", "{}",
+        target: "qsym2-output", "{}",
         "Eigenvalues are sorted in decreasing magnitude order."
     );
     let count_length = usize::try_from(eigvals.len().ilog10() + 2).unwrap_or(2);
@@ -1102,33 +1102,33 @@ fn log_overlap_eigenvalues<T>(
         .max()
         .unwrap_or(20);
     log::info!(
-        target: "output", "{}",
+        target: "qsym2-output", "{}",
         "┈".repeat(count_length + 3 + eigval_length)
     );
     log::info!(
-        target: "output", "{:>count_length$}  Eigenvalue",
+        target: "qsym2-output", "{:>count_length$}  Eigenvalue",
         "#"
     );
     log::info!(
-        target: "output", "{}",
+        target: "qsym2-output", "{}",
         "┈".repeat(count_length + 3 + eigval_length)
     );
     let mut write_thresh = false;
     for (i, eigval) in eigvals_str.iter().enumerate() {
         if thresh_cmp(eigvals[i], &thresh) == Ordering::Less && !write_thresh {
             log::info!(
-                target: "output", "{} <-- linear independence threshold (magnitude-based): {:+.3e}",
+                target: "qsym2-output", "{} <-- linear independence threshold (magnitude-based): {:+.3e}",
                 "-".repeat(count_length + 3 + eigval_length),
                 thresh
             );
             write_thresh = true;
         }
         log::info!(
-            target: "output", "{i:>count_length$}  {eigval}",
+            target: "qsym2-output", "{i:>count_length$}  {eigval}",
         );
     }
     log::info!(
-        target: "output", "{}",
+        target: "qsym2-output", "{}",
         "┈".repeat(count_length + 3 + eigval_length)
     );
 }

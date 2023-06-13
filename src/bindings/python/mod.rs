@@ -22,6 +22,7 @@ fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         representation_analysis::rep_analyse_slater_determinant,
         m
     )?)?;
+    m.add_class::<symmetry_group_detection::PyMolecule>()?;
     m.add_class::<representation_analysis::PyBasisAngularOrder>()?;
     m.add_class::<representation_analysis::PySpinConstraint>()?;
     m.add_class::<representation_analysis::PySlaterDeterminantReal>()?;

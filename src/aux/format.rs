@@ -14,9 +14,9 @@ pub(crate) fn write_title(f: &mut fmt::Formatter<'_>, title: &str) -> fmt::Resul
 pub(crate) fn log_title(title: &str) {
     let length = title.chars().count();
     let bar = "─".repeat(length);
-    log::info!(target: "output", "┌──{}──┐", bar);
-    log::info!(target: "output", "│§ {} §│", title);
-    log::info!(target: "output", "└──{}──┘", bar);
+    log::info!(target: "qsym2-output", "┌──{}──┐", bar);
+    log::info!(target: "qsym2-output", "│§ {} §│", title);
+    log::info!(target: "qsym2-output", "└──{}──┘", bar);
 }
 
 pub(crate) fn write_subtitle(f: &mut fmt::Formatter<'_>, subtitle: &str) -> fmt::Result {
@@ -30,8 +30,8 @@ pub(crate) fn write_subtitle(f: &mut fmt::Formatter<'_>, subtitle: &str) -> fmt:
 pub(crate) fn log_subtitle(subtitle: &str) {
     let length = subtitle.chars().count();
     let bar = "═".repeat(length);
-    log::info!(target: "output", "{}", subtitle);
-    log::info!(target: "output", "{}", bar);
+    log::info!(target: "qsym2-output", "{}", subtitle);
+    log::info!(target: "qsym2-output", "{}", bar);
 }
 
 pub(crate) fn nice_bool(b: bool) -> String {

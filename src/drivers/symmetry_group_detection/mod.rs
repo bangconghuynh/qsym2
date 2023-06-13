@@ -341,7 +341,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
     /// Executes symmetry-group detection.
     fn detect_symmetry_group(&mut self) -> Result<(), anyhow::Error> {
         log_title("Symmetry-Group Detection");
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "");
         let params = self.parameters;
         params.log_output_display();
 
@@ -361,9 +361,9 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             (None, Some(xyz)) => Molecule::from_xyz(xyz, smallest_dist_thresh),
             _ => bail!("Neither or both `molecule` and `xyz` are specified."),
         };
-        log::info!(target: "output", "Molecule for symmetry-group detection:");
+        log::info!(target: "qsym2-output", "Molecule for symmetry-group detection:");
         target_mol.log_output_display();
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "");
 
         let threshs = params
             .moi_thresholds
@@ -372,14 +372,14 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
         let nthreshs = threshs.clone().count();
 
         log_subtitle("Threshold-scanning symmetry-group detection");
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "");
 
         let count_length = usize::try_from(nthreshs.ilog10() + 2).map_err(|_| {
             format_err!("Unable to convert `{}` to `usize`.", nthreshs.ilog10() + 2)
         })?;
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 75));
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 75));
         log::info!(
-            target: "output",
+            target: "qsym2-output",
             "{:>width$} {:>12} {:>12} {:>14} {:>9} {:>12} {:>9}",
             "#",
             "MoI thresh",
@@ -390,7 +390,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             "Elements",
             width = count_length
         );
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 75));
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 75));
         let mut i = 0;
         let syms = threshs.map(|(moi_thresh, dist_thresh)| {
             // Create a new molecule with the current distance threshold for symmetry analysis
@@ -496,7 +496,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             i += 1;
             if uni_ok && mag_ok {
                 log::info!(
-                    target: "output",
+                    target: "qsym2-output",
                     "{:>width$} {:>12.3e} {:>12.3e} {:>14} {:>9} {:>12} {:>9}",
                     i,
                     moi_thresh,
@@ -524,7 +524,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                     );
                 }
                 log::info!(
-                    target: "output",
+                    target: "qsym2-output",
                     "{:>width$} {:>12.3e} {:>12.3e} {:>14} {:>9} {:>12} {:>9}",
                     i,
                     moi_thresh,
@@ -544,9 +544,9 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
         })
         .filter_map(|res_sym| res_sym.ok())
         .collect_vec();
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 75));
-        log::info!(target: "output", "(The number of symmetry elements is not the same as the order of the group.)");
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 75));
+        log::info!(target: "qsym2-output", "(The number of symmetry elements is not the same as the order of the group.)");
+        log::info!(target: "qsym2-output", "");
 
         let (highest_presym, highest_uni_sym, highest_mag_sym_opt) = syms
             .into_iter()
@@ -601,11 +601,11 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             if let Some(name) = params.result_save_name.as_ref() {
                 write_qsym2(name, QSym2FileType::Sym, pd_res)?;
                 log::info!(
-                    target: "output",
+                    target: "qsym2-output",
                     "Symmetry-group detection results saved as {name}{}.",
                     QSym2FileType::Sym.ext()
              );
-                log::info!(target: "output", "");
+                log::info!(target: "qsym2-output", "");
             }
         }
 

@@ -30,7 +30,7 @@ pub trait QSym2Output: fmt::Debug + fmt::Display {
     fn log_output_display(&self) {
         let lines = self.to_string();
         lines.lines().for_each(|line| {
-            log::info!(target: "output", "{line}");
+            log::info!(target: "qsym2-output", "{line}");
         })
     }
 
@@ -38,7 +38,7 @@ pub trait QSym2Output: fmt::Debug + fmt::Display {
     fn log_output_debug(&self) {
         let lines = format!("{self:?}");
         lines.lines().for_each(|line| {
-            log::info!(target: "output", "{line}");
+            log::info!(target: "qsym2-output", "{line}");
         })
     }
 }
