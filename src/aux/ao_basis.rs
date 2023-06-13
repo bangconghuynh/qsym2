@@ -4,10 +4,12 @@ use std::convert::TryInto;
 use std::fmt;
 use std::slice::Iter;
 
+use anyhow::{self, ensure, format_err};
 use counter::Counter;
 use derive_builder::Builder;
 use itertools::Itertools;
 
+use crate::angmom::ANGMOM_LABELS;
 use crate::aux::atom::Atom;
 use crate::aux::misc::ProductRepeat;
 use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
@@ -52,6 +54,15 @@ impl CartOrder {
     /// A builder to construct a new `CartOrder` struct.
     fn builder() -> CartOrderBuilder {
         CartOrderBuilder::default()
+    }
+
+    pub fn new(cart_tuples: &[(u32, u32, u32)]) -> Result<Self, anyhow::Error> {
+        let cart_order = CartOrder::builder()
+            .cart_tuples(cart_tuples)
+            .build()
+            .map_err(|err| format_err!(err))?;
+        ensure!(cart_order.verify(), "Invalid `CartOrder`.");
+        Ok(cart_order)
     }
 
     /// Constructs a new `CartOrder` struct for a specified rank with lexicographic order.
@@ -187,11 +198,7 @@ impl PermutableCollection for CartOrder {
         let image_opt: Option<Vec<Self::Rank>> = self
             .cart_tuples
             .iter()
-            .map(|s_cart_tuple| {
-                o_cart_tuples
-                    .get(s_cart_tuple)
-                    .copied()
-            })
+            .map(|s_cart_tuple| o_cart_tuples.get(s_cart_tuple).copied())
             .collect();
         image_opt.map(Permutation::from_image)
     }
@@ -253,6 +260,30 @@ pub enum ShellOrder {
     /// This variant indicates that the angular functions are Cartesian functions. The associated
     /// value is a [`CartOrder`] struct containing the order of these functions.
     Cart(CartOrder),
+}
+
+impl fmt::Display for ShellOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ShellOrder::Pure(increasingm) => write!(
+                f,
+                "Pure ({})",
+                if *increasingm {
+                    "increasing m"
+                } else {
+                    "decreasing m"
+                }
+            ),
+            ShellOrder::Cart(cart_order) => write!(
+                f,
+                "Cart ({})",
+                cart_order
+                    .iter()
+                    .map(|cart_tuple| { cart_tuple_to_str(cart_tuple, true) })
+                    .join(", ")
+            ),
+        }
+    }
 }
 
 /// A struct representing a shell in an atomic-orbital basis set.
@@ -494,5 +525,39 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
 
     fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
         permute_inplace(&mut self.basis_atoms, perm);
+    }
+}
+
+impl<'a> fmt::Display for BasisAngularOrder<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for batm in self.basis_atoms.iter() {
+            let atm = batm.atom;
+            for (i, bshl) in batm.basis_shells.iter().enumerate() {
+                if i == 0 {
+                    writeln!(
+                        f,
+                        "{:>3} {} {}",
+                        atm.atomic_symbol,
+                        ANGMOM_LABELS
+                            .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
+                            .copied()
+                            .unwrap_or(&bshl.l.to_string()),
+                        bshl.shell_order
+                    )?;
+                } else {
+                    writeln!(
+                        f,
+                        "{:>3} {} {}",
+                        "",
+                        ANGMOM_LABELS
+                            .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
+                            .copied()
+                            .unwrap_or(&bshl.l.to_string()),
+                        bshl.shell_order
+                    )?;
+                }
+            }
+        }
+        Ok(())
     }
 }

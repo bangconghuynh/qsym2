@@ -2,6 +2,7 @@ use pyo3::prelude::*;
 
 mod molecule_symmetrisation;
 mod symmetry_group_detection;
+mod representation_analysis;
 
 /// A Python module for `QSym2` implemented in Rust.
 #[pymodule]
