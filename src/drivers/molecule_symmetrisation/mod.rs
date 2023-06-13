@@ -12,6 +12,7 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams, SymmetryGroupDetectionResult,
 };
 use crate::drivers::{QSym2Driver, QSym2Output};
+use crate::io::QSym2FileType;
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 
@@ -62,7 +63,7 @@ pub struct MoleculeSymmetrisationParams {
     pub verbose: u8,
 
     /// Optional name for saving the symmetry-group detection result of the symmetrised system as a
-    /// binary file with extension `.qsym2.sym`. If `None`, the result will not be saved.
+    /// binary file of type [`QSym2FileType::Sym`]. If `None`, the result will not be saved.
     #[builder(default = "None")]
     pub symmetrised_result_save_name: Option<String>,
 }
@@ -105,7 +106,7 @@ impl fmt::Display for MoleculeSymmetrisationParams {
             f,
             "Save symmetry-group detection results of symmetrised system to file: {}",
             if let Some(name) = self.symmetrised_result_save_name.as_ref() {
-                format!("{name}.qsym2.sym")
+                format!("{name}{}", QSym2FileType::Sym.ext())
             } else {
                 nice_bool(false)
             }

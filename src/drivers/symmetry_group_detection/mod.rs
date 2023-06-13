@@ -14,6 +14,7 @@ use crate::aux::atom::{Atom, AtomKind};
 use crate::aux::format::{log_subtitle, log_title, nice_bool, write_subtitle};
 use crate::aux::molecule::Molecule;
 use crate::drivers::{QSym2Driver, QSym2Output};
+use crate::io::{write_qsym2, QSym2FileType};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::{AntiunitaryKind, SymmetryElementKind};
 
@@ -67,7 +68,7 @@ pub struct SymmetryGroupDetectionParams {
     #[builder(default = "false")]
     pub write_symmetry_elements: bool,
 
-    /// Optional name for saving the result as a binary file with extension `.qsym2.sym`. If
+    /// Optional name for saving the result as a binary file of type [`QSym2FileType::Sym`]. If
     /// `None`, the result will not be saved.
     #[builder(default = "None")]
     pub result_save_name: Option<String>,
@@ -172,7 +173,7 @@ impl fmt::Display for SymmetryGroupDetectionParams {
             f,
             "Save symmetry-group detection results to file: {}",
             if let Some(name) = self.result_save_name.as_ref() {
-                format!("{name}.qsym2.sym")
+                format!("{name}{}", QSym2FileType::Sym.ext())
             } else {
                 nice_bool(false)
             }
@@ -601,9 +602,12 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
         if let Some(pd_res) = self.result.as_ref() {
             pd_res.log_output_display();
             if let Some(name) = params.result_save_name.as_ref() {
-                let mut writer = BufWriter::new(File::create(format!("{name}.qsym2.sym"))?);
-                bincode::serialize_into(&mut writer, pd_res)?;
-                log::info!(target: "output", "Symmetry-group detection results saved as {name}.qsym2.sym.");
+                write_qsym2(name, QSym2FileType::Sym, pd_res)?;
+                log::info!(
+                    target: "output",
+                    "Symmetry-group detection results saved as {name}{}.",
+                    QSym2FileType::Sym.ext()
+             );
                 log::info!(target: "output", "");
             }
         }

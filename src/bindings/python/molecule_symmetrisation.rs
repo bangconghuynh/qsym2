@@ -1,7 +1,3 @@
-use std::fs::File;
-use std::io::BufReader;
-
-use bincode;
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
@@ -10,6 +6,7 @@ use crate::drivers::molecule_symmetrisation::{
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
+use crate::io::{read_qsym2, QSym2FileType};
 
 /// A Python-exposed function to perform molecule symmetrisation.
 #[pyfunction]
@@ -25,12 +22,8 @@ pub(super) fn symmetrise_molecule(
     verbose: u8,
     infinite_order_to_finite: Option<u32>,
 ) -> PyResult<()> {
-    let loose_pd_res: SymmetryGroupDetectionResult = {
-        let mut reader = BufReader::new(
-            File::open(format!("{inp_loose_sym}.qsym2.sym")).map_err(PyIOError::new_err)?,
-        );
-        bincode::deserialize_from(&mut reader).map_err(|err| PyIOError::new_err(err.to_string()))?
-    };
+    let loose_pd_res: SymmetryGroupDetectionResult = read_qsym2(&inp_loose_sym, QSym2FileType::Sym)
+        .map_err(|err| PyIOError::new_err(err.to_string()))?;
 
     let ms_params = MoleculeSymmetrisationParams::builder()
         .use_magnetic_group(use_magnetic_group)
