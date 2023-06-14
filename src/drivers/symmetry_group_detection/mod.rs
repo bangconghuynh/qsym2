@@ -41,21 +41,21 @@ pub struct SymmetryGroupDetectionParams {
     /// Boolean indicating if time reversal is to be taken into account.
     pub time_reversal: bool,
 
-    /// Magnetic fields to be added to the system. Each magnetic field is specified by an origin
-    /// $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which a `magnetic(+)` special atom will be
-    /// added at $`\mathbf{O} + \mathbf{v}`$, and a `magnetic(-)` special atom will be added at
-    /// $`\mathbf{O} - \mathbf{v}`$.
+    /// Fictitious magnetic fields to be added to the system. Each magnetic field is specified by an
+    /// origin $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which a `magnetic(+)` special atom
+    /// will be added at $`\mathbf{O} + \mathbf{v}`$, and a `magnetic(-)` special atom will be
+    /// added at $`\mathbf{O} - \mathbf{v}`$.
     #[builder(default = "None")]
-    pub magnetic_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
+    pub fictitious_magnetic_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
-    /// Electric fields to be added to the system. Each electric field is specified by an origin
-    /// $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which an `electric(+)` special atom will be
-    /// added at $`\mathbf{O} + \mathbf{v}`$.
+    /// Fictitious electric fields to be added to the system. Each electric field is specified by an
+    /// origin $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which an `electric(+)` special atom
+    /// will be added at $`\mathbf{O} + \mathbf{v}`$.
     #[builder(default = "None")]
-    pub electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
+    pub fictitious_electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
-    /// Boolean indicating if the origins specified in [`Self::magnetic_fields`] and
-    /// [`Self::electric_fields`] are to be taken relative to the molecule's centre of
+    /// Boolean indicating if the origins specified in [`Self::fictitious_magnetic_fields`] and
+    /// [`Self::fictitious_electric_fields`] are to be taken relative to the molecule's centre of
     /// mass rather than to the space-fixed origin.
     #[builder(default = "false")]
     pub field_origin_com: bool,
@@ -122,7 +122,7 @@ impl fmt::Display for SymmetryGroupDetectionParams {
             writeln!(f)?;
         }
 
-        if self.magnetic_fields.is_some() || self.electric_fields.is_some() {
+        if self.fictitious_magnetic_fields.is_some() || self.fictitious_electric_fields.is_some() {
             if self.field_origin_com {
                 writeln!(f, "Field origins relative to: molecule's centre of mass")?;
             } else {
@@ -130,9 +130,9 @@ impl fmt::Display for SymmetryGroupDetectionParams {
             }
         }
 
-        if let Some(magnetic_fields) = self.magnetic_fields.as_ref() {
-            writeln!(f, "Magnetic fields:")?;
-            for (origin, field) in magnetic_fields.iter() {
+        if let Some(fictitious_magnetic_fields) = self.fictitious_magnetic_fields.as_ref() {
+            writeln!(f, "Fictitious magnetic fields:")?;
+            for (origin, field) in fictitious_magnetic_fields.iter() {
                 writeln!(
                     f,
                     "  ({}) ± ({})",
@@ -143,9 +143,9 @@ impl fmt::Display for SymmetryGroupDetectionParams {
             writeln!(f)?;
         }
 
-        if let Some(electric_fields) = self.electric_fields.as_ref() {
-            writeln!(f, "Electric fields:")?;
-            for (origin, field) in electric_fields.iter() {
+        if let Some(fictitious_electric_fields) = self.fictitious_electric_fields.as_ref() {
+            writeln!(f, "Fictitious electric fields:")?;
+            for (origin, field) in fictitious_electric_fields.iter() {
                 writeln!(
                     f,
                     "  ({}) + ({})",
@@ -403,7 +403,10 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                     xyz,
                     *dist_thresh
                 ),
-                _ => bail!("Neither or both `molecule` and `xyz` are specified.")
+                _ => {
+                    log::info!(target: "qsym2-output", "Neither or both `molecule` and `xyz` are specified.");
+                    bail!("Neither or both `molecule` and `xyz` are specified.")
+                }
             };
 
             // Add any magnetic fields
@@ -412,11 +415,12 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             } else {
                 Vector3::zeros()
             };
-            if let Some(magnetic_fields) = params.magnetic_fields.as_ref() {
+            if let Some(fictitious_magnetic_fields) = params.fictitious_magnetic_fields.as_ref() {
                 if mol.magnetic_atoms.is_some() {
-                    bail!("Magnetic fields already present. Additional magnetic fields cannot be added.")
+                    log::error!("Magnetic fields already present. Fictitious magnetic fields cannot be added.");
+                    bail!("Magnetic fields already present. Fictitious magnetic fields cannot be added.")
                 } else {
-                    let magnetic_atoms = magnetic_fields.iter().flat_map(|(origin, vec)| {
+                    let magnetic_atoms = fictitious_magnetic_fields.iter().flat_map(|(origin, vec)| {
                         Ok::<[Atom; 2], anyhow::Error>([
                             Atom::new_special(AtomKind::Magnetic(true), origin + global_origin + vec, *dist_thresh).ok_or_else(||
                                 format_err!("Cannot construct a fictitious magnetic atom.")
@@ -431,11 +435,12 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             }
 
             // Add any electric fields
-            if let Some(electric_fields) = params.electric_fields.as_ref() {
+            if let Some(fictitious_electric_fields) = params.fictitious_electric_fields.as_ref() {
                 if mol.electric_atoms.is_some() {
-                    bail!("Electric fields already present. Additional electric fields cannot be added.")
+                    log::error!("Electric fields already present. Fictitious electric fields cannot be added.");
+                    bail!("Electric fields already present. Fictitious electric fields cannot be added.")
                 } else {
-                    let electric_atoms = electric_fields.iter().flat_map(|(origin, vec)| {
+                    let electric_atoms = fictitious_electric_fields.iter().flat_map(|(origin, vec)| {
                         Atom::new_special(AtomKind::Electric(true), origin + global_origin + vec, *dist_thresh).ok_or_else(||
                                 format_err!("Cannot construct a fictitious electric atom.")
                             )
@@ -534,6 +539,11 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                     "--",
                     "--",
                     width = count_length
+                );
+                log::error!(
+                    "Group determination with MoI threshold {:.3e} and distance threshold {:.3e} has failed.",
+                    moi_thresh,
+                    dist_thresh
                 );
                 bail!(
                     "Group determination with MoI threshold {:.3e} and distance threshold {:.3e} has failed.",

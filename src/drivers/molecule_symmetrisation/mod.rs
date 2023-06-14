@@ -305,7 +305,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             symmetrisation_count += 1;
 
             // Re-locate the symmetry elements of the target symmetry group using the trial
-            // molecule since the symmeteisation process might move the symmetry elements slightly.
+            // molecule since the symmetrisation process might move the symmetry elements slightly.
             let high_trial_mol = trial_mol.adjust_threshold(loose_dist_threshold);
             let high_presym = PreSymmetry::builder()
                 .moi_threshold(loose_moi_threshold)
