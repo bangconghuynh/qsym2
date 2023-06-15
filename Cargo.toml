@@ -42,7 +42,6 @@ rand = "0.8.5"
 regex = "1.7.0"
 rayon = "1.5.3"
 serde = { version = "1.0.164", features = ["derive"] }
-serde_json = { version = "1.0.96", features = ["std"] }
 
 [package.metadata.docs.rs]
 rustdoc-args = [

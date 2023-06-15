@@ -10,6 +10,7 @@ use num_complex::{Complex, ComplexFloat};
 
 use crate::analysis::RepAnalysis;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::format::{log_subtitle, nice_bool, write_subtitle, write_title};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -291,6 +292,7 @@ where
                 "┈".repeat(19 + mo_index_length + mo_energy_length + mo_symmetry_length)
             )?;
             for (spini, spin_mo_symmetries) in mo_symmetries.iter().enumerate() {
+                writeln!(f, " Spin {spini}")?;
                 for (moi, mo_sym) in spin_mo_symmetries.iter().enumerate() {
                     let mo_energy_str = mo_energies_opt
                         .and_then(|mo_energies| mo_energies.get(spini))
@@ -563,6 +565,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
+        log_bao(self.determinant.bao());
         let det_symmetry = det_orbit
             .calc_smat(Some(&sao))
             .map_err(|err| err.to_string())
@@ -644,6 +647,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
+        log_bao(self.determinant.bao());
         let det_symmetry = det_orbit
             .calc_smat(Some(&sao))
             .map_err(|err| err.to_string())
@@ -800,6 +804,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
+        log_bao(self.determinant.bao());
         let det_symmetry = det_orbit
             .calc_smat(Some(&sao))
             .map_err(|err| err.to_string())
@@ -881,6 +886,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
             .linear_independence_threshold(params.linear_independence_threshold)
             .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
             .build()?;
+        log_bao(self.determinant.bao());
         let det_symmetry = det_orbit
             .calc_smat(Some(&sao))
             .map_err(|err| err.to_string())
@@ -1131,4 +1137,21 @@ fn log_overlap_eigenvalues<T>(
         target: "qsym2-output", "{}",
         "┈".repeat(count_length + 3 + eigval_length)
     );
+}
+
+/// Logs basis angular order information nicely.
+///
+/// # Arguments
+///
+/// * `bao` - The basis angular order information structure.
+fn log_bao(bao: &BasisAngularOrder) {
+    log_subtitle("Basis angular order");
+    log::info!(target: "qsym2-output", "");
+    log::info!(
+        target: "qsym2-output",
+        "The basis angular order information dictates how basis functions in each basis shell are transformed.\n\
+        It is important to check that this is consistent with the basis set being used, otherwise incorrect\n\
+        symmetry results will be obtained."
+    );
+    log::info!(target: "qsym2-output", "{}", bao);
 }

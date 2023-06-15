@@ -22,7 +22,7 @@ mod ao_basis_tests;
 // Shells
 // ------
 
-/// A struct to contain information about the ordering of Cartesian Gaussians of a certain rank.
+/// A structure to contain information about the ordering of Cartesian Gaussians of a certain rank.
 #[derive(Clone, Builder, PartialEq, Eq, Hash)]
 pub struct CartOrder {
     /// A sequence of $`(l_x, l_y, l_z)`$ tuples giving the ordering of the Cartesian Gaussians.
@@ -47,15 +47,13 @@ impl CartOrderBuilder {
 }
 
 impl CartOrder {
-    /// Returns a builder to construct a new `CartOrder` struct.
-    ///
-    /// # Returns
-    ///
-    /// A builder to construct a new `CartOrder` struct.
+    /// Returns a builder to construct a new `CartOrder` structure.
     fn builder() -> CartOrderBuilder {
         CartOrderBuilder::default()
     }
 
+    /// Constructs a new `CartOrder` structure from its constituting tuple, each of which contains
+    /// the $`x`$, $`y`$, and $`z`$ powers for one Cartesian term.
     pub fn new(cart_tuples: &[(u32, u32, u32)]) -> Result<Self, anyhow::Error> {
         let cart_order = CartOrder::builder()
             .cart_tuples(cart_tuples)
@@ -65,11 +63,11 @@ impl CartOrder {
         Ok(cart_order)
     }
 
-    /// Constructs a new `CartOrder` struct for a specified rank with lexicographic order.
+    /// Constructs a new `CartOrder` structure for a specified rank with lexicographic order.
     ///
     /// # Arguments
     ///
-    /// * lcart - The required Cartesian Gaussian rank.
+    /// * `lcart` - The required Cartesian Gaussian rank.
     ///
     /// # Returns
     ///
@@ -90,11 +88,11 @@ impl CartOrder {
             .expect("Unable to construct a `CartOrder` structure with lexicographic order.")
     }
 
-    /// Constructs a new `CartOrder` struct for a specified rank with Q-Chem order.
+    /// Constructs a new `CartOrder` structure for a specified rank with Q-Chem order.
     ///
     /// # Arguments
     ///
-    /// * lcart - The required Cartesian Gaussian rank.
+    /// * `lcart` - The required Cartesian Gaussian rank.
     ///
     /// # Returns
     ///
@@ -148,10 +146,12 @@ impl CartOrder {
                 .all(|(lx, ly, lz)| lx + ly + lz == lcart)
     }
 
+    /// Iterates over the constituent tuples.
     pub fn iter(&self) -> Iter<(u32, u32, u32)> {
         self.cart_tuples.iter()
     }
 
+    /// Returns the number of Cartesian components in the shell.
     pub fn ncomps(&self) -> usize {
         let lcart = usize::try_from(self.lcart).unwrap_or_else(|_| {
             panic!(
@@ -530,13 +530,21 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
 
 impl<'a> fmt::Display for BasisAngularOrder<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let order_length = self
+            .basis_shells()
+            .map(|v| v.shell_order.to_string().chars().count())
+            .max()
+            .unwrap_or(20);
+        writeln!(f, "{}", "┈".repeat(15 + order_length))?;
+        writeln!(f, " Atom  Shell  Order")?;
+        writeln!(f, "{}", "┈".repeat(15 + order_length))?;
         for batm in self.basis_atoms.iter() {
             let atm = batm.atom;
             for (i, bshl) in batm.basis_shells.iter().enumerate() {
                 if i == 0 {
                     writeln!(
                         f,
-                        "{:>3} {} {}",
+                        " {:<4}  {:<5}  {:<order_length$}",
                         atm.atomic_symbol,
                         ANGMOM_LABELS
                             .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
@@ -547,7 +555,7 @@ impl<'a> fmt::Display for BasisAngularOrder<'a> {
                 } else {
                     writeln!(
                         f,
-                        "{:>3} {} {}",
+                        " {:<4}  {:<5}  {:<order_length$}",
                         "",
                         ANGMOM_LABELS
                             .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
@@ -558,6 +566,7 @@ impl<'a> fmt::Display for BasisAngularOrder<'a> {
                 }
             }
         }
+        writeln!(f, "{}", "┈".repeat(15 + order_length))?;
         Ok(())
     }
 }

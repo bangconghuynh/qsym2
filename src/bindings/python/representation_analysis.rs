@@ -1,4 +1,5 @@
-use anyhow::{self, ensure, format_err};
+use anyhow::{self, bail, ensure, format_err};
+use log;
 use ndarray::{Array1, Array2};
 use num_complex::Complex;
 use numpy::{PyArray1, PyArray2};
@@ -12,9 +13,9 @@ use crate::aux::molecule::Molecule;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
-use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
+use crate::drivers::QSym2Driver;
 use crate::io::{read_qsym2, QSym2FileType};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
@@ -23,6 +24,13 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
 
 type C128 = Complex<f64>;
+
+#[derive(FromPyObject)]
+pub enum PyShellOrder {
+    PureOrder(bool),
+
+    CartOrder(Option<Vec<(u32, u32, u32)>>),
+}
 
 /// A Python-exposed structure to marshal basis angular order information between Python and Rust.
 #[pyclass]
@@ -35,21 +43,13 @@ pub struct PyBasisAngularOrder {
     /// lexicographic order, `Some(vec![[lx, ly, lz], ...])` to specify a custom Cartesian order.
     /// - (this will be ignored if the shell is Cartesian) `Some(increasingm)` to indicate the
     /// order of pure functions in the shell,
-    basis_atoms: Vec<(
-        String,
-        Vec<(String, bool, Option<Vec<(u32, u32, u32)>>, Option<bool>)>,
-    )>,
+    basis_atoms: Vec<(String, Vec<(String, bool, PyShellOrder)>)>,
 }
 
 #[pymethods]
 impl PyBasisAngularOrder {
     #[new]
-    fn new(
-        basis_atoms: Vec<(
-            String,
-            Vec<(String, bool, Option<Vec<(u32, u32, u32)>>, Option<bool>)>,
-        )>,
-    ) -> Self {
+    fn new(basis_atoms: Vec<(String, Vec<(String, bool, PyShellOrder)>)>) -> Self {
         Self { basis_atoms }
     }
 }
@@ -75,19 +75,33 @@ impl PyBasisAngularOrder {
                 );
                 let bss = basis_shells
                     .iter()
-                    .flat_map(|(angmom, cart, cart_ord, increasingm)| {
+                    .flat_map(|(angmom, cart, shell_order)| {
                         let l = ANGMOM_INDICES.get(angmom).unwrap();
                         let shl_ord = if *cart {
-                            let cart_order = if let Some(cart_tuples) = cart_ord {
-                                CartOrder::new(cart_tuples)?
-                            } else {
-                                CartOrder::lex(*l)
+                            let cart_order = match shell_order {
+                                PyShellOrder::CartOrder(cart_tuples_opt) => {
+                                    if let Some(cart_tuples) = cart_tuples_opt {
+                                        CartOrder::new(cart_tuples)?
+                                    } else {
+                                        CartOrder::lex(*l)
+                                    }
+                                },
+                                PyShellOrder::PureOrder(_) => {
+                                    log::error!("Cartesian shell order expected, but specification for pure shell order found.");
+                                    bail!("Cartesian shell order expected, but specification for pure shell order found.")
+                                }
                             };
                             ShellOrder::Cart(cart_order)
                         } else {
-                            ShellOrder::Pure(increasingm.ok_or(format_err!(
-                                "Pure shell specified, but no pure order found."
-                            ))?)
+                            match shell_order {
+                                PyShellOrder::PureOrder(increasingm) => {
+                                    ShellOrder::Pure(*increasingm)
+                                },
+                                PyShellOrder::CartOrder(_) => {
+                                    log::error!("Pure shell order expected, but specification for Cartesian shell order found.");
+                                    bail!("Pure shell order expected, but specification for Cartesian shell order found.")
+                                }
+                            }
                         };
                         Ok::<_, anyhow::Error>(BasisShell::new(*l, shl_ord))
                     })
@@ -281,6 +295,12 @@ pub enum PySlaterDeterminant {
     Complex(PySlaterDeterminantComplex),
 }
 
+#[derive(FromPyObject)]
+pub enum PySAO<'a> {
+    Real(&'a PyArray2<f64>),
+    Complex(&'a PyArray2<C128>),
+}
+
 /// A Python-exposed function to perform representation symmetry analysis for Slater determinants.
 #[pyfunction]
 #[pyo3(signature = (inp_sym, pydet, pybao, pysao_spatial, integrality_threshold, linear_independence_threshold, use_magnetic_group, use_double_group, use_corepresentation, symmetry_transformation_kind, analyse_mo_symmetries=true, write_overlap_eigenvalues=true, write_character_table=true))]
@@ -288,7 +308,7 @@ pub(super) fn rep_analyse_slater_determinant(
     inp_sym: String,
     pydet: PySlaterDeterminant,
     pybao: &PyBasisAngularOrder,
-    pysao_spatial: &PyArray2<f64>,
+    pysao_spatial: PySAO,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
     use_magnetic_group: bool,
@@ -307,7 +327,12 @@ pub(super) fn rep_analyse_slater_determinant(
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
     match pydet {
         PySlaterDeterminant::Real(pydet_r) => {
-            let sao_spatial = pysao_spatial.to_owned_array();
+            let sao_spatial = match pysao_spatial {
+                PySAO::Real(pysao_r) => Ok(pysao_r.to_owned_array()),
+                PySAO::Complex(_) => Err(PyRuntimeError::new_err(
+                    "Real spatial AO overlap matrix expected.",
+                )),
+            }?;
             let det_r = pydet_r
                 .to_qsym2(&bao, mol)
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -337,7 +362,9 @@ pub(super) fn rep_analyse_slater_determinant(
                 .symmetry_group(&pd_res)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                sda_driver.run().map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                sda_driver
+                    .run()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             } else {
                 let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                     UnitaryRepresentedSymmetryGroup,
@@ -349,11 +376,16 @@ pub(super) fn rep_analyse_slater_determinant(
                 .symmetry_group(&pd_res)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                sda_driver.run().map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                sda_driver
+                    .run()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
         }
         PySlaterDeterminant::Complex(pydet_c) => {
-            let sao_spatial_c = pysao_spatial.to_owned_array().mapv(Complex::from);
+            let sao_spatial_c = match pysao_spatial {
+                PySAO::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
+                PySAO::Complex(pysao_c) => pysao_c.to_owned_array(),
+            };
             let det_c = pydet_c
                 .to_qsym2(&bao, mol)
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -383,7 +415,9 @@ pub(super) fn rep_analyse_slater_determinant(
                 .symmetry_group(&pd_res)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                sda_driver.run().map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                sda_driver
+                    .run()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             } else {
                 let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                     UnitaryRepresentedSymmetryGroup,
@@ -395,7 +429,9 @@ pub(super) fn rep_analyse_slater_determinant(
                 .symmetry_group(&pd_res)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                sda_driver.run().map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                sda_driver
+                    .run()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
         }
     }
