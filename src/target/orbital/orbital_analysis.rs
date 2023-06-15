@@ -5,19 +5,21 @@ use std::ops::Mul;
 use anyhow::{self, ensure, format_err};
 use approx;
 use derive_builder::Builder;
-use itertools::Itertools;
+use itertools::{izip, Itertools};
 use ndarray::{Array1, Array2, Axis, Ix2};
 use ndarray_linalg::{
     assert_close_l2,
     eig::Eig,
     eigh::Eigh,
+    solve::Determinant,
     types::{Lapack, Scalar},
     UPLO,
 };
 use num_complex::{Complex, ComplexFloat};
-use num_traits::{Float, Zero};
+use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis};
+use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
@@ -25,6 +27,8 @@ use crate::group::GroupType;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
+use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
+use crate::target::determinant::SlaterDeterminant;
 use crate::target::orbital::MolecularOrbital;
 
 // -------
@@ -417,4 +421,136 @@ where
             Err(DecompositionError(err_str))
         }
     }
+}
+
+// ---------
+// Functions
+// ---------
+
+pub fn generate_det_mo_orbits<'a, G, T>(
+    det: &'a SlaterDeterminant<'a, T>,
+    mos: &'a [Vec<MolecularOrbital<'a, T>>],
+    group: &'a G,
+    metric: &Array2<T>,
+    integrality_threshold: <T as ComplexFloat>::Real,
+    linear_independence_threshold: <T as ComplexFloat>::Real,
+    symmetry_transformation_kind: SymmetryTransformationKind,
+) -> Result<
+    (
+        SlaterDeterminantSymmetryOrbit<'a, G, T>,
+        Vec<Vec<MolecularOrbitalSymmetryOrbit<'a, G, T>>>,
+    ),
+    anyhow::Error,
+>
+where
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: Lapack
+        + ComplexFloat<Real = <T as Scalar>::Real>
+        + fmt::Debug
+        + Mul<<T as ComplexFloat>::Real, Output = T>,
+    <T as ComplexFloat>::Real: fmt::Debug
+        + Zero
+        + From<u16>
+        + ToPrimitive
+        + approx::RelativeEq<<T as ComplexFloat>::Real>
+        + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
+    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    MolecularOrbital<'a, T>: SymmetryTransformable,
+{
+    let order = group.order();
+    let mut det_orbit = SlaterDeterminantSymmetryOrbit::<G, T>::builder()
+        .group(group)
+        .origin(det)
+        .integrality_threshold(integrality_threshold)
+        .linear_independence_threshold(linear_independence_threshold)
+        .symmetry_transformation_kind(symmetry_transformation_kind.clone())
+        .build()
+        .map_err(|err| format_err!(err))?;
+    let mut mo_orbitss = MolecularOrbitalSymmetryOrbit::from_orbitals(
+        group,
+        &mos,
+        symmetry_transformation_kind,
+        integrality_threshold,
+        linear_independence_threshold,
+    );
+
+    let mut det_smat = Array2::<T>::zeros((order, order));
+    let mut mo_smatss = mo_orbitss
+        .iter()
+        .map(|mo_orbits| {
+            mo_orbits
+                .iter()
+                .map(|_| Array2::<T>::zeros((order, order)))
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    let thresh = det.threshold();
+    let indexed_dets = det_orbit
+        .iter()
+        .enumerate()
+        .collect::<Vec<_>>();
+    for det_pair in indexed_dets
+        .iter()
+        .cartesian_product(indexed_dets.iter())
+    {
+        let (w, det_w) = &det_pair.0;
+        let (x, det_x) = &det_pair.1;
+
+        let wx_ov = izip!(
+            det_w.coefficients(),
+            det_w.occupations(),
+            det_x.coefficients(),
+            det_x.occupations(),
+        )
+        .enumerate()
+        .map(|(ispin, (cw, occw, cx, occx))| {
+            let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
+            let nonzero_occ_x = occx.iter().positions(|&occ| occ > thresh).collect_vec();
+
+            let all_mo_wx_ov_mat = if det.complex_symmetric() {
+                cw.t().dot(metric).dot(cx)
+            } else {
+                cw.t().mapv(|x| x.conj()).dot(metric).dot(cx)
+            };
+
+            all_mo_wx_ov_mat
+                .diag()
+                .iter()
+                .enumerate()
+                .for_each(|(imo, mo_wx_ov)| {
+                    mo_smatss[ispin][imo][(*w, *x)] = *mo_wx_ov;
+                });
+
+            let occ_mo_wx_ov_mat = all_mo_wx_ov_mat
+                .select(Axis(0), &nonzero_occ_w)
+                .select(Axis(1), &nonzero_occ_x);
+
+            occ_mo_wx_ov_mat
+                .det()
+                .expect("The determinant of the MO overlap matrix could not be found.")
+        })
+        .fold(T::one(), |acc, x| acc * x);
+
+        let wx_ov = match det.spin_constraint() {
+            SpinConstraint::Restricted(n_spin_spaces) => {
+                ComplexFloat::powi(wx_ov, (*n_spin_spaces).into())
+            }
+            SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => wx_ov,
+        };
+        det_smat[(*w, *x)] = wx_ov;
+    }
+    det_orbit.set_smat(det_smat);
+    mo_orbitss
+        .iter_mut()
+        .enumerate()
+        .for_each(|(ispin, mo_orbits)| {
+            mo_orbits
+                .iter_mut()
+                .enumerate()
+                .for_each(|(imo, mo_orbit)| mo_orbit.set_smat(mo_smatss[ispin][imo].clone()))
+        });
+
+    Ok((det_orbit, mo_orbitss))
 }

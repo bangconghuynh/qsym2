@@ -402,8 +402,8 @@ where
         if approx::relative_eq!(
             nelectrons_float.round(),
             nelectrons_float,
-            epsilon = self.origin().threshold,
-            max_relative = self.origin().threshold
+            epsilon = self.integrality_threshold,
+            max_relative = self.integrality_threshold
         ) {
             let nelectrons_usize = nelectrons_float.round().to_usize().unwrap_or_else(|| {
                 panic!(
@@ -441,7 +441,8 @@ where
             }
         } else {
             Err(DecompositionError(format!(
-                "Symmetry analysis for determinant with non-integer number of electrons `{nelectrons_float:.7}` not supported."
+                "Symmetry analysis for determinant with non-integer number of electrons `{nelectrons_float:.7}` (threshold = {:.3e}) not supported.",
+                self.integrality_threshold
             )))
         }
     }

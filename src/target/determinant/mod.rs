@@ -184,6 +184,10 @@ where
         &self.coefficients
     }
 
+    pub fn threshold(&self) -> <T as ComplexFloat>::Real {
+        self.threshold
+    }
+
     /// Returns the total number of electrons in the determinant.
     pub fn nelectrons(&self) -> <T as ComplexFloat>::Real
     where
