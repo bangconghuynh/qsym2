@@ -686,6 +686,7 @@ where
     RowSymbol: ReducibleLinearSpaceSymbol,
     UC: CharacterTable,
 {
+    /// Returns a builder to construct a new [`CorepCharacterTable`].
     fn builder() -> CorepCharacterTableBuilder<RowSymbol, UC> {
         CorepCharacterTableBuilder::default()
     }

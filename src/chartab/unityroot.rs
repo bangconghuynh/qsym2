@@ -77,7 +77,7 @@ impl UnityRoot {
     }
 
     /// The index $`k`$ of the root $`z`$, *i.e.* $`z = e^{\frac{2k\pi i}{n}}`$
-    /// where $`k \in \mathbb{Z}/n\mathbb{Z}`$
+    /// where $`k \in \mathbb{Z}/n\mathbb{Z}`$.
     ///
     /// # Returns
     ///

@@ -27,7 +27,8 @@ pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
 // MathematicalSymbol
 // ------------------
 
-/// A trait for general mathematical symbols.
+/// A trait for general mathematical symbols. See [`GenericSymbol`] for the definitions of the
+/// parts.
 pub trait MathematicalSymbol: Clone + Hash + Eq + fmt::Display {
     /// The main part of the symbol.
     fn main(&self) -> String;
@@ -50,7 +51,8 @@ pub trait MathematicalSymbol: Clone + Hash + Eq + fmt::Display {
     /// The postfactor part of the symbol.
     fn postfactor(&self) -> String;
 
-    /// The multiplicity of the symbol.
+    /// The multiplicity of the symbol which can have different meanings depending on the exact
+    /// nature of the mathematical symbol.
     fn multiplicity(&self) -> Option<usize>;
 }
 

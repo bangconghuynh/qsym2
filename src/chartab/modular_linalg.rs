@@ -187,7 +187,7 @@ where
 ///
 /// # Arguments
 ///
-/// * mat - A rectangular matrix.
+/// * `mat` - A rectangular matrix.
 ///
 /// # Returns
 ///
@@ -254,7 +254,7 @@ impl<'a, T: Display + Debug> Error for ModularEigError<'a, T> {}
 ///
 /// # Arguments
 ///
-/// * mat - A square matrix.
+/// * `mat` - A square matrix.
 ///
 /// # Returns
 ///
@@ -354,12 +354,12 @@ where
 ///     \frac{u_i \bar{w}_i}{\lvert K_i \rvert},
 /// ```
 ///
-/// where `$K_i$` is the i-th conjugacy class of the group, and
-/// `$\bar{w_i}$` the character in `$\mathbf{w}$` corresponding to the
-/// inverse conjugacy class of `$K_i$`.
+/// where $`K_i`$ is the i-th conjugacy class of the group, and
+/// $`\bar{w_i}`$ the character in $`\mathbf{w}`$ corresponding to the
+/// inverse conjugacy class of $`K_i`$.
 ///
-/// Note that, in `$\mathbb{C}$`, `$\bar{w}_i = w_i^*$`, but this is not true
-/// in `$\mathrm{GF}(p)$`.
+/// Note that, in $`\mathbb{C}`$, $`\bar{w}_i = w_i^*`$, but this is not true
+/// in $`\mathrm{GF}(p)`$.
 ///
 /// # Arguments
 ///
@@ -536,7 +536,7 @@ impl<'a, T: Display + Debug> Error for SplitSpaceError<'a, T> {}
 /// # Returns
 ///
 /// A vector of vectors of vectors, where each inner vector contains the basis
-/// vectors for an $`n`$-dimensional subspace, `$n \ge 1$`.
+/// vectors for an $`n`$-dimensional subspace, $`n \ge 1`$.
 ///
 /// # Panics
 ///
