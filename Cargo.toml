@@ -24,7 +24,7 @@ log4rs = { version = "1.2.0", features = ["file_appender", "pattern_encoder"] }
 nalgebra = { version = "0.32.2", features = ["serde-serialize"] }
 ndarray = { version = "0.15.6", features = ["rayon", "serde"] }
 ndarray_einsum_beta = "0.7.0"
-ndarray-linalg = { version = "0.16", features = ["openblas-static"] }
+ndarray-linalg = { version = "0.16", features = ["intel-mkl-static"] }
 num = "0.4.0"
 num-complex = "0.4.3"
 num-modular = "0.5.1"
