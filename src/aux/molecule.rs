@@ -30,10 +30,10 @@ pub struct Molecule {
     /// The atoms constituting this molecule.
     pub atoms: Vec<Atom>,
 
-    /// Optional special atom to represent the electric field applied to this molecule.
+    /// Optional special atom to represent the electric fields applied to this molecule.
     pub electric_atoms: Option<Vec<Atom>>,
 
-    /// Optional special atoms to represent the magnetic field applied to this molecule.
+    /// Optional special atoms to represent the magnetic fields applied to this molecule.
     pub magnetic_atoms: Option<Vec<Atom>>,
 
     /// A threshold for approximate equality comparisons.
@@ -49,7 +49,7 @@ impl Molecule {
     ///
     /// # Returns
     ///
-    /// The parsed [`Molecule`] struct.
+    /// The parsed [`Molecule`] structure.
     ///
     /// # Panics
     ///

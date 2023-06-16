@@ -30,7 +30,7 @@ type C128 = Complex<f64>;
 #[derive(FromPyObject)]
 pub(super) enum PyShellOrder {
     /// Variant for pure shell order. The associated boolean indicates if the functions are
-    /// arranged in increasing $`m`$ order.
+    /// arranged in increasing-$`m`$ order.
     PureOrder(bool),
 
     /// Variant for Cartesian shell order. If the associated `Option` is `None`, the order will be
@@ -46,10 +46,11 @@ pub(super) struct PyBasisAngularOrder {
     /// and a vector of basis shell quartets whose components give:
     /// - the angular momentum symbol for the shell,
     /// - `true` if the shell is Cartesian, `false` if the shell is pure,
-    /// - (this will be ignored if the shell is pure) `None` if the Cartesian functions are in
-    /// lexicographic order, `Some(vec![[lx, ly, lz], ...])` to specify a custom Cartesian order.
-    /// - (this will be ignored if the shell is Cartesian) `Some(increasingm)` to indicate the
-    /// order of pure functions in the shell,
+    /// - if the shell is Cartesian, then this has two possibilities:
+    ///   - either `None` if the Cartesian functions are in lexicographic order,
+    ///   - or `Some(vec![[lx, ly, lz], ...])` to specify a custom Cartesian order.
+    /// - if the shell is pure, then this is a boolean `increasingm` to indicate if the pure
+    /// functions in the shell are arranged in increasing-$`m`$ order.
     basis_atoms: Vec<(String, Vec<(String, bool, PyShellOrder)>)>,
 }
 
@@ -144,11 +145,11 @@ pub(super) enum PySpinConstraint {
     /// Variant for restricted spin constraint. Only two spin spaces are exposed.
     Restricted,
 
-    /// Variant for unrestricted spin constraint. Only two spin spaces arranged in decreasing $`m`$
+    /// Variant for unrestricted spin constraint. Only two spin spaces arranged in decreasing-$`m`$
     /// order (*i.e.* $`(\alpha, \beta)`$) are exposed.
     Unrestricted,
 
-    /// Variant for generalised spin constraint. Only two spin spaces arranged in decreasing $`m`$
+    /// Variant for generalised spin constraint. Only two spin spaces arranged in decreasing-$`m`$
     /// order (*i.e.* $`(\alpha, \beta)`$) are exposed.
     Generalised,
 }
@@ -417,6 +418,9 @@ pub(super) enum PySAO<'a> {
 /// A Python-exposed function to perform representation symmetry analysis for real and complex
 /// Slater determinants.
 ///
+/// If `symmetry_transformation_kind` includes spin transformation, the provided determinant will
+/// be augmented to generalised spin constraint automatically.
+///
 /// # Arguments
 ///
 /// * `inp_sym` - A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection
@@ -437,7 +441,9 @@ pub(super) enum PySAO<'a> {
 /// * `use_corepresentation` - A boolean indicating if corepresentations of magnetic groups are to
 /// be used for representation analysis instead of unitary representations.
 /// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
-/// transformations to be performed on the origin determinant to generate the orbit.
+/// transformations to be performed on the origin determinant to generate the orbit. If this
+/// contains spin transformation, the determinant will be augmented to generalised spin constraint
+/// automatically.
 /// * `analyse_mo_symmetries` - A boolean indicating if the symmetries of individual molecular
 /// orbitals are to be analysed.
 /// * `write_overlap_eigenvalues` - A boolean indicating if the eigenvalues of the determinant

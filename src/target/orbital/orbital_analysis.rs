@@ -20,7 +20,7 @@ use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::misc::complex_modified_gram_schmidt;
+use crate::aux::misc::{complex_modified_gram_schmidt, ProductRepeat};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
@@ -491,12 +491,9 @@ where
         .iter()
         .enumerate()
         .collect::<Vec<_>>();
-    for det_pair in indexed_dets
-        .iter()
-        .cartesian_product(indexed_dets.iter())
-    {
-        let (w, det_w) = &det_pair.0;
-        let (x, det_x) = &det_pair.1;
+    for det_pair in indexed_dets.iter().product_repeat(2) {
+        let (w, det_w) = &det_pair[0];
+        let (x, det_x) = &det_pair[1];
 
         let wx_ov = izip!(
             det_w.coefficients(),

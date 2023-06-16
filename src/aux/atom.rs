@@ -11,10 +11,10 @@ use serde::{Deserialize, Serialize};
 use crate::aux::geometry::{self, ImproperRotationKind, Transform};
 use crate::aux::misc::{self, HashableFloat};
 
-/// A struct storing a look-up of element symbols to give atomic numbers
+/// A structure storing a look-up of element symbols to give atomic numbers
 /// and atomic masses.
 pub struct ElementMap<'a> {
-    /// A [HashMap] from a symbol string to a tuple of atomic number and atomic
+    /// A [`HashMap`] from a symbol string to a tuple of atomic number and atomic
     /// mass.
     pub map: HashMap<&'a str, (u32, f64)>,
 }
@@ -57,7 +57,7 @@ fn parse_atomic_mass(mass_str: &str) -> f64 {
         .unwrap_or_else(|_| panic!("Unable to parse atomic mass string {mass}."))
 }
 
-/// A struct representing an atom.
+/// A structure representing an atom.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Atom {
     /// The atom kind.
@@ -135,11 +135,15 @@ impl Atom {
 
     /// Creates an ordinary atom.
     ///
-    /// Arguments
+    /// # Arguments
     ///
-    /// * coordinates - The coordinates of the special atom.
+    /// * `atomic_symbol` - The element symbol of the atom.
+    /// * `coordinates` - The coordinates of the atom.
+    /// * `emap` - A hash map between atomic symbols and atomic numbers and
+    ///     masses.
+    /// * `thresh` - The threshold for comparing atoms.
     ///
-    /// Rerturns
+    /// # Returns
     ///
     /// The required ordinary atom.
     #[must_use]
@@ -165,14 +169,15 @@ impl Atom {
 
     /// Creates a special atom.
     ///
-    /// Arguments
+    /// # Arguments
     ///
-    /// * kind - The required special kind.
-    /// * coordinates - The coordinates of the special atom.
+    /// * `kind` - The required special kind.
+    /// * `coordinates` - The coordinates of the special atom.
+    /// * `thresh` - The threshold for comparing atoms.
     ///
-    /// Rerturns
+    /// # Returns
     ///
-    /// `None` if `kind` is not one of the special atom kinds, `Some<Atom>`
+    /// `None` if `kind` is not one of the special atom kinds, `Some(Atom)`
     /// otherwise.
     #[must_use]
     pub fn new_special(kind: AtomKind, coordinates: Point3<f64>, thresh: f64) -> Option<Atom> {

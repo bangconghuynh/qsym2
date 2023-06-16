@@ -53,7 +53,7 @@ impl CartOrder {
     }
 
     /// Constructs a new `CartOrder` structure from its constituting tuple, each of which contains
-    /// the $`x`$, $`y`$, and $`z`$ powers for one Cartesian term.
+    /// the $`x`$, $`y`$, and $`z`$ exponents for one Cartesian term.
     pub fn new(cart_tuples: &[(u32, u32, u32)]) -> Result<Self, anyhow::Error> {
         let cart_order = CartOrder::builder()
             .cart_tuples(cart_tuples)
@@ -250,7 +250,8 @@ fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
     }
 }
 
-/// An enum to indicate the type of the angular functions in a shell and how they are ordered.
+/// An enumerated type to indicate the type of the angular functions in a shell and how they are
+/// ordered.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ShellOrder {
     /// This variant indicates that the angular functions are real solid harmonics. The associated
@@ -286,7 +287,7 @@ impl fmt::Display for ShellOrder {
     }
 }
 
-/// A struct representing a shell in an atomic-orbital basis set.
+/// A structure representing a shell in an atomic-orbital basis set.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisShell {
     /// A non-negative integer indicating the rank of the shell.
@@ -326,6 +327,13 @@ impl BasisShell {
         BasisShellBuilder::default()
     }
 
+    /// Constructs a new [`BasisShell`].
+    ///
+    /// # Arguments
+    ///
+    /// * `l` - The rank of this shell.
+    /// * `shl_ord` - A [`ShellOrder`] structure specifying the type and ordering of the basis
+    /// functions in this shell.
     pub fn new(l: u32, shl_ord: ShellOrder) -> Self {
         BasisShell::builder()
             .l(l)
@@ -348,7 +356,7 @@ impl BasisShell {
 // Atoms
 // -----
 
-/// A struct containing the ordered sequence of the shells for an atom.
+/// A structure containing the ordered sequence of the shells for an atom.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisAtom<'a> {
     /// An atom in the basis set.
@@ -376,6 +384,13 @@ impl<'a> BasisAtom<'a> {
         BasisAtomBuilder::default()
     }
 
+    /// Constructs a new [`BasisAtom`].
+    ///
+    /// # Arguments
+    ///
+    /// * `atm` - A reference to an atom.
+    /// * `bss` - A sequence of [`BasisShell`]s containing the basis functions localised on this
+    /// atom.
     pub fn new(atm: &'a Atom, bss: &[BasisShell]) -> Self {
         BasisAtom::builder()
             .atom(atm)
@@ -407,7 +422,7 @@ impl<'a> BasisAtom<'a> {
 // Basis
 // -----
 
-/// A struct containing the angular momentum information of an atomic-orbital basis set that is
+/// A structure containing the angular momentum information of an atomic-orbital basis set that is
 /// required for symmetry transformation to be performed.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisAngularOrder<'a> {
@@ -434,6 +449,11 @@ impl<'a> BasisAngularOrder<'a> {
         BasisAngularOrderBuilder::default()
     }
 
+    /// Constructs a new [`BasisAngularOrder`] structure.
+    ///
+    /// # Arguments
+    ///
+    /// * `batms` - The constituent [`BasisAtom`]s.
     pub fn new(batms: &[BasisAtom<'a>]) -> Self {
         BasisAngularOrder::builder()
             .basis_atoms(batms)
@@ -441,17 +461,18 @@ impl<'a> BasisAngularOrder<'a> {
             .expect("Unable to construct a `BasisAngularOrder`.")
     }
 
+    /// The number of atoms in the basis.
     pub fn n_atoms(&self) -> usize {
         self.basis_atoms.len()
     }
 
-    /// The number of basis functions in this basis set.
+    /// The number of basis functions in this basis.
     pub fn n_funcs(&self) -> usize {
         self.basis_atoms.iter().map(BasisAtom::n_funcs).sum()
     }
 
     /// The ordered tuples of 0-based indices indicating the starting (inclusive) and ending
-    /// (exclusive) shell positions of the atoms in this basis set.
+    /// (exclusive) shell positions of the atoms in this basis.
     pub fn atom_boundary_indices(&self) -> Vec<(usize, usize)> {
         self.basis_atoms
             .iter()
@@ -464,7 +485,7 @@ impl<'a> BasisAngularOrder<'a> {
     }
 
     /// The ordered tuples of 0-based indices indicating the starting (inclusive) and ending
-    /// (exclusive) positions of the shells in this basis set.
+    /// (exclusive) positions of the shells in this basis.
     pub fn shell_boundary_indices(&self) -> Vec<(usize, usize)> {
         let atom_boundary_indices = self.atom_boundary_indices();
         self.basis_atoms
@@ -482,6 +503,7 @@ impl<'a> BasisAngularOrder<'a> {
             .collect::<Vec<_>>()
     }
 
+    /// An iterator over the constituent [`BasisShell`]s in this basis.
     pub fn basis_shells(&self) -> impl Iterator<Item = &BasisShell> + '_ {
         self.basis_atoms
             .iter()

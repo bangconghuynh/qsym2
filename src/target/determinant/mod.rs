@@ -159,22 +159,28 @@ where
         SlaterDeterminantBuilder::default()
     }
 
+    /// Returns the spin constraint imposed on the coefficients.
     pub fn spin_constraint(&self) -> &SpinConstraint {
         &self.spin_constraint
     }
 
+    /// Returns the basis angular order information of the basis set in which the coefficients are
+    /// expressed.
     pub fn bao(&self) -> &BasisAngularOrder {
         self.bao
     }
 
+    /// Returns the determinantal energy.
     pub fn energy(&self) -> Result<&T, &String> {
         self.energy.as_ref()
     }
 
+    /// Returns the molecular-orbital energies.
     pub fn mo_energies(&self) -> Option<&Vec<Array1<T>>> {
         self.mo_energies.as_ref()
     }
 
+    /// Returns the occupation patterns of the molecular orbitals.
     pub fn occupations(&self) -> &Vec<Array1<<T as ComplexFloat>::Real>> {
         &self.occupations
     }
@@ -184,6 +190,7 @@ where
         &self.coefficients
     }
 
+    /// Returns the threshold with which determinants are compared.
     pub fn threshold(&self) -> <T as ComplexFloat>::Real {
         self.threshold
     }

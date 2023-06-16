@@ -25,7 +25,7 @@ use crate::symmetry::symmetry_group::{
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
 use crate::target::determinant::SlaterDeterminant;
-use crate::target::orbital::orbital_analysis::{MolecularOrbitalSymmetryOrbit, generate_det_mo_orbits};
+use crate::target::orbital::orbital_analysis::generate_det_mo_orbits;
 
 #[cfg(test)]
 #[path = "slater_determinant_tests.rs"]

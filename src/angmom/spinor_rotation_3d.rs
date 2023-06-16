@@ -16,7 +16,7 @@ mod spinor_rotation_3d_tests;
 // Enum definitions
 // ================
 
-/// An enum to manage spin constraints and spin space information.
+/// An enumerated type to manage spin constraints and spin space information.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SpinConstraint {
     /// Variant for restricted spin constraint: the spatial parts of all spin spaces are identical.
@@ -467,8 +467,8 @@ pub fn dmat_euler_gen(
 /// half-integral $`j`$  whose elements are defined by
 ///
 /// ```math
-/// \hat{R}(phi\hat{\mathbf{n}}) \ket{jm}
-/// = \sum_{m'} \ket{jm'} D^{(j)}_{m'm}(phi\hat{\mathbf{n}}).
+/// \hat{R}(\phi\hat{\mathbf{n}}) \ket{jm}
+/// = \sum_{m'} \ket{jm'} D^{(j)}_{m'm}(\phi\hat{\mathbf{n}}).
 /// ```
 ///
 /// # Arguments
@@ -508,15 +508,15 @@ pub fn dmat_angleaxis_gen(
 /// ```
 ///
 /// such that all angle-axis parametrisations of $`\phi\hat{\mathbf{n}}`$ for
-/// $`0 \le \phi \le 4\pi` are mapped to unique triplets of $`(\alpha, \beta, \gamma)`$,
+/// $`0 \le \phi \le 4 \pi`$ are mapped to unique triplets of $`(\alpha, \beta, \gamma)`$,
 /// as explained in Fan, P.-D., Chen, J.-Q., Mcaven, L. & Butler, P. Unique Euler angles and
 /// self-consistent multiplication tables for double point groups. *International Journal of
 /// Quantum Chemistry* **75**, 1–9 (1999),
-///[DOI](https://doi.org/10.1002/(SICI)1097-461X(1999)75:1<1::AID-QUA1>3.0.CO;2-V).
+/// [DOI](https://doi.org/10.1002/(SICI)1097-461X(1999)75:1<1::AID-QUA1>3.0.CO;2-V).
 ///
 /// When $`\beta = 0`$, only the sum $`\alpha+\gamma`$ is determined. Likewise, when
 /// $`\beta = \pi`$, only the difference $`\alpha-\gamma`$ is determined. We thus set
-/// $`\alpha = 0`$ in these cases and solve for $`\gamma` without changing the nature of the
+/// $`\alpha = 0`$ in these cases and solve for $`\gamma`$ without changing the nature of the
 /// results.
 ///
 /// # Arguments

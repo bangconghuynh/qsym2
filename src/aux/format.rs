@@ -2,6 +2,7 @@ use std::fmt;
 
 use log;
 
+/// Writes a nicely formatted section title.
 pub(crate) fn write_title(f: &mut fmt::Formatter<'_>, title: &str) -> fmt::Result {
     let length = title.chars().count();
     let bar = "─".repeat(length);
@@ -11,6 +12,7 @@ pub(crate) fn write_title(f: &mut fmt::Formatter<'_>, title: &str) -> fmt::Resul
     Ok(())
 }
 
+/// Logs a nicely formatted section title to the `qsym2-output` logger.
 pub(crate) fn log_title(title: &str) {
     let length = title.chars().count();
     let bar = "─".repeat(length);
@@ -19,6 +21,7 @@ pub(crate) fn log_title(title: &str) {
     log::info!(target: "qsym2-output", "└──{}──┘", bar);
 }
 
+/// Writes a nicely formatted subtitle.
 pub(crate) fn write_subtitle(f: &mut fmt::Formatter<'_>, subtitle: &str) -> fmt::Result {
     let length = subtitle.chars().count();
     let bar = "═".repeat(length);
@@ -27,6 +30,7 @@ pub(crate) fn write_subtitle(f: &mut fmt::Formatter<'_>, subtitle: &str) -> fmt:
     Ok(())
 }
 
+/// Logs a nicely formatted subtitle to the `qsym2-output` logger.
 pub(crate) fn log_subtitle(subtitle: &str) {
     let length = subtitle.chars().count();
     let bar = "═".repeat(length);
@@ -34,6 +38,7 @@ pub(crate) fn log_subtitle(subtitle: &str) {
     log::info!(target: "qsym2-output", "{}", bar);
 }
 
+/// Turns a boolean into a string of `yes` or `no`.
 pub(crate) fn nice_bool(b: bool) -> String {
     if b { "yes".to_string() } else { "no".to_string() }
 }

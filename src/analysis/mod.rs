@@ -7,7 +7,6 @@ use ndarray_einsum_beta::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
 use num_complex::ComplexFloat;
 use num_traits::ToPrimitive;
-use rayon::prelude::*;
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};

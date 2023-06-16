@@ -22,7 +22,7 @@ mod geometry_tests;
 // Enum definitions
 // ================
 
-/// An enum to classify the type of improper rotation given an angle and axis.
+/// An enumerated type to classify the type of improper rotation given an angle and axis.
 pub enum ImproperRotationKind {
     /// The improper rotation is a rotation by the specified angle and axis followed by a
     /// reflection in a mirror plane perpendicular to the axis.
@@ -139,30 +139,6 @@ pub fn normalise_rotation_fraction(fraction: F32) -> (F32, u32) {
     }
 }
 
-/// Returns the rotation angle adjusted to be in the interval $(-2\pi, +2\pi]$.
-///
-/// This is important to distinguish operations in double groups.
-///
-/// # Arguments
-///
-/// * `rot_ang` - A rotation angle.
-/// * `thresh` - A threshold for comparisons.
-///
-/// # Returns
-///
-/// The normalised double-rotation angle.
-#[must_use]
-pub fn normalise_rotation_double_angle(rot_ang: f64, thresh: f64) -> f64 {
-    let mut norm_rot_ang = rot_ang;
-    while norm_rot_ang > 2.0 * std::f64::consts::PI + thresh {
-        norm_rot_ang -= 4.0 * std::f64::consts::PI;
-    }
-    while norm_rot_ang <= -2.0 * std::f64::consts::PI + thresh {
-        norm_rot_ang += 4.0 * std::f64::consts::PI;
-    }
-    norm_rot_ang
-}
-
 /// Determines the reduced fraction $`k/n`$ where $`k`$ and $`n`$ are both integers representing a
 /// proper rotation $`C_n^k`$ corresponding to a specified rotation angle.
 ///
@@ -232,8 +208,8 @@ fn outer<T: Scalar + ClosedMul + Copy>(vec1: &Vector3<T>, vec2: &Vector3<T>) -> 
     Matrix3::from_iterator(outer_product_iter)
 }
 
-/// Returns a $3 \times 3$ rotation matrix in $\mathbb{R}^3$ corresponding to a rotation through
-/// `angle` about `axis` raised to the power `power`.
+/// Returns a $`3 \times 3`$ rotation matrix in $`\mathbb{R}^3`$ corresponding to a rotation
+/// through `angle` about `axis` raised to the power `power`.
 ///
 /// # Arguments
 ///
@@ -250,7 +226,7 @@ pub fn proper_rotation_matrix(angle: f64, axis: &Vector3<f64>, power: i8) -> Mat
     Rotation3::from_axis_angle(&normalised_axis, (f64::from(power)) * angle).into_inner()
 }
 
-/// Returns a $3 \times 3$ transformation matrix in $\mathbb{R}^3$ corresponding to an improper
+/// Returns a $`3 \times 3`$ transformation matrix in $`\mathbb{R}^3`$ corresponding to an improper
 /// rotation through `angle` about `axis` raised to the power `power`.
 ///
 /// # Arguments
@@ -263,10 +239,6 @@ pub fn proper_rotation_matrix(angle: f64, axis: &Vector3<f64>, power: i8) -> Mat
 /// # Returns
 ///
 /// The transformation matrix.
-///
-/// # Panics
-///
-/// Panics if `kind` is not one of the improper kinds, or if `kind` contains time reversal.
 #[must_use]
 pub fn improper_rotation_matrix(
     angle: f64,
@@ -388,9 +360,10 @@ pub fn check_regular_polygon(atoms: &[&Atom]) -> bool {
 ///
 /// # Arguments
 ///
-/// * vec1 - The first vector.
-/// * vec2 - The second vector.
-/// * normal - A normal unit vector defining the view.
+/// * `vec1` - The first vector.
+/// * `vec2` - The second vector.
+/// * `normal` - A normal unit vector defining the view.
+/// * `thresh` - Threshold for checking if either `vec1` or `vec2` is a null vector.
 ///
 /// # Returns
 ///
@@ -434,9 +407,9 @@ pub trait Transform {
     ///
     /// # Arguments
     ///
-    /// * angle - The angle of rotation.
-    /// * axis - The axis of rotation.
-    /// * kind - The convention in which the improper rotation is defined.
+    /// * `angle` - The angle of rotation.
+    /// * `axis` - The axis of rotation.
+    /// * `kind` - The convention in which the improper rotation is defined.
     fn improper_rotate_mut(&mut self, angle: f64, axis: &Vector3<f64>, kind: &ImproperRotationKind);
 
     /// Translates in-place the coordinates by a specified translation vector in
@@ -444,7 +417,7 @@ pub trait Transform {
     ///
     /// # Arguments
     ///
-    /// * tvec - The translation vector.
+    /// * `tvec` - The translation vector.
     fn translate_mut(&mut self, tvec: &Vector3<f64>);
 
     /// Recentres in-place to put the centre of mass at the origin.
@@ -458,7 +431,7 @@ pub trait Transform {
     ///
     /// # Arguments
     ///
-    /// * mat - A three-dimensional transformation matrix.
+    /// * `mat` - A three-dimensional transformation matrix.
     ///
     /// # Returns
     ///
@@ -470,8 +443,8 @@ pub trait Transform {
     ///
     /// # Arguments
     ///
-    /// * angle - The angle of rotation.
-    /// * axis - The axis of rotation.
+    /// * `angle` - The angle of rotation.
+    /// * `axis` - The axis of rotation.
     ///
     /// # Returns
     ///
@@ -483,9 +456,9 @@ pub trait Transform {
     ///
     /// # Arguments
     ///
-    /// * angle - The angle of rotation.
-    /// * axis - The axis of rotation.
-    /// * kind - The convention in which the improper rotation is defined.
+    /// * `angle` - The angle of rotation.
+    /// * `axis` - The axis of rotation.
+    /// * `kind` - The convention in which the improper rotation is defined.
     ///
     /// # Returns
     ///
@@ -499,7 +472,7 @@ pub trait Transform {
     ///
     /// # Arguments
     ///
-    /// * tvec - The translation vector.
+    /// * `tvec` - The translation vector.
     ///
     /// # Returns
     ///
@@ -849,9 +822,9 @@ impl SphericalConditions {
     ///
     /// # Arguments
     ///
-    /// `z_basis` - The polar axis.
-    /// `x_basis` - The azimuthal axis.
-    /// `n` - An odd number specifying the number of equal and disjoint arcs belonging to the
+    /// * `z_basis` - The polar axis.
+    /// * `x_basis` - The azimuthal axis.
+    /// * `n` - An odd number specifying the number of equal and disjoint arcs belonging to the
     /// positive hemisphere on the equator.
     ///
     /// # Returns

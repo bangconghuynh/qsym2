@@ -930,43 +930,6 @@ impl SymmetryOperation {
         }
     }
 
-    ///// Finds the pole double-angle associated with this operation.
-    /////
-    ///// This is the angle that, together with the pole, uniquely determines the proper part of this
-    ///// operation in double groups. This angle lies in the interval $`[0, 2\pi]`$.
-    /////
-    ///// For improper operations, the inversion-centre convention is used to define
-    ///// the pole angle. This allows a proper rotation and its improper partner to have the
-    ///// same pole angle, thus facilitating the consistent specification of poles for the
-    ///// identity / inversion and binary rotations / reflections.
-    /////
-    ///// # Returns
-    /////
-    ///// The pole angle associated with this operation.
-    /////
-    ///// # Panics
-    /////
-    ///// Panics when no total proper fractions could be found for this operation.
-    //#[must_use]
-    //pub fn calc_pole_double_angle(&self) -> f64 {
-    //    let c_self = match self.generating_element.kind {
-    //        SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
-    //            self.clone()
-    //        }
-    //        SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
-    //    };
-
-    //    geometry::normalise_rotation_double_angle(
-    //        c_self
-    //            .generating_element
-    //            .proper_angle
-    //            .expect("Proper angle has not been set.")
-    //            * (f64::from(self.power)),
-    //        c_self.generating_element.threshold,
-    //    )
-    //    .abs()
-    //}
-
     /// Convert the proper rotation of the current operation to one in hopotopy class 0 of
     /// $`\mathsf{SU}(2)`$.
     ///

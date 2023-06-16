@@ -428,9 +428,9 @@ fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> C
 ///
 /// # Arguments
 ///
-/// * `lcartqns1` - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
+/// * `lcartqns1` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
 /// components of the first Cartesian Gaussian.
-/// * `lcartqns2` - A tuple of $`(l_x, l_y, l_z`$ specifying the exponents of the Cartesian
+/// * `lcartqns2` - A tuple of $`(l_x, l_y, l_z)`$ specifying the exponents of the Cartesian
 /// components of the first Cartesian Gaussian.
 ///
 /// # Returns
