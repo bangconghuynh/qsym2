@@ -73,12 +73,12 @@ impl From<PyMolecule> for Molecule {
         mol.set_magnetic_field(
             pymol
                 .magnetic_field
-                .map(|comps| Vector3::from_iterator(comps)),
+                .map(Vector3::from_iterator),
         );
         mol.set_electric_field(
             pymol
                 .electric_field
-                .map(|comps| Vector3::from_iterator(comps)),
+                .map(Vector3::from_iterator),
         );
         mol
     }

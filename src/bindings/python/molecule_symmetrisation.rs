@@ -89,24 +89,24 @@ pub(super) fn symmetrise_molecule(
     let magnetic_field = symmol
         .magnetic_atoms
         .as_ref()
-        .and_then(|mag_atoms| {
+        .map(|mag_atoms| {
             if mag_atoms.len() != 2 {
-                Some(Err(format_err!(
+                Err(format_err!(
                     "Only a uniform magnetic field is supported."
-                )))
+                ))
             } else {
                 match (&mag_atoms[0].kind, &mag_atoms[1].kind) {
                     (AtomKind::Magnetic(true), AtomKind::Magnetic(false)) => {
                         let bvec = mag_atoms[0].coordinates - mag_atoms[1].coordinates;
-                        Some(Ok([bvec[0], bvec[1], bvec[2]]))
+                        Ok([bvec[0], bvec[1], bvec[2]])
                     }
                     (AtomKind::Magnetic(false), AtomKind::Magnetic(true)) => {
                         let bvec = mag_atoms[1].coordinates - mag_atoms[0].coordinates;
-                        Some(Ok([bvec[0], bvec[1], bvec[2]]))
+                        Ok([bvec[0], bvec[1], bvec[2]])
                     }
-                    _ => Some(Err(format_err!(
+                    _ => Err(format_err!(
                         "Invalid fictitious magnetic atoms detected."
-                    ))),
+                    )),
                 }
             }
         })
@@ -119,24 +119,24 @@ pub(super) fn symmetrise_molecule(
     let electric_field = symmol
         .electric_atoms
         .as_ref()
-        .and_then(|elec_atoms| {
+        .map(|elec_atoms| {
             if elec_atoms.len() != 2 {
-                Some(Err(format_err!(
+                Err(format_err!(
                     "Only a uniform electric field is supported."
-                )))
+                ))
             } else {
                 match (&elec_atoms[0].kind, &elec_atoms[1].kind) {
                     (AtomKind::Magnetic(true), AtomKind::Magnetic(false)) => {
                         let evec = elec_atoms[0].coordinates - elec_atoms[1].coordinates;
-                        Some(Ok([evec[0], evec[1], evec[2]]))
+                        Ok([evec[0], evec[1], evec[2]])
                     }
                     (AtomKind::Magnetic(false), AtomKind::Magnetic(true)) => {
                         let evec = elec_atoms[1].coordinates - elec_atoms[0].coordinates;
-                        Some(Ok([evec[0], evec[1], evec[2]]))
+                        Ok([evec[0], evec[1], evec[2]])
                     }
-                    _ => Some(Err(format_err!(
+                    _ => Err(format_err!(
                         "Invalid fictitious electric atoms detected."
-                    ))),
+                    )),
                 }
             }
         })

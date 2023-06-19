@@ -134,7 +134,6 @@ fn test_character_debug() {
     let e7 = UnityRoot::new(1u32, 7u32);
     let c7 = Character::new(
         &(0..=6)
-            .into_iter()
             .map(|x| (e7.pow(x), 1))
             .collect::<Vec<_>>(),
     );
@@ -212,7 +211,6 @@ fn test_character_fmt() {
     let e7 = UnityRoot::new(1u32, 7u32);
     let c9 = Character::new(
         &(0..=6)
-            .into_iter()
             .map(|x| (e7.pow(x), 1))
             .collect::<Vec<_>>(),
     );

@@ -450,7 +450,6 @@ impl fmt::Debug for Character {
                 k1.partial_cmp(k2)
                     .unwrap_or_else(|| panic!("{k1} and {k2} cannot be compared."))
             })
-            .into_iter()
             .filter_map(|(root, mult)| {
                 if mult == 1 {
                     Some(format!("{root}"))

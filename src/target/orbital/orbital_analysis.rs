@@ -469,7 +469,7 @@ where
         .map_err(|err| format_err!(err))?;
     let mut mo_orbitss = MolecularOrbitalSymmetryOrbit::from_orbitals(
         group,
-        &mos,
+        mos,
         symmetry_transformation_kind,
         integrality_threshold,
         linear_independence_threshold,

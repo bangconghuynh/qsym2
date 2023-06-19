@@ -679,7 +679,6 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                 kind_elements
                     .keys()
                     .sorted()
-                    .into_iter()
                     .try_for_each(|order| {
                         let order_elements = kind_elements.get(order).unwrap_or_else(|| {
                             panic!("Elements/generators of order `{order}` cannot be retrieved.")

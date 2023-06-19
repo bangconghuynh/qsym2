@@ -183,14 +183,14 @@ pub trait SymmetryGroupProperties:
     }
 
     fn is_double_group(&self) -> bool {
-        let double = if self.elements().clone().into_iter().all(|op| op.is_su2()) {
+        
+        if self.elements().clone().into_iter().all(|op| op.is_su2()) {
             true
         } else if self.elements().clone().into_iter().all(|op| !op.is_su2()) {
             false
         } else {
             panic!("Mixed SU(2) and SO(3) proper rotations are not allowed.");
-        };
-        double
+        }
     }
 
     /// Determines whether this group is an ordinary (double) group, a magnetic grey (double)

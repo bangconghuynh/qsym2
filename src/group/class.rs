@@ -263,7 +263,7 @@ where
             .unwrap_or(14)
             .max(14);
 
-        let divider = format!("{}", "┈".repeat(cc_width + op_width + 4));
+        let divider = "┈".repeat(cc_width + op_width + 4);
         let header = format!(" {:<cc_width$}  {:<}", "Class", "Representative");
         let body = Itertools::intersperse(
             cc_transversal

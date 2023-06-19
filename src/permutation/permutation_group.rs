@@ -274,7 +274,6 @@ impl GroupProperties for PermutationGroup {
     fn is_abelian(&self) -> bool {
         self.perms_iter
             .clone()
-            .into_iter()
             .enumerate()
             .all(|(i, gi)| {
                 (0..i).all(|j| {

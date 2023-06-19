@@ -1256,7 +1256,7 @@ where
                     let sao = match shell_order {
                         ShellOrder::Pure(_) => Array2::<f64>::eye(bao.n_funcs()),
                         ShellOrder::Cart(cartorder) => {
-                            let cart2rl = sh_cart2rl_mat(l, l, &cartorder, true, true);
+                            let cart2rl = sh_cart2rl_mat(l, l, cartorder, true, true);
                             cart2rl.mapv(ComplexFloat::conj).t().dot(&cart2rl)
                         }
                     };
@@ -1403,7 +1403,7 @@ where
                 let l_str = if i_cart == 0 {
                     format!("{l:>l_width$}")
                 } else {
-                    " ".repeat(l_width).to_string()
+                    " ".repeat(l_width)
                 };
 
                 let pure_str = if i_pure < n_pure {
@@ -1422,7 +1422,7 @@ where
                     i_pure += 1;
                     pure_str
                 } else {
-                    " ".repeat(pure_width + pure_sym_width + 2).to_string()
+                    " ".repeat(pure_width + pure_sym_width + 2)
                 };
 
                 let cart_symbol = cart_tuple_to_str(cart_tuple, true);
