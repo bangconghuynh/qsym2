@@ -1361,7 +1361,7 @@ where
 
     let l_width = lmax.to_string().chars().count();
     let pure_width = (l_width + 1).max(4);
-    let pure_width_m1 = pure_width - 1;
+    let _pure_width_m1 = pure_width - 1;
     let cart_width = usize::try_from(lmax)?.max(4);
 
     log_subtitle("Space-fixed spatial angular function representations");

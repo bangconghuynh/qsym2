@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 
 use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::molecule::Molecule;
-use crate::io::QSym2FileType;
+
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
