@@ -405,7 +405,6 @@ where
 
         // Lift characters back to the complex field
         log::debug!("Lifting characters from GF({p}) back to the complex field...",);
-        // let class_transversal = self.conjugacy_class_transversal();
 
         let chars: Vec<_> = eigvecs_1d
             .par_iter()

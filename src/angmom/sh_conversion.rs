@@ -623,7 +623,7 @@ fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: bool) -
 /// # Returns
 ///
 /// The $`\boldsymbol{\Upsilon}^{(l)}`$ matrix.
-fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
+pub(crate) fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
     let lusize = l as usize;
     let mut upmat = Array2::<Complex<f64>>::zeros((2 * lusize + 1, 2 * lusize + 1));
     let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
@@ -716,7 +716,7 @@ fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
 /// # Returns
 ///
 /// The $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ matrix.
-fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
+pub(crate) fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
     let mut mat = sh_c2r_mat(l, csphase, increasingm).t().to_owned();
     mat.par_mapv_inplace(|x| x.conj());
     mat
@@ -785,7 +785,7 @@ fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> 
 /// # Returns
 ///
 /// The $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ matrix.
-fn sh_cl2cart_mat(
+pub(crate) fn sh_cl2cart_mat(
     lcart: u32,
     l: u32,
     cartorder: &CartOrder,
@@ -871,7 +871,7 @@ fn sh_cl2cart_mat(
 /// # Returns
 ///
 /// The $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$ block.
-fn sh_cart2cl_mat(
+pub(crate) fn sh_cart2cl_mat(
     l: u32,
     lcart: u32,
     cartorder: &CartOrder,
@@ -960,7 +960,7 @@ fn sh_cart2cl_mat(
 /// # Returns
 ///
 /// The $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ matrix.
-fn sh_rl2cart_mat(
+pub(crate) fn sh_rl2cart_mat(
     lcart: u32,
     l: u32,
     cartorder: &CartOrder,
@@ -1040,7 +1040,7 @@ fn sh_rl2cart_mat(
 /// # Returns
 ///
 /// The $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ block.
-fn sh_cart2rl_mat(
+pub(crate) fn sh_cart2rl_mat(
     l: u32,
     lcart: u32,
     cartorder: &CartOrder,

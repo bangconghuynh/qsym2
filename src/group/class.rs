@@ -5,6 +5,7 @@ use std::ops::Mul;
 
 use derive_builder::Builder;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use ndarray::{s, Array2};
 use num_traits::Inv;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -232,6 +233,62 @@ where
     }
 }
 
+/// A trait for outputting summaries of conjugacy class properties.
+pub trait ClassPropertiesSummary: ClassProperties
+where
+    <Self as GroupProperties>::GroupElement: fmt::Display,
+{
+    /// Outputs a class transversal as a nicely formatted table.
+    fn class_transversal_to_string(&self) -> String {
+        let cc_transversal = (0..self.class_number())
+            .filter_map(|i| {
+                let cc_opt = self.get_cc_symbol_of_index(i);
+                let op_opt = self.get_cc_transversal(i);
+                match (cc_opt, op_opt) {
+                    (Some(cc), Some(op)) => Some((cc.to_string(), op.to_string())),
+                    _ => None,
+                }
+            })
+            .collect::<Vec<_>>();
+        let cc_width = cc_transversal
+            .iter()
+            .map(|(cc, _)| cc.chars().count())
+            .max()
+            .unwrap_or(5)
+            .max(5);
+        let op_width = cc_transversal
+            .iter()
+            .map(|(_, op)| op.chars().count())
+            .max()
+            .unwrap_or(14)
+            .max(14);
+
+        let divider = format!("{}", "┈".repeat(cc_width + op_width + 4));
+        let header = format!(" {:<cc_width$}  {:<}", "Class", "Representative");
+        let body = Itertools::intersperse(
+            cc_transversal
+                .iter()
+                .map(|(cc, op)| format!(" {:<cc_width$}  {:<}", cc, op)),
+            "\n".to_string(),
+        )
+        .collect::<String>();
+
+        Itertools::intersperse(
+            [divider.clone(), header, divider.clone(), body, divider].into_iter(),
+            "\n".to_string(),
+        )
+        .collect::<String>()
+    }
+}
+
+// Blanket implementation
+impl<G> ClassPropertiesSummary for G
+where
+    G: ClassProperties,
+    G::GroupElement: fmt::Display,
+{
+}
+
 // ======================================
 // Struct definitions and implementations
 // ======================================
@@ -294,7 +351,7 @@ where
                 .iter()
                 .map(|cc| {
                     *cc.iter()
-                        .next()
+                        .min()
                         .expect("No conjugacy classes can be empty.")
                 })
                 .collect::<Vec<usize>>(),

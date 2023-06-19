@@ -1421,7 +1421,7 @@ impl SymmetryElement {
     #[must_use]
     pub fn closeness_to_cartesian_axes(&self) -> (f64, usize) {
         let pos_axis = self.standard_positive_axis();
-        let rev_pos_axis = Vector3::new(pos_axis[(2)], pos_axis[(1)], pos_axis[(0)]);
+        let rev_pos_axis = Vector3::new(pos_axis[2], pos_axis[1], pos_axis[0]);
         let (amax_arg, amax_val) = rev_pos_axis.abs().argmax();
         let axis_closeness = 1.0 - amax_val;
         let thresh = self.threshold;

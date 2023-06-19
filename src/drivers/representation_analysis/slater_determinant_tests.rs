@@ -1,9 +1,11 @@
+use log4rs;
 use ndarray::array;
 use num_complex::Complex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::chartab::chartab_symbols::DecomposedSymbol;
+use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
@@ -24,7 +26,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
-    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
     let pd_params = SymmetryGroupDetectionParams::builder()
         .moi_thresholds(&[1e-6])
@@ -133,7 +135,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .use_double_group(false)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_overlap_eigenvalues(false)
-        .write_character_table(None)
+        .write_character_table(Some(CharacterTableDisplay::Symbolic))
         .build()
         .unwrap();
 

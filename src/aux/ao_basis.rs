@@ -226,7 +226,7 @@ impl PermutableCollection for CartOrder {
 /// Returns
 ///
 /// The string representation of the Cartesian exponent tuple.
-fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
+pub(crate) fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
     if cart_tuple.0 + cart_tuple.1 + cart_tuple.2 == 0u32 {
         "1".to_string()
     } else {

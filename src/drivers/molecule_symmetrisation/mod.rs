@@ -6,12 +6,12 @@ use nalgebra::Point3;
 use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
 
-use crate::aux::format::{log_subtitle, log_title, nice_bool};
+use crate::aux::format::{log_subtitle, log_title, nice_bool, QSym2Output};
 use crate::aux::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams, SymmetryGroupDetectionResult,
 };
-use crate::drivers::{QSym2Driver, QSym2Output};
+use crate::drivers::QSym2Driver;
 use crate::io::QSym2FileType;
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};

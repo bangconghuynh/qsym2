@@ -4,20 +4,26 @@ use std::ops::Mul;
 
 use anyhow::{self, format_err};
 use derive_builder::Builder;
-use ndarray::{s, Array2};
+use nalgebra::Point3;
+use ndarray::{s, Array1, Array2};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use rayon::prelude::*;
 
 use crate::analysis::RepAnalysis;
+use crate::angmom::sh_conversion::sh_cart2rl_mat;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::ao_basis::BasisAngularOrder;
-use crate::aux::format::{log_subtitle, nice_bool, write_subtitle, write_title};
+use crate::aux::ao_basis::{
+    cart_tuple_to_str, BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder,
+};
+use crate::aux::atom::{Atom, ElementMap};
+use crate::aux::format::{log_subtitle, nice_bool, write_subtitle, write_title, QSym2Output};
+use crate::aux::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
-use crate::drivers::representation_analysis::CharacterTableDisplay;
+use crate::drivers::representation_analysis::{log_bao, log_cc_transversal, CharacterTableDisplay};
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::{QSym2Driver, QSym2Output};
+use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
@@ -541,7 +547,6 @@ where
             );
             log::info!(target: "qsym2-output", "");
         }
-
         Ok(group)
     }
 }
@@ -558,8 +563,10 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
         let params = self.parameters;
         let sao = self.construct_sao()?;
         let group = self.construct_unitary_group()?;
-
+        log_cc_transversal(&group);
+        let _ = find_angular_function_representation(&group, 2, 1e-7);
         log_bao(self.determinant.bao());
+
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
             let (mut det_orbit, mut mo_orbitss) = generate_det_mo_orbits(
@@ -569,7 +576,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                 &sao,
                 params.integrality_threshold,
                 params.linear_independence_threshold,
-                params.symmetry_transformation_kind.clone()
+                params.symmetry_transformation_kind.clone(),
             )?;
             det_orbit.calc_xmat(false);
             if params.write_overlap_eigenvalues {
@@ -615,7 +622,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                     if params.write_overlap_eigenvalues {
                         if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
                             let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                            smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
+                            smat_eigvals_sorted
+                                .sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
                             smat_eigvals_sorted.reverse();
                             log_overlap_eigenvalues(
                                 &smat_eigvals_sorted,
@@ -656,8 +664,10 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
         let params = self.parameters;
         let sao = self.construct_sao()?;
         let group = self.construct_unitary_group()?;
-
+        log_cc_transversal(&group);
+        let _ = find_angular_function_representation(&group, 2, 1e-7);
         log_bao(self.determinant.bao());
+
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
             let (mut det_orbit, mut mo_orbitss) = generate_det_mo_orbits(
@@ -667,7 +677,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                 &sao,
                 params.integrality_threshold,
                 params.linear_independence_threshold,
-                params.symmetry_transformation_kind.clone()
+                params.symmetry_transformation_kind.clone(),
             )?;
             det_orbit.calc_xmat(false);
             if params.write_overlap_eigenvalues {
@@ -713,7 +723,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                     if params.write_overlap_eigenvalues {
                         if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
                             let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                            smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
+                            smat_eigvals_sorted
+                                .sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
                             smat_eigvals_sorted.reverse();
                             log_overlap_eigenvalues(
                                 &smat_eigvals_sorted,
@@ -829,8 +840,10 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
         let params = self.parameters;
         let sao = self.construct_sao()?;
         let group = self.construct_magnetic_group()?;
-
+        log_cc_transversal(&group);
+        let _ = find_angular_function_representation(&group, 2, 1e-7);
         log_bao(self.determinant.bao());
+
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
             let (mut det_orbit, mut mo_orbitss) = generate_det_mo_orbits(
@@ -840,7 +853,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                 &sao,
                 params.integrality_threshold,
                 params.linear_independence_threshold,
-                params.symmetry_transformation_kind.clone()
+                params.symmetry_transformation_kind.clone(),
             )?;
             det_orbit.calc_xmat(false);
             if params.write_overlap_eigenvalues {
@@ -886,7 +899,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                     if params.write_overlap_eigenvalues {
                         if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
                             let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                            smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
+                            smat_eigvals_sorted
+                                .sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
                             smat_eigvals_sorted.reverse();
                             log_overlap_eigenvalues(
                                 &smat_eigvals_sorted,
@@ -927,8 +941,10 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
         let params = self.parameters;
         let sao = self.construct_sao()?;
         let group = self.construct_magnetic_group()?;
-
+        log_cc_transversal(&group);
+        let _ = find_angular_function_representation(&group, 2, 1e-7);
         log_bao(self.determinant.bao());
+
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
             let mos = self.determinant.to_orbitals();
             let (mut det_orbit, mut mo_orbitss) = generate_det_mo_orbits(
@@ -938,7 +954,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                 &sao,
                 params.integrality_threshold,
                 params.linear_independence_threshold,
-                params.symmetry_transformation_kind.clone()
+                params.symmetry_transformation_kind.clone(),
             )?;
             det_orbit.calc_xmat(false);
             if params.write_overlap_eigenvalues {
@@ -984,7 +1000,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                     if params.write_overlap_eigenvalues {
                         if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
                             let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                            smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
+                            smat_eigvals_sorted
+                                .sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
                             smat_eigvals_sorted.reverse();
                             log_overlap_eigenvalues(
                                 &smat_eigvals_sorted,
@@ -1204,19 +1221,230 @@ fn log_overlap_eigenvalues<T>(
     );
 }
 
-/// Logs basis angular order information nicely.
-///
-/// # Arguments
-///
-/// * `bao` - The basis angular order information structure.
-fn log_bao(bao: &BasisAngularOrder) {
-    log_subtitle("Basis angular order");
+fn find_angular_function_representation<G>(
+    group: &G,
+    lmax: u32,
+    thresh: f64,
+) -> Result<(), anyhow::Error>
+where
+    G: SymmetryGroupProperties + Clone + Send + Sync,
+    G::CharTab: SubspaceDecomposable<f64>,
+    <<G as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition: Send + Sync,
+{
+    let emap = ElementMap::new();
+    let mol = Molecule::from_atoms(
+        &[Atom::new_ordinary("H", Point3::origin(), &emap, 1e-13)],
+        1e-13,
+    );
+
+    let (pure_symss, cart_symss) = (0..=lmax).fold(
+        (
+            Vec::with_capacity(usize::try_from(lmax)?),
+            Vec::with_capacity(usize::try_from(lmax)?),
+        ),
+        |mut acc, l| {
+            [ShellOrder::Pure(true), ShellOrder::Cart(CartOrder::lex(l))]
+                .iter()
+                .for_each(|shell_order| {
+                    let bao = BasisAngularOrder::new(&[BasisAtom::new(
+                        &mol.atoms[0],
+                        &[BasisShell::new(l, shell_order.clone())],
+                    )]);
+                    let n_spatial = bao.n_funcs();
+                    let cs = vec![Array2::<f64>::eye(n_spatial)];
+                    let occs = vec![Array1::<f64>::ones(n_spatial)];
+                    let sao = match shell_order {
+                        ShellOrder::Pure(_) => Array2::<f64>::eye(bao.n_funcs()),
+                        ShellOrder::Cart(cartorder) => {
+                            let cart2rl = sh_cart2rl_mat(l, l, &cartorder, true, true);
+                            cart2rl.mapv(ComplexFloat::conj).t().dot(&cart2rl)
+                        }
+                    };
+
+                    let mo_symmetries = SlaterDeterminant::<f64>::builder()
+                        .spin_constraint(SpinConstraint::Restricted(1))
+                        .bao(&bao)
+                        .complex_symmetric(false)
+                        .mol(&mol)
+                        .coefficients(&cs)
+                        .occupations(&occs)
+                        .threshold(thresh)
+                        .build()
+                        // .map_err(|err| format_err!(err))
+                        .ok()
+                        .and_then(|det| {
+                            let mos = det.to_orbitals();
+                            generate_det_mo_orbits(
+                                &det,
+                                &mos,
+                                group,
+                                &sao,
+                                1e-13,
+                                1e-13,
+                                SymmetryTransformationKind::Spatial,
+                            )
+                            .ok()
+                            .map(|(_, mut mo_orbitss)| {
+                                mo_orbitss[0]
+                                    .par_iter_mut()
+                                    .map(|mo_orbit| {
+                                        mo_orbit.calc_xmat(false);
+                                        mo_orbit.analyse_rep().ok()
+                                    })
+                                    .collect::<Vec<_>>()
+                            })
+                        });
+                    for sym in mo_symmetries.as_ref().unwrap().iter() {
+                        println!(
+                            "l = {l}, ord = {shell_order}, sym = {}",
+                            sym.as_ref()
+                                .map(|s| s.to_string())
+                                .unwrap_or("???".to_string())
+                        );
+                    }
+                    match shell_order {
+                        ShellOrder::Pure(_) => acc.0.push(mo_symmetries),
+                        ShellOrder::Cart(_) => acc.1.push(mo_symmetries),
+                    }
+                });
+            acc
+        },
+    );
+
+    let pure_sym_strss = pure_symss
+        .into_iter()
+        .map(|l_pure_syms_opt| {
+            l_pure_syms_opt
+                .map(|l_pure_syms| {
+                    l_pure_syms
+                        .into_iter()
+                        .map(|sym_opt| {
+                            sym_opt
+                                .map(|sym| sym.to_string())
+                                .unwrap_or("--".to_string())
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or(vec!["--".to_string()])
+        })
+        .collect::<Vec<_>>();
+    let cart_sym_strss = cart_symss
+        .into_iter()
+        .map(|l_cart_syms_opt| {
+            l_cart_syms_opt
+                .map(|l_cart_syms| {
+                    l_cart_syms
+                        .into_iter()
+                        .map(|sym_opt| {
+                            sym_opt
+                                .map(|sym| sym.to_string())
+                                .unwrap_or("--".to_string())
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or(vec!["--".to_string()])
+        })
+        .collect::<Vec<_>>();
+
+    let pure_sym_width = pure_sym_strss
+        .iter()
+        .flat_map(|syms| syms.iter().map(|sym| sym.chars().count()))
+        .max()
+        .unwrap_or(9)
+        .max(9);
+    let cart_sym_width = cart_sym_strss
+        .iter()
+        .flat_map(|syms| syms.iter().map(|sym| sym.chars().count()))
+        .max()
+        .unwrap_or(9)
+        .max(9);
+
+    let l_width = lmax.to_string().chars().count();
+    let pure_width = (l_width + 1).max(4);
+    let pure_width_m1 = pure_width - 1;
+    let cart_width = usize::try_from(lmax)?.max(4);
+
+    log_subtitle("Space-fixed spatial angular function representations");
     log::info!(target: "qsym2-output", "");
     log::info!(
         target: "qsym2-output",
-        "The basis angular order information dictates how basis functions in each basis shell are transformed.\n\
-        It is important to check that this is consistent with the basis set being used, otherwise incorrect\n\
-        symmetry results will be obtained."
+        "{}",
+        "┈".repeat(
+            l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11
+        )
     );
-    log::info!(target: "qsym2-output", "{}", bao);
+    log::info!(
+        target: "qsym2-output",
+        " {:>l_width$}  {:>pure_width$}  {:<pure_sym_width$}   {:>cart_width$}  {:<}",
+        "l", "Pure", "Pure sym.", "Cart", "Cart sym."
+    );
+    log::info!(
+        target: "qsym2-output",
+        "{}",
+        "┈".repeat(
+            l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11
+        )
+    );
+
+    let empty_str = String::new();
+    (0..=usize::try_from(lmax)?).for_each(|l| {
+        if l > 0 {
+            log::info!(target: "qsym2-output", "");
+        }
+        let n_pure = 2 * l + 1;
+        let mut i_pure = 0;
+
+        let l_u32 = u32::try_from(l).unwrap_or_else(|err| panic!("{err}"));
+        let cartorder = CartOrder::lex(l_u32);
+        cartorder
+            .iter()
+            .enumerate()
+            .for_each(|(i_cart, cart_tuple)| {
+                let l_str = if i_cart == 0 {
+                    format!("{l:>l_width$}")
+                } else {
+                    " ".repeat(l_width).to_string()
+                };
+
+                let pure_str = if i_pure < n_pure {
+                    let pure_str = format!(
+                        "{:>pure_width$}  {:<pure_sym_width$}",
+                        if i_pure < l {
+                            format!("-{}", i_pure.abs_diff(l))
+                        } else {
+                            format!("+{}", i_pure.abs_diff(l))
+                        },
+                        pure_sym_strss
+                            .get(l)
+                            .and_then(|l_pure_sym_strs| l_pure_sym_strs.get(i_pure))
+                            .unwrap_or(&empty_str)
+                    );
+                    i_pure += 1;
+                    pure_str
+                } else {
+                    " ".repeat(pure_width + pure_sym_width + 2).to_string()
+                };
+
+                let cart_symbol = cart_tuple_to_str(cart_tuple, true);
+                let cart_str = format!(
+                    "{cart_symbol:>cart_width$}  {:<}",
+                    cart_sym_strss
+                        .get(l)
+                        .and_then(|l_cart_sym_strs| l_cart_sym_strs.get(i_cart))
+                        .unwrap_or(&empty_str)
+                );
+
+                log::info!(target: "qsym2-output", " {l_str}  {pure_str}   {cart_str}");
+            });
+    });
+    log::info!(
+        target: "qsym2-output",
+        "{}",
+        "┈".repeat(
+            l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11
+        )
+    );
+    log::info!(target: "qsym2-output", "");
+
+    Ok(())
 }

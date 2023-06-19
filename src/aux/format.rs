@@ -42,3 +42,25 @@ pub(crate) fn log_subtitle(subtitle: &str) {
 pub(crate) fn nice_bool(b: bool) -> String {
     if b { "yes".to_string() } else { "no".to_string() }
 }
+
+/// A trait for logging $`\mathsf{QSym}^2`$ outputs nicely.
+pub trait QSym2Output: fmt::Debug + fmt::Display {
+    /// Logs display output nicely.
+    fn log_output_display(&self) {
+        let lines = self.to_string();
+        lines.lines().for_each(|line| {
+            log::info!(target: "qsym2-output", "{line}");
+        })
+    }
+
+    /// Logs debug output nicely.
+    fn log_output_debug(&self) {
+        let lines = format!("{self:?}");
+        lines.lines().for_each(|line| {
+            log::info!(target: "qsym2-output", "{line}");
+        })
+    }
+}
+
+// Blanket implementation
+impl<T> QSym2Output for T where T: fmt::Debug + fmt::Display {}
