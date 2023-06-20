@@ -287,7 +287,7 @@ pub fn dmat_angleaxis(angle: f64, axis: Vector3<f64>, increasingm: bool) -> Arra
 ///
 /// The element $`D^{(j)}_{m'm}(\alpha, \beta, \gamma)`$.
 #[allow(clippy::too_many_lines)]
-fn dmat_euler_gen_element(
+pub fn dmat_euler_gen_element(
     twoj: u32,
     mdashi: usize,
     mi: usize,

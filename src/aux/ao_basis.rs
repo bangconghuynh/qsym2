@@ -445,7 +445,7 @@ impl<'a> BasisAngularOrder<'a> {
     ///
     /// A builder to construct a new [`BasisAngularOrder`].
     #[must_use]
-    pub fn builder() -> BasisAngularOrderBuilder<'a> {
+    fn builder() -> BasisAngularOrderBuilder<'a> {
         BasisAngularOrderBuilder::default()
     }
 
@@ -471,7 +471,7 @@ impl<'a> BasisAngularOrder<'a> {
         self.basis_atoms.iter().map(BasisAtom::n_funcs).sum()
     }
 
-    /// The ordered tuples of 0-based indices indicating the starting (inclusive) and ending
+    /// The ordered tuples of 0-based shell indices indicating the starting (inclusive) and ending
     /// (exclusive) shell positions of the atoms in this basis.
     pub fn atom_boundary_indices(&self) -> Vec<(usize, usize)> {
         self.basis_atoms
@@ -484,8 +484,8 @@ impl<'a> BasisAngularOrder<'a> {
             .collect::<Vec<_>>()
     }
 
-    /// The ordered tuples of 0-based indices indicating the starting (inclusive) and ending
-    /// (exclusive) positions of the shells in this basis.
+    /// The ordered tuples of 0-based function indices indicating the starting (inclusive) and
+    /// ending (exclusive) positions of the shells in this basis.
     pub fn shell_boundary_indices(&self) -> Vec<(usize, usize)> {
         let atom_boundary_indices = self.atom_boundary_indices();
         self.basis_atoms

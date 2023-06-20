@@ -180,8 +180,8 @@ fn test_ircorep_character_table_algebraic_validity(
             .to_f64()
             .unwrap_or_else(|| panic!("Unable to convert `{zeta_2}` to `f64`.")),
         uni_dim_sum.complex_value().re,
-        max_relative = uni_dim_sum.threshold,
-        epsilon = uni_dim_sum.threshold
+        max_relative = uni_dim_sum.threshold(),
+        epsilon = uni_dim_sum.threshold()
     ) {
         assert!(chartab
             .intertwining_numbers

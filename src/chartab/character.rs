@@ -35,7 +35,7 @@ pub struct Character {
 
     /// A threshold for approximate partial ordering comparisons.
     #[builder(setter(custom), default = "1e-14")]
-    pub threshold: f64,
+    threshold: f64,
 }
 
 impl CharacterBuilder {
@@ -50,7 +50,7 @@ impl CharacterBuilder {
         self
     }
 
-    pub fn threshold(&mut self, thresh: f64) -> &mut Self {
+    fn threshold(&mut self, thresh: f64) -> &mut Self {
         if thresh >= 0.0 {
             self.threshold = Some(thresh);
         } else {
@@ -85,6 +85,11 @@ impl Character {
             .terms(ts)
             .build()
             .expect("Unable to construct a character.")
+    }
+
+    /// Returns the threshold for approximate partial ordering comparisons.
+    pub fn threshold(&self) -> f64 {
+        self.threshold
     }
 
     /// The complex representation of this character.

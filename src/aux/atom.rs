@@ -14,9 +14,8 @@ use crate::aux::misc::{self, HashableFloat};
 /// A structure storing a look-up of element symbols to give atomic numbers
 /// and atomic masses.
 pub struct ElementMap<'a> {
-    /// A [`HashMap`] from a symbol string to a tuple of atomic number and atomic
-    /// mass.
-    pub map: HashMap<&'a str, (u32, f64)>,
+    /// A [`HashMap`] from a symbol string to a tuple of atomic number and atomic mass.
+    map: HashMap<&'a str, (u32, f64)>,
 }
 
 impl Default for ElementMap<'static> {
@@ -36,6 +35,11 @@ impl ElementMap<'static> {
             map.insert(element.symbol, (element.atomic_number, mass));
         }
         ElementMap { map }
+    }
+
+    /// Returns a tuple of atomic number and atomic mass for the requested element.
+    pub fn get(&self, element: &str) -> Option<&(u32, f64)> {
+        self.map.get(element)
     }
 }
 
@@ -95,7 +99,7 @@ impl Atom {
     /// The parsed [`Atom`] struct if the line has the correct format,
     /// otherwise [`None`].
     #[must_use]
-    pub fn from_xyz(line: &str, emap: &ElementMap, thresh: f64) -> Option<Atom> {
+    pub(crate) fn from_xyz(line: &str, emap: &ElementMap, thresh: f64) -> Option<Atom> {
         let split: Vec<&str> = line.split_whitespace().collect();
         if split.len() != 4 {
             return None;

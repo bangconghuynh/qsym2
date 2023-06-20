@@ -774,8 +774,8 @@ pub fn sort_irreps<R: Clone + Serialize + SpecialSymmetryTransformation>(
             if approx::relative_eq!(
                 character_c.im,
                 0.0,
-                max_relative = character.threshold,
-                epsilon = character.threshold
+                max_relative = character.threshold(),
+                epsilon = character.threshold()
             ) {
                 if character_c.re > 0.0 {
                     one.clone()
@@ -785,8 +785,8 @@ pub fn sort_irreps<R: Clone + Serialize + SpecialSymmetryTransformation>(
             } else if approx::relative_eq!(
                 character_c.re,
                 0.0,
-                max_relative = character.threshold,
-                epsilon = character.threshold
+                max_relative = character.threshold(),
+                epsilon = character.threshold()
             ) {
                 if character_c.im > 0.0 {
                     one.clone()
@@ -1108,13 +1108,13 @@ where
                 approx::relative_eq!(
                     char_e1_c.im,
                     0.0,
-                    epsilon = char_e1.threshold,
-                    max_relative = char_e1.threshold
+                    epsilon = char_e1.threshold(),
+                    max_relative = char_e1.threshold()
                 ) && approx::relative_eq!(
                     char_e1_c.re.round(),
                     char_e1_c.re,
-                    epsilon = char_e1.threshold,
-                    max_relative = char_e1.threshold
+                    epsilon = char_e1.threshold(),
+                    max_relative = char_e1.threshold()
                 ),
             );
 
@@ -1155,13 +1155,13 @@ where
                 approx::relative_eq!(
                     char_inv_c.im,
                     0.0,
-                    epsilon = char_inv.threshold,
-                    max_relative = char_inv.threshold
+                    epsilon = char_inv.threshold(),
+                    max_relative = char_inv.threshold()
                 ) && approx::relative_eq!(
                     char_inv_c.re.round(),
                     char_inv_c.re,
-                    epsilon = char_inv.threshold,
-                    max_relative = char_inv.threshold
+                    epsilon = char_inv.threshold(),
+                    max_relative = char_inv.threshold()
                 ),
             );
 
@@ -1196,13 +1196,13 @@ where
                 approx::relative_eq!(
                     char_ref_c.im,
                     0.0,
-                    epsilon = char_ref.threshold,
-                    max_relative = char_ref.threshold
+                    epsilon = char_ref.threshold(),
+                    max_relative = char_ref.threshold()
                 ) && approx::relative_eq!(
                     char_ref_c.re.round(),
                     char_ref_c.re,
-                    epsilon = char_ref.threshold,
-                    max_relative = char_ref.threshold
+                    epsilon = char_ref.threshold(),
+                    max_relative = char_ref.threshold()
                 ),
             );
 
@@ -1229,13 +1229,13 @@ where
             if approx::relative_eq!(
                 char_trev_c.im,
                 0.0,
-                epsilon = char_trev.threshold,
-                max_relative = char_trev.threshold
+                epsilon = char_trev.threshold(),
+                max_relative = char_trev.threshold()
             ) && approx::relative_eq!(
                 char_trev_c.re.round(),
                 char_trev_c.re,
-                epsilon = char_trev.threshold,
-                max_relative = char_trev.threshold
+                epsilon = char_trev.threshold(),
+                max_relative = char_trev.threshold()
             ) {
                 // Real, integral time-reversal character
                 #[allow(clippy::cast_possible_truncation)]

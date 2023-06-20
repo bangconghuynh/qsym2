@@ -131,7 +131,7 @@ where
 
 /// A trait for representation or corepresentation analysis on an orbit of items spanning a
 /// linear space.
-pub(crate) trait RepAnalysis<G, I, T, D>: Orbit<G, I>
+pub trait RepAnalysis<G, I, T, D>: Orbit<G, I>
 where
     T: ComplexFloat + Lapack + fmt::Debug,
     <T as ComplexFloat>::Real: ToPrimitive,
@@ -169,7 +169,7 @@ where
     ///
     /// is a full-rank matrix.
     ///
-    /// If the overlap between items is complex-symmetric (see Overlap::complex_symmetric), then
+    /// If the overlap between items is complex-symmetric (see [`Overlap::complex_symmetric`]), then
     /// $`\lozenge = *`$ is the complex-conjugation operation, otherwise, $`\lozenge`$ is the
     /// identity.
     ///
@@ -182,8 +182,8 @@ where
     /// defined by
     ///
     /// ```math
-    ///     \langle \hat{iota} \mathbf{v}_w, \hat{g}_i \mathbf{v}_x \rangle
-    ///     = f \left( \langle \hat{iota} \hat{g_i^{-1}} \mathbf{v}_w, \mathbf{v}_x \rangle \right).
+    ///     \langle \hat{\iota} \mathbf{v}_w, \hat{g}_i \mathbf{v}_x \rangle
+    ///     = f \left( \langle \hat{\iota} \hat{g}_i^{-1} \mathbf{v}_w, \mathbf{v}_x \rangle \right).
     /// ```
     ///
     /// Typically, if $`\hat{g}_i`$ is unitary, then $`f`$ is the identity, and if $`\hat{g}_i`$ is

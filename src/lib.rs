@@ -1,7 +1,7 @@
 pub mod analysis;
 pub mod angmom;
 pub mod aux;
-pub mod bindings;
+mod bindings;
 pub mod chartab;
 pub mod drivers;
 pub mod group;

@@ -284,7 +284,7 @@ fn norm_cart_gaussian(lcartqns: (u32, u32, u32), alpha: f64) -> f64 {
 ///
 /// Panics when any required factorials cannot be computed.
 #[allow(clippy::too_many_lines)]
-fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> Complex<f64> {
+pub fn complexc(lpureqns: (u32, i32), lcartqns: (u32, u32, u32), csphase: bool) -> Complex<f64> {
     let (l, m) = lpureqns;
     let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
     assert!(
@@ -568,7 +568,7 @@ fn cartov(lcartqns1: (u32, u32, u32), lcartqns2: (u32, u32, u32)) -> f64 {
 /// # Returns
 ///
 /// $`c^{-1}(l_x, l_y, l_z, l, m_l, l_{\mathrm{cart}})`$.
-fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: bool) -> Complex<f64> {
+pub fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: bool) -> Complex<f64> {
     let (lx, ly, lz) = lcartqns;
     let lcart = lx + ly + lz;
     let mut cinv = Complex::<f64>::zero();
@@ -623,7 +623,7 @@ fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: bool) -
 /// # Returns
 ///
 /// The $`\boldsymbol{\Upsilon}^{(l)}`$ matrix.
-pub(crate) fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
+pub fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
     let lusize = l as usize;
     let mut upmat = Array2::<Complex<f64>>::zeros((2 * lusize + 1, 2 * lusize + 1));
     let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
@@ -716,7 +716,7 @@ pub(crate) fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Com
 /// # Returns
 ///
 /// The $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ matrix.
-pub(crate) fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
+pub fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
     let mut mat = sh_c2r_mat(l, csphase, increasingm).t().to_owned();
     mat.par_mapv_inplace(|x| x.conj());
     mat
@@ -785,7 +785,7 @@ pub(crate) fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Com
 /// # Returns
 ///
 /// The $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ matrix.
-pub(crate) fn sh_cl2cart_mat(
+pub fn sh_cl2cart_mat(
     lcart: u32,
     l: u32,
     cartorder: &CartOrder,
@@ -871,7 +871,7 @@ pub(crate) fn sh_cl2cart_mat(
 /// # Returns
 ///
 /// The $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$ block.
-pub(crate) fn sh_cart2cl_mat(
+pub fn sh_cart2cl_mat(
     l: u32,
     lcart: u32,
     cartorder: &CartOrder,
@@ -960,7 +960,7 @@ pub(crate) fn sh_cart2cl_mat(
 /// # Returns
 ///
 /// The $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ matrix.
-pub(crate) fn sh_rl2cart_mat(
+pub fn sh_rl2cart_mat(
     lcart: u32,
     l: u32,
     cartorder: &CartOrder,
@@ -1040,7 +1040,7 @@ pub(crate) fn sh_rl2cart_mat(
 /// # Returns
 ///
 /// The $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ block.
-pub(crate) fn sh_cart2rl_mat(
+pub fn sh_cart2rl_mat(
     l: u32,
     lcart: u32,
     cartorder: &CartOrder,
@@ -1081,7 +1081,7 @@ pub(crate) fn sh_cart2rl_mat(
 /// A vector of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ matrices with
 /// $`l_{\mathrm{cart}} \ge l \ge 0`$ and $`l \equiv l_{\mathrm{cart}} \mod 2`$ in decreasing
 /// $`l`$ order.
-pub(crate) fn sh_r2cart(
+pub fn sh_r2cart(
     lcart: u32,
     cartorder: &CartOrder,
     csphase: bool,
@@ -1122,7 +1122,7 @@ pub(crate) fn sh_r2cart(
 /// A vector of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ matrices with
 /// $`l_{\mathrm{cart}} \ge l \ge 0`$ and $`l \equiv l_{\mathrm{cart}} \mod 2`$ in decreasing
 /// $`l`$ order.
-pub(crate) fn sh_cart2r(
+pub fn sh_cart2r(
     lcart: u32,
     cartorder: &CartOrder,
     csphase: bool,

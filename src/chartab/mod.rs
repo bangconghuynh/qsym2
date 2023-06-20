@@ -179,19 +179,19 @@ where
 
     /// The irreducible representations of the group and their row indices in the character
     /// table.
-    pub irreps: IndexMap<RowSymbol, usize>,
+    pub(crate) irreps: IndexMap<RowSymbol, usize>,
 
     /// The conjugacy classes of the group and their column indices in the character table.
-    pub classes: IndexMap<ColSymbol, usize>,
+    pub(crate) classes: IndexMap<ColSymbol, usize>,
 
     /// The principal conjugacy classes of the group.
     principal_classes: IndexSet<ColSymbol>,
 
     /// The characters of the irreducible representations in this group.
-    pub characters: Array2<Character>,
+    pub(crate) characters: Array2<Character>,
 
     /// The Frobenius--Schur indicators for the irreducible representations in this group.
-    pub frobenius_schurs: IndexMap<RowSymbol, i8>,
+    pub(crate) frobenius_schurs: IndexMap<RowSymbol, i8>,
 }
 
 impl<RowSymbol, ColSymbol> RepCharacterTable<RowSymbol, ColSymbol>
@@ -223,7 +223,7 @@ where
     /// # Panics
     ///
     /// Panics if the character table cannot be constructed.
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         irreps: &[RowSymbol],
         classes: &[ColSymbol],
@@ -398,8 +398,8 @@ where
                     approx::relative_eq!(
                         character.complex_value().im,
                         0.0,
-                        epsilon = character.threshold,
-                        max_relative = character.threshold
+                        epsilon = character.threshold(),
+                        max_relative = character.threshold()
                     )
                 });
                 character.get_numerical(real_only, precision)
@@ -660,23 +660,23 @@ where
 
     /// The character table of the irreducible representations of the halving unitary subgroup that
     /// induce the irreducible corepresentations of the current magnetic group.
-    pub unitary_character_table: UC,
+    pub(crate) unitary_character_table: UC,
 
     /// The irreducible corepresentations of the group and their row indices in the character
     /// table.
-    pub ircoreps: IndexMap<RowSymbol, usize>,
+    pub(crate) ircoreps: IndexMap<RowSymbol, usize>,
 
     /// The conjugacy classes of the group and their column indices in the character table.
-    pub classes: IndexMap<UC::ColSymbol, usize>,
+    classes: IndexMap<UC::ColSymbol, usize>,
 
     /// The principal conjugacy classes of the group.
     principal_classes: IndexSet<UC::ColSymbol>,
 
     /// The characters of the irreducible corepresentations in this group.
-    pub characters: Array2<Character>,
+    characters: Array2<Character>,
 
     /// The intertwining numbers of the irreducible corepresentations.
-    pub intertwining_numbers: IndexMap<RowSymbol, u8>,
+    pub(crate) intertwining_numbers: IndexMap<RowSymbol, u8>,
 }
 
 impl<RowSymbol, UC> CorepCharacterTable<RowSymbol, UC>
@@ -712,7 +712,7 @@ where
     /// # Panics
     ///
     /// Panics if the character table cannot be constructed.
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         unitary_chartab: UC,
         ircoreps: &[RowSymbol],
@@ -888,8 +888,8 @@ where
                     approx::relative_eq!(
                         character.complex_value().im,
                         0.0,
-                        epsilon = character.threshold,
-                        max_relative = character.threshold
+                        epsilon = character.threshold(),
+                        max_relative = character.threshold()
                     )
                 });
                 character.get_numerical(real_only, precision)

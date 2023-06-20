@@ -43,8 +43,8 @@ pub(crate) fn nice_bool(b: bool) -> String {
     if b { "yes".to_string() } else { "no".to_string() }
 }
 
-/// A trait for logging $`\mathsf{QSym}^2`$ outputs nicely.
-pub trait QSym2Output: fmt::Debug + fmt::Display {
+/// A trait for logging `QSym2` outputs nicely.
+pub(crate) trait QSym2Output: fmt::Debug + fmt::Display {
     /// Logs display output nicely.
     fn log_output_display(&self) {
         let lines = self.to_string();

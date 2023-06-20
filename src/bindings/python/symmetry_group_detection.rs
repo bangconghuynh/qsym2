@@ -13,7 +13,7 @@ use crate::drivers::QSym2Driver;
 /// A Python-exposed class to marshall molecular structure information between Rust and Python.
 #[pyclass]
 #[derive(Clone)]
-pub struct PyMolecule {
+pub(super) struct PyMolecule {
     /// The ordinary atoms in the molecule.
     #[pyo3(get)]
     atoms: Vec<(String, [f64; 3])>,

@@ -514,7 +514,8 @@ where
         DecomposedSymbolBuilder::<S>::default()
     }
 
-    /// Parses a string representing a decomposed symbol.
+    /// Parses a string representing a decomposed symbol. See [`Self::from_str`] for more
+    /// information.
     ///
     /// # Arguments
     ///

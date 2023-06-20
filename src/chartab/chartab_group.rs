@@ -631,7 +631,7 @@ where
     >,
     <<Self as HasUnitarySubgroup>::UnitarySubgroup as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
 {
-    /// Sets the irrep character table internally.
+    /// Sets the ircorep character table internally.
     fn set_ircorep_character_table(&mut self, chartab: Self::CharTab);
 
     /// Constructs the ircorep character table for this group.
@@ -639,6 +639,16 @@ where
     /// For each irrep in the unitary subgroup, the type of the ircorep it induces is determined
     /// using the Dimmock--Wheeler character test, then the ircorep's characters in the
     /// unitary-represented part of the full group are determined to give a square character table.
+    ///
+    /// # References
+    ///
+    /// * Bradley, C. J. & Davies, B. L. Magnetic Groups and Their Corepresentations. *Rev. Mod. Phys.* **40**, 359–379 (1968).
+    /// * Newmarch, J. D. & Golding, R. M. The character table for the corepresentations of magnetic groups. *J. Math. Phys.* **23**, 695–704 (1982).
+    /// * Newmarch, J. D. Some character theory for groups of linear and antilinear operators. *J. Math. Phys.* **24**, 742–756 (1983).
+    ///
+    /// # Panics
+    ///
+    /// Panics if any calculated ircoreps are found to be invalid.
     fn construct_ircorep_character_table(&mut self) {
         log::debug!("===============================================");
         log::debug!("Construction of ircorep character table begins.");
@@ -713,12 +723,12 @@ where
             approx::assert_relative_eq!(
                 char_sum_c128.im,
                 0.0,
-                max_relative = char_sum.threshold
+                max_relative = char_sum.threshold()
                     * unitary_order
                         .to_f64()
                         .expect("Unable to convert the unitary order to `f64`.")
                         .sqrt(),
-                epsilon = char_sum.threshold
+                epsilon = char_sum.threshold()
                     * unitary_order
                         .to_f64()
                         .expect("Unable to convert the unitary order to `f64`.")
@@ -727,12 +737,12 @@ where
             approx::assert_relative_eq!(
                 char_sum_c128.re,
                 char_sum_c128.re.round(),
-                max_relative = char_sum.threshold
+                max_relative = char_sum.threshold()
                     * unitary_order
                         .to_f64()
                         .expect("Unable to convert the unitary order to `f64`.")
                         .sqrt(),
-                epsilon = char_sum.threshold
+                epsilon = char_sum.threshold()
                     * unitary_order
                         .to_f64()
                         .expect("Unable to convert the unitary order to `f64`.")

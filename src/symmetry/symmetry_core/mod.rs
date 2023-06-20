@@ -53,12 +53,12 @@ pub struct PreSymmetry {
     #[builder(setter(custom))]
     pub recentred_molecule: Molecule,
 
-    /// The rotational symmetry of [`Self::molecule`] based on its moments of
+    /// The rotational symmetry of [`Self::recentred_molecule`] based on its moments of
     /// inertia.
     #[builder(setter(skip), default = "self.calc_rotational_symmetry()")]
     pub rotational_symmetry: RotationalSymmetry,
 
-    /// The groups of symmetry-equivalent atoms in [`Self::molecule`].
+    /// The groups of symmetry-equivalent atoms in [`Self::recentred_molecule`].
     #[builder(setter(skip), default = "self.calc_sea_groups()")]
     pub sea_groups: Vec<Vec<Atom>>,
 
