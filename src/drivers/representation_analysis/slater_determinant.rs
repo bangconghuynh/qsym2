@@ -14,8 +14,10 @@ use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::format::{log_subtitle, nice_bool, write_subtitle, write_title, QSym2Output};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
+use crate::drivers::representation_analysis::angular_function::{
+    find_angular_function_representation, AngularFunctionRepAnalysisParams,
+};
 use crate::drivers::representation_analysis::{log_bao, log_cc_transversal, CharacterTableDisplay};
-use crate::drivers::representation_analysis::angular_function::find_angular_function_representation;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
@@ -210,7 +212,11 @@ where
         writeln!(
             f,
             "> Group: {} ({})",
-            self.group.name(),
+            self.group
+                .finite_subgroup_name()
+                .map(|subgroup_name| format!("{} > {}", self.group.name(), subgroup_name))
+                .unwrap_or(self.group.name()),
+            // self.group.finite_subgroup_name().unwrap_or(&self.group.name()),
             self.group.group_type().to_string().to_lowercase()
         )?;
         writeln!(f)?;
@@ -372,6 +378,9 @@ where
     /// determinant.
     sao_spatial: &'a Array2<T>,
 
+    /// The control parameters for symmetry analysis of angular functions.
+    angular_function_parameters: &'a AngularFunctionRepAnalysisParams,
+
     /// The result of the Slater determinant representation analysis.
     #[builder(setter(skip), default = "None")]
     result: Option<SlaterDeterminantRepAnalysisResult<'a, G, T>>,
@@ -413,7 +422,8 @@ where
         if sym.is_infinite() && params.infinite_order_to_finite.is_none() {
             Err(
                 format!(
-                    "Molecule symmetrisation cannot be performed using the entirety of the infinite group `{}`. Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
+                    "Representation analysis cannot be performed using the entirety of the infinite group `{}`. \
+                    Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
                     sym.group_name.as_ref().expect("No target group name found.")
                 )
             )
@@ -558,7 +568,10 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
         let sao = self.construct_sao()?;
         let group = self.construct_unitary_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(&group, 3, 1e-7);
+        let _ = find_angular_function_representation(
+            &group,
+            self.angular_function_parameters,
+        );
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
@@ -659,7 +672,10 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
         let sao = self.construct_sao()?;
         let group = self.construct_unitary_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(&group, 3, 1e-7);
+        let _ = find_angular_function_representation(
+            &group,
+            self.angular_function_parameters,
+        );
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
@@ -835,7 +851,10 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
         let sao = self.construct_sao()?;
         let group = self.construct_magnetic_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(&group, 3, 1e-7);
+        let _ = find_angular_function_representation(
+            &group,
+            self.angular_function_parameters,
+        );
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
@@ -936,7 +955,10 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
         let sao = self.construct_sao()?;
         let group = self.construct_magnetic_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(&group, 3, 1e-7);
+        let _ = find_angular_function_representation(
+            &group,
+            self.angular_function_parameters,
+        );
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {

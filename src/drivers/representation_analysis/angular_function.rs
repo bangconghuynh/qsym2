@@ -1,4 +1,5 @@
-use anyhow;
+use anyhow::{self, format_err};
+use derive_builder::Builder;
 use nalgebra::Point3;
 use ndarray::{Array1, Array2};
 use num_complex::ComplexFloat;
@@ -20,11 +21,48 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::orbital::orbital_analysis::generate_det_mo_orbits;
 
+// ==================
+// Struct definitions
+// ==================
+
+// ----------
+// Parameters
+// ----------
+
+/// A structure containing control parameters for angular function representation analysis.
+#[derive(Clone, Builder, Debug)]
+pub struct AngularFunctionRepAnalysisParams {
+    /// Threshold for checking if subspace multiplicities are integral.
+    #[builder(default = "1e-7")]
+    integrality_threshold: f64,
+
+    /// Threshold for determining zero eigenvalues in the orbit overlap matrix.
+    #[builder(default = "1e-7")]
+    linear_independence_threshold: f64,
+
+    /// The maximum angular momentum degree to be analysed.
+    #[builder(default = "2")]
+    max_angular_momentum: u32,
+}
+
+impl AngularFunctionRepAnalysisParams {
+    /// Returns a builder to construct a [`AngularFunctionRepAnalysisParams`] structure.
+    pub fn builder() -> AngularFunctionRepAnalysisParamsBuilder {
+        AngularFunctionRepAnalysisParamsBuilder::default()
+    }
+}
+
+impl Default for AngularFunctionRepAnalysisParams {
+    fn default() -> Self {
+        Self::builder()
+            .build()
+            .expect("Unable to build as default `AngularFunctionRepAnalysisParams`.")
+    }
+}
 
 pub fn find_angular_function_representation<G>(
     group: &G,
-    lmax: u32,
-    thresh: f64,
+    params: &AngularFunctionRepAnalysisParams,
 ) -> Result<(), anyhow::Error>
 where
     G: SymmetryGroupProperties + Clone + Send + Sync,
@@ -36,6 +74,7 @@ where
         &[Atom::new_ordinary("H", Point3::origin(), &emap, 1e-13)],
         1e-13,
     );
+    let lmax = params.max_angular_momentum;
 
     let (pure_symss, cart_symss) = (0..=lmax).fold(
         (
@@ -68,10 +107,9 @@ where
                         .mol(&mol)
                         .coefficients(&cs)
                         .occupations(&occs)
-                        .threshold(thresh)
+                        .threshold(params.linear_independence_threshold)
                         .build()
-                        // .map_err(|err| format_err!(err))
-                        .ok()
+                        .map_err(|err| format_err!(err))
                         .and_then(|det| {
                             let mos = det.to_orbitals();
                             generate_det_mo_orbits(
@@ -79,17 +117,16 @@ where
                                 &mos,
                                 group,
                                 &sao,
-                                1e-13,
-                                1e-13,
+                                params.integrality_threshold,
+                                params.linear_independence_threshold,
                                 SymmetryTransformationKind::Spatial,
                             )
-                            .ok()
                             .map(|(_, mut mo_orbitss)| {
                                 mo_orbitss[0]
                                     .par_iter_mut()
                                     .map(|mo_orbit| {
                                         mo_orbit.calc_xmat(false);
-                                        mo_orbit.analyse_rep().ok()
+                                        mo_orbit.analyse_rep()
                                     })
                                     .collect::<Vec<_>>()
                             })
@@ -113,11 +150,11 @@ where
                         .map(|sym_opt| {
                             sym_opt
                                 .map(|sym| sym.to_string())
-                                .unwrap_or("--".to_string())
+                                .unwrap_or_else(|err| err.to_string())
                         })
                         .collect::<Vec<_>>()
                 })
-                .unwrap_or(vec!["--".to_string()])
+                .unwrap_or_else(|err| vec![err.to_string()])
         })
         .collect::<Vec<_>>();
     let cart_sym_strss = cart_symss
@@ -130,11 +167,11 @@ where
                         .map(|sym_opt| {
                             sym_opt
                                 .map(|sym| sym.to_string())
-                                .unwrap_or("--".to_string())
+                                .unwrap_or_else(|err| err.to_string())
                         })
                         .collect::<Vec<_>>()
                 })
-                .unwrap_or(vec!["--".to_string()])
+                .unwrap_or_else(|err| vec![err.to_string()])
         })
         .collect::<Vec<_>>();
 
@@ -156,7 +193,10 @@ where
     let _pure_width_m1 = pure_width - 1;
     let cart_width = usize::try_from(lmax)?.max(4);
 
-    log_subtitle("Space-fixed spatial angular function representations");
+    log_subtitle(&format!(
+        "Space-fixed spatial angular function symmetries in {}",
+        group.finite_subgroup_name().unwrap_or(&group.name())
+    ));
     log::info!(target: "qsym2-output", "");
     log::info!(
         target: "qsym2-output",

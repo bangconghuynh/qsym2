@@ -10,6 +10,7 @@ use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::angmom::ANGMOM_INDICES;
 use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::aux::molecule::Molecule;
+use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
@@ -451,7 +452,7 @@ pub(super) enum PySAO<'a> {
 /// * `write_character_table` - A boolean indicating if the character table of the prevailing
 /// symmetry group is to be printed out.
 #[pyfunction]
-#[pyo3(signature = (inp_sym, pydet, pybao, sao_spatial, integrality_threshold, linear_independence_threshold, use_magnetic_group, use_double_group, use_corepresentation, symmetry_transformation_kind, analyse_mo_symmetries=true, write_overlap_eigenvalues=true, write_character_table=true))]
+#[pyo3(signature = (inp_sym, pydet, pybao, sao_spatial, integrality_threshold, linear_independence_threshold, use_magnetic_group, use_double_group, use_corepresentation, symmetry_transformation_kind, analyse_mo_symmetries=true, write_overlap_eigenvalues=true, write_character_table=true, infinite_order_to_finite=None, angular_function_integrality_threshold=1e-7, angular_function_linear_independence_threshold=1e-7, angular_function_max_angular_momentum=2))]
 pub(super) fn rep_analyse_slater_determinant(
     inp_sym: String,
     pydet: PySlaterDeterminant,
@@ -466,6 +467,10 @@ pub(super) fn rep_analyse_slater_determinant(
     analyse_mo_symmetries: bool,
     write_overlap_eigenvalues: bool,
     write_character_table: bool,
+    infinite_order_to_finite: Option<u32>,
+    angular_function_integrality_threshold: f64,
+    angular_function_linear_independence_threshold: f64,
+    angular_function_max_angular_momentum: u32,
 ) -> PyResult<()> {
     let pd_res: SymmetryGroupDetectionResult = read_qsym2(&inp_sym, QSym2FileType::Sym)
         .map_err(|err| PyIOError::new_err(err.to_string()))?;
@@ -477,6 +482,12 @@ pub(super) fn rep_analyse_slater_determinant(
         symmetry_transformation_kind,
         SymmetryTransformationKind::Spin | SymmetryTransformationKind::SpinSpatial
     );
+    let afa_params = AngularFunctionRepAnalysisParams::builder()
+        .integrality_threshold(angular_function_integrality_threshold)
+        .linear_independence_threshold(angular_function_linear_independence_threshold)
+        .max_angular_momentum(angular_function_max_angular_momentum)
+        .build()
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
     match (&pydet, &sao_spatial) {
         (PySlaterDeterminant::Real(pydet_r), PySAO::Real(pysao_r)) => {
             let sao_spatial = pysao_r.to_owned_array();
@@ -503,6 +514,7 @@ pub(super) fn rep_analyse_slater_determinant(
                 } else {
                     None
                 })
+                .infinite_order_to_finite(infinite_order_to_finite)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
             if use_magnetic_group && use_corepresentation {
@@ -511,6 +523,7 @@ pub(super) fn rep_analyse_slater_determinant(
                     f64,
                 >::builder()
                 .parameters(&sda_params)
+                .angular_function_parameters(&afa_params)
                 .determinant(&det_r)
                 .sao_spatial(&sao_spatial)
                 .symmetry_group(&pd_res)
@@ -525,6 +538,7 @@ pub(super) fn rep_analyse_slater_determinant(
                     f64,
                 >::builder()
                 .parameters(&sda_params)
+                .angular_function_parameters(&afa_params)
                 .determinant(&det_r)
                 .sao_spatial(&sao_spatial)
                 .symmetry_group(&pd_res)
@@ -561,6 +575,7 @@ pub(super) fn rep_analyse_slater_determinant(
                 } else {
                     None
                 })
+                .infinite_order_to_finite(infinite_order_to_finite)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
             if use_magnetic_group && use_corepresentation {
@@ -569,6 +584,7 @@ pub(super) fn rep_analyse_slater_determinant(
                     C128,
                 >::builder()
                 .parameters(&sda_params)
+                .angular_function_parameters(&afa_params)
                 .determinant(&det_c)
                 .sao_spatial(&sao_spatial_c)
                 .symmetry_group(&pd_res)
@@ -583,6 +599,7 @@ pub(super) fn rep_analyse_slater_determinant(
                     C128,
                 >::builder()
                 .parameters(&sda_params)
+                .angular_function_parameters(&afa_params)
                 .determinant(&det_c)
                 .sao_spatial(&sao_spatial_c)
                 .symmetry_group(&pd_res)
@@ -625,6 +642,7 @@ pub(super) fn rep_analyse_slater_determinant(
                 } else {
                     None
                 })
+                .infinite_order_to_finite(infinite_order_to_finite)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
             if use_magnetic_group && use_corepresentation {
@@ -633,6 +651,7 @@ pub(super) fn rep_analyse_slater_determinant(
                     C128,
                 >::builder()
                 .parameters(&sda_params)
+                .angular_function_parameters(&afa_params)
                 .determinant(&det_c)
                 .sao_spatial(&sao_spatial_c)
                 .symmetry_group(&pd_res)
@@ -647,6 +666,7 @@ pub(super) fn rep_analyse_slater_determinant(
                     C128,
                 >::builder()
                 .parameters(&sda_params)
+                .angular_function_parameters(&afa_params)
                 .determinant(&det_c)
                 .sao_spatial(&sao_spatial_c)
                 .symmetry_group(&pd_res)

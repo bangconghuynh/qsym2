@@ -182,7 +182,8 @@ impl<'a> MoleculeSymmetrisationDriverBuilder<'a> {
         if sym.is_infinite() && params.infinite_order_to_finite.is_none() {
             Err(
                 format!(
-                    "Molecule symmetrisation cannot be performed using the entirety of the infinite group `{}`. Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
+                    "Molecule symmetrisation cannot be performed using the entirety of the infinite group `{}`. \
+                    Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
                     sym.group_name.as_ref().expect("No target group name found.")
                 )
             )

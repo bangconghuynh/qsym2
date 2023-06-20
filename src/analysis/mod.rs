@@ -2,7 +2,7 @@ use std::fmt;
 
 use anyhow;
 use itertools::Itertools;
-use ndarray::{s, Array, Array2, Dimension, Ix0, Ix2};
+use ndarray::{s, Array, Array2, Axis, Dimension, Ix0, Ix2};
 use ndarray_einsum_beta::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
 use num_complex::ComplexFloat;
@@ -244,6 +244,10 @@ where
     ///         = \langle \hat{\iota} \hat{g}_w \mathbf{v}_0, \hat{g} \hat{g}_x \mathbf{v}_0 \rangle.
     /// ```
     ///
+    /// This means that $`\mathbf{T}(g)`$ is just the orbit overlap matrix $`\mathbf{S}`$ with its
+    /// columns permuted according to the way $`g`$ composites on the elements in the group from
+    /// the left.
+    ///
     /// # Arguments
     ///
     /// * `op` - The element $`g`$ in the generating group.
@@ -260,21 +264,8 @@ where
         let i = self.group().get_index_of(op).unwrap_or_else(|| {
             panic!("Unable to retrieve the index of element `{op}` in the group.")
         });
-        let order = self.group().order();
-        let mut twx = Array2::<T>::zeros((order, order));
-        for x in 0..order {
-            let ix = ctb[(i, x)];
-            let ixinv = ctb
-                .slice(s![.., ix])
-                .iter()
-                .position(|&z| z == 0)
-                .unwrap_or_else(|| panic!("The inverse of element index `{ix}` cannot be found."));
-
-            for w in 0..order {
-                let ixinv_w = ctb[(ixinv, w)];
-                twx[(w, x)] = self.norm_preserving_scalar_map(ixinv)(self.smat()[(ixinv_w, 0)]);
-            }
-        }
+        let ix = ctb.slice(s![i, ..]).iter().cloned().collect::<Vec<_>>();
+        let twx = self.smat().select(Axis(1), &ix);
         twx
     }
 

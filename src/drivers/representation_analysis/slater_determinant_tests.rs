@@ -6,6 +6,7 @@ use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::drivers::representation_analysis::CharacterTableDisplay;
+use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
@@ -26,8 +27,11 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
+
+    let afa_params = AngularFunctionRepAnalysisParams::default();
+
     let pd_params = SymmetryGroupDetectionParams::builder()
         .moi_thresholds(&[1e-6])
         .distance_thresholds(&[1e-6])
@@ -142,6 +146,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     let mut sda_driver =
         SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
             .parameters(&sda_params)
+            .angular_function_parameters(&afa_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
             .symmetry_group(pd_res)
@@ -176,6 +181,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     let mut sda_driver =
         SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
             .parameters(&sda_params)
+            .angular_function_parameters(&afa_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
             .symmetry_group(pd_res)
@@ -211,6 +217,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     let mut sda_driver =
         SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
             .parameters(&sda_params)
+            .angular_function_parameters(&afa_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
             .symmetry_group(pd_res)
@@ -237,6 +244,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     let mut sda_driver =
         SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, C128>::builder()
             .parameters(&sda_params)
+            .angular_function_parameters(&afa_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
             .symmetry_group(pd_res)
@@ -263,6 +271,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     let mut sda_driver =
         SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, C128>::builder()
             .parameters(&sda_params)
+            .angular_function_parameters(&afa_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
             .symmetry_group(pd_res)
@@ -297,6 +306,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     let mut sda_driver =
         SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, C128>::builder()
             .parameters(&sda_params)
+            .angular_function_parameters(&afa_params)
             .determinant(&det_d3_cg)
             .sao_spatial(&sao_spatial)
             .symmetry_group(pd_res)
