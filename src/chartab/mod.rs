@@ -9,6 +9,7 @@ use indexmap::{IndexMap, IndexSet};
 use ndarray::{Array2, ArrayView1};
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{ToPrimitive, Zero};
+use rayon::prelude::*;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::chartab::character::Character;
@@ -518,10 +519,10 @@ where
 
 impl<RowSymbol, ColSymbol, T> SubspaceDecomposable<T> for RepCharacterTable<RowSymbol, ColSymbol>
 where
-    RowSymbol: LinearSpaceSymbol + PartialOrd,
-    ColSymbol: CollectionSymbol,
-    T: ComplexFloat,
-    <T as ComplexFloat>::Real: ToPrimitive,
+    RowSymbol: LinearSpaceSymbol + PartialOrd + Sync + Send,
+    ColSymbol: CollectionSymbol + Sync + Send,
+    T: ComplexFloat + Sync + Send,
+    <T as ComplexFloat>::Real: ToPrimitive + Sync + Send,
     for<'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
 {
     type Decomposition = DecomposedSymbol<RowSymbol>;
@@ -544,11 +545,11 @@ where
         assert_eq!(characters.len(), self.classes.len());
         let rep_syms: Result<Vec<Option<(RowSymbol, usize)>>, _> = self
             .irreps
-            .iter()
+            .par_iter()
             .map(|(irrep_symbol, &i)| {
                 let c = characters
-                    .iter()
-                    .try_fold(Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
+                    .par_iter()
+                    .try_fold(|| Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
                         let j = self.classes.get_index_of(*cc_symbol).ok_or(DecompositionError(
                             format!(
                                 "The conjugacy class `{cc_symbol}` cannot be found in this group."
@@ -563,7 +564,8 @@ where
                                 * self.characters[(i, j)].complex_conjugate().complex_value()
                                 * character
                         )
-                    })? / self.get_order().to_f64().ok_or(
+                    })
+                    .try_reduce(|| Complex::<f64>::zero(), |a, s| Ok(a + s))? / self.get_order().to_f64().ok_or(
                         DecompositionError("The group order cannot be converted to `f64`.".to_string())
                     )?;
 
@@ -615,10 +617,7 @@ where
 
         rep_syms.map(|syms| {
             DecomposedSymbol::<RowSymbol>::from_subspaces(
-                &syms
-                    .into_iter()
-                    .flatten()
-                    .collect::<Vec<_>>(),
+                &syms.into_iter().flatten().collect::<Vec<_>>(),
             )
         })
     }
@@ -1005,11 +1004,11 @@ where
 
 impl<RowSymbol, UC, T> SubspaceDecomposable<T> for CorepCharacterTable<RowSymbol, UC>
 where
-    RowSymbol: ReducibleLinearSpaceSymbol + PartialOrd,
-    UC: CharacterTable,
-    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
-    T: ComplexFloat,
-    <T as ComplexFloat>::Real: ToPrimitive,
+    RowSymbol: ReducibleLinearSpaceSymbol + PartialOrd + Sync + Send,
+    UC: CharacterTable + Sync + Send,
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned + Sync + Send,
+    T: ComplexFloat + Sync + Send,
+    <T as ComplexFloat>::Real: ToPrimitive + Sync + Send,
     for<'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
 {
     type Decomposition = DecomposedSymbol<RowSymbol>;
@@ -1032,11 +1031,11 @@ where
         assert_eq!(characters.len(), self.classes.len());
         let rep_syms: Result<Vec<Option<(RowSymbol, usize)>>, _> = self
             .ircoreps
-            .iter()
+            .par_iter()
             .map(|(ircorep_symbol, &i)| {
                 let c = characters
-                    .iter()
-                    .try_fold(Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
+                    .par_iter()
+                    .try_fold(|| Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
                         let j = self.classes.get_index_of(*cc_symbol).ok_or(DecompositionError(
                             format!(
                                 "The conjugacy class `{cc_symbol}` cannot be found in this group."
@@ -1051,7 +1050,8 @@ where
                                 * self.characters[(i, j)].complex_conjugate().complex_value()
                                 * character
                         )
-                    })? / (self.unitary_character_table.get_order().to_f64().ok_or(
+                    })
+                    .try_reduce(|| Complex::<f64>::zero(), |a, s| Ok(a + s))? / (self.unitary_character_table.get_order().to_f64().ok_or(
                         DecompositionError("The unitary subgroup order cannot be converted to `f64`.".to_string())
                     )? * self.intertwining_numbers.get(ircorep_symbol).and_then(|x| x.to_f64()).ok_or(
                         DecompositionError(
@@ -1109,10 +1109,7 @@ where
 
         rep_syms.map(|syms| {
             DecomposedSymbol::<RowSymbol>::from_subspaces(
-                &syms
-                    .into_iter()
-                    .flatten()
-                    .collect::<Vec<_>>(),
+                &syms.into_iter().flatten().collect::<Vec<_>>(),
             )
         })
     }
