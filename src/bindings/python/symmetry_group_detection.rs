@@ -9,9 +9,20 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
+#[allow(unused_imports)]
 use crate::io::QSym2FileType;
 
-/// A Python-exposed class to marshall molecular structure information between Rust and Python.
+/// A Python-exposed structure to marshall molecular structure information between Rust and Python.
+///
+/// # Constructor arguments
+///
+/// * `atoms` - The ordinary atoms in the molecule. Python type: `list[tuple[str, tuple[float,
+/// float, float]]]`.
+/// * `threshold` - Threshold for comparing molecules. Python type: `float`.
+/// * `magnetic_field` - An optional uniform external magnetic field. Python type:
+/// `Optional[tuple[float, float, float]]`.
+/// * `electric_field` - An optional uniform external electric field. Python type:
+/// `Optional[tuple[float, float, float]]`.
 #[pyclass]
 #[derive(Clone)]
 pub struct PyMolecule {
@@ -46,10 +57,13 @@ impl PyMolecule {
     ///
     /// # Arguments
     ///
-    /// * `atoms` - The ordinary atoms in the molecule.
-    /// * `threshold` - Threshold for comparing molecules.
-    /// * `magnetic_field` - An optional uniform external magnetic field.
-    /// * `electric_field` - An optional uniform external electric field.
+    /// * `atoms` - The ordinary atoms in the molecule. Python type: `list[tuple[str, tuple[float,
+    /// float, float]]]`.
+    /// * `threshold` - Threshold for comparing molecules. Python type: `float`.
+    /// * `magnetic_field` - An optional uniform external magnetic field. Python type:
+    /// `Optional[tuple[float, float, float]]`.
+    /// * `electric_field` - An optional uniform external electric field. Python type:
+    /// `Optional[tuple[float, float, float]]`.
     #[new]
     pub fn new(
         atoms: Vec<(String, [f64; 3])>,

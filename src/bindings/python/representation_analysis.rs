@@ -45,6 +45,26 @@ pub enum PyShellOrder {
 }
 
 /// A Python-exposed structure to marshal basis angular order information between Python and Rust.
+///
+/// # Constructor arguments
+///
+/// * `basis_atoms` - A vector of tuples, each of which provides information for one basis
+/// atom in the form `(element, basis_shells)`. Here:
+///   * `element` is a string giving the element symbol of the atom, and
+///   * `basis_shells` is a vector of tuples, each of which provides information for one basis
+///   shell on the atom in the form `(angmom, cart, order)`. Here:
+///     * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
+///     * `cart` is a boolean indicating if the functions in the shell are Cartesian (`true`)
+///     or pure / solid harmonics (`false`), and
+///     * `order` specifies how the functions in the shell are ordered:
+///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
+///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
+///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
+///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
+///       decreasing-$`m`$ order.
+///
+///   Python type:
+///   `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`.
 #[pyclass]
 pub struct PyBasisAngularOrder {
     /// A vector of basis atoms. Each item in the vector is a tuple consisting of an atomic symbol
@@ -64,6 +84,26 @@ pub struct PyBasisAngularOrder {
 #[pymethods]
 impl PyBasisAngularOrder {
     /// Constructs a new `PyBasisAngularOrder` structure.
+    ///
+    /// # Arguments
+    ///
+    /// * `basis_atoms` - A vector of tuples, each of which provides information for one basis
+    /// atom in the form `(element, basis_shells)`. Here:
+    ///   * `element` is a string giving the element symbol of the atom, and
+    ///   * `basis_shells` is a vector of tuples, each of which provides information for one basis
+    ///   shell on the atom in the form `(angmom, cart, order)`. Here:
+    ///     * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
+    ///     * `cart` is a boolean indicating if the functions in the shell are Cartesian (`true`)
+    ///     or pure / solid harmonics (`false`), and
+    ///     * `order` specifies how the functions in the shell are ordered:
+    ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
+    ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
+    ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
+    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
+    ///       decreasing-$`m`$ order.
+    ///
+    ///   Python type:
+    ///   `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`.
     #[new]
     fn new(basis_atoms: Vec<(String, Vec<(String, bool, PyShellOrder)>)>) -> Self {
         Self { basis_atoms }
@@ -173,6 +213,21 @@ impl From<PySpinConstraint> for SpinConstraint {
 
 /// A Python-exposed structure to marshall real Slater determinant information between Rust and
 /// Python.
+///
+/// # Constructor arguments
+///
+/// * `spin_constraint` - The spin constraint applied to the coefficients of the determinant.
+/// Python type: `PySpinConstraint`.
+/// * `complex_symmetric` - A boolean indicating if inner products involving this determinant
+/// are complex-symmetric. Python type: `bool`.
+/// * `coefficients` - The real coefficients for the molecular orbitals of this determinant.
+/// Python type: `list[numpy.2darray[float]]`.
+/// * `occupations` - The occupation patterns for the molecular orbitals. Python type:
+/// `list[numpy.1darray[float]]`.
+/// * `threshold` - The threshold for comparisons. Python type: `float`.
+/// * `mo_energies` - The optional real molecular orbital energies. Python type:
+/// `Optional[list[numpy.1darray[float]]]`.
+/// * `energy` - The optional real determinantal energy. Python type: `Optional[float]`.
 #[pyclass]
 #[derive(Clone)]
 pub struct PySlaterDeterminantReal {
@@ -307,6 +362,21 @@ impl PySlaterDeterminantReal {
 
 /// A Python-exposed structure to marshall complex Slater determinant information between Rust and
 /// Python.
+///
+/// # Constructor arguments
+///
+/// * `spin_constraint` - The spin constraint applied to the coefficients of the determinant.
+/// Python type: `PySpinConstraint`.
+/// * `complex_symmetric` - A boolean indicating if inner products involving this determinant
+/// are complex-symmetric. Python type: `bool`.
+/// * `coefficients` - The complex coefficients for the molecular orbitals of this determinant.
+/// Python type: `list[numpy.2darray[float]]`.
+/// * `occupations` - The occupation patterns for the molecular orbitals. Python type:
+/// `list[numpy.1darray[float]]`.
+/// * `threshold` - The threshold for comparisons. Python type: `float`.
+/// * `mo_energies` - The optional complex molecular orbital energies. Python type:
+/// `Optional[list[numpy.1darray[complex]]]`.
+/// * `energy` - The optional complex determinantal energy. Python type: `Optional[complex]`.
 #[pyclass]
 #[derive(Clone)]
 pub struct PySlaterDeterminantComplex {
