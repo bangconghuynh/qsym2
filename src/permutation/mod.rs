@@ -30,6 +30,7 @@ pub trait PermutableCollection
 where
     Self::Rank: PermutationRank,
 {
+    /// The type of the rank of the permutation.
     type Rank;
 
     /// Determines the permutation, if any, that maps `self` to `other`.
@@ -84,7 +85,9 @@ pub struct Permutation<T: PermutationRank> {
 }
 
 impl<T: PermutationRank> PermutationBuilder<T> {
-    fn image(&mut self, perm: Vec<T>) -> &mut Self {
+    /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$
+    /// where $`n`$ is [`Self::rank`], then this gives the result of the action.
+    pub fn image(&mut self, perm: Vec<T>) -> &mut Self {
         let mut uniq = HashSet::<T>::new();
         assert!(
             perm.iter().all(move |x| uniq.insert(*x)),
