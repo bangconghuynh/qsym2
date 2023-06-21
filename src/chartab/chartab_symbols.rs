@@ -133,14 +133,16 @@ where
     fn main(&self) -> String {
         self.subspaces()
             .iter()
-            .map(|(irrep, &mult)| format!(
-                "{}{irrep}",
-                if mult != 1 {
-                    mult.to_string()
-                } else {
-                    String::new()
-                }
-            ))
+            .map(|(irrep, &mult)| {
+                format!(
+                    "{}{irrep}",
+                    if mult != 1 {
+                        mult.to_string()
+                    } else {
+                        String::new()
+                    }
+                )
+            })
             .join(" ⊕ ")
     }
 
@@ -200,8 +202,9 @@ where
 // CollectionSymbol
 // ----------------
 
-/// A trait for symbols describing collections of objects.
+/// A trait for symbols describing collections of objects such as conjugacy classes.
 pub trait CollectionSymbol: MathematicalSymbol {
+    /// The type of the elements in the collection.
     type CollectionElement;
 
     /// Constructs a collection symbol from a string and one or more representative collection
@@ -209,8 +212,8 @@ pub trait CollectionSymbol: MathematicalSymbol {
     ///
     /// # Arguments
     ///
-    /// * `symstr` - A string to be parsed.
-    /// * `reps` - A vector of one or more representative collection elements.
+    /// * `symstr` - A string to be parsed. See [`GenericSymbol::from_str`] for more information.
+    /// * `reps` - An optional vector of one or more representative collection elements.
     ///
     /// # Errors
     ///
@@ -301,15 +304,17 @@ impl GenericSymbol {
     }
 
     /// Sets the main part of the symbol.
-    pub fn set_main(&mut self, main: &str) {
+    pub(crate) fn set_main(&mut self, main: &str) {
         self.main = main.to_string();
     }
 
-    pub fn set_presub(&mut self, presub: &str) {
+    /// Sets the pre-subscript part of the symbol.
+    pub(crate) fn set_presub(&mut self, presub: &str) {
         self.presub = presub.to_string();
     }
 
-    pub fn set_postsub(&mut self, postsub: &str) {
+    /// Sets the post-subscript part of the symbol.
+    pub(crate) fn set_postsub(&mut self, postsub: &str) {
         self.postsub = postsub.to_string();
     }
 }
@@ -497,7 +502,7 @@ impl Error for GenericSymbolParsingError {}
 // Trait implementation for DecomposedSymbol
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-/// A struct to handle Mulliken irreducible corepresentation symbols.
+/// A struct to handle symbols consisting of multiple sub-symbols.
 #[derive(Builder, Debug, Clone, Eq, Serialize, Deserialize)]
 pub struct DecomposedSymbol<S>
 where
@@ -669,7 +674,9 @@ where
 /// # Returns
 ///
 /// A vector of disambiguated symbols.
-pub fn disambiguate_linspace_symbols<S>(raw_symbols: impl Iterator<Item = S> + Clone) -> Vec<S>
+pub(crate) fn disambiguate_linspace_symbols<S>(
+    raw_symbols: impl Iterator<Item = S> + Clone,
+) -> Vec<S>
 where
     S: LinearSpaceSymbol,
 {
