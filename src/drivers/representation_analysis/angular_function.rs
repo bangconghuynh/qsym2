@@ -34,15 +34,15 @@ use crate::target::orbital::orbital_analysis::generate_det_mo_orbits;
 pub struct AngularFunctionRepAnalysisParams {
     /// Threshold for checking if subspace multiplicities are integral.
     #[builder(default = "1e-7")]
-    integrality_threshold: f64,
+    pub integrality_threshold: f64,
 
     /// Threshold for determining zero eigenvalues in the orbit overlap matrix.
     #[builder(default = "1e-7")]
-    linear_independence_threshold: f64,
+    pub linear_independence_threshold: f64,
 
     /// The maximum angular momentum degree to be analysed.
     #[builder(default = "2")]
-    max_angular_momentum: u32,
+    pub max_angular_momentum: u32,
 }
 
 impl AngularFunctionRepAnalysisParams {
@@ -60,7 +60,19 @@ impl Default for AngularFunctionRepAnalysisParams {
     }
 }
 
-pub fn find_angular_function_representation<G>(
+// =========
+// Functions
+// =========
+
+/// Determines the (co)representations of a group spanned by the angular functions (spherical/solid
+/// harmonics or Cartesian functions).
+///
+/// # Arguments
+///
+/// * `group` - A symmetry group.
+/// * `params` - A parameter structure controlling the determination of angular function
+/// symmetries.
+pub(crate) fn find_angular_function_representation<G>(
     group: &G,
     params: &AngularFunctionRepAnalysisParams,
 ) -> Result<(), anyhow::Error>

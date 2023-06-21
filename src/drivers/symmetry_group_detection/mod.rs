@@ -333,7 +333,7 @@ pub struct SymmetryGroupDetectionDriver<'a> {
 }
 
 impl<'a> SymmetryGroupDetectionDriver<'a> {
-    /// Returns a builder to construct a [`SymmetryGroupDetectionResult`] structure.
+    /// Returns a builder to construct a [`SymmetryGroupDetectionDriver`] structure.
     pub fn builder() -> SymmetryGroupDetectionDriverBuilder<'a> {
         SymmetryGroupDetectionDriverBuilder::default()
     }

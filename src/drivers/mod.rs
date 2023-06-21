@@ -8,7 +8,7 @@ pub mod molecule_symmetrisation;
 // Trait definitions
 // =================
 
-/// A trait for $`\mathsf{QSym}^2`$ drivers.
+/// A trait for `QSym2` drivers.
 pub trait QSym2Driver {
     /// The type of the successful outcome when executing the driver.
     type Outcome;

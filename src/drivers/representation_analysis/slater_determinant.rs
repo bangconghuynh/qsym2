@@ -49,38 +49,38 @@ where
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
     /// Threshold for checking if subspace multiplicities are integral.
-    integrality_threshold: <T as ComplexFloat>::Real,
+    pub integrality_threshold: <T as ComplexFloat>::Real,
 
     /// Threshold for determining zero eigenvalues in the orbit overlap matrix.
-    linear_independence_threshold: <T as ComplexFloat>::Real,
+    pub linear_independence_threshold: <T as ComplexFloat>::Real,
 
     /// Boolean indicating if molecular orbital symmetries are to be analysed alongside the overall
     /// determinantal symmetry.
-    analyse_mo_symmetries: bool,
+    pub analyse_mo_symmetries: bool,
 
     /// Boolean indicating if the magnetic group is to be used for symmetry analysis.
-    use_magnetic_group: bool,
+    pub use_magnetic_group: bool,
 
     /// Boolean indicating if the double group is to be used for symmetry analysis.
-    use_double_group: bool,
+    pub use_double_group: bool,
 
     /// The kind of symmetry transformation to be applied on the reference determinant to generate
     /// the orbit for symmetry analysis.
-    symmetry_transformation_kind: SymmetryTransformationKind,
+    pub symmetry_transformation_kind: SymmetryTransformationKind,
 
-    /// Boolean indicating if the character table of the group used for symmetry analysis is to be
+    /// Option indicating if the character table of the group used for symmetry analysis is to be
     /// printed out.
     #[builder(default = "Some(CharacterTableDisplay::Symbolic)")]
-    write_character_table: Option<CharacterTableDisplay>,
+    pub write_character_table: Option<CharacterTableDisplay>,
 
     /// Boolean indicating if the eigenvalues of the orbit overlap matrix are to be printed out.
     #[builder(default = "true")]
-    write_overlap_eigenvalues: bool,
+    pub write_overlap_eigenvalues: bool,
 
     /// The finite order to which any infinite-order symmetry element is reduced, so that a finite
     /// subgroup of an infinite group can be used for the symmetry analysis.
     #[builder(default = "None")]
-    infinite_order_to_finite: Option<u32>,
+    pub infinite_order_to_finite: Option<u32>,
 }
 
 impl<T> SlaterDeterminantRepAnalysisParams<T>
