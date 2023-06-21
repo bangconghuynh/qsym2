@@ -15,7 +15,7 @@ stages:
   - Unit Tests
 
 before_script:
-  - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin -Clink-dead-code"
+  - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin"
   - apt-get update
   - apt-get install gfortran build-essential -y
 
@@ -36,7 +36,7 @@ tarpaulin:
   coverage: '/^\d+.\d+% coverage/'
   script:
     - cargo install cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --release --all --engine llvm --no-dead-code --color always
+    - cargo tarpaulin -t 1800 --release --all --engine llvm --skip-clean --no-dead-code --color always
   only:
     - schedules
     - merge_requests
