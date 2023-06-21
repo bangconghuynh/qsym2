@@ -33,7 +33,7 @@ impl Symmetry {
     /// symmetry element will only be considered if its non-time-reversed version turns out to be
     /// not a symmetry element.
     #[allow(clippy::too_many_lines)]
-    pub fn analyse_asymmetric(
+    pub(super) fn analyse_asymmetric(
         &mut self,
         presym: &PreSymmetry,
         tr: bool,

@@ -18,7 +18,7 @@ impl Symmetry {
     /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
     /// symmetry element will only be considered if its non-time-reversed version turns out to be
     /// not a symmetry element.
-    pub fn analyse_linear(
+    pub(super) fn analyse_linear(
         &mut self,
         presym: &PreSymmetry,
         tr: bool,

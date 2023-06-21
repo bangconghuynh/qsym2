@@ -78,15 +78,15 @@ where
 /// A structure to manage permutation actions of a finite set.
 #[derive(Builder, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Permutation<T: PermutationRank> {
-    /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$
-    /// where $`n`$ is [`Self::rank`], then this gives the result of the action.
+    /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$,
+    /// then this gives the result of the action.
     #[builder(setter(custom))]
     image: Vec<T>,
 }
 
 impl<T: PermutationRank> PermutationBuilder<T> {
-    /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$
-    /// where $`n`$ is [`Self::rank`], then this gives the result of the action.
+    /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$,
+    /// then this gives the result of the action.
     pub fn image(&mut self, perm: Vec<T>) -> &mut Self {
         let mut uniq = HashSet::<T>::new();
         assert!(

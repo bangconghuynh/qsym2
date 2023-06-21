@@ -47,32 +47,35 @@ impl Error for PointGroupDetectionError {}
 pub struct PreSymmetry {
     /// The original molecule.
     #[builder(setter(custom))]
-    pub original_molecule: Molecule,
+    pub(crate) original_molecule: Molecule,
 
     /// The recentred molecule to be symmetry-analysed.
     #[builder(setter(custom))]
-    pub recentred_molecule: Molecule,
+    pub(crate) recentred_molecule: Molecule,
+
+    /// Threshold for relative comparisons of moments of inertia.
+    #[builder(setter(custom))]
+    pub(crate) moi_threshold: f64,
 
     /// The rotational symmetry of [`Self::recentred_molecule`] based on its moments of
     /// inertia.
     #[builder(setter(skip), default = "self.calc_rotational_symmetry()")]
-    pub rotational_symmetry: RotationalSymmetry,
+    pub(crate) rotational_symmetry: RotationalSymmetry,
 
     /// The groups of symmetry-equivalent atoms in [`Self::recentred_molecule`].
     #[builder(setter(skip), default = "self.calc_sea_groups()")]
-    pub sea_groups: Vec<Vec<Atom>>,
-
-    /// Threshold for relative comparisons of moments of inertia.
-    #[builder(setter(custom))]
-    pub moi_threshold: f64,
+    pub(crate) sea_groups: Vec<Vec<Atom>>,
 
     /// Threshold for relative distance comparisons.
     #[builder(setter(skip), default = "self.get_dist_threshold()")]
-    pub dist_threshold: f64,
+    pub(crate) dist_threshold: f64,
 }
 
 impl PreSymmetryBuilder {
     /// Initialises the molecule to be symmetry-analysed.
+    ///
+    /// The original molecule and a recentred copy of the molecule will be stored. The recentred
+    /// copy will be used for subsequent symmetry analyses.
     ///
     /// # Arguments
     ///
@@ -107,6 +110,7 @@ impl PreSymmetryBuilder {
         self
     }
 
+    /// Calculates the rotational symmetry of [`Self::recentred_molecule`].
     fn calc_rotational_symmetry(&self) -> RotationalSymmetry {
         let com = self
             .recentred_molecule
@@ -138,6 +142,7 @@ impl PreSymmetryBuilder {
         )
     }
 
+    /// Calculates the symmetry-equivalent groups of the atoms in [`Self::recentred_molecule`].
     fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
         self.recentred_molecule
             .as_ref()
@@ -145,6 +150,7 @@ impl PreSymmetryBuilder {
             .calc_sea_groups()
     }
 
+    /// Returns the distance threshold of [`Self::recentred_molecule`].
     fn get_dist_threshold(&self) -> f64 {
         self.recentred_molecule
             .as_ref()
@@ -160,12 +166,12 @@ impl PreSymmetry {
     ///
     /// A builder to construct a new pre-symmetry struct.
     #[must_use]
-    pub fn builder() -> PreSymmetryBuilder {
+    pub(crate) fn builder() -> PreSymmetryBuilder {
         PreSymmetryBuilder::default()
     }
 
     /// Checks for the existence of the proper symmetry element $`C_n`$  or $`\theta C_n`$ along
-    /// `axis` in `[Self::molecule]`.
+    /// `axis` in [`Self::recentred_molecule`].
     ///
     /// Non-time-reversed elements are always preferred.
     ///
@@ -180,7 +186,7 @@ impl PreSymmetry {
     /// # Returns
     ///
     /// An [`Option`] containing the proper kind if the $`C_n`$ or $`\theta C_n`$ element exists in
-    /// `[Self::molecule]`. If not, [`None`] is returned.
+    /// [`Self::recentred_molecule`]. If not, [`None`] is returned.
     #[allow(clippy::trivially_copy_pass_by_ref)]
     fn check_proper(
         &self,
@@ -210,7 +216,7 @@ impl PreSymmetry {
     }
 
     /// Checks for the existence of the improper symmetry element $`S_n`$, $`\dot{S}_n`$,
-    /// $`\theta S_n`$, or $`\theta \dot{S}_n`$ along `axis` in `[Self::molecule]`.
+    /// $`\theta S_n`$, or $`\theta \dot{S}_n`$ along `axis` in [`Self::recentred_molecule`].
     ///
     /// Non-time-reversed elements are always preferred.
     ///
@@ -227,7 +233,8 @@ impl PreSymmetry {
     /// # Returns
     ///
     /// An [`Option`] containing the improper kind if the $`S_n`$, $`\theta S_n`$, $`\theta S_n`$,
-    /// or $`\theta \dot{S}_n`$ element exists in `[Self::molecule]`. If not, [`None`] is returned.
+    /// or $`\theta \dot{S}_n`$ element exists in [`Self::recentred_molecule`]. If not, [`None`] is
+    /// returned.
     #[allow(clippy::trivially_copy_pass_by_ref)]
     fn check_improper(
         &self,
@@ -265,7 +272,7 @@ impl PreSymmetry {
     }
 }
 
-/// A struct for storing and managing symmetry analysis results.
+/// A structure for storing and managing symmetry analysis results.
 #[derive(Builder, Clone, Debug, Serialize, Deserialize)]
 pub struct Symmetry {
     /// The determined point group in Schönflies notation.
@@ -280,7 +287,8 @@ pub struct Symmetry {
     ///
     /// Note that for improper elements, the mirror-plane convention is preferred.
     #[builder(setter(skip), default = "HashMap::new()")]
-    pub elements: HashMap<SymmetryElementKind, HashMap<ElementOrder, IndexSet<SymmetryElement>>>,
+    pub(crate) elements:
+        HashMap<SymmetryElementKind, HashMap<ElementOrder, IndexSet<SymmetryElement>>>,
 
     /// The symmetry generators found.
     ///
@@ -290,7 +298,8 @@ pub struct Symmetry {
     ///
     /// Note that for improper generatrors, the mirror-plane convention is preferred.
     #[builder(setter(skip), default = "HashMap::new()")]
-    pub generators: HashMap<SymmetryElementKind, HashMap<ElementOrder, IndexSet<SymmetryElement>>>,
+    pub(crate) generators:
+        HashMap<SymmetryElementKind, HashMap<ElementOrder, IndexSet<SymmetryElement>>>,
 }
 
 impl Symmetry {
@@ -312,13 +321,14 @@ impl Symmetry {
             .expect("Unable to construct a `Symmetry` structure.")
     }
 
-    /// Performs point-group detection analysis.
+    /// Performs point-group detection analysis and populates the fields in this structure with the
+    /// results.
     ///
     /// # Arguments
     ///
     /// * `presym` - A pre-symmetry-analysis structure containing the molecule and its rotational
     /// symmetry required for point-group detection.
-    /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
+    /// * `tr` - A boolean indicating if time reversal should also be considered. A time-reversed
     /// symmetry element will only be considered if its non-time-reversed version turns out to be
     /// not a symmetry element.
     pub fn analyse(&mut self, presym: &PreSymmetry, tr: bool) -> Result<&mut Self, anyhow::Error> {
@@ -436,9 +446,11 @@ impl Symmetry {
     ///
     /// # Arguments
     ///
-    /// * order - The order of the proper symmetry element.
-    /// * axis - The axis of rotation of the proper symmetry element.
-    /// * generator - A flag indicating if this element should be added as a generator.
+    /// * `order` - The order of the proper symmetry element.
+    /// * `axis` - The axis of rotation of the proper symmetry element.
+    /// * `generator` - A boolean indicating if this element should be added as a generator.
+    /// * `threshold` - A threshold for element comparisons.
+    /// * `tr` - A boolean indicating if time reversal is to be considered.
     ///
     /// # Returns
     ///
@@ -548,13 +560,15 @@ impl Symmetry {
     ///
     /// # Arguments
     ///
-    /// * order - The order of the improper symmetry element in the convention
+    /// * `order` - The order of the improper symmetry element in the convention
     ///     specified by `kind`.
-    /// * axis - The axis of the improper symmetry element.
-    /// * generator - A flag indicating if this element should be added as a generator.
-    /// * kind - The convention in which the improper symmetry element is defined.
-    /// * sigma - An optional additional string indicating the type of mirror
+    /// * `axis` - The axis of the improper symmetry element.
+    /// * `generator` - A flag indicating if this element should be added as a generator.
+    /// * `kind` - The convention in which the improper symmetry element is defined.
+    /// * `sigma` - An optional additional string indicating the type of mirror
     ///     plane in the case the improper element is a mirror plane.
+    /// * `threshold` - A threshold for element comparisons.
+    /// * `tr` - A boolean indicating if time reversal is to be considered.
     ///
     /// # Returns
     ///
@@ -801,6 +815,10 @@ impl Symmetry {
     /// Obtains mirror-plane elements by their type (`"h"`, `"v"`, `"d"`, or `""`), including both
     /// time-reversed and non-time-reversed variants.
     ///
+    /// # Arguments
+    ///
+    /// * `sigma` - The mirror-plane type which is one of `"h"`, `"v"`, `"d"`, or `""`.
+    ///
     /// # Returns
     ///
     /// An option containing the set of the required mirror-plane element type, if exists. If not,
@@ -825,6 +843,10 @@ impl Symmetry {
 
     /// Obtains mirror-plane generators by their type (`"h"`, `"v"`, `"d"`, or `""`), including both
     /// time-reversed and non-time-reversed variants.
+    ///
+    /// # Arguments
+    ///
+    /// * `sigma` - The mirror-plane type which is one of `"h"`, `"v"`, `"d"`, or `""`.
     ///
     /// # Returns
     ///
@@ -1565,7 +1587,7 @@ impl Default for Symmetry {
     }
 }
 
-/// Locates all proper rotation elements present in [`PreSymmetry::molecule`]
+/// Locates all proper rotation elements present in [`PreSymmetry::recentred_molecule`]
 ///
 /// # Arguments
 ///
