@@ -122,7 +122,7 @@ impl SymmetryElementKind {
 #[derive(Clone, Hash, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum RotationGroup {
     /// Variant indicating that the proper part of the symmetry element generates rotations in
-    /// $`mathsf{SO}(3)`$.
+    /// $`\mathsf{SO}(3)`$.
     SO3,
 
     /// Variant indicating that the proper part of the symmetry element generates rotations in
@@ -134,13 +134,13 @@ pub enum RotationGroup {
 
 impl RotationGroup {
     /// Indicates if the rotation is in $`\mathsf{SU}(2)`$.
-    fn is_su2(&self) -> bool {
+    pub fn is_su2(&self) -> bool {
         matches!(self, RotationGroup::SU2(_))
     }
 
     /// Indicates if the rotation is in $`\mathsf{SU}(2)`$ and connected to the
     /// identity via a homotopy path of class 1.
-    fn is_su2_class_1(&self) -> bool {
+    pub fn is_su2_class_1(&self) -> bool {
         matches!(self, RotationGroup::SU2(false))
     }
 }
@@ -237,7 +237,7 @@ impl fmt::Display for SymmetryElementKind {
 ///
 /// where
 /// * $`n \in \mathbb{N}_{+}`$, $`k \in \mathbb{Z}/n\mathbb{Z}`$ such that
-/// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$,
+/// $`\lfloor -n/2 \rfloor < k \le \lfloor n/2 \rfloor`$,
 /// * $`\hat{\gamma}`$ is either the identity $`\hat{e}`$, the inversion operation $`\hat{i}`$, or
 /// a reflection operation $`\hat{\sigma}`$ perpendicular to the axis of rotation,
 /// * $`\hat{\alpha}`$ is either the identity $`\hat{e}`$, the complex conjugation $`\hat{K}`$, or
@@ -247,7 +247,7 @@ impl fmt::Display for SymmetryElementKind {
 /// element are given as follows:
 ///
 /// * the axis of rotation $`\hat{\mathbf{n}}`$ is given by the axis of $`\hat{C}_n^k`$,
-/// * the angle of rotation $`\phi = 2\pi k/n \in (-`pi, \pi],
+/// * the angle of rotation $`\phi = 2\pi k/n \in (-\pi, \pi]`$,
 /// * the improper contribution $`\hat{\gamma}`$,
 /// * the antiunitary contribution $`\hat{\alpha}`$.
 ///
@@ -266,14 +266,14 @@ impl fmt::Display for SymmetryElementKind {
 #[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct SymmetryElement {
     /// The rotational order $`n`$ of the proper rotation part of the symmetry element. This can be
-    /// finite or infinite, and will determine whether [`Self::raw_proper_power`] is `None` or
+    /// finite or infinite, and will determine whether the proper power is `None` or
     /// contains an integer value.
     #[builder(setter(name = "proper_order"))]
     raw_proper_order: ElementOrder,
 
     /// The power $`k \in \mathbb{Z}/n\mathbb{Z}`$ of the proper symmetry element such that
-    /// $`\lfloor -n/2 \rfloor` < k <= \lfloor n/2 \rfloor`$. This is only defined if
-    /// [`Self::proper_order`] is finite.
+    /// $`\lfloor -n/2 \rfloor < k <= \lfloor n/2 \rfloor`$. This is only defined if
+    /// the proper order is finite.
     #[builder(setter(custom, name = "proper_power"), default = "None")]
     raw_proper_power: Option<i32>,
 
@@ -300,11 +300,11 @@ pub struct SymmetryElement {
 
     /// An additional superscript for distinguishing symmetry elements.
     #[builder(default = "String::new()")]
-    pub additional_superscript: String,
+    pub(crate) additional_superscript: String,
 
     /// An additional subscript for distinguishing symmetry elements.
     #[builder(default = "String::new()")]
-    pub additional_subscript: String,
+    pub(crate) additional_subscript: String,
 
     /// The fraction $`k/n \in (-1/2, 1/2]`$ of the proper rotation, represented exactly
     /// for hashing and comparison purposes.
@@ -321,6 +321,12 @@ pub struct SymmetryElement {
 }
 
 impl SymmetryElementBuilder {
+    /// Sets the proper power of the element.
+    ///
+    /// # Arguments
+    ///
+    /// * `prop_pow` - A proper power to be set. This will be folded into the interval
+    /// $`(\lfloor -n/2 \rfloor, \lfloor n/2 \rfloor]`$.
     pub fn proper_power(&mut self, prop_pow: i32) -> &mut Self {
         let raw_proper_order = self
             .raw_proper_order
@@ -342,6 +348,13 @@ impl SymmetryElementBuilder {
         self
     }
 
+    /// Sets the proper rotation angle of the infinite-order element.
+    ///
+    /// # Arguments
+    ///
+    /// * `ang` - A proper rotation angle to be set. This will be folded into the interval
+    /// $`(-\pi, \pi]`$.
+    ///
     /// # Panics
     ///
     /// Panics when `self` is of finite order.
@@ -362,6 +375,40 @@ impl SymmetryElementBuilder {
                 Some(Some(normalised_rotation_angle))
             }
         };
+        self
+    }
+
+    /// Sets the raw axis of the element.
+    ///
+    /// # Arguments
+    ///
+    /// * `axs` - The raw axis which will be normalised.
+    pub fn raw_axis(&mut self, axs: Vector3<f64>) -> &mut Self {
+        let thresh = self.threshold.expect("Threshold value has not been set.");
+        if approx::relative_eq!(axs.norm(), 1.0, epsilon = thresh, max_relative = thresh) {
+            self.raw_axis = Some(axs);
+        } else {
+            log::warn!("Axis not normalised. Normalising...");
+            self.raw_axis = Some(axs.normalize());
+        }
+        self
+    }
+
+    /// Sets the comparison threshold of the element.
+    ///
+    /// # Arguments
+    ///
+    /// * `thresh` - The comparison threshold..
+    pub fn threshold(&mut self, thresh: f64) -> &mut Self {
+        if thresh >= 0.0 {
+            self.threshold = Some(thresh);
+        } else {
+            log::error!(
+                "Threshold value `{}` is invalid. Threshold must be non-negative.",
+                thresh
+            );
+            self.threshold = None;
+        }
         self
     }
 
@@ -427,30 +474,6 @@ impl SymmetryElementBuilder {
             }
             ElementOrder::Inf => self.proper_angle.unwrap_or(None),
         }
-    }
-
-    pub fn raw_axis(&mut self, axs: Vector3<f64>) -> &mut Self {
-        let thresh = self.threshold.expect("Threshold value has not been set.");
-        if approx::relative_eq!(axs.norm(), 1.0, epsilon = thresh, max_relative = thresh) {
-            self.raw_axis = Some(axs);
-        } else {
-            log::warn!("Axis not normalised. Normalising...");
-            self.raw_axis = Some(axs.normalize());
-        }
-        self
-    }
-
-    pub fn threshold(&mut self, thresh: f64) -> &mut Self {
-        if thresh >= 0.0 {
-            self.threshold = Some(thresh);
-        } else {
-            log::error!(
-                "Threshold value {} is invalid. Threshold must be non-negative.",
-                thresh
-            );
-            self.threshold = None;
-        }
-        self
     }
 }
 
