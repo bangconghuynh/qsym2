@@ -14,22 +14,30 @@ use crate::io::QSym2FileType;
 /// A Python-exposed class to marshall molecular structure information between Rust and Python.
 #[pyclass]
 #[derive(Clone)]
-pub(super) struct PyMolecule {
+pub struct PyMolecule {
     /// The ordinary atoms in the molecule.
+    ///
+    /// Python type: `list[tuple[str, tuple[float, float, float]]]`
     #[pyo3(get)]
-    atoms: Vec<(String, [f64; 3])>,
+    pub atoms: Vec<(String, [f64; 3])>,
 
     /// An optional uniform external magnetic field.
+    ///
+    /// Python type: `Optional[tuple[float, float, float]]`
     #[pyo3(get)]
-    magnetic_field: Option<[f64; 3]>,
+    pub magnetic_field: Option<[f64; 3]>,
 
     /// An optional uniform external electric field.
+    ///
+    /// Python type: `Optional[tuple[float, float, float]]`
     #[pyo3(get)]
-    electric_field: Option<[f64; 3]>,
+    pub electric_field: Option<[f64; 3]>,
 
     /// Threshold for comparing molecules.
+    ///
+    /// Python type: `float`
     #[pyo3(get)]
-    threshold: f64,
+    pub threshold: f64,
 }
 
 #[pymethods]
@@ -77,31 +85,34 @@ impl From<PyMolecule> for Molecule {
     }
 }
 
-/// A Python-exposed function to perform symmetry-group detection.
+/// A Python-exposed function to perform symmetry-group detection and log the result via the
+/// `qsym2-output` logger at the `INFO` level.
 ///
 /// # Arguments
 ///
 /// * `inp_xyz` - An optional string providing the path to an XYZ file containing the molecule to
-/// be analysed. Only one of `inp_xyz` or `inp_mol` can be specified.
+/// be analysed. Only one of `inp_xyz` or `inp_mol` can be specified. Python type: `Optional[str]`.
 /// * `inp_mol` - An optional `PyMolecule` structure containing the molecule to be analysed. Only
-/// one of `inp_xyz` or `inp_mol` can be specified.
+/// one of `inp_xyz` or `inp_mol` can be specified. Python type: `PyMolecule`.
 /// * `out_sym` - An optional name for the [`QSym2FileType::Sym`] file to be saved that contains
-/// the serialised results of the symmetry-group detection.
-/// * `moi_thresholds` - Thresholds for comparing moments of inertia.
-/// * `distance_thresholds` - Thresholds for comparing distances.
+/// the serialised results of the symmetry-group detection. Python type: `Optional[str]`.
+/// * `moi_thresholds` - Thresholds for comparing moments of inertia. Python type: `list[float]`.
+/// * `distance_thresholds` - Thresholds for comparing distances. Python type: `list[float]`.
 /// * `time_reversal` - A boolean indicating whether elements involving time reversal should also
-/// be considered.
+/// be considered. Python type: `bool`.
 /// * `write_symmetry_elements` - A boolean indicating if detected symmetry elements should be
-/// printed in the output.
-/// * `fictitious_magnetic_field` - An optional fictitious uniform external magnetic field.
-/// * `fictitious_electric_field` - An optional fictitious uniform external electric field.
+/// printed in the output. Python type: `bool`.
+/// * `fictitious_magnetic_field` - An optional fictitious uniform external magnetic field. Python
+/// type: `Optional[tuple[float, float, float]]`.
+/// * `fictitious_electric_field` - An optional fictitious uniform external electric field. Python
+/// type: `Optional[tuple[float, float, float]]`.
 ///
 /// # Errors
 ///
 /// Returns an error if any intermediate step in the symmetry-group detection procedure fails.
 #[pyfunction]
 #[pyo3(signature = (inp_xyz, inp_mol, out_sym, moi_thresholds, distance_thresholds, time_reversal, write_symmetry_elements=true, fictitious_magnetic_field=None, fictitious_electric_field=None))]
-pub(super) fn detect_symmetry_group(
+pub fn detect_symmetry_group(
     inp_xyz: Option<String>,
     inp_mol: Option<PyMolecule>,
     out_sym: Option<String>,

@@ -1,14 +1,14 @@
 use pyo3::prelude::*;
 
-mod molecule_symmetrisation;
-mod symmetry_group_detection;
-mod representation_analysis;
+pub mod molecule_symmetrisation;
+pub mod symmetry_group_detection;
+pub mod representation_analysis;
 
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
 /// A Python module for `QSym2` implemented in Rust.
 #[pymodule]
-fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
     m.add_function(wrap_pyfunction!(
         symmetry_group_detection::detect_symmetry_group,

@@ -11,39 +11,43 @@ use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::io::{read_qsym2, QSym2FileType};
 
-/// A Python-exposed function to perform molecule symmetrisation.
+/// A Python-exposed function to perform molecule symmetrisation and log the result via the
+/// `qsym2-output` logger at the `INFO` level.
 ///
 /// # Arguments
 ///
 /// * `inp_loose_sym` - A path to the [`QSym2FileType::Sym`] file containing the target
 /// symmetry-group detection results of a molecule at loose thresholds. The symmetrisation process
 /// will attempt to symmetrise this molecule to obtain the target symmetry group at tighter
-/// thresholds.
+/// thresholds. Python type: `str`.
 /// * `out_tight_sym` - An optional path for a [`QSym2FileType::Sym`] file to be saved that
 /// contains the symmetry-group detection results of the symmetrised molecule at the target tight
-/// thresholds.
-/// * `target_moi_threshold` - The target (tight) MoI threshold.
-/// * `target_distance_threshold` - The target (tight) distance threshold.
+/// thresholds. Python type: `Optional[str]`.
+/// * `target_moi_threshold` - The target (tight) MoI threshold. Python type: `float`.
+/// * `target_distance_threshold` - The target (tight) distance threshold. Python type: `float`.
 /// * `use_magnetic_group` - A boolean indicating if the magnetic group, if present, is to be used
-/// for the symmetrisation.
+/// for the symmetrisation. Python type: `bool`.
 /// * `reorientate_molecule` - A boolean indicating if the molecule is also reoriented to align its
-/// principal axes with the Cartesian axes.
-/// * `max_iterations` - The maximum number of iterations for the symmetrisation process.
-/// * `verbose` - The print-out level.
+/// principal axes with the Cartesian axes. Python type: `bool`.
+/// * `max_iterations` - The maximum number of iterations for the symmetrisation process. Python
+/// type: `int`.
+/// * `verbose` - The print-out level. Python type: `int`.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
 /// interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup
-/// will be used for the symmetrisation.
+/// will be used for the symmetrisation. Python type: `Optional[int]`.
 ///
 /// # Returns
 ///
 /// The symmetrised molecule.
+///
+/// Python type: `PyMolecule`
 ///
 /// # Errors
 ///
 /// Errors if any intermediate step in the symmetrisation procedure fails.
 #[pyfunction]
 #[pyo3(signature = (inp_loose_sym, out_tight_sym, target_moi_threshold, target_distance_threshold, use_magnetic_group, reorientate_molecule=true, max_iterations=10, verbose=0, infinite_order_to_finite=None))]
-pub(super) fn symmetrise_molecule(
+pub fn symmetrise_molecule(
     inp_loose_sym: String,
     out_tight_sym: Option<String>,
     target_moi_threshold: f64,

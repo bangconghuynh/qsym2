@@ -29,20 +29,24 @@ type C128 = Complex<f64>;
 /// A Python-exposed enumerated type to handle the `ShellOrder` union type `bool |
 /// Optional[list[tuple[int, int, int]]]` in Python.
 #[derive(FromPyObject)]
-pub(super) enum PyShellOrder {
+pub enum PyShellOrder {
     /// Variant for pure shell order. The associated boolean indicates if the functions are
     /// arranged in increasing-$`m`$ order.
+    ///
+    /// Python type: `bool`
     PureOrder(bool),
 
     /// Variant for Cartesian shell order. If the associated `Option` is `None`, the order will be
     /// taken to be lexicographic. Otherwise, the order will be as specified by the $`(x, y, z)`$
     /// exponent tuples.
+    ///
+    /// Python type: Optional[list[tuple[int, int, int]]]
     CartOrder(Option<Vec<(u32, u32, u32)>>),
 }
 
 /// A Python-exposed structure to marshal basis angular order information between Python and Rust.
 #[pyclass]
-pub(super) struct PyBasisAngularOrder {
+pub struct PyBasisAngularOrder {
     /// A vector of basis atoms. Each item in the vector is a tuple consisting of an atomic symbol
     /// and a vector of basis shell quartets whose components give:
     /// - the angular momentum symbol for the shell,
@@ -52,6 +56,8 @@ pub(super) struct PyBasisAngularOrder {
     ///   - or `Some(vec![[lx, ly, lz], ...])` to specify a custom Cartesian order.
     /// - if the shell is pure, then this is a boolean `increasingm` to indicate if the pure
     /// functions in the shell are arranged in increasing-$`m`$ order.
+    ///
+    /// Python type: `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`
     basis_atoms: Vec<(String, Vec<(String, bool, PyShellOrder)>)>,
 }
 
@@ -142,7 +148,7 @@ impl PyBasisAngularOrder {
 /// Python.
 #[pyclass]
 #[derive(Clone)]
-pub(super) enum PySpinConstraint {
+pub enum PySpinConstraint {
     /// Variant for restricted spin constraint. Only two spin spaces are exposed.
     Restricted,
 
@@ -169,26 +175,40 @@ impl From<PySpinConstraint> for SpinConstraint {
 /// Python.
 #[pyclass]
 #[derive(Clone)]
-pub(super) struct PySlaterDeterminantReal {
+pub struct PySlaterDeterminantReal {
     /// The spin constraint applied to the coefficients of the determinant.
+    ///
+    /// Python type: `PySpinConstraint`
     spin_constraint: PySpinConstraint,
 
     /// A boolean indicating if inner products involving this determinant are complex-symmetric.
+    ///
+    /// Python type: `bool`
     complex_symmetric: bool,
 
-    /// The real coefficients for the molecular orbitals of this determinant.
+    /// The real coefficien`bool`ts for the molecular orbitals of this determinant.
+    ///
+    /// Python type: `list[numpy.2darray[float]]`
     coefficients: Vec<Array2<f64>>,
 
     /// The occupation patterns for the molecular orbitals.
+    ///
+    /// Python type: `list[numpy.1darray[float]]`
     occupations: Vec<Array1<f64>>,
 
     /// The threshold for comparisons.
+    ///
+    /// Python type: `float`
     threshold: f64,
 
     /// The optional real molecular orbital energies.
+    ///
+    /// Python type: `Optional[list[numpy.1darray[float]]]`
     mo_energies: Option<Vec<Array1<f64>>>,
 
     /// The optional real determinantal energy.
+    ///
+    /// Python type: `Optional[float]`
     energy: Option<f64>,
 }
 
@@ -199,13 +219,17 @@ impl PySlaterDeterminantReal {
     /// # Arguments
     ///
     /// * `spin_constraint` - The spin constraint applied to the coefficients of the determinant.
+    /// Python type: `PySpinConstraint`.
     /// * `complex_symmetric` - A boolean indicating if inner products involving this determinant
-    /// are complex-symmetric.
+    /// are complex-symmetric. Python type: `bool`.
     /// * `coefficients` - The real coefficients for the molecular orbitals of this determinant.
-    /// * `occupations` - The occupation patterns for the molecular orbitals.
-    /// * `threshold` - The threshold for comparisons.
-    /// * `mo_energies` - The optional real molecular orbital energies.
-    /// * `energy` - The optional real determinantal energy.
+    /// Python type: `list[numpy.2darray[float]]`.
+    /// * `occupations` - The occupation patterns for the molecular orbitals. Python type:
+    /// `list[numpy.1darray[float]]`.
+    /// * `threshold` - The threshold for comparisons. Python type: `float`.
+    /// * `mo_energies` - The optional real molecular orbital energies. Python type:
+    /// `Optional[list[numpy.1darray[float]]]`.
+    /// * `energy` - The optional real determinantal energy. Python type: `Optional[float]`.
     #[new]
     fn new(
         spin_constraint: PySpinConstraint,
@@ -285,26 +309,40 @@ impl PySlaterDeterminantReal {
 /// Python.
 #[pyclass]
 #[derive(Clone)]
-pub(super) struct PySlaterDeterminantComplex {
+pub struct PySlaterDeterminantComplex {
     /// The spin constraint applied to the coefficients of the determinant.
+    ///
+    /// Python type: `PySpinConstraint`
     spin_constraint: PySpinConstraint,
 
     /// A boolean indicating if inner products involving this determinant are complex-symmetric.
+    ///
+    /// Python type: `bool`
     complex_symmetric: bool,
 
     /// The complex coefficients for the molecular orbitals of this determinant.
+    ///
+    /// Python type: `list[numpy.2darray[complex]]`
     coefficients: Vec<Array2<C128>>,
 
     /// The occupation patterns for the molecular orbitals.
+    ///
+    /// Python type: `list[numpy.1darray[float]]`
     occupations: Vec<Array1<f64>>,
 
     /// The threshold for comparisons.
+    ///
+    /// Python type: `float`
     threshold: f64,
 
     /// The optional complex molecular orbital energies.
+    ///
+    /// Python type: `Optional[list[numpy.1darray[complex]]]`
     mo_energies: Option<Vec<Array1<C128>>>,
 
     /// The optional complex determinantal energy.
+    ///
+    /// Python type: `Optional[complex]`
     energy: Option<C128>,
 }
 
@@ -315,13 +353,17 @@ impl PySlaterDeterminantComplex {
     /// # Arguments
     ///
     /// * `spin_constraint` - The spin constraint applied to the coefficients of the determinant.
+    /// Python type: `PySpinConstraint`.
     /// * `complex_symmetric` - A boolean indicating if inner products involving this determinant
-    /// are complex-symmetric.
+    /// are complex-symmetric. Python type: `bool`.
     /// * `coefficients` - The complex coefficients for the molecular orbitals of this determinant.
-    /// * `occupations` - The occupation patterns for the molecular orbitals.
-    /// * `threshold` - The threshold for comparisons.
-    /// * `mo_energies` - The optional complex molecular orbital energies.
-    /// * `energy` - The optional complex determinantal energy.
+    /// Python type: `list[numpy.2darray[float]]`.
+    /// * `occupations` - The occupation patterns for the molecular orbitals. Python type:
+    /// `list[numpy.1darray[float]]`.
+    /// * `threshold` - The threshold for comparisons. Python type: `float`.
+    /// * `mo_energies` - The optional complex molecular orbital energies. Python type:
+    /// `Optional[list[numpy.1darray[complex]]]`.
+    /// * `energy` - The optional complex determinantal energy. Python type: `Optional[complex]`.
     #[new]
     fn new(
         spin_constraint: PySpinConstraint,
@@ -400,7 +442,7 @@ impl PySlaterDeterminantComplex {
 /// A Python-exposed enumerated type to handle the union type
 /// `PySlaterDeterminantReal | PySlaterDeterminantComplex` in Python.
 #[derive(FromPyObject)]
-pub(super) enum PySlaterDeterminant {
+pub enum PySlaterDeterminant {
     /// Variant for real Python-exposed Slater determinant.
     Real(PySlaterDeterminantReal),
 
@@ -411,13 +453,13 @@ pub(super) enum PySlaterDeterminant {
 /// A Python-exposed enumerated type to handle the union type of numpy float arrays and numpy
 /// complex arrays in Python.
 #[derive(FromPyObject)]
-pub(super) enum PySAO<'a> {
+pub enum PySAO<'a> {
     Real(&'a PyArray2<f64>),
     Complex(&'a PyArray2<C128>),
 }
 
 /// A Python-exposed function to perform representation symmetry analysis for real and complex
-/// Slater determinants.
+/// Slater determinants and log the result via the `qsym2-output` logger at the `INFO` level.
 ///
 /// If `symmetry_transformation_kind` includes spin transformation, the provided determinant will
 /// be augmented to generalised spin constraint automatically.
@@ -426,34 +468,45 @@ pub(super) enum PySAO<'a> {
 ///
 /// * `inp_sym` - A path to the [`QSym2FileType::Sym`] file containing the symmetry-group detection
 /// result for the system. This will be used to construct abstract groups and character tables for
-/// representation analysis.
+/// representation analysis. Python type: `str`.
 /// * `pydet` - A Python-exposed Slater determinant whose coefficients are of type `float64` or
-/// `complex128`.
+/// `complex128`. Python type: `PySlaterDeterminantReal | PySlaterDeterminantComplex`
 /// * `sao_spatial` - The atomic-orbital overlap matrix whose elements are of type `float64` or
-/// `complex128`.
+/// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
-/// integral.
+/// integral. Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence
-/// subspace via the non-zero eigenvalues of the orbit overlap matrix.
+/// subspace via the non-zero eigenvalues of the orbit overlap matrix. Python type: `float`.
 /// * `use_magnetic_group` - A boolean indicating if any magnetic group present should be used for
-/// representation analysis. Otherwise, the unitary group will be used.
+/// representation analysis. Otherwise, the unitary group will be used. Python type: `bool`.
 /// * `use_double_group` - A boolean indicating if the double group of the prevailing symmetry
-/// group is to be used for representation analysis instead.
+/// group is to be used for representation analysis instead. Python type: `bool`.
 /// * `use_corepresentation` - A boolean indicating if corepresentations of magnetic groups are to
-/// be used for representation analysis instead of unitary representations.
+/// be used for representation analysis instead of unitary representations. Python type: `bool`.
 /// * `symmetry_transformation_kind` - An enumerated type indicating the type of symmetry
 /// transformations to be performed on the origin determinant to generate the orbit. If this
 /// contains spin transformation, the determinant will be augmented to generalised spin constraint
-/// automatically.
+/// automatically. Python type: `SymmetryTransformationKind`.
 /// * `analyse_mo_symmetries` - A boolean indicating if the symmetries of individual molecular
-/// orbitals are to be analysed.
+/// orbitals are to be analysed. Python type: `bool`.
 /// * `write_overlap_eigenvalues` - A boolean indicating if the eigenvalues of the determinant
-/// orbit overlap matrix are to be written to the output.
+/// orbit overlap matrix are to be written to the output. Python type: `bool`.
 /// * `write_character_table` - A boolean indicating if the character table of the prevailing
-/// symmetry group is to be printed out.
+/// symmetry group is to be printed out. Python type: `bool`.
+/// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
+/// interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup
+/// will be used for the symmetrisation. Python type: `Optional[int]`.
+/// * `angular_function_integrality_threshold` - The threshold for verifying if subspace
+/// multiplicities are integral for the symmetry analysis of angular functions. Python type:
+/// `float`.
+/// * `angular_function_linear_independence_threshold` - The threshold for determining the linear
+/// independence subspace via the non-zero eigenvalues of the orbit overlap matrix for the symmetry
+/// analysis of angular functions. Python type: `float`.
+/// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
+/// angular function symmetry analysis. Python type: `int`.
 #[pyfunction]
 #[pyo3(signature = (inp_sym, pydet, pybao, sao_spatial, integrality_threshold, linear_independence_threshold, use_magnetic_group, use_double_group, use_corepresentation, symmetry_transformation_kind, analyse_mo_symmetries=true, write_overlap_eigenvalues=true, write_character_table=true, infinite_order_to_finite=None, angular_function_integrality_threshold=1e-7, angular_function_linear_independence_threshold=1e-7, angular_function_max_angular_momentum=2))]
-pub(super) fn rep_analyse_slater_determinant(
+pub fn rep_analyse_slater_determinant(
     inp_sym: String,
     pydet: PySlaterDeterminant,
     pybao: &PyBasisAngularOrder,
