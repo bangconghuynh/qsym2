@@ -35,9 +35,8 @@ tarpaulin:
     - archon
   coverage: '/^\d+.\d+% coverage/'
   script:
-    - curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-    - cargo binstall -y cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --release --all --engine llvm --skip-clean --no-dead-code --color always
+    - cargo install cargo-tarpaulin
+    - cargo tarpaulin -t 1800 --release --all --engine llvm --no-dead-code --color always
   only:
     - schedules
     - merge_requests
