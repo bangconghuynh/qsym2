@@ -187,7 +187,7 @@ where
     /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix $`\mathbf{S}`$
     /// between the symmetry-equivalent Slater determinants in the orbit.
     ///
-    /// The resulting $`\mathbf{X}`$ is stored in the structure.
+    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
     ///
     /// # Arguments
     ///
@@ -230,7 +230,7 @@ where
     /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap matrix
     /// $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
     ///
-    /// The resulting $`\mathbf{X}`$ is stored in the structure.
+    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
     ///
     /// # Arguments
     ///

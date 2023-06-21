@@ -15,7 +15,7 @@ use crate::aux::molecule::Molecule;
 mod orbital_tests;
 
 pub mod orbital_analysis;
-pub mod orbital_transformation;
+mod orbital_transformation;
 
 // ==================
 // Struct definitions
@@ -175,7 +175,8 @@ where
         &self.spin_constraint
     }
 
-    /// Returns a shared reference to the [`BasisAngularOrder`].
+    /// Returns a shared reference to the [`BasisAngularOrder`] description of the basis in which
+    /// the orbital coefficients are written.
     pub fn bao(&self) -> &BasisAngularOrder {
         self.bao
     }

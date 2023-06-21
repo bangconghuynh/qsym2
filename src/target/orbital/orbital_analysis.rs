@@ -114,19 +114,19 @@ where
 
     /// The overlap matrix between the symmetry-equivalent molecular orbitals in the orbit.
     #[builder(setter(skip), default = "None")]
-    pub smat: Option<Array2<T>>,
+    smat: Option<Array2<T>>,
 
     /// The eigenvalues of the overlap matrix between the symmetry-equivalent Slater determinants in
     /// the orbit.
     #[builder(setter(skip), default = "None")]
-    pub smat_eigvals: Option<Array1<T>>,
+    smat_eigvals: Option<Array1<T>>,
 
     /// The $`\mathbf{X}`$ matrix for the overlap matrix between the symmetry-equivalent molecular
     /// orbitals in the orbit.
     ///
     /// See [`RepAnalysis::xmat`] for further information.
     #[builder(setter(skip), default = "None")]
-    pub xmat: Option<Array2<T>>,
+    xmat: Option<Array2<T>>,
 }
 
 // ----------------------------
@@ -139,6 +139,7 @@ where
     T: ComplexFloat + fmt::Debug + Lapack,
     MolecularOrbital<'a, T>: SymmetryTransformable,
 {
+    /// Returns a builder to construct a new [`MolecularOrbitalSymmetryOrbit`] structure.
     pub fn builder() -> MolecularOrbitalSymmetryOrbitBuilder<'a, G, T> {
         MolecularOrbitalSymmetryOrbitBuilder::default()
     }
@@ -152,6 +153,7 @@ where
     /// * `sym_kind` - The symmetry transformation kind.
     /// * `integrality_thresh` - The threshold of integrality check of multiplicity coefficients in
     /// each orbit.
+    /// * `linear_independence_thresh` - The threshold of linear independence for each orbit.
     ///
     /// # Returns
     ///
@@ -190,6 +192,8 @@ where
 {
     /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix $`\mathbf{S}`$
     /// between the symmetry-equivalent molecular orbitals in the orbit.
+    ///
+    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
     ///
     /// # Arguments
     ///
@@ -231,6 +235,8 @@ where
 {
     /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap matrix
     /// $`\mathbf{S}`$ between the symmetry-equivalent molecular orbitals in the orbit.
+    ///
+    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
     ///
     /// # Arguments
     ///
@@ -427,6 +433,31 @@ where
 // Functions
 // ---------
 
+/// Given an origin determinant, generates the determinant orbit and all molecular-orbital orbits
+/// in tandem while populating their $`\mathbf{S}`$ matrices at the same time.
+///
+/// The evaluation of the $`\mathbf{S}`$ matrix for the determinant orbit passes through
+/// intermediate values that can be used to populate the $`\mathbf{S}`$ matrices of the
+/// molecular-orbital orbits, so it saves time significantly to construct all orbits together.
+///
+/// # Arguments
+///
+/// * `det` - An origin determinant.
+/// * `mos` - The molecular orbitals of `det`.
+/// * `group` - An orbit-generating symmetry group.
+/// * `metric` - The metric of the basis in which the coefficients of `det` and `mos` are written.
+/// * `integrality_threshold` - The threshold of integrality check of multiplicity coefficients in
+/// each orbit.
+/// * `linear_independence_threshold` - The threshold of linear independence for each orbit.
+/// * `symmetry_transformation_kind` - The kind of symmetry transformation to be applied to the
+/// origin determinant.
+///
+/// # Returns
+///
+/// A tuple consisting of:
+/// - the determinant orbit, and
+/// - a vector of vectors of molecular-orbital orbits, where each element of the outer vector is
+/// for one spin space, and each element of an inner vector is for one molecular orbital.
 pub fn generate_det_mo_orbits<'a, G, T>(
     det: &'a SlaterDeterminant<'a, T>,
     mos: &'a [Vec<MolecularOrbital<'a, T>>],
