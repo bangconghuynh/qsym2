@@ -5,6 +5,7 @@ use derive_builder::Builder;
 use fraction::{self, ToPrimitive};
 use num::Complex;
 use num_traits::Pow;
+use serde::{Deserialize, Serialize};
 
 type F = fraction::GenericFraction<u32>;
 
@@ -16,12 +17,12 @@ mod unityroot_tests;
 ///
 /// Partial orders between roots of unity are based on their angular positions
 /// on the unit circle in the Argand diagram, with unity being the smallest.
-#[derive(Builder, Clone, PartialOrd, PartialEq, Eq, Hash)]
+#[derive(Builder, Clone, PartialOrd, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UnityRoot {
     /// The fraction $`k/n \in [0, 1)`$ of the unity root, represented exactly
     /// for hashing and comparison purposes.
     #[builder(setter(custom))]
-    pub fraction: F,
+    pub(crate) fraction: F,
 }
 
 impl UnityRootBuilder {
@@ -51,11 +52,15 @@ impl UnityRoot {
         UnityRootBuilder::default()
     }
 
-    /// Constructs a unity root from a non-negative index and order.
+    /// Constructs a unity root $`z`$ from a non-negative index $`k`$ and order $`n`$, where
+    ///
+    /// ```math
+    ///   z = e^{\frac{2k\pi i}{n}}.
+    /// ```
     ///
     /// # Returns
     ///
-    /// A unity root.
+    /// The required unity root.
     #[must_use]
     pub fn new(index: u32, order: u32) -> Self {
         Self::builder()
@@ -76,7 +81,7 @@ impl UnityRoot {
     }
 
     /// The index $`k`$ of the root $`z`$, *i.e.* $`z = e^{\frac{2k\pi i}{n}}`$
-    /// where $`k \in \mathbb{Z}/n\mathbb{Z}`$
+    /// where $`k \in \mathbb{Z}/n\mathbb{Z}`$.
     ///
     /// # Returns
     ///

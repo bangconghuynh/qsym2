@@ -40,7 +40,7 @@ fn test_chartab_reduction_vf6_oh() {
                         (
                             cc_symbol,
                             chartab
-                                .get_character(&test_irrep, cc_symbol)
+                                .get_character(test_irrep, cc_symbol)
                                 .complex_value(),
                         )
                     })
@@ -317,7 +317,7 @@ fn test_chartab_reduction_vf6_oh_double() {
         ((&t2u, &ep2g), vec![(ep1u.clone(), 1), (gpu.clone(), 1)]),
         (
             (&t2u, &gpg),
-            vec![(ep1u.clone(), 1), (ep2u.clone(), 1), (gpu.clone(), 2)],
+            vec![(ep1u, 1), (ep2u, 1), (gpu, 2)],
         ),
         ((&ep1g, &ep1g), vec![(a1g.clone(), 1), (t1g.clone(), 1)]),
         ((&ep1g, &ep2g), vec![(a2g.clone(), 1), (t2g.clone(), 1)]),
@@ -490,7 +490,7 @@ fn test_chartab_reduction_bf3_magnetic_field_bw_d3h_c3h() {
                             (
                                 cc_symbol,
                                 ircorep_chartab
-                                    .get_character(&test_ircorep, cc_symbol)
+                                    .get_character(test_ircorep, cc_symbol)
                                     .complex_value(),
                             )
                         })
@@ -519,10 +519,10 @@ fn test_chartab_reduction_bf3_magnetic_field_bw_d3h_c3h() {
                             (
                                 cc_symbol,
                                 ircorep_chartab
-                                    .get_character(&test_ircorep_i, cc_symbol)
+                                    .get_character(test_ircorep_i, cc_symbol)
                                     .complex_value()
                                     + ircorep_chartab
-                                        .get_character(&test_ircorep_j, cc_symbol)
+                                        .get_character(test_ircorep_j, cc_symbol)
                                         .complex_value(),
                             )
                         })
@@ -550,7 +550,7 @@ fn test_chartab_reduction_h8_alt_x_magnetic_field_bw_c4h_c2h() {
         .atoms
         .iter()
         .enumerate()
-        .map(|(i, atom)| {
+        .flat_map(|(i, atom)| {
             let direction_id = i.div_euclid(2);
             [
                 Atom::new_special(
@@ -575,7 +575,6 @@ fn test_chartab_reduction_h8_alt_x_magnetic_field_bw_c4h_c2h() {
                 .expect("Unable to construct a special magnetic atom."),
             ]
         })
-        .flatten()
         .collect();
     mol.magnetic_atoms = Some(magnetic_atoms);
     let presym = PreSymmetry::builder()
@@ -602,7 +601,7 @@ fn test_chartab_reduction_h8_alt_x_magnetic_field_bw_c4h_c2h() {
                             (
                                 cc_symbol,
                                 ircorep_chartab
-                                    .get_character(&test_ircorep, cc_symbol)
+                                    .get_character(test_ircorep, cc_symbol)
                                     .complex_value(),
                             )
                         })
@@ -631,10 +630,10 @@ fn test_chartab_reduction_h8_alt_x_magnetic_field_bw_c4h_c2h() {
                             (
                                 cc_symbol,
                                 ircorep_chartab
-                                    .get_character(&test_ircorep_i, cc_symbol)
+                                    .get_character(test_ircorep_i, cc_symbol)
                                     .complex_value()
                                     + ircorep_chartab
-                                        .get_character(&test_ircorep_j, cc_symbol)
+                                        .get_character(test_ircorep_j, cc_symbol)
                                         .complex_value(),
                             )
                         })

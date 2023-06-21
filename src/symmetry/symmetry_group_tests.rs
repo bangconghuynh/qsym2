@@ -1388,7 +1388,7 @@ fn test_ur_group_linear_atom_magnetic_field_cinfh() {
                 n as u32,
                 thresh,
                 "C∞h",
-                format!("C{}h", n).as_str(),
+                format!("C{n}h").as_str(),
                 2 * n,
                 2 * n,
                 true,
@@ -1429,7 +1429,7 @@ fn test_ur_group_linear_atom_magnetic_field_bw_dinfh_cinfh() {
                 n as u32,
                 thresh,
                 "D∞h",
-                format!("D{}h", n).as_str(),
+                format!("D{n}h").as_str(),
                 4 * n,
                 2 * (n / 2 - 1 + 4),
                 n == 2,
@@ -1468,7 +1468,7 @@ fn test_ur_group_linear_atom_electric_field_cinfv() {
             n as u32,
             thresh,
             "C∞v",
-            format!("C{}v", n).as_str(),
+            format!("C{n}v").as_str(),
             2 * n,
             ({
                 if n % 2 == 0 {
@@ -1507,7 +1507,7 @@ fn test_ur_group_linear_c2h2_dinfh() {
                 n as u32,
                 thresh,
                 "D∞h",
-                format!("D{}h", n).as_str(),
+                format!("D{n}h").as_str(),
                 4 * n,
                 2 * (n / 2 - 1 + 4),
                 false,
@@ -1546,7 +1546,7 @@ fn test_ur_group_linear_c2h2_grey_dinfh() {
                 n as u32,
                 thresh,
                 "D∞h + θ·D∞h",
-                format!("D{}h + θ·D{}h", n, n).as_str(),
+                format!("D{n}h + θ·D{n}h").as_str(),
                 8 * n,
                 4 * (n / 2 - 1 + 4),
                 false,
@@ -1582,7 +1582,7 @@ fn test_ur_group_linear_c2h2_magnetic_field_cinfh() {
                 n as u32,
                 thresh,
                 "C∞h",
-                format!("C{}h", n).as_str(),
+                format!("C{n}h").as_str(),
                 2 * n,
                 2 * n,
                 true,
@@ -1623,7 +1623,7 @@ fn test_ur_group_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
                 n as u32,
                 thresh,
                 "D∞h",
-                format!("D{}h", n).as_str(),
+                format!("D{n}h").as_str(),
                 4 * n,
                 2 * (n / 2 - 1 + 4),
                 n == 2,
@@ -1659,7 +1659,7 @@ fn test_ur_group_linear_c2h2_electric_field_cinfv() {
             n as u32,
             thresh,
             "C∞v",
-            format!("C{}v", n).as_str(),
+            format!("C{n}v").as_str(),
             2 * n,
             ({
                 if n % 2 == 0 {
@@ -1693,7 +1693,7 @@ fn test_ur_group_linear_c2h2_electric_field_grey_cinfv() {
             n as u32,
             thresh,
             "C∞v + θ·C∞v",
-            format!("C{}v + θ·C{}v", n, n).as_str(),
+            format!("C{n}v + θ·C{n}v").as_str(),
             4 * n,
             2 * ({
                 if n % 2 == 0 {
@@ -1725,7 +1725,7 @@ fn test_ur_group_linear_n3_cinfv() {
             n as u32,
             thresh,
             "C∞v",
-            format!("C{}v", n).as_str(),
+            format!("C{n}v").as_str(),
             2 * n,
             ({
                 if n % 2 == 0 {
@@ -1756,7 +1756,7 @@ fn test_ur_group_linear_n3_grey_cinfv() {
             n as u32,
             thresh,
             "C∞v + θ·C∞v",
-            format!("C{}v + θ·C{}v", n, n).as_str(),
+            format!("C{n}v + θ·C{n}v").as_str(),
             4 * n,
             2 * ({
                 if n % 2 == 0 {
@@ -1791,7 +1791,7 @@ fn test_ur_group_linear_n3_magnetic_field_cinf() {
             n as u32,
             thresh,
             "C∞",
-            format!("C{}", n).as_str(),
+            format!("C{n}").as_str(),
             n,
             n,
             true,
@@ -1813,7 +1813,7 @@ fn test_ur_group_linear_n3_magnetic_field_bw_cinfv_cinf() {
             n as u32,
             thresh,
             "C∞v",
-            format!("C{}v", n).as_str(),
+            format!("C{n}v").as_str(),
             2 * n,
             ({
                 if n % 2 == 0 {
@@ -1848,7 +1848,7 @@ fn test_ur_group_linear_n3_electric_field_cinfv() {
             n as u32,
             thresh,
             "C∞v",
-            format!("C{}v", n).as_str(),
+            format!("C{n}v").as_str(),
             2 * n,
             ({
                 if n % 2 == 0 {
@@ -1882,7 +1882,7 @@ fn test_ur_group_linear_n3_electric_field_grey_cinfv() {
             n as u32,
             thresh,
             "C∞v + θ·C∞v",
-            format!("C{}v + θ·C{}v", n, n).as_str(),
+            format!("C{n}v + θ·C{n}v").as_str(),
             4 * n,
             2 * ({
                 if n % 2 == 0 {
@@ -2244,7 +2244,7 @@ fn test_ur_group_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
         test_ur_ordinary_group(
             &mol,
             thresh,
-            format!("C{}", n).as_str(),
+            format!("C{n}").as_str(),
             n as usize,
             n as usize,
             true,
@@ -2261,7 +2261,7 @@ fn test_ur_group_symmetric_arbitrary_half_sandwich_magnetic_field_bw_cnv_cn() {
         test_ur_magnetic_group(
             &mol,
             thresh,
-            format!("C{}v", n).as_str(),
+            format!("C{n}v").as_str(),
             2 * n as usize,
             ({
                 if n % 2 == 0 {
@@ -3287,7 +3287,7 @@ fn test_ur_group_symmetric_arbitrary_half_sandwich_cnv() {
         test_ur_ordinary_group(
             &mol,
             thresh,
-            format!("C{}v", n).as_str(),
+            format!("C{n}v").as_str(),
             2 * n as usize,
             ({
                 if n % 2 == 0 {
@@ -3320,7 +3320,7 @@ fn test_ur_group_symmetric_arbitrary_half_sandwich_grey_cnv() {
         test_ur_magnetic_group(
             &mol,
             thresh,
-            format!("C{}v + θ·C{}v", n, n).as_str(),
+            format!("C{n}v + θ·C{n}v").as_str(),
             4 * n as usize,
             2 * ({
                 if n % 2 == 0 {
@@ -3355,7 +3355,7 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_electric_field_cnv() {
         test_ur_ordinary_group(
             &mol,
             thresh,
-            format!("C{}v", n).as_str(),
+            format!("C{n}v").as_str(),
             2 * n as usize,
             ({
                 if n % 2 == 0 {
@@ -3389,7 +3389,7 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_electric_field_grey_cnv(
         test_ur_magnetic_group(
             &mol,
             thresh,
-            format!("C{}v + θ·C{}v", n, n).as_str(),
+            format!("C{n}v + θ·C{n}v").as_str(),
             4 * n as usize,
             2 * ({
                 if n % 2 == 0 {
@@ -4077,7 +4077,7 @@ fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
         test_ur_ordinary_group(
             &mol,
             thresh,
-            format!("C{}h", n).as_str(),
+            format!("C{n}h").as_str(),
             2 * n as usize,
             2 * n as usize,
             true,
@@ -4095,7 +4095,7 @@ fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_bw_dnh_cnh
         test_ur_magnetic_group(
             &mol,
             thresh,
-            format!("D{}h", n).as_str(),
+            format!("D{n}h").as_str(),
             4 * n as usize,
             2 * ({
                 if n % 2 == 0 {
@@ -4631,7 +4631,7 @@ fn test_ur_group_symmetric_arbitrary_twisted_sandwich_dn() {
         test_ur_ordinary_group(
             &mol,
             thresh,
-            format!("D{}", n).as_str(),
+            format!("D{n}").as_str(),
             2 * n as usize,
             ({
                 if n % 2 == 0 {
@@ -4664,7 +4664,7 @@ fn test_ur_group_symmetric_arbitrary_twisted_sandwich_grey_dn() {
         test_ur_magnetic_group(
             &mol,
             thresh,
-            format!("D{} + θ·D{}", n, n).as_str(),
+            format!("D{n} + θ·D{n}").as_str(),
             4 * n as usize,
             2 * ({
                 if n % 2 == 0 {
@@ -5316,7 +5316,7 @@ fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_dnh() {
         test_ur_ordinary_group(
             &mol,
             thresh,
-            format!("D{}h", n).as_str(),
+            format!("D{n}h").as_str(),
             4 * n as usize,
             2 * ({
                 if n % 2 == 0 {
@@ -5351,7 +5351,7 @@ fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_grey_dnh() {
         test_ur_magnetic_group(
             &mol,
             thresh,
-            format!("D{}h + θ·D{}h", n, n).as_str(),
+            format!("D{n}h + θ·D{n}h").as_str(),
             8 * n as usize,
             4 * ({
                 if n % 2 == 0 {
@@ -6358,7 +6358,7 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_dnd() {
         test_ur_ordinary_group(
             &mol,
             thresh,
-            format!("D{}d", n).as_str(),
+            format!("D{n}d").as_str(),
             4 * n as usize,
             (4 + n - 1) as usize,
             false,
@@ -6374,7 +6374,7 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_grey_dnd() {
         test_ur_magnetic_group(
             &mol,
             thresh,
-            format!("D{}d + θ·D{}d", n, n).as_str(),
+            format!("D{n}d + θ·D{n}d").as_str(),
             8 * n as usize,
             2 * (4 + n - 1) as usize,
             false,
@@ -7464,7 +7464,7 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd_s2
         test_ur_magnetic_group(
             &mol,
             thresh,
-            format!("D{}d", n).as_str(),
+            format!("D{n}d").as_str(),
             4 * n as usize,
             (4 + n - 1) as usize,
             false,

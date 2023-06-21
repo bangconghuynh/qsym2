@@ -5,7 +5,10 @@ use std::process;
 
 use log;
 use nalgebra::{DVector, Matrix3, Point3, Vector3};
+use ndarray::{Array2, ShapeBuilder};
+use ndarray_linalg::{Eigh, UPLO};
 use num_traits::ToPrimitive;
+use serde::{Deserialize, Serialize};
 
 use crate::aux::atom::{Atom, AtomKind, ElementMap};
 use crate::aux::geometry::{self, ImproperRotationKind, Transform};
@@ -24,15 +27,15 @@ mod molecule_tests;
 // ==================
 
 /// A struct containing the atoms constituting a molecule.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Molecule {
     /// The atoms constituting this molecule.
     pub atoms: Vec<Atom>,
 
-    /// Optional special atom to represent the electric field applied to this molecule.
+    /// Optional special atom to represent the electric fields applied to this molecule.
     pub electric_atoms: Option<Vec<Atom>>,
 
-    /// Optional special atoms to represent the magnetic field applied to this molecule.
+    /// Optional special atoms to represent the magnetic fields applied to this molecule.
     pub magnetic_atoms: Option<Vec<Atom>>,
 
     /// A threshold for approximate equality comparisons.
@@ -48,7 +51,7 @@ impl Molecule {
     ///
     /// # Returns
     ///
-    /// The parsed [`Molecule`] struct.
+    /// The parsed [`Molecule`] structure.
     ///
     /// # Panics
     ///
@@ -292,9 +295,23 @@ impl Molecule {
     /// Panics when any of the moments of inertia cannot be compared.
     #[must_use]
     pub fn calc_moi(&self) -> ([f64; 3], [Vector3<f64>; 3]) {
-        let inertia_eig = self.calc_inertia_tensor(&self.calc_com()).symmetric_eigen();
-        let eigenvalues: Vec<f64> = inertia_eig.eigenvalues.iter().copied().collect();
-        let eigenvectors: Vec<_> = inertia_eig.eigenvectors.column_iter().collect();
+        let inertia_tensor = Array2::from_shape_vec(
+            (3, 3).f(),
+            self.calc_inertia_tensor(&self.calc_com())
+                .into_iter()
+                .copied()
+                .collect::<Vec<_>>(),
+        )
+        .expect("Unable to construct the inertia tensor.");
+        let (eigvals, eigvecs) = inertia_tensor
+            .eigh(UPLO::Lower)
+            .expect("Unable to diagonalise the inertia tensor.");
+        let eigenvalues: Vec<f64> = eigvals.into_iter().collect::<Vec<_>>();
+        let eigenvectors = eigvecs
+            .columns()
+            .into_iter()
+            .map(|col| Vector3::from_iterator(col.into_owned()))
+            .collect::<Vec<_>>();
         let mut eigen_tuple: Vec<(f64, _)> = eigenvalues
             .iter()
             .copied()
@@ -638,7 +655,7 @@ impl Molecule {
 
 impl fmt::Display for Molecule {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "Molecule consisting")?;
+        writeln!(f, "Molecule consisting of")?;
         for atom in self.get_all_atoms().iter() {
             writeln!(f, "  {atom}")?;
         }
@@ -879,8 +896,18 @@ impl PermutableCollection for Molecule {
         let o_atoms: HashMap<Atom, usize> = other_recentred
             .atoms
             .into_iter()
-            .chain(other_recentred.magnetic_atoms.unwrap_or_default().into_iter())
-            .chain(other_recentred.electric_atoms.unwrap_or_default().into_iter())
+            .chain(
+                other_recentred
+                    .magnetic_atoms
+                    .unwrap_or_default()
+                    .into_iter(),
+            )
+            .chain(
+                other_recentred
+                    .electric_atoms
+                    .unwrap_or_default()
+                    .into_iter(),
+            )
             .enumerate()
             .map(|(i, atom)| (atom, i))
             .collect();
@@ -909,7 +936,7 @@ impl PermutableCollection for Molecule {
                     .copied()
             })
             .collect();
-        image_opt.map(|image| Permutation::from_image(image))
+        image_opt.map(Permutation::from_image)
     }
 
     /// Permutes *all* atoms in this molecule (including special fictitious atoms) and places them

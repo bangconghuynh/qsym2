@@ -12,12 +12,12 @@ use num_complex::ComplexFloat;
 pub trait HashableFloat {
     /// Returns a float rounded after being multiplied by a factor.
     ///
-    /// Let $`x`$ be a float, $k$ a factor, and $[\cdot]$ denote the
+    /// Let $`x`$ be a float, $`k`$ a factor, and $`[\cdot]`$ denote the
     /// rounding-to-integer operation. This function yields $`[x \times k] / k`$.
     ///
     /// Arguments
     ///
-    /// * threshold - The inverse $`k^{-1}`$ of the factor $k$ used in the
+    /// * `threshold` - The inverse $`k^{-1}`$ of the factor $`k`$ used in the
     /// rounding of the float.
     ///
     /// Returns
@@ -32,7 +32,7 @@ pub trait HashableFloat {
     ///
     /// # Arguments
     ///
-    /// * val - A floating point number.
+    /// * `val` - A floating point number.
     ///
     /// # Returns
     ///
@@ -64,7 +64,7 @@ impl HashableFloat for f64 {
 ///
 /// Arguments
 ///
-/// * t - A struct of a hashable type.
+/// * `t` - A struct of a hashable type.
 ///
 /// Returns
 ///
@@ -79,13 +79,17 @@ pub trait ProductRepeat: Iterator + Clone
 where
     Self::Item: Clone,
 {
-    /// Rust implementation of Python's itertools.product() with repetition.
+    /// Rust implementation of Python's `itertools.product()` with repetition.
     ///
     /// From <https://stackoverflow.com/a/68231315>.
     ///
     /// # Arguments
     ///
-    /// * repeat - Number of repetitions of the given iterator.
+    /// * `repeat` - Number of repetitions of the given iterator.
+    ///
+    /// # Returns
+    ///
+    /// A [`MultiProduct`] iterator.
     fn product_repeat(self, repeat: usize) -> MultiProduct<Self> {
         std::iter::repeat(self)
             .take(repeat)
@@ -203,7 +207,10 @@ where
 
     if ortho_check {
         let umat = stack(Axis(1), &us.iter().map(|u| u.view()).collect_vec())
-            .expect("Unable to concatenate the orthogonal vectors into a matrix.");
+            .unwrap_or_else(|err| {
+                log::error!("{}", err);
+                panic!("Unable to concatenate the orthogonal vectors into a matrix with error: {err}.")
+            });
         Ok(umat)
     } else {
         log::error!("Post-Gram--Schmidt orthogonality check failed.");

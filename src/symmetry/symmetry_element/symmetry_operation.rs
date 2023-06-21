@@ -9,6 +9,7 @@ use nalgebra::{Point3, Vector3};
 use ndarray::{Array2, Axis, ShapeBuilder};
 use num_traits::{Inv, Pow, Zero};
 use ordered_float::OrderedFloat;
+use serde::{Deserialize, Serialize};
 
 use crate::aux::geometry::{
     self, improper_rotation_matrix, proper_rotation_matrix, PositiveHemisphere, Transform, IMINV,
@@ -161,7 +162,7 @@ pub trait SpecialSymmetryTransformation {
 /// A symmetry element serves as a generator for symmetry operations. Thus, a symmetry element
 /// together with a signed integer indicating the number of times the symmetry element is applied
 /// (positively or negatively) specifies a symmetry operation.
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct SymmetryOperation {
     /// The generating symmetry element for this symmetry operation.
     pub generating_element: SymmetryElement,
@@ -186,13 +187,13 @@ pub struct SymmetryOperation {
     ///
     /// This is not defined for operations with infinite-order generating elements.
     #[builder(setter(skip), default = "self.calc_total_proper_fraction()")]
-    pub total_proper_fraction: Option<F>,
+    pub(crate) total_proper_fraction: Option<F>,
 
     /// The positive hemisphere used for distinguishing positive and negative rotation poles. If
     /// `None`, the standard positive hemisphere as defined in S.L. Altmann, Rotations,
     /// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005) is used.
     #[builder(default = "None")]
-    positive_hemisphere: Option<PositiveHemisphere>,
+    pub positive_hemisphere: Option<PositiveHemisphere>,
 }
 
 impl SymmetryOperationBuilder {
@@ -237,7 +238,7 @@ impl SymmetryOperation {
     ///
     /// A builder to construct a new symmetry operation.
     #[must_use]
-    pub fn builder() -> SymmetryOperationBuilder {
+    pub(crate) fn builder() -> SymmetryOperationBuilder {
         SymmetryOperationBuilder::default()
     }
 
@@ -289,12 +290,10 @@ impl SymmetryOperation {
             } else {
                 ROT
             }
+        } else if tr {
+            TRINV
         } else {
-            if tr {
-                TRINV
-            } else {
-                INV
-            }
+            INV
         };
         let element = if su2 {
             // SU(2)
@@ -638,7 +637,7 @@ impl SymmetryOperation {
     /// This is the point on the unit sphere that is left invariant by the proper rotation part of
     /// the operation.
     ///
-    /// For improper operations, no conversions will be performed, unlike in [`calc_pole`].
+    /// For improper operations, no conversions will be performed, unlike in [`Self::calc_pole`].
     ///
     /// Note that binary rotations have unique poles on the positive hemisphere (*i.e.*,
     /// $`C_2(\hat{\mathbf{n}}) = C_2^{-1}(\hat{\mathbf{n}})`$ and
@@ -807,7 +806,7 @@ impl SymmetryOperation {
                 ROT
             }
         } else {
-            self.generating_element.kind.clone()
+            self.generating_element.kind
         };
         let additional_superscript = if self.is_proper() {
             String::new()
@@ -832,7 +831,7 @@ impl SymmetryOperation {
                 .cloned()
                 .unwrap_or_default()
                 .get_positive_pole(
-                    &self.generating_element.raw_axis(),
+                    self.generating_element.raw_axis(),
                     self.generating_element.threshold,
                 )
         } else {
@@ -908,67 +907,28 @@ impl SymmetryOperation {
                 .select(Axis(0), &[1, 2, 0])
                 .select(Axis(1), &[1, 2, 0])
             }
+        } else if self.is_spatial_inversion() {
+            -Array2::<f64>::eye(3)
         } else {
-            if self.is_spatial_inversion() {
-                -Array2::<f64>::eye(3)
-            } else {
-                // Pole and pole angle are obtained in the inversion-centre convention.
-                let angle = self.calc_pole_angle();
-                let axis = self.calc_pole().coords;
-                let mat = improper_rotation_matrix(angle, &axis, 1, &IMINV);
+            // Pole and pole angle are obtained in the inversion-centre convention.
+            let angle = self.calc_pole_angle();
+            let axis = self.calc_pole().coords;
+            let mat = improper_rotation_matrix(angle, &axis, 1, &IMINV);
 
-                // nalgebra matrix iter is column-major.
-                Array2::<f64>::from_shape_vec(
-                    (3, 3).f(),
-                    mat.iter().copied().collect::<Vec<_>>(),
+            // nalgebra matrix iter is column-major.
+            Array2::<f64>::from_shape_vec(
+                (3, 3).f(),
+                mat.iter().copied().collect::<Vec<_>>(),
+            )
+            .unwrap_or_else(
+                |_| panic!(
+                    "Unable to construct a three-dimensional improper rotation matrix for angle {angle} and axis {axis}."
                 )
-                .unwrap_or_else(
-                    |_| panic!(
-                        "Unable to construct a three-dimensional improper rotation matrix for angle {angle} and axis {axis}."
-                    )
-                )
-                .select(Axis(0), &[1, 2, 0])
-                .select(Axis(1), &[1, 2, 0])
-            }
+            )
+            .select(Axis(0), &[1, 2, 0])
+            .select(Axis(1), &[1, 2, 0])
         }
     }
-
-    ///// Finds the pole double-angle associated with this operation.
-    /////
-    ///// This is the angle that, together with the pole, uniquely determines the proper part of this
-    ///// operation in double groups. This angle lies in the interval $`[0, 2\pi]`$.
-    /////
-    ///// For improper operations, the inversion-centre convention is used to define
-    ///// the pole angle. This allows a proper rotation and its improper partner to have the
-    ///// same pole angle, thus facilitating the consistent specification of poles for the
-    ///// identity / inversion and binary rotations / reflections.
-    /////
-    ///// # Returns
-    /////
-    ///// The pole angle associated with this operation.
-    /////
-    ///// # Panics
-    /////
-    ///// Panics when no total proper fractions could be found for this operation.
-    //#[must_use]
-    //pub fn calc_pole_double_angle(&self) -> f64 {
-    //    let c_self = match self.generating_element.kind {
-    //        SymmetryElementKind::Proper(_) | SymmetryElementKind::ImproperInversionCentre(_) => {
-    //            self.clone()
-    //        }
-    //        SymmetryElementKind::ImproperMirrorPlane(_) => self.convert_to_improper_kind(&INV),
-    //    };
-
-    //    geometry::normalise_rotation_double_angle(
-    //        c_self
-    //            .generating_element
-    //            .proper_angle
-    //            .expect("Proper angle has not been set.")
-    //            * (f64::from(self.power)),
-    //        c_self.generating_element.threshold,
-    //    )
-    //    .abs()
-    //}
 
     /// Convert the proper rotation of the current operation to one in hopotopy class 0 of
     /// $`\mathsf{SU}(2)`$.
@@ -1664,7 +1624,7 @@ where
 /// # Arguments
 ///
 /// * `operations` - A mutable reference to a vector of symmetry operations.
-pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
+pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
     operations.sort_by_key(|op| {
         let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
         let c_op = if op.is_proper()
@@ -1672,12 +1632,10 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
             || op.generating_element.kind == TRSIG
         {
             op.clone()
+        } else if op.is_antiunitary() {
+            op.convert_to_improper_kind(&TRSIG)
         } else {
-            if op.is_antiunitary() {
-                op.convert_to_improper_kind(&TRSIG)
-            } else {
-                op.convert_to_improper_kind(&SIG)
-            }
+            op.convert_to_improper_kind(&SIG)
         };
 
         let total_proper_fraction = c_op
@@ -1690,8 +1648,7 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
         )
         .unwrap_or_else(|_| {
             panic!(
-                "Unable to convert the denominator of `{:?}` to `i64`.",
-                total_proper_fraction
+                "Unable to convert the denominator of `{total_proper_fraction:?}` to `i64`."
             )
         });
         let numer = i64::try_from(
@@ -1701,8 +1658,7 @@ pub fn sort_operations(operations: &mut Vec<SymmetryOperation>) {
         )
         .unwrap_or_else(|_| {
             panic!(
-                "Unable to convert the numerator of `{:?}` to `i64`.",
-                total_proper_fraction
+                "Unable to convert the numerator of `{total_proper_fraction:?}` to `i64`."
             )
         });
 

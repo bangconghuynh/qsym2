@@ -5,11 +5,13 @@ use derive_builder::Builder;
 use itertools::Itertools;
 use log;
 use nalgebra::{Point3, Vector3};
+use serde::{Deserialize, Serialize};
 
 use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::format::{nice_bool, write_subtitle, log_title, log_subtitle};
+use crate::aux::format::{log_subtitle, log_title, nice_bool, write_subtitle, QSym2Output};
 use crate::aux::molecule::Molecule;
-use crate::drivers::{QSym2Driver, QSym2Output};
+use crate::drivers::QSym2Driver;
+use crate::io::{write_qsym2, QSym2FileType};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::{AntiunitaryKind, SymmetryElementKind};
 
@@ -26,42 +28,47 @@ mod symmetry_group_detection_tests;
 // ----------
 
 /// A structure containing control parameters for symmetry-group detection.
-#[derive(Clone, Builder, Debug)]
+#[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct SymmetryGroupDetectionParams {
     /// Thresholds for moment-of-inertia comparisons.
     #[builder(setter(custom), default = "vec![1.0e-4, 1.0e-5, 1.0e-6]")]
-    moi_thresholds: Vec<f64>,
+    pub moi_thresholds: Vec<f64>,
 
     /// Thresholds for distance and geometry comparisons.
     #[builder(setter(custom), default = "vec![1.0e-4, 1.0e-5, 1.0e-6]")]
-    distance_thresholds: Vec<f64>,
+    pub distance_thresholds: Vec<f64>,
 
     /// Boolean indicating if time reversal is to be taken into account.
-    time_reversal: bool,
+    pub time_reversal: bool,
 
-    /// Fictitious magnetic fields to be added to the system. Each fictitious magnetic field is
-    /// specified by an origin $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which a
-    /// `magnetic(+)` special atom will be added at $`\mathbf{O} + \mathbf{v}`$, and a
-    /// `magnetic(-)` special atom will be added at $`\mathbf{O} - \mathbf{v}`$.
+    /// Fictitious magnetic fields to be added to the system. Each magnetic field is specified by an
+    /// origin $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which a `magnetic(+)` special atom
+    /// will be added at $`\mathbf{O} + \mathbf{v}`$, and a `magnetic(-)` special atom will be
+    /// added at $`\mathbf{O} - \mathbf{v}`$.
     #[builder(default = "None")]
-    fictitious_magnetic_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
+    pub fictitious_magnetic_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
-    /// Fictitious electric fields to be added to the system. Each fictitious electric field is
-    /// specified by an origin $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which an
-    /// `electric(+)` special atom will be added at $`\mathbf{O} + \mathbf{v}`$.
+    /// Fictitious electric fields to be added to the system. Each electric field is specified by an
+    /// origin $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which an `electric(+)` special atom
+    /// will be added at $`\mathbf{O} + \mathbf{v}`$.
     #[builder(default = "None")]
-    fictitious_electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
+    pub fictitious_electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
     /// Boolean indicating if the origins specified in [`Self::fictitious_magnetic_fields`] and
     /// [`Self::fictitious_electric_fields`] are to be taken relative to the molecule's centre of
     /// mass rather than to the space-fixed origin.
     #[builder(default = "false")]
-    fictitious_origin_com: bool,
+    pub field_origin_com: bool,
 
     /// Boolean indicating if a summary of the located symmetry elements is to be written to the
     /// output file.
     #[builder(default = "false")]
-    write_symmetry_elements: bool,
+    pub write_symmetry_elements: bool,
+
+    /// Optional name for saving the result as a binary file of type [`QSym2FileType::Sym`]. If
+    /// `None`, the result will not be saved.
+    #[builder(default = "None")]
+    pub result_save_name: Option<String>,
 }
 
 impl SymmetryGroupDetectionParams {
@@ -112,20 +119,14 @@ impl fmt::Display for SymmetryGroupDetectionParams {
                     .map(|v| format!("{v:.3e}"))
                     .join(", ")
             )?;
-            writeln!(f, "")?;
+            writeln!(f)?;
         }
 
         if self.fictitious_magnetic_fields.is_some() || self.fictitious_electric_fields.is_some() {
-            if self.fictitious_origin_com {
-                writeln!(
-                    f,
-                    "Fictitious field origins relative to: molecule's centre of mass"
-                )?;
+            if self.field_origin_com {
+                writeln!(f, "Field origins relative to: molecule's centre of mass")?;
             } else {
-                writeln!(
-                    f,
-                    "Fictitious field origins relative to: space-fixed origin"
-                )?;
+                writeln!(f, "Field origins relative to: space-fixed origin")?;
             }
         }
 
@@ -139,7 +140,7 @@ impl fmt::Display for SymmetryGroupDetectionParams {
                     field.iter().map(|x| format!("{x:+.3}")).join(", "),
                 )?;
             }
-            writeln!(f, "")?;
+            writeln!(f)?;
         }
 
         if let Some(fictitious_electric_fields) = self.fictitious_electric_fields.as_ref() {
@@ -152,7 +153,7 @@ impl fmt::Display for SymmetryGroupDetectionParams {
                     field.iter().map(|x| format!("{x:+.3}")).join(", "),
                 )?;
             }
-            writeln!(f, "")?;
+            writeln!(f)?;
         }
 
         writeln!(
@@ -165,7 +166,16 @@ impl fmt::Display for SymmetryGroupDetectionParams {
             "Report symmetry elements/generators: {}",
             nice_bool(self.write_symmetry_elements)
         )?;
-        writeln!(f, "")?;
+        writeln!(
+            f,
+            "Save symmetry-group detection results to file: {}",
+            if let Some(name) = self.result_save_name.as_ref() {
+                format!("{name}{}", QSym2FileType::Sym.ext())
+            } else {
+                nice_bool(false)
+            }
+        )?;
+        writeln!(f)?;
 
         Ok(())
     }
@@ -176,10 +186,10 @@ impl fmt::Display for SymmetryGroupDetectionParams {
 // ------
 
 /// A structure to contain symmetry-group detection results.
-#[derive(Clone, Builder, Debug)]
-pub struct SymmetryGroupDetectionResult<'a> {
+#[derive(Clone, Builder, Debug, Serialize, Deserialize)]
+pub struct SymmetryGroupDetectionResult {
     /// The control parameters used to obtain this set of results.
-    pub parameters: &'a SymmetryGroupDetectionParams,
+    pub parameters: SymmetryGroupDetectionParams,
 
     /// The [`PreSymmetry`] structure containing basic geometrical information of the system prior
     /// to symmetry-group detection.
@@ -194,9 +204,9 @@ pub struct SymmetryGroupDetectionResult<'a> {
     pub magnetic_symmetry: Option<Symmetry>,
 }
 
-impl<'a> SymmetryGroupDetectionResult<'a> {
+impl SymmetryGroupDetectionResult {
     /// Returns a builder to construct a [`SymmetryGroupDetectionResult`] structure.
-    fn builder() -> SymmetryGroupDetectionResultBuilder<'a> {
+    fn builder() -> SymmetryGroupDetectionResultBuilder {
         SymmetryGroupDetectionResultBuilder::default()
     }
 
@@ -214,9 +224,9 @@ impl<'a> SymmetryGroupDetectionResult<'a> {
                         .unwrap_or(&"?".to_string()),
                 ),
             )?;
-            writeln!(f, "")?;
+            writeln!(f)?;
             write_element_table(f, magnetic_symmetry)?;
-            writeln!(f, "")?;
+            writeln!(f)?;
         }
 
         write_subtitle(
@@ -229,13 +239,13 @@ impl<'a> SymmetryGroupDetectionResult<'a> {
                     .unwrap_or(&"?".to_string())
             ),
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
         write_element_table(f, &self.unitary_symmetry)?;
         Ok(())
     }
 }
 
-impl<'a> fmt::Display for SymmetryGroupDetectionResult<'a> {
+impl fmt::Display for SymmetryGroupDetectionResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(highest_mag_sym) = self.magnetic_symmetry.as_ref() {
             let n_mag_elements = if highest_mag_sym.is_infinite() {
@@ -288,7 +298,7 @@ impl<'a> fmt::Display for SymmetryGroupDetectionResult<'a> {
             "  Associated geo threshold: {:.3e}",
             self.pre_symmetry.dist_threshold
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
 
         if self.parameters.write_symmetry_elements {
             self.write_symmetry_elements(f)?;
@@ -319,11 +329,11 @@ pub struct SymmetryGroupDetectionDriver<'a> {
 
     /// The result of the symmetry-group detection.
     #[builder(setter(skip), default = "None")]
-    result: Option<SymmetryGroupDetectionResult<'a>>,
+    result: Option<SymmetryGroupDetectionResult>,
 }
 
 impl<'a> SymmetryGroupDetectionDriver<'a> {
-    /// Returns a builder to construct a [`SymmetryGroupDetectionResult`] structure.
+    /// Returns a builder to construct a [`SymmetryGroupDetectionDriver`] structure.
     pub fn builder() -> SymmetryGroupDetectionDriverBuilder<'a> {
         SymmetryGroupDetectionDriverBuilder::default()
     }
@@ -331,7 +341,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
     /// Executes symmetry-group detection.
     fn detect_symmetry_group(&mut self) -> Result<(), anyhow::Error> {
         log_title("Symmetry-Group Detection");
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "");
         let params = self.parameters;
         params.log_output_display();
 
@@ -351,9 +361,9 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             (None, Some(xyz)) => Molecule::from_xyz(xyz, smallest_dist_thresh),
             _ => bail!("Neither or both `molecule` and `xyz` are specified."),
         };
-        log::info!(target: "output", "Molecule for symmetry-group detection:");
+        log::info!(target: "qsym2-output", "Molecule for symmetry-group detection:");
         target_mol.log_output_display();
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "");
 
         let threshs = params
             .moi_thresholds
@@ -362,14 +372,14 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
         let nthreshs = threshs.clone().count();
 
         log_subtitle("Threshold-scanning symmetry-group detection");
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "");
 
         let count_length = usize::try_from(nthreshs.ilog10() + 2).map_err(|_| {
             format_err!("Unable to convert `{}` to `usize`.", nthreshs.ilog10() + 2)
         })?;
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 75));
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 75));
         log::info!(
-            target: "output",
+            target: "qsym2-output",
             "{:>width$} {:>12} {:>12} {:>14} {:>9} {:>12} {:>9}",
             "#",
             "MoI thresh",
@@ -380,7 +390,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             "Elements",
             width = count_length
         );
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 75));
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 75));
         let mut i = 0;
         let syms = threshs.map(|(moi_thresh, dist_thresh)| {
             // Create a new molecule with the current distance threshold for symmetry analysis
@@ -393,46 +403,49 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                     xyz,
                     *dist_thresh
                 ),
-                _ => bail!("Neither or both `molecule` and `xyz` are specified.")
+                _ => {
+                    log::info!(target: "qsym2-output", "Neither or both `molecule` and `xyz` are specified.");
+                    bail!("Neither or both `molecule` and `xyz` are specified.")
+                }
             };
 
-            // Add any fictitious magnetic fields
-            let global_origin = if params.fictitious_origin_com {
+            // Add any magnetic fields
+            let global_origin = if params.field_origin_com {
                 mol.calc_com() - Point3::origin()
             } else {
                 Vector3::zeros()
             };
             if let Some(fictitious_magnetic_fields) = params.fictitious_magnetic_fields.as_ref() {
-                if let Some(_) = mol.magnetic_atoms {
-                    bail!("Cannot set fictitious magnetic fields in the presence of actual magnetic fields.")
+                if mol.magnetic_atoms.is_some() {
+                    log::error!("Magnetic fields already present. Fictitious magnetic fields cannot be added.");
+                    bail!("Magnetic fields already present. Fictitious magnetic fields cannot be added.")
                 } else {
-                    let fictitious_magnetic_atoms = fictitious_magnetic_fields.iter().flat_map(|(origin, vec)| {
+                    let magnetic_atoms = fictitious_magnetic_fields.iter().flat_map(|(origin, vec)| {
                         Ok::<[Atom; 2], anyhow::Error>([
                             Atom::new_special(AtomKind::Magnetic(true), origin + global_origin + vec, *dist_thresh).ok_or_else(||
                                 format_err!("Cannot construct a fictitious magnetic atom.")
                             )?,
                             Atom::new_special(AtomKind::Magnetic(false), origin + global_origin - vec, *dist_thresh).ok_or_else(||
-                                format_err!("Cannot construct a fictitious magnetic atom.".to_string())
+                                format_err!("Cannot construct a fictitious magnetic atom.")
                             )?,
                         ])
                     }).flatten().collect_vec();
-                    mol.magnetic_atoms = Some(fictitious_magnetic_atoms);
+                    mol.magnetic_atoms = Some(magnetic_atoms);
                 }
             }
 
-            // Add any fictitious electric fields
+            // Add any electric fields
             if let Some(fictitious_electric_fields) = params.fictitious_electric_fields.as_ref() {
-                if let Some(_) = mol.electric_atoms {
-                    bail!("Cannot set fictitious electric fields in the presence of actual electric fields.")
+                if mol.electric_atoms.is_some() {
+                    log::error!("Electric fields already present. Fictitious electric fields cannot be added.");
+                    bail!("Electric fields already present. Fictitious electric fields cannot be added.")
                 } else {
-                    let fictitious_electric_atoms = fictitious_electric_fields.iter().flat_map(|(origin, vec)| {
-                        Ok::<Atom, anyhow::Error>(
-                            Atom::new_special(AtomKind::Electric(true), origin + global_origin + vec, *dist_thresh).ok_or_else(||
+                    let electric_atoms = fictitious_electric_fields.iter().flat_map(|(origin, vec)| {
+                        Atom::new_special(AtomKind::Electric(true), origin + global_origin + vec, *dist_thresh).ok_or_else(||
                                 format_err!("Cannot construct a fictitious electric atom.")
-                            )?
-                        )
+                            )
                     }).collect_vec();
-                    mol.electric_atoms = Some(fictitious_electric_atoms);
+                    mol.electric_atoms = Some(electric_atoms);
                 }
             }
 
@@ -488,7 +501,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             i += 1;
             if uni_ok && mag_ok {
                 log::info!(
-                    target: "output",
+                    target: "qsym2-output",
                     "{:>width$} {:>12.3e} {:>12.3e} {:>14} {:>9} {:>12} {:>9}",
                     i,
                     moi_thresh,
@@ -516,7 +529,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                     );
                 }
                 log::info!(
-                    target: "output",
+                    target: "qsym2-output",
                     "{:>width$} {:>12.3e} {:>12.3e} {:>14} {:>9} {:>12} {:>9}",
                     i,
                     moi_thresh,
@@ -527,6 +540,11 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                     "--",
                     width = count_length
                 );
+                log::error!(
+                    "Group determination with MoI threshold {:.3e} and distance threshold {:.3e} has failed.",
+                    moi_thresh,
+                    dist_thresh
+                );
                 bail!(
                     "Group determination with MoI threshold {:.3e} and distance threshold {:.3e} has failed.",
                     moi_thresh,
@@ -536,9 +554,9 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
         })
         .filter_map(|res_sym| res_sym.ok())
         .collect_vec();
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 75));
-        log::info!(target: "output", "(The number of symmetry elements is not the same as the order of the group.)");
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 75));
+        log::info!(target: "qsym2-output", "(The number of symmetry elements is not the same as the order of the group.)");
+        log::info!(target: "qsym2-output", "");
 
         let (highest_presym, highest_uni_sym, highest_mag_sym_opt) = syms
             .into_iter()
@@ -580,23 +598,33 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             })?;
 
         self.result = SymmetryGroupDetectionResult::builder()
-            .parameters(params)
+            .parameters(params.clone())
             .pre_symmetry(highest_presym)
             .unitary_symmetry(highest_uni_sym)
             .magnetic_symmetry(highest_mag_sym_opt)
             .build()
             .ok();
 
+        // Save symmetry-group detection result, if requested
         if let Some(pd_res) = self.result.as_ref() {
             pd_res.log_output_display();
+            if let Some(name) = params.result_save_name.as_ref() {
+                write_qsym2(name, QSym2FileType::Sym, pd_res)?;
+                log::info!(
+                    target: "qsym2-output",
+                    "Symmetry-group detection results saved as {name}{}.",
+                    QSym2FileType::Sym.ext()
+             );
+                log::info!(target: "qsym2-output", "");
+            }
         }
 
         Ok(())
     }
 }
 
-impl<'a> QSym2Driver for SymmetryGroupDetectionDriver<'a> {
-    type Outcome = SymmetryGroupDetectionResult<'a>;
+impl QSym2Driver for SymmetryGroupDetectionDriver<'_> {
+    type Outcome = SymmetryGroupDetectionResult;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result
@@ -632,7 +660,7 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                 !matches!(kind, SymmetryElementKind::Proper(_)),
             )
         })
-        .map(|(generator, kind, kind_elements)| {
+        .try_for_each(|(generator, kind, kind_elements)| {
             if !sym.is_infinite() && generator {
                 Ok::<(), fmt::Error>(())
             } else {
@@ -651,8 +679,7 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                 kind_elements
                     .keys()
                     .sorted()
-                    .into_iter()
-                    .map(|order| {
+                    .try_for_each(|order| {
                         let order_elements = kind_elements.get(order).unwrap_or_else(|| {
                             panic!("Elements/generators of order `{order}` cannot be retrieved.")
                         });
@@ -672,30 +699,25 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                             Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",
                         };
                         writeln!(f, " Order: {order}{au_str}{kind_str}")?;
-                        order_elements
-                            .iter()
-                            .map(|element| {
-                                let axis = element.raw_axis();
-                                writeln!(
-                                    f,
-                                    "{:>7} {:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
-                                    element.get_simplified_symbol(),
-                                    element.get_full_symbol(),
-                                    axis[0],
-                                    axis[1],
-                                    axis[2]
-                                )?;
-                                Ok::<(), fmt::Error>(())
-                            })
-                            .collect::<fmt::Result>()?;
+                        order_elements.iter().try_for_each(|element| {
+                            let axis = element.raw_axis();
+                            writeln!(
+                                f,
+                                "{:>7} {:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
+                                element.get_simplified_symbol(),
+                                element.get_full_symbol(),
+                                axis[0],
+                                axis[1],
+                                axis[2]
+                            )?;
+                            Ok::<(), fmt::Error>(())
+                        })?;
                         Ok::<(), fmt::Error>(())
-                    })
-                    .collect::<fmt::Result>()?;
+                    })?;
                 writeln!(f, "{}", "┈".repeat(54))?;
-                writeln!(f, "")?;
+                writeln!(f)?;
                 Ok::<(), fmt::Error>(())
             }
-        })
-        .collect::<fmt::Result>()?;
+        })?;
     Ok(())
 }

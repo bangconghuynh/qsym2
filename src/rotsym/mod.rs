@@ -3,6 +3,7 @@ use std::fmt;
 use approx;
 use log;
 use nalgebra as na;
+use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
 #[path = "rotsym_tests.rs"]
@@ -10,7 +11,7 @@ mod rotsym_tests;
 
 /// An enum to classify the types of rotational symmetry of a molecular system
 /// based on its principal moments of inertia.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum RotationalSymmetry {
     /// All three principal moments of inertia are identical.
     Spherical,
@@ -53,8 +54,6 @@ impl fmt::Display for RotationalSymmetry {
 ///
 /// * `inertia_tensor` - An inertia tensor which is a $`3 \times 3`$ matrix.
 /// * `thresh` - A threshold for comparing moments of inertia.
-/// * `verbose` - The print level.
-///     should be used in moment of inertia comparisons.
 ///
 /// # Returns
 ///

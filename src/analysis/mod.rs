@@ -2,7 +2,7 @@ use std::fmt;
 
 use anyhow;
 use itertools::Itertools;
-use ndarray::{s, Array, Array2, Dimension, Ix0, Ix2};
+use ndarray::{s, Array, Array2, Axis, Dimension, Ix0, Ix2};
 use ndarray_einsum_beta::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
 use num_complex::ComplexFloat;
@@ -131,7 +131,7 @@ where
 
 /// A trait for representation or corepresentation analysis on an orbit of items spanning a
 /// linear space.
-pub(crate) trait RepAnalysis<G, I, T, D>: Orbit<G, I>
+pub trait RepAnalysis<G, I, T, D>: Orbit<G, I>
 where
     T: ComplexFloat + Lapack + fmt::Debug,
     <T as ComplexFloat>::Real: ToPrimitive,
@@ -169,7 +169,7 @@ where
     ///
     /// is a full-rank matrix.
     ///
-    /// If the overlap between items is complex-symmetric (see Overlap::complex_symmetric), then
+    /// If the overlap between items is complex-symmetric (see [`Overlap::complex_symmetric`]), then
     /// $`\lozenge = *`$ is the complex-conjugation operation, otherwise, $`\lozenge`$ is the
     /// identity.
     ///
@@ -182,8 +182,8 @@ where
     /// defined by
     ///
     /// ```math
-    ///     \langle \hat{iota} \mathbf{v}_w, \hat{g}_i \mathbf{v}_x \rangle
-    ///     = f \left( \langle \hat{iota} \hat{g_i^{-1}} \mathbf{v}_w, \mathbf{v}_x \rangle \right).
+    ///     \langle \hat{\iota} \mathbf{v}_w, \hat{g}_i \mathbf{v}_x \rangle
+    ///     = f \left( \langle \hat{\iota} \hat{g}_i^{-1} \mathbf{v}_w, \mathbf{v}_x \rangle \right).
     /// ```
     ///
     /// Typically, if $`\hat{g}_i`$ is unitary, then $`f`$ is the identity, and if $`\hat{g}_i`$ is
@@ -213,7 +213,7 @@ where
         for pair in self.iter().enumerate().combinations_with_replacement(2) {
             let (w, item_w) = &pair[0];
             let (x, item_x) = &pair[1];
-            smat[(*w, *x)] = item_w.overlap(&item_x, metric).map_err(|err| {
+            smat[(*w, *x)] = item_w.overlap(item_x, metric).map_err(|err| {
                 log::error!("{err}");
                 log::error!(
                     "Unable to calculate the overlap between items `{w}` and `{x}` in the orbit."
@@ -221,7 +221,7 @@ where
                 err
             })?;
             if *w != *x {
-                smat[(*x, *w)] = item_x.overlap(&item_w, metric).map_err(|err| {
+                smat[(*x, *w)] = item_x.overlap(item_w, metric).map_err(|err| {
                         log::error!("{err}");
                         log::error!(
                             "Unable to calculate the overlap between items `{x}` and `{w}` in the orbit."
@@ -244,6 +244,10 @@ where
     ///         = \langle \hat{\iota} \hat{g}_w \mathbf{v}_0, \hat{g} \hat{g}_x \mathbf{v}_0 \rangle.
     /// ```
     ///
+    /// This means that $`\mathbf{T}(g)`$ is just the orbit overlap matrix $`\mathbf{S}`$ with its
+    /// columns permuted according to the way $`g`$ composites on the elements in the group from
+    /// the left.
+    ///
     /// # Arguments
     ///
     /// * `op` - The element $`g`$ in the generating group.
@@ -260,21 +264,8 @@ where
         let i = self.group().get_index_of(op).unwrap_or_else(|| {
             panic!("Unable to retrieve the index of element `{op}` in the group.")
         });
-        let order = self.group().order();
-        let mut twx = Array2::<T>::zeros((order, order));
-        for x in 0..order {
-            let ix = ctb[(i, x)];
-            let ixinv = ctb
-                .slice(s![.., ix])
-                .iter()
-                .position(|&z| z == 0)
-                .unwrap_or_else(|| panic!("The inverse of element index `{ix}` cannot be found."));
-
-            for w in 0..order {
-                let ixinv_w = ctb[(ixinv, w)];
-                twx[(w, x)] = self.norm_preserving_scalar_map(ixinv)(self.smat()[(ixinv_w, 0)]);
-            }
-        }
+        let ix = ctb.slice(s![i, ..]).iter().cloned().collect::<Vec<_>>();
+        let twx = self.smat().select(Axis(1), &ix);
         twx
     }
 
@@ -404,7 +395,6 @@ where
     ///
     /// Errors if the decomposition fails, *e.g.* because one or more calculated multiplicities
     /// are non-integral.
-    #[must_use]
     fn analyse_rep(
         &self,
     ) -> Result<

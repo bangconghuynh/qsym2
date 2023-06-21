@@ -6,6 +6,7 @@ use derive_builder::Builder;
 use itertools::Itertools;
 use ndarray::{Array2, ArrayView2, Axis};
 use num_traits::ToPrimitive;
+use serde::{Deserialize, Serialize};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
@@ -24,7 +25,7 @@ use crate::permutation::{Permutation, PermutationRank};
 // ----------------------
 
 /// A struct to handle conjugacy class symbols.
-#[derive(Builder, Debug, Clone)]
+#[derive(Builder, Debug, Clone, Serialize, Deserialize)]
 pub struct PermutationClassSymbol<T: PermutationRank> {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
@@ -174,7 +175,7 @@ impl<T: PermutationRank> fmt::Display for PermutationClassSymbol<T> {
 
 /// A struct to handle permutation irreducible representation symbols. This will be converted to a
 /// suitable representation of Young tableaux symbols in the future.
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct PermutationIrrepSymbol {
     /// The generic part of the symbol.
     #[builder(setter(custom))]
@@ -328,13 +329,11 @@ impl LinearSpaceSymbol for PermutationIrrepSymbol {
             } else {
                 false
             }
-        } else {
-            if self.main() != "Sym" && self.main() != "Alt" {
+        } else if self.main() != "Sym" && self.main() != "Alt" {
                 self.dim = Some(dim);
                 true
-            } else {
-                false
-            }
+        } else {
+            false
         }
     }
 }

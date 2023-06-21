@@ -5,8 +5,10 @@ use std::ops::Mul;
 
 use derive_builder::Builder;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use ndarray::{s, Array2};
 use num_traits::Inv;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
@@ -27,7 +29,7 @@ where
     Self::ClassSymbol: CollectionSymbol<CollectionElement = Self::GroupElement>,
     <Self as GroupProperties>::GroupElement: Inv<Output = <Self as GroupProperties>::GroupElement>,
 {
-    /// The type for class symbols.
+    /// The type of class symbols.
     type ClassSymbol;
 
     // ----------------
@@ -147,7 +149,7 @@ where
 
     /// The class matrix $`\mathbf{N}_r`$ for the conjugacy classes in the group.
     ///
-    /// Let $`K_i`$ be the $`i^{\textrm{th}}`conjugacy class of the group. The
+    /// Let $`K_i`$ be the $`i^{\textrm{th}}`$ conjugacy class of the group. The
     /// elements of the class matrix $`\mathbf{N}_r`$ are given by
     ///
     /// ```math
@@ -231,13 +233,69 @@ where
     }
 }
 
+/// A trait for outputting summaries of conjugacy class properties.
+pub trait ClassPropertiesSummary: ClassProperties
+where
+    <Self as GroupProperties>::GroupElement: fmt::Display,
+{
+    /// Outputs a class transversal as a nicely formatted table.
+    fn class_transversal_to_string(&self) -> String {
+        let cc_transversal = (0..self.class_number())
+            .filter_map(|i| {
+                let cc_opt = self.get_cc_symbol_of_index(i);
+                let op_opt = self.get_cc_transversal(i);
+                match (cc_opt, op_opt) {
+                    (Some(cc), Some(op)) => Some((cc.to_string(), op.to_string())),
+                    _ => None,
+                }
+            })
+            .collect::<Vec<_>>();
+        let cc_width = cc_transversal
+            .iter()
+            .map(|(cc, _)| cc.chars().count())
+            .max()
+            .unwrap_or(5)
+            .max(5);
+        let op_width = cc_transversal
+            .iter()
+            .map(|(_, op)| op.chars().count())
+            .max()
+            .unwrap_or(14)
+            .max(14);
+
+        let divider = "┈".repeat(cc_width + op_width + 4);
+        let header = format!(" {:<cc_width$}  {:<}", "Class", "Representative");
+        let body = Itertools::intersperse(
+            cc_transversal
+                .iter()
+                .map(|(cc, op)| format!(" {:<cc_width$}  {:<}", cc, op)),
+            "\n".to_string(),
+        )
+        .collect::<String>();
+
+        Itertools::intersperse(
+            [divider.clone(), header, divider.clone(), body, divider].into_iter(),
+            "\n".to_string(),
+        )
+        .collect::<String>()
+    }
+}
+
+// Blanket implementation
+impl<G> ClassPropertiesSummary for G
+where
+    G: ClassProperties,
+    G::GroupElement: fmt::Display,
+{
+}
+
 // ======================================
 // Struct definitions and implementations
 // ======================================
 
 /// A struct for managing class structures eagerly, *i.e.* all elements and their class maps are
 /// stored.
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub(super) struct EagerClassStructure<T, ClassSymbol>
 where
     T: Mul<Output = T> + Inv<Output = T> + Hash + Eq + Clone + Sync + fmt::Debug + FiniteOrder,
@@ -293,7 +351,7 @@ where
                 .iter()
                 .map(|cc| {
                     *cc.iter()
-                        .next()
+                        .min()
                         .expect("No conjugacy classes can be empty.")
                 })
                 .collect::<Vec<usize>>(),
@@ -326,7 +384,7 @@ where
                 (
                     ClassSymbol::from_reps(
                         format!("{}||K{i}||", class_sizes[i]).as_str(),
-                        Some(vec![rep_ele.clone()]),
+                        Some(vec![rep_ele]),
                     )
                     .unwrap_or_else(|_| {
                         panic!(
@@ -617,8 +675,7 @@ where
             .expect("No class structure found.")
             .conjugacy_class_transversal
             .get(cc_idx)
-            .map(|&i| self.get_index(i))
-            .flatten()
+            .and_then(|&i| self.get_index(i))
     }
 
     #[must_use]
@@ -686,7 +743,9 @@ where
     for<'a, 'b> &'b T: Mul<&'a T, Output = T>,
     <Self as GroupProperties>::GroupElement: Inv,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
-    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol> + Serialize + DeserializeOwned,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    <UG as CharacterProperties>::CharTab: Serialize + DeserializeOwned,
 {
     type ClassSymbol = UG::ClassSymbol;
 
@@ -804,8 +863,7 @@ where
             .expect("No class structure found.")
             .conjugacy_class_transversal
             .get(cc_idx)
-            .map(|&i| self.get_index(i))
-            .flatten()
+            .and_then(|&i| self.get_index(i))
     }
 
     #[must_use]

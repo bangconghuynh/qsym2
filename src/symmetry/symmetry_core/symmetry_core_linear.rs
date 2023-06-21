@@ -18,7 +18,7 @@ impl Symmetry {
     /// * `tr` - A flag indicating if time reversal should also be considered. A time-reversed
     /// symmetry element will only be considered if its non-time-reversed version turns out to be
     /// not a symmetry element.
-    pub fn analyse_linear(
+    pub(super) fn analyse_linear(
         &mut self,
         presym: &PreSymmetry,
         tr: bool,
@@ -75,7 +75,7 @@ impl Symmetry {
                     ORDER_2,
                     &Vector3::new(0.0, 0.0, 1.0),
                     false,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.dist_threshold,
                     improper_kind.contains_time_reversal()
@@ -95,7 +95,7 @@ impl Symmetry {
                     ORDER_1,
                     &principal_axes[0],
                     true,
-                    SIG.clone(),
+                    SIG,
                     Some("h".to_owned()),
                     presym.dist_threshold,
                     sigma_check
@@ -133,7 +133,7 @@ impl Symmetry {
                     ORDER_1,
                     &principal_axes[1],
                     true,
-                    SIG.clone(),
+                    SIG,
                     Some("v".to_owned()),
                     presym.dist_threshold,
                     improper_kind.contains_time_reversal(),

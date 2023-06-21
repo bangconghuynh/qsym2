@@ -1,8 +1,10 @@
-use log4rs;
+
 
 use nalgebra::{Point3, Vector3};
 
-use crate::drivers::symmetry_group_detection::{SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams};
+use crate::drivers::symmetry_group_detection::{
+    SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
+};
 use crate::drivers::QSym2Driver;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
@@ -50,7 +52,7 @@ fn test_drivers_symmetry_group_detection_vf6() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(path.clone()))
+        .xyz(Some(path))
         .build()
         .unwrap();
     pd_driver.run().unwrap();
@@ -102,7 +104,10 @@ fn test_drivers_symmetry_group_detection_c2h2() {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7])
         .moi_thresholds(&[1e-6, 1e-7])
-        .fictitious_magnetic_fields(Some(vec![(Point3::new(0.5, 0.5, 0.5), Vector3::new(1.0, 1.0, 1.0))]))
+        .fictitious_magnetic_fields(Some(vec![(
+            Point3::new(0.5, 0.5, 0.5),
+            Vector3::new(1.0, 1.0, 1.0),
+        )]))
         .time_reversal(true)
         .build()
         .unwrap();
@@ -130,7 +135,10 @@ fn test_drivers_symmetry_group_detection_c2h2() {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7, 1e-15])
         .moi_thresholds(&[1e-6, 1e-7, 1e-15])
-        .fictitious_electric_fields(Some(vec![(Point3::new(0.5, 0.5, 0.5), Vector3::new(1.0, 1.0, 1.0))]))
+        .fictitious_electric_fields(Some(vec![(
+            Point3::new(0.5, 0.5, 0.5),
+            Vector3::new(1.0, 1.0, 1.0),
+        )]))
         .time_reversal(true)
         .build()
         .unwrap();
@@ -158,13 +166,16 @@ fn test_drivers_symmetry_group_detection_c2h2() {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[1e-6, 1e-7, 1e-15])
         .moi_thresholds(&[1e-6, 1e-7, 1e-15])
-        .fictitious_magnetic_fields(Some(vec![(Point3::new(0.5, 0.5, 0.5), Vector3::new(-1.0, 1.0, 0.0))]))
+        .fictitious_magnetic_fields(Some(vec![(
+            Point3::new(0.5, 0.5, 0.5),
+            Vector3::new(-1.0, 1.0, 0.0),
+        )]))
         .time_reversal(true)
         .build()
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(path.clone()))
+        .xyz(Some(path))
         .build()
         .unwrap();
     pd_driver.run().unwrap();
@@ -192,17 +203,29 @@ fn test_drivers_symmetry_group_detection_xef4() {
         .distance_thresholds(&[1e-6, 1e-7])
         .moi_thresholds(&[1e-6, 1e-7])
         .fictitious_magnetic_fields(Some(vec![
-            (Point3::new(1.3578799, -1.3578799, 0.0), Vector3::new(0.0, 0.0, 0.1)),
-            (Point3::new(1.3578799, 1.3578799, 0.0), Vector3::new(0.0, 0.0, -0.1)),
-            (Point3::new(-1.3578799, 1.3578799, 0.0), Vector3::new(0.0, 0.0, 0.1)),
-            (Point3::new(-1.3578799, -1.3578799, 0.0), Vector3::new(0.0, 0.0, -0.1)),
+            (
+                Point3::new(1.3578799, -1.3578799, 0.0),
+                Vector3::new(0.0, 0.0, 0.1),
+            ),
+            (
+                Point3::new(1.3578799, 1.3578799, 0.0),
+                Vector3::new(0.0, 0.0, -0.1),
+            ),
+            (
+                Point3::new(-1.3578799, 1.3578799, 0.0),
+                Vector3::new(0.0, 0.0, 0.1),
+            ),
+            (
+                Point3::new(-1.3578799, -1.3578799, 0.0),
+                Vector3::new(0.0, 0.0, -0.1),
+            ),
         ]))
         .time_reversal(true)
         .build()
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(path.clone()))
+        .xyz(Some(path))
         .build()
         .unwrap();
     pd_driver.run().unwrap();

@@ -6,16 +6,16 @@ use approx;
 use nalgebra::{Matrix3, Point3, Rotation3, Translation3, UnitVector3, Vector3};
 use num_traits::ToPrimitive;
 use periodic_table;
+use serde::{Deserialize, Serialize};
 
 use crate::aux::geometry::{self, ImproperRotationKind, Transform};
 use crate::aux::misc::{self, HashableFloat};
 
-/// A struct storing a look-up of element symbols to give atomic numbers
+/// A structure storing a look-up of element symbols to give atomic numbers
 /// and atomic masses.
 pub struct ElementMap<'a> {
-    /// A [HashMap] from a symbol string to a tuple of atomic number and atomic
-    /// mass.
-    pub map: HashMap<&'a str, (u32, f64)>,
+    /// A [`HashMap`] from a symbol string to a tuple of atomic number and atomic mass.
+    map: HashMap<&'a str, (u32, f64)>,
 }
 
 impl Default for ElementMap<'static> {
@@ -35,6 +35,11 @@ impl ElementMap<'static> {
             map.insert(element.symbol, (element.atomic_number, mass));
         }
         ElementMap { map }
+    }
+
+    /// Returns a tuple of atomic number and atomic mass for the requested element.
+    pub fn get(&self, element: &str) -> Option<&(u32, f64)> {
+        self.map.get(element)
     }
 }
 
@@ -56,8 +61,8 @@ fn parse_atomic_mass(mass_str: &str) -> f64 {
         .unwrap_or_else(|_| panic!("Unable to parse atomic mass string {mass}."))
 }
 
-/// A struct representing an atom.
-#[derive(Clone)]
+/// A structure representing an atom.
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Atom {
     /// The atom kind.
     pub kind: AtomKind,
@@ -94,7 +99,7 @@ impl Atom {
     /// The parsed [`Atom`] struct if the line has the correct format,
     /// otherwise [`None`].
     #[must_use]
-    pub fn from_xyz(line: &str, emap: &ElementMap, thresh: f64) -> Option<Atom> {
+    pub(crate) fn from_xyz(line: &str, emap: &ElementMap, thresh: f64) -> Option<Atom> {
         let split: Vec<&str> = line.split_whitespace().collect();
         if split.len() != 4 {
             return None;
@@ -134,11 +139,15 @@ impl Atom {
 
     /// Creates an ordinary atom.
     ///
-    /// Arguments
+    /// # Arguments
     ///
-    /// * coordinates - The coordinates of the special atom.
+    /// * `atomic_symbol` - The element symbol of the atom.
+    /// * `coordinates` - The coordinates of the atom.
+    /// * `emap` - A hash map between atomic symbols and atomic numbers and
+    ///     masses.
+    /// * `thresh` - The threshold for comparing atoms.
     ///
-    /// Rerturns
+    /// # Returns
     ///
     /// The required ordinary atom.
     #[must_use]
@@ -164,14 +173,15 @@ impl Atom {
 
     /// Creates a special atom.
     ///
-    /// Arguments
+    /// # Arguments
     ///
-    /// * kind - The required special kind.
-    /// * coordinates - The coordinates of the special atom.
+    /// * `kind` - The required special kind.
+    /// * `coordinates` - The coordinates of the special atom.
+    /// * `thresh` - The threshold for comparing atoms.
     ///
-    /// Rerturns
+    /// # Returns
     ///
-    /// `None` if `kind` is not one of the special atom kinds, `Some<Atom>`
+    /// `None` if `kind` is not one of the special atom kinds, `Some(Atom)`
     /// otherwise.
     #[must_use]
     pub fn new_special(kind: AtomKind, coordinates: Point3<f64>, thresh: f64) -> Option<Atom> {
@@ -197,7 +207,7 @@ impl fmt::Display for Atom {
             .abs()
             .round()
             .to_usize()
-            .ok_or_else(|| fmt::Error)?
+            .ok_or(fmt::Error)?
             + 1;
         let length = (precision + precision.div_euclid(2)).max(6);
         if let AtomKind::Ordinary = self.kind {
@@ -230,7 +240,7 @@ impl fmt::Debug for Atom {
 }
 
 /// An enum describing the atom kind.
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AtomKind {
     /// An ordinary atom.
     Ordinary,

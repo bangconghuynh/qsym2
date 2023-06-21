@@ -6,10 +6,13 @@ use nalgebra::Point3;
 use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
 
-use crate::aux::format::{log_subtitle, log_title};
+use crate::aux::format::{log_subtitle, log_title, nice_bool, QSym2Output};
 use crate::aux::molecule::Molecule;
-use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
-use crate::drivers::{QSym2Driver, QSym2Output};
+use crate::drivers::symmetry_group_detection::{
+    SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams, SymmetryGroupDetectionResult,
+};
+use crate::drivers::QSym2Driver;
+use crate::io::QSym2FileType;
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 
@@ -30,34 +33,39 @@ mod molecule_symmetrisation_tests;
 pub struct MoleculeSymmetrisationParams {
     /// Boolean indicating if any available magnetic group should be used for symmetrisation
     /// instead of the unitary group.
-    use_magnetic_group: bool,
+    pub use_magnetic_group: bool,
 
     /// The target moment-of-inertia threshold for the symmetrisation, *i.e.* the symmetrised
     /// molecule will have the target symmetry group at this target moment-of-inertia threshold.
-    target_moi_threshold: f64,
+    pub target_moi_threshold: f64,
 
     /// The target distance threshold for the symmetrisation, *i.e.* the symmetrised molecule will
     /// have the target symmetry group at this target distance threshold.
-    target_distance_threshold: f64,
+    pub target_distance_threshold: f64,
 
     /// Boolean indicating if the symmetrised molecule is also reoriented to align its principal
     /// axes with the space-fixed Cartesian axes.
     ///
     /// See [`Molecule::reorientate`] for more information.
-    reorientate_molecule: bool,
+    pub reorientate_molecule: bool,
 
     /// The maximum number of symmetrisation iterations.
     #[builder(default = "5")]
-    max_iterations: usize,
+    pub max_iterations: usize,
 
     /// The finite order to which any infinite-order symmetry element is reduced, so that a finite
     /// subgroup of an infinite group can be used for the symmetrisation.
     #[builder(default = "None")]
-    infinite_order_to_finite: Option<u32>,
+    pub infinite_order_to_finite: Option<u32>,
 
     /// The output verbosity level.
     #[builder(default = "0")]
-    verbose: u8,
+    pub verbose: u8,
+
+    /// Optional name for saving the symmetry-group detection result of the symmetrised system as a
+    /// binary file of type [`QSym2FileType::Sym`]. If `None`, the result will not be saved.
+    #[builder(default = "None")]
+    pub symmetrised_result_save_name: Option<String>,
 }
 
 impl MoleculeSymmetrisationParams {
@@ -75,7 +83,7 @@ impl fmt::Display for MoleculeSymmetrisationParams {
             "Target geo threshold: {:.3e}",
             self.target_distance_threshold
         )?;
-        writeln!(f, "")?;
+        writeln!(f)?;
         writeln!(
             f,
             "Group used for symmetrisation: {}",
@@ -94,7 +102,16 @@ impl fmt::Display for MoleculeSymmetrisationParams {
             self.max_iterations
         )?;
         writeln!(f, "Output level: {}", self.verbose)?;
-        writeln!(f, "")?;
+        writeln!(
+            f,
+            "Save symmetry-group detection results of symmetrised system to file: {}",
+            if let Some(name) = self.symmetrised_result_save_name.as_ref() {
+                format!("{name}{}", QSym2FileType::Sym.ext())
+            } else {
+                nice_bool(false)
+            }
+        )?;
+        writeln!(f)?;
 
         Ok(())
     }
@@ -111,7 +128,7 @@ pub struct MoleculeSymmetrisationResult<'a> {
     parameters: &'a MoleculeSymmetrisationParams,
 
     /// The symmetrised molecule.
-    symmetrised_molecule: Molecule,
+    pub symmetrised_molecule: Molecule,
 }
 
 impl<'a> MoleculeSymmetrisationResult<'a> {
@@ -139,7 +156,7 @@ pub struct MoleculeSymmetrisationDriver<'a> {
     /// calculation where the symmetry of the molecule has been detected at a certain thresholding
     /// level, and now the molecule is to be symmetrised to attain the same symmetry but at a
     /// tighter thresholding level.
-    target_symmetry_result: &'a SymmetryGroupDetectionResult<'a>,
+    target_symmetry_result: &'a SymmetryGroupDetectionResult,
 
     /// The result of the symmetrisation.
     #[builder(setter(skip), default = "None")]
@@ -165,7 +182,8 @@ impl<'a> MoleculeSymmetrisationDriverBuilder<'a> {
         if sym.is_infinite() && params.infinite_order_to_finite.is_none() {
             Err(
                 format!(
-                    "Molecule symmetrisation cannot be performed using the entirety of the infinite group `{}`. Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
+                    "Molecule symmetrisation cannot be performed using the entirety of the infinite group `{}`. \
+                    Consider setting the parameter `infinite_order_to_finite` to restrict to a finite subgroup instead.",
                     sym.group_name.as_ref().expect("No target group name found.")
                 )
             )
@@ -184,7 +202,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
     /// Executes molecule symmetrisation.
     fn symmetrise_molecule(&mut self) -> Result<(), anyhow::Error> {
         log_title("Molecule Symmetrisation");
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "");
         let params = self.parameters;
         params.log_output_display();
 
@@ -202,7 +220,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
         let target_magsym = &self.target_symmetry_result.magnetic_symmetry.as_ref();
 
         log::info!(
-            target: "output",
+            target: "qsym2-output",
             "Target mag. group: {}",
             target_magsym
                 .as_ref()
@@ -211,22 +229,22 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 .unwrap_or(&"--".to_string()),
         );
         log::info!(
-            target: "output",
+            target: "qsym2-output",
             "Target uni. group: {}",
             target_unisym.group_name.as_ref().unwrap_or(&"--".to_string()),
         );
         log::info!(
-            target: "output",
+            target: "qsym2-output",
             "Target-symmetry-guaranteed MoI threshold: {:.3e}",
             loose_moi_threshold,
         );
         log::info!(
-            target: "output",
+            target: "qsym2-output",
             "Target-symmetry-guaranteed geo threshold: {:.3e}",
             loose_dist_threshold,
         );
         log::info!(
-            target: "output",
+            target: "qsym2-output",
             "",
         );
 
@@ -236,13 +254,13 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 .pre_symmetry
                 .original_molecule
                 .adjust_threshold(tight_dist_threshold);
-            log::info!(target: "output", "Unsymmetrised original molecule:");
+            log::info!(target: "qsym2-output", "Unsymmetrised original molecule:");
             orig_mol.log_output_display();
-            log::info!(target: "output", "");
+            log::info!(target: "qsym2-output", "");
 
-            log::info!(target: "output", "Unsymmetrised recentred molecule:");
+            log::info!(target: "qsym2-output", "Unsymmetrised recentred molecule:");
             trial_mol.log_output_display();
-            log::info!(target: "output", "");
+            log::info!(target: "qsym2-output", "");
         }
 
         let mut trial_presym = PreSymmetry::builder()
@@ -255,16 +273,16 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
         trial_unisym.analyse(&trial_presym, false)?;
 
         log_subtitle("Iterative molecule symmetrisation");
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "");
         let count_length = usize::try_from(params.max_iterations.ilog10() + 2).map_err(|_| {
             format_err!(
                 "Unable to convert `{}` to `usize`.",
                 params.max_iterations.ilog10() + 2
             )
         })?;
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 55));
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 55));
         log::info!(
-            target: "output",
+            target: "qsym2-output",
             "{:>count_length$} {:>12} {:>12} {:>14} {:>12}",
             "#",
             "MoI thresh",
@@ -272,7 +290,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             "Mag. group",
             "Uni. group",
         );
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 55));
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 55));
 
         let mut symmetrisation_count = 0;
         let mut unisym_check = trial_unisym.group_name == target_unisym.group_name;
@@ -288,7 +306,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             symmetrisation_count += 1;
 
             // Re-locate the symmetry elements of the target symmetry group using the trial
-            // molecule since the symmeteisation process might move the symmetry elements slightly.
+            // molecule since the symmetrisation process might move the symmetry elements slightly.
             let high_trial_mol = trial_mol.adjust_threshold(loose_dist_threshold);
             let high_presym = PreSymmetry::builder()
                 .moi_threshold(loose_moi_threshold)
@@ -465,10 +483,10 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
             trial_unisym = Symmetry::new();
             let _unires = trial_unisym.analyse(&trial_presym, false);
-            trial_magsym.as_mut().and_then(|tri_magsym| {
+            trial_magsym.as_mut().map(|tri_magsym| {
                 *tri_magsym = Symmetry::new();
                 let _magres = tri_magsym.analyse(&trial_presym, true);
-                Some(tri_magsym)
+                tri_magsym
             });
 
             unisym_check = trial_unisym.group_name == target_unisym.group_name;
@@ -480,7 +498,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             };
 
             log::info!(
-                target: "output",
+                target: "qsym2-output",
                 "{:>count_length$} {:>12.3e} {:>12.3e} {:>14} {:>12}",
                 symmetrisation_count,
                 tight_moi_threshold,
@@ -489,24 +507,24 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 trial_unisym.group_name.as_ref().unwrap_or(&"--".to_string()),
             );
         }
-        log::info!(target: "output", "{}", "┈".repeat(count_length + 55));
-        log::info!(target: "output", "");
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 55));
+        log::info!(target: "qsym2-output", "");
 
         if unisym_check && magsym_check {
             log::info!(
-                target: "output",
+                target: "qsym2-output",
                 "Molecule symmetrisation has completed after {symmetrisation_count} {}.",
                 if symmetrisation_count != 1 { "iterations" } else { "iteration" }
             );
-            log::info!(target: "output", "");
-            log::info!(target: "output", "Symmetrised recentred molecule:");
+            log::info!(target: "qsym2-output", "");
+            log::info!(target: "qsym2-output", "Symmetrised recentred molecule:");
             trial_mol.log_output_display();
-            log::info!(target: "output", "");
+            log::info!(target: "qsym2-output", "");
             if params.reorientate_molecule {
                 trial_mol.reorientate_mut(tight_moi_threshold);
-                log::info!(target: "output", "Symmetrised recentred and reoriented molecule:");
+                log::info!(target: "qsym2-output", "Symmetrised recentred and reoriented molecule:");
                 trial_mol.log_output_display();
-                log::info!(target: "output", "");
+                log::info!(target: "qsym2-output", "");
             }
             self.result = Some(
                 MoleculeSymmetrisationResult::builder()
@@ -514,6 +532,57 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                     .symmetrised_molecule(trial_mol)
                     .build()?,
             );
+
+            // Verify the symmetrisation result
+            log::info!(target: "qsym2-output", "Verifying symmetrisation results...");
+            log::info!(target: "qsym2-output", "");
+            let verifying_pd_params = SymmetryGroupDetectionParams::builder()
+                .moi_thresholds(&[params.target_moi_threshold])
+                .distance_thresholds(&[params.target_distance_threshold])
+                .time_reversal(self.target_symmetry_result.parameters.time_reversal)
+                .write_symmetry_elements(
+                    self.target_symmetry_result
+                        .parameters
+                        .write_symmetry_elements,
+                )
+                .result_save_name(params.symmetrised_result_save_name.clone())
+                .build()?;
+            let mut verifying_pd_driver = SymmetryGroupDetectionDriver::builder()
+                .parameters(&verifying_pd_params)
+                .molecule(self.result().ok().map(|res| &res.symmetrised_molecule))
+                .build()?;
+            verifying_pd_driver.run()?;
+            let verifying_pd_res = verifying_pd_driver.result()?;
+            ensure!(
+                verifying_pd_res.unitary_symmetry.group_name
+                    == self.target_symmetry_result.unitary_symmetry.group_name,
+                "Mismatched unitary symmetry: target is {:?}, but symmetrised system has {:?}.",
+                self.target_symmetry_result.unitary_symmetry.group_name,
+                verifying_pd_res.unitary_symmetry.group_name
+            );
+            ensure!(
+                verifying_pd_res
+                    .magnetic_symmetry
+                    .as_ref()
+                    .map(|magsym| magsym.group_name.as_ref())
+                    == self
+                        .target_symmetry_result
+                        .magnetic_symmetry
+                        .as_ref()
+                        .map(|magsym| magsym.group_name.as_ref()),
+                "Mismatched magnetic symmetry: target is {:?}, but symmetrised system has {:?}.",
+                self.target_symmetry_result
+                    .magnetic_symmetry
+                    .as_ref()
+                    .map(|magsym| magsym.group_name.as_ref()),
+                verifying_pd_res
+                    .magnetic_symmetry
+                    .as_ref()
+                    .map(|magsym| magsym.group_name.as_ref())
+            );
+            log::info!(target: "qsym2-output", "Verifying symmetrisation results... Done.");
+            log::info!(target: "qsym2-output", "");
+
             Ok(())
         } else {
             log::error!(
@@ -524,11 +593,11 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                     "iteration"
                 }
             );
-            log::info!(target: "output", "");
+            log::info!(target: "qsym2-output", "");
             if params.verbose >= 1 {
-                log::info!(target: "output", "Molecule after iteration {symmetrisation_count}:");
+                log::info!(target: "qsym2-output", "Molecule after iteration {symmetrisation_count}:");
                 trial_mol.log_output_display();
-                log::info!(target: "output", "");
+                log::info!(target: "qsym2-output", "");
             }
             Err(format_err!(
                 "Molecule symmetrisation has failed after {symmetrisation_count} {}.",

@@ -28,7 +28,7 @@ where
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
     ) -> &mut Self {
-        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(&self.bao, rmat, perm)
+        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(self.bao, rmat, perm)
             .iter()
             .map(|tmat| tmat.map(|&x| x.into()))
             .collect();
@@ -43,7 +43,7 @@ where
             .map(|old_coeff| match self.spin_constraint {
                 SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
                     let p_coeff = if let Some(p) = perm {
-                        permute_array_by_atoms(old_coeff, p, &[Axis(0)], &self.bao)
+                        permute_array_by_atoms(old_coeff, p, &[Axis(0)], self.bao)
                     } else {
                         old_coeff.clone()
                     };
@@ -71,7 +71,7 @@ where
 
                         // Permute within spin block ispin.
                         let p_spin_block = if let Some(p) = perm {
-                            permute_array_by_atoms(&spin_block, p, &[Axis(0)], &self.bao)
+                            permute_array_by_atoms(&spin_block, p, &[Axis(0)], self.bao)
                         } else {
                             spin_block
                         };
@@ -509,7 +509,7 @@ where
         symop
             .act_permute(&self.mol.molecule_ordinary_atoms())
             .ok_or(TransformationError(format!(
-            "Unable to determine the atom permutation corresponding to the operation `{symop}`."
+            "Unable to determine the atom permutation corresponding to the operation `{symop}`.",
         )))
     }
 }

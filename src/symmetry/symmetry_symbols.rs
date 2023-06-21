@@ -5,7 +5,6 @@ use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 use log;
-
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -13,6 +12,7 @@ use nalgebra::Vector3;
 use ndarray::{Array2, ArrayView2, Axis};
 use num_traits::ToPrimitive;
 use phf::{phf_map, phf_set};
+use serde::{Serialize, Deserialize};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
@@ -104,8 +104,8 @@ pub static FORCED_C3_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
 // MullikenIrrepSymbol
 // -------------------
 
-/// A struct to handle Mulliken irreducible representation symbols.
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
+/// A structure to handle Mulliken irreducible representation symbols.
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct MullikenIrrepSymbol {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
@@ -142,34 +142,31 @@ impl MullikenIrrepSymbol {
 // MullikenIrcorepSymbol
 // ---------------------
 
-/// A struct to handle Mulliken irreducible corepresentation symbols.
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
+/// A structure to handle Mulliken irreducible corepresentation symbols.
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct MullikenIrcorepSymbol {
+    /// The decomposed symbol containing the irreps inducing this ircorep.
     inducing_irreps: DecomposedSymbol<MullikenIrrepSymbol>,
 }
 
 impl MullikenIrcorepSymbol {
+    /// Returns a builder to construct a new [`MullikenIrcorepSymbol`] structure.
     fn builder() -> MullikenIrcorepSymbolBuilder {
         MullikenIrcorepSymbolBuilder::default()
     }
 
-    /// Parses a string representing a Mulliken irrep symbol.
+    /// Parses a string representing a Mulliken ircorep symbol, which consists of one or more
+    /// Mulliken irrep symbols joined together by `"+"`.
     ///
-    /// Some permissible Mulliken irrep symbols:
-    ///
-    /// ```text
-    /// "T"
-    /// "||T|_(2g)|"
-    /// "|^(3)|T|_(2g)|"
-    /// ```
+    /// See [`Self::from_str`] for more information.
     ///
     /// # Arguments
     ///
-    /// * `symstr` - A string to be parsed to give a Mulliken symbol.
+    /// * `symstr` - A string to be parsed to give a Mulliken ircorep symbol.
     ///
     /// # Errors
     ///
-    /// Errors when the string cannot be parsed as a generic symbol.
+    /// Errors when the string cannot be parsed as a Mulliken ircorep symbol.
     pub fn new(symstr: &str) -> Result<Self, MullikenIrcorepSymbolBuilderError> {
         Self::from_str(symstr)
     }
@@ -179,22 +176,22 @@ impl MullikenIrcorepSymbol {
 // SymmetryClassSymbol
 // -------------------
 
-/// A struct to handle conjugacy class symbols.
-#[derive(Builder, Debug, Clone)]
-pub struct SymmetryClassSymbol<R: Clone> {
+/// A structure to handle conjugacy class symbols.
+#[derive(Builder, Debug, Clone, Serialize, Deserialize)]
+pub struct SymmetryClassSymbol<R: Clone + Serialize> {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
 
-    /// A representative element in the class.
+    /// One or more representative elements in the class.
     representatives: Option<Vec<R>>,
 }
 
-impl<R: Clone> SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> SymmetryClassSymbol<R> {
     fn builder() -> SymmetryClassSymbolBuilder<R> {
         SymmetryClassSymbolBuilder::default()
     }
 
-    /// Creates a class symbol from a string and a representative element.
+    /// Creates a class symbol from a string and some representative elements.
     ///
     /// Some permissible conjugacy class symbols:
     ///
@@ -210,7 +207,7 @@ impl<R: Clone> SymmetryClassSymbol<R> {
     /// # Arguments
     ///
     /// * `symstr` - A string to be parsed to give a class symbol.
-    /// * `rep` - An optional representative element for this class.
+    /// * `rep` - Optional representative elements for this class.
     ///
     /// # Returns
     ///
@@ -449,21 +446,21 @@ impl fmt::Display for MullikenIrcorepSymbol {
 // SymmetryClassSymbol
 // -------------------
 
-impl<R: Clone> PartialEq for SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> PartialEq for SymmetryClassSymbol<R> {
     fn eq(&self, other: &Self) -> bool {
         self.generic_symbol == other.generic_symbol
     }
 }
 
-impl<R: Clone> Eq for SymmetryClassSymbol<R> {}
+impl<R: Clone + Serialize> Eq for SymmetryClassSymbol<R> {}
 
-impl<R: Clone> Hash for SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> Hash for SymmetryClassSymbol<R> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.generic_symbol.hash(state);
     }
 }
 
-impl<R: Clone> MathematicalSymbol for SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> MathematicalSymbol for SymmetryClassSymbol<R> {
     /// The main part of the symbol, which denotes the representative symmetry operation.
     fn main(&self) -> String {
         self.generic_symbol.main()
@@ -506,7 +503,7 @@ impl<R: Clone> MathematicalSymbol for SymmetryClassSymbol<R> {
     }
 }
 
-impl<R: Clone> CollectionSymbol for SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> CollectionSymbol for SymmetryClassSymbol<R> {
     type CollectionElement = R;
 
     fn from_reps(
@@ -525,7 +522,7 @@ impl<R: Clone> CollectionSymbol for SymmetryClassSymbol<R> {
     }
 }
 
-impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
+impl<R: SpecialSymmetryTransformation + Clone + Serialize> SpecialSymmetryTransformation
     for SymmetryClassSymbol<R>
 {
     // ============
@@ -617,7 +614,7 @@ impl<R: SpecialSymmetryTransformation + Clone> SpecialSymmetryTransformation
     }
 }
 
-impl<R: FiniteOrder + Clone> FiniteOrder for SymmetryClassSymbol<R> {
+impl<R: FiniteOrder + Clone + Serialize> FiniteOrder for SymmetryClassSymbol<R> {
     type Int = R::Int;
 
     fn order(&self) -> Self::Int {
@@ -628,7 +625,7 @@ impl<R: FiniteOrder + Clone> FiniteOrder for SymmetryClassSymbol<R> {
     }
 }
 
-impl<R: Clone> fmt::Display for SymmetryClassSymbol<R> {
+impl<R: Clone + Serialize> fmt::Display for SymmetryClassSymbol<R> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.generic_symbol)
     }
@@ -660,7 +657,7 @@ impl<R: Clone> fmt::Display for SymmetryClassSymbol<R> {
 /// # Panics
 ///
 /// Panics when expected classes cannot be found.
-pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
+pub(super) fn sort_irreps<R: Clone + Serialize + SpecialSymmetryTransformation>(
     char_arr: &ArrayView2<Character>,
     frobenius_schur_indicators: &[i8],
     class_symbols: &IndexMap<SymmetryClassSymbol<R>, usize>,
@@ -688,7 +685,7 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
         SymmetryClassSymbol::new(&format!("1||σh{su2_0}||"), None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh{su2_0}||`."));
     let class_s2: SymmetryClassSymbol<R> =
-        SymmetryClassSymbol::new(&format!("1||σh(Σ), σh(QΣ)||"), None)
+        SymmetryClassSymbol::new("1||σh(Σ), σh(QΣ)||", None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh(Σ), σh(QΣ)||`."));
     let class_ts: SymmetryClassSymbol<R> =
         SymmetryClassSymbol::new(&format!("1||θ·σh{su2_0}||"), None)
@@ -708,7 +705,7 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
     // Second highest priority: time-reversal
     if class_symbols.contains_key(&class_t) {
         leading_classes.insert(class_t.clone());
-        sign_only_classes.insert(class_t.clone());
+        sign_only_classes.insert(class_t);
     }
 
     // Third highest priority: inversion, or horizontal mirror plane if inversion not available,
@@ -774,8 +771,8 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
             if approx::relative_eq!(
                 character_c.im,
                 0.0,
-                max_relative = character.threshold,
-                epsilon = character.threshold
+                max_relative = character.threshold(),
+                epsilon = character.threshold()
             ) {
                 if character_c.re > 0.0 {
                     one.clone()
@@ -785,8 +782,8 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
             } else if approx::relative_eq!(
                 character_c.re,
                 0.0,
-                max_relative = character.threshold,
-                epsilon = character.threshold
+                max_relative = character.threshold(),
+                epsilon = character.threshold()
             ) {
                 if character_c.im > 0.0 {
                     one.clone()
@@ -856,13 +853,13 @@ pub fn sort_irreps<R: Clone + SpecialSymmetryTransformation>(
 /// * both `force_proper_principal` and `force_principal` are specified;
 /// * classes specified in `force_principal` cannot be found in `class_symbols`;
 /// * no principal classes can be found.
-pub fn deduce_principal_classes<R, P>(
+pub(super) fn deduce_principal_classes<R, P>(
     class_symbols: &IndexMap<SymmetryClassSymbol<R>, usize>,
     force_principal_predicate: Option<P>,
     force_principal: Option<SymmetryClassSymbol<R>>,
 ) -> Vec<SymmetryClassSymbol<R>>
 where
-    R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
+    R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone + Serialize,
     P: Copy + Fn(&SymmetryClassSymbol<R>) -> bool,
 {
     log::debug!("Determining principal classes...");
@@ -961,7 +958,7 @@ pub(super) fn deduce_mulliken_irrep_symbols<R>(
     principal_classes: &[SymmetryClassSymbol<R>],
 ) -> Vec<MullikenIrrepSymbol>
 where
-    R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone,
+    R: fmt::Debug + SpecialSymmetryTransformation + FiniteOrder + Clone + Serialize,
 {
     log::debug!("Generating Mulliken irreducible representation symbols...");
 
@@ -985,7 +982,7 @@ where
     let s_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new(&format!("1||σh{su2_0}||"), None)
         .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh{su2_0}||`."));
     let s2_cc: SymmetryClassSymbol<R> =
-        SymmetryClassSymbol::new(&format!("1||σh(Σ), σh(QΣ)||"), None)
+        SymmetryClassSymbol::new("1||σh(Σ), σh(QΣ)||", None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh(Σ), σh(QΣ)||`."));
     let ts_cc: SymmetryClassSymbol<R> =
         SymmetryClassSymbol::new(&format!("1||θ·σh{su2_0}||"), None)
@@ -1108,13 +1105,13 @@ where
                 approx::relative_eq!(
                     char_e1_c.im,
                     0.0,
-                    epsilon = char_e1.threshold,
-                    max_relative = char_e1.threshold
+                    epsilon = char_e1.threshold(),
+                    max_relative = char_e1.threshold()
                 ) && approx::relative_eq!(
                     char_e1_c.re.round(),
                     char_e1_c.re,
-                    epsilon = char_e1.threshold,
-                    max_relative = char_e1.threshold
+                    epsilon = char_e1.threshold(),
+                    max_relative = char_e1.threshold()
                 ),
             );
 
@@ -1155,13 +1152,13 @@ where
                 approx::relative_eq!(
                     char_inv_c.im,
                     0.0,
-                    epsilon = char_inv.threshold,
-                    max_relative = char_inv.threshold
+                    epsilon = char_inv.threshold(),
+                    max_relative = char_inv.threshold()
                 ) && approx::relative_eq!(
                     char_inv_c.re.round(),
                     char_inv_c.re,
-                    epsilon = char_inv.threshold,
-                    max_relative = char_inv.threshold
+                    epsilon = char_inv.threshold(),
+                    max_relative = char_inv.threshold()
                 ),
             );
 
@@ -1196,13 +1193,13 @@ where
                 approx::relative_eq!(
                     char_ref_c.im,
                     0.0,
-                    epsilon = char_ref.threshold,
-                    max_relative = char_ref.threshold
+                    epsilon = char_ref.threshold(),
+                    max_relative = char_ref.threshold()
                 ) && approx::relative_eq!(
                     char_ref_c.re.round(),
                     char_ref_c.re,
-                    epsilon = char_ref.threshold,
-                    max_relative = char_ref.threshold
+                    epsilon = char_ref.threshold(),
+                    max_relative = char_ref.threshold()
                 ),
             );
 
@@ -1229,13 +1226,13 @@ where
             if approx::relative_eq!(
                 char_trev_c.im,
                 0.0,
-                epsilon = char_trev.threshold,
-                max_relative = char_trev.threshold
+                epsilon = char_trev.threshold(),
+                max_relative = char_trev.threshold()
             ) && approx::relative_eq!(
                 char_trev_c.re.round(),
                 char_trev_c.re,
-                epsilon = char_trev.threshold,
-                max_relative = char_trev.threshold
+                epsilon = char_trev.threshold(),
+                max_relative = char_trev.threshold()
             ) {
                 // Real, integral time-reversal character
                 #[allow(clippy::cast_possible_truncation)]

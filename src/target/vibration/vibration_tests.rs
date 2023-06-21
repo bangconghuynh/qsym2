@@ -28,10 +28,10 @@ fn test_vibration_orbit_rep_analysis_nh3() {
 
     let mol_nh3 = Molecule::from_atoms(
         &[
-            atm_n.clone(),
-            atm_h0.clone(),
-            atm_h1.clone(),
-            atm_h2.clone(),
+            atm_n,
+            atm_h0,
+            atm_h1,
+            atm_h2,
         ],
         1e-6,
     )

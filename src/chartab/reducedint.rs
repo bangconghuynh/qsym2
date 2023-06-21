@@ -19,7 +19,7 @@ mod reducedint_tests;
 /// A wrapper enum to represent an integer in a modulo ring, with added additive
 /// and multiplicative identities to support linear algebra operations.
 #[derive(Clone, Copy, Debug)]
-pub enum LinAlgReducedInt<T, R: Reducer<T>> {
+pub(crate) enum LinAlgReducedInt<T, R: Reducer<T>> {
     /// Variant to represent an integer in a modulo ring with known
     /// characteristic.
     KnownChar(ReducedInt<T, R>),
@@ -33,7 +33,7 @@ pub enum LinAlgReducedInt<T, R: Reducer<T>> {
     One,
 }
 
-pub type LinAlgMontgomeryInt<T> = LinAlgReducedInt<T, Montgomery<T, T>>;
+pub(crate) type LinAlgMontgomeryInt<T> = LinAlgReducedInt<T, Montgomery<T, T>>;
 
 // ------------------
 // Associated methods
@@ -667,9 +667,15 @@ where
 // ====
 // Wrap
 // ====
-pub trait IntoLinAlgReducedInt {
+/// A trait allowing [`ReducedInt`] to be converted into [`LinAlgReducedInt`].
+pub(crate) trait IntoLinAlgReducedInt {
+    /// The intrinsic numeric type of [`Self`].
     type InnerT;
+
+    /// The reducer type of [`Self`].
     type InnerR: Reducer<Self::InnerT>;
+
+    /// Consumes `self` and produces an equivalent [`LinAlgReducedInt`].
     fn linalg(self) -> LinAlgReducedInt<Self::InnerT, Self::InnerR>;
 }
 

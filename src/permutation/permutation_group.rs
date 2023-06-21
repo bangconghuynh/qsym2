@@ -50,8 +50,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.raw_perm_indices
             .next()
-            .map(|index| Permutation::<T>::from_lehmer_index(index, self.rank))
-            .flatten()
+            .and_then(|index| Permutation::<T>::from_lehmer_index(index, self.rank))
     }
 }
 
@@ -128,7 +127,7 @@ pub trait PermutationGroupProperties:
                 let rep_ele = self.get_cc_transversal(cc_i).unwrap_or_else(|| {
                     panic!("No representative element found for conjugacy class index `{cc_i}`.")
                 });
-                let cycle_pattern = rep_ele.cycle_pattern().clone();
+                let cycle_pattern = rep_ele.cycle_pattern();
                 let mut cycle_pattern_count: Vec<(u8, u8)> =
                     Vec::with_capacity(cycle_pattern.len());
                 let mut i = 0u8;
@@ -158,7 +157,7 @@ pub trait PermutationGroupProperties:
                     .unwrap_or_else(|| panic!("Unknown size for conjugacy class index `{i}`."));
                 PermutationClassSymbol::new(
                     format!("{size}||{cycle_pattern_str}||").as_str(),
-                    Some(vec![rep_ele.clone()]),
+                    Some(vec![rep_ele]),
                 )
                 .unwrap_or_else(|_| {
                     panic!(
@@ -196,7 +195,7 @@ impl PermutationGroupProperties
         log::debug!("Generating all permutations of rank {rank}...");
         let perms = (0..rank)
             .permutations(usize::from(rank))
-            .map(|image| Permutation::from_image(image))
+            .map(Permutation::from_image)
             .collect_vec();
         log::debug!("Generating all permutations of rank {rank}... Done.");
         log::debug!("Collecting all permutations into a unitary-represented group...");
@@ -275,7 +274,6 @@ impl GroupProperties for PermutationGroup {
     fn is_abelian(&self) -> bool {
         self.perms_iter
             .clone()
-            .into_iter()
             .enumerate()
             .all(|(i, gi)| {
                 (0..i).all(|j| {
@@ -378,8 +376,7 @@ impl ClassProperties for PermutationGroup {
                         .get_index_of(&cycle_pattern)
                         .unwrap_or_else(|| {
                             panic!(
-                                "Cycle pattern {:?} is not valid in this group.",
-                                cycle_pattern
+                                "Cycle pattern {cycle_pattern:?} is not valid in this group."
                             );
                         }),
                 )
@@ -441,7 +438,7 @@ impl ClassProperties for PermutationGroup {
     }
 
     fn set_class_symbols(&mut self, cc_symbols: &[Self::ClassSymbol]) {
-        self.conjugacy_class_symbols = Some(cc_symbols.into_iter().cloned().collect());
+        self.conjugacy_class_symbols = Some(cc_symbols.iter().cloned().collect());
     }
 
     fn get_inverse_cc(&self, cc_idx: usize) -> Option<usize> {

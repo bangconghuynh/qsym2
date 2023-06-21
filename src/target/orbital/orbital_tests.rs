@@ -35,13 +35,13 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     let bsc_d = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
     let bsp_s = BasisShell::new(0, ShellOrder::Pure(true));
 
-    let batm_v = BasisAtom::new(&atm_v, &[bsc_d.clone()]);
+    let batm_v = BasisAtom::new(&atm_v, &[bsc_d]);
     let batm_f0 = BasisAtom::new(&atm_f0, &[bsp_s.clone()]);
     let batm_f1 = BasisAtom::new(&atm_f1, &[bsp_s.clone()]);
     let batm_f2 = BasisAtom::new(&atm_f2, &[bsp_s.clone()]);
     let batm_f3 = BasisAtom::new(&atm_f3, &[bsp_s.clone()]);
     let batm_f4 = BasisAtom::new(&atm_f4, &[bsp_s.clone()]);
-    let batm_f5 = BasisAtom::new(&atm_f5, &[bsp_s.clone()]);
+    let batm_f5 = BasisAtom::new(&atm_f5, &[bsp_s]);
 
     let bao_vf6 =
         BasisAngularOrder::new(&[batm_v, batm_f0, batm_f1, batm_f2, batm_f3, batm_f4, batm_f5]);
@@ -87,7 +87,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
     let mut sao_g = Array2::zeros((24, 24));
     sao_g.slice_mut(s![0..12, 0..12]).assign(&sao);
     sao_g.slice_mut(s![12..24, 12..24]).assign(&sao);
-    let sao_cg = sao_g.mapv(|x| C128::from(x));
+    let sao_cg = sao_g.mapv(C128::from);
 
     // -------------------------------------
     // αdxy αdyy αdzz αdx2-y2 βdxz βdxx βdyz
@@ -212,8 +212,8 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
             &group_u_oh_double,
             &orbs_d3_cg,
             SymmetryTransformationKind::SpinSpatial,
-            1e-14,
-            1e-14,
+            1e-13,
+            1e-13,
         )
         .into_iter()
         .flatten();

@@ -3,6 +3,7 @@ use std::iter::Sum;
 
 use approx;
 use derive_builder::Builder;
+use log;
 use ndarray::{s, Array1, Array2};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
@@ -17,7 +18,7 @@ use crate::target::orbital::MolecularOrbital;
 mod determinant_tests;
 
 pub mod determinant_analysis;
-pub mod determinant_transformation;
+mod determinant_transformation;
 
 // ==================
 // Struct definitions
@@ -158,22 +159,28 @@ where
         SlaterDeterminantBuilder::default()
     }
 
+    /// Returns the spin constraint imposed on the coefficients.
     pub fn spin_constraint(&self) -> &SpinConstraint {
         &self.spin_constraint
     }
 
+    /// Returns the basis angular order information of the basis set in which the coefficients are
+    /// expressed.
     pub fn bao(&self) -> &BasisAngularOrder {
         self.bao
     }
 
+    /// Returns the determinantal energy.
     pub fn energy(&self) -> Result<&T, &String> {
         self.energy.as_ref()
     }
 
+    /// Returns the molecular-orbital energies.
     pub fn mo_energies(&self) -> Option<&Vec<Array1<T>>> {
         self.mo_energies.as_ref()
     }
 
+    /// Returns the occupation patterns of the molecular orbitals.
     pub fn occupations(&self) -> &Vec<Array1<<T as ComplexFloat>::Real>> {
         &self.occupations
     }
@@ -181,6 +188,11 @@ where
     /// Returns a shared reference to a vector of coefficient arrays.
     pub fn coefficients(&self) -> &Vec<Array2<T>> {
         &self.coefficients
+    }
+
+    /// Returns the threshold with which determinants are compared.
+    pub fn threshold(&self) -> <T as ComplexFloat>::Real {
+        self.threshold
     }
 
     /// Returns the total number of electrons in the determinant.
@@ -215,6 +227,9 @@ where
     pub fn to_generalised(&self) -> Self {
         match self.spin_constraint {
             SpinConstraint::Restricted(n) => {
+                log::debug!(
+                    "Restricted Slater determinant will be augmented to generalised Slater determinant."
+                );
                 let nbas = self.bao.n_funcs();
 
                 let cr = &self.coefficients[0];
@@ -254,6 +269,9 @@ where
                     .expect("Unable to spin-generalise a `SlaterDeterminant`.")
             }
             SpinConstraint::Unrestricted(n, increasingm) => {
+                log::debug!(
+                    "Unrestricted Slater determinant will be augmented to generalised Slater determinant."
+                );
                 let nbas = self.bao.n_funcs();
                 let norb_tot = self.coefficients.iter().map(|c| c.ncols()).sum();
                 let mut cg = Array2::<T>::zeros((nbas * usize::from(n), norb_tot));
@@ -310,25 +328,28 @@ where
     /// spin constraint, the identical molecular orbitals across different spin spaces are only
     /// given once. Each molecular orbital does contain an index of the spin space it is in.
     pub fn to_orbitals(&self) -> Vec<Vec<MolecularOrbital<'a, T>>> {
-        self
-            .coefficients
+        self.coefficients
             .iter()
             .enumerate()
             .map(|(spini, cs_spini)| {
-                cs_spini.columns().into_iter().enumerate().map(move |(i, c)| {
-                    MolecularOrbital::builder()
-                        .coefficients(c.to_owned())
-                        .energy(self.mo_energies.as_ref().map(|moes| moes[spini][i]))
-                        .bao(self.bao)
-                        .mol(self.mol)
-                        .spin_constraint(self.spin_constraint.clone())
-                        .spin_index(spini)
-                        .complex_symmetric(self.complex_symmetric)
-                        .threshold(self.threshold)
-                        .build()
-                        .expect("Unable to construct a molecular orbital.")
-                })
-                .collect::<Vec<_>>()
+                cs_spini
+                    .columns()
+                    .into_iter()
+                    .enumerate()
+                    .map(move |(i, c)| {
+                        MolecularOrbital::builder()
+                            .coefficients(c.to_owned())
+                            .energy(self.mo_energies.as_ref().map(|moes| moes[spini][i]))
+                            .bao(self.bao)
+                            .mol(self.mol)
+                            .spin_constraint(self.spin_constraint.clone())
+                            .spin_index(spini)
+                            .complex_symmetric(self.complex_symmetric)
+                            .threshold(self.threshold)
+                            .build()
+                            .expect("Unable to construct a molecular orbital.")
+                    })
+                    .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>()
     }
@@ -352,13 +373,13 @@ where
                 &value
                     .coefficients
                     .into_iter()
-                    .map(|coeffs| coeffs.map(|x| Complex::from(x)))
+                    .map(|coeffs| coeffs.map(Complex::from))
                     .collect::<Vec<_>>(),
             )
             .occupations(&value.occupations)
             .mo_energies(value.mo_energies.map(|moes| {
                 moes.iter()
-                    .map(|moe| moe.map(|x| Complex::from(x)))
+                    .map(|moe| moe.map(Complex::from))
                     .collect::<Vec<_>>()
             }))
             .bao(value.bao)

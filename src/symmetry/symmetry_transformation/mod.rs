@@ -4,6 +4,7 @@ use std::fmt;
 use nalgebra::Vector3;
 use ndarray::{Array, Array2, Axis, RemoveAxis};
 use num_complex::Complex;
+use pyo3::prelude::*;
 
 use crate::angmom::sh_conversion::{sh_cart2r, sh_r2cart};
 use crate::angmom::sh_rotation_3d::rlmat;
@@ -24,6 +25,7 @@ mod symmetry_transformation_tests;
 
 /// An enumerated type for managing the kind of symmetry transformation on an object.
 #[derive(Debug, Clone)]
+#[pyclass]
 pub enum SymmetryTransformationKind {
     /// Spatial-only transformation.
     Spatial,
@@ -54,7 +56,7 @@ pub struct TransformationError(pub String);
 
 impl fmt::Display for TransformationError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Transformation error: {}.", self.0)
+        write!(f, "Transformation error: {}", self.0)
     }
 }
 
@@ -217,7 +219,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Returns
     ///
-    /// The resultant site permutation under the action of `symop`, or `None` if no such
+    /// The resultant site permutation under the action of `symop`, or an error if no such
     /// permutation can be found.
     fn sym_permute_sites_spatial(
         &self,
@@ -234,7 +236,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Arguments
     ///
-    /// * `op` - A symmetry operation.
+    /// * `symop` - A symmetry operation.
     fn sym_transform_spatial_mut(
         &mut self,
         symop: &SymmetryOperation,
@@ -273,7 +275,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Arguments
     ///
-    /// * `op` - A symmetry operation.
+    /// * `symop` - A symmetry operation.
     fn sym_transform_spin_mut(
         &mut self,
         symop: &SymmetryOperation,
@@ -301,7 +303,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Arguments
     ///
-    /// * `op` - A symmetry operation.
+    /// * `symop` - A symmetry operation.
     ///
     /// # Returns
     ///
@@ -319,7 +321,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Arguments
     ///
-    /// * `op` - A symmetry operation.
+    /// * `symop` - A symmetry operation.
     fn sym_transform_spin_spatial_mut(
         &mut self,
         symop: &SymmetryOperation,
@@ -335,7 +337,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Arguments
     ///
-    /// * `op` - A symmetry operation.
+    /// * `symop` - A symmetry operation.
     ///
     /// # Returns
     ///
@@ -524,8 +526,8 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
                             .unwrap_or_else(
                                 || panic!("Unable to find a permutation to map `{lex_cart_order}` to `{cart_order}`.")
                             );
-                        rl.select(Axis(0), &perm.image())
-                            .select(Axis(1), &perm.image())
+                        rl.select(Axis(0), perm.image())
+                            .select(Axis(1), perm.image())
                     } else {
                         rl
                     }

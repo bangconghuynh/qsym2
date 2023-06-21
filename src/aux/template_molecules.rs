@@ -5,7 +5,7 @@ use nalgebra::Point3;
 #[must_use]
 pub fn gen_twisted_h8(theta: f64) -> Molecule {
     let emap = ElementMap::new();
-    let (atomic_number, atomic_mass) = emap.map.get("H").expect("Unable to retrieve element.");
+    let (atomic_number, atomic_mass) = emap.get("H").expect("Unable to retrieve element.");
     let atoms: [Atom; 8] = [
         Atom {
             kind: AtomKind::Ordinary,
@@ -95,9 +95,9 @@ pub fn gen_twisted_h8(theta: f64) -> Molecule {
 pub fn gen_arbitrary_half_sandwich(n: u32) -> Molecule {
     let emap = ElementMap::new();
     let mut atoms: Vec<Atom> = vec![];
-    let (h_atomic_number, h_atomic_mass) = emap.map.get("H").expect("Unable to retrieve element.");
-    let (c_atomic_number, c_atomic_mass) = emap.map.get("C").expect("Unable to retrieve element.");
-    let (v_atomic_number, v_atomic_mass) = emap.map.get("V").expect("Unable to retrieve element.");
+    let (h_atomic_number, h_atomic_mass) = emap.get("H").expect("Unable to retrieve element.");
+    let (c_atomic_number, c_atomic_mass) = emap.get("C").expect("Unable to retrieve element.");
+    let (v_atomic_number, v_atomic_mass) = emap.get("V").expect("Unable to retrieve element.");
     atoms.push(Atom {
         kind: AtomKind::Ordinary,
         atomic_number: *v_atomic_number,
@@ -139,9 +139,9 @@ pub fn gen_arbitrary_half_sandwich(n: u32) -> Molecule {
 pub fn gen_arbitrary_eclipsed_sandwich(n: u32) -> Molecule {
     let emap = ElementMap::new();
     let mut atoms: Vec<Atom> = vec![];
-    let (h_atomic_number, h_atomic_mass) = emap.map.get("H").expect("Unable to retrieve element.");
-    let (c_atomic_number, c_atomic_mass) = emap.map.get("C").expect("Unable to retrieve element.");
-    let (m_atomic_number, m_atomic_mass) = emap.map.get("Co").expect("Unable to retrieve element.");
+    let (h_atomic_number, h_atomic_mass) = emap.get("H").expect("Unable to retrieve element.");
+    let (c_atomic_number, c_atomic_mass) = emap.get("C").expect("Unable to retrieve element.");
+    let (m_atomic_number, m_atomic_mass) = emap.get("Co").expect("Unable to retrieve element.");
     atoms.push(Atom {
         kind: AtomKind::Ordinary,
         atomic_number: *m_atomic_number,
@@ -207,9 +207,9 @@ pub fn gen_arbitrary_eclipsed_sandwich(n: u32) -> Molecule {
 pub fn gen_arbitrary_twisted_sandwich(n: u32, frac: f64) -> Molecule {
     let emap = ElementMap::new();
     let mut atoms: Vec<Atom> = vec![];
-    let (h_atomic_number, h_atomic_mass) = emap.map.get("H").expect("Unable to retrieve element.");
-    let (c_atomic_number, c_atomic_mass) = emap.map.get("C").expect("Unable to retrieve element.");
-    let (m_atomic_number, m_atomic_mass) = emap.map.get("Co").expect("Unable to retrieve element.");
+    let (h_atomic_number, h_atomic_mass) = emap.get("H").expect("Unable to retrieve element.");
+    let (c_atomic_number, c_atomic_mass) = emap.get("C").expect("Unable to retrieve element.");
+    let (m_atomic_number, m_atomic_mass) = emap.get("Co").expect("Unable to retrieve element.");
     atoms.push(Atom {
         kind: AtomKind::Ordinary,
         atomic_number: *m_atomic_number,

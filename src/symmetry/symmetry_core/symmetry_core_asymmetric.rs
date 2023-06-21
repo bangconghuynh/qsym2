@@ -33,7 +33,7 @@ impl Symmetry {
     /// symmetry element will only be considered if its non-time-reversed version turns out to be
     /// not a symmetry element.
     #[allow(clippy::too_many_lines)]
-    pub fn analyse_asymmetric(
+    pub(super) fn analyse_asymmetric(
         &mut self,
         presym: &PreSymmetry,
         tr: bool,
@@ -122,7 +122,7 @@ impl Symmetry {
                     ORDER_2,
                     &z_vec,
                     false,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.dist_threshold,
                     improper_kind.contains_time_reversal(),
@@ -146,7 +146,7 @@ impl Symmetry {
                         ORDER_1,
                         c2.raw_axis(),
                         false,
-                        SIG.clone(),
+                        SIG,
                         None,
                         presym.dist_threshold,
                         improper_check
@@ -159,7 +159,7 @@ impl Symmetry {
                             .contains_time_reversal(),
                     );
                 }
-                let principal_element_axis = self.get_proper_principal_element().raw_axis().clone();
+                let principal_element_axis = *self.get_proper_principal_element().raw_axis();
                 let improper_check =
                     presym.check_improper(&ORDER_1, &principal_element_axis, &SIG, tr);
                 ensure!(
@@ -170,7 +170,7 @@ impl Symmetry {
                     ORDER_1,
                     &principal_element_axis,
                     true,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.dist_threshold,
                     improper_check
@@ -216,7 +216,7 @@ impl Symmetry {
                     ORDER_2,
                     &z_vec,
                     false,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.dist_threshold,
                     improper_kind.contains_time_reversal(),
@@ -241,7 +241,7 @@ impl Symmetry {
                     ORDER_1,
                     c2.raw_axis(),
                     false,
-                    SIG.clone(),
+                    SIG,
                     Some("h".to_owned()),
                     presym.dist_threshold,
                     improper_check
@@ -258,7 +258,7 @@ impl Symmetry {
                     ORDER_1,
                     c2.raw_axis(),
                     true,
-                    SIG.clone(),
+                    SIG,
                     Some("h".to_owned()),
                     presym.dist_threshold,
                     improper_check
@@ -295,7 +295,7 @@ impl Symmetry {
                             ORDER_1,
                             &principal_axes[2],
                             false,
-                            SIG.clone(),
+                            SIG,
                             Some("v".to_owned()),
                             presym.dist_threshold,
                             improper_kind.contains_time_reversal(),
@@ -328,7 +328,7 @@ impl Symmetry {
                                     ORDER_1,
                                     &normal,
                                     false,
-                                    SIG.clone(),
+                                    SIG,
                                     Some("h".to_owned()),
                                     presym.dist_threshold,
                                     improper_kind.contains_time_reversal(),
@@ -338,7 +338,7 @@ impl Symmetry {
                                     ORDER_1,
                                     &normal,
                                     false,
-                                    SIG.clone(),
+                                    SIG,
                                     Some("v".to_owned()),
                                     presym.dist_threshold,
                                     improper_kind.contains_time_reversal(),
@@ -380,7 +380,7 @@ impl Symmetry {
                         ORDER_1,
                         sigma.raw_axis(),
                         true,
-                        SIG.clone(),
+                        SIG,
                         Some(sigma.additional_subscript.clone()),
                         presym.dist_threshold,
                         sigma.contains_time_reversal(),
@@ -404,7 +404,7 @@ impl Symmetry {
                     ORDER_2,
                     &z_vec,
                     false,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.dist_threshold,
                     improper_kind.contains_time_reversal(),
@@ -413,7 +413,7 @@ impl Symmetry {
                     ORDER_2,
                     &z_vec,
                     true,
-                    SIG.clone(),
+                    SIG,
                     None,
                     presym.dist_threshold,
                     improper_kind.contains_time_reversal(),
@@ -440,7 +440,7 @@ impl Symmetry {
                                 ORDER_1,
                                 &normal,
                                 false,
-                                SIG.clone(),
+                                SIG,
                                 None,
                                 presym.dist_threshold,
                                 improper_kind.contains_time_reversal(),
@@ -467,7 +467,7 @@ impl Symmetry {
                             ORDER_1,
                             &principal_axes[2],
                             false,
-                            SIG.clone(),
+                            SIG,
                             None,
                             presym.dist_threshold,
                             sigma_check
@@ -543,7 +543,7 @@ impl Symmetry {
                         ORDER_1,
                         old_sigma.raw_axis(),
                         false,
-                        SIG.clone(),
+                        SIG,
                         Some("h".to_owned()),
                         presym.dist_threshold,
                         old_sigma.contains_time_reversal(),
@@ -552,7 +552,7 @@ impl Symmetry {
                         ORDER_1,
                         old_sigma.raw_axis(),
                         true,
-                        SIG.clone(),
+                        SIG,
                         Some("h".to_owned()),
                         presym.dist_threshold,
                         old_sigma.contains_time_reversal(),

@@ -4,10 +4,12 @@ use std::convert::TryInto;
 use std::fmt;
 use std::slice::Iter;
 
+use anyhow::{self, ensure, format_err};
 use counter::Counter;
 use derive_builder::Builder;
 use itertools::Itertools;
 
+use crate::angmom::ANGMOM_LABELS;
 use crate::aux::atom::Atom;
 use crate::aux::misc::ProductRepeat;
 use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
@@ -20,7 +22,7 @@ mod ao_basis_tests;
 // Shells
 // ------
 
-/// A struct to contain information about the ordering of Cartesian Gaussians of a certain rank.
+/// A structure to contain information about the ordering of Cartesian Gaussians of a certain rank.
 #[derive(Clone, Builder, PartialEq, Eq, Hash)]
 pub struct CartOrder {
     /// A sequence of $`(l_x, l_y, l_z)`$ tuples giving the ordering of the Cartesian Gaussians.
@@ -45,20 +47,27 @@ impl CartOrderBuilder {
 }
 
 impl CartOrder {
-    /// Returns a builder to construct a new `CartOrder` struct.
-    ///
-    /// # Returns
-    ///
-    /// A builder to construct a new `CartOrder` struct.
+    /// Returns a builder to construct a new `CartOrder` structure.
     fn builder() -> CartOrderBuilder {
         CartOrderBuilder::default()
     }
 
-    /// Constructs a new `CartOrder` struct for a specified rank with lexicographic order.
+    /// Constructs a new `CartOrder` structure from its constituting tuple, each of which contains
+    /// the $`x`$, $`y`$, and $`z`$ exponents for one Cartesian term.
+    pub fn new(cart_tuples: &[(u32, u32, u32)]) -> Result<Self, anyhow::Error> {
+        let cart_order = CartOrder::builder()
+            .cart_tuples(cart_tuples)
+            .build()
+            .map_err(|err| format_err!(err))?;
+        ensure!(cart_order.verify(), "Invalid `CartOrder`.");
+        Ok(cart_order)
+    }
+
+    /// Constructs a new `CartOrder` structure for a specified rank with lexicographic order.
     ///
     /// # Arguments
     ///
-    /// * lcart - The required Cartesian Gaussian rank.
+    /// * `lcart` - The required Cartesian Gaussian rank.
     ///
     /// # Returns
     ///
@@ -79,11 +88,11 @@ impl CartOrder {
             .expect("Unable to construct a `CartOrder` structure with lexicographic order.")
     }
 
-    /// Constructs a new `CartOrder` struct for a specified rank with Q-Chem order.
+    /// Constructs a new `CartOrder` structure for a specified rank with Q-Chem order.
     ///
     /// # Arguments
     ///
-    /// * lcart - The required Cartesian Gaussian rank.
+    /// * `lcart` - The required Cartesian Gaussian rank.
     ///
     /// # Returns
     ///
@@ -137,10 +146,12 @@ impl CartOrder {
                 .all(|(lx, ly, lz)| lx + ly + lz == lcart)
     }
 
+    /// Iterates over the constituent tuples.
     pub fn iter(&self) -> Iter<(u32, u32, u32)> {
         self.cart_tuples.iter()
     }
 
+    /// Returns the number of Cartesian components in the shell.
     pub fn ncomps(&self) -> usize {
         let lcart = usize::try_from(self.lcart).unwrap_or_else(|_| {
             panic!(
@@ -187,13 +198,9 @@ impl PermutableCollection for CartOrder {
         let image_opt: Option<Vec<Self::Rank>> = self
             .cart_tuples
             .iter()
-            .map(|s_cart_tuple| {
-                o_cart_tuples
-                    .get(s_cart_tuple)
-                    .copied()
-            })
+            .map(|s_cart_tuple| o_cart_tuples.get(s_cart_tuple).copied())
             .collect();
-        image_opt.map(|image| Permutation::from_image(image))
+        image_opt.map(Permutation::from_image)
     }
 
     fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
@@ -219,7 +226,7 @@ impl PermutableCollection for CartOrder {
 /// Returns
 ///
 /// The string representation of the Cartesian exponent tuple.
-fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
+pub(crate) fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
     if cart_tuple.0 + cart_tuple.1 + cart_tuple.2 == 0u32 {
         "1".to_string()
     } else {
@@ -243,7 +250,8 @@ fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> String {
     }
 }
 
-/// An enum to indicate the type of the angular functions in a shell and how they are ordered.
+/// An enumerated type to indicate the type of the angular functions in a shell and how they are
+/// ordered.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ShellOrder {
     /// This variant indicates that the angular functions are real solid harmonics. The associated
@@ -255,7 +263,31 @@ pub enum ShellOrder {
     Cart(CartOrder),
 }
 
-/// A struct representing a shell in an atomic-orbital basis set.
+impl fmt::Display for ShellOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ShellOrder::Pure(increasingm) => write!(
+                f,
+                "Pure ({})",
+                if *increasingm {
+                    "increasing m"
+                } else {
+                    "decreasing m"
+                }
+            ),
+            ShellOrder::Cart(cart_order) => write!(
+                f,
+                "Cart ({})",
+                cart_order
+                    .iter()
+                    .map(|cart_tuple| { cart_tuple_to_str(cart_tuple, true) })
+                    .join(", ")
+            ),
+        }
+    }
+}
+
+/// A structure representing a shell in an atomic-orbital basis set.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisShell {
     /// A non-negative integer indicating the rank of the shell.
@@ -295,6 +327,13 @@ impl BasisShell {
         BasisShellBuilder::default()
     }
 
+    /// Constructs a new [`BasisShell`].
+    ///
+    /// # Arguments
+    ///
+    /// * `l` - The rank of this shell.
+    /// * `shl_ord` - A [`ShellOrder`] structure specifying the type and ordering of the basis
+    /// functions in this shell.
     pub fn new(l: u32, shl_ord: ShellOrder) -> Self {
         BasisShell::builder()
             .l(l)
@@ -317,7 +356,7 @@ impl BasisShell {
 // Atoms
 // -----
 
-/// A struct containing the ordered sequence of the shells for an atom.
+/// A structure containing the ordered sequence of the shells for an atom.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisAtom<'a> {
     /// An atom in the basis set.
@@ -345,6 +384,13 @@ impl<'a> BasisAtom<'a> {
         BasisAtomBuilder::default()
     }
 
+    /// Constructs a new [`BasisAtom`].
+    ///
+    /// # Arguments
+    ///
+    /// * `atm` - A reference to an atom.
+    /// * `bss` - A sequence of [`BasisShell`]s containing the basis functions localised on this
+    /// atom.
     pub fn new(atm: &'a Atom, bss: &[BasisShell]) -> Self {
         BasisAtom::builder()
             .atom(atm)
@@ -376,7 +422,7 @@ impl<'a> BasisAtom<'a> {
 // Basis
 // -----
 
-/// A struct containing the angular momentum information of an atomic-orbital basis set that is
+/// A structure containing the angular momentum information of an atomic-orbital basis set that is
 /// required for symmetry transformation to be performed.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisAngularOrder<'a> {
@@ -399,10 +445,15 @@ impl<'a> BasisAngularOrder<'a> {
     ///
     /// A builder to construct a new [`BasisAngularOrder`].
     #[must_use]
-    pub fn builder() -> BasisAngularOrderBuilder<'a> {
+    fn builder() -> BasisAngularOrderBuilder<'a> {
         BasisAngularOrderBuilder::default()
     }
 
+    /// Constructs a new [`BasisAngularOrder`] structure.
+    ///
+    /// # Arguments
+    ///
+    /// * `batms` - The constituent [`BasisAtom`]s.
     pub fn new(batms: &[BasisAtom<'a>]) -> Self {
         BasisAngularOrder::builder()
             .basis_atoms(batms)
@@ -410,17 +461,18 @@ impl<'a> BasisAngularOrder<'a> {
             .expect("Unable to construct a `BasisAngularOrder`.")
     }
 
+    /// The number of atoms in the basis.
     pub fn n_atoms(&self) -> usize {
         self.basis_atoms.len()
     }
 
-    /// The number of basis functions in this basis set.
+    /// The number of basis functions in this basis.
     pub fn n_funcs(&self) -> usize {
         self.basis_atoms.iter().map(BasisAtom::n_funcs).sum()
     }
 
-    /// The ordered tuples of 0-based indices indicating the starting (inclusive) and ending
-    /// (exclusive) shell positions of the atoms in this basis set.
+    /// The ordered tuples of 0-based shell indices indicating the starting (inclusive) and ending
+    /// (exclusive) shell positions of the atoms in this basis.
     pub fn atom_boundary_indices(&self) -> Vec<(usize, usize)> {
         self.basis_atoms
             .iter()
@@ -432,8 +484,8 @@ impl<'a> BasisAngularOrder<'a> {
             .collect::<Vec<_>>()
     }
 
-    /// The ordered tuples of 0-based indices indicating the starting (inclusive) and ending
-    /// (exclusive) positions of the shells in this basis set.
+    /// The ordered tuples of 0-based function indices indicating the starting (inclusive) and
+    /// ending (exclusive) positions of the shells in this basis.
     pub fn shell_boundary_indices(&self) -> Vec<(usize, usize)> {
         let atom_boundary_indices = self.atom_boundary_indices();
         self.basis_atoms
@@ -451,6 +503,7 @@ impl<'a> BasisAngularOrder<'a> {
             .collect::<Vec<_>>()
     }
 
+    /// An iterator over the constituent [`BasisShell`]s in this basis.
     pub fn basis_shells(&self) -> impl Iterator<Item = &BasisShell> + '_ {
         self.basis_atoms
             .iter()
@@ -483,7 +536,7 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
             .iter()
             .map(|s_basis_atom| o_basis_atoms.get(s_basis_atom).copied())
             .collect();
-        image_opt.map(|image| Permutation::from_image(image))
+        image_opt.map(Permutation::from_image)
     }
 
     fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
@@ -494,5 +547,48 @@ impl<'a> PermutableCollection for BasisAngularOrder<'a> {
 
     fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
         permute_inplace(&mut self.basis_atoms, perm);
+    }
+}
+
+impl<'a> fmt::Display for BasisAngularOrder<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let order_length = self
+            .basis_shells()
+            .map(|v| v.shell_order.to_string().chars().count())
+            .max()
+            .unwrap_or(20);
+        writeln!(f, "{}", "┈".repeat(15 + order_length))?;
+        writeln!(f, " Atom  Shell  Order")?;
+        writeln!(f, "{}", "┈".repeat(15 + order_length))?;
+        for batm in self.basis_atoms.iter() {
+            let atm = batm.atom;
+            for (i, bshl) in batm.basis_shells.iter().enumerate() {
+                if i == 0 {
+                    writeln!(
+                        f,
+                        " {:<4}  {:<5}  {:<order_length$}",
+                        atm.atomic_symbol,
+                        ANGMOM_LABELS
+                            .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
+                            .copied()
+                            .unwrap_or(&bshl.l.to_string()),
+                        bshl.shell_order
+                    )?;
+                } else {
+                    writeln!(
+                        f,
+                        " {:<4}  {:<5}  {:<order_length$}",
+                        "",
+                        ANGMOM_LABELS
+                            .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
+                            .copied()
+                            .unwrap_or(&bshl.l.to_string()),
+                        bshl.shell_order
+                    )?;
+                }
+            }
+        }
+        writeln!(f, "{}", "┈".repeat(15 + order_length))?;
+        Ok(())
     }
 }

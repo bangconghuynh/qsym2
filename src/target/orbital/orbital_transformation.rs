@@ -28,7 +28,7 @@ where
         rmat: &Array2<f64>,
         perm: Option<&Permutation<usize>>,
     ) -> &mut Self {
-        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(&self.bao, rmat, perm)
+        let tmats: Vec<Array2<T>> = assemble_sh_rotation_3d_matrices(self.bao, rmat, perm)
             .iter()
             .map(|tmat| tmat.map(|&x| x.into()))
             .collect();
@@ -41,7 +41,7 @@ where
         let new_coefficients = match self.spin_constraint {
             SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
                 let p_coeff = if let Some(p) = perm {
-                    permute_array_by_atoms(old_coeff, p, &[Axis(0)], &self.bao)
+                    permute_array_by_atoms(old_coeff, p, &[Axis(0)], self.bao)
                 } else {
                     old_coeff.clone()
                 };
@@ -74,7 +74,7 @@ where
 
                             // Permute within spin block ispin.
                             let p_spin_block = if let Some(p) = perm {
-                                permute_array_by_atoms(&spin_block, p, &[Axis(0)], &self.bao)
+                                permute_array_by_atoms(&spin_block, p, &[Axis(0)], self.bao)
                             } else {
                                 spin_block
                             };
@@ -222,14 +222,12 @@ impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
                                 assert_eq!(self.spin_index, 1);
                                 self.spin_index = 0;
                             }
+                        } else if self.spin_index == 0 {
+                            self.spin_index = 1;
                         } else {
-                            if self.spin_index == 0 {
-                                self.spin_index = 1;
-                            } else {
-                                assert_eq!(self.spin_index, 1);
-                                self.spin_index = 0;
-                                self.coefficients *= -1.0;
-                            }
+                            assert_eq!(self.spin_index, 1);
+                            self.spin_index = 0;
+                            self.coefficients *= -1.0;
                         }
                         Ok(self)
                     } else if approx::relative_eq!(
@@ -247,14 +245,12 @@ impl<'a> SpinUnitaryTransformable for MolecularOrbital<'a, f64> {
                                 self.spin_index = 0;
                                 self.coefficients *= -1.0;
                             }
+                        } else if self.spin_index == 0 {
+                            self.spin_index = 1;
+                            self.coefficients *= -1.0;
                         } else {
-                            if self.spin_index == 0 {
-                                self.spin_index = 1;
-                                self.coefficients *= -1.0;
-                            } else {
-                                assert_eq!(self.spin_index, 1);
-                                self.spin_index = 0;
-                            }
+                            assert_eq!(self.spin_index, 1);
+                            self.spin_index = 0;
                         }
                         Ok(self)
                     } else {
@@ -402,14 +398,12 @@ where
                             assert_eq!(self.spin_index, 1);
                             self.spin_index = 0;
                         }
+                    } else if self.spin_index == 0 {
+                        self.spin_index = 1;
                     } else {
-                        if self.spin_index == 0 {
-                            self.spin_index = 1;
-                        } else {
-                            assert_eq!(self.spin_index, 1);
-                            self.spin_index = 0;
-                            self.coefficients.map_inplace(|x| *x = -*x);
-                        }
+                        assert_eq!(self.spin_index, 1);
+                        self.spin_index = 0;
+                        self.coefficients.map_inplace(|x| *x = -*x);
                     }
                     Ok(self)
                 } else if approx::relative_eq!(
@@ -427,14 +421,12 @@ where
                             self.spin_index = 0;
                             self.coefficients.map_inplace(|x| *x = -*x);
                         }
+                    } else if self.spin_index == 0 {
+                        self.spin_index = 1;
+                        self.coefficients.map_inplace(|x| *x = -*x);
                     } else {
-                        if self.spin_index == 0 {
-                            self.spin_index = 1;
-                            self.coefficients.map_inplace(|x| *x = -*x);
-                        } else {
-                            assert_eq!(self.spin_index, 1);
-                            self.spin_index = 0;
-                        }
+                        assert_eq!(self.spin_index, 1);
+                        self.spin_index = 0;
                     }
                     Ok(self)
                 } else {

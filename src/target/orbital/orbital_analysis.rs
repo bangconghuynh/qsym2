@@ -5,26 +5,30 @@ use std::ops::Mul;
 use anyhow::{self, ensure, format_err};
 use approx;
 use derive_builder::Builder;
-use itertools::Itertools;
-use ndarray::{Array2, Axis, Ix2};
+use itertools::{izip, Itertools};
+use ndarray::{Array1, Array2, Axis, Ix2};
 use ndarray_linalg::{
     assert_close_l2,
     eig::Eig,
     eigh::Eigh,
+    solve::Determinant,
     types::{Lapack, Scalar},
     UPLO,
 };
 use num_complex::{Complex, ComplexFloat};
-use num_traits::{Float, Zero};
+use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis};
-use crate::aux::misc::complex_modified_gram_schmidt;
+use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::aux::misc::{complex_modified_gram_schmidt, ProductRepeat};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
+use crate::target::determinant::determinant_analysis::SlaterDeterminantSymmetryOrbit;
+use crate::target::determinant::SlaterDeterminant;
 use crate::target::orbital::MolecularOrbital;
 
 // -------
@@ -110,14 +114,19 @@ where
 
     /// The overlap matrix between the symmetry-equivalent molecular orbitals in the orbit.
     #[builder(setter(skip), default = "None")]
-    pub smat: Option<Array2<T>>,
+    smat: Option<Array2<T>>,
+
+    /// The eigenvalues of the overlap matrix between the symmetry-equivalent Slater determinants in
+    /// the orbit.
+    #[builder(setter(skip), default = "None")]
+    smat_eigvals: Option<Array1<T>>,
 
     /// The $`\mathbf{X}`$ matrix for the overlap matrix between the symmetry-equivalent molecular
     /// orbitals in the orbit.
     ///
     /// See [`RepAnalysis::xmat`] for further information.
     #[builder(setter(skip), default = "None")]
-    pub xmat: Option<Array2<T>>,
+    xmat: Option<Array2<T>>,
 }
 
 // ----------------------------
@@ -130,6 +139,7 @@ where
     T: ComplexFloat + fmt::Debug + Lapack,
     MolecularOrbital<'a, T>: SymmetryTransformable,
 {
+    /// Returns a builder to construct a new [`MolecularOrbitalSymmetryOrbit`] structure.
     pub fn builder() -> MolecularOrbitalSymmetryOrbitBuilder<'a, G, T> {
         MolecularOrbitalSymmetryOrbitBuilder::default()
     }
@@ -143,6 +153,7 @@ where
     /// * `sym_kind` - The symmetry transformation kind.
     /// * `integrality_thresh` - The threshold of integrality check of multiplicity coefficients in
     /// each orbit.
+    /// * `linear_independence_thresh` - The threshold of linear independence for each orbit.
     ///
     /// # Returns
     ///
@@ -162,7 +173,7 @@ where
                     .map(|orb| {
                         MolecularOrbitalSymmetryOrbit::builder()
                             .group(group)
-                            .origin(&orb)
+                            .origin(orb)
                             .integrality_threshold(integrality_thresh)
                             .linear_independence_threshold(linear_independence_thresh)
                             .symmetry_transformation_kind(sym_kind.clone())
@@ -182,6 +193,8 @@ where
     /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix $`\mathbf{S}`$
     /// between the symmetry-equivalent molecular orbitals in the orbit.
     ///
+    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
+    ///
     /// # Arguments
     ///
     /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
@@ -195,7 +208,7 @@ where
             .smat
             .as_ref()
             .expect("No overlap matrix found for this orbit.");
-        assert_close_l2!(&smat, &smat.t(), thresh);
+        assert_close_l2!(smat, &smat.t(), thresh);
         let (s_eig, umat) = smat.eigh(UPLO::Lower).unwrap();
         let nonzero_s_indices = s_eig.iter().positions(|x| x.abs() > thresh).collect_vec();
         let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
@@ -207,6 +220,7 @@ where
             let s_s = Array2::<f64>::from_diag(&nonzero_s_eig.mapv(|x| 1.0 / x.sqrt()));
             nonzero_umat.dot(&s_s)
         };
+        self.smat_eigvals = Some(s_eig);
         self.xmat = Some(xmat);
         self
     }
@@ -221,6 +235,8 @@ where
 {
     /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap matrix
     /// $`\mathbf{S}`$ between the symmetry-equivalent molecular orbitals in the orbit.
+    ///
+    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
     ///
     /// # Arguments
     ///
@@ -264,6 +280,7 @@ where
             );
             nonzero_umat.dot(&s_s)
         };
+        self.smat_eigvals = Some(s_eig);
         self.xmat = Some(xmat);
     }
 }
@@ -298,19 +315,19 @@ where
             self.origin,
             match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => |op, orb| {
-                    orb.sym_transform_spatial(&op).unwrap_or_else(|err| {
+                    orb.sym_transform_spatial(op).unwrap_or_else(|err| {
                         log::error!("{err}");
                         panic!("Unable to apply `{op}` spatially on the origin orbital.")
                     })
                 },
                 SymmetryTransformationKind::Spin => |op, orb| {
-                    orb.sym_transform_spin(&op).unwrap_or_else(|err| {
+                    orb.sym_transform_spin(op).unwrap_or_else(|err| {
                         log::error!("{err}");
                         panic!("Unable to apply `{op}` spin-wise on the origin orbital.")
                     })
                 },
                 SymmetryTransformationKind::SpinSpatial => |op, orb| {
-                    orb.sym_transform_spin_spatial(&op).unwrap_or_else(|err| {
+                    orb.sym_transform_spin_spatial(op).unwrap_or_else(|err| {
                         log::error!("{err}");
                         panic!("Unable to apply `{op}` spin-spatially on the origin orbital.",)
                     })
@@ -380,7 +397,6 @@ where
     /// would not give sensible symmetry results for a single-electron orbital. In particular, spin
     /// or spin-spatial symmetry analysis in unitary-represented magnetic groups is not valid for
     /// one-electron orbitals.
-    #[must_use]
     fn analyse_rep(
         &self,
     ) -> Result<
@@ -395,7 +411,7 @@ where
                         GroupType::Ordinary(_) => (true, String::new()),
                         GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
                             (!self.group().unitary_represented(),
-                            format!("Unitary-represented magnetic groups cannot be used for symmetry analysis of a one-electron molecular orbital."))
+                            "Unitary-represented magnetic groups cannot be used for symmetry analysis of a one-electron molecular orbital.".to_string())
                         }
                     }
                 }
@@ -411,4 +427,158 @@ where
             Err(DecompositionError(err_str))
         }
     }
+}
+
+// ---------
+// Functions
+// ---------
+
+/// Given an origin determinant, generates the determinant orbit and all molecular-orbital orbits
+/// in tandem while populating their $`\mathbf{S}`$ matrices at the same time.
+///
+/// The evaluation of the $`\mathbf{S}`$ matrix for the determinant orbit passes through
+/// intermediate values that can be used to populate the $`\mathbf{S}`$ matrices of the
+/// molecular-orbital orbits, so it saves time significantly to construct all orbits together.
+///
+/// # Arguments
+///
+/// * `det` - An origin determinant.
+/// * `mos` - The molecular orbitals of `det`.
+/// * `group` - An orbit-generating symmetry group.
+/// * `metric` - The metric of the basis in which the coefficients of `det` and `mos` are written.
+/// * `integrality_threshold` - The threshold of integrality check of multiplicity coefficients in
+/// each orbit.
+/// * `linear_independence_threshold` - The threshold of linear independence for each orbit.
+/// * `symmetry_transformation_kind` - The kind of symmetry transformation to be applied to the
+/// origin determinant.
+///
+/// # Returns
+///
+/// A tuple consisting of:
+/// - the determinant orbit, and
+/// - a vector of vectors of molecular-orbital orbits, where each element of the outer vector is
+/// for one spin space, and each element of an inner vector is for one molecular orbital.
+pub fn generate_det_mo_orbits<'a, G, T>(
+    det: &'a SlaterDeterminant<'a, T>,
+    mos: &'a [Vec<MolecularOrbital<'a, T>>],
+    group: &'a G,
+    metric: &Array2<T>,
+    integrality_threshold: <T as ComplexFloat>::Real,
+    linear_independence_threshold: <T as ComplexFloat>::Real,
+    symmetry_transformation_kind: SymmetryTransformationKind,
+) -> Result<
+    (
+        SlaterDeterminantSymmetryOrbit<'a, G, T>,
+        Vec<Vec<MolecularOrbitalSymmetryOrbit<'a, G, T>>>,
+    ),
+    anyhow::Error,
+>
+where
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: Lapack
+        + ComplexFloat<Real = <T as Scalar>::Real>
+        + fmt::Debug
+        + Mul<<T as ComplexFloat>::Real, Output = T>,
+    <T as ComplexFloat>::Real: fmt::Debug
+        + Zero
+        + From<u16>
+        + ToPrimitive
+        + approx::RelativeEq<<T as ComplexFloat>::Real>
+        + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
+    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    MolecularOrbital<'a, T>: SymmetryTransformable,
+{
+    let order = group.order();
+    let mut det_orbit = SlaterDeterminantSymmetryOrbit::<G, T>::builder()
+        .group(group)
+        .origin(det)
+        .integrality_threshold(integrality_threshold)
+        .linear_independence_threshold(linear_independence_threshold)
+        .symmetry_transformation_kind(symmetry_transformation_kind.clone())
+        .build()
+        .map_err(|err| format_err!(err))?;
+    let mut mo_orbitss = MolecularOrbitalSymmetryOrbit::from_orbitals(
+        group,
+        mos,
+        symmetry_transformation_kind,
+        integrality_threshold,
+        linear_independence_threshold,
+    );
+
+    let mut det_smat = Array2::<T>::zeros((order, order));
+    let mut mo_smatss = mo_orbitss
+        .iter()
+        .map(|mo_orbits| {
+            mo_orbits
+                .iter()
+                .map(|_| Array2::<T>::zeros((order, order)))
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    let thresh = det.threshold();
+    let indexed_dets = det_orbit
+        .iter()
+        .enumerate()
+        .collect::<Vec<_>>();
+    for det_pair in indexed_dets.iter().product_repeat(2) {
+        let (w, det_w) = &det_pair[0];
+        let (x, det_x) = &det_pair[1];
+
+        let wx_ov = izip!(
+            det_w.coefficients(),
+            det_w.occupations(),
+            det_x.coefficients(),
+            det_x.occupations(),
+        )
+        .enumerate()
+        .map(|(ispin, (cw, occw, cx, occx))| {
+            let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
+            let nonzero_occ_x = occx.iter().positions(|&occ| occ > thresh).collect_vec();
+
+            let all_mo_wx_ov_mat = if det.complex_symmetric() {
+                cw.t().dot(metric).dot(cx)
+            } else {
+                cw.t().mapv(|x| x.conj()).dot(metric).dot(cx)
+            };
+
+            all_mo_wx_ov_mat
+                .diag()
+                .iter()
+                .enumerate()
+                .for_each(|(imo, mo_wx_ov)| {
+                    mo_smatss[ispin][imo][(*w, *x)] = *mo_wx_ov;
+                });
+
+            let occ_mo_wx_ov_mat = all_mo_wx_ov_mat
+                .select(Axis(0), &nonzero_occ_w)
+                .select(Axis(1), &nonzero_occ_x);
+
+            occ_mo_wx_ov_mat
+                .det()
+                .expect("The determinant of the MO overlap matrix could not be found.")
+        })
+        .fold(T::one(), |acc, x| acc * x);
+
+        let wx_ov = match det.spin_constraint() {
+            SpinConstraint::Restricted(n_spin_spaces) => {
+                ComplexFloat::powi(wx_ov, (*n_spin_spaces).into())
+            }
+            SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => wx_ov,
+        };
+        det_smat[(*w, *x)] = wx_ov;
+    }
+    det_orbit.set_smat(det_smat);
+    mo_orbitss
+        .iter_mut()
+        .enumerate()
+        .for_each(|(ispin, mo_orbits)| {
+            mo_orbits
+                .iter_mut()
+                .enumerate()
+                .for_each(|(imo, mo_orbit)| mo_orbit.set_smat(mo_smatss[ispin][imo].clone()))
+        });
+
+    Ok((det_orbit, mo_orbitss))
 }

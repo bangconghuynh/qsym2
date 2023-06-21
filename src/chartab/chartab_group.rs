@@ -12,6 +12,7 @@ use num_ord::NumOrd;
 use num_traits::{Inv, One, Pow, ToPrimitive, Zero};
 use primes::is_prime;
 use rayon::prelude::*;
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
@@ -187,7 +188,7 @@ where
                 let ele = self
                     .get_cc_transversal(i)
                     .unwrap_or_else(|| panic!("No representative of class index `{i}` found."));
-                let elep2 = ele.clone().pow(2);
+                let elep2 = ele.pow(2);
                 let elep2_i = self
                     .get_index_of(&elep2)
                     .unwrap_or_else(|| panic!("Element {elep2:?} not found."));
@@ -297,9 +298,7 @@ where
                                     if subsubspace.len() == 1 {
                                         Some(subsubspace[0].clone())
                                     } else {
-                                        log::error!("Unexpected!");
-                                        panic!("Unexpected");
-                                        // None
+                                        None
                                     }
                                 }));
                                 log::debug!(
@@ -406,7 +405,6 @@ where
 
         // Lift characters back to the complex field
         log::debug!("Lifting characters from GF({p}) back to the complex field...",);
-        // let class_transversal = self.conjugacy_class_transversal();
 
         let chars: Vec<_> = eigvecs_1d
             .par_iter()
@@ -520,7 +518,7 @@ where
         let default_principal_classes = vec![self
             .get_cc_symbol_of_index(0)
             .expect("No conjugacy class symbols found.")
-            .clone()];
+            ];
 
         log::debug!("Computing the Frobenius--Schur indicators in GF({p})...");
         let group_order = class_sizes.iter().sum::<usize>();
@@ -581,7 +579,7 @@ where
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
             format!("{} > {finite_name}", self.name())
         } else {
-            self.name().to_string()
+            self.name()
         };
         let ccsyms = (0..self.class_number())
             .map(|i| {
@@ -594,7 +592,7 @@ where
                             );
                         panic!("Class symbol for conjugacy class `{i}` with representative element `{rep:?}` cannot be found.")
                     })
-                    .clone()
+                    
             })
             .collect::<Vec<_>>();
         self.set_irrep_character_table(RepCharacterTable::new(
@@ -631,8 +629,9 @@ where
             <Self as HasUnitarySubgroup>::UnitarySubgroup as CharacterProperties
         >::RowSymbol
     >,
+    <<Self as HasUnitarySubgroup>::UnitarySubgroup as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
 {
-    /// Sets the irrep character table internally.
+    /// Sets the ircorep character table internally.
     fn set_ircorep_character_table(&mut self, chartab: Self::CharTab);
 
     /// Constructs the ircorep character table for this group.
@@ -640,6 +639,16 @@ where
     /// For each irrep in the unitary subgroup, the type of the ircorep it induces is determined
     /// using the Dimmock--Wheeler character test, then the ircorep's characters in the
     /// unitary-represented part of the full group are determined to give a square character table.
+    ///
+    /// # References
+    ///
+    /// * Bradley, C. J. & Davies, B. L. Magnetic Groups and Their Corepresentations. *Rev. Mod. Phys.* **40**, 359–379 (1968).
+    /// * Newmarch, J. D. & Golding, R. M. The character table for the corepresentations of magnetic groups. *J. Math. Phys.* **23**, 695–704 (1982).
+    /// * Newmarch, J. D. Some character theory for groups of linear and antilinear operators. *J. Math. Phys.* **24**, 742–756 (1983).
+    ///
+    /// # Panics
+    ///
+    /// Panics if any calculated ircoreps are found to be invalid.
     fn construct_ircorep_character_table(&mut self) {
         log::debug!("===============================================");
         log::debug!("Construction of ircorep character table begins.");
@@ -706,7 +715,7 @@ where
                             panic!("Conjugacy class for `{a2:?}` not found in the unitary subgroup.")
                         })
                     ];
-                    acc + unitary_chartab.get_character(&irrep, &a2_uni_class)
+                    acc + unitary_chartab.get_character(&irrep, a2_uni_class)
                 })
                 .simplify();
             log::debug!("  Dimmock--Wheeler indicator for {irrep}: {char_sum}");
@@ -714,12 +723,12 @@ where
             approx::assert_relative_eq!(
                 char_sum_c128.im,
                 0.0,
-                max_relative = char_sum.threshold
+                max_relative = char_sum.threshold()
                     * unitary_order
                         .to_f64()
                         .expect("Unable to convert the unitary order to `f64`.")
                         .sqrt(),
-                epsilon = char_sum.threshold
+                epsilon = char_sum.threshold()
                     * unitary_order
                         .to_f64()
                         .expect("Unable to convert the unitary order to `f64`.")
@@ -728,12 +737,12 @@ where
             approx::assert_relative_eq!(
                 char_sum_c128.re,
                 char_sum_c128.re.round(),
-                max_relative = char_sum.threshold
+                max_relative = char_sum.threshold()
                     * unitary_order
                         .to_f64()
                         .expect("Unable to convert the unitary order to `f64`.")
                         .sqrt(),
-                epsilon = char_sum.threshold
+                epsilon = char_sum.threshold()
                     * unitary_order
                         .to_f64()
                         .expect("Unable to convert the unitary order to `f64`.")
@@ -800,7 +809,7 @@ where
                                 panic!("Unable to retrieve the class for `{a0invua0:?}` in the unitary subgroup.")
                             })
                         ];
-                        unitary_chartab.get_character(&irrep, &a0invua0_unitary_class).complex_conjugate()
+                        unitary_chartab.get_character(&irrep, a0invua0_unitary_class).complex_conjugate()
                 }).collect();
                 let all_irreps = unitary_chartab.get_all_rows();
                 let (_, conj_irrep) = all_irreps
@@ -839,7 +848,7 @@ where
                 });
                 let mag_cc_uni_idx = self
                     .unitary_subgroup()
-                    .get_index_of(&mag_cc_rep)
+                    .get_index_of(mag_cc_rep)
                     .unwrap_or_else(|| {
                         panic!(
                             "Index for element {mag_cc_rep:?} not found in the unitary subgroup."
@@ -855,7 +864,7 @@ where
                     .subspaces()
                     .iter()
                     .fold(Character::zero(), |acc, (irrep, _)| {
-                        acc + unitary_chartab.get_character(irrep, &uni_cc)
+                        acc + unitary_chartab.get_character(irrep, uni_cc)
                     });
                 if *intertwining_number == 4 {
                     // Irreducible corepresentation type b
@@ -871,7 +880,7 @@ where
                 let mag_cc_rep = mag_cc.representative().unwrap_or_else(|| {
                     panic!("No representative element found for magnetic conjugacy class {mag_cc}.");
                 });
-                let mag_cc_uni_idx = self.unitary_subgroup().get_index_of(&mag_cc_rep).unwrap_or_else(|| {
+                let mag_cc_uni_idx = self.unitary_subgroup().get_index_of(mag_cc_rep).unwrap_or_else(|| {
                     panic!("Index for element {mag_cc_rep:?} not found in the unitary subgroup.");
                 });
                 let uni_cc = uni.get_cc_symbol_of_index(
@@ -893,7 +902,7 @@ where
         let chartab_name = if let Some(finite_name) = self.finite_subgroup_name().as_ref() {
             format!("{} > {finite_name}", self.name())
         } else {
-            self.name().to_string()
+            self.name()
         };
         self.set_ircorep_character_table(Self::CharTab::new(
             chartab_name.as_str(),
@@ -976,7 +985,7 @@ where
 
 impl<T, RowSymbol, UG> CharacterProperties for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol> + Serialize + DeserializeOwned,
     T: Mul<Output = T>
         + Inv<Output = T>
         + Hash
@@ -991,6 +1000,9 @@ where
         + GroupProperties<GroupElement = T>
         + ClassProperties<GroupElement = T>
         + CharacterProperties,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    <UG as CharacterProperties>::CharTab: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
 {
     type RowSymbol = RowSymbol;
     type CharTab = CorepCharacterTable<Self::RowSymbol, UG::CharTab>;
@@ -1008,7 +1020,7 @@ where
 
 impl<T, RowSymbol, UG> IrcorepCharTabConstruction for MagneticRepresentedGroup<T, UG, RowSymbol>
 where
-    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
+    RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol> + Serialize + DeserializeOwned,
     T: Mul<Output = T>
         + Inv<Output = T>
         + Hash
@@ -1023,6 +1035,9 @@ where
         + GroupProperties<GroupElement = T>
         + ClassProperties<GroupElement = T>
         + CharacterProperties,
+    <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
+    <UG as CharacterProperties>::CharTab: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
 {
     fn set_ircorep_character_table(&mut self, chartab: Self::CharTab) {
         self.ircorep_character_table = Some(chartab);

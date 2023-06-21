@@ -239,6 +239,7 @@ fn test_ao_basis_basisangularorder() {
         .unwrap();
 
     let bao = BasisAngularOrder::new(&[batm_c, batm_h1, batm_h2, batm_f, batm_cl]);
+    println!("{bao}");
 
     assert_eq!(bao.n_funcs(), 58);
     assert_eq!(bao.basis_shells().collect::<Vec<_>>().len(), 27);

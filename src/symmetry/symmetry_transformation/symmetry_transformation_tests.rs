@@ -20,7 +20,7 @@ fn test_symmetry_transformation_permute_array_by_atoms() {
     let batm_c0 = BasisAtom::new(&atm_c0, &[bs1s_p.clone(), bs2s_p.clone(), bs2p_p.clone()]);
     let batm_c1 = BasisAtom::new(&atm_c1, &[bs1s_p.clone(), bs2s_p.clone(), bs2p_p.clone()]);
     let batm_c2 = BasisAtom::new(&atm_c2, &[bs1s_p.clone(), bs2s_p.clone(), bs2p_p.clone()]);
-    let batm_c3 = BasisAtom::new(&atm_c3, &[bs1s_p.clone(), bs2s_p.clone(), bs2p_p.clone()]);
+    let batm_c3 = BasisAtom::new(&atm_c3, &[bs1s_p.clone(), bs2s_p.clone(), bs2p_p]);
 
     let bao_c4 = BasisAngularOrder::new(&[batm_c0, batm_c1, batm_c2, batm_c3]);
     let arr = array![
@@ -108,7 +108,7 @@ fn test_symmetry_transformation_permute_array_by_atoms() {
 
     let batm_h0 = BasisAtom::new(&atm_h0, &[bs1s_p.clone(), bs2s_p.clone()]);
     let batm_h1 = BasisAtom::new(&atm_h1, &[bs1s_p.clone(), bs2s_p.clone()]);
-    let batm_h2 = BasisAtom::new(&atm_h2, &[bs1s_p.clone(), bs2s_p.clone()]);
+    let batm_h2 = BasisAtom::new(&atm_h2, &[bs1s_p, bs2s_p]);
 
     let bao_h3 = BasisAngularOrder::new(&[batm_h0, batm_h1, batm_h2]);
     let arr2 = array![

@@ -46,7 +46,7 @@ fn test_symmetry_symbols_class() {
         .build()
         .unwrap();
     let c3pm1 = SymmetryOperation::builder()
-        .generating_element(c3_element.clone())
+        .generating_element(c3_element)
         .power(-1)
         .build()
         .unwrap();
@@ -73,7 +73,7 @@ fn test_symmetry_symbols_class() {
         .build()
         .unwrap();
     let i = SymmetryOperation::builder()
-        .generating_element(i_element.clone())
+        .generating_element(i_element)
         .power(1)
         .build()
         .unwrap();
@@ -94,7 +94,7 @@ fn test_symmetry_symbols_class() {
         .build()
         .unwrap();
     let s = SymmetryOperation::builder()
-        .generating_element(s_element.clone())
+        .generating_element(s_element)
         .power(1)
         .build()
         .unwrap();

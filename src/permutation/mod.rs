@@ -10,6 +10,7 @@ use indexmap::IndexSet;
 use log;
 use num::{integer::lcm, Integer, Unsigned};
 use num_traits::{Inv, Pow, PrimInt};
+use serde::{Serialize, Deserialize};
 
 use crate::group::FiniteOrder;
 
@@ -29,6 +30,7 @@ pub trait PermutableCollection
 where
     Self::Rank: PermutationRank,
 {
+    /// The type of the rank of the permutation.
     type Rank;
 
     /// Determines the permutation, if any, that maps `self` to `other`.
@@ -53,14 +55,14 @@ pub trait IntoPermutation<C: PermutableCollection> {
 
 /// A trait for generic permutation rank types.
 pub trait PermutationRank:
-    Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize>
+    Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize> + Serialize
 {
 }
 
 /// Blanket implementation of `PermutationRank`.
 impl<T> PermutationRank for T
 where
-    T: Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize>,
+    T: Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize> + Serialize,
     <T as TryFrom<usize>>::Error: fmt::Debug,
     std::ops::Range<T>: Iterator + DoubleEndedIterator,
     Vec<T>: FromIterator<<std::ops::Range<T> as Iterator>::Item>,
@@ -74,16 +76,18 @@ where
 // ==================
 
 /// A structure to manage permutation actions of a finite set.
-#[derive(Builder, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Builder, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Permutation<T: PermutationRank> {
-    /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$
-    /// where $`n`$ is [`Self::rank`], then this gives the result of the action.
+    /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$,
+    /// then this gives the result of the action.
     #[builder(setter(custom))]
     image: Vec<T>,
 }
 
 impl<T: PermutationRank> PermutationBuilder<T> {
-    fn image(&mut self, perm: Vec<T>) -> &mut Self {
+    /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$,
+    /// then this gives the result of the action.
+    pub fn image(&mut self, perm: Vec<T>) -> &mut Self {
         let mut uniq = HashSet::<T>::new();
         assert!(
             perm.iter().all(move |x| uniq.insert(*x)),
@@ -235,13 +239,13 @@ impl<T: PermutationRank> Permutation<T> {
 
     /// The rank of the permutation.
     pub fn rank(&self) -> T {
-        let rank = T::try_from(self.image.len()).unwrap_or_else(|_| {
+        
+        T::try_from(self.image.len()).unwrap_or_else(|_| {
             panic!(
                 "The rank of `{:?}` is too large to be represented as `u8`.",
                 self.image
             )
-        });
-        rank
+        })
     }
 
     /// If the permutation is to act on an ordered sequence of integers, $`0, 1, \ldots`$, then

@@ -1,14 +1,16 @@
-use std::ops::Mul;
 use std::cmp::max;
 use std::error::Error;
 use std::fmt;
 use std::iter;
+use std::ops::Mul;
 
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use ndarray::{Array2, ArrayView1};
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{ToPrimitive, Zero};
+use rayon::prelude::*;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
@@ -19,8 +21,8 @@ use crate::chartab::chartab_symbols::{
 pub mod character;
 pub mod chartab_group;
 pub mod chartab_symbols;
-pub mod modular_linalg;
-pub mod reducedint;
+pub(crate) mod modular_linalg;
+pub(crate) mod reducedint;
 pub mod unityroot;
 
 // =================
@@ -166,7 +168,7 @@ impl Error for DecompositionError {}
 // -----------------
 
 /// A structure to manage character tables of irreducible representations.
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct RepCharacterTable<RowSymbol, ColSymbol>
 where
     RowSymbol: LinearSpaceSymbol,
@@ -177,19 +179,19 @@ where
 
     /// The irreducible representations of the group and their row indices in the character
     /// table.
-    pub irreps: IndexMap<RowSymbol, usize>,
+    pub(crate) irreps: IndexMap<RowSymbol, usize>,
 
     /// The conjugacy classes of the group and their column indices in the character table.
-    pub classes: IndexMap<ColSymbol, usize>,
+    pub(crate) classes: IndexMap<ColSymbol, usize>,
 
     /// The principal conjugacy classes of the group.
     principal_classes: IndexSet<ColSymbol>,
 
     /// The characters of the irreducible representations in this group.
-    pub characters: Array2<Character>,
+    pub(crate) characters: Array2<Character>,
 
     /// The Frobenius--Schur indicators for the irreducible representations in this group.
-    pub frobenius_schurs: IndexMap<RowSymbol, i8>,
+    pub(crate) frobenius_schurs: IndexMap<RowSymbol, i8>,
 }
 
 impl<RowSymbol, ColSymbol> RepCharacterTable<RowSymbol, ColSymbol>
@@ -221,7 +223,7 @@ where
     /// # Panics
     ///
     /// Panics if the character table cannot be constructed.
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         irreps: &[RowSymbol],
         classes: &[ColSymbol],
@@ -396,8 +398,8 @@ where
                     approx::relative_eq!(
                         character.complex_value().im,
                         0.0,
-                        epsilon = character.threshold,
-                        max_relative = character.threshold
+                        epsilon = character.threshold(),
+                        max_relative = character.threshold()
                     )
                 });
                 character.get_numerical(real_only, precision)
@@ -517,11 +519,11 @@ where
 
 impl<RowSymbol, ColSymbol, T> SubspaceDecomposable<T> for RepCharacterTable<RowSymbol, ColSymbol>
 where
-    RowSymbol: LinearSpaceSymbol + PartialOrd,
-    ColSymbol: CollectionSymbol,
-    T: ComplexFloat,
-    <T as ComplexFloat>::Real: ToPrimitive,
-    for <'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
+    RowSymbol: LinearSpaceSymbol + PartialOrd + Sync + Send,
+    ColSymbol: CollectionSymbol + Sync + Send,
+    T: ComplexFloat + Sync + Send,
+    <T as ComplexFloat>::Real: ToPrimitive + Sync + Send,
+    for<'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
 {
     type Decomposition = DecomposedSymbol<RowSymbol>;
 
@@ -543,11 +545,11 @@ where
         assert_eq!(characters.len(), self.classes.len());
         let rep_syms: Result<Vec<Option<(RowSymbol, usize)>>, _> = self
             .irreps
-            .iter()
+            .par_iter()
             .map(|(irrep_symbol, &i)| {
                 let c = characters
-                    .iter()
-                    .try_fold(Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
+                    .par_iter()
+                    .try_fold(|| Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
                         let j = self.classes.get_index_of(*cc_symbol).ok_or(DecompositionError(
                             format!(
                                 "The conjugacy class `{cc_symbol}` cannot be found in this group."
@@ -562,7 +564,8 @@ where
                                 * self.characters[(i, j)].complex_conjugate().complex_value()
                                 * character
                         )
-                    })? / self.get_order().to_f64().ok_or(
+                    })
+                    .try_reduce(|| Complex::<f64>::zero(), |a, s| Ok(a + s))? / self.get_order().to_f64().ok_or(
                         DecompositionError("The group order cannot be converted to `f64`.".to_string())
                     )?;
 
@@ -614,10 +617,7 @@ where
 
         rep_syms.map(|syms| {
             DecomposedSymbol::<RowSymbol>::from_subspaces(
-                &syms
-                    .into_iter()
-                    .filter_map(|irrep| irrep)
-                    .collect::<Vec<_>>(),
+                &syms.into_iter().flatten().collect::<Vec<_>>(),
             )
         })
     }
@@ -648,9 +648,10 @@ where
 // -------------------
 
 /// A structure to manage character tables of irreducible corepresentations of magnetic groups.
-#[derive(Builder, Clone)]
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct CorepCharacterTable<RowSymbol, UC>
 where
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
     RowSymbol: ReducibleLinearSpaceSymbol,
     UC: CharacterTable,
 {
@@ -659,30 +660,32 @@ where
 
     /// The character table of the irreducible representations of the halving unitary subgroup that
     /// induce the irreducible corepresentations of the current magnetic group.
-    pub unitary_character_table: UC,
+    pub(crate) unitary_character_table: UC,
 
     /// The irreducible corepresentations of the group and their row indices in the character
     /// table.
-    pub ircoreps: IndexMap<RowSymbol, usize>,
+    pub(crate) ircoreps: IndexMap<RowSymbol, usize>,
 
     /// The conjugacy classes of the group and their column indices in the character table.
-    pub classes: IndexMap<UC::ColSymbol, usize>,
+    classes: IndexMap<UC::ColSymbol, usize>,
 
     /// The principal conjugacy classes of the group.
     principal_classes: IndexSet<UC::ColSymbol>,
 
     /// The characters of the irreducible corepresentations in this group.
-    pub characters: Array2<Character>,
+    characters: Array2<Character>,
 
     /// The intertwining numbers of the irreducible corepresentations.
-    pub intertwining_numbers: IndexMap<RowSymbol, u8>,
+    pub(crate) intertwining_numbers: IndexMap<RowSymbol, u8>,
 }
 
 impl<RowSymbol, UC> CorepCharacterTable<RowSymbol, UC>
 where
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
     RowSymbol: ReducibleLinearSpaceSymbol,
     UC: CharacterTable,
 {
+    /// Returns a builder to construct a new [`CorepCharacterTable`].
     fn builder() -> CorepCharacterTableBuilder<RowSymbol, UC> {
         CorepCharacterTableBuilder::default()
     }
@@ -709,7 +712,7 @@ where
     /// # Panics
     ///
     /// Panics if the character table cannot be constructed.
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         unitary_chartab: UC,
         ircoreps: &[RowSymbol],
@@ -757,6 +760,7 @@ where
 
 impl<RowSymbol, UC> CharacterTable for CorepCharacterTable<RowSymbol, UC>
 where
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
     RowSymbol: ReducibleLinearSpaceSymbol,
     UC: CharacterTable,
 {
@@ -884,8 +888,8 @@ where
                     approx::relative_eq!(
                         character.complex_value().im,
                         0.0,
-                        epsilon = character.threshold,
-                        max_relative = character.threshold
+                        epsilon = character.threshold(),
+                        max_relative = character.threshold()
                     )
                 });
                 character.get_numerical(real_only, precision)
@@ -1000,11 +1004,12 @@ where
 
 impl<RowSymbol, UC, T> SubspaceDecomposable<T> for CorepCharacterTable<RowSymbol, UC>
 where
-    RowSymbol: ReducibleLinearSpaceSymbol + PartialOrd,
-    UC: CharacterTable,
-    T: ComplexFloat,
-    <T as ComplexFloat>::Real: ToPrimitive,
-    for <'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
+    RowSymbol: ReducibleLinearSpaceSymbol + PartialOrd + Sync + Send,
+    UC: CharacterTable + Sync + Send,
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned + Sync + Send,
+    T: ComplexFloat + Sync + Send,
+    <T as ComplexFloat>::Real: ToPrimitive + Sync + Send,
+    for<'a> Complex<f64>: Mul<&'a T, Output = Complex<f64>>,
 {
     type Decomposition = DecomposedSymbol<RowSymbol>;
 
@@ -1026,11 +1031,11 @@ where
         assert_eq!(characters.len(), self.classes.len());
         let rep_syms: Result<Vec<Option<(RowSymbol, usize)>>, _> = self
             .ircoreps
-            .iter()
+            .par_iter()
             .map(|(ircorep_symbol, &i)| {
                 let c = characters
-                    .iter()
-                    .try_fold(Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
+                    .par_iter()
+                    .try_fold(|| Complex::<f64>::zero(), |acc, (cc_symbol, character)| {
                         let j = self.classes.get_index_of(*cc_symbol).ok_or(DecompositionError(
                             format!(
                                 "The conjugacy class `{cc_symbol}` cannot be found in this group."
@@ -1045,7 +1050,8 @@ where
                                 * self.characters[(i, j)].complex_conjugate().complex_value()
                                 * character
                         )
-                    })? / (self.unitary_character_table.get_order().to_f64().ok_or(
+                    })
+                    .try_reduce(|| Complex::<f64>::zero(), |a, s| Ok(a + s))? / (self.unitary_character_table.get_order().to_f64().ok_or(
                         DecompositionError("The unitary subgroup order cannot be converted to `f64`.".to_string())
                     )? * self.intertwining_numbers.get(ircorep_symbol).and_then(|x| x.to_f64()).ok_or(
                         DecompositionError(
@@ -1103,10 +1109,7 @@ where
 
         rep_syms.map(|syms| {
             DecomposedSymbol::<RowSymbol>::from_subspaces(
-                &syms
-                    .into_iter()
-                    .filter_map(|ircorep| ircorep)
-                    .collect::<Vec<_>>(),
+                &syms.into_iter().flatten().collect::<Vec<_>>(),
             )
         })
     }
@@ -1116,6 +1119,7 @@ impl<RowSymbol, UC> fmt::Display for CorepCharacterTable<RowSymbol, UC>
 where
     RowSymbol: ReducibleLinearSpaceSymbol,
     UC: CharacterTable,
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, Some(3))
@@ -1126,6 +1130,7 @@ impl<RowSymbol, UC> fmt::Debug for CorepCharacterTable<RowSymbol, UC>
 where
     RowSymbol: ReducibleLinearSpaceSymbol,
     UC: CharacterTable,
+    <UC as CharacterTable>::ColSymbol: Serialize + DeserializeOwned,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.write_nice_table(f, true, None)

@@ -149,19 +149,19 @@ where
 
     /// The overlap matrix between the symmetry-equivalent Slater determinants in the orbit.
     #[builder(setter(skip), default = "None")]
-    pub smat: Option<Array2<T>>,
+    smat: Option<Array2<T>>,
 
     /// The eigenvalues of the overlap matrix between the symmetry-equivalent Slater determinants in
     /// the orbit.
     #[builder(setter(skip), default = "None")]
-    pub smat_eigvals: Option<Array1<T>>,
+    pub(crate) smat_eigvals: Option<Array1<T>>,
 
     /// The $`\mathbf{X}`$ matrix for the overlap matrix between the symmetry-equivalent Slater
     /// determinants in the orbit.
     ///
     /// See [`RepAnalysis::xmat`] for further information.
     #[builder(setter(skip), default = "None")]
-    pub xmat: Option<Array2<T>>,
+    xmat: Option<Array2<T>>,
 }
 
 // ----------------------------
@@ -187,6 +187,8 @@ where
     /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix $`\mathbf{S}`$
     /// between the symmetry-equivalent Slater determinants in the orbit.
     ///
+    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
+    ///
     /// # Arguments
     ///
     /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
@@ -200,7 +202,7 @@ where
             .smat
             .as_ref()
             .expect("No overlap matrix found for this orbit.");
-        assert_close_l2!(&smat, &smat.t(), thresh);
+        assert_close_l2!(smat, &smat.t(), thresh);
         let (s_eig, umat) = smat.eigh(UPLO::Lower).unwrap();
         let nonzero_s_indices = s_eig.iter().positions(|x| x.abs() > thresh).collect_vec();
         let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
@@ -227,6 +229,8 @@ where
 {
     /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap matrix
     /// $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
+    ///
+    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
     ///
     /// # Arguments
     ///
@@ -392,7 +396,6 @@ where
     /// oddity of the number of electrons would not give sensible symmetry results. In particular,
     /// spin or spin-spatial symmetry analysis of odd-electron systems in unitary-represented
     /// magnetic groups is not valid.
-    #[must_use]
     fn analyse_rep(
         &self,
     ) -> Result<
@@ -403,8 +406,8 @@ where
         if approx::relative_eq!(
             nelectrons_float.round(),
             nelectrons_float,
-            epsilon = self.origin().threshold,
-            max_relative = self.origin().threshold
+            epsilon = self.integrality_threshold,
+            max_relative = self.integrality_threshold
         ) {
             let nelectrons_usize = nelectrons_float.round().to_usize().unwrap_or_else(|| {
                 panic!(
@@ -423,7 +426,7 @@ where
                             GroupType::Ordinary(_) => (true, String::new()),
                             GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
                                 (!self.group().unitary_represented(),
-                                format!("Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems."))
+                                "Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems.".to_string())
                             }
                         }
                     }
@@ -442,8 +445,8 @@ where
             }
         } else {
             Err(DecompositionError(format!(
-                "Symmetry analysis for determinant with non-integer number of electrons `{:.7}` not supported.",
-                nelectrons_float
+                "Symmetry analysis for determinant with non-integer number of electrons `{nelectrons_float:.7}` (threshold = {:.3e}) not supported.",
+                self.integrality_threshold
             )))
         }
     }

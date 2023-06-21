@@ -8,6 +8,7 @@ use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use num::Complex;
 use num_traits::{ToPrimitive, Zero};
+use serde::{Deserialize, Serialize};
 
 use crate::aux::misc::HashableFloat;
 use crate::chartab::unityroot::UnityRoot;
@@ -25,8 +26,8 @@ mod character_tests;
 /// A struct to represent algebraic group characters.
 ///
 /// Partial orders between characters are based on their complex moduli and
-/// phases in the interval `$[0, 2\pi)$` with `$0$` being the smallest.
-#[derive(Builder, Clone)]
+/// phases in the interval $`[0, 2\pi)`$ with $`0`$ being the smallest.
+#[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct Character {
     /// The unity roots and their multiplicities constituting this character.
     #[builder(setter(custom))]
@@ -34,7 +35,7 @@ pub struct Character {
 
     /// A threshold for approximate partial ordering comparisons.
     #[builder(setter(custom), default = "1e-14")]
-    pub threshold: f64,
+    threshold: f64,
 }
 
 impl CharacterBuilder {
@@ -49,7 +50,7 @@ impl CharacterBuilder {
         self
     }
 
-    pub fn threshold(&mut self, thresh: f64) -> &mut Self {
+    fn threshold(&mut self, thresh: f64) -> &mut Self {
         if thresh >= 0.0 {
             self.threshold = Some(thresh);
         } else {
@@ -86,6 +87,11 @@ impl Character {
             .expect("Unable to construct a character.")
     }
 
+    /// Returns the threshold for approximate partial ordering comparisons.
+    pub fn threshold(&self) -> f64 {
+        self.threshold
+    }
+
     /// The complex representation of this character.
     ///
     /// # Returns
@@ -119,7 +125,7 @@ impl Character {
     ///
     /// # Arguments
     ///
-    /// * precision - The number of decimal places.
+    /// * `precision` - The number of decimal places.
     ///
     /// # Returns
     ///
@@ -178,7 +184,7 @@ impl Character {
 
     /// Gets the concise form for this character.
     ///
-    /// The concise form shows an integer or an integer followed by `$i$` if the character is
+    /// The concise form shows an integer or an integer followed by $`i`$ if the character is
     /// purely integer or integer imaginary. Otherwise, the concise form is either the analytic
     /// form of the character showing all contributing unity roots and their multiplicities, or a
     /// complex number formatted to 3 d.p.
@@ -449,7 +455,6 @@ impl fmt::Debug for Character {
                 k1.partial_cmp(k2)
                     .unwrap_or_else(|| panic!("{k1} and {k2} cannot be compared."))
             })
-            .into_iter()
             .filter_map(|(root, mult)| {
                 if mult == 1 {
                     Some(format!("{root}"))

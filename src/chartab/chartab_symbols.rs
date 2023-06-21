@@ -7,10 +7,11 @@ use std::str::FromStr;
 
 use counter::Counter;
 use derive_builder::Builder;
-use itertools::Itertools;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use phf::phf_map;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 
 pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
     1i8 => "r",
@@ -26,7 +27,8 @@ pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
 // MathematicalSymbol
 // ------------------
 
-/// A trait for general mathematical symbols.
+/// A trait for general mathematical symbols. See [`GenericSymbol`] for the definitions of the
+/// parts.
 pub trait MathematicalSymbol: Clone + Hash + Eq + fmt::Display {
     /// The main part of the symbol.
     fn main(&self) -> String;
@@ -49,7 +51,8 @@ pub trait MathematicalSymbol: Clone + Hash + Eq + fmt::Display {
     /// The postfactor part of the symbol.
     fn postfactor(&self) -> String;
 
-    /// The multiplicity of the symbol.
+    /// The multiplicity of the symbol which can have different meanings depending on the exact
+    /// nature of the mathematical symbol.
     fn multiplicity(&self) -> Option<usize>;
 }
 
@@ -128,20 +131,19 @@ where
 {
     /// The main part of the symbol.
     fn main(&self) -> String {
-        format!(
-            "{}",
-            self.subspaces()
-                .iter()
-                .map(|(irrep, &mult)| format!(
+        self.subspaces()
+            .iter()
+            .map(|(irrep, &mult)| {
+                format!(
                     "{}{irrep}",
                     if mult != 1 {
                         mult.to_string()
                     } else {
                         String::new()
                     }
-                ))
-                .join(" ⊕ ")
-        )
+                )
+            })
+            .join(" ⊕ ")
     }
 
     /// The pre-superscript part of the symbol, which is always empty.
@@ -200,8 +202,9 @@ where
 // CollectionSymbol
 // ----------------
 
-/// A trait for symbols describing collections of objects.
+/// A trait for symbols describing collections of objects such as conjugacy classes.
 pub trait CollectionSymbol: MathematicalSymbol {
+    /// The type of the elements in the collection.
     type CollectionElement;
 
     /// Constructs a collection symbol from a string and one or more representative collection
@@ -209,8 +212,8 @@ pub trait CollectionSymbol: MathematicalSymbol {
     ///
     /// # Arguments
     ///
-    /// * `symstr` - A string to be parsed.
-    /// * `reps` - A vector of one or more representative collection elements.
+    /// * `symstr` - A string to be parsed. See [`GenericSymbol::from_str`] for more information.
+    /// * `reps` - An optional vector of one or more representative collection elements.
     ///
     /// # Errors
     ///
@@ -265,7 +268,7 @@ pub trait CollectionSymbol: MathematicalSymbol {
 /// \ ^{\textrm{postsuper}}_{\textrm{postsub}}
 /// \ \textrm{postfactor}.
 /// ```
-#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd)]
+#[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct GenericSymbol {
     /// The main part of the symbol.
     main: String,
@@ -301,15 +304,17 @@ impl GenericSymbol {
     }
 
     /// Sets the main part of the symbol.
-    pub fn set_main(&mut self, main: &str) {
+    pub(crate) fn set_main(&mut self, main: &str) {
         self.main = main.to_string();
     }
 
-    pub fn set_presub(&mut self, presub: &str) {
+    /// Sets the pre-subscript part of the symbol.
+    pub(crate) fn set_presub(&mut self, presub: &str) {
         self.presub = presub.to_string();
     }
 
-    pub fn set_postsub(&mut self, postsub: &str) {
+    /// Sets the post-subscript part of the symbol.
+    pub(crate) fn set_postsub(&mut self, postsub: &str) {
         self.postsub = postsub.to_string();
     }
 }
@@ -497,8 +502,8 @@ impl Error for GenericSymbolParsingError {}
 // Trait implementation for DecomposedSymbol
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-/// A struct to handle Mulliken irreducible corepresentation symbols.
-#[derive(Builder, Debug, Clone, Eq)]
+/// A struct to handle symbols consisting of multiple sub-symbols.
+#[derive(Builder, Debug, Clone, Eq, Serialize, Deserialize)]
 pub struct DecomposedSymbol<S>
 where
     S: LinearSpaceSymbol + PartialOrd,
@@ -514,7 +519,8 @@ where
         DecomposedSymbolBuilder::<S>::default()
     }
 
-    /// Parses a string representing a decomposed symbol.
+    /// Parses a string representing a decomposed symbol. See [`Self::from_str`] for more
+    /// information.
     ///
     /// # Arguments
     ///
@@ -668,7 +674,9 @@ where
 /// # Returns
 ///
 /// A vector of disambiguated symbols.
-pub fn disambiguate_linspace_symbols<S>(raw_symbols: impl Iterator<Item = S> + Clone) -> Vec<S>
+pub(crate) fn disambiguate_linspace_symbols<S>(
+    raw_symbols: impl Iterator<Item = S> + Clone,
+) -> Vec<S>
 where
     S: LinearSpaceSymbol,
 {

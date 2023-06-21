@@ -108,7 +108,7 @@ fn test_custom_positive_hemisphere() {
     assert!(poshem_s.check_positive_pole(&axis_0, 1e-7));
     assert!(!poshem_s.check_positive_pole(&-axis_0, 1e-7));
 
-    let axis_1 = Vector3::<f64>::new(-0.5, -3.0f64.sqrt() / 2.0, 0.0);
+    let axis_1 = Vector3::<f64>::new(-0.5, -(3.0f64.sqrt()) / 2.0, 0.0);
     assert!(poshem_s.check_positive_pole(&axis_1, 1e-7));
     assert!(!poshem_s.check_positive_pole(&-axis_1, 1e-7));
 
@@ -129,7 +129,7 @@ fn test_custom_positive_hemisphere() {
 
     let poshem_s3 = geometry::PositiveHemisphere::new_spherical_disjoint_equatorial_arcs(
         Vector3::z(),
-        Vector3::new(-0.5, -3.0f64.sqrt() / 2.0, 0.0),
+        Vector3::new(-0.5, -(3.0f64.sqrt()) / 2.0, 0.0),
         3,
     );
 

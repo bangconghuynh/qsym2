@@ -180,8 +180,8 @@ fn test_ircorep_character_table_algebraic_validity(
             .to_f64()
             .unwrap_or_else(|| panic!("Unable to convert `{zeta_2}` to `f64`.")),
         uni_dim_sum.complex_value().re,
-        max_relative = uni_dim_sum.threshold,
-        epsilon = uni_dim_sum.threshold
+        max_relative = uni_dim_sum.threshold(),
+        epsilon = uni_dim_sum.threshold()
     ) {
         assert!(chartab
             .intertwining_numbers
@@ -3288,7 +3288,7 @@ fn verify_bw_cinfv_cinf(mol: &Molecule, thresh: f64) {
             } else {
                 irreps.extend(
                     (1..n.div_euclid(2))
-                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()),
                 );
             }
             irreps
@@ -3302,13 +3302,13 @@ fn verify_bw_cinfv_cinf(mol: &Molecule, thresh: f64) {
             } else {
                 irreps.extend(
                     (1..=n.div_euclid(2))
-                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()),
                 );
             };
             irreps
         };
         test_chartab_magnetic_group_from_infinite(
-            &mol,
+            mol,
             n as u32,
             thresh,
             format!("C∞v > C{n}v").as_str(),
@@ -3343,7 +3343,7 @@ fn verify_cinfh(mol: &Molecule, thresh: f64) {
         } else {
             expected_irreps.extend(
                 (1..m.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({}g)|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({k}g)|")).unwrap()),
             );
         }
         expected_irreps.push(MullikenIrrepSymbol::new("||B|_(g)|").unwrap());
@@ -3353,7 +3353,7 @@ fn verify_cinfh(mol: &Molecule, thresh: f64) {
             expected_irreps.extend(
                 (1..m.div_euclid(2))
                     .rev()
-                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({}g)|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({k}g)|")).unwrap()),
             );
         }
         expected_irreps.push(MullikenIrrepSymbol::new("||A|_(u)|").unwrap());
@@ -3362,7 +3362,7 @@ fn verify_cinfh(mol: &Molecule, thresh: f64) {
         } else {
             expected_irreps.extend(
                 (1..m.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({}u)|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({k}u)|")).unwrap()),
             );
         }
         expected_irreps.push(MullikenIrrepSymbol::new("||B|_(u)|").unwrap());
@@ -3372,11 +3372,11 @@ fn verify_cinfh(mol: &Molecule, thresh: f64) {
             expected_irreps.extend(
                 (1..m.div_euclid(2))
                     .rev()
-                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({}u)|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({k}u)|")).unwrap()),
             );
         }
         test_chartab_ordinary_group_from_infinite(
-            &mol,
+            mol,
             n as u32,
             thresh,
             format!("C∞h > C{m}h").as_str(),
@@ -3415,7 +3415,7 @@ fn verify_bw_dinfh_cinfh(mol: &Molecule, thresh: f64) {
         if m.div_euclid(2) != 2 {
             expected_irreps.extend(
                 (1..m.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({}g)|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k}g)|")).unwrap()),
             );
         } else {
             expected_irreps.push(MullikenIrrepSymbol::new("||E|_(g)|").unwrap());
@@ -3429,13 +3429,13 @@ fn verify_bw_dinfh_cinfh(mol: &Molecule, thresh: f64) {
         if m.div_euclid(2) != 2 {
             expected_irreps.extend(
                 (1..m.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({}u)|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k}u)|")).unwrap()),
             );
         } else {
             expected_irreps.push(MullikenIrrepSymbol::new("||E|_(u)|").unwrap());
         }
         test_chartab_magnetic_group_from_infinite(
-            &mol,
+            mol,
             n as u32,
             thresh,
             format!("D∞h > D{m}h").as_str(),
@@ -3484,7 +3484,7 @@ fn verify_dinfh(mol: &Molecule, thresh: f64) {
             expected_irreps.extend(irreps)
         }
         test_chartab_ordinary_group_from_infinite(
-            &mol,
+            mol,
             n as u32,
             thresh,
             format!("D∞h > D{m}h").as_str(),
@@ -3553,7 +3553,7 @@ fn verify_grey_dinfh(mol: &Molecule, thresh: f64) {
         };
 
         test_chartab_magnetic_group_from_infinite(
-            &mol,
+            mol,
             n as u32,
             thresh,
             format!("D∞h + θ·D∞h > D{m}h + θ·D{m}h").as_str(),
@@ -3578,44 +3578,44 @@ fn verify_cinf(mol: &Molecule, thresh: f64) {
         let expected_irreps = if n % 2 == 0 {
             let mut irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
             if n == 4 {
-                irreps.push(MullikenIrrepSymbol::new(&format!("|_(a)|Γ||")).unwrap());
+                irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap());
             } else {
                 irreps.extend(
                     (1..(n / 2))
-                        .map(|i| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({})|", i)).unwrap()),
+                        .map(|i| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({i})|")).unwrap()),
                 );
             }
             irreps.push(MullikenIrrepSymbol::new("||B||").unwrap());
             if n == 4 {
-                irreps.push(MullikenIrrepSymbol::new(&format!("|_(b)|Γ||")).unwrap());
+                irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap());
             } else {
                 irreps.extend(
                     (1..(n / 2))
                         .rev()
-                        .map(|i| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({})|", i)).unwrap()),
+                        .map(|i| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({i})|")).unwrap()),
                 );
             }
             irreps
         } else {
             let mut irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
             if n == 3 {
-                irreps.push(MullikenIrrepSymbol::new(&format!("|_(a)|Γ||")).unwrap());
-                irreps.push(MullikenIrrepSymbol::new(&format!("|_(b)|Γ||")).unwrap());
+                irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap());
+                irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap());
             } else {
                 irreps.extend(
                     (1..=n.div_euclid(2))
-                        .map(|i| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({})|", i)).unwrap()),
+                        .map(|i| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({i})|")).unwrap()),
                 );
                 irreps.extend(
                     (1..=n.div_euclid(2))
                         .rev()
-                        .map(|i| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({})|", i)).unwrap()),
+                        .map(|i| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({i})|")).unwrap()),
                 );
             }
             irreps
         };
         test_chartab_ordinary_group_from_infinite(
-            &mol,
+            mol,
             n as u32,
             thresh,
             format!("C∞ > C{n}").as_str(),
@@ -4272,43 +4272,43 @@ fn verify_cn(mol: &Molecule, thresh: f64, n: u32) {
     let expected_irreps = if n % 2 == 0 {
         let mut irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
         if n == 4 {
-            irreps.push(MullikenIrrepSymbol::new(&format!("|_(a)|Γ||")).unwrap());
+            irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap());
         } else {
             irreps.extend(
                 (1..(n / 2))
-                    .map(|i| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({})|", i)).unwrap()),
+                    .map(|i| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({i})|")).unwrap()),
             );
         }
         irreps.push(MullikenIrrepSymbol::new("||B||").unwrap());
         if n == 4 {
-            irreps.push(MullikenIrrepSymbol::new(&format!("|_(b)|Γ||")).unwrap());
+            irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap());
         } else {
             irreps.extend(
                 (1..(n / 2))
                     .rev()
-                    .map(|i| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({})|", i)).unwrap()),
+                    .map(|i| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({i})|")).unwrap()),
             );
         }
         irreps
     } else {
         let mut irreps = vec![MullikenIrrepSymbol::new("||A||").unwrap()];
         if n == 3 {
-            irreps.push(MullikenIrrepSymbol::new(&format!("|_(a)|Γ||")).unwrap());
-            irreps.push(MullikenIrrepSymbol::new(&format!("|_(b)|Γ||")).unwrap());
+            irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ||").unwrap());
+            irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ||").unwrap());
         } else {
             irreps.extend(
                 (1..=n.div_euclid(2))
-                    .map(|i| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({})|", i)).unwrap()),
+                    .map(|i| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({i})|")).unwrap()),
             );
             irreps.extend(
                 (1..=n.div_euclid(2))
                     .rev()
-                    .map(|i| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({})|", i)).unwrap()),
+                    .map(|i| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({i})|")).unwrap()),
             );
         }
         irreps
     };
-    let cn = SymmetryClassSymbol::<SymmetryOperation>::new(&format!("1||C{}||", n), None).unwrap();
+    let cn = SymmetryClassSymbol::<SymmetryOperation>::new(&format!("1||C{n}||"), None).unwrap();
     let expected_chars: HashMap<_, _> = expected_irreps
         .iter()
         .enumerate()
@@ -4320,7 +4320,7 @@ fn verify_cn(mol: &Molecule, thresh: f64, n: u32) {
         })
         .collect();
     test_chartab_ordinary_group(
-        &mol,
+        mol,
         thresh,
         format!("C{n}").as_str(),
         &expected_irreps,
@@ -4351,7 +4351,7 @@ fn verify_bw_cnv_cn(mol: &Molecule, thresh: f64, n: u32) {
         if n > 4 {
             irreps.extend(
                 (1..n.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()),
             );
         } else {
             irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
@@ -4365,7 +4365,7 @@ fn verify_bw_cnv_cn(mol: &Molecule, thresh: f64, n: u32) {
         if n > 3 {
             irreps.extend(
                 (1..=n.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()),
             );
         } else {
             irreps.push(MullikenIrrepSymbol::new("||E||").unwrap());
@@ -4373,7 +4373,7 @@ fn verify_bw_cnv_cn(mol: &Molecule, thresh: f64, n: u32) {
         irreps
     };
     test_chartab_magnetic_group(
-        &mol,
+        mol,
         thresh,
         format!("C{n}v").as_str(),
         &expected_irreps,
@@ -6392,7 +6392,7 @@ fn verify_cnv(mol: &Molecule, thresh: f64, n: usize) {
         } else {
             irreps.extend(
                 (1..n.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()),
             );
         }
         irreps
@@ -6406,13 +6406,13 @@ fn verify_cnv(mol: &Molecule, thresh: f64, n: usize) {
         } else {
             irreps.extend(
                 (1..=n.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()),
             );
         };
         irreps
     };
     test_chartab_ordinary_group(
-        &mol,
+        mol,
         thresh,
         format!("C{n}v").as_str(),
         &expected_irreps,
@@ -6445,7 +6445,7 @@ fn verify_cnv_from_cinfv(mol: &Molecule, thresh: f64, n: usize) {
         } else {
             irreps.extend(
                 (1..n.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()),
             );
         }
         irreps
@@ -6459,13 +6459,13 @@ fn verify_cnv_from_cinfv(mol: &Molecule, thresh: f64, n: usize) {
         } else {
             irreps.extend(
                 (1..=n.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()),
             );
         };
         irreps
     };
     test_chartab_ordinary_group_from_infinite(
-        &mol,
+        mol,
         n as u32,
         thresh,
         format!("C∞v > C{n}v").as_str(),
@@ -6499,7 +6499,7 @@ fn verify_grey_cnv(mol: &Molecule, thresh: f64, n: usize) {
         } else {
             irreps.extend(
                 (1..n.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({})|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({k})|")).unwrap()),
             );
         }
         let m_irreps = irreps
@@ -6521,7 +6521,7 @@ fn verify_grey_cnv(mol: &Molecule, thresh: f64, n: usize) {
         } else {
             irreps.extend(
                 (1..=n.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({})|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({k})|")).unwrap()),
             );
         };
         let m_irreps = irreps
@@ -6568,7 +6568,7 @@ fn verify_grey_cnv_from_grey_cinfv(mol: &Molecule, thresh: f64, n: usize) {
         } else {
             irreps.extend(
                 (1..n.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({})|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({k})|")).unwrap()),
             );
         }
         let m_irreps = irreps
@@ -6590,7 +6590,7 @@ fn verify_grey_cnv_from_grey_cinfv(mol: &Molecule, thresh: f64, n: usize) {
         } else {
             irreps.extend(
                 (1..=n.div_euclid(2))
-                    .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({})|", k)).unwrap()),
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({k})|")).unwrap()),
             );
         };
         let m_irreps = irreps
@@ -7982,7 +7982,7 @@ fn verify_cnh(mol: &Molecule, thresh: f64, n: usize) {
             } else {
                 irreps
                     .extend((1..n.div_euclid(2)).map(|k| {
-                        MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({}g)|", k)).unwrap()
+                        MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({k}g)|")).unwrap()
                     }));
             }
             irreps.push(MullikenIrrepSymbol::new("||B|_(g)|").unwrap());
@@ -7992,7 +7992,7 @@ fn verify_cnh(mol: &Molecule, thresh: f64, n: usize) {
                 irreps.extend(
                     (1..n.div_euclid(2))
                         .rev()
-                        .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({}g)|", k)).unwrap()),
+                        .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({k}g)|")).unwrap()),
                 );
             }
             irreps.push(MullikenIrrepSymbol::new("||A|_(u)|").unwrap());
@@ -8001,7 +8001,7 @@ fn verify_cnh(mol: &Molecule, thresh: f64, n: usize) {
             } else {
                 irreps
                     .extend((1..n.div_euclid(2)).map(|k| {
-                        MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({}u)|", k)).unwrap()
+                        MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({k}u)|")).unwrap()
                     }));
             }
             irreps.push(MullikenIrrepSymbol::new("||B|_(u)|").unwrap());
@@ -8011,7 +8011,7 @@ fn verify_cnh(mol: &Molecule, thresh: f64, n: usize) {
                 irreps.extend(
                     (1..n.div_euclid(2))
                         .rev()
-                        .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({}u)|", k)).unwrap()),
+                        .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({k}u)|")).unwrap()),
                 );
             }
             irreps
@@ -8023,12 +8023,12 @@ fn verify_cnh(mol: &Molecule, thresh: f64, n: usize) {
             } else {
                 irreps.extend(
                     (1..=n.div_euclid(2)).map(|k| {
-                        MullikenIrrepSymbol::new(&format!("|_(a)|Γ|^(')_({})|", k)).unwrap()
+                        MullikenIrrepSymbol::new(&format!("|_(a)|Γ|^(')_({k})|")).unwrap()
                     }),
                 );
                 irreps.extend(
                     (1..=n.div_euclid(2)).rev().map(|k| {
-                        MullikenIrrepSymbol::new(&format!("|_(b)|Γ|^(')_({})|", k)).unwrap()
+                        MullikenIrrepSymbol::new(&format!("|_(b)|Γ|^(')_({k})|")).unwrap()
                     }),
                 );
             }
@@ -8038,16 +8038,16 @@ fn verify_cnh(mol: &Molecule, thresh: f64, n: usize) {
                 irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ|^('')|").unwrap());
             } else {
                 irreps.extend((1..=n.div_euclid(2)).map(|k| {
-                    MullikenIrrepSymbol::new(&format!("|_(a)|Γ|^('')_({})|", k)).unwrap()
+                    MullikenIrrepSymbol::new(&format!("|_(a)|Γ|^('')_({k})|")).unwrap()
                 }));
                 irreps.extend((1..=n.div_euclid(2)).rev().map(|k| {
-                    MullikenIrrepSymbol::new(&format!("|_(b)|Γ|^('')_({})|", k)).unwrap()
+                    MullikenIrrepSymbol::new(&format!("|_(b)|Γ|^('')_({k})|")).unwrap()
                 }));
             }
             irreps
         };
     test_chartab_ordinary_group(
-        &mol,
+        mol,
         thresh,
         format!("C{n}h").as_str(),
         &expected_irreps,
@@ -8107,7 +8107,7 @@ fn verify_bw_dnh_cnh(mol: &Molecule, thresh: f64, n: usize) {
             irreps_ddd
         };
     test_chartab_magnetic_group(
-        &mol,
+        mol,
         thresh,
         format!("D{n}h").as_str(),
         &expected_irreps,
@@ -9332,7 +9332,7 @@ fn test_chartab_symmetric_arbitrary_twisted_sandwich_dn() {
             } else {
                 irreps.extend(
                     (1..n.div_euclid(2))
-                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()),
                 );
             }
             irreps
@@ -9346,7 +9346,7 @@ fn test_chartab_symmetric_arbitrary_twisted_sandwich_dn() {
             } else {
                 irreps.extend(
                     (1..=n.div_euclid(2))
-                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({})|", k)).unwrap()),
+                        .map(|k| MullikenIrrepSymbol::new(&format!("||E|_({k})|")).unwrap()),
                 );
             };
             irreps
@@ -9383,7 +9383,7 @@ fn test_chartab_symmetric_arbitrary_twisted_sandwich_grey_dn() {
             } else {
                 irreps.extend(
                     (1..n.div_euclid(2))
-                        .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({})|", k)).unwrap()),
+                        .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({k})|")).unwrap()),
                 );
             }
             let m_irreps = irreps
@@ -9409,7 +9409,7 @@ fn test_chartab_symmetric_arbitrary_twisted_sandwich_grey_dn() {
             } else {
                 irreps.extend(
                     (1..=n.div_euclid(2))
-                        .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({})|", k)).unwrap()),
+                        .map(|k| MullikenIrrepSymbol::new(&format!("|^(+)|E|_({k})|")).unwrap()),
                 );
             };
             let m_irreps = irreps
@@ -17607,7 +17607,7 @@ fn verify_c2(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_chartab_ordinary_group(&mol, thresh, "C2", &expected_irreps, Some(expected_chars));
+    test_chartab_ordinary_group(mol, thresh, "C2", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{2} + \theta\mathcal{C}_{2}`$ character
@@ -17648,7 +17648,7 @@ fn verify_grey_c2(mol: &Molecule, thresh: f64) {
         ),
     ]);
     test_chartab_magnetic_group(
-        &mol,
+        mol,
         thresh,
         "C2 + θ·C2",
         &expected_irreps,
@@ -17969,7 +17969,7 @@ fn verify_c2v(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_chartab_ordinary_group(&mol, thresh, "C2v", &expected_irreps, Some(expected_chars));
+    test_chartab_ordinary_group(mol, thresh, "C2v", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{2v}(\mathcal{C}_{2})`$ character table of irreps.
@@ -18009,7 +18009,7 @@ fn verify_bw_c2v_c2(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_chartab_magnetic_group(&mol, thresh, "C2v", &expected_irreps, Some(expected_chars));
+    test_chartab_magnetic_group(mol, thresh, "C2v", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{2v}(\mathcal{C}_{s})`$ character table of irreps.
@@ -18049,7 +18049,7 @@ fn verify_bw_c2v_cs(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_chartab_magnetic_group(&mol, thresh, "C2v", &expected_irreps, Some(expected_chars));
+    test_chartab_magnetic_group(mol, thresh, "C2v", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{2v} + \theta\mathcal{C}_{2v}`$ character
@@ -18110,7 +18110,7 @@ fn verify_grey_c2v(mol: &Molecule, thresh: f64) {
         ),
     ]);
     test_chartab_magnetic_group(
-        &mol,
+        mol,
         thresh,
         "C2v + θ·C2v",
         &expected_irreps,
@@ -18439,7 +18439,7 @@ fn verify_c2h(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_chartab_ordinary_group(&mol, thresh, "C2h", &expected_irreps, Some(expected_chars));
+    test_chartab_ordinary_group(mol, thresh, "C2h", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{2h} + \theta\mathcal{C}_{2h}`$ character
@@ -18500,7 +18500,7 @@ fn verify_grey_c2h(mol: &Molecule, thresh: f64) {
         ),
     ]);
     test_chartab_magnetic_group(
-        &mol,
+        mol,
         thresh,
         "C2h + θ·C2h",
         &expected_irreps,
@@ -19258,7 +19258,7 @@ fn verify_cs(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_chartab_ordinary_group(&mol, thresh, "Cs", &expected_irreps, Some(expected_chars));
+    test_chartab_ordinary_group(mol, thresh, "Cs", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{s} + \theta\mathcal{C}_{s}`$ character
@@ -19299,7 +19299,7 @@ fn verify_grey_cs(mol: &Molecule, thresh: f64) {
         ),
     ]);
     test_chartab_magnetic_group(
-        &mol,
+        mol,
         thresh,
         "Cs + θ·Cs",
         &expected_irreps,
@@ -19525,7 +19525,7 @@ fn verify_d2(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_chartab_ordinary_group(&mol, thresh, "D2", &expected_irreps, Some(expected_chars));
+    test_chartab_ordinary_group(mol, thresh, "D2", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{D}_{2} + \theta\mathcal{D}_{2}`$ character
@@ -19619,7 +19619,7 @@ fn verify_grey_d2(mol: &Molecule, thresh: f64) {
         ),
     ]);
     test_chartab_magnetic_group(
-        &mol,
+        mol,
         thresh,
         "D2 + θ·D2",
         &expected_irreps,
@@ -19985,7 +19985,7 @@ fn verify_d2h(mol: &Molecule, thresh: f64, magnetic: bool) {
                 Character::new(&[(UnityRoot::new(1, 2), 1)]),
             ),
         ]);
-        test_chartab_magnetic_group(&mol, thresh, "D2h", &expected_irreps, Some(expected_chars));
+        test_chartab_magnetic_group(mol, thresh, "D2h", &expected_irreps, Some(expected_chars));
     } else {
         let expected_irreps = vec![
             MullikenIrrepSymbol::new("||A|_(g)|").unwrap(),
@@ -20065,7 +20065,7 @@ fn verify_d2h(mol: &Molecule, thresh: f64, magnetic: bool) {
                 Character::new(&[(UnityRoot::new(1, 2), 1)]),
             ),
         ]);
-        test_chartab_ordinary_group(&mol, thresh, "D2h", &expected_irreps, Some(expected_chars));
+        test_chartab_ordinary_group(mol, thresh, "D2h", &expected_irreps, Some(expected_chars));
     }
 }
 
@@ -20232,7 +20232,7 @@ fn verify_grey_d2h(mol: &Molecule, thresh: f64) {
         ),
     ]);
     test_chartab_magnetic_group(
-        &mol,
+        mol,
         thresh,
         "D2h + θ·D2h",
         &expected_irreps,
@@ -20637,7 +20637,7 @@ fn verify_ci(mol: &Molecule, thresh: f64) {
             Character::new(&[(UnityRoot::new(1, 2), 1)]),
         ),
     ]);
-    test_chartab_ordinary_group(&mol, thresh, "Ci", &expected_irreps, Some(expected_chars));
+    test_chartab_ordinary_group(mol, thresh, "Ci", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{i} + \theta\mathcal{C}_{i}`$ character
@@ -20678,7 +20678,7 @@ fn verify_grey_ci(mol: &Molecule, thresh: f64) {
         ),
     ]);
     test_chartab_magnetic_group(
-        &mol,
+        mol,
         thresh,
         "Ci + θ·Ci",
         &expected_irreps,
@@ -20903,7 +20903,7 @@ fn verify_c1(mol: &Molecule, thresh: f64) {
         (&expected_irreps[0], &e),
         Character::new(&[(UnityRoot::new(0, 1), 1)]),
     )]);
-    test_chartab_ordinary_group(&mol, thresh, "C1", &expected_irreps, Some(expected_chars));
+    test_chartab_ordinary_group(mol, thresh, "C1", &expected_irreps, Some(expected_chars));
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{1} + \theta\mathcal{C}_{1}`$ character
@@ -20934,7 +20934,7 @@ fn verify_grey_c1(mol: &Molecule, thresh: f64) {
         ),
     ]);
     test_chartab_magnetic_group(
-        &mol,
+        mol,
         thresh,
         "C1 + θ·C1",
         &expected_irreps,

@@ -42,8 +42,8 @@ fn test_determinant_transformation_bf4_sqpl() {
     let batm_b0 = BasisAtom::new(&atm_b0, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
     let batm_f0 = BasisAtom::new(&atm_f0, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
     let batm_f1 = BasisAtom::new(&atm_f1, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
-    let batm_f2 = BasisAtom::new(&atm_f2, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
-    let batm_f3 = BasisAtom::new(&atm_f3, &[bss_p.clone(), bsp_c.clone()]);
+    let batm_f2 = BasisAtom::new(&atm_f2, &[bss_p.clone(), bsp_c.clone(), bsd_c]);
+    let batm_f3 = BasisAtom::new(&atm_f3, &[bss_p, bsp_c]);
 
     let bao_bf4 = BasisAngularOrder::new(&[batm_b0, batm_f0, batm_f1, batm_f2, batm_f3]);
     let mol_bf4 = Molecule::from_atoms(
@@ -142,7 +142,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let batm_s0 = BasisAtom::new(&atm_s0, &[bsd_p.clone()]);
     let batm_s1 = BasisAtom::new(&atm_s1, &[bsd_p.clone()]);
     let batm_s2 = BasisAtom::new(&atm_s2, &[bsd_p.clone()]);
-    let batm_s3 = BasisAtom::new(&atm_s3, &[bsd_p.clone()]);
+    let batm_s3 = BasisAtom::new(&atm_s3, &[bsd_p]);
 
     let bao_s4 = BasisAngularOrder::new(&[batm_s0, batm_s1, batm_s2, batm_s3]);
     let mol_s4 = Molecule::from_atoms(
@@ -183,7 +183,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let oalpha = array![1.0];
     let obeta = array![0.5];
     let detunres = SlaterDeterminant::<f64>::builder()
-        .coefficients(&[calpha.clone(), cbeta.clone()])
+        .coefficients(&[calpha, cbeta])
         .occupations(&[oalpha.clone(), obeta.clone()])
         .bao(&bao_s4)
         .mol(&mol_s4)
@@ -209,8 +209,8 @@ fn test_determinant_transformation_s4_sqpl() {
         [ 0.0], [0.0], [0.0], [0.0], [1.0]
     ];
     let tdetunres_c4p1_ref = SlaterDeterminant::<f64>::builder()
-        .coefficients(&[tcalpha_ref.clone(), tcbeta_ref.clone()])
-        .occupations(&[oalpha.clone(), obeta.clone()])
+        .coefficients(&[tcalpha_ref, tcbeta_ref])
+        .occupations(&[oalpha, obeta])
         .bao(&bao_s4)
         .mol(&mol_s4)
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
@@ -315,7 +315,7 @@ fn test_determinant_transformation_s4_sqpl() {
     // i
     let ip1 = group.get_index(8).unwrap();
     let tdetgen_ip1_ref = SlaterDeterminant::<f64>::builder()
-        .coefficients(&[-cgen.clone()])
+        .coefficients(&[-cgen])
         .occupations(&[ogen.clone()])
         .bao(&bao_s4)
         .mol(&mol_s4)
@@ -332,7 +332,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let tcgen_s4p1_ref = concatenate![Axis(1), -tcalpha2_gen, -tcbeta2_gen];
     let tdetgen_s4p1_ref = SlaterDeterminant::<f64>::builder()
         .coefficients(&[tcgen_s4p1_ref])
-        .occupations(&[ogen.clone()])
+        .occupations(&[ogen])
         .bao(&bao_s4)
         .mol(&mol_s4)
         .spin_constraint(SpinConstraint::Generalised(2, false))
@@ -357,7 +357,7 @@ fn test_determinant_transformation_b3_real_timerev() {
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bss_p.clone(), bsp_c.clone()]);
     let batm_b1 = BasisAtom::new(&atm_b1, &[bss_p.clone(), bsp_c.clone()]);
-    let batm_b2 = BasisAtom::new(&atm_b2, &[bss_p.clone(), bsp_c.clone()]);
+    let batm_b2 = BasisAtom::new(&atm_b2, &[bss_p, bsp_c]);
 
     let bao_b3 = BasisAngularOrder::new(&[batm_b0, batm_b1, batm_b2]);
     let mol_b3 =
@@ -448,7 +448,7 @@ fn test_determinant_transformation_b3_real_timerev() {
         .unwrap();
     let tdetunres_c3p1_tr_ref = SlaterDeterminant::<f64>::builder()
         .coefficients(&[tcalpha_ref.clone(), tcbeta_ref.clone()])
-        .occupations(&[obeta.clone(), oalpha.clone()])
+        .occupations(&[obeta, oalpha])
         .bao(&bao_b3)
         .mol(&mol_b3)
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
@@ -495,7 +495,7 @@ fn test_determinant_transformation_b3_real_timerev() {
     let tcgen_ref = concatenate![Axis(0), tcalpha_ref, tcbeta_ref];
     let tdetgen_c3p1_tr_ref = SlaterDeterminant::<f64>::builder()
         .coefficients(&[tcgen_ref])
-        .occupations(&[ogen.clone()])
+        .occupations(&[ogen])
         .bao(&bao_b3)
         .mol(&mol_b3)
         .spin_constraint(SpinConstraint::Generalised(2, false))
@@ -516,7 +516,7 @@ fn test_determinant_transformation_c2_complex_timerev() {
     let bsp_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
 
     let batm_c0 = BasisAtom::new(&atm_c0, &[bsp_c.clone()]);
-    let batm_c1 = BasisAtom::new(&atm_c1, &[bsp_c.clone()]);
+    let batm_c1 = BasisAtom::new(&atm_c1, &[bsp_c]);
 
     let bao_c2 = BasisAngularOrder::new(&[batm_c0, batm_c1]);
     let mol_c2 = Molecule::from_atoms(&[atm_c0.clone(), atm_c1.clone()], 1e-7).recentre();
@@ -552,7 +552,7 @@ fn test_determinant_transformation_c2_complex_timerev() {
     let tcgen_ref = concatenate![Axis(1), tcalpha_gen_ref, tcbeta_gen_ref];
     let tdetgen_tr_ref = SlaterDeterminant::<C128>::builder()
         .coefficients(&[tcgen_ref])
-        .occupations(&[ogen.clone()])
+        .occupations(&[ogen])
         .bao(&bao_c2)
         .mol(&mol_c2)
         .spin_constraint(SpinConstraint::Generalised(2, false))
@@ -577,7 +577,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
 
     let batm_c0 = BasisAtom::new(&atm_c0, &[bss_p.clone(), bsp_c.clone()]);
     let batm_c1 = BasisAtom::new(&atm_c1, &[bss_p.clone(), bsp_c.clone()]);
-    let batm_c2 = BasisAtom::new(&atm_c2, &[bss_p.clone(), bsp_c.clone()]);
+    let batm_c2 = BasisAtom::new(&atm_c2, &[bss_p, bsp_c]);
 
     let bao_c3 = BasisAngularOrder::new(&[batm_c0, batm_c1, batm_c2]);
     let mol_c3 =
@@ -634,11 +634,11 @@ fn test_determinant_transformation_c3_spin_rotation() {
     let tcalpha_gen = concatenate!(
         Axis(0),
         Array2::zeros((12, 2)),
-        C128::new(1.0, -1.0) * (calpha.clone() * sqr).map(|x| C128::from(x))
+        C128::new(1.0, -1.0) * (calpha.clone() * sqr).map(C128::from)
     );
     let tcbeta_gen = concatenate!(
         Axis(0),
-        -C128::new(1.0, 1.0) * (cbeta.clone() * sqr).map(|x| C128::from(x)),
+        -C128::new(1.0, 1.0) * (cbeta.clone() * sqr).map(C128::from),
         Array2::zeros((12, 2)),
     );
     let tcgen_ref = concatenate![Axis(1), tcalpha_gen, tcbeta_gen];
@@ -697,13 +697,13 @@ fn test_determinant_transformation_c3_spin_rotation() {
     // ------------------
     let sxy_tcalpha_gen = concatenate!(
         Axis(0),
-        C128::new(0.0, -1.0) * calpha.map(|x| C128::from(x)),
+        C128::new(0.0, -1.0) * calpha.map(C128::from),
         Array2::zeros((12, 2))
     );
     let sxy_tcbeta_gen = concatenate!(
         Axis(0),
         Array2::zeros((12, 2)),
-        C128::new(0.0, 1.0) * cbeta.map(|x| C128::from(x))
+        C128::new(0.0, 1.0) * cbeta.map(C128::from)
     );
     let sxy_tcgen_ref = concatenate![Axis(1), sxy_tcalpha_gen, sxy_tcbeta_gen];
 
@@ -740,17 +740,17 @@ fn test_determinant_transformation_c3_spin_rotation() {
     let tcalpha_sxyz_gen = concatenate!(
         Axis(0),
         Array2::zeros((12, 2)),
-        -C128::new(1.0, 1.0) * (calpha.clone() * sqr).map(|x| C128::from(x))
+        -C128::new(1.0, 1.0) * (calpha * sqr).map(C128::from)
     );
     let tcbeta_sxyz_gen = concatenate!(
         Axis(0),
-        C128::new(1.0, -1.0) * (cbeta.clone() * sqr).map(|x| C128::from(x)),
+        C128::new(1.0, -1.0) * (cbeta * sqr).map(C128::from),
         Array2::zeros((12, 2)),
     );
     let tcgen_sxyz_ref = concatenate![Axis(1), tcalpha_sxyz_gen, tcbeta_sxyz_gen];
     let tdetgen_sxyz_nsr_p1_ref = SlaterDeterminant::<C128>::builder()
-        .coefficients(&[tcgen_sxyz_ref.clone()])
-        .occupations(&[ogen.clone()])
+        .coefficients(&[tcgen_sxyz_ref])
+        .occupations(&[ogen])
         .bao(&bao_c3)
         .mol(&mol_c3)
         .spin_constraint(SpinConstraint::Generalised(2, false))
@@ -779,7 +779,7 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
     let batm_h0 = BasisAtom::new(&atm_h0, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
     let batm_h1 = BasisAtom::new(&atm_h1, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
     let batm_h2 = BasisAtom::new(&atm_h2, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
-    let batm_h3 = BasisAtom::new(&atm_h3, &[bss_p.clone(), bsp_c.clone(), bsd_c.clone()]);
+    let batm_h3 = BasisAtom::new(&atm_h3, &[bss_p, bsp_c, bsd_c]);
 
     let bao_h4 = BasisAngularOrder::new(&[batm_h0, batm_h1, batm_h2, batm_h3]);
 
@@ -829,8 +829,8 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
     let cgen = concatenate![Axis(1), calpha_gen, cbeta_gen];
     let ogen = array![1.0, 1.0, 1.0, 1.0];
     let detgen: SlaterDeterminant<C128> = SlaterDeterminant::<f64>::builder()
-        .coefficients(&[cgen.clone()])
-        .occupations(&[ogen.clone()])
+        .coefficients(&[cgen])
+        .occupations(&[ogen])
         .bao(&bao_h4)
         .mol(&mol_h4)
         .spin_constraint(SpinConstraint::Generalised(2, false))
@@ -896,7 +896,7 @@ fn test_determinant_analysis_overlap() {
     let batm_h0 = BasisAtom::new(&atm_h0, &[bss_p.clone()]);
     let batm_h1 = BasisAtom::new(&atm_h1, &[bss_p.clone()]);
     let batm_h2 = BasisAtom::new(&atm_h2, &[bss_p.clone()]);
-    let batm_h3 = BasisAtom::new(&atm_h3, &[bss_p.clone()]);
+    let batm_h3 = BasisAtom::new(&atm_h3, &[bss_p]);
 
     let bao_h4 = BasisAngularOrder::new(&[batm_h0, batm_h1, batm_h2, batm_h3]);
     let mol_h4 = Molecule::from_atoms(
@@ -921,10 +921,10 @@ fn test_determinant_analysis_overlap() {
     // State 0
     #[rustfmt::skip]
     let ca0 = array![
-        [0.34371360747790780099, -0.57240233006010232675],
-        [0.34371360747790774548, -0.57240233006009977323],
-        [0.34371360619810326087,  0.57240233082859315328],
-        [0.34371360619810287229,  0.57240233082859204305],
+        [0.343_713_607_477_907_8, -0.572_402_330_060_102_3],
+        [0.343_713_607_477_907_75, -0.572_402_330_060_099_8],
+        [0.343_713_606_198_103_26,  0.572_402_330_828_593_2],
+        [0.343_713_606_198_102_9,  0.572_402_330_828_592],
     ];
     let oa0 = array![1.0, 1.0];
     let det0 = SlaterDeterminant::<f64>::builder()
@@ -941,10 +941,10 @@ fn test_determinant_analysis_overlap() {
     // State 1
     #[rustfmt::skip]
     let ca1 = array![
-        [-0.57240233121728367749, -0.83588563969940454790],
-        [ 0.57240233121729744425,  0.83588563969939710940],
-        [ 0.57240232967139226261, -0.83588564075799987041],
-        [-0.57240232967141368992,  0.83588564075800564357],
+        [-0.572_402_331_217_283_7, -0.835_885_639_699_404_5],
+        [ 0.572_402_331_217_297_4,  0.835_885_639_699_397_1],
+        [ 0.572_402_329_671_392_3, -0.835_885_640_757_999_9],
+        [-0.572_402_329_671_413_7,  0.835_885_640_758_005_6],
     ];
     let oa1 = array![1.0, 1.0];
     let det1 = SlaterDeterminant::<f64>::builder()
@@ -961,10 +961,10 @@ fn test_determinant_analysis_overlap() {
     // State 2
     #[rustfmt::skip]
     let ca2 = array![
-        [-0.57240307222063047110, -0.57240158919563832729],
-        [-0.57240158810647190357,  0.57240307330979411926],
-        [ 0.57240307278125657220,  0.57240158757793724309],
-        [ 0.57240158866710411090, -0.57240307169209303506],
+        [-0.572_403_072_220_630_5, -0.572_401_589_195_638_3],
+        [-0.572_401_588_106_471_9,  0.572_403_073_309_794_1],
+        [ 0.572_403_072_781_256_6,  0.572_401_587_577_937_2],
+        [ 0.572_401_588_667_104_1, -0.572_403_071_692_093],
     ];
     let oa2 = array![1.0, 1.0];
     let det2 = SlaterDeterminant::<f64>::builder()
@@ -981,10 +981,10 @@ fn test_determinant_analysis_overlap() {
     // State 3
     #[rustfmt::skip]
     let ca3 = array![
-        [0.34371360741682172035,  0.83588563993802800223],
-        [0.34371360741682194240, -0.83588563993802755814],
-        [0.34371360625918923049,  0.83588564051937608301],
-        [0.34371360625918873088, -0.83588564051937619404],
+        [0.343_713_607_416_821_7,  0.835_885_639_938_028],
+        [0.343_713_607_416_821_94, -0.835_885_639_938_027_6],
+        [0.343_713_606_259_189_23,  0.835_885_640_519_376_1],
+        [0.343_713_606_259_188_73, -0.835_885_640_519_376_2],
     ];
     let oa3 = array![1.0, 1.0];
     let det3 = SlaterDeterminant::<f64>::builder()
@@ -1001,10 +1001,10 @@ fn test_determinant_analysis_overlap() {
     // State 4
     #[rustfmt::skip]
     let ca4 = array![
-        [ 0.57240233141595830979, -0.83588564171388624047],
-        [ 0.57240233141596841282,  0.83588564171388668456],
-        [-0.57240232947272517983, -0.83588563874351706762],
-        [-0.57240232947273528286,  0.83588563874351851091],
+        [ 0.572_402_331_415_958_3, -0.835_885_641_713_886_2],
+        [ 0.572_402_331_415_968_4,  0.835_885_641_713_886_7],
+        [-0.572_402_329_472_725_2, -0.835_885_638_743_517_1],
+        [-0.572_402_329_472_735_3,  0.835_885_638_743_518_5],
     ];
     let oa4 = array![1.0, 1.0];
     let det4 = SlaterDeterminant::<f64>::builder()
@@ -1021,10 +1021,10 @@ fn test_determinant_analysis_overlap() {
     // State 5
     #[rustfmt::skip]
     let ca5 = array![
-        [ 0.54033982385948309268, -0.93762307741421113683],
-        [-0.69515795699456717216,  0.63409551449509482524],
-        [-0.14977610779919578454, -0.65646986032608278805],
-        [ 0.68548050399669979704,  0.98383466332982305591],
+        [ 0.540_339_823_859_483_1, -0.937_623_077_414_211_1],
+        [-0.695_157_956_994_567_2,  0.634_095_514_495_094_8],
+        [-0.149_776_107_799_195_78, -0.656_469_860_326_082_8],
+        [ 0.685_480_503_996_699_8,  0.983_834_663_329_823_1],
     ];
     let oa5 = array![1.0, 1.0];
     let det5 = SlaterDeterminant::<f64>::builder()
@@ -1047,9 +1047,9 @@ fn test_determinant_analysis_overlap() {
         .for_each(|pair| {
             let (i, deti) = pair[0];
             let (j, detj) = pair[1];
-            smat[(i, j)] = deti.overlap(&detj, Some(&sao)).unwrap();
+            smat[(i, j)] = deti.overlap(detj, Some(&sao)).unwrap();
             if i != j {
-                smat[(j, i)] = detj.overlap(&deti, Some(&sao)).unwrap();
+                smat[(j, i)] = detj.overlap(deti, Some(&sao)).unwrap();
             }
         });
     let smat_ref = array![
@@ -1080,15 +1080,15 @@ fn test_determinant_analysis_overlap() {
             let deti = &pair[0].1;
             let j = pair[1].0;
             let detj = &pair[1].1;
-            smat_g[(i, j)] = deti.overlap(&detj, Some(&sao_g)).unwrap();
+            smat_g[(i, j)] = deti.overlap(detj, Some(&sao_g)).unwrap();
             if i != j {
-                smat_g[(j, i)] = detj.overlap(&deti, Some(&sao_g)).unwrap();
+                smat_g[(j, i)] = detj.overlap(deti, Some(&sao_g)).unwrap();
             }
         });
     assert_close_l2!(&smat_g, &smat_ref, 1e-7);
 
     // Complex, UHF
-    let sao_c = sao.mapv(|x| C128::from(x));
+    let sao_c = sao.mapv(C128::from);
     let mut smat_c = Array2::<C128>::zeros((6, 6));
     [&det0, &det1, &det2, &det3, &det4, &det5]
         .iter()
@@ -1100,16 +1100,16 @@ fn test_determinant_analysis_overlap() {
             let deti = &pair[0].1;
             let j = pair[1].0;
             let detj = &pair[1].1;
-            smat_c[(i, j)] = deti.overlap(&detj, Some(&sao_c)).unwrap();
+            smat_c[(i, j)] = deti.overlap(detj, Some(&sao_c)).unwrap();
             if i != j {
-                smat_c[(j, i)] = detj.overlap(&deti, Some(&sao_c)).unwrap();
+                smat_c[(j, i)] = detj.overlap(deti, Some(&sao_c)).unwrap();
             }
         });
-    let smat_c_ref = smat_ref.mapv(|x| C128::from(x));
+    let smat_c_ref = smat_ref.mapv(C128::from);
     assert_close_l2!(&smat_c, &smat_c_ref, 1e-7);
 
     // Complex, GHF
-    let sao_cg = sao_g.mapv(|x| C128::from(x));
+    let sao_cg = sao_g.mapv(C128::from);
     let mut smat_cg = Array2::<C128>::zeros((6, 6));
     [&det0, &det1, &det2, &det3, &det4, &det5]
         .iter()
@@ -1121,9 +1121,9 @@ fn test_determinant_analysis_overlap() {
             let deti = &pair[0].1;
             let j = pair[1].0;
             let detj = &pair[1].1;
-            smat_cg[(i, j)] = deti.overlap(&detj, Some(&sao_cg)).unwrap();
+            smat_cg[(i, j)] = deti.overlap(detj, Some(&sao_cg)).unwrap();
             if i != j {
-                smat_cg[(j, i)] = detj.overlap(&deti, Some(&sao_cg)).unwrap();
+                smat_cg[(j, i)] = detj.overlap(deti, Some(&sao_cg)).unwrap();
             }
         });
     assert_close_l2!(&smat_cg, &smat_c_ref, 1e-7);
@@ -1143,7 +1143,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
     let batm_s0 = BasisAtom::new(&atm_s0, &[bss_p.clone()]);
     let batm_s1 = BasisAtom::new(&atm_s1, &[bss_p.clone()]);
     let batm_s2 = BasisAtom::new(&atm_s2, &[bss_p.clone()]);
-    let batm_s3 = BasisAtom::new(&atm_s3, &[bss_p.clone()]);
+    let batm_s3 = BasisAtom::new(&atm_s3, &[bss_p]);
 
     let bao_s4 = BasisAngularOrder::new(&[batm_s0, batm_s1, batm_s2, batm_s3]);
     let mol_s4 = Molecule::from_atoms(
@@ -1183,8 +1183,8 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
     let oalpha = array![1.0];
     let obeta = array![1.0];
     let det = SlaterDeterminant::<f64>::builder()
-        .coefficients(&[calpha.clone(), cbeta.clone()])
-        .occupations(&[oalpha.clone(), obeta.clone()])
+        .coefficients(&[calpha, cbeta])
+        .occupations(&[oalpha, obeta])
         .bao(&bao_s4)
         .mol(&mol_s4)
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
@@ -1204,15 +1204,15 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
 
     let sao = Array2::<f64>::eye(4);
     orbit.calc_smat(Some(&sao)).unwrap().calc_xmat(false);
-    let smat = orbit.smat.as_ref().unwrap().clone();
-    let xmat = orbit.xmat.as_ref().unwrap();
+    let smat = orbit.smat().clone();
+    let xmat = orbit.xmat();
 
     let os = xmat.t().dot(&smat).dot(xmat);
     assert_eq!(os.shape(), &[4, 4]);
     assert_close_l2!(&os, &Array2::<f64>::eye(os.shape()[0]), 1e-7);
 
     let det_c = SlaterDeterminant::<C128>::from(det.clone());
-    let sao_c = sao.mapv(|x| C128::from(x));
+    let sao_c = sao.mapv(C128::from);
     let mut orbit_c = SlaterDeterminantSymmetryOrbit::builder()
         .group(&group)
         .origin(&det_c)
@@ -1222,14 +1222,14 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
         .build()
         .unwrap();
     orbit_c.calc_smat(Some(&sao_c)).unwrap().calc_xmat(false);
-    let smat_c = orbit_c.smat.as_ref().unwrap().clone();
-    let xmat_c = orbit_c.xmat.as_ref().unwrap();
+    let smat_c = orbit_c.smat().clone();
+    let xmat_c = orbit_c.xmat();
 
     let os_c = xmat_c.t().mapv(|x| x.conj()).dot(&smat_c).dot(xmat_c);
     assert_eq!(os_c.shape(), &[4, 4]);
     assert_close_l2!(&os_c, &Array2::<C128>::eye(os.shape()[0]), 1e-7);
 
-    assert_close_l2!(&os.map(|x| C128::from(x)), &os_c, 1e-7);
+    assert_close_l2!(&os.map(C128::from), &os_c, 1e-7);
 }
 
 #[test]
@@ -1246,7 +1246,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
     let batm_s0 = BasisAtom::new(&atm_s0, &[bsp_p.clone()]);
     let batm_s1 = BasisAtom::new(&atm_s1, &[bsp_p.clone()]);
     let batm_s2 = BasisAtom::new(&atm_s2, &[bsp_p.clone()]);
-    let batm_s3 = BasisAtom::new(&atm_s3, &[bsp_p.clone()]);
+    let batm_s3 = BasisAtom::new(&atm_s3, &[bsp_p]);
 
     let bao_s4 = BasisAngularOrder::new(&[batm_s0, batm_s1, batm_s2, batm_s3]);
     let mol_s4 = Molecule::from_atoms(
@@ -1331,8 +1331,8 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
 
     let obeta_filled = array![1.0];
     let det_2e_cg: SlaterDeterminant<C128> = SlaterDeterminant::<f64>::builder()
-        .coefficients(&[calpha.clone(), cbeta.clone()])
-        .occupations(&[oalpha.clone(), obeta_filled])
+        .coefficients(&[calpha, cbeta])
+        .occupations(&[oalpha, obeta_filled])
         .bao(&bao_s4)
         .mol(&mol_s4)
         .spin_constraint(SpinConstraint::Unrestricted(2, false))
@@ -2508,13 +2508,13 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
     let bsc_d = BasisShell::new(2, ShellOrder::Cart(CartOrder::qchem(2)));
     let bsp_s = BasisShell::new(0, ShellOrder::Pure(true));
 
-    let batm_v = BasisAtom::new(&atm_v, &[bsc_d.clone()]);
+    let batm_v = BasisAtom::new(&atm_v, &[bsc_d]);
     let batm_f0 = BasisAtom::new(&atm_f0, &[bsp_s.clone()]);
     let batm_f1 = BasisAtom::new(&atm_f1, &[bsp_s.clone()]);
     let batm_f2 = BasisAtom::new(&atm_f2, &[bsp_s.clone()]);
     let batm_f3 = BasisAtom::new(&atm_f3, &[bsp_s.clone()]);
     let batm_f4 = BasisAtom::new(&atm_f4, &[bsp_s.clone()]);
-    let batm_f5 = BasisAtom::new(&atm_f5, &[bsp_s.clone()]);
+    let batm_f5 = BasisAtom::new(&atm_f5, &[bsp_s]);
 
     let bao_vf6 = BasisAngularOrder::new(&[
         batm_v,
@@ -2567,7 +2567,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
     let mut sao_g = Array2::zeros((24, 24));
     sao_g.slice_mut(s![0..12, 0..12]).assign(&sao);
     sao_g.slice_mut(s![12..24, 12..24]).assign(&sao);
-    let sao_cg = sao_g.mapv(|x| C128::from(x));
+    let sao_cg = sao_g.mapv(C128::from);
 
     // ---
     // dyy
