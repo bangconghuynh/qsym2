@@ -22,7 +22,7 @@ pub struct UnityRoot {
     /// The fraction $`k/n \in [0, 1)`$ of the unity root, represented exactly
     /// for hashing and comparison purposes.
     #[builder(setter(custom))]
-    pub fraction: F,
+    pub(crate) fraction: F,
 }
 
 impl UnityRootBuilder {
@@ -52,11 +52,15 @@ impl UnityRoot {
         UnityRootBuilder::default()
     }
 
-    /// Constructs a unity root from a non-negative index and order.
+    /// Constructs a unity root $`z`$ from a non-negative index $`k`$ and order $`n`$, where
+    ///
+    /// ```math
+    ///   z = e^{\frac{2k\pi i}{n}}.
+    /// ```
     ///
     /// # Returns
     ///
-    /// A unity root.
+    /// The required unity root.
     #[must_use]
     pub fn new(index: u32, order: u32) -> Self {
         Self::builder()

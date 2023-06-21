@@ -21,8 +21,8 @@ use crate::chartab::chartab_symbols::{
 pub mod character;
 pub mod chartab_group;
 pub mod chartab_symbols;
-pub mod modular_linalg;
-pub mod reducedint;
+pub(crate) mod modular_linalg;
+pub(crate) mod reducedint;
 pub mod unityroot;
 
 // =================

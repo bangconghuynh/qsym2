@@ -237,7 +237,7 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct ModularEigError<'a, T> {
+pub(crate) struct ModularEigError<'a, T> {
     mat: &'a Array2<T>,
 }
 
@@ -254,7 +254,7 @@ impl<'a, T: Display + Debug> Error for ModularEigError<'a, T> {}
 ///
 /// # Arguments
 ///
-/// * `mat` - A square matrix.
+/// * `mat` - A square matrix of modular integers.
 ///
 /// # Returns
 ///
@@ -265,7 +265,7 @@ impl<'a, T: Display + Debug> Error for ModularEigError<'a, T> {}
 /// # Panics
 ///
 /// Panics when inconsistent ring moduli between matrix elements are encountered.
-pub fn modular_eig<T>(
+pub(crate) fn modular_eig<T>(
     mat: &Array2<T>,
 ) -> Result<HashMap<T, Vec<Array1<T>>>, ModularEigError<'_, T>>
 where
@@ -375,7 +375,7 @@ where
 ///
 /// Panics when inconsistent ring moduli between vector elements are encountered.
 #[must_use]
-pub fn weighted_hermitian_inprod<T>(
+pub(crate) fn weighted_hermitian_inprod<T>(
     vec_pair: (&Array1<T>, &Array1<T>),
     class_sizes: &[usize],
     perm_for_conj: Option<&Vec<usize>>,
@@ -505,7 +505,7 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct SplitSpaceError<'a, T> {
+pub(crate) struct SplitSpaceError<'a, T> {
     mat: &'a Array2<T>,
     vecs: &'a [Array1<T>],
 }
@@ -547,7 +547,7 @@ impl<'a, T: Display + Debug> Error for SplitSpaceError<'a, T> {}
 /// Errors when the degeneracy subspace cannot be split, which occurs when any of the
 /// orthogonalised vectors spanning the subspace is a null vector.
 #[allow(clippy::too_many_lines)]
-pub fn split_space<'a, T>(
+pub(crate) fn split_space<'a, T>(
     mat: &'a Array2<T>,
     vecs: &'a [Array1<T>],
     class_sizes: &[usize],
@@ -672,7 +672,7 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct Split2dSpaceError<'a, T> {
+pub(crate) struct Split2dSpaceError<'a, T> {
     vecs: &'a [Array1<T>],
 }
 
@@ -719,7 +719,7 @@ impl<'a, T: Display + Debug> Error for Split2dSpaceError<'a, T> {}
 ///
 /// Errors when the two-dimensional subspace cannot be split using this approach. This occurs when
 /// the Frobenius--Schur indicators fail to rule out all prospective cases.
-pub fn split_2d_space<'a, T>(
+pub(crate) fn split_2d_space<'a, T>(
     vecs: &'a [Array1<T>],
     class_sizes: &[usize],
     sq_indices: &[usize],
