@@ -29,7 +29,7 @@ pub trait FiniteOrder {
     /// The integer type for the order of the element.
     type Int: Integer;
 
-    /// Calculates the finite order.
+    /// Returns the finite order of the element.
     fn order(&self) -> Self::Int;
 }
 
@@ -49,13 +49,13 @@ where
     type GroupElement;
     type ElementCollection: Clone + IntoIterator<Item = Self::GroupElement>;
 
-    /// The name of the group.
+    /// Returns the name of the group.
     fn name(&self) -> String;
 
-    /// The finite subgroup name of this group, if any.
+    /// Returns the finite subgroup name of this group, if any.
     fn finite_subgroup_name(&self) -> Option<&String>;
 
-    /// A iterable collection of the elements in the group.
+    /// Returns an iterable collection of the elements in the group.
     fn elements(&self) -> &Self::ElementCollection;
 
     /// Given an index, returns the element associated with it, or `None` if the index is out of
@@ -72,10 +72,10 @@ where
     /// Checks if this group is abelian.
     fn is_abelian(&self) -> bool;
 
-    /// The order of the group.
+    /// Returns the order of the group.
     fn order(&self) -> usize;
 
-    /// The Cayley table of the group.
+    /// Returns the Cayley table of the group, if any.
     fn cayley_table(&self) -> Option<&Array2<usize>>;
 }
 
@@ -210,6 +210,10 @@ where
     /// # Returns
     ///
     /// A builder to construct a new abstract group.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the group fails to be constructed.
     fn builder() -> EagerGroupBuilder<T> {
         EagerGroupBuilder::<T>::default()
     }
@@ -224,6 +228,14 @@ where
     /// # Returns
     ///
     /// An abstract group with its Cayley table constructed.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the group fails to be constructed.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the Cayley table fails to be constructed.
     pub fn new(name: &str, elements: Vec<T>) -> Result<Self, anyhow::Error> {
         let mut group = Self::builder()
             .name(name.to_string())
@@ -263,6 +275,14 @@ where
     /// # Returns
     ///
     /// An abstract group with its Cayley table constructed.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the group fails to be constructed.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the Cayley table fails to be constructed.
     pub fn from_iter(
         name: &str,
         elements_iter: impl Iterator<Item = T>,
@@ -284,6 +304,10 @@ where
     /// * `name` - A name to be given to the abstract group.
     /// * `elements_iter` - An iterator yielding group elements.
     ///
+    /// # Panics
+    ///
+    /// Panics if the group fails to be constructed.
+    ///
     /// # Returns
     ///
     /// An abstract group without its Cayley table constructed.
@@ -296,6 +320,10 @@ where
     }
 
     /// Constructs the Cayley table for the abstract group.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the Cayley table fails to be constructed.
     fn compute_cayley_table(&mut self) -> Result<(), anyhow::Error> {
         log::debug!("Constructing Cayley table in parallel...");
         let mut ctb = Array2::<usize>::zeros((self.order(), self.order()));
@@ -414,7 +442,7 @@ where
 
     /// The character table for the irreducible representations of this group.
     #[builder(setter(skip), default = "None")]
-    pub irrep_character_table: Option<RepCharacterTable<RowSymbol, ColSymbol>>,
+    pub(crate) irrep_character_table: Option<RepCharacterTable<RowSymbol, ColSymbol>>,
 }
 
 impl<T, RowSymbol, ColSymbol> UnitaryRepresentedGroupBuilder<T, RowSymbol, ColSymbol>
@@ -455,7 +483,7 @@ where
     /// # Arguments
     ///
     /// * `name` - A name to be set as the finite subgroup name of this group.
-    pub fn set_finite_subgroup_name(&mut self, name: Option<String>) {
+    pub(crate) fn set_finite_subgroup_name(&mut self, name: Option<String>) {
         self.finite_subgroup_name = name;
     }
 }
@@ -550,11 +578,13 @@ where
 // Magnetic-represented group
 // --------------------------
 
-/// A structure for managing groups with magnetic corepresentations. Such a group consists of two
-/// types of elements in equal numbers: those that are unitary represented and those that are
-/// antiunitary represented. This division of elements affects the class structure of the group via
-/// an equivalence relation defined in Newmarch, J. D. & Golding, R. M. The character table for the
-/// corepresentations of magnetic groups. *Journal of Mathematical Physics* **23**, 695–704 (1982).
+/// A structure for managing groups with magnetic corepresentations.
+///
+/// Such a group consists of two types of elements in equal numbers: those that are unitary
+/// represented and those that are antiunitary represented. This division of elements affects the
+/// class structure of the group via an equivalence relation defined in
+/// Newmarch, J. D. & Golding, R. M. The character table for the corepresentations of magnetic
+/// groups. *Journal of Mathematical Physics* **23**, 695–704 (1982).
 #[derive(Clone, Builder, Serialize, Deserialize)]
 pub struct MagneticRepresentedGroup<T, UG, RowSymbol>
 where
@@ -596,7 +626,7 @@ where
 
     /// The character table for the irreducible corepresentations of this group.
     #[builder(setter(skip), default = "None")]
-    pub ircorep_character_table: Option<CorepCharacterTable<RowSymbol, UG::CharTab>>,
+    pub(crate) ircorep_character_table: Option<CorepCharacterTable<RowSymbol, UG::CharTab>>,
 }
 
 impl<T, UG, RowSymbol> MagneticRepresentedGroupBuilder<T, UG, RowSymbol>
@@ -654,7 +684,7 @@ where
     /// # Arguments
     ///
     /// * `name` - A name to be set as the finite subgroup name of this group.
-    pub fn set_finite_subgroup_name(&mut self, name: Option<String>) {
+    pub(crate) fn set_finite_subgroup_name(&mut self, name: Option<String>) {
         self.finite_subgroup_name = name;
     }
 
