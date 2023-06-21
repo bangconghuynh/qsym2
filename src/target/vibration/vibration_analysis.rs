@@ -111,14 +111,14 @@ where
 
     /// The overlap matrix between the symmetry-equivalent vibrational coordinates in the orbit.
     #[builder(setter(skip), default = "None")]
-    pub smat: Option<Array2<T>>,
+    smat: Option<Array2<T>>,
 
     /// The $`\mathbf{X}`$ matrix for the overlap matrix between the symmetry-equivalent
     /// vibrational coordinates in the orbit.
     ///
     /// See [`RepAnalysis::xmat`] for further information.
     #[builder(setter(skip), default = "None")]
-    pub xmat: Option<Array2<T>>,
+    xmat: Option<Array2<T>>,
 }
 
 // ----------------------------
@@ -131,6 +131,7 @@ where
     T: ComplexFloat + fmt::Debug + Lapack,
     VibrationalCoordinate<'a, T>: SymmetryTransformable,
 {
+    /// Returns a builder to construct a new [`VibrationalCoordinateSymmetryOrbit`].
     pub fn builder() -> VibrationalCoordinateSymmetryOrbitBuilder<'a, G, T> {
         VibrationalCoordinateSymmetryOrbitBuilder::default()
     }
@@ -140,6 +141,17 @@ impl<'a, G> VibrationalCoordinateSymmetryOrbit<'a, G, f64>
 where
     G: SymmetryGroupProperties,
 {
+    /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix $`\mathbf{S}`$
+    /// between the symmetry-equivalent vibrational coordinates in the orbit.
+    ///
+    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
+    ///
+    /// # Arguments
+    ///
+    /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
+    /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit molecular
+    /// orbitals. If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is
+    /// already of full rank.
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) -> &mut Self {
         // Real, symmetric S
         let thresh = self.linear_independence_threshold;
@@ -171,6 +183,17 @@ where
     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
     VibrationalCoordinate<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
 {
+    /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap matrix
+    /// $`\mathbf{S}`$ between the symmetry-equivalent vibrational coordinates in the orbit.
+    ///
+    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
+    ///
+    /// # Arguments
+    ///
+    /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
+    /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit molecular
+    /// orbitals. If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is
+    /// already of full rank.
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) {
         // Complex S, symmetric or Hermitian
         let thresh = self.linear_independence_threshold;

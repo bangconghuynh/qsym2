@@ -13,7 +13,7 @@ use crate::aux::molecule::Molecule;
 mod vibration_tests;
 
 pub mod vibration_analysis;
-pub mod vibration_transformation;
+mod vibration_transformation;
 
 // ==================
 // Struct definitions
@@ -69,7 +69,7 @@ where
         VibrationalCoordinateBuilder::default()
     }
 
-    /// Returns a shared reference to the vector of coefficient arrays.
+    /// Returns a shared reference to the coefficient array.
     pub fn coefficients(&self) -> &Array1<T> {
         &self.coefficients
     }
