@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::aux::misc::HashableFloat;
 
-/// An enum to handle symmetry element orders.
+/// An enumerated type to handle symmetry element orders.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum ElementOrder {
     /// Positive integer order.

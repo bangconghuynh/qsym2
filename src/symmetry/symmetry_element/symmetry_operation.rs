@@ -1624,7 +1624,7 @@ where
 /// # Arguments
 ///
 /// * `operations` - A mutable reference to a vector of symmetry operations.
-pub fn sort_operations(operations: &mut [SymmetryOperation]) {
+pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
     operations.sort_by_key(|op| {
         let (axis_closeness, closest_axis) = op.generating_element.closeness_to_cartesian_axes();
         let c_op = if op.is_proper()

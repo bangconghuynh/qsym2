@@ -104,7 +104,7 @@ pub static FORCED_C3_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
 // MullikenIrrepSymbol
 // -------------------
 
-/// A struct to handle Mulliken irreducible representation symbols.
+/// A structure to handle Mulliken irreducible representation symbols.
 #[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct MullikenIrrepSymbol {
     /// The generic part of the symbol.
@@ -142,34 +142,31 @@ impl MullikenIrrepSymbol {
 // MullikenIrcorepSymbol
 // ---------------------
 
-/// A struct to handle Mulliken irreducible corepresentation symbols.
+/// A structure to handle Mulliken irreducible corepresentation symbols.
 #[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct MullikenIrcorepSymbol {
+    /// The decomposed symbol containing the irreps inducing this ircorep.
     inducing_irreps: DecomposedSymbol<MullikenIrrepSymbol>,
 }
 
 impl MullikenIrcorepSymbol {
+    /// Returns a builder to construct a new [`MullikenIrcorepSymbol`] structure.
     fn builder() -> MullikenIrcorepSymbolBuilder {
         MullikenIrcorepSymbolBuilder::default()
     }
 
-    /// Parses a string representing a Mulliken irrep symbol.
+    /// Parses a string representing a Mulliken ircorep symbol, which consists of one or more
+    /// Mulliken irrep symbols joined together by `"+"`.
     ///
-    /// Some permissible Mulliken irrep symbols:
-    ///
-    /// ```text
-    /// "T"
-    /// "||T|_(2g)|"
-    /// "|^(3)|T|_(2g)|"
-    /// ```
+    /// See [`Self::from_str`] for more information.
     ///
     /// # Arguments
     ///
-    /// * `symstr` - A string to be parsed to give a Mulliken symbol.
+    /// * `symstr` - A string to be parsed to give a Mulliken ircorep symbol.
     ///
     /// # Errors
     ///
-    /// Errors when the string cannot be parsed as a generic symbol.
+    /// Errors when the string cannot be parsed as a Mulliken ircorep symbol.
     pub fn new(symstr: &str) -> Result<Self, MullikenIrcorepSymbolBuilderError> {
         Self::from_str(symstr)
     }
@@ -179,13 +176,13 @@ impl MullikenIrcorepSymbol {
 // SymmetryClassSymbol
 // -------------------
 
-/// A struct to handle conjugacy class symbols.
+/// A structure to handle conjugacy class symbols.
 #[derive(Builder, Debug, Clone, Serialize, Deserialize)]
 pub struct SymmetryClassSymbol<R: Clone + Serialize> {
     /// The generic part of the symbol.
     generic_symbol: GenericSymbol,
 
-    /// A representative element in the class.
+    /// One or more representative elements in the class.
     representatives: Option<Vec<R>>,
 }
 
@@ -194,7 +191,7 @@ impl<R: Clone + Serialize> SymmetryClassSymbol<R> {
         SymmetryClassSymbolBuilder::default()
     }
 
-    /// Creates a class symbol from a string and a representative element.
+    /// Creates a class symbol from a string and some representative elements.
     ///
     /// Some permissible conjugacy class symbols:
     ///
@@ -210,7 +207,7 @@ impl<R: Clone + Serialize> SymmetryClassSymbol<R> {
     /// # Arguments
     ///
     /// * `symstr` - A string to be parsed to give a class symbol.
-    /// * `rep` - An optional representative element for this class.
+    /// * `rep` - Optional representative elements for this class.
     ///
     /// # Returns
     ///
@@ -660,7 +657,7 @@ impl<R: Clone + Serialize> fmt::Display for SymmetryClassSymbol<R> {
 /// # Panics
 ///
 /// Panics when expected classes cannot be found.
-pub fn sort_irreps<R: Clone + Serialize + SpecialSymmetryTransformation>(
+pub(super) fn sort_irreps<R: Clone + Serialize + SpecialSymmetryTransformation>(
     char_arr: &ArrayView2<Character>,
     frobenius_schur_indicators: &[i8],
     class_symbols: &IndexMap<SymmetryClassSymbol<R>, usize>,
@@ -856,7 +853,7 @@ pub fn sort_irreps<R: Clone + Serialize + SpecialSymmetryTransformation>(
 /// * both `force_proper_principal` and `force_principal` are specified;
 /// * classes specified in `force_principal` cannot be found in `class_symbols`;
 /// * no principal classes can be found.
-pub fn deduce_principal_classes<R, P>(
+pub(super) fn deduce_principal_classes<R, P>(
     class_symbols: &IndexMap<SymmetryClassSymbol<R>, usize>,
     force_principal_predicate: Option<P>,
     force_principal: Option<SymmetryClassSymbol<R>>,

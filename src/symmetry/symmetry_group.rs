@@ -66,7 +66,7 @@ pub trait SymmetryGroupProperties:
     ///
     /// # Arguments
     ///
-    /// * `sym` - A molecular symmetry struct.
+    /// * `sym` - A molecular symmetry structure containing the symmetry *elements*.
     /// * `infinite_order_to_finite` - Interpret infinite-order generating
     /// elements as finite-order generating elements to create a finite subgroup
     /// of an otherwise infinite group.
@@ -79,15 +79,18 @@ pub trait SymmetryGroupProperties:
         infinite_order_to_finite: Option<u32>,
     ) -> Result<Self, anyhow::Error>;
 
-    /// Converts a symmetry group to its equivalent double group.
+    /// Converts a symmetry group to its corresponding double group.
     ///
     /// # Returns
     ///
-    /// The double group.
+    /// The corresponding double group.
     fn to_double_group(&self) -> Result<Self, anyhow::Error>;
 
     /// Reorders and relabels the rows and columns of the constructed character table using
     /// symmetry-specific rules and conventions.
+    ///
+    /// The default implementation of this method is to do nothing. Specific trait implementations
+    /// can override this to provide specific ways to canonicalise character tables.
     fn canonicalise_character_table(&mut self) {}
 
     // ----------------
@@ -182,8 +185,13 @@ pub trait SymmetryGroupProperties:
             .all(|op| !op.is_antiunitary())
     }
 
+    /// Returns `true` if all elements in this group are in $`\mathsf{SU}'(2)`$ or `false` if they
+    /// are all in $`\mathsf{O}(3)`$.
+    ///
+    /// # Panics
+    ///
+    /// Panics if mixed $`\mathsf{SU}'(2)`$ and $`\mathsf{O}(3)`$ elements are found.
     fn is_double_group(&self) -> bool {
-        
         if self.elements().clone().into_iter().all(|op| op.is_su2()) {
             true
         } else if self.elements().clone().into_iter().all(|op| !op.is_su2()) {
@@ -211,7 +219,7 @@ pub trait SymmetryGroupProperties:
         }
     }
 
-    /// Sets the conjugacy class symbols in this group based on molecular symmetry.
+    /// Returns the conjugacy class symbols in this group based on molecular symmetry.
     fn class_symbols_from_symmetry(&mut self) -> Vec<SymmetryClassSymbol<SymmetryOperation>> {
         log::debug!("Assigning class symbols from symmetry operations...");
         let mut undashed_class_symbols: Counter<SymmetryClassSymbol<SymmetryOperation>, usize> =

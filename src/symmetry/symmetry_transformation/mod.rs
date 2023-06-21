@@ -219,7 +219,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Returns
     ///
-    /// The resultant site permutation under the action of `symop`, or `None` if no such
+    /// The resultant site permutation under the action of `symop`, or an error if no such
     /// permutation can be found.
     fn sym_permute_sites_spatial(
         &self,
@@ -236,7 +236,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Arguments
     ///
-    /// * `op` - A symmetry operation.
+    /// * `symop` - A symmetry operation.
     fn sym_transform_spatial_mut(
         &mut self,
         symop: &SymmetryOperation,
@@ -275,7 +275,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Arguments
     ///
-    /// * `op` - A symmetry operation.
+    /// * `symop` - A symmetry operation.
     fn sym_transform_spin_mut(
         &mut self,
         symop: &SymmetryOperation,
@@ -303,7 +303,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Arguments
     ///
-    /// * `op` - A symmetry operation.
+    /// * `symop` - A symmetry operation.
     ///
     /// # Returns
     ///
@@ -321,7 +321,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Arguments
     ///
-    /// * `op` - A symmetry operation.
+    /// * `symop` - A symmetry operation.
     fn sym_transform_spin_spatial_mut(
         &mut self,
         symop: &SymmetryOperation,
@@ -337,7 +337,7 @@ pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTrans
     ///
     /// # Arguments
     ///
-    /// * `op` - A symmetry operation.
+    /// * `symop` - A symmetry operation.
     ///
     /// # Returns
     ///

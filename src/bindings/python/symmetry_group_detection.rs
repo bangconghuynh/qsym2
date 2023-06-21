@@ -71,16 +71,8 @@ impl From<PyMolecule> for Molecule {
                 .collect::<Vec<_>>(),
             pymol.threshold,
         );
-        mol.set_magnetic_field(
-            pymol
-                .magnetic_field
-                .map(Vector3::from_iterator),
-        );
-        mol.set_electric_field(
-            pymol
-                .electric_field
-                .map(Vector3::from_iterator),
-        );
+        mol.set_magnetic_field(pymol.magnetic_field.map(Vector3::from_iterator));
+        mol.set_electric_field(pymol.electric_field.map(Vector3::from_iterator));
         mol
     }
 }
