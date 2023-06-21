@@ -29,7 +29,7 @@ where
     Self::ClassSymbol: CollectionSymbol<CollectionElement = Self::GroupElement>,
     <Self as GroupProperties>::GroupElement: Inv<Output = <Self as GroupProperties>::GroupElement>,
 {
-    /// The type for class symbols.
+    /// The type of class symbols.
     type ClassSymbol;
 
     // ----------------
@@ -149,7 +149,7 @@ where
 
     /// The class matrix $`\mathbf{N}_r`$ for the conjugacy classes in the group.
     ///
-    /// Let $`K_i`$ be the $`i^{\textrm{th}}`conjugacy class of the group. The
+    /// Let $`K_i`$ be the $`i^{\textrm{th}}`$ conjugacy class of the group. The
     /// elements of the class matrix $`\mathbf{N}_r`$ are given by
     ///
     /// ```math
