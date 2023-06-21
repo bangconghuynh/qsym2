@@ -187,13 +187,13 @@ pub struct SymmetryOperation {
     ///
     /// This is not defined for operations with infinite-order generating elements.
     #[builder(setter(skip), default = "self.calc_total_proper_fraction()")]
-    pub total_proper_fraction: Option<F>,
+    pub(crate) total_proper_fraction: Option<F>,
 
     /// The positive hemisphere used for distinguishing positive and negative rotation poles. If
     /// `None`, the standard positive hemisphere as defined in S.L. Altmann, Rotations,
     /// Quaternions, and Double Groups (Dover Publications, Inc., New York, 2005) is used.
     #[builder(default = "None")]
-    positive_hemisphere: Option<PositiveHemisphere>,
+    pub positive_hemisphere: Option<PositiveHemisphere>,
 }
 
 impl SymmetryOperationBuilder {
@@ -238,7 +238,7 @@ impl SymmetryOperation {
     ///
     /// A builder to construct a new symmetry operation.
     #[must_use]
-    pub fn builder() -> SymmetryOperationBuilder {
+    pub(crate) fn builder() -> SymmetryOperationBuilder {
         SymmetryOperationBuilder::default()
     }
 
@@ -637,7 +637,7 @@ impl SymmetryOperation {
     /// This is the point on the unit sphere that is left invariant by the proper rotation part of
     /// the operation.
     ///
-    /// For improper operations, no conversions will be performed, unlike in [`calc_pole`].
+    /// For improper operations, no conversions will be performed, unlike in [`Self::calc_pole`].
     ///
     /// Note that binary rotations have unique poles on the positive hemisphere (*i.e.*,
     /// $`C_2(\hat{\mathbf{n}}) = C_2^{-1}(\hat{\mathbf{n}})`$ and

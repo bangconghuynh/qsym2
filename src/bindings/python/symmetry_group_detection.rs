@@ -9,6 +9,7 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
+use crate::io::QSym2FileType;
 
 /// A Python-exposed class to marshall molecular structure information between Rust and Python.
 #[pyclass]
