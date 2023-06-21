@@ -18,7 +18,7 @@ use crate::target::orbital::MolecularOrbital;
 mod determinant_tests;
 
 pub mod determinant_analysis;
-pub mod determinant_transformation;
+mod determinant_transformation;
 
 // ==================
 // Struct definitions

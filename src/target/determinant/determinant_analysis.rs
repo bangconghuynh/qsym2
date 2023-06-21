@@ -149,19 +149,19 @@ where
 
     /// The overlap matrix between the symmetry-equivalent Slater determinants in the orbit.
     #[builder(setter(skip), default = "None")]
-    pub smat: Option<Array2<T>>,
+    smat: Option<Array2<T>>,
 
     /// The eigenvalues of the overlap matrix between the symmetry-equivalent Slater determinants in
     /// the orbit.
     #[builder(setter(skip), default = "None")]
-    pub smat_eigvals: Option<Array1<T>>,
+    pub(crate) smat_eigvals: Option<Array1<T>>,
 
     /// The $`\mathbf{X}`$ matrix for the overlap matrix between the symmetry-equivalent Slater
     /// determinants in the orbit.
     ///
     /// See [`RepAnalysis::xmat`] for further information.
     #[builder(setter(skip), default = "None")]
-    pub xmat: Option<Array2<T>>,
+    xmat: Option<Array2<T>>,
 }
 
 // ----------------------------
@@ -186,6 +186,8 @@ where
 {
     /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix $`\mathbf{S}`$
     /// between the symmetry-equivalent Slater determinants in the orbit.
+    ///
+    /// The resulting $`\mathbf{X}`$ is stored in the structure.
     ///
     /// # Arguments
     ///
@@ -227,6 +229,8 @@ where
 {
     /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap matrix
     /// $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
+    ///
+    /// The resulting $`\mathbf{X}`$ is stored in the structure.
     ///
     /// # Arguments
     ///
