@@ -263,15 +263,6 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             log::info!(target: "qsym2-output", "");
         }
 
-        let mut trial_presym = PreSymmetry::builder()
-            .moi_threshold(tight_moi_threshold)
-            .molecule(&trial_mol)
-            .build()
-            .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
-        let mut trial_magsym = target_magsym.map(|_| Symmetry::new());
-        let mut trial_unisym = Symmetry::new();
-        trial_unisym.analyse(&trial_presym, false)?;
-
         log_subtitle("Iterative molecule symmetrisation");
         log::info!(target: "qsym2-output", "");
         let count_length = usize::try_from(params.max_iterations.ilog10() + 2).map_err(|_| {
@@ -291,6 +282,18 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             "Uni. group",
         );
         log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 55));
+
+        let mut trial_presym = PreSymmetry::builder()
+            .moi_threshold(tight_moi_threshold)
+            .molecule(&trial_mol)
+            .build()
+            .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
+        let mut trial_magsym = target_magsym.map(|_| Symmetry::new());
+        let mut trial_unisym = Symmetry::new();
+
+        // This may fail since the unsymmetrised molecule is being symmetry-analysed at the tight
+        // threshold, but that is okay.
+        let _ = trial_unisym.analyse(&trial_presym, false);
 
         let mut symmetrisation_count = 0;
         let mut unisym_check = trial_unisym.group_name == target_unisym.group_name;
