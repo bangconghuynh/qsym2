@@ -49,7 +49,7 @@ cibuildwheel-linux:
   image: python:3.11
   services:
     - name: docker:20.10.16-dind
-      # entrypoint: ["env", "-u", "DOCKER_HOST"]
+      entrypoint: ["env", "-u", "DOCKER_HOST"]
       command: ["docker-entrypoint.sh"]
   variables:
     # DOCKER_HOST: tcp://docker:2375/
