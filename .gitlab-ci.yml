@@ -24,7 +24,7 @@ check:
   tags:
     - archon
   script:
-    - cargo check --release --verbose --color always
+    - cargo check --release --verbose --features openblas --color always
   only:
     - schedules
     - merge_requests
@@ -36,7 +36,7 @@ tarpaulin:
   coverage: '/^\d+.\d+% coverage/'
   script:
     - cargo install cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --release --all --engine llvm --skip-clean --no-dead-code --color always
+    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --skip-clean --no-dead-code --features openblas --color always
   only:
     - schedules
     - merge_requests
