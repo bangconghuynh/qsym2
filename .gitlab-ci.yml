@@ -55,14 +55,21 @@ cibuildwheel-linux:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - export TAG=$(git describe --tags --abbrev=0)
+    - echo TAG=$TAG >> cibuildwheel_linux.env
+    - echo GE_JOB_ID=$CI_JOB_ID >> cibuildwheel_linux.env
   script:
     - curl -sSL https://get.docker.com/ | sh
     - python -m pip install cibuildwheel>=2.13.1
     - cibuildwheel --platform linux --output-dir wheelhouse
-    - echo "TAG=$(git describe --tags --abbrev=0)" >> variables.env
+    - tar -czvf wheelhouse/qsym2-$TAG-wheels.tar.gz wheelhouse/*
   artifacts:
     paths:
       - wheelhouse/
+    expire_in: never
+    reports:
+      dotenv: cibuildwheel_linux.env
   rules:
     - if: $CI_COMMIT_TAG
 
@@ -78,7 +85,12 @@ release:
     description: "Release $TAG created using the `release-cli` provided by GitLab."
     ref: "$CI_COMMIT_SHA"
     tag_name: "$TAG"
+    assets:
+      links:
+        - name: "Linux Python wheels"
+          url: "https://gitlab.com/bangconghuynh/qsym2/-/jobs/${GE_JOB_ID}/artifacts/file/wheelhouse/qsym2-$TAG-wheels.tar.gz"
   rules:
     - if: $CI_COMMIT_TAG
-  dependencies:
-    - cibuildwheel-linux
+  needs:
+    - job: cibuildwheel-linux
+      artifacts: true
