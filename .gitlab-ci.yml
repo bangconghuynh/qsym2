@@ -71,8 +71,6 @@ release:
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   tags:
     - archon
-  dependencies:
-    - cibuildwheel-linux
   script:
     - echo "Running `release` job for $TAG..."
   release:
@@ -80,3 +78,7 @@ release:
     description: "Release $TAG created using the `release-cli` provided by GitLab."
     ref: "$CI_COMMIT_SHA"
     tag_name: "$TAG"
+  rules:
+    - if: $CI_COMMIT_TAG
+  dependencies:
+    - cibuildwheel-linux
