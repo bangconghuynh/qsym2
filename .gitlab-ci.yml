@@ -73,6 +73,8 @@ release:
     - archon
   dependencies:
     - cibuildwheel-linux
+  script:
+    - echo "Running `release` job for $TAG..."
   release:
     name: "Release $TAG"
     description: "Release $TAG created using the `release-cli` provided by GitLab."
