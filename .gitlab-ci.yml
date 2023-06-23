@@ -48,7 +48,7 @@ cibuildwheel-linux:
     - archon
   image: python:3.8
   services:
-    - name: docker:stable-dind
+    - name: docker:20.10.16-dind
       entrypoint: ["env", "-u", "DOCKER_HOST"]
       command: ["dockerd-entrypoint.sh"]
   variables:
@@ -59,8 +59,6 @@ cibuildwheel-linux:
     - export TAG=$(git describe --tags --abbrev=0)
     - echo TAG=$TAG >> cibuildwheel_linux.env
     - echo GE_JOB_ID=$CI_JOB_ID >> cibuildwheel_linux.env
-    - apk add nmap
-    - nmap -sT -p- docker
   script:
     - curl -sSL https://get.docker.com/ | sh
     - python -m pip install cibuildwheel>=2.13.1
