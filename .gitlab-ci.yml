@@ -46,7 +46,7 @@ cibuildwheel-linux:
   stage: Deploy
   tags:
     - archon
-  image: docker:20.10.16
+  image: python:3.11
   services:
     - docker:20.10.16-dind
       # entrypoint: ["env", "-u", "DOCKER_HOST"]
@@ -56,13 +56,13 @@ cibuildwheel-linux:
     # DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: "/certs"
   before_script:
-    - docker info
-    - docker run hello-world
     - export TAG=$(git describe --tags --abbrev=0)
     - echo TAG=$TAG >> cibuildwheel_linux.env
     - echo GE_JOB_ID=$CI_JOB_ID >> cibuildwheel_linux.env
   script:
     - curl -sSL https://get.docker.com/ | sh
+    - docker info
+    - docker run hello-world
     - python -m pip install cibuildwheel>=2.13.1
     - cibuildwheel --platform linux --output-dir wheelhouse
     - tar -czvf wheelhouse/qsym2-$TAG-wheels.tar.gz wheelhouse/*
