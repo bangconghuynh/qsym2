@@ -48,12 +48,12 @@ cibuildwheel-linux:
     - archon
   image: python:3.11
   services:
-    - docker:20.10.16-dind
+    - name: docker:20.10.16-dind
       # entrypoint: ["env", "-u", "DOCKER_HOST"]
-      # command: ["dockerd-entrypoint.sh"]
+      command: ["dockerd-entrypoint.sh"]
   variables:
     # DOCKER_HOST: tcp://docker:2375/
-    # DOCKER_DRIVER: overlay2
+    DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: "/certs"
   before_script:
     - export TAG=$(git describe --tags --abbrev=0)
