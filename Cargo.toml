@@ -1,6 +1,6 @@
 [package]
 name = "qsym2"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = ["Bang C. Huynh <bang.cong.huynh@gmail.com>"]
 description = "Quantum Symbolic Symmetry - A program to perform symmetry transformation and analysis on wavefunctions."
