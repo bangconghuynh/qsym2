@@ -44,8 +44,6 @@ tarpaulin:
 
 cibuildwheel-linux:
   stage: Deploy
-  tags:
-    - archon
   image: python:3.8
   services:
     - name: docker:dind
@@ -76,8 +74,6 @@ cibuildwheel-linux:
 release:
   stage: Deploy
   image: registry.gitlab.com/gitlab-org/release-cli:latest
-  tags:
-    - archon
   script:
     - echo "Running `release` job for $TAG..."
   release:
