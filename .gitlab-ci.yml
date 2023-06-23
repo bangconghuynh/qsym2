@@ -69,7 +69,7 @@ cibuildwheel-linux:
 release:
   stage: Deploy
   image: registry.gitlab.com/gitlab-org/release-cli:latest
-  tag:
+  tags:
     - archon
   dependencies:
     - cibuildwheel-linux
