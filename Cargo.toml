@@ -24,7 +24,7 @@ log4rs = { version = "1.2.0", features = ["file_appender", "pattern_encoder"] }
 nalgebra = { version = "0.32.2", features = ["serde-serialize"] }
 ndarray = { version = "0.15.6", features = ["rayon", "serde"] }
 ndarray_einsum_beta = "0.7.0"
-ndarray-linalg = { version = "0.16", features = ["intel-mkl-static"] }
+ndarray-linalg = { version = "0.16", default-features = false }
 num = "0.4.0"
 num-complex = "0.4.3"
 num-modular = "0.5.1"
@@ -43,6 +43,14 @@ rand = "0.8.5"
 regex = "1.7.0"
 rayon = "1.5.3"
 serde = { version = "1.0.164", features = ["derive"] }
+
+[features]
+openblas-static = ["ndarray-linalg/openblas-static"]
+intel-mkl-static = ["ndarray-linalg/intel-mkl-static"]
+netlib-static = ["ndarray-linalg/netlib-static"]
+openblas-system = ["ndarray-linalg/openblas-system"]
+intel-mkl-system = ["ndarray-linalg/intel-mkl-system"]
+netlib-system = ["ndarray-linalg/netlib-system"]
 
 [package.metadata.docs.rs]
 rustdoc-args = [

@@ -1,4 +1,5 @@
 /target
+/wheelhouse
 
 # vim
 *.swp
