@@ -12,14 +12,14 @@ classifiers = [
 
 [tool.cibuildwheel]
 build = "*"
-skip = ["pp*", "cp36*", "*linux_i686"]
+skip = ["pp*", "cp36*", "*-musllinux_i686"]
 test-skip = ""
 
 archs = ["auto"]
 build-frontend = "default"
 config-settings = {}
 dependency-versions = "pinned"
-environment = { PATH = "$HOME/.cargo/bin:$PATH", CARGO_FEATURE_OPENBLAS = "1" }
+environment = { PATH = "$HOME/.cargo/bin:$PATH", CARGO_FEATURE_OPENBLAS_STATIC = "1" }
 environment-pass = []
 build-verbosity = ""
 
