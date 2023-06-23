@@ -13,6 +13,7 @@ cache:
 stages:
   - Build
   - Unit Tests
+  - Deploy
 
 before_script:
   - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin"
@@ -24,10 +25,10 @@ check:
   tags:
     - archon
   script:
-    - cargo check --release --verbose --color always
-  only:
-    - schedules
-    - merge_requests
+    - cargo check --release --verbose --features openblas-static --color always
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
 tarpaulin:
   stage: Unit Tests
@@ -36,7 +37,60 @@ tarpaulin:
   coverage: '/^\d+.\d+% coverage/'
   script:
     - cargo install cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --release --all --engine llvm --skip-clean --no-dead-code --color always
-  only:
-    - schedules
-    - merge_requests
+    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --skip-clean --no-dead-code --features openblas-static --color always
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+cibuildwheel-linux:
+  stage: Deploy
+  tags:
+    - archon
+  image: python:3.8
+  services:
+    - name: docker:dind
+      entrypoint: ["env", "-u", "DOCKER_HOST"]
+      command: ["dockerd-entrypoint.sh"]
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  before_script:
+    - export TAG=$(git describe --tags --abbrev=0)
+    - echo TAG=$TAG >> cibuildwheel_linux.env
+    - echo GE_JOB_ID=$CI_JOB_ID >> cibuildwheel_linux.env
+  script:
+    - curl -sSL https://get.docker.com/ | sh
+    - python -m pip install cibuildwheel>=2.13.1
+    - cibuildwheel --platform linux --output-dir wheelhouse
+    - tar -czvf wheelhouse/qsym2-$TAG-wheels.tar.gz wheelhouse/*
+  artifacts:
+    paths:
+      - wheelhouse/
+    expire_in: never
+    reports:
+      dotenv: cibuildwheel_linux.env
+  rules:
+    - if: $CI_COMMIT_TAG
+
+release:
+  stage: Deploy
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  tags:
+    - archon
+  script:
+    - echo "Running `release` job for $TAG..."
+  release:
+    name: "Release $TAG"
+    description: "Release $TAG created using the `release-cli` provided by GitLab."
+    ref: "$CI_COMMIT_SHA"
+    tag_name: "$TAG"
+    assets:
+      links:
+        - name: "Linux Python wheels"
+          url: "https://gitlab.com/bangconghuynh/qsym2/-/jobs/${GE_JOB_ID}/artifacts/file/wheelhouse/qsym2-$TAG-wheels.tar.gz"
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - job: cibuildwheel-linux
+      artifacts: true
