@@ -131,7 +131,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // u Oh (ordinary, unitary) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
@@ -166,7 +166,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // u Oh* (ordinary double, unitary) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
@@ -202,7 +202,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // u Oh + θ·Oh (grey, unitary) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
@@ -229,7 +229,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // u (Oh + θ·Oh)* (grey double, unitary) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
@@ -256,7 +256,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // m Oh + θ·Oh (grey, magnetic) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
@@ -291,7 +291,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // m (Oh + θ·Oh)* (grey double, unitary) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)

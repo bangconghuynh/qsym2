@@ -6,6 +6,7 @@ use anyhow::{self, format_err};
 use derive_builder::Builder;
 use ndarray::{s, Array2};
 use ndarray_linalg::types::Lapack;
+use num_traits::Float;
 use num_complex::{Complex, ComplexFloat};
 use rayon::prelude::*;
 
@@ -44,28 +45,29 @@ mod slater_determinant_tests;
 /// A structure containing control parameters for Slater determinant representation analysis.
 #[derive(Clone, Builder, Debug)]
 pub struct SlaterDeterminantRepAnalysisParams<T>
-where
-    T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
     /// Threshold for checking if subspace multiplicities are integral.
-    pub integrality_threshold: <T as ComplexFloat>::Real,
+    pub integrality_threshold: T,
 
     /// Threshold for determining zero eigenvalues in the orbit overlap matrix.
-    pub linear_independence_threshold: <T as ComplexFloat>::Real,
+    pub linear_independence_threshold: T,
 
     /// Boolean indicating if molecular orbital symmetries are to be analysed alongside the overall
     /// determinantal symmetry.
+    #[builder(default = "true")]
     pub analyse_mo_symmetries: bool,
 
     /// Boolean indicating if the magnetic group is to be used for symmetry analysis.
+    #[builder(default = "false")]
     pub use_magnetic_group: bool,
 
     /// Boolean indicating if the double group is to be used for symmetry analysis.
+    #[builder(default = "false")]
     pub use_double_group: bool,
 
     /// The kind of symmetry transformation to be applied on the reference determinant to generate
     /// the orbit for symmetry analysis.
+    #[builder(default = "SymmetryTransformationKind::Spatial")]
     pub symmetry_transformation_kind: SymmetryTransformationKind,
 
     /// Option indicating if the character table of the group used for symmetry analysis is to be
@@ -85,8 +87,7 @@ where
 
 impl<T> SlaterDeterminantRepAnalysisParams<T>
 where
-    T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    T: Float
 {
     /// Returns a builder to construct a [`SlaterDeterminantRepAnalysisParams`] structure.
     pub fn builder() -> SlaterDeterminantRepAnalysisParamsBuilder<T> {
@@ -94,10 +95,19 @@ where
     }
 }
 
+impl Default for SlaterDeterminantRepAnalysisParams<f64> {
+    fn default() -> Self {
+        Self::builder()
+            .integrality_threshold(1e-7)
+            .linear_independence_threshold(1e-7)
+            .build()
+            .expect("Unable to construct a default `SlaterDeterminantRepAnalysisParams<f64>`.")
+    }
+}
+
 impl<T> fmt::Display for SlaterDeterminantRepAnalysisParams<T>
 where
-    T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    T: fmt::LowerExp + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
@@ -170,7 +180,7 @@ where
 {
     /// The control parameters used to obtain this set of Slater determinant representation
     /// analysis results.
-    parameters: &'a SlaterDeterminantRepAnalysisParams<T>,
+    parameters: &'a SlaterDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The Slater determinant being analysed.
     determinant: &'a SlaterDeterminant<'a, T>,
@@ -216,7 +226,6 @@ where
                 .finite_subgroup_name()
                 .map(|subgroup_name| format!("{} > {}", self.group.name(), subgroup_name))
                 .unwrap_or(self.group.name()),
-            // self.group.finite_subgroup_name().unwrap_or(&self.group.name()),
             self.group.group_type().to_string().to_lowercase()
         )?;
         writeln!(f)?;
@@ -365,7 +374,7 @@ where
     <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
 {
     /// The control parameters for Slater determinant representation analysis.
-    parameters: &'a SlaterDeterminantRepAnalysisParams<T>,
+    parameters: &'a SlaterDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The Slater determinant to be analysed.
     determinant: &'a SlaterDeterminant<'a, T>,

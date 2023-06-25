@@ -33,20 +33,24 @@ mod molecule_symmetrisation_tests;
 pub struct MoleculeSymmetrisationParams {
     /// Boolean indicating if any available magnetic group should be used for symmetrisation
     /// instead of the unitary group.
+    #[builder(default = "false")]
     pub use_magnetic_group: bool,
 
     /// The target moment-of-inertia threshold for the symmetrisation, *i.e.* the symmetrised
     /// molecule will have the target symmetry group at this target moment-of-inertia threshold.
+    #[builder(default = "1e-7")]
     pub target_moi_threshold: f64,
 
     /// The target distance threshold for the symmetrisation, *i.e.* the symmetrised molecule will
     /// have the target symmetry group at this target distance threshold.
+    #[builder(default = "1e-7")]
     pub target_distance_threshold: f64,
 
     /// Boolean indicating if the symmetrised molecule is also reoriented to align its principal
     /// axes with the space-fixed Cartesian axes.
     ///
     /// See [`Molecule::reorientate`] for more information.
+    #[builder(default = "true")]
     pub reorientate_molecule: bool,
 
     /// The maximum number of symmetrisation iterations.
@@ -72,6 +76,14 @@ impl MoleculeSymmetrisationParams {
     /// Returns a builder to construct a [`MoleculeSymmetrisationParams`] structure.
     pub fn builder() -> MoleculeSymmetrisationParamsBuilder {
         MoleculeSymmetrisationParamsBuilder::default()
+    }
+}
+
+impl Default for MoleculeSymmetrisationParams {
+    fn default() -> Self {
+        Self::builder()
+            .build()
+            .expect("Unable to construct a default `MoleculeSymmetrisationParams`.")
     }
 }
 

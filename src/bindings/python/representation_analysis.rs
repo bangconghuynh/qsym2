@@ -685,7 +685,7 @@ pub fn rep_analyse_slater_determinant(
             };
             let det_c: SlaterDeterminant::<C128> = det_r.into();
             let sao_spatial_c =  pysao_c.to_owned_array();
-            let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+            let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
                 .integrality_threshold(integrality_threshold)
                 .linear_independence_threshold(linear_independence_threshold)
                 .use_magnetic_group(use_magnetic_group)
@@ -752,7 +752,7 @@ pub fn rep_analyse_slater_determinant(
                     pysao_c.to_owned_array()
                 }
             };
-            let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+            let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
                 .integrality_threshold(integrality_threshold)
                 .linear_independence_threshold(linear_independence_threshold)
                 .use_magnetic_group(use_magnetic_group)

@@ -39,6 +39,7 @@ pub struct SymmetryGroupDetectionParams {
     pub distance_thresholds: Vec<f64>,
 
     /// Boolean indicating if time reversal is to be taken into account.
+    #[builder(default = "false")]
     pub time_reversal: bool,
 
     /// Fictitious magnetic fields to be added to the system. Each magnetic field is specified by an
@@ -87,6 +88,14 @@ impl SymmetryGroupDetectionParamsBuilder {
     pub fn distance_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
         self.distance_thresholds = Some(threshs.to_vec());
         self
+    }
+}
+
+impl Default for SymmetryGroupDetectionParams {
+    fn default() -> Self {
+        Self::builder()
+            .build()
+            .expect("Unable to construct a default `SymmetryGroupDetectionParams`.")
     }
 }
 
