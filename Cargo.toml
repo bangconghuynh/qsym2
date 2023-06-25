@@ -43,6 +43,7 @@ rand = "0.8.5"
 regex = "1.7.0"
 rayon = "1.5.3"
 serde = { version = "1.0.164", features = ["derive"] }
+serde-inline-default = "0.1.1"
 serde_yaml = "0.9.22"
 
 [features]

@@ -6,9 +6,10 @@ use anyhow::{self, format_err};
 use derive_builder::Builder;
 use ndarray::{s, Array2};
 use ndarray_linalg::types::Lapack;
-use num_traits::Float;
 use num_complex::{Complex, ComplexFloat};
+use num_traits::Float;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::analysis::RepAnalysis;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
@@ -42,10 +43,12 @@ mod slater_determinant_tests;
 // Parameters
 // ----------
 
+const fn default_true() -> bool { true }
+const fn default_symbolic() -> Option<CharacterTableDisplay> { Some(CharacterTableDisplay::Symbolic) }
+
 /// A structure containing control parameters for Slater determinant representation analysis.
-#[derive(Clone, Builder, Debug)]
-pub struct SlaterDeterminantRepAnalysisParams<T>
-{
+#[derive(Clone, Builder, Debug, Serialize, Deserialize)]
+pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     /// Threshold for checking if subspace multiplicities are integral.
     pub integrality_threshold: T,
 
@@ -55,39 +58,46 @@ pub struct SlaterDeterminantRepAnalysisParams<T>
     /// Boolean indicating if molecular orbital symmetries are to be analysed alongside the overall
     /// determinantal symmetry.
     #[builder(default = "true")]
+    #[serde(default = "default_true")]
     pub analyse_mo_symmetries: bool,
 
     /// Boolean indicating if the magnetic group is to be used for symmetry analysis.
     #[builder(default = "false")]
+    #[serde(default)]
     pub use_magnetic_group: bool,
 
     /// Boolean indicating if the double group is to be used for symmetry analysis.
     #[builder(default = "false")]
+    #[serde(default)]
     pub use_double_group: bool,
 
     /// The kind of symmetry transformation to be applied on the reference determinant to generate
     /// the orbit for symmetry analysis.
     #[builder(default = "SymmetryTransformationKind::Spatial")]
+    #[serde(default)]
     pub symmetry_transformation_kind: SymmetryTransformationKind,
 
     /// Option indicating if the character table of the group used for symmetry analysis is to be
     /// printed out.
     #[builder(default = "Some(CharacterTableDisplay::Symbolic)")]
+    #[serde(default = "default_symbolic")]
     pub write_character_table: Option<CharacterTableDisplay>,
 
     /// Boolean indicating if the eigenvalues of the orbit overlap matrix are to be printed out.
     #[builder(default = "true")]
+    #[serde(default = "default_true")]
     pub write_overlap_eigenvalues: bool,
 
     /// The finite order to which any infinite-order symmetry element is reduced, so that a finite
     /// subgroup of an infinite group can be used for the symmetry analysis.
     #[builder(default = "None")]
+    #[serde(default)]
     pub infinite_order_to_finite: Option<u32>,
 }
 
 impl<T> SlaterDeterminantRepAnalysisParams<T>
 where
-    T: Float
+    T: Float + From<f64>,
 {
     /// Returns a builder to construct a [`SlaterDeterminantRepAnalysisParams`] structure.
     pub fn builder() -> SlaterDeterminantRepAnalysisParamsBuilder<T> {
@@ -107,7 +117,7 @@ impl Default for SlaterDeterminantRepAnalysisParams<f64> {
 
 impl<T> fmt::Display for SlaterDeterminantRepAnalysisParams<T>
 where
-    T: fmt::LowerExp + fmt::Debug,
+    T: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
@@ -176,7 +186,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// The control parameters used to obtain this set of Slater determinant representation
     /// analysis results.
@@ -200,7 +210,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a new [`SlaterDeterminantRepAnalysisResultBuilder`]
     /// structure.
@@ -214,7 +224,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug + fmt::Display,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_subtitle(f, "Orbit-based symmetry analysis results")?;
@@ -348,7 +358,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug + fmt::Display,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
@@ -371,7 +381,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// The control parameters for Slater determinant representation analysis.
     parameters: &'a SlaterDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
@@ -400,7 +410,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn validate(&self) -> Result<(), String> {
         let params = self
@@ -458,7 +468,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a [`SlaterDeterminantRepAnalysisDriver`] structure.
     pub fn builder() -> SlaterDeterminantRepAnalysisDriverBuilder<'a, G, T> {
@@ -497,7 +507,7 @@ where
 impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T>
 where
     T: ComplexFloat + Lapack + Sync + Send,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug + Sync + Send,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + Sync + Send,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
     /// Constructs the unitary-represented group (which itself can be unitary or magnetic) ready
@@ -577,10 +587,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
         let sao = self.construct_sao()?;
         let group = self.construct_unitary_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(
-            &group,
-            self.angular_function_parameters,
-        );
+        let _ = find_angular_function_representation(&group, self.angular_function_parameters);
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
@@ -681,10 +688,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
         let sao = self.construct_sao()?;
         let group = self.construct_unitary_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(
-            &group,
-            self.angular_function_parameters,
-        );
+        let _ = find_angular_function_representation(&group, self.angular_function_parameters);
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
@@ -777,7 +781,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
 impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T>
 where
     T: ComplexFloat + Lapack + Sync + Send,
-    <T as ComplexFloat>::Real: Sync + Send + fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + Sync + Send + fmt::LowerExp + fmt::Debug,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
     /// Constructs the magnetic-represented group (which itself can only be magnetic) ready for
@@ -860,10 +864,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
         let sao = self.construct_sao()?;
         let group = self.construct_magnetic_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(
-            &group,
-            self.angular_function_parameters,
-        );
+        let _ = find_angular_function_representation(&group, self.angular_function_parameters);
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
@@ -964,10 +965,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
         let sao = self.construct_sao()?;
         let group = self.construct_magnetic_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(
-            &group,
-            self.angular_function_parameters,
-        );
+        let _ = find_angular_function_representation(&group, self.angular_function_parameters);
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
@@ -1066,7 +1064,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_title(f, "Slater Determinant Symmetry Analysis")?;
@@ -1081,7 +1079,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")

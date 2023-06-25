@@ -5,6 +5,7 @@ use nalgebra::Vector3;
 use ndarray::{Array, Array2, Axis, RemoveAxis};
 use num_complex::Complex;
 use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::angmom::sh_conversion::{sh_cart2r, sh_r2cart};
 use crate::angmom::sh_rotation_3d::rlmat;
@@ -24,7 +25,7 @@ mod symmetry_transformation_tests;
 // ================
 
 /// An enumerated type for managing the kind of symmetry transformation on an object.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[pyclass]
 pub enum SymmetryTransformationKind {
     /// Spatial-only transformation.
@@ -35,6 +36,12 @@ pub enum SymmetryTransformationKind {
 
     /// Spin-spatial coupled transformation.
     SpinSpatial,
+}
+
+impl Default for SymmetryTransformationKind {
+    fn default() -> Self {
+        SymmetryTransformationKind::Spatial
+    }
 }
 
 impl fmt::Display for SymmetryTransformationKind {

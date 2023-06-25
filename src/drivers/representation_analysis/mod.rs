@@ -1,5 +1,7 @@
 use std::fmt;
 
+use serde::{Deserialize, Serialize};
+
 use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::format::{log_subtitle, QSym2Output};
 use crate::group::class::ClassPropertiesSummary;
@@ -8,7 +10,7 @@ pub mod slater_determinant;
 pub mod angular_function;
 
 /// An enumerated type indicating the format of character table print-out.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum CharacterTableDisplay {
     /// Prints the character table symbolically showing explicitly the roots of unity.
     Symbolic,
