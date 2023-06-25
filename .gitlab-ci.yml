@@ -66,10 +66,10 @@ cibuildwheel-linux:
     - curl -sSL https://get.docker.com/ | sh
     - python -m pip install cibuildwheel>=2.13.1
     - cibuildwheel --platform linux --output-dir wheelhouse
-    - tar -czvf wheelhouse/qsym2-$TAG-wheels.tar.gz wheelhouse/*
+    - tar -czvf qsym2-$TAG-wheels.tar.gz wheelhouse/*
   artifacts:
     paths:
-      - wheelhouse/
+      - qsym2-*-wheels.tar.gz
     expire_in: never
     reports:
       dotenv: cibuildwheel_linux.env
@@ -91,7 +91,7 @@ release:
     assets:
       links:
         - name: "Linux Python wheels"
-          url: "https://gitlab.com/bangconghuynh/qsym2/-/jobs/${GE_JOB_ID}/artifacts/file/wheelhouse/qsym2-$TAG-wheels.tar.gz"
+          url: "https://gitlab.com/bangconghuynh/qsym2/-/jobs/${GE_JOB_ID}/artifacts/file/qsym2-$TAG-wheels.tar.gz"
   rules:
     - if: $CI_COMMIT_TAG
   needs:
