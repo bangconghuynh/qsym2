@@ -18,9 +18,9 @@ use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
 #[path = "ao_basis_tests.rs"]
 mod ao_basis_tests;
 
-// ------
-// Shells
-// ------
+// ---------
+// CartOrder
+// ---------
 
 /// A structure to contain information about the ordering of Cartesian Gaussians of a certain rank.
 #[derive(Clone, Builder, PartialEq, Eq, Hash)]
@@ -36,10 +36,15 @@ pub struct CartOrder {
 impl CartOrderBuilder {
     fn cart_tuples(&mut self, cart_tuples: &[(u32, u32, u32)]) -> &mut Self {
         let lcart = self.lcart.expect("`lcart` has not been set.");
-        assert!(cart_tuples.iter().all(|(lx, ly, lz)| lx + ly + lz == lcart));
+        assert!(
+            cart_tuples.iter().all(|(lx, ly, lz)| lx + ly + lz == lcart),
+            "Inconsistent total Cartesian orders between components."
+        );
         assert_eq!(
             cart_tuples.len(),
-            ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize
+            ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize,
+            "Unexpected number of components for `lcart` = {}.",
+            lcart
         );
         self.cart_tuples = Some(cart_tuples.to_vec());
         self
@@ -54,8 +59,18 @@ impl CartOrder {
 
     /// Constructs a new `CartOrder` structure from its constituting tuple, each of which contains
     /// the $`x`$, $`y`$, and $`z`$ exponents for one Cartesian term.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the Cartesian tuples are invalid (*e.g.* missing components or containing
+    /// inconsistent components).
     pub fn new(cart_tuples: &[(u32, u32, u32)]) -> Result<Self, anyhow::Error> {
+        let first_tuple = cart_tuples
+            .get(0)
+            .ok_or(format_err!("No Cartesian tuples found."))?;
+        let lcart = first_tuple.0 + first_tuple.1 + first_tuple.2;
         let cart_order = CartOrder::builder()
+            .lcart(lcart)
             .cart_tuples(cart_tuples)
             .build()
             .map_err(|err| format_err!(err))?;
@@ -250,6 +265,10 @@ pub(crate) fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> Str
     }
 }
 
+// ----------
+// ShellOrder
+// ----------
+
 /// An enumerated type to indicate the type of the angular functions in a shell and how they are
 /// ordered.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
@@ -286,6 +305,10 @@ impl fmt::Display for ShellOrder {
         }
     }
 }
+
+// ----------
+// BasisShell
+// ----------
 
 /// A structure representing a shell in an atomic-orbital basis set.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
@@ -352,9 +375,9 @@ impl BasisShell {
     }
 }
 
-// -----
-// Atoms
-// -----
+// ---------
+// BasisAtom
+// ---------
 
 /// A structure containing the ordered sequence of the shells for an atom.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
@@ -368,7 +391,7 @@ pub struct BasisAtom<'a> {
 }
 
 impl<'a> BasisAtomBuilder<'a> {
-    fn basis_shells(&mut self, bss: &[BasisShell]) -> &mut Self {
+    pub(crate) fn basis_shells(&mut self, bss: &[BasisShell]) -> &mut Self {
         self.basis_shells = Some(bss.to_vec());
         self
     }
@@ -380,7 +403,7 @@ impl<'a> BasisAtom<'a> {
     /// # Returns
     ///
     /// A builder to construct a new [`BasisAtom`].
-    fn builder() -> BasisAtomBuilder<'a> {
+    pub(crate) fn builder() -> BasisAtomBuilder<'a> {
         BasisAtomBuilder::default()
     }
 
@@ -418,9 +441,9 @@ impl<'a> BasisAtom<'a> {
     }
 }
 
-// -----
-// Basis
-// -----
+// -----------------
+// BasisAngularOrder
+// -----------------
 
 /// A structure containing the angular momentum information of an atomic-orbital basis set that is
 /// required for symmetry transformation to be performed.
@@ -432,7 +455,7 @@ pub struct BasisAngularOrder<'a> {
 }
 
 impl<'a> BasisAngularOrderBuilder<'a> {
-    fn basis_atoms(&mut self, batms: &[BasisAtom<'a>]) -> &mut Self {
+    pub(crate) fn basis_atoms(&mut self, batms: &[BasisAtom<'a>]) -> &mut Self {
         self.basis_atoms = Some(batms.to_vec());
         self
     }
@@ -445,7 +468,7 @@ impl<'a> BasisAngularOrder<'a> {
     ///
     /// A builder to construct a new [`BasisAngularOrder`].
     #[must_use]
-    fn builder() -> BasisAngularOrderBuilder<'a> {
+    pub(crate) fn builder() -> BasisAngularOrderBuilder<'a> {
         BasisAngularOrderBuilder::default()
     }
 
