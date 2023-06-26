@@ -1,9 +1,21 @@
 use serde::{Deserialize, Serialize};
 
-use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionParams;
 #[allow(unused_imports)]
 use crate::io::QSym2FileType;
+
+use representation_analysis::RepAnalysisTarget;
+
+mod ao_basis;
+mod representation_analysis;
+
+// ===============
+// Driver controls
+// ===============
+
+// -------------------------------
+// SymmetryGroupDetectionInputKind
+// -------------------------------
 
 /// An enumerated type representing possible input kinds for symmetry-group detection from a YAML
 /// input file.
@@ -25,6 +37,10 @@ impl Default for SymmetryGroupDetectionInputKind {
     }
 }
 
+// ==========
+// Main input
+// ==========
+
 /// A structure containing `QSym2` input parameters which can be serialised into and deserialised
 /// from a YAML input file.
 #[derive(Clone, Serialize, Deserialize)]
@@ -35,25 +51,25 @@ struct Input {
     /// detection results (without the `.qsym2.sym` extension).
     ///
     /// If not specified, this will be taken to be `None`.
-    #[serde(default)]
     symmetry_group_detection: Option<SymmetryGroupDetectionInputKind>,
 
-    /// Specification for Slater determinant representation analysis. If `None`, no Slater
-    /// determinant representation analysis will be performed. If not `None`, then this specifies
-    /// the parameters for Slater determinant representation analysis.
-    ///
-    /// # Default
-    ///
-    /// If not specified, this will be taken to be `None`.
-    #[serde(default)]
-    det_representation_analysis: Option<SlaterDeterminantRepAnalysisParams<f64>>,
+    representation_analysis_target: Option<RepAnalysisTarget>,
+    ///// Specification for Slater determinant representation analysis. If `None`, no Slater
+    ///// determinant representation analysis will be performed. If not `None`, then this specifies
+    ///// the parameters for Slater determinant representation analysis.
+    /////
+    ///// # Default
+    /////
+    ///// If not specified, this will be taken to be `None`.
+    //#[serde(default)]
+    //det_representation_analysis: Option<SlaterDeterminantRepAnalysisParams<f64>>,
 }
 
 impl Default for Input {
     fn default() -> Self {
         Input {
             symmetry_group_detection: Some(SymmetryGroupDetectionInputKind::default()),
-            det_representation_analysis: Some(SlaterDeterminantRepAnalysisParams::<f64>::default()),
+            representation_analysis_target: Some(RepAnalysisTarget::default()),
         }
     }
 }

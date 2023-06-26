@@ -1,10 +1,12 @@
 use nalgebra::{Point3, Vector3};
 
+use crate::aux::molecule::Molecule;
 use crate::drivers::representation_analysis::CharacterTableDisplay;
-use crate::io::{read_qsym2_yaml, write_qsym2_yaml};
+use crate::io::read_qsym2_yaml;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
-use super::{Input, SymmetryGroupDetectionInputKind};
+use super::representation_analysis::SlaterDeterminantSource;
+use super::{Input, RepAnalysisTarget, SymmetryGroupDetectionInputKind};
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -35,28 +37,28 @@ fn test_interfaces_input_symmetry_group_detection_parameters() {
         assert!(false);
     }
 
-    let inp_rep_params = inp.det_representation_analysis.unwrap();
-    assert_eq!(inp_rep_params.integrality_threshold, 1e-8);
-    assert_eq!(
-        inp_rep_params.linear_independence_threshold,
-        1e-7
-    );
-    assert!(inp_rep_params.analyse_mo_symmetries);
-    assert!(!inp_rep_params.use_magnetic_group);
-    assert!(!inp_rep_params.use_double_group);
-    assert!(matches!(
-        inp_rep_params.symmetry_transformation_kind,
-        SymmetryTransformationKind::Spatial
-    ));
-    assert!(matches!(
-        inp_rep_params.write_character_table,
-        Some(CharacterTableDisplay::Numerical)
-    ));
-    assert!(inp_rep_params.write_overlap_eigenvalues);
-    assert_eq!(
-        inp_rep_params.infinite_order_to_finite,
-        Some(8)
-    );
+    if let RepAnalysisTarget::SlaterDeterminant(sd_control) =
+        inp.representation_analysis_target.unwrap()
+    {
+        let inp_rep_params = sd_control.control;
+        assert_eq!(inp_rep_params.integrality_threshold, 1e-8);
+        assert_eq!(inp_rep_params.linear_independence_threshold, 1e-7);
+        assert!(inp_rep_params.analyse_mo_symmetries);
+        assert!(!inp_rep_params.use_magnetic_group);
+        assert!(!inp_rep_params.use_double_group);
+        assert!(matches!(
+            inp_rep_params.symmetry_transformation_kind,
+            SymmetryTransformationKind::Spatial
+        ));
+        assert!(matches!(
+            inp_rep_params.write_character_table,
+            Some(CharacterTableDisplay::Numerical)
+        ));
+        assert!(inp_rep_params.write_overlap_eigenvalues);
+        assert_eq!(inp_rep_params.infinite_order_to_finite, Some(8));
+    } else {
+        assert!(false);
+    }
 }
 
 #[test]
@@ -70,23 +72,60 @@ fn test_interfaces_input_symmetry_group_detection_fromfile() {
         assert!(false);
     }
 
-    let inp_rep_params = inp.det_representation_analysis.unwrap();
-    assert_eq!(inp_rep_params.integrality_threshold, 1e-7);
-    assert_eq!(
-        inp_rep_params.linear_independence_threshold,
-        1e-7
-    );
-    assert!(inp_rep_params.analyse_mo_symmetries);
-    assert!(!inp_rep_params.use_magnetic_group);
-    assert!(!inp_rep_params.use_double_group);
-    assert!(matches!(
-        inp_rep_params.symmetry_transformation_kind,
-        SymmetryTransformationKind::Spatial
-    ));
-    assert!(matches!(
-        inp_rep_params.write_character_table,
-        Some(CharacterTableDisplay::Symbolic)
-    ));
-    assert!(inp_rep_params.write_overlap_eigenvalues);
-    assert!(inp_rep_params.infinite_order_to_finite.is_none());
+    if let RepAnalysisTarget::SlaterDeterminant(sd_control) =
+        inp.representation_analysis_target.unwrap()
+    {
+        let inp_rep_params = sd_control.control;
+        assert_eq!(inp_rep_params.integrality_threshold, 1e-7);
+        assert_eq!(inp_rep_params.linear_independence_threshold, 1e-7);
+        assert!(inp_rep_params.analyse_mo_symmetries);
+        assert!(!inp_rep_params.use_magnetic_group);
+        assert!(!inp_rep_params.use_double_group);
+        assert!(matches!(
+            inp_rep_params.symmetry_transformation_kind,
+            SymmetryTransformationKind::Spatial
+        ));
+        assert!(matches!(
+            inp_rep_params.write_character_table,
+            Some(CharacterTableDisplay::Symbolic)
+        ));
+        assert!(inp_rep_params.write_overlap_eigenvalues);
+        assert!(inp_rep_params.infinite_order_to_finite.is_none());
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_interfaces_input_bao() {
+    let name = format!("{ROOT}/tests/input/test_input_bao.yml");
+    let xyz = format!("{ROOT}/tests/xyz/water.xyz");
+    let inp = read_qsym2_yaml::<Input>(&name).unwrap();
+    let mol = Molecule::from_xyz(&xyz, 1e-7);
+
+    if let RepAnalysisTarget::SlaterDeterminant(sd_control) =
+        inp.representation_analysis_target.unwrap()
+    {
+        if let SlaterDeterminantSource::QChemScratch(qc_source) = sd_control.source {
+            assert_eq!(qc_source.path, "test_path");
+            let bao = qc_source.bao.unwrap().to_basis_angular_order(&mol).unwrap();
+            assert_eq!(bao.n_funcs(), 34);
+            assert_eq!(
+                bao.basis_shells().skip(3).next().unwrap().shell_order.to_string(),
+                "Cart (xxx, xxy, xyy, yyy, xxz, xyz, yyz, xzz, yzz, zzz)"
+            );
+            assert_eq!(
+                bao.basis_shells().skip(5).next().unwrap().shell_order.to_string(),
+                "Cart (xx, xy, yy, xz, yz, zz)"
+            );
+            assert_eq!(
+                bao.basis_shells().skip(7).next().unwrap().shell_order.to_string(),
+                "Cart (xx, xy, xz, yy, yz, zz)"
+            );
+        } else {
+            assert!(false);
+        }
+    } else {
+        assert!(false);
+    };
 }
