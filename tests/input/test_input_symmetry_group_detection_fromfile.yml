@@ -1,6 +1,9 @@
 symmetry_group_detection: !FromFile
   test_file
 
-det_representation_analysis:
-  integrality_threshold: 1e-7
-  linear_independence_threshold: 1e-7
+representation_analysis_target: !SlaterDeterminant
+  source: !QChemScratch
+    path: test_path
+  control:
+    integrality_threshold: 1e-7
+    linear_independence_threshold: 1e-7

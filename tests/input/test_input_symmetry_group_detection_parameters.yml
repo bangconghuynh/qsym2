@@ -14,13 +14,16 @@ symmetry_group_detection: !Parameters
   # write_symmetry_elements: false
   # result_save_name: null
 
-det_representation_analysis:
-  integrality_threshold: 1e-8
-  linear_independence_threshold: 1e-7
-  # analyse_mo_symmetries: true
-  # use_magnetic_group: false
-  # use_double_group: false
-  # symmetry_transformation_kind: Spatial
-  write_character_table: Numerical
-  write_overlap_eigenvalues: true
-  infinite_order_to_finite: 8
+representation_analysis_target: !SlaterDeterminant
+  source: !QChemScratch
+    path: test_path
+  control:
+    integrality_threshold: 1e-8
+    linear_independence_threshold: 1e-7
+    # analyse_mo_symmetries: true
+    # use_magnetic_group: false
+    # use_double_group: false
+    # symmetry_transformation_kind: Spatial
+    write_character_table: Numerical
+    write_overlap_eigenvalues: true
+    infinite_order_to_finite: 8
