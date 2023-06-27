@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
-
-use super::ao_basis::InputBasisAngularOrder;
+use crate::interfaces::input::ao_basis::InputBasisAngularOrder;
 
 // =======================================
 // Representation analysis target controls
@@ -65,7 +64,10 @@ impl Default for SlaterDeterminantSource {
 #[derive(Clone, Serialize, Deserialize)]
 pub(super) struct QChemScratchSlaterDeterminantSource {
     /// The path to the Q-Chem scratch directory.
-    pub(super) path: String,
+    pub(super) scratch_path: String,
+
+    /// The path to the Q-Chem `.fchk` file.
+    pub(super) fchk_path: String,
 
     /// An optional specification for the basis angular order information. If `None`, this will be
     /// deduced automatically from any basis set information found in the specified Q-Chem scratch
@@ -76,7 +78,8 @@ pub(super) struct QChemScratchSlaterDeterminantSource {
 impl Default for QChemScratchSlaterDeterminantSource {
     fn default() -> Self {
         QChemScratchSlaterDeterminantSource {
-            path: "path/to/qchem/job/scratch/directory".to_string(),
+            scratch_path: "path/to/qchem/job/scratch/directory".to_string(),
+            fchk_path: "path/to/qchem/job/fchk/file".to_string(),
             bao: None,
         }
     }

@@ -1,4 +1,5 @@
 use anyhow::{self, ensure, format_err};
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
 use crate::aux::ao_basis::*;
@@ -11,7 +12,7 @@ use crate::aux::molecule::Molecule;
 /// A serialisable/deserialisable enumerated type to indicate the type of the angular functions in
 /// a shell and how they are ordered.
 #[derive(Clone, Serialize, Deserialize)]
-enum InputShellOrder {
+pub(crate) enum InputShellOrder {
     /// This variant indicates that the angular functions are real solid harmonics. The associated
     /// value is a flag indicating if the functions are arranged in increasing $`m`$ order.
     Pure(bool),
@@ -48,16 +49,21 @@ impl InputShellOrder {
 // ---------------
 
 /// A serialisable/deserialisable structure representing a shell in an atomic-orbital basis set.
-#[derive(Clone, Serialize, Deserialize)]
-struct InputBasisShell {
+#[derive(Clone, Builder, Serialize, Deserialize)]
+pub(crate) struct InputBasisShell {
     /// A non-negative integer indicating the rank of the shell.
-    pub l: u32,
+    l: u32,
 
     /// An enum indicating the type of the angular functions in a shell and how they are ordered.
-    pub shell_order: InputShellOrder,
+    shell_order: InputShellOrder,
 }
 
 impl InputBasisShell {
+    /// Returns a builder to construct [`InputBasisShell`].
+    pub(crate) fn builder() -> InputBasisShellBuilder {
+        InputBasisShellBuilder::default()
+    }
+
     /// Converts the [`InputBasisShell`] to a corresponding [`BasisShell`].
     fn to_basis_shell(&self) -> BasisShell {
         BasisShell::new(self.l, self.shell_order.to_shell_order(self.l))
@@ -72,7 +78,7 @@ impl InputBasisShell {
 /// atom. However, unlike [`BasisAtom`], this structure does not contain a reference to the atom it
 /// is describing, but instead it only contains an index and an owned string giving the element
 /// name of the atom. This is only for serialisation/deserialisation purposes.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Builder, Serialize, Deserialize)]
 pub(crate) struct InputBasisAtom {
     /// The index and name of an atom in the basis set.
     atom: (usize, String),
@@ -82,6 +88,11 @@ pub(crate) struct InputBasisAtom {
 }
 
 impl InputBasisAtom {
+    /// Returns a builder to construct [`InputBasisAtom`].
+    pub(crate) fn builder() -> InputBasisAtomBuilder {
+        InputBasisAtomBuilder::default()
+    }
+
     /// Converts to a [`BasisAtom`] structure given a molecule.
     ///
     /// # Arguments
@@ -135,7 +146,7 @@ impl InputBasisAtom {
 /// The associated anonymous field is an ordered sequence of [`InputBasisAtom`] in the order the
 /// atoms are defined in the molecule.
 #[derive(Clone, Serialize, Deserialize)]
-pub(crate) struct InputBasisAngularOrder(Vec<InputBasisAtom>);
+pub(crate) struct InputBasisAngularOrder(pub(crate) Vec<InputBasisAtom>);
 
 impl InputBasisAngularOrder {
     /// Converts to a [`BasisAngularOrder`] structure given a molecule.

@@ -2,7 +2,8 @@ symmetry_group_detection: !Parameters
 
 representation_analysis_target: !SlaterDeterminant
   source: !QChemScratch
-    path: test_path
+    scratch_path: test_scratch_path
+    fchk_path: test_fchk_path
     bao:
     - atom: [0, "O"]
       basis_shells:

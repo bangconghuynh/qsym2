@@ -3,7 +3,8 @@ symmetry_group_detection: !FromFile
 
 representation_analysis_target: !SlaterDeterminant
   source: !QChemScratch
-    path: test_path
+    scratch_path: test_scratch_path
+    fchk_path: test_fchk_path
   control:
     integrality_threshold: 1e-7
     linear_independence_threshold: 1e-7

@@ -11,6 +11,7 @@ use itertools::Itertools;
 
 use crate::angmom::ANGMOM_LABELS;
 use crate::aux::atom::Atom;
+use crate::aux::molecule::Molecule;
 use crate::aux::misc::ProductRepeat;
 use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
 
@@ -472,7 +473,7 @@ impl<'a> BasisAngularOrder<'a> {
         BasisAngularOrderBuilder::default()
     }
 
-    /// Constructs a new [`BasisAngularOrder`] structure.
+    /// Constructs a new [`BasisAngularOrder`] structure from the constituting [`BasisAtom`]s.
     ///
     /// # Arguments
     ///
@@ -580,16 +581,18 @@ impl<'a> fmt::Display for BasisAngularOrder<'a> {
             .map(|v| v.shell_order.to_string().chars().count())
             .max()
             .unwrap_or(20);
-        writeln!(f, "{}", "┈".repeat(15 + order_length))?;
-        writeln!(f, " Atom  Shell  Order")?;
-        writeln!(f, "{}", "┈".repeat(15 + order_length))?;
-        for batm in self.basis_atoms.iter() {
+        let atom_index_length = self.n_atoms().to_string().chars().count();
+        writeln!(f, "{}", "┈".repeat(17 + atom_index_length + order_length))?;
+        writeln!(f, " {:>atom_index_length$}  Atom  Shell  Order", "#")?;
+        writeln!(f, "{}", "┈".repeat(17 + atom_index_length + order_length))?;
+        for (atm_i, batm) in self.basis_atoms.iter().enumerate() {
             let atm = batm.atom;
-            for (i, bshl) in batm.basis_shells.iter().enumerate() {
-                if i == 0 {
+            for (shl_i, bshl) in batm.basis_shells.iter().enumerate() {
+                if shl_i == 0 {
                     writeln!(
                         f,
-                        " {:<4}  {:<5}  {:<order_length$}",
+                        " {:>atom_index_length$}  {:<4}  {:<5}  {:<order_length$}",
+                        atm_i,
                         atm.atomic_symbol,
                         ANGMOM_LABELS
                             .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
@@ -600,7 +603,8 @@ impl<'a> fmt::Display for BasisAngularOrder<'a> {
                 } else {
                     writeln!(
                         f,
-                        " {:<4}  {:<5}  {:<order_length$}",
+                        " {:>atom_index_length$}  {:<4}  {:<5}  {:<order_length$}",
+                        "",
                         "",
                         ANGMOM_LABELS
                             .get(usize::try_from(bshl.l).unwrap_or_else(|err| panic!("{err}")))
@@ -611,7 +615,7 @@ impl<'a> fmt::Display for BasisAngularOrder<'a> {
                 }
             }
         }
-        writeln!(f, "{}", "┈".repeat(15 + order_length))?;
+        writeln!(f, "{}", "┈".repeat(17 + atom_index_length + order_length))?;
         Ok(())
     }
 }

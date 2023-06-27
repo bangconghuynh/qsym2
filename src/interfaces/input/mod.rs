@@ -6,7 +6,7 @@ use crate::io::QSym2FileType;
 
 use representation_analysis::RepAnalysisTarget;
 
-mod ao_basis;
+pub(crate) mod ao_basis;
 mod representation_analysis;
 
 // ===============

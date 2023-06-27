@@ -1851,6 +1851,7 @@ dependencies = [
  "fraction",
  "indexmap 1.9.3",
  "itertools",
+ "lazy_static",
  "log",
  "log4rs",
  "nalgebra",

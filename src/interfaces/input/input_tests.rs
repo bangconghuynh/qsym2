@@ -107,7 +107,8 @@ fn test_interfaces_input_bao() {
         inp.representation_analysis_target.unwrap()
     {
         if let SlaterDeterminantSource::QChemScratch(qc_source) = sd_control.source {
-            assert_eq!(qc_source.path, "test_path");
+            assert_eq!(qc_source.scratch_path, "test_scratch_path");
+            assert_eq!(qc_source.fchk_path, "test_fchk_path");
             let bao = qc_source.bao.unwrap().to_basis_angular_order(&mol).unwrap();
             assert_eq!(bao.n_funcs(), 34);
             assert_eq!(

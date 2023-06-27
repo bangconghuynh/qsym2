@@ -19,6 +19,7 @@ factorial = "0.3.0"
 fraction = { version = "0.13.1", features = ["with-serde-support"] }
 itertools = "0.10.3"
 indexmap = { version = "1.9.1", features = ["rayon", "serde"] }
+lazy_static = "1.4.0"
 log = "0.4.17"
 log4rs = { version = "1.2.0", features = ["file_appender", "pattern_encoder"] }
 nalgebra = { version = "0.32.2", features = ["serde-serialize"] }
@@ -40,7 +41,7 @@ primes = "0.3.0"
 pyo3 = { version = "0.19.0", features = ["extension-module", "num-complex"] }
 pyo3-log = "0.8.2"
 rand = "0.8.5"
-regex = "1.7.0"
+regex = "1.8.4"
 rayon = "1.5.3"
 serde = { version = "1.0.164", features = ["derive"] }
 serde-inline-default = "0.1.1"
