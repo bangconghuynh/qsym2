@@ -11,7 +11,7 @@ use crate::aux::molecule::Molecule;
 
 /// A serialisable/deserialisable enumerated type to indicate the type of the angular functions in
 /// a shell and how they are ordered.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) enum InputShellOrder {
     /// This variant indicates that the angular functions are real solid harmonics. The associated
     /// value is a flag indicating if the functions are arranged in increasing $`m`$ order.
@@ -49,7 +49,7 @@ impl InputShellOrder {
 // ---------------
 
 /// A serialisable/deserialisable structure representing a shell in an atomic-orbital basis set.
-#[derive(Clone, Builder, Serialize, Deserialize)]
+#[derive(Clone, Debug, Builder, Serialize, Deserialize)]
 pub(crate) struct InputBasisShell {
     /// A non-negative integer indicating the rank of the shell.
     l: u32,
@@ -78,7 +78,7 @@ impl InputBasisShell {
 /// atom. However, unlike [`BasisAtom`], this structure does not contain a reference to the atom it
 /// is describing, but instead it only contains an index and an owned string giving the element
 /// name of the atom. This is only for serialisation/deserialisation purposes.
-#[derive(Clone, Builder, Serialize, Deserialize)]
+#[derive(Clone, Debug, Builder, Serialize, Deserialize)]
 pub(crate) struct InputBasisAtom {
     /// The index and name of an atom in the basis set.
     atom: (usize, String),
@@ -145,7 +145,7 @@ impl InputBasisAtom {
 ///
 /// The associated anonymous field is an ordered sequence of [`InputBasisAtom`] in the order the
 /// atoms are defined in the molecule.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct InputBasisAngularOrder(pub(crate) Vec<InputBasisAtom>);
 
 impl InputBasisAngularOrder {
