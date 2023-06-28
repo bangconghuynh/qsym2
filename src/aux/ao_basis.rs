@@ -7,7 +7,7 @@ use std::slice::Iter;
 use anyhow::{self, ensure, format_err};
 use counter::Counter;
 use derive_builder::Builder;
-use itertools::Itertools;
+use itertools::{izip, Itertools};
 
 use crate::angmom::ANGMOM_LABELS;
 use crate::aux::atom::Atom;
@@ -538,10 +538,7 @@ impl fmt::Display for ShellOrder {
             ShellOrder::Pure(pure_order) => write!(
                 f,
                 "Pure ({})",
-                pure_order
-                    .iter()
-                    .map(|m| m.to_string())
-                    .join(", ")
+                pure_order.iter().map(|m| m.to_string()).join(", ")
             ),
             ShellOrder::Cart(cart_order) => write!(
                 f,
@@ -780,6 +777,88 @@ impl<'a> BasisAngularOrder<'a> {
         self.basis_atoms
             .iter()
             .flat_map(|basis_atom| basis_atom.basis_shells.iter())
+    }
+
+    /// Determines the permutation of the functions in this [`BasisAngularOrder`] to map `self` to
+    /// `other`, given that the shells themselves remain unchanged while only the functions in each
+    /// shell are permuted.
+    ///
+    /// For example, consider `self`:
+    /// ```text
+    /// S (1)
+    /// P (x, y, z)
+    /// D (xx, xy, xz, yy, yz, zz)
+    /// ```
+    ///
+    /// and `other`:
+    /// ```text
+    /// S (1)
+    /// P (y, z, x)
+    /// D (xx, xy, yy, xz, yz, zz)
+    /// ```
+    ///
+    /// the mapping permutation is given by `π(0, 3, 1, 2, 4, 5, 7, 6, 8, 9)`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another [`BasisAngularOrder`] to be compared against.
+    ///
+    /// # Returns
+    ///
+    /// The mapping permutation, if any.
+    pub(crate) fn get_perm_of_functions_fixed_shells(
+        &self,
+        other: &Self,
+    ) -> Result<Permutation<usize>, anyhow::Error> {
+        if self.n_funcs() == other.n_funcs() && self.n_atoms() == other.n_atoms() {
+            let s_shell_boundaries = self.shell_boundary_indices();
+            let o_shell_boundaries = other.shell_boundary_indices();
+            if s_shell_boundaries.len() == o_shell_boundaries.len() {
+                let image = izip!(
+                    self.basis_shells(),
+                    other.basis_shells(),
+                    s_shell_boundaries.iter(),
+                    o_shell_boundaries.iter()
+                )
+                .map(|(s_bs, o_bs, (s_start, s_end), (o_start, o_end))| {
+                    if (s_start, s_end) == (o_start, o_end) {
+                        let s_shl_ord = &s_bs.shell_order;
+                        let o_shl_ord = &o_bs.shell_order;
+                        match (s_shl_ord, o_shl_ord) {
+                            (ShellOrder::Pure(s_po), ShellOrder::Pure(o_po)) => Ok(
+                                s_po.get_perm_of(&o_po)
+                                    .unwrap()
+                                    .image()
+                                    .iter()
+                                    .map(|x| s_start + x)
+                                    .collect_vec(),
+                            ),
+                            (ShellOrder::Cart(s_co), ShellOrder::Cart(o_co)) => Ok(
+                                s_co.get_perm_of(&o_co)
+                                    .unwrap()
+                                    .image()
+                                    .iter()
+                                    .map(|x| s_start + x)
+                                    .collect_vec(),
+                            ),
+                            _ => Err(format_err!("At least one pair of corresponding shells have mismatched pure/cart.")),
+                        }
+                    } else {
+                        Err(format_err!("At least one pair of corresponding shells have mismatched boundary indices."))
+                    }
+                })
+                .collect::<Result<Vec<_>, _>>()
+                .map(|image_by_shells| {
+                    let flattened_image = image_by_shells.into_iter().flatten().collect_vec();
+                    Permutation::from_image(flattened_image)
+                });
+                image
+            } else {
+                Err(format_err!("Mismatched numbers of shells."))
+            }
+        } else {
+            Err(format_err!("Mismatched numbers of basis functions."))
+        }
     }
 }
 

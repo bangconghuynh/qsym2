@@ -330,7 +330,6 @@ fn test_ao_basis_basisangularorder() {
         .unwrap();
 
     let bao = BasisAngularOrder::new(&[batm_c, batm_h1, batm_h2, batm_f, batm_cl]);
-    println!("{bao}");
 
     assert_eq!(bao.n_funcs(), 58);
     assert_eq!(bao.basis_shells().collect::<Vec<_>>().len(), 27);
@@ -368,6 +367,92 @@ fn test_ao_basis_basisangularorder() {
             (49, 50),
             (50, 53),
             (53, 58),
+        ]
+    );
+}
+
+#[test]
+fn test_ao_basis_basisangularorder_perm_of_functions_fixed_shells() {
+    let emap = ElementMap::new();
+    let atm_c = Atom::from_xyz("C 0.0 0.0 0.0", &emap, 1e-7).unwrap();
+
+    let s_bs1s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let s_bs2s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let s_bs2p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
+    let s_bs3s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let s_bs3p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
+    let s_bs3d_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
+    let s_bs3d_p = BasisShell::new(2, ShellOrder::Pure(PureOrder::increasingm(2)));
+    let s_bs4s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let s_bs4p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
+    let s_bs4d_p = BasisShell::new(2, ShellOrder::Pure(PureOrder::increasingm(2)));
+
+    let s_batm_c = BasisAtom::new(
+        &atm_c,
+        &[
+            s_bs1s_p.clone(),
+            s_bs2s_p.clone(),
+            s_bs2p_p.clone(),
+            s_bs3s_p.clone(),
+            s_bs3p_p.clone(),
+            s_bs3d_c,
+        ],
+    );
+
+    let atm_cl = Atom::from_xyz("Cl 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
+    let s_batm_cl = BasisAtom::builder()
+        .atom(&atm_cl)
+        .basis_shells(&[
+            s_bs1s_p, s_bs2s_p, s_bs2p_p, s_bs3s_p, s_bs3p_p, s_bs3d_p, s_bs4s_p, s_bs4p_p,
+            s_bs4d_p,
+        ])
+        .build()
+        .unwrap();
+
+    let s_bao = BasisAngularOrder::new(&[s_batm_c, s_batm_cl]);
+
+    let o_bs1s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let o_bs2s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let o_bs2p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::decreasingm(1)));
+    let o_bs3s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let o_bs3p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
+    let o_bs3d_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::qchem(2)));
+    let o_bs3d_p = BasisShell::new(2, ShellOrder::Pure(PureOrder::molden(2)));
+    let o_bs4s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let o_bs4p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
+    let o_bs4d_p = BasisShell::new(2, ShellOrder::Pure(PureOrder::decreasingm(2)));
+
+    let o_batm_c = BasisAtom::new(
+        &atm_c,
+        &[
+            o_bs1s_p.clone(),
+            o_bs2s_p.clone(),
+            o_bs2p_p.clone(),
+            o_bs3s_p.clone(),
+            o_bs3p_p.clone(),
+            o_bs3d_c,
+        ],
+    );
+
+    let o_batm_cl = BasisAtom::builder()
+        .atom(&atm_cl)
+        .basis_shells(&[
+            o_bs1s_p, o_bs2s_p, o_bs2p_p, o_bs3s_p, o_bs3p_p, o_bs3d_p, o_bs4s_p, o_bs4p_p,
+            o_bs4d_p,
+        ])
+        .build()
+        .unwrap();
+
+    let o_bao = BasisAngularOrder::new(&[o_batm_c, o_batm_cl]);
+
+    assert_eq!(
+        *s_bao
+            .get_perm_of_functions_fixed_shells(&o_bao)
+            .unwrap()
+            .image(),
+        vec![
+            0, 1, 4, 3, 2, 5, 6, 7, 8, 9, 10, 12, 11, 13, 14, 15, 16, 19, 18, 17, 20, 21, 22, 23,
+            28, 26, 24, 25, 27, 29, 30, 31, 32, 37, 36, 35, 34, 33
         ]
     );
 }
