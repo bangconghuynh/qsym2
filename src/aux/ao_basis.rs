@@ -7,7 +7,7 @@ use std::slice::Iter;
 use anyhow::{self, ensure, format_err};
 use counter::Counter;
 use derive_builder::Builder;
-use itertools::Itertools;
+use itertools::{izip, Itertools};
 
 use crate::angmom::ANGMOM_LABELS;
 use crate::aux::atom::Atom;
@@ -21,6 +21,208 @@ mod ao_basis_tests;
 // ------
 // Shells
 // ------
+
+// ~~~~~~~~~
+// PureOrder
+// ~~~~~~~~~
+
+/// A structure to contain information about the ordering of pure Gaussians of a certain rank.
+#[derive(Clone, Builder, PartialEq, Eq, Hash)]
+pub struct PureOrder {
+    /// A sequence of $`m_l`$ values giving the ordering of the pure Gaussians.
+    #[builder(setter(custom))]
+    mls: Vec<i32>,
+
+    /// The rank of the pure Gaussians.
+    pub lpure: u32,
+}
+
+impl PureOrderBuilder {
+    fn mls(&mut self, mls: &[i32]) -> &mut Self {
+        let lpure = self.lpure.expect("`lpure` has not been set.");
+        assert!(
+            mls.iter()
+                .map(|m| m.unsigned_abs())
+                .max()
+                .expect("The maximum |m| value could not be determined.")
+                == lpure
+        );
+        assert_eq!(mls.len(), (2 * lpure + 1) as usize);
+        self.mls = Some(mls.to_vec());
+        self
+    }
+}
+
+impl PureOrder {
+    /// Returns a builder to construct a new `PureOrder` structure.
+    fn builder() -> PureOrderBuilder {
+        PureOrderBuilder::default()
+    }
+
+    /// Constructs a new `PureOrder` structure from its constituting $`m_l`$ values.
+    pub fn new(mls: &[i32]) -> Result<Self, anyhow::Error> {
+        let lpure = mls
+            .iter()
+            .map(|m| m.unsigned_abs())
+            .max()
+            .expect("The maximum |m| value could not be determined.");
+        let pure_order = PureOrder::builder()
+            .lpure(lpure)
+            .mls(mls)
+            .build()
+            .map_err(|err| format_err!(err))?;
+        ensure!(pure_order.verify(), "Invalid `PureOrder`.");
+        Ok(pure_order)
+    }
+
+    /// Constructs a new `PureOrder` structure for a specified rank with increasing-$`m`$ order.
+    ///
+    /// # Arguments
+    ///
+    /// * `lpure` - The required pure Gaussian rank.
+    ///
+    /// # Returns
+    ///
+    /// A `PureOrder` struct for a specified rank with increasing-$`m`$ order.
+    #[must_use]
+    pub fn increasingm(lpure: u32) -> Self {
+        let lpure_i32 = i32::try_from(lpure).expect("`lpure` cannot be converted to `i32`.");
+        let mls = (-lpure_i32..=lpure_i32).collect_vec();
+        Self::builder()
+            .lpure(lpure)
+            .mls(&mls)
+            .build()
+            .expect("Unable to construct a `PureOrder` structure with increasing-m order.")
+    }
+
+    /// Constructs a new `PureOrder` structure for a specified rank with decreasing-$`m`$ order.
+    ///
+    /// # Arguments
+    ///
+    /// * `lpure` - The required pure Gaussian rank.
+    ///
+    /// # Returns
+    ///
+    /// A `PureOrder` struct for a specified rank with decreasing-$`m`$ order.
+    #[must_use]
+    pub fn decreasingm(lpure: u32) -> Self {
+        let lpure_i32 = i32::try_from(lpure).expect("`lpure` cannot be converted to `i32`.");
+        let mls = (-lpure_i32..=lpure_i32).rev().collect_vec();
+        Self::builder()
+            .lpure(lpure)
+            .mls(&mls)
+            .build()
+            .expect("Unable to construct a `PureOrder` structure with decreasing-m order.")
+    }
+
+    /// Constructs a new `PureOrder` structure for a specified rank with Molden order.
+    ///
+    /// # Arguments
+    ///
+    /// * `lpure` - The required pure Gaussian rank.
+    ///
+    /// # Returns
+    ///
+    /// A `PureOrder` struct for a specified rank with Molden order.
+    #[must_use]
+    pub fn molden(lpure: u32) -> Self {
+        let lpure_i32 = i32::try_from(lpure).expect("`lpure` cannot be converted to `i32`.");
+        let mls = (0..=lpure_i32)
+            .flat_map(|absm| {
+                if absm == 0 {
+                    vec![0]
+                } else {
+                    vec![absm, -absm]
+                }
+            })
+            .collect_vec();
+        Self::builder()
+            .lpure(lpure)
+            .mls(&mls)
+            .build()
+            .expect("Unable to construct a `PureOrder` structure with Molden order.")
+    }
+
+    /// Verifies if this `PureOrder` struct is valid.
+    ///
+    /// # Returns
+    ///
+    /// A boolean indicating if this `PureOrder` struct is valid.
+    #[must_use]
+    pub fn verify(&self) -> bool {
+        let mls_set = self.mls.iter().collect::<HashSet<_>>();
+        let lpure = self.lpure;
+        mls_set.len() == self.ncomps() && mls_set.iter().all(|m| m.unsigned_abs() <= lpure)
+    }
+
+    /// Iterates over the constituent $`m_l`$ values.
+    pub fn iter(&self) -> Iter<i32> {
+        self.mls.iter()
+    }
+
+    /// Returns the number of pure components in the shell.
+    pub fn ncomps(&self) -> usize {
+        let lpure = usize::try_from(self.lpure).unwrap_or_else(|_| {
+            panic!(
+                "Unable to convert the pure degree {} to `usize`.",
+                self.lpure
+            )
+        });
+        2 * lpure + 1
+    }
+}
+
+impl fmt::Display for PureOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Pure rank: {}", self.lpure)?;
+        writeln!(f, "Order:")?;
+        for m in self.iter() {
+            writeln!(f, "  {m}")?;
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Debug for PureOrder {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "Pure rank: {}", self.lpure)?;
+        writeln!(f, "Order:")?;
+        for m in self.iter() {
+            writeln!(f, "  {m:?}")?;
+        }
+        Ok(())
+    }
+}
+
+impl PermutableCollection for PureOrder {
+    type Rank = usize;
+
+    fn get_perm_of(&self, other: &Self) -> Option<Permutation<Self::Rank>> {
+        let o_mls: HashMap<&i32, usize> = other
+            .mls
+            .iter()
+            .enumerate()
+            .map(|(i, o_m)| (o_m, i))
+            .collect();
+        let image_opt: Option<Vec<Self::Rank>> =
+            self.mls.iter().map(|s_m| o_mls.get(s_m).copied()).collect();
+        image_opt.map(Permutation::from_image)
+    }
+
+    fn permute(&self, perm: &Permutation<Self::Rank>) -> Self {
+        let mut p_pureorder = self.clone();
+        p_pureorder.permute_mut(perm);
+        p_pureorder
+    }
+
+    fn permute_mut(&mut self, perm: &Permutation<Self::Rank>) {
+        permute_inplace(&mut self.mls, perm);
+    }
+}
+
+// ~~~~~~~~~
+// CartOrder
+// ~~~~~~~~~
 
 /// A structure to contain information about the ordering of Cartesian Gaussians of a certain rank.
 #[derive(Clone, Builder, PartialEq, Eq, Hash)]
@@ -52,10 +254,12 @@ impl CartOrder {
         CartOrderBuilder::default()
     }
 
-    /// Constructs a new `CartOrder` structure from its constituting tuple, each of which contains
+    /// Constructs a new `CartOrder` structure from its constituting tuples, each of which contains
     /// the $`x`$, $`y`$, and $`z`$ exponents for one Cartesian term.
     pub fn new(cart_tuples: &[(u32, u32, u32)]) -> Result<Self, anyhow::Error> {
+        let lcart = cart_tuples[0].0 + cart_tuples[0].1 + cart_tuples[0].2;
         let cart_order = CartOrder::builder()
+            .lcart(lcart)
             .cart_tuples(cart_tuples)
             .build()
             .map_err(|err| format_err!(err))?;
@@ -86,6 +290,71 @@ impl CartOrder {
             .cart_tuples(&cart_tuples)
             .build()
             .expect("Unable to construct a `CartOrder` structure with lexicographic order.")
+    }
+
+    /// Constructs a new `CartOrder` structure for a specified rank with Molden order.
+    ///
+    /// # Arguments
+    ///
+    /// * `lcart` - The required Cartesian Gaussian rank up to 4.
+    ///
+    /// # Returns
+    ///
+    /// A `CartOrder` struct for a specified rank with Q-Chem order.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `lcart` is greater than 4.
+    #[must_use]
+    pub fn molden(lcart: u32) -> Self {
+        assert!(lcart <= 4, "`lcart` > 4 is not specified by Molden.");
+        let cart_tuples: Vec<(u32, u32, u32)> = match lcart {
+            0 => vec![(0, 0, 0)],
+            1 => vec![(1, 0, 0), (0, 1, 0), (0, 0, 1)],
+            2 => vec![
+                (2, 0, 0),
+                (0, 2, 0),
+                (0, 0, 2),
+                (1, 1, 0),
+                (1, 0, 1),
+                (0, 1, 1),
+            ],
+            3 => vec![
+                (3, 0, 0),
+                (0, 3, 0),
+                (0, 0, 3),
+                (1, 2, 0),
+                (2, 1, 0),
+                (2, 0, 1),
+                (1, 0, 2),
+                (0, 1, 2),
+                (0, 2, 1),
+                (1, 1, 1),
+            ],
+            4 => vec![
+                (4, 0, 0),
+                (0, 4, 0),
+                (0, 0, 4),
+                (3, 1, 0),
+                (3, 0, 1),
+                (1, 3, 0),
+                (0, 3, 1),
+                (1, 0, 3),
+                (0, 1, 3),
+                (2, 2, 0),
+                (2, 0, 2),
+                (0, 2, 2),
+                (2, 1, 1),
+                (1, 2, 1),
+                (1, 1, 2),
+            ],
+            _ => panic!("`lcart` > 4 is not specified by Molden."),
+        };
+        Self::builder()
+            .lcart(lcart)
+            .cart_tuples(&cart_tuples)
+            .build()
+            .expect("Unable to construct a `CartOrder` structure with Molden order.")
     }
 
     /// Constructs a new `CartOrder` structure for a specified rank with Q-Chem order.
@@ -255,8 +524,8 @@ pub(crate) fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> Str
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ShellOrder {
     /// This variant indicates that the angular functions are real solid harmonics. The associated
-    /// value is a flag indicating if the functions are arranged in increasing $`m`$ order.
-    Pure(bool),
+    /// value is a [`PureOrder`] struct containing the order of these functions.
+    Pure(PureOrder),
 
     /// This variant indicates that the angular functions are Cartesian functions. The associated
     /// value is a [`CartOrder`] struct containing the order of these functions.
@@ -266,14 +535,10 @@ pub enum ShellOrder {
 impl fmt::Display for ShellOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ShellOrder::Pure(increasingm) => write!(
+            ShellOrder::Pure(pure_order) => write!(
                 f,
                 "Pure ({})",
-                if *increasingm {
-                    "increasing m"
-                } else {
-                    "decreasing m"
-                }
+                pure_order.iter().map(|m| m.to_string()).join(", ")
             ),
             ShellOrder::Cart(cart_order) => write!(
                 f,
@@ -335,6 +600,10 @@ impl BasisShell {
     /// * `shl_ord` - A [`ShellOrder`] structure specifying the type and ordering of the basis
     /// functions in this shell.
     pub fn new(l: u32, shl_ord: ShellOrder) -> Self {
+        match &shl_ord {
+            ShellOrder::Cart(cartorder) => assert_eq!(cartorder.lcart, l),
+            ShellOrder::Pure(pureorder) => assert_eq!(pureorder.lpure, l),
+        }
         BasisShell::builder()
             .l(l)
             .shell_order(shl_ord)
@@ -508,6 +777,88 @@ impl<'a> BasisAngularOrder<'a> {
         self.basis_atoms
             .iter()
             .flat_map(|basis_atom| basis_atom.basis_shells.iter())
+    }
+
+    /// Determines the permutation of the functions in this [`BasisAngularOrder`] to map `self` to
+    /// `other`, given that the shells themselves remain unchanged while only the functions in each
+    /// shell are permuted.
+    ///
+    /// For example, consider `self`:
+    /// ```text
+    /// S (1)
+    /// P (x, y, z)
+    /// D (xx, xy, xz, yy, yz, zz)
+    /// ```
+    ///
+    /// and `other`:
+    /// ```text
+    /// S (1)
+    /// P (y, z, x)
+    /// D (xx, xy, yy, xz, yz, zz)
+    /// ```
+    ///
+    /// the mapping permutation is given by `π(0, 3, 1, 2, 4, 5, 7, 6, 8, 9)`.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - Another [`BasisAngularOrder`] to be compared against.
+    ///
+    /// # Returns
+    ///
+    /// The mapping permutation, if any.
+    pub(crate) fn get_perm_of_functions_fixed_shells(
+        &self,
+        other: &Self,
+    ) -> Result<Permutation<usize>, anyhow::Error> {
+        if self.n_funcs() == other.n_funcs() && self.n_atoms() == other.n_atoms() {
+            let s_shell_boundaries = self.shell_boundary_indices();
+            let o_shell_boundaries = other.shell_boundary_indices();
+            if s_shell_boundaries.len() == o_shell_boundaries.len() {
+                let image = izip!(
+                    self.basis_shells(),
+                    other.basis_shells(),
+                    s_shell_boundaries.iter(),
+                    o_shell_boundaries.iter()
+                )
+                .map(|(s_bs, o_bs, (s_start, s_end), (o_start, o_end))| {
+                    if (s_start, s_end) == (o_start, o_end) {
+                        let s_shl_ord = &s_bs.shell_order;
+                        let o_shl_ord = &o_bs.shell_order;
+                        match (s_shl_ord, o_shl_ord) {
+                            (ShellOrder::Pure(s_po), ShellOrder::Pure(o_po)) => Ok(
+                                s_po.get_perm_of(&o_po)
+                                    .unwrap()
+                                    .image()
+                                    .iter()
+                                    .map(|x| s_start + x)
+                                    .collect_vec(),
+                            ),
+                            (ShellOrder::Cart(s_co), ShellOrder::Cart(o_co)) => Ok(
+                                s_co.get_perm_of(&o_co)
+                                    .unwrap()
+                                    .image()
+                                    .iter()
+                                    .map(|x| s_start + x)
+                                    .collect_vec(),
+                            ),
+                            _ => Err(format_err!("At least one pair of corresponding shells have mismatched pure/cart.")),
+                        }
+                    } else {
+                        Err(format_err!("At least one pair of corresponding shells have mismatched boundary indices."))
+                    }
+                })
+                .collect::<Result<Vec<_>, _>>()
+                .map(|image_by_shells| {
+                    let flattened_image = image_by_shells.into_iter().flatten().collect_vec();
+                    Permutation::from_image(flattened_image)
+                });
+                image
+            } else {
+                Err(format_err!("Mismatched numbers of shells."))
+            }
+        } else {
+            Err(format_err!("Mismatched numbers of basis functions."))
+        }
     }
 }
 

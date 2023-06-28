@@ -5,7 +5,8 @@ use ndarray::{Array2, Axis};
 use num::{BigUint, Complex};
 use num_traits::{cast::ToPrimitive, Zero};
 
-use crate::aux::ao_basis::CartOrder;
+use crate::aux::ao_basis::{CartOrder, PureOrder};
+use crate::permutation::PermutableCollection;
 
 #[cfg(test)]
 #[path = "sh_conversion_tests.rs"]
@@ -616,18 +617,18 @@ pub fn complexcinv(lcartqns: (u32, u32, u32), lpureqns: (u32, i32), csphase: boo
 /// * `l` - The spherical harmonic degree.
 /// * `csphase` - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
 /// $`\lambda_{\mathrm{cs}} = 1`$.
-/// * `increasingm` - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)}`$ are
-/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
+/// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
+/// Gaussians.
 ///
 /// # Returns
 ///
 /// The $`\boldsymbol{\Upsilon}^{(l)}`$ matrix.
-pub fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
+pub fn sh_c2r_mat(l: u32, csphase: bool, pureorder: &PureOrder) -> Array2<Complex<f64>> {
+    assert_eq!(pureorder.lpure, l, "Mismatched pure ranks.");
     let lusize = l as usize;
     let mut upmat = Array2::<Complex<f64>>::zeros((2 * lusize + 1, 2 * lusize + 1));
-    let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
-    for mcomplex in -li32..=li32 {
+    let po_il = PureOrder::increasingm(l);
+    for &mcomplex in po_il.iter() {
         let absmreal = mcomplex.unsigned_abs() as usize;
         match mcomplex.cmp(&0) {
             Ordering::Less => {
@@ -661,12 +662,18 @@ pub fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f6
                     lcs * Complex::<f64>::new(1.0 / 2.0f64.sqrt(), 0.0);
             }
         }
-        if !increasingm {
-            upmat.invert_axis(Axis(0));
-            upmat.invert_axis(Axis(1));
-        }
     }
-    upmat
+
+    // upmat is always in increasing-m order. We now permute, if required.
+    if *pureorder != po_il {
+        let perm = pureorder.get_perm_of(&po_il).expect(
+            "Permutation to obtain `pureorder` from the increasing-m order could not be found.",
+        );
+        let image = perm.image();
+        upmat.select(Axis(0), &image).select(Axis(1), &image)
+    } else {
+        upmat
+    }
 }
 
 /// Obtains the matrix $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ allowing real spherical harmonics
@@ -709,15 +716,14 @@ pub fn sh_c2r_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f6
 /// * `l` - The spherical harmonic degree.
 /// * `csphase` - If `true`, $`\lambda_{\mathrm{cs}}`$ is as defined in [`complexc`]. If `false`,
 /// $`\lambda_{\mathrm{cs}} = 1`$.
-/// * `increasingm` - If `true`, the rows and columns of $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ are
-/// arranged in increasing order of $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
+/// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
+/// Gaussians.
 ///
 /// # Returns
 ///
 /// The $`\boldsymbol{\Upsilon}^{(l)\dagger}`$ matrix.
-pub fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f64>> {
-    let mut mat = sh_c2r_mat(l, csphase, increasingm).t().to_owned();
+pub fn sh_r2c_mat(l: u32, csphase: bool, pureorder: &PureOrder) -> Array2<Complex<f64>> {
+    let mut mat = sh_c2r_mat(l, csphase, pureorder).t().to_owned();
     mat.par_mapv_inplace(|x| x.conj());
     mat
 }
@@ -778,9 +784,8 @@ pub fn sh_r2c_mat(l: u32, csphase: bool, increasingm: bool) -> Array2<Complex<f6
 /// Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
 /// coefficients. See [`complexc`] for more details.
-/// * `increasingm` - If `true`, the columns of $`\mathbf{U}^{(l_{\mathrm{cart}}, l)}`$ are
-/// arranged in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
+/// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
+/// Gaussians.
 ///
 /// # Returns
 ///
@@ -790,22 +795,19 @@ pub fn sh_cl2cart_mat(
     l: u32,
     cartorder: &CartOrder,
     csphase: bool,
-    increasingm: bool,
+    pureorder: &PureOrder,
 ) -> Array2<Complex<f64>> {
     assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
+    assert_eq!(pureorder.lpure, l, "Mismatched pure ranks.");
     let mut umat = Array2::<Complex<f64>>::zeros((
         ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize,
         2 * l as usize + 1,
     ));
-    let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
-    for (i, m) in (-li32..=li32).enumerate() {
+    for (i, &m) in pureorder.iter().enumerate() {
         for (icart, &lcartqns) in cartorder.iter().enumerate() {
             umat[(icart, i)] = complexc((l, m), lcartqns, csphase);
         }
     }
-    if !increasingm {
-        umat.invert_axis(Axis(1));
-    };
     umat
 }
 
@@ -864,9 +866,8 @@ pub fn sh_cl2cart_mat(
 /// Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
-/// * `increasingm` - If `true`, the rows of $`\mathbf{V}^{(l, l_{\mathrm{cart}})}`$ are arranged
-/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
+/// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
+/// Gaussians.
 ///
 /// # Returns
 ///
@@ -876,22 +877,19 @@ pub fn sh_cart2cl_mat(
     lcart: u32,
     cartorder: &CartOrder,
     csphase: bool,
-    increasingm: bool,
+    pureorder: &PureOrder,
 ) -> Array2<Complex<f64>> {
+    assert_eq!(pureorder.lpure, l, "Mismatched pure ranks.");
     assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
     let mut vmat = Array2::<Complex<f64>>::zeros((
         2 * l as usize + 1,
         ((lcart + 1) * (lcart + 2)).div_euclid(2) as usize,
     ));
-    let li32 = i32::try_from(l).unwrap_or_else(|_| panic!("Cannot convert `{l}` to `i32`."));
     for (icart, &lcartqns) in cartorder.iter().enumerate() {
-        for (i, m) in (-li32..=li32).enumerate() {
+        for (i, &m) in pureorder.iter().enumerate() {
             vmat[(i, icart)] = complexcinv(lcartqns, (l, m), csphase);
         }
     }
-    if !increasingm {
-        vmat.invert_axis(Axis(0));
-    };
     vmat
 }
 
@@ -953,9 +951,8 @@ pub fn sh_cart2cl_mat(
 /// Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the $`c`$
 /// coefficients. See [`complexc`] for more details.
-/// * `increasingm` - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are
-/// arranged in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
+/// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
+/// Gaussians.
 ///
 /// # Returns
 ///
@@ -965,11 +962,12 @@ pub fn sh_rl2cart_mat(
     l: u32,
     cartorder: &CartOrder,
     csphase: bool,
-    increasingm: bool,
+    pureorder: &PureOrder,
 ) -> Array2<f64> {
     assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
-    let upmatdagger = sh_r2c_mat(l, csphase, increasingm);
-    let umat = sh_cl2cart_mat(lcart, l, cartorder, csphase, increasingm);
+    assert_eq!(pureorder.lpure, l, "Mismatched pure ranks.");
+    let upmatdagger = sh_r2c_mat(l, csphase, pureorder);
+    let umat = sh_cl2cart_mat(lcart, l, cartorder, csphase, pureorder);
     let wmat = umat.dot(&upmatdagger);
     assert!(
         wmat.iter()
@@ -1033,9 +1031,8 @@ pub fn sh_rl2cart_mat(
 /// Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
-/// * `increasingm` - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
-/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
+/// * `pureorder` - A [`PureOrder`] struct giving the ordering of the components of the pure
+/// Gaussians.
 ///
 /// # Returns
 ///
@@ -1045,11 +1042,12 @@ pub fn sh_cart2rl_mat(
     lcart: u32,
     cartorder: &CartOrder,
     csphase: bool,
-    increasingm: bool,
+    pureorder: &PureOrder,
 ) -> Array2<f64> {
     assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
-    let upmat = sh_c2r_mat(l, csphase, increasingm);
-    let vmat = sh_cart2cl_mat(l, lcart, cartorder, csphase, increasingm);
+    assert_eq!(pureorder.lpure, l, "Mismatched pure ranks.");
+    let upmat = sh_c2r_mat(l, csphase, pureorder);
+    let vmat = sh_cart2cl_mat(l, lcart, cartorder, csphase, pureorder);
     let xmat = upmat.dot(&vmat);
     assert!(
         xmat.iter()
@@ -1072,9 +1070,8 @@ pub fn sh_cart2rl_mat(
 /// Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c`$ coefficients. See [`complexc`] for more details.
-/// * `increasingm` - If `true`, the columns of $`\mathbf{W}^{(l_{\mathrm{cart}}, l)}`$ are
-/// arranged in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
+/// * `pureorder` - A closure to generate a [`PureOrder`] struct giving the ordering of the
+/// components of the pure Gaussians for a particular value of `l`.
 ///
 /// # Returns
 ///
@@ -1085,7 +1082,7 @@ pub fn sh_r2cart(
     lcart: u32,
     cartorder: &CartOrder,
     csphase: bool,
-    increasingm: bool,
+    pureorder: fn(u32) -> PureOrder,
 ) -> Vec<Array2<f64>> {
     assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
     let lrange = if lcart.rem_euclid(2) == 0 {
@@ -1096,7 +1093,7 @@ pub fn sh_r2cart(
         (1..lcart + 1).step_by(2).rev()
     };
     lrange
-        .map(|l| sh_rl2cart_mat(lcart, l, cartorder, csphase, increasingm))
+        .map(|l| sh_rl2cart_mat(lcart, l, cartorder, csphase, &pureorder(l)))
         .collect()
 }
 
@@ -1113,9 +1110,8 @@ pub fn sh_r2cart(
 /// Gaussians.
 /// * `csphase` - Set to `true` to use the Condon--Shortley phase in the calculations of the
 /// $`c^{-1}`$ coefficients. See [`complexc`] and [`complexcinv`] for more details.
-/// * `increasingm` - If `true`, the rows of $`\mathbf{X}^{(l, l_{\mathrm{cart}})}`$ are arranged
-/// in increasing order of  $`m_l = -l, \ldots, l`$. If `false`, the order is reversed:
-/// $`m_l = l, \ldots, -l`$. The recommended default is `true`.
+/// * `pureorder` - A closure to generate a [`PureOrder`] struct giving the ordering of the
+/// components of the pure Gaussians for a particular value of `l`.
 ///
 /// # Returns
 ///
@@ -1126,7 +1122,7 @@ pub fn sh_cart2r(
     lcart: u32,
     cartorder: &CartOrder,
     csphase: bool,
-    increasingm: bool,
+    pureorder: fn(u32) -> PureOrder,
 ) -> Vec<Array2<f64>> {
     assert_eq!(cartorder.lcart, lcart, "Mismatched Cartesian ranks.");
     let lrange = if lcart.rem_euclid(2) == 0 {
@@ -1137,6 +1133,6 @@ pub fn sh_cart2r(
         (1..lcart + 1).step_by(2).rev()
     };
     lrange
-        .map(|l| sh_cart2rl_mat(l, lcart, cartorder, csphase, increasingm))
+        .map(|l| sh_cart2rl_mat(l, lcart, cartorder, csphase, &pureorder(l)))
         .collect()
 }

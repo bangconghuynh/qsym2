@@ -8,7 +8,9 @@ use pyo3::prelude::*;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::angmom::ANGMOM_INDICES;
-use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
+use crate::aux::ao_basis::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+};
 use crate::aux::molecule::Molecule;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
@@ -166,7 +168,11 @@ impl PyBasisAngularOrder {
                         } else {
                             match shell_order {
                                 PyShellOrder::PureOrder(increasingm) => {
-                                    ShellOrder::Pure(*increasingm)
+                                    if *increasingm {
+                                        ShellOrder::Pure(PureOrder::increasingm(*l))
+                                    } else {
+                                        ShellOrder::Pure(PureOrder::decreasingm(*l))
+                                    }
                                 },
                                 PyShellOrder::CartOrder(_) => {
                                     log::error!("Pure shell order expected, but specification for Cartesian shell order found.");
@@ -683,8 +689,8 @@ pub fn rep_analyse_slater_determinant(
                     .to_qsym2(&bao, mol)
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
-            let det_c: SlaterDeterminant::<C128> = det_r.into();
-            let sao_spatial_c =  pysao_c.to_owned_array();
+            let det_c: SlaterDeterminant<C128> = det_r.into();
+            let sao_spatial_c = pysao_c.to_owned_array();
             let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
                 .integrality_threshold(integrality_threshold)
                 .linear_independence_threshold(linear_independence_threshold)
@@ -745,12 +751,8 @@ pub fn rep_analyse_slater_determinant(
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
             let sao_spatial_c = match sao_spatial {
-                PySAO::Real(pysao_r) => {
-                    pysao_r.to_owned_array().mapv(Complex::from)
-                }
-                PySAO::Complex(pysao_c) => {
-                    pysao_c.to_owned_array()
-                }
+                PySAO::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
+                PySAO::Complex(pysao_c) => pysao_c.to_owned_array(),
             };
             let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
                 .integrality_threshold(integrality_threshold)
