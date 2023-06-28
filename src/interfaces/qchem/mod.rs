@@ -8,7 +8,7 @@ use anyhow::{self, ensure, format_err};
 use derive_builder::{Builder, UninitializedFieldError};
 use lazy_static::lazy_static;
 use nalgebra::Point3;
-use ndarray::{Array2, ShapeBuilder};
+use ndarray::{Array2, Axis, ShapeBuilder};
 use num_traits::Zero;
 use periodic_table::periodic_table;
 use regex::Regex;
@@ -325,16 +325,26 @@ impl QChemCheckPointBuilder {
             .map(|batms| InputBasisAngularOrder(batms))
     }
 
-    fn extract_sao(&self, inp_bao: Option<&InputBasisAngularOrder>) -> Option<Vec<Array2<f64>>> {
-        let n_spatial = inp_bao.map(|inp_bao| inp_bao.n_funcs())?;
+    fn extract_sao(&self, bao: Option<&BasisAngularOrder>) -> Option<Vec<Array2<f64>>> {
+        let qchem_bao = bao?;
+        let molden_bao = construct_molden_bao(qchem_bao);
+        let perm = qchem_bao
+            .get_perm_of_functions_fixed_shells(&molden_bao)
+            .ok()?;
+        let n_spatial = qchem_bao.n_funcs();
         self.parser
             .as_ref()?
             .f64_sections
             .get("Overlap Matrix")
             .map(|saos| {
                 saos.iter()
-                    .map(|sao| {
-                        vector_to_symmetric_matrix(sao, n_spatial).map_err(|err| format_err!(err))
+                    .map(|sao_v| {
+                        vector_to_symmetric_matrix(sao_v, n_spatial)
+                            .map_err(|err| format_err!(err))
+                            .map(|sao| {
+                                sao.select(Axis(0), perm.image())
+                                    .select(Axis(1), perm.image())
+                            })
                     })
                     .collect::<Result<Vec<_>, _>>()
             })?
@@ -346,36 +356,10 @@ impl QChemCheckPointBuilder {
         bao: Option<&BasisAngularOrder>,
     ) -> Option<Vec<Vec<Array2<f64>>>> {
         let qchem_bao = bao?;
-        let molden_bao = BasisAngularOrder::new(
-            &qchem_bao
-                .basis_atoms
-                .iter()
-                .map(|batm| {
-                    BasisAtom::new(
-                        batm.atom,
-                        &batm
-                            .basis_shells
-                            .iter()
-                            .map(|bs| {
-                                if bs.l <= 1 {
-                                    bs.clone()
-                                } else {
-                                    let shl_ord = match bs.shell_order {
-                                        ShellOrder::Pure(_) => {
-                                            ShellOrder::Pure(PureOrder::molden(bs.l))
-                                        }
-                                        ShellOrder::Cart(_) => {
-                                            ShellOrder::Cart(CartOrder::molden(bs.l))
-                                        }
-                                    };
-                                    BasisShell::new(bs.l, shl_ord)
-                                }
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                })
-                .collect::<Vec<_>>(),
-        );
+        let molden_bao = construct_molden_bao(qchem_bao);
+        let perm = qchem_bao
+            .get_perm_of_functions_fixed_shells(&molden_bao)
+            .ok()?;
         let n_spatial = qchem_bao.n_funcs();
 
         let a_cs_opt = self
@@ -391,6 +375,7 @@ impl QChemCheckPointBuilder {
                             a_c.clone(),
                         )
                         .map_err(|err| format_err!(err))
+                        .map(|a_c| a_c.select(Axis(0), perm.image()))
                     })
                     .collect::<Result<Vec<_>, _>>()
             })?
@@ -409,6 +394,7 @@ impl QChemCheckPointBuilder {
                             b_c.clone(),
                         )
                         .map_err(|err| format_err!(err))
+                        .map(|b_c| b_c.select(Axis(0), &perm.image()))
                     })
                     .collect::<Result<Vec<_>, _>>()
             })?
@@ -436,8 +422,21 @@ impl QChemCheckPointBuilder {
 
     fn build(&self) -> Result<QChemCheckPoint, QChemCheckPointBuilderError> {
         let inp_bao = self.extract_inp_bao();
-        let cs = self.extract_mo_coefficients(inp_bao.as_ref());
-        let saos = self.extract_sao(inp_bao.as_ref());
+        let mols = self.extract_molecules();
+        let no_mol_err =
+            QChemCheckPointBuilderError::from(UninitializedFieldError::new("molecules"));
+        let no_init_mol_err =
+            QChemCheckPointBuilderError::from(UninitializedFieldError::new("molecules[0]"));
+        let mol0 = mols
+            .as_ref()
+            .ok_or(no_mol_err)?
+            .get(0)
+            .ok_or(no_init_mol_err)?;
+        let bao = inp_bao
+            .as_ref()
+            .and_then(|inp_bao| inp_bao.to_basis_angular_order(&mol0).ok());
+        let cs = self.extract_mo_coefficients(bao.as_ref());
+        let saos = self.extract_sao(bao.as_ref());
         Ok(QChemCheckPoint {
             parser: self
                 .parser
@@ -446,7 +445,7 @@ impl QChemCheckPointBuilder {
                     UninitializedFieldError::new("parser"),
                 ))?
                 .clone(),
-            molecules: self.extract_molecules(),
+            molecules: mols,
             saos,
             inp_bao,
             cs,
@@ -483,6 +482,38 @@ where
         }
     }
     Ok(mat)
+}
+
+fn construct_molden_bao<'a>(bao: &BasisAngularOrder<'a>) -> BasisAngularOrder<'a> {
+    BasisAngularOrder::new(
+        &bao.basis_atoms
+            .iter()
+            .map(|batm| {
+                BasisAtom::new(
+                    batm.atom,
+                    &batm
+                        .basis_shells
+                        .iter()
+                        .map(|bs| {
+                            if bs.l <= 1 {
+                                bs.clone()
+                            } else {
+                                let shl_ord = match bs.shell_order {
+                                    ShellOrder::Pure(_) => {
+                                        ShellOrder::Pure(PureOrder::molden(bs.l))
+                                    }
+                                    ShellOrder::Cart(_) => {
+                                        ShellOrder::Cart(CartOrder::molden(bs.l))
+                                    }
+                                };
+                                BasisShell::new(bs.l, shl_ord)
+                            }
+                        })
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect::<Vec<_>>(),
+    )
 }
 
 #[cfg(test)]

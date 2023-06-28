@@ -34,7 +34,13 @@ impl InputShellOrder {
     /// Converts the [`InputShellOrder`] to a corresponding [`ShellOrder`].
     fn to_shell_order(&self, l: u32) -> ShellOrder {
         match self {
-            InputShellOrder::Pure(increasing_m) => ShellOrder::Pure(*increasing_m),
+            InputShellOrder::Pure(increasing_m) => {
+                if *increasing_m {
+                    ShellOrder::Pure(PureOrder::increasingm(l))
+                } else {
+                    ShellOrder::Pure(PureOrder::decreasingm(l))
+                }
+            }
             InputShellOrder::CartLexicographic => ShellOrder::Cart(CartOrder::lex(l)),
             InputShellOrder::CartQChem => ShellOrder::Cart(CartOrder::qchem(l)),
             InputShellOrder::CartCustom(cart_tuples) => ShellOrder::Cart(
