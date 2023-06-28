@@ -5,10 +5,11 @@ use std::io::{BufRead, BufReader, Lines};
 use std::str::FromStr;
 
 use anyhow::{self, ensure, format_err};
-use derive_builder::Builder;
+use derive_builder::{Builder, UninitializedFieldError};
 use lazy_static::lazy_static;
 use nalgebra::Point3;
 use ndarray::{Array2, ShapeBuilder};
+use num_traits::Zero;
 use periodic_table::periodic_table;
 use regex::Regex;
 
@@ -29,15 +30,6 @@ lazy_static! {
 
 #[derive(Builder, Clone)]
 struct QChemCheckPointParser {
-    // /// The geometries parsed from the checkpoint file.
-    // mols: Vec<Molecule>,
-
-    // /// The input basis angular order information parsed from the checkpoint file.
-    // inp_bao: InputBasisAngularOrder,
-
-    // a_cs: Option<Vec<Array2<f64>>>,
-
-    // b_cs: Option<Vec<Array2<f64>>>,
     i32_sections: HashMap<String, Vec<Vec<i32>>>,
 
     f64_sections: HashMap<String, Vec<Vec<f64>>>,
@@ -60,6 +52,7 @@ impl QChemCheckPointParser {
             "Current cartesian coordinates",
             "Shell types",
             "Shell to atom map",
+            "Overlap Matrix",
             "Alpha MO coefficients",
             "Beta MO coefficients",
         ]);
@@ -117,250 +110,6 @@ impl QChemCheckPointParser {
     }
 }
 
-#[derive(Builder, Clone)]
-struct QChemCheckPoint {
-    parser: QChemCheckPointParser,
-
-    /// The geometries parsed from the checkpoint file.
-    molecules: Option<Vec<Molecule>>,
-
-    /// The input basis angular order information parsed from the checkpoint file.
-    inp_bao: Option<InputBasisAngularOrder>,
-
-    a_cs: Option<Vec<Array2<f64>>>,
-
-    b_cs: Option<Vec<Array2<f64>>>,
-}
-
-impl QChemCheckPoint {
-    fn builder() -> QChemCheckPointBuilder {
-        QChemCheckPointBuilder::default()
-    }
-
-    fn set_molecules(&mut self) -> Result<&mut Self, anyhow::Error> {
-        let emap = ElementMap::new();
-        let coordss = self
-            .parser
-            .f64_sections
-            .get("Current cartesian coordinates")
-            .ok_or(format_err!("Current cartesian coordinates not found."))?;
-        let atomic_numbers = self
-            .parser
-            .i32_sections
-            .get("Atomic numbers")
-            .ok_or(format_err!("Atomic numbers not found."))?
-            .get(0)
-            .ok_or(format_err!("Atomic numbers not found."))?
-            .iter()
-            .map(|atomic_number_i32| {
-                usize::try_from(atomic_number_i32.unsigned_abs())
-                    .expect("Unable to convert an atomic number to `usize`.")
-            })
-            .collect::<Vec<_>>();
-        self.molecules = coordss
-            .iter()
-            .map(|coords| {
-                let atoms = atomic_numbers
-                    .iter()
-                    .enumerate()
-                    .map(|(i, atomic_number)| {
-                        let element = periodic_table()
-                            .get(*atomic_number - 1)
-                            .ok_or(format_err!("Element {atomic_number} not found."))?
-                            .symbol;
-                        let coordinates =
-                            Point3::new(coords[3 * i], coords[3 * i + 1], coords[3 * i + 2]);
-                        Ok(Atom::new_ordinary(element, coordinates, &emap, 1e-8))
-                    })
-                    .collect::<Result<Vec<Atom>, anyhow::Error>>()?;
-                Ok::<Molecule, anyhow::Error>(Molecule::from_atoms(&atoms, 1e-8))
-            })
-            .collect::<Result<Vec<Molecule>, anyhow::Error>>()
-            .ok();
-
-        Ok(self)
-    }
-
-    fn set_input_basis_angular_order(&mut self) -> Result<&mut Self, anyhow::Error> {
-        let atomic_numbers = self
-            .parser
-            .i32_sections
-            .get("Atomic numbers")
-            .ok_or(format_err!("Atomic numbers not found."))?
-            .get(0)
-            .ok_or(format_err!("Atomic numbers not found."))?
-            .iter()
-            .map(|atomic_number_i32| {
-                usize::try_from(atomic_number_i32.unsigned_abs())
-                    .expect("Unable to convert an atomic number to `usize`.")
-            })
-            .collect::<Vec<_>>();
-        let shell_types = self
-            .parser
-            .i32_sections
-            .get("Shell types")
-            .ok_or(format_err!("Shell types not found."))?
-            .get(0)
-            .ok_or(format_err!("Shell types not found."))?;
-        let shell_to_atom_map = self
-            .parser
-            .i32_sections
-            .get("Shell to atom map")
-            .ok_or(format_err!("Shell to atom map not found."))?
-            .get(0)
-            .ok_or(format_err!("Shell to atom map not found."))?
-            .iter()
-            .zip(shell_types.iter())
-            .flat_map(|(idx, shell_type)| {
-                let idx_usize = usize::try_from(idx.unsigned_abs())
-                    .expect("Unable to convert an atom index to `usize`.");
-                if *shell_type == -1 {
-                    vec![idx_usize, idx_usize]
-                } else {
-                    vec![idx_usize]
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let bss: Vec<InputBasisShell> = shell_types
-            .iter()
-            .flat_map(|shell_type| {
-                if *shell_type == 0 {
-                    // S shell
-                    vec![InputBasisShell::builder()
-                        .l(0)
-                        .shell_order(InputShellOrder::CartQChem)
-                        .build()
-                        .map_err(|err| format_err!(err))]
-                } else if *shell_type == 1 {
-                    // P shell
-                    vec![InputBasisShell::builder()
-                        .l(1)
-                        .shell_order(InputShellOrder::CartQChem)
-                        .build()
-                        .map_err(|err| format_err!(err))]
-                } else if *shell_type == -1 {
-                    // SP shell
-                    vec![
-                        InputBasisShell::builder()
-                            .l(0)
-                            .shell_order(InputShellOrder::CartQChem)
-                            .build()
-                            .map_err(|err| format_err!(err)),
-                        InputBasisShell::builder()
-                            .l(1)
-                            .shell_order(InputShellOrder::CartQChem)
-                            .build()
-                            .map_err(|err| format_err!(err)),
-                    ]
-                } else if *shell_type > 0 {
-                    // Cartesian D shell or higher
-                    vec![InputBasisShell::builder()
-                        .l(shell_type.unsigned_abs())
-                        .shell_order(InputShellOrder::CartQChem)
-                        .build()
-                        .map_err(|err| format_err!(err))]
-                } else {
-                    // Pure D shell or higher
-                    vec![InputBasisShell::builder()
-                        .l(shell_type.unsigned_abs())
-                        .shell_order(InputShellOrder::Pure(true))
-                        .build()
-                        .map_err(|err| format_err!(err))]
-                }
-            })
-            .collect::<Result<Vec<InputBasisShell>, anyhow::Error>>()?;
-        ensure!(
-            bss.len() == shell_to_atom_map.len(),
-            "Unequal lengths between `bss` and `shell_to_atom_map`."
-        );
-
-        self.inp_bao = atomic_numbers
-            .iter()
-            .enumerate()
-            .map(|(atom_i, atomic_number)| {
-                let shells = bss
-                    .iter()
-                    .zip(shell_to_atom_map.iter())
-                    .filter_map(|(bs, atom_index)| {
-                        // atom_index is 1-based.
-                        if *atom_index == atom_i + 1 {
-                            Some(bs.clone())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                let element = periodic_table()
-                    .get(*atomic_number - 1)
-                    .ok_or(format_err!("Element {atomic_number} not found."))?
-                    .symbol;
-                InputBasisAtom::builder()
-                    .atom((atom_i, element.to_string()))
-                    .basis_shells(shells)
-                    .build()
-                    .map_err(|err| format_err!(err))
-            })
-            .collect::<Result<Vec<InputBasisAtom>, anyhow::Error>>()
-            .map(|batms| InputBasisAngularOrder(batms))
-            .ok();
-
-        Ok(self)
-    }
-
-    fn set_mo_coefficients(&mut self) -> Result<&mut Self, anyhow::Error> {
-        let n_spatial = self
-            .inp_bao
-            .as_ref()
-            .map(|inp_bao| inp_bao.n_funcs())
-            .ok_or(format_err!("Basis information not available."))?;
-
-        let a_cs_opt = self
-            .parser
-            .f64_sections
-            .get("Alpha MO coefficients")
-            .map(|a_cs| {
-                a_cs.iter()
-                    .map(|a_c| {
-                        Array2::from_shape_vec(
-                            (n_spatial, a_c.len().div_euclid(n_spatial)).f(),
-                            a_c.clone(),
-                        )
-                        .map_err(|err| format_err!(err))
-                    })
-                    .collect::<Result<Vec<_>, _>>()
-            })
-            .transpose()?;
-
-        let b_cs_opt = self
-            .parser
-            .f64_sections
-            .get("Beta MO coefficients")
-            .map(|b_cs| {
-                b_cs.iter()
-                    .map(|b_c| {
-                        Array2::from_shape_vec(
-                            (n_spatial, b_c.len().div_euclid(n_spatial)).f(),
-                            b_c.clone(),
-                        )
-                        .map_err(|err| format_err!(err))
-                    })
-                    .collect::<Result<Vec<_>, _>>()
-            })
-            .transpose()?;
-
-        Ok(self)
-    }
-
-    // QChemCheckPointFile::builder()
-    //     .mols(mols)
-    //     .inp_bao(inp_bao)
-    //     .a_cs(a_cs_opt)
-    //     .b_cs(b_cs_opt)
-    //     .build()
-    //     .map_err(|err| format_err!(err))
-}
-
 fn parse_qchem_fchk_section<B: BufRead, T: FromStr + fmt::Debug>(
     lines: &mut Lines<B>,
     n: usize,
@@ -387,20 +136,341 @@ fn parse_qchem_fchk_section<B: BufRead, T: FromStr + fmt::Debug>(
     Ok(numbers)
 }
 
+#[derive(Builder, Clone)]
+#[builder(build_fn(skip))]
+struct QChemCheckPoint {
+    parser: QChemCheckPointParser,
+
+    /// The geometries parsed from the checkpoint file.
+    #[builder(setter(skip))]
+    molecules: Option<Vec<Molecule>>,
+
+    /// The input basis angular order information parsed from the checkpoint file.
+    #[builder(setter(skip))]
+    inp_bao: Option<InputBasisAngularOrder>,
+
+    #[builder(setter(skip))]
+    saos: Option<Vec<Array2<f64>>>,
+
+    #[builder(setter(skip))]
+    cs: Option<Vec<Vec<Array2<f64>>>>,
+}
+
+impl QChemCheckPoint {
+    fn builder() -> QChemCheckPointBuilder {
+        QChemCheckPointBuilder::default()
+    }
+
+    fn from_file(name: &str) -> Result<Self, anyhow::Error> {
+        let parser = QChemCheckPointParser::parse(name)?;
+        Self::builder()
+            .parser(parser)
+            .build()
+            .map_err(|err| format_err!(err))
+    }
+}
+
+impl QChemCheckPointBuilder {
+    fn extract_molecules(&self) -> Option<Vec<Molecule>> {
+        let emap = ElementMap::new();
+        let coordss = self
+            .parser
+            .as_ref()?
+            .f64_sections
+            .get("Current cartesian coordinates")?;
+        let atomic_numbers = self
+            .parser
+            .as_ref()?
+            .i32_sections
+            .get("Atomic numbers")?
+            .get(0)?
+            .iter()
+            .map(|atomic_number_i32| {
+                usize::try_from(atomic_number_i32.unsigned_abs())
+                    .expect("Unable to convert an atomic number to `usize`.")
+            })
+            .collect::<Vec<_>>();
+        coordss
+            .iter()
+            .map(|coords| {
+                let atoms = atomic_numbers
+                    .iter()
+                    .enumerate()
+                    .map(|(i, atomic_number)| {
+                        let element = periodic_table().get(*atomic_number - 1)?.symbol;
+                        let coordinates =
+                            Point3::new(coords[3 * i], coords[3 * i + 1], coords[3 * i + 2]);
+                        Some(Atom::new_ordinary(element, coordinates, &emap, 1e-8))
+                    })
+                    .collect::<Option<Vec<Atom>>>()?;
+                Some(Molecule::from_atoms(&atoms, 1e-8))
+            })
+            .collect::<Option<Vec<Molecule>>>()
+    }
+
+    fn extract_inp_bao(&self) -> Option<InputBasisAngularOrder> {
+        let atomic_numbers = self
+            .parser
+            .as_ref()?
+            .i32_sections
+            .get("Atomic numbers")?
+            .get(0)?
+            .iter()
+            .map(|atomic_number_i32| {
+                usize::try_from(atomic_number_i32.unsigned_abs())
+                    .expect("Unable to convert an atomic number to `usize`.")
+            })
+            .collect::<Vec<_>>();
+        let shell_types = self
+            .parser
+            .as_ref()?
+            .i32_sections
+            .get("Shell types")?
+            .get(0)?;
+        let shell_to_atom_map = self
+            .parser
+            .as_ref()?
+            .i32_sections
+            .get("Shell to atom map")?
+            .get(0)?
+            .iter()
+            .zip(shell_types.iter())
+            .flat_map(|(idx, shell_type)| {
+                let idx_usize = usize::try_from(idx.unsigned_abs())
+                    .expect("Unable to convert an atom index to `usize`.");
+                if *shell_type == -1 {
+                    vec![idx_usize, idx_usize]
+                } else {
+                    vec![idx_usize]
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let bss: Vec<InputBasisShell> = shell_types
+            .iter()
+            .flat_map(|shell_type| {
+                if *shell_type == 0 {
+                    // S shell
+                    vec![InputBasisShell::builder()
+                        .l(0)
+                        .shell_order(InputShellOrder::CartQChem)
+                        .build()
+                        .ok()]
+                } else if *shell_type == 1 {
+                    // P shell
+                    vec![InputBasisShell::builder()
+                        .l(1)
+                        .shell_order(InputShellOrder::CartQChem)
+                        .build()
+                        .ok()]
+                } else if *shell_type == -1 {
+                    // SP shell
+                    vec![
+                        InputBasisShell::builder()
+                            .l(0)
+                            .shell_order(InputShellOrder::CartQChem)
+                            .build()
+                            .ok(),
+                        InputBasisShell::builder()
+                            .l(1)
+                            .shell_order(InputShellOrder::CartQChem)
+                            .build()
+                            .ok(),
+                    ]
+                } else if *shell_type > 0 {
+                    // Cartesian D shell or higher
+                    vec![InputBasisShell::builder()
+                        .l(shell_type.unsigned_abs())
+                        .shell_order(InputShellOrder::CartQChem)
+                        .build()
+                        .ok()]
+                } else {
+                    // Pure D shell or higher
+                    vec![InputBasisShell::builder()
+                        .l(shell_type.unsigned_abs())
+                        .shell_order(InputShellOrder::Pure(true))
+                        .build()
+                        .ok()]
+                }
+            })
+            .collect::<Option<Vec<InputBasisShell>>>()?;
+
+        atomic_numbers
+            .iter()
+            .enumerate()
+            .map(|(atom_i, atomic_number)| {
+                let shells = bss
+                    .iter()
+                    .zip(shell_to_atom_map.iter())
+                    .filter_map(|(bs, atom_index)| {
+                        // atom_index is 1-based.
+                        if *atom_index == atom_i + 1 {
+                            Some(bs.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>();
+                let element = periodic_table().get(*atomic_number - 1)?.symbol;
+                InputBasisAtom::builder()
+                    .atom((atom_i, element.to_string()))
+                    .basis_shells(shells)
+                    .build()
+                    .ok()
+            })
+            .collect::<Option<Vec<InputBasisAtom>>>()
+            .map(|batms| InputBasisAngularOrder(batms))
+    }
+
+    fn extract_sao(&self, inp_bao: Option<&InputBasisAngularOrder>) -> Option<Vec<Array2<f64>>> {
+        let n_spatial = inp_bao.map(|inp_bao| inp_bao.n_funcs())?;
+        self.parser
+            .as_ref()?
+            .f64_sections
+            .get("Overlap Matrix")
+            .map(|saos| {
+                saos.iter()
+                    .map(|sao| {
+                        vector_to_symmetric_matrix(sao, n_spatial).map_err(|err| format_err!(err))
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            })?
+            .ok()
+    }
+
+    fn extract_mo_coefficients(
+        &self,
+        inp_bao: Option<&InputBasisAngularOrder>,
+    ) -> Option<Vec<Vec<Array2<f64>>>> {
+        let n_spatial = inp_bao.map(|inp_bao| inp_bao.n_funcs())?;
+
+        let a_cs_opt = self
+            .parser
+            .as_ref()?
+            .f64_sections
+            .get("Alpha MO coefficients")
+            .map(|a_cs| {
+                a_cs.iter()
+                    .map(|a_c| {
+                        Array2::from_shape_vec(
+                            (n_spatial, a_c.len().div_euclid(n_spatial)).f(),
+                            a_c.clone(),
+                        )
+                        .map_err(|err| format_err!(err))
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            })?
+            .ok();
+
+        let b_cs_opt = self
+            .parser
+            .as_ref()?
+            .f64_sections
+            .get("Beta MO coefficients")
+            .map(|b_cs| {
+                b_cs.iter()
+                    .map(|b_c| {
+                        Array2::from_shape_vec(
+                            (n_spatial, b_c.len().div_euclid(n_spatial)).f(),
+                            b_c.clone(),
+                        )
+                        .map_err(|err| format_err!(err))
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            })?
+            .ok();
+
+        match (a_cs_opt.as_ref(), b_cs_opt.as_ref()) {
+            (Some(a_cs), Some(b_cs)) => {
+                if a_cs.len() == b_cs.len() {
+                    Some(
+                        a_cs.into_iter()
+                            .zip(b_cs.into_iter())
+                            .map(|(a_c, b_c)| vec![a_c.clone(), b_c.clone()])
+                            .collect::<Vec<_>>(),
+                    )
+                } else {
+                    None
+                }
+            }
+            (Some(cs), None) | (None, Some(cs)) => {
+                Some(cs.into_iter().map(|c| vec![c.clone()]).collect::<Vec<_>>())
+            }
+            (None, None) => None,
+        }
+    }
+
+    fn build(&self) -> Result<QChemCheckPoint, QChemCheckPointBuilderError> {
+        let inp_bao = self.extract_inp_bao();
+        let cs = self.extract_mo_coefficients(inp_bao.as_ref());
+        let saos = self.extract_sao(inp_bao.as_ref());
+        Ok(QChemCheckPoint {
+            parser: self
+                .parser
+                .as_ref()
+                .ok_or(QChemCheckPointBuilderError::from(
+                    UninitializedFieldError::new("parser"),
+                ))?
+                .clone(),
+            molecules: self.extract_molecules(),
+            saos,
+            inp_bao,
+            cs,
+        })
+    }
+}
+
+fn vector_to_symmetric_matrix<T>(vec: &Vec<T>, n: usize) -> Result<Array2<T>, anyhow::Error>
+where
+    T: Clone + Copy + Zero + fmt::Display,
+{
+    let expected_length = (n * (n + 1)).div_euclid(2);
+    for val in vec {
+        println!("VAL: {val}")
+    }
+    ensure!(
+        vec.len() == expected_length,
+        "For a square matrix of dimension {n}, a vector of length {expected_length} is required. \
+        However, a vector of length {} is supplied.",
+        vec.len()
+    );
+    let mut mat: Array2<T> = Array2::zeros((n, n));
+    let mut vec_idx = 0;
+    for j in 0..n {
+        for i in 0..=j {
+            println!("Setting ({i}, {j}) = {}", vec[vec_idx]);
+            mat[(i, j)] = *vec.get(vec_idx).ok_or(format_err!(
+                "Unable to retrieve element {vec_idx} from the vector."
+            ))?;
+            if i != j {
+                mat[(j, i)] = mat[(i, j)];
+            }
+            vec_idx += 1;
+        }
+    }
+    Ok(mat)
+}
+
 #[cfg(test)]
 mod qchem_test {
-    use super::QChemCheckPointFile;
+    use super::QChemCheckPoint;
 
     #[test]
     fn test_parse_qchem_fchk() {
-        let qchem_fchk = QChemCheckPointFile::parse("HF.inp.fchk").unwrap();
-        for (i, mol) in qchem_fchk.mols.iter().enumerate() {
+        let qchem_fchk = QChemCheckPoint::from_file("HF.inp.fchk").unwrap();
+        for (i, mol) in qchem_fchk.molecules.as_ref().unwrap().iter().enumerate() {
             println!("{mol}");
             println!(
                 "{}",
-                qchem_fchk.inp_bao.to_basis_angular_order(&mol).unwrap()
+                qchem_fchk
+                    .inp_bao
+                    .as_ref()
+                    .unwrap()
+                    .to_basis_angular_order(&mol)
+                    .unwrap()
             );
-            println!("{}", qchem_fchk.a_cs.as_ref().unwrap()[i]);
+            println!("{:#?}", qchem_fchk.saos.as_ref().unwrap()[i]);
+            println!("{:#?}", qchem_fchk.cs.as_ref().unwrap()[i]);
         }
     }
 }
