@@ -9,7 +9,7 @@ use crate::analysis::RepAnalysis;
 use crate::angmom::sh_conversion::sh_cart2rl_mat;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::{
-    cart_tuple_to_str, BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder,
+    cart_tuple_to_str, BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
 use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::format::log_subtitle;
@@ -107,7 +107,8 @@ where
                     let sao = match shell_order {
                         ShellOrder::Pure(_) => Array2::<f64>::eye(bao.n_funcs()),
                         ShellOrder::Cart(cartorder) => {
-                            let cart2rl = sh_cart2rl_mat(l, l, cartorder, true, true);
+                            let cart2rl =
+                                sh_cart2rl_mat(l, l, cartorder, true, &PureOrder::increasingm(l));
                             cart2rl.mapv(ComplexFloat::conj).t().dot(&cart2rl)
                         }
                     };

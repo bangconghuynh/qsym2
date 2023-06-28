@@ -9,7 +9,7 @@ use pyo3::prelude::*;
 use crate::angmom::sh_conversion::{sh_cart2r, sh_r2cart};
 use crate::angmom::sh_rotation_3d::rlmat;
 use crate::angmom::spinor_rotation_3d::dmat_angleaxis;
-use crate::aux::ao_basis::{BasisAngularOrder, CartOrder, ShellOrder};
+use crate::aux::ao_basis::{BasisAngularOrder, CartOrder, PureOrder, ShellOrder};
 use crate::permutation::{PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
@@ -458,10 +458,10 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
     }
 
     let cart2rss_lex: Vec<Vec<Array2<f64>>> = (0..=lmax)
-        .map(|lcart| sh_cart2r(lcart, &CartOrder::lex(lcart), true, true))
+        .map(|lcart| sh_cart2r(lcart, &CartOrder::lex(lcart), true, PureOrder::increasingm))
         .collect();
     let r2cartss_lex: Vec<Vec<Array2<f64>>> = (0..=lmax)
-        .map(|lcart| sh_r2cart(lcart, &CartOrder::lex(lcart), true, true))
+        .map(|lcart| sh_r2cart(lcart, &CartOrder::lex(lcart), true, PureOrder::increasingm))
         .collect();
 
     pbao.basis_shells()
