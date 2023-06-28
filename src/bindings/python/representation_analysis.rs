@@ -8,7 +8,9 @@ use pyo3::prelude::*;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::angmom::ANGMOM_INDICES;
-use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
+use crate::aux::ao_basis::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+};
 use crate::aux::molecule::Molecule;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
@@ -166,7 +168,11 @@ impl PyBasisAngularOrder {
                         } else {
                             match shell_order {
                                 PyShellOrder::PureOrder(increasingm) => {
-                                    ShellOrder::Pure(*increasingm)
+                                    if *increasingm {
+                                        ShellOrder::Pure(PureOrder::increasingm(*l))
+                                    } else {
+                                        ShellOrder::Pure(PureOrder::decreasingm(*l))
+                                    }
                                 },
                                 PyShellOrder::CartOrder(_) => {
                                     log::error!("Pure shell order expected, but specification for Cartesian shell order found.");

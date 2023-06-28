@@ -3,13 +3,15 @@ use ndarray::array;
 use num_complex::Complex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
+use crate::aux::ao_basis::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+};
 use crate::chartab::chartab_symbols::DecomposedSymbol;
-use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
+use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
@@ -50,7 +52,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     let mol_vf6 = &pd_res.pre_symmetry.recentred_molecule;
 
     let bsc_d = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
-    let bsp_s = BasisShell::new(0, ShellOrder::Pure(true));
+    let bsp_s = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
 
     let batm_v = BasisAtom::new(&mol_vf6.atoms[0], &[bsc_d]);
     let batm_f0 = BasisAtom::new(&mol_vf6.atoms[1], &[bsp_s.clone()]);
