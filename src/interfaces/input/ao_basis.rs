@@ -64,6 +64,17 @@ impl InputBasisShell {
         InputBasisShellBuilder::default()
     }
 
+    /// Returns the number of basis functions in this shell.
+    fn n_funcs(&self) -> usize {
+        let lsize = self.l as usize;
+        match self.shell_order {
+            InputShellOrder::Pure(_) => 2 * lsize + 1,
+            InputShellOrder::CartQChem
+            | InputShellOrder::CartLexicographic
+            | InputShellOrder::CartCustom(_) => ((lsize + 1) * (lsize + 2)).div_euclid(2),
+        }
+    }
+
     /// Converts the [`InputBasisShell`] to a corresponding [`BasisShell`].
     fn to_basis_shell(&self) -> BasisShell {
         BasisShell::new(self.l, self.shell_order.to_shell_order(self.l))
@@ -91,6 +102,11 @@ impl InputBasisAtom {
     /// Returns a builder to construct [`InputBasisAtom`].
     pub(crate) fn builder() -> InputBasisAtomBuilder {
         InputBasisAtomBuilder::default()
+    }
+
+    /// Returns the number of basis functions localised on this atom.
+    fn n_funcs(&self) -> usize {
+        self.basis_shells.iter().map(InputBasisShell::n_funcs).sum()
     }
 
     /// Converts to a [`BasisAtom`] structure given a molecule.
@@ -149,6 +165,11 @@ impl InputBasisAtom {
 pub(crate) struct InputBasisAngularOrder(pub(crate) Vec<InputBasisAtom>);
 
 impl InputBasisAngularOrder {
+    /// Returns the number of basis functions in this basis set.
+    pub(crate) fn n_funcs(&self) -> usize {
+        self.0.iter().map(InputBasisAtom::n_funcs).sum()
+    }
+
     /// Converts to a [`BasisAngularOrder`] structure given a molecule.
     ///
     /// # Arguments
