@@ -4,11 +4,11 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Lines};
 use std::str::FromStr;
 
-use anyhow::{self, bail, ensure, format_err};
+use anyhow::{self, ensure, format_err};
 use derive_builder::Builder;
 use lazy_static::lazy_static;
 use nalgebra::Point3;
-use ndarray::Array2;
+use ndarray::{Array2, ShapeBuilder};
 use periodic_table::periodic_table;
 use regex::Regex;
 
@@ -28,27 +28,33 @@ lazy_static! {
 }
 
 #[derive(Builder, Clone)]
-struct QChemCheckPointFile {
-    /// The geometries parsed from the checkpoint file.
-    mols: Vec<Molecule>,
+struct QChemCheckPointParser {
+    // /// The geometries parsed from the checkpoint file.
+    // mols: Vec<Molecule>,
 
-    /// The input basis angular order information parsed from the checkpoint file.
-    inp_bao: InputBasisAngularOrder,
+    // /// The input basis angular order information parsed from the checkpoint file.
+    // inp_bao: InputBasisAngularOrder,
 
-    a_cs: Option<Vec<Array2<f64>>>,
+    // a_cs: Option<Vec<Array2<f64>>>,
 
-    b_cs: Option<Vec<Array2<f64>>>,
+    // b_cs: Option<Vec<Array2<f64>>>,
+    i32_sections: HashMap<String, Vec<Vec<i32>>>,
+
+    f64_sections: HashMap<String, Vec<Vec<f64>>>,
 }
 
-impl QChemCheckPointFile {
-    fn builder() -> QChemCheckPointFileBuilder {
-        QChemCheckPointFileBuilder::default()
+impl QChemCheckPointParser {
+    fn builder() -> QChemCheckPointParserBuilder {
+        QChemCheckPointParserBuilder::default()
     }
 
-    /// Parses a Q-Chem FCHK file.
+    /// Parses the required sections of a Q-Chem FCHK file.
     fn parse(name: &str) -> Result<Self, anyhow::Error> {
         let reader = BufReader::new(File::open(name).map_err(|err| format_err!(err))?);
         let mut lines = reader.lines();
+        let mut parsed_i32_sections = HashMap::<String, Vec<Vec<i32>>>::new();
+        let mut parsed_f64_sections = HashMap::<String, Vec<Vec<f64>>>::new();
+
         let sections = HashSet::from([
             "Atomic numbers",
             "Current cartesian coordinates",
@@ -57,8 +63,6 @@ impl QChemCheckPointFile {
             "Alpha MO coefficients",
             "Beta MO coefficients",
         ]);
-        let mut parsed_i32_sections = HashMap::<String, Vec<Vec<i32>>>::new();
-        let mut parsed_f64_sections = HashMap::<String, Vec<Vec<f64>>>::new();
         while let Some(line_res) = lines.next() {
             if let Ok(line) = line_res.as_ref() {
                 if let Some(caps) = HEADING_RE.captures(line) {
@@ -105,11 +109,44 @@ impl QChemCheckPointFile {
             }
         }
 
+        QChemCheckPointParser::builder()
+            .i32_sections(parsed_i32_sections)
+            .f64_sections(parsed_f64_sections)
+            .build()
+            .map_err(|err| format_err!(err))
+    }
+}
+
+#[derive(Builder, Clone)]
+struct QChemCheckPoint {
+    parser: QChemCheckPointParser,
+
+    /// The geometries parsed from the checkpoint file.
+    molecules: Option<Vec<Molecule>>,
+
+    /// The input basis angular order information parsed from the checkpoint file.
+    inp_bao: Option<InputBasisAngularOrder>,
+
+    a_cs: Option<Vec<Array2<f64>>>,
+
+    b_cs: Option<Vec<Array2<f64>>>,
+}
+
+impl QChemCheckPoint {
+    fn builder() -> QChemCheckPointBuilder {
+        QChemCheckPointBuilder::default()
+    }
+
+    fn set_molecules(&mut self) -> Result<&mut Self, anyhow::Error> {
         let emap = ElementMap::new();
-        let coordss = parsed_f64_sections
+        let coordss = self
+            .parser
+            .f64_sections
             .get("Current cartesian coordinates")
             .ok_or(format_err!("Current cartesian coordinates not found."))?;
-        let atomic_numbers = parsed_i32_sections
+        let atomic_numbers = self
+            .parser
+            .i32_sections
             .get("Atomic numbers")
             .ok_or(format_err!("Atomic numbers not found."))?
             .get(0)
@@ -120,7 +157,7 @@ impl QChemCheckPointFile {
                     .expect("Unable to convert an atomic number to `usize`.")
             })
             .collect::<Vec<_>>();
-        let mut mols = coordss
+        self.molecules = coordss
             .iter()
             .map(|coords| {
                 let atoms = atomic_numbers
@@ -138,14 +175,36 @@ impl QChemCheckPointFile {
                     .collect::<Result<Vec<Atom>, anyhow::Error>>()?;
                 Ok::<Molecule, anyhow::Error>(Molecule::from_atoms(&atoms, 1e-8))
             })
-            .collect::<Result<Vec<Molecule>, anyhow::Error>>()?;
+            .collect::<Result<Vec<Molecule>, anyhow::Error>>()
+            .ok();
 
-        let shell_types = parsed_i32_sections
+        Ok(self)
+    }
+
+    fn set_input_basis_angular_order(&mut self) -> Result<&mut Self, anyhow::Error> {
+        let atomic_numbers = self
+            .parser
+            .i32_sections
+            .get("Atomic numbers")
+            .ok_or(format_err!("Atomic numbers not found."))?
+            .get(0)
+            .ok_or(format_err!("Atomic numbers not found."))?
+            .iter()
+            .map(|atomic_number_i32| {
+                usize::try_from(atomic_number_i32.unsigned_abs())
+                    .expect("Unable to convert an atomic number to `usize`.")
+            })
+            .collect::<Vec<_>>();
+        let shell_types = self
+            .parser
+            .i32_sections
             .get("Shell types")
             .ok_or(format_err!("Shell types not found."))?
             .get(0)
             .ok_or(format_err!("Shell types not found."))?;
-        let shell_to_atom_map = parsed_i32_sections
+        let shell_to_atom_map = self
+            .parser
+            .i32_sections
             .get("Shell to atom map")
             .ok_or(format_err!("Shell to atom map not found."))?
             .get(0)
@@ -195,12 +254,14 @@ impl QChemCheckPointFile {
                             .map_err(|err| format_err!(err)),
                     ]
                 } else if *shell_type > 0 {
+                    // Cartesian D shell or higher
                     vec![InputBasisShell::builder()
                         .l(shell_type.unsigned_abs())
                         .shell_order(InputShellOrder::CartQChem)
                         .build()
                         .map_err(|err| format_err!(err))]
                 } else {
+                    // Pure D shell or higher
                     vec![InputBasisShell::builder()
                         .l(shell_type.unsigned_abs())
                         .shell_order(InputShellOrder::Pure(true))
@@ -214,7 +275,7 @@ impl QChemCheckPointFile {
             "Unequal lengths between `bss` and `shell_to_atom_map`."
         );
 
-        let batms: Vec<InputBasisAtom> = atomic_numbers
+        self.inp_bao = atomic_numbers
             .iter()
             .enumerate()
             .map(|(atom_i, atomic_number)| {
@@ -240,19 +301,29 @@ impl QChemCheckPointFile {
                     .build()
                     .map_err(|err| format_err!(err))
             })
-            .collect::<Result<Vec<InputBasisAtom>, anyhow::Error>>()?;
+            .collect::<Result<Vec<InputBasisAtom>, anyhow::Error>>()
+            .map(|batms| InputBasisAngularOrder(batms))
+            .ok();
 
-        let inp_bao = InputBasisAngularOrder(batms);
-        let bao = inp_bao.to_basis_angular_order(&mols[0])?;
-        let n_spatial = bao.n_funcs();
+        Ok(self)
+    }
 
-        let a_cs_opt = parsed_f64_sections
+    fn set_mo_coefficients(&mut self) -> Result<&mut Self, anyhow::Error> {
+        let n_spatial = self
+            .inp_bao
+            .as_ref()
+            .map(|inp_bao| inp_bao.n_funcs())
+            .ok_or(format_err!("Basis information not available."))?;
+
+        let a_cs_opt = self
+            .parser
+            .f64_sections
             .get("Alpha MO coefficients")
             .map(|a_cs| {
                 a_cs.iter()
                     .map(|a_c| {
                         Array2::from_shape_vec(
-                            (n_spatial, a_c.len().div_euclid(n_spatial)),
+                            (n_spatial, a_c.len().div_euclid(n_spatial)).f(),
                             a_c.clone(),
                         )
                         .map_err(|err| format_err!(err))
@@ -261,13 +332,15 @@ impl QChemCheckPointFile {
             })
             .transpose()?;
 
-        let b_cs_opt = parsed_f64_sections
+        let b_cs_opt = self
+            .parser
+            .f64_sections
             .get("Beta MO coefficients")
             .map(|b_cs| {
                 b_cs.iter()
                     .map(|b_c| {
                         Array2::from_shape_vec(
-                            (n_spatial, b_c.len().div_euclid(n_spatial)),
+                            (n_spatial, b_c.len().div_euclid(n_spatial)).f(),
                             b_c.clone(),
                         )
                         .map_err(|err| format_err!(err))
@@ -276,21 +349,16 @@ impl QChemCheckPointFile {
             })
             .transpose()?;
 
-        if let Some(a_cs) = a_cs_opt.as_ref() {
-            if a_cs.len() == mols.len() + 1 {
-                // Geometry optimisation
-                mols.remove(0);
-            }
-        }
-
-        QChemCheckPointFile::builder()
-            .mols(mols)
-            .inp_bao(inp_bao)
-            .a_cs(a_cs_opt)
-            .b_cs(b_cs_opt)
-            .build()
-            .map_err(|err| format_err!(err))
+        Ok(self)
     }
+
+    // QChemCheckPointFile::builder()
+    //     .mols(mols)
+    //     .inp_bao(inp_bao)
+    //     .a_cs(a_cs_opt)
+    //     .b_cs(b_cs_opt)
+    //     .build()
+    //     .map_err(|err| format_err!(err))
 }
 
 fn parse_qchem_fchk_section<B: BufRead, T: FromStr + fmt::Debug>(
@@ -326,12 +394,13 @@ mod qchem_test {
     #[test]
     fn test_parse_qchem_fchk() {
         let qchem_fchk = QChemCheckPointFile::parse("HF.inp.fchk").unwrap();
-        for mol in qchem_fchk.mols {
+        for (i, mol) in qchem_fchk.mols.iter().enumerate() {
             println!("{mol}");
             println!(
                 "{}",
                 qchem_fchk.inp_bao.to_basis_angular_order(&mol).unwrap()
             );
+            println!("{}", qchem_fchk.a_cs.as_ref().unwrap()[i]);
         }
     }
 }
