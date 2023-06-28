@@ -13,6 +13,9 @@ use num_traits::Zero;
 use periodic_table::periodic_table;
 use regex::Regex;
 
+use crate::aux::ao_basis::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+};
 use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::molecule::Molecule;
 use crate::interfaces::input::ao_basis::*;
@@ -340,9 +343,40 @@ impl QChemCheckPointBuilder {
 
     fn extract_mo_coefficients(
         &self,
-        inp_bao: Option<&InputBasisAngularOrder>,
+        bao: Option<&BasisAngularOrder>,
     ) -> Option<Vec<Vec<Array2<f64>>>> {
-        let n_spatial = inp_bao.map(|inp_bao| inp_bao.n_funcs())?;
+        let qchem_bao = bao?;
+        let molden_bao = BasisAngularOrder::new(
+            &qchem_bao
+                .basis_atoms
+                .iter()
+                .map(|batm| {
+                    BasisAtom::new(
+                        batm.atom,
+                        &batm
+                            .basis_shells
+                            .iter()
+                            .map(|bs| {
+                                if bs.l <= 1 {
+                                    bs.clone()
+                                } else {
+                                    let shl_ord = match bs.shell_order {
+                                        ShellOrder::Pure(_) => {
+                                            ShellOrder::Pure(PureOrder::molden(bs.l))
+                                        }
+                                        ShellOrder::Cart(_) => {
+                                            ShellOrder::Cart(CartOrder::molden(bs.l))
+                                        }
+                                    };
+                                    BasisShell::new(bs.l, shl_ord)
+                                }
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        );
+        let n_spatial = qchem_bao.n_funcs();
 
         let a_cs_opt = self
             .parser

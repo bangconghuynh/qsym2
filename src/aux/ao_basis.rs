@@ -384,11 +384,11 @@ impl BasisShell {
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisAtom<'a> {
     /// An atom in the basis set.
-    atom: &'a Atom,
+    pub(crate) atom: &'a Atom,
 
     /// The ordered shells associated with this atom.
     #[builder(setter(custom))]
-    basis_shells: Vec<BasisShell>,
+    pub(crate) basis_shells: Vec<BasisShell>,
 }
 
 impl<'a> BasisAtomBuilder<'a> {
@@ -452,7 +452,7 @@ impl<'a> BasisAtom<'a> {
 pub struct BasisAngularOrder<'a> {
     /// An ordered sequence of [`BasisAtom`] in the order the atoms are defined in the molecule.
     #[builder(setter(custom))]
-    basis_atoms: Vec<BasisAtom<'a>>,
+    pub(crate) basis_atoms: Vec<BasisAtom<'a>>,
 }
 
 impl<'a> BasisAngularOrderBuilder<'a> {
