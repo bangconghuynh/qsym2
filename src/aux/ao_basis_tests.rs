@@ -2,6 +2,7 @@ use crate::aux::ao_basis::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
 use crate::aux::atom::{Atom, ElementMap};
+use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
 
 #[test]
 fn test_ao_basis_cartorder() {
@@ -24,6 +25,11 @@ fn test_ao_basis_cartorder() {
     assert_eq!(
         co_1_qchem.cart_tuples,
         vec![(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    );
+
+    assert_eq!(
+        co_1_lex.get_perm_of(&co_1_qchem).unwrap().image(),
+        &vec![0, 1, 2]
     );
 
     // =========
@@ -53,6 +59,11 @@ fn test_ao_basis_cartorder() {
             (0, 1, 1),
             (0, 0, 2),
         ]
+    );
+
+    assert_eq!(
+        co_2_lex.get_perm_of(&co_2_qchem).unwrap().image(),
+        &vec![0, 1, 3, 2, 4, 5]
     );
 
     // =========
@@ -90,6 +101,11 @@ fn test_ao_basis_cartorder() {
             (0, 1, 2),
             (0, 0, 3),
         ]
+    );
+
+    assert_eq!(
+        co_3_lex.get_perm_of(&co_3_qchem).unwrap().image(),
+        &vec![0, 1, 4, 2, 5, 7, 3, 6, 8, 9]
     );
 
     // =========
@@ -138,6 +154,11 @@ fn test_ao_basis_cartorder() {
             (0, 0, 4),
         ]
     );
+
+    assert_eq!(
+        co_4_lex.get_perm_of(&co_4_qchem).unwrap().image(),
+        &vec![0, 1, 5, 2, 6, 9, 3, 7, 10, 12, 4, 8, 11, 13, 14]
+    );
 }
 
 #[test]
@@ -160,6 +181,11 @@ fn test_ao_basis_pureorder() {
     let po_1_molden = PureOrder::molden(1);
     assert_eq!(po_1_molden.mls, vec![0, 1, -1]);
 
+    assert_eq!(
+        po_1_increasingm.get_perm_of(&po_1_molden).unwrap().image(),
+        &vec![2, 0, 1]
+    );
+
     // =========
     // lpure = 2
     // =========
@@ -168,6 +194,11 @@ fn test_ao_basis_pureorder() {
 
     let po_2_molden = PureOrder::molden(2);
     assert_eq!(po_2_molden.mls, vec![0, 1, -1, 2, -2]);
+
+    assert_eq!(
+        po_2_increasingm.get_perm_of(&po_2_molden).unwrap().image(),
+        &vec![4, 2, 0, 1, 3]
+    );
 
     // =========
     // lpure = 3
@@ -178,6 +209,11 @@ fn test_ao_basis_pureorder() {
     let po_3_molden = PureOrder::molden(3);
     assert_eq!(po_3_molden.mls, vec![0, 1, -1, 2, -2, 3, -3]);
 
+    assert_eq!(
+        po_3_increasingm.get_perm_of(&po_3_molden).unwrap().image(),
+        &vec![6, 4, 2, 0, 1, 3, 5]
+    );
+
     // =========
     // lpure = 4
     // =========
@@ -186,6 +222,11 @@ fn test_ao_basis_pureorder() {
 
     let po_4_molden = PureOrder::molden(4);
     assert_eq!(po_4_molden.mls, vec![0, 1, -1, 2, -2, 3, -3, 4, -4]);
+
+    assert_eq!(
+        po_4_increasingm.get_perm_of(&po_4_molden).unwrap().image(),
+        &vec![8, 6, 4, 2, 0, 1, 3, 5, 7]
+    );
 }
 
 #[test]
