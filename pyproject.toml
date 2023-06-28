@@ -10,21 +10,24 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 
+[tool.maturin]
+features = ["openblas-static"]
+
 [tool.cibuildwheel]
 build = "*"
-skip = ["pp*", "cp36*", "*-musllinux_i686"]
+skip = ["pp*", "cp36*", "*i686"]
 test-skip = ""
 
 archs = ["auto"]
 build-frontend = "default"
 config-settings = {}
 dependency-versions = "pinned"
-environment = { PATH = "$HOME/.cargo/bin:$PATH", CARGO_FEATURE_OPENBLAS_STATIC = "1" }
+environment = { PATH = "$HOME/.cargo/bin:$PATH" }
 environment-pass = []
 build-verbosity = ""
 
 before-all = ""
-before-build = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+before-build = ""
 repair-wheel-command = ""
 
 test-command = ""
@@ -51,7 +54,12 @@ musllinux-s390x-image = "musllinux_1_1"
 
 
 [tool.cibuildwheel.linux]
+before-all = ["yum install -y openssl-devel", "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"]
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
+
+[[tool.cibuildwheel.overrides]]
+select = "*-musllinux*"
+before-all = ["apk add openssl-dev", "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"]
 
 [tool.cibuildwheel.macos]
 repair-wheel-command = "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}"
