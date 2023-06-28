@@ -1,4 +1,6 @@
-use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
+use crate::aux::ao_basis::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+};
 use crate::aux::atom::{Atom, ElementMap};
 
 #[test]
@@ -136,6 +138,54 @@ fn test_ao_basis_cartorder() {
             (0, 0, 4),
         ]
     );
+}
+
+#[test]
+fn test_ao_basis_pureorder() {
+    // =========
+    // lpure = 0
+    // =========
+    let po_0_increasingm = PureOrder::increasingm(0);
+    assert_eq!(po_0_increasingm.mls, vec![0]);
+
+    let po_0_molden = PureOrder::molden(0);
+    assert_eq!(po_0_molden.mls, vec![0]);
+
+    // =========
+    // lpure = 1
+    // =========
+    let po_1_increasingm = PureOrder::increasingm(1);
+    assert_eq!(po_1_increasingm.mls, vec![-1, 0, 1]);
+
+    let po_1_molden = PureOrder::molden(1);
+    assert_eq!(po_1_molden.mls, vec![0, 1, -1]);
+
+    // =========
+    // lpure = 2
+    // =========
+    let po_2_increasingm = PureOrder::increasingm(2);
+    assert_eq!(po_2_increasingm.mls, vec![-2, -1, 0, 1, 2]);
+
+    let po_2_molden = PureOrder::molden(2);
+    assert_eq!(po_2_molden.mls, vec![0, 1, -1, 2, -2]);
+
+    // =========
+    // lpure = 3
+    // =========
+    let po_3_increasingm = PureOrder::increasingm(3);
+    assert_eq!(po_3_increasingm.mls, vec![-3, -2, -1, 0, 1, 2, 3]);
+
+    let po_3_molden = PureOrder::molden(3);
+    assert_eq!(po_3_molden.mls, vec![0, 1, -1, 2, -2, 3, -3]);
+
+    // =========
+    // lpure = 4
+    // =========
+    let po_4_increasingm = PureOrder::increasingm(4);
+    assert_eq!(po_4_increasingm.mls, vec![-4, -3, -2, -1, 0, 1, 2, 3, 4]);
+
+    let po_4_molden = PureOrder::molden(4);
+    assert_eq!(po_4_molden.mls, vec![0, 1, -1, 2, -2, 3, -3, 4, -4]);
 }
 
 #[test]
