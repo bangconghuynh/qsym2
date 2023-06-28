@@ -457,6 +457,8 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
         rls.push(rl);
     }
 
+    // All matrices in `rls` are in increasing-m order by default. See the function `rlmat` for
+    // the origin of this order. Hence, conversion matrices must also honour this.
     let cart2rss_lex: Vec<Vec<Array2<f64>>> = (0..=lmax)
         .map(|lcart| sh_cart2r(lcart, &CartOrder::lex(lcart), true, PureOrder::increasingm))
         .collect();
@@ -468,20 +470,25 @@ pub(crate) fn assemble_sh_rotation_3d_matrices(
         .map(|shl| {
             let l = usize::try_from(shl.l).unwrap_or_else(|_| {
                 panic!(
-                    "Unable to concert the angular momentum order `{}` to `usize`.",
+                    "Unable to convert the angular momentum order `{}` to `usize`.",
                     shl.l
                 );
             });
+            let po_il = PureOrder::increasingm(shl.l);
             match &shl.shell_order {
-                ShellOrder::Pure(increasingm) => {
+                ShellOrder::Pure(pureorder) => {
                     // Spherical functions.
-                    let mut rl = rls[l].clone();
-                    if !increasingm {
-                        // `rl` is in increasing-m order by default.
-                        rl.invert_axis(Axis(0));
-                        rl.invert_axis(Axis(1));
+                    let rl = rls[l].clone();
+                    if *pureorder != po_il {
+                        // `rl` is in increasing-m order by default. See the function `rlmat` for
+                        // the origin of this order.
+                        let perm = pureorder
+                            .get_perm_of(&po_il)
+                            .expect("Unable to obtain the permutation that maps `pureorder` to the increasing order.");
+                        rl.select(Axis(0), &perm.image()).select(Axis(1), &perm.image())
+                    } else {
+                        rl
                     }
-                    rl
                 }
                 ShellOrder::Cart(cart_order) => {
                     // Cartesian functions. Convert them to real solid harmonics first, then

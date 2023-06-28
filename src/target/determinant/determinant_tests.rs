@@ -8,7 +8,9 @@ use num_traits::Pow;
 
 use crate::analysis::{Overlap, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
+use crate::aux::ao_basis::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+};
 use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::geometry::Transform;
 use crate::aux::molecule::Molecule;
@@ -35,7 +37,7 @@ fn test_determinant_transformation_bf4_sqpl() {
     let atm_f2 = Atom::from_xyz("F -1.0 0.0 0.0", &emap, 1e-7).unwrap();
     let atm_f3 = Atom::from_xyz("F 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
 
-    let bss_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bss_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
     let bsp_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
     let bsd_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
 
@@ -137,7 +139,7 @@ fn test_determinant_transformation_s4_sqpl() {
     let atm_s2 = Atom::from_xyz("S -1.0 -1.0 0.0", &emap, 1e-7).unwrap();
     let atm_s3 = Atom::from_xyz("S +1.0 -1.0 0.0", &emap, 1e-7).unwrap();
 
-    let bsd_p = BasisShell::new(2, ShellOrder::Pure(true));
+    let bsd_p = BasisShell::new(2, ShellOrder::Pure(PureOrder::increasingm(2)));
 
     let batm_s0 = BasisAtom::new(&atm_s0, &[bsd_p.clone()]);
     let batm_s1 = BasisAtom::new(&atm_s1, &[bsd_p.clone()]);
@@ -352,7 +354,7 @@ fn test_determinant_transformation_b3_real_timerev() {
     let atm_b1 = Atom::from_xyz("B 1.0 0.0 0.0", &emap, 1e-7).unwrap();
     let atm_b2 = Atom::new_ordinary("B", Point3::new(0.5, 3.0f64.sqrt() / 2.0, 0.0), &emap, 1e-7);
 
-    let bss_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bss_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
     let bsp_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
 
     let batm_b0 = BasisAtom::new(&atm_b0, &[bss_p.clone(), bsp_c.clone()]);
@@ -572,7 +574,7 @@ fn test_determinant_transformation_c3_spin_rotation() {
     let atm_c1 = Atom::from_xyz("C 0.0 1.0 0.0", &emap, 1e-7).unwrap();
     let atm_c2 = Atom::from_xyz("C 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bss_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bss_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
     let bsp_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
 
     let batm_c0 = BasisAtom::new(&atm_c0, &[bss_p.clone(), bsp_c.clone()]);
@@ -589,7 +591,10 @@ fn test_determinant_transformation_c3_spin_rotation() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap().to_double_group().unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None)
+        .unwrap()
+        .to_double_group()
+        .unwrap();
 
     #[rustfmt::skip]
     let calpha = array![
@@ -772,7 +777,7 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
     let atm_h2 = Atom::from_xyz("H 1.0 1.0 0.0", &emap, 1e-7).unwrap();
     let atm_h3 = Atom::from_xyz("H 0.0 1.0 0.0", &emap, 1e-7).unwrap();
 
-    let bss_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bss_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
     let bsp_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
     let bsd_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
 
@@ -847,7 +852,10 @@ fn test_determinant_transformation_h4_spin_spatial_rotation_composition() {
         .unwrap();
     let mut sym = Symmetry::new();
     sym.analyse(&presym, false).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap().to_double_group().unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None)
+        .unwrap()
+        .to_double_group()
+        .unwrap();
 
     let elements_i = group.elements();
     let elements_j = group.elements();
@@ -891,7 +899,7 @@ fn test_determinant_analysis_overlap() {
     let atm_h2 = Atom::from_xyz("H +0.550 +0.000 +0.000", &emap, 1e-7).unwrap();
     let atm_h3 = Atom::from_xyz("H -0.550 +0.000 +0.000", &emap, 1e-7).unwrap();
 
-    let bss_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bss_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
 
     let batm_h0 = BasisAtom::new(&atm_h0, &[bss_p.clone()]);
     let batm_h1 = BasisAtom::new(&atm_h1, &[bss_p.clone()]);
@@ -1138,7 +1146,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
     let atm_s2 = Atom::from_xyz("S -1.0 -1.0 0.0", &emap, 1e-7).unwrap();
     let atm_s3 = Atom::from_xyz("S +1.0 -1.0 0.0", &emap, 1e-7).unwrap();
 
-    let bss_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bss_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
 
     let batm_s0 = BasisAtom::new(&atm_s0, &[bss_p.clone()]);
     let batm_s1 = BasisAtom::new(&atm_s1, &[bss_p.clone()]);
@@ -1241,7 +1249,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
     let atm_s2 = Atom::from_xyz("S -1.0 -1.0 0.0", &emap, 1e-7).unwrap();
     let atm_s3 = Atom::from_xyz("S +1.0 -1.0 0.0", &emap, 1e-7).unwrap();
 
-    let bsp_p = BasisShell::new(1, ShellOrder::Pure(true));
+    let bsp_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
 
     let batm_s0 = BasisAtom::new(&atm_s0, &[bsp_p.clone()]);
     let batm_s1 = BasisAtom::new(&atm_s1, &[bsp_p.clone()]);
@@ -1275,7 +1283,8 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
     let group_u_grey_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym_tr, None).unwrap();
     let group_u_grey_d4h_double = group_u_grey_d4h.to_double_group().unwrap();
 
-    let group_m_grey_d4h = MagneticRepresentedGroup::from_molecular_symmetry(&sym_tr, None).unwrap();
+    let group_m_grey_d4h =
+        MagneticRepresentedGroup::from_molecular_symmetry(&sym_tr, None).unwrap();
     let group_m_grey_d4h_double = group_m_grey_d4h.to_double_group().unwrap();
 
     let mut mol_s4_bz = mol_s4.clone();
@@ -1287,9 +1296,11 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .unwrap();
     let mut sym_bz = Symmetry::new();
     sym_bz.analyse(&presym_bz, true).unwrap();
-    let group_u_bw_d4h_c4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym_bz, None).unwrap();
+    let group_u_bw_d4h_c4h =
+        UnitaryRepresentedGroup::from_molecular_symmetry(&sym_bz, None).unwrap();
     let group_u_bw_d4h_c4h_double = group_u_bw_d4h_c4h.to_double_group().unwrap();
-    let group_m_bw_d4h_c4h = MagneticRepresentedGroup::from_molecular_symmetry(&sym_bz, None).unwrap();
+    let group_m_bw_d4h_c4h =
+        MagneticRepresentedGroup::from_molecular_symmetry(&sym_bz, None).unwrap();
     let group_m_bw_d4h_c4h_double = group_m_bw_d4h_c4h.to_double_group().unwrap();
 
     // ----------
@@ -1395,7 +1406,10 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_spin_1e.calc_smat(Some(&sao_cg)).unwrap().calc_xmat(false);
+    orbit_cg_u_d4h_spin_1e
+        .calc_smat(Some(&sao_cg))
+        .unwrap()
+        .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_d4h_spin_1e.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap()
@@ -1409,7 +1423,10 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .symmetry_transformation_kind(SymmetryTransformationKind::Spin)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_spin_2e.calc_smat(Some(&sao_cg)).unwrap().calc_xmat(false);
+    orbit_cg_u_d4h_spin_2e
+        .calc_smat(Some(&sao_cg))
+        .unwrap()
+        .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_d4h_spin_2e.analyse_rep().unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap()
@@ -2506,7 +2523,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
     let atm_f5 = Atom::from_xyz("F +0.0 -1.0 +0.0", &emap, 1e-7).unwrap();
 
     let bsc_d = BasisShell::new(2, ShellOrder::Cart(CartOrder::qchem(2)));
-    let bsp_s = BasisShell::new(0, ShellOrder::Pure(true));
+    let bsp_s = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
 
     let batm_v = BasisAtom::new(&atm_v, &[bsc_d]);
     let batm_f0 = BasisAtom::new(&atm_f0, &[bsp_s.clone()]);
@@ -2516,15 +2533,8 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
     let batm_f4 = BasisAtom::new(&atm_f4, &[bsp_s.clone()]);
     let batm_f5 = BasisAtom::new(&atm_f5, &[bsp_s]);
 
-    let bao_vf6 = BasisAngularOrder::new(&[
-        batm_v,
-        batm_f0,
-        batm_f1,
-        batm_f2,
-        batm_f3,
-        batm_f4,
-        batm_f5,
-    ]);
+    let bao_vf6 =
+        BasisAngularOrder::new(&[batm_v, batm_f0, batm_f1, batm_f2, batm_f3, batm_f4, batm_f5]);
     let mol_vf6 = Molecule::from_atoms(
         &[
             atm_v.clone(),
@@ -2643,8 +2653,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_spatial_dyy.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ ||E|_(g)|")
-            .unwrap()
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)| ⊕ ||E|_(g)|").unwrap()
     );
 
     let mut orbit_cg_u_oh_spatial_dxz = SlaterDeterminantSymmetryOrbit::builder()
@@ -2661,8 +2670,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_spatial_dxz.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|")
-            .unwrap()
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||T|_(2g)|").unwrap()
     );
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2683,8 +2691,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_double_spin_spatial_dyy.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||G~|_(g)|")
-            .unwrap()
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||G~|_(g)|").unwrap()
     );
 
     let mut orbit_cg_u_oh_double_spin_spatial_dxz = SlaterDeterminantSymmetryOrbit::builder()
@@ -2701,7 +2708,6 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .calc_xmat(false);
     assert_eq!(
         orbit_cg_u_oh_double_spin_spatial_dxz.analyse_rep().unwrap(),
-        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||G~|_(g)|")
-            .unwrap()
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||G~|_(g)|").unwrap()
     );
 }

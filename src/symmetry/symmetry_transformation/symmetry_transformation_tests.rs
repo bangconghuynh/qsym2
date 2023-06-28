@@ -1,6 +1,6 @@
 use ndarray::{array, Axis};
 
-use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, ShellOrder};
+use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, PureOrder, ShellOrder};
 use crate::aux::atom::{Atom, ElementMap};
 use crate::permutation::Permutation;
 use crate::symmetry::symmetry_transformation::permute_array_by_atoms;
@@ -13,9 +13,9 @@ fn test_symmetry_transformation_permute_array_by_atoms() {
     let atm_c2 = Atom::from_xyz("C -1.0 0.0 0.0", &emap, 1e-7).unwrap();
     let atm_c3 = Atom::from_xyz("C 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs1s_p = BasisShell::new(0, ShellOrder::Pure(true));
-    let bs2s_p = BasisShell::new(0, ShellOrder::Pure(true));
-    let bs2p_p = BasisShell::new(1, ShellOrder::Pure(true));
+    let bs1s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let bs2s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let bs2p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
 
     let batm_c0 = BasisAtom::new(&atm_c0, &[bs1s_p.clone(), bs2s_p.clone(), bs2p_p.clone()]);
     let batm_c1 = BasisAtom::new(&atm_c1, &[bs1s_p.clone(), bs2s_p.clone(), bs2p_p.clone()]);

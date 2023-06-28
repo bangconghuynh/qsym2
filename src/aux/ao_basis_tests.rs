@@ -2,7 +2,7 @@ use crate::aux::ao_basis::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
 use crate::aux::atom::{Atom, ElementMap};
-use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
+use crate::permutation::PermutableCollection;
 
 #[test]
 fn test_ao_basis_cartorder() {
@@ -231,22 +231,22 @@ fn test_ao_basis_pureorder() {
 
 #[test]
 fn test_ao_basis_basisshell() {
-    let bs0_p = BasisShell::new(0, ShellOrder::Pure(true));
+    let bs0_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
     let bs0_c = BasisShell::new(0, ShellOrder::Cart(CartOrder::lex(0)));
     assert_eq!(bs0_p.n_funcs(), 1);
     assert_eq!(bs0_c.n_funcs(), 1);
 
-    let bs1_p = BasisShell::new(1, ShellOrder::Pure(true));
+    let bs1_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
     let bs1_c = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
     assert_eq!(bs1_p.n_funcs(), 3);
     assert_eq!(bs1_c.n_funcs(), 3);
 
-    let bs2_p = BasisShell::new(2, ShellOrder::Pure(true));
+    let bs2_p = BasisShell::new(2, ShellOrder::Pure(PureOrder::increasingm(2)));
     let bs2_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
     assert_eq!(bs2_p.n_funcs(), 5);
     assert_eq!(bs2_c.n_funcs(), 6);
 
-    let bs3_p = BasisShell::new(3, ShellOrder::Pure(true));
+    let bs3_p = BasisShell::new(3, ShellOrder::Pure(PureOrder::increasingm(3)));
     let bs3_c = BasisShell::new(3, ShellOrder::Cart(CartOrder::lex(3)));
     assert_eq!(bs3_p.n_funcs(), 7);
     assert_eq!(bs3_c.n_funcs(), 10);
@@ -257,11 +257,11 @@ fn test_ao_basis_basisatom() {
     let emap = ElementMap::new();
     let atm = Atom::from_xyz("C 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs1s_p = BasisShell::new(0, ShellOrder::Pure(true));
-    let bs2s_p = BasisShell::new(0, ShellOrder::Pure(true));
-    let bs2p_p = BasisShell::new(1, ShellOrder::Pure(true));
-    let bs3s_p = BasisShell::new(0, ShellOrder::Pure(true));
-    let bs3p_p = BasisShell::new(1, ShellOrder::Pure(true));
+    let bs1s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let bs2s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let bs2p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
+    let bs3s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let bs3p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
     let bs3d_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
 
     let batm = BasisAtom::new(&atm, &[bs1s_p, bs2s_p, bs2p_p, bs3s_p, bs3p_p, bs3d_c]);
@@ -278,16 +278,16 @@ fn test_ao_basis_basisangularorder() {
     let emap = ElementMap::new();
     let atm_c = Atom::from_xyz("C 0.0 0.0 0.0", &emap, 1e-7).unwrap();
 
-    let bs1s_p = BasisShell::new(0, ShellOrder::Pure(true));
-    let bs2s_p = BasisShell::new(0, ShellOrder::Pure(true));
-    let bs2p_p = BasisShell::new(1, ShellOrder::Pure(true));
-    let bs3s_p = BasisShell::new(0, ShellOrder::Pure(true));
-    let bs3p_p = BasisShell::new(1, ShellOrder::Pure(true));
+    let bs1s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let bs2s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let bs2p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
+    let bs3s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let bs3p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
     let bs3d_c = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
-    let bs3d_p = BasisShell::new(2, ShellOrder::Pure(true));
-    let bs4s_p = BasisShell::new(0, ShellOrder::Pure(true));
-    let bs4p_p = BasisShell::new(1, ShellOrder::Pure(true));
-    let bs4d_p = BasisShell::new(2, ShellOrder::Pure(true));
+    let bs3d_p = BasisShell::new(2, ShellOrder::Pure(PureOrder::increasingm(2)));
+    let bs4s_p = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
+    let bs4p_p = BasisShell::new(1, ShellOrder::Pure(PureOrder::increasingm(1)));
+    let bs4d_p = BasisShell::new(2, ShellOrder::Pure(PureOrder::increasingm(2)));
 
     let batm_c = BasisAtom::new(
         &atm_c,

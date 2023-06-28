@@ -524,8 +524,8 @@ pub(crate) fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> Str
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ShellOrder {
     /// This variant indicates that the angular functions are real solid harmonics. The associated
-    /// value is a flag indicating if the functions are arranged in increasing $`m`$ order.
-    Pure(bool),
+    /// value is a [`PureOrder`] struct containing the order of these functions.
+    Pure(PureOrder),
 
     /// This variant indicates that the angular functions are Cartesian functions. The associated
     /// value is a [`CartOrder`] struct containing the order of these functions.
@@ -535,14 +535,13 @@ pub enum ShellOrder {
 impl fmt::Display for ShellOrder {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ShellOrder::Pure(increasingm) => write!(
+            ShellOrder::Pure(pure_order) => write!(
                 f,
                 "Pure ({})",
-                if *increasingm {
-                    "increasing m"
-                } else {
-                    "decreasing m"
-                }
+                pure_order
+                    .iter()
+                    .map(|m| m.to_string())
+                    .join(", ")
             ),
             ShellOrder::Cart(cart_order) => write!(
                 f,
@@ -604,6 +603,10 @@ impl BasisShell {
     /// * `shl_ord` - A [`ShellOrder`] structure specifying the type and ordering of the basis
     /// functions in this shell.
     pub fn new(l: u32, shl_ord: ShellOrder) -> Self {
+        match &shl_ord {
+            ShellOrder::Cart(cartorder) => assert_eq!(cartorder.lcart, l),
+            ShellOrder::Pure(pureorder) => assert_eq!(pureorder.lpure, l),
+        }
         BasisShell::builder()
             .l(l)
             .shell_order(shl_ord)

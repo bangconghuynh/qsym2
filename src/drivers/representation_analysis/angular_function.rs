@@ -94,7 +94,7 @@ where
             Vec::with_capacity(usize::try_from(lmax)?),
         ),
         |mut acc, l| {
-            [ShellOrder::Pure(true), ShellOrder::Cart(CartOrder::lex(l))]
+            [ShellOrder::Pure(PureOrder::increasingm(l)), ShellOrder::Cart(CartOrder::lex(l))]
                 .iter()
                 .for_each(|shell_order| {
                     let bao = BasisAngularOrder::new(&[BasisAtom::new(
