@@ -1,8 +1,9 @@
+use log4rs;
 use pyo3::prelude::*;
 
 pub mod molecule_symmetrisation;
-pub mod symmetry_group_detection;
 pub mod representation_analysis;
+pub mod symmetry_group_detection;
 
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 

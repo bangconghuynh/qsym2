@@ -1,3 +1,3 @@
 mod input;
-// #[cfg(feature = "qchem")]
+#[cfg(feature = "qchem")]
 mod qchem;
