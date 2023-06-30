@@ -11,7 +11,6 @@ use itertools::{izip, Itertools};
 
 use crate::angmom::ANGMOM_LABELS;
 use crate::aux::atom::Atom;
-use crate::aux::molecule::Molecule;
 use crate::aux::misc::ProductRepeat;
 use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
 

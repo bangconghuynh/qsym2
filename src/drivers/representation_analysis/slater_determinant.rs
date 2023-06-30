@@ -43,8 +43,12 @@ mod slater_determinant_tests;
 // Parameters
 // ----------
 
-const fn default_true() -> bool { true }
-const fn default_symbolic() -> Option<CharacterTableDisplay> { Some(CharacterTableDisplay::Symbolic) }
+const fn default_true() -> bool {
+    true
+}
+const fn default_symbolic() -> Option<CharacterTableDisplay> {
+    Some(CharacterTableDisplay::Symbolic)
+}
 
 /// A structure containing control parameters for Slater determinant representation analysis.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
@@ -365,6 +369,21 @@ where
     }
 }
 
+impl<'a, G, T> SlaterDeterminantRepAnalysisResult<'a, G, T>
+where
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: ComplexFloat + Lapack,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
+{
+    /// Returns the determinant symmetry obtained from the analysis result.
+    pub fn determinant_symmetry(
+        &self,
+    ) -> &Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String> {
+        &self.determinant_symmetry
+    }
+}
+
 // ------
 // Driver
 // ------
@@ -545,29 +564,23 @@ where
             match chartab_display {
                 CharacterTableDisplay::Symbolic => {
                     group.character_table().log_output_debug();
-                    log::info!(
-                        target: "qsym2-output",
-                        "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
-                        En = exp(2πi/n)"
-                    );
+                    "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
+                    En = exp(2πi/n)".log_output_display();
                 }
                 CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
             }
             log::info!(target: "qsym2-output", "");
-            log::info!(
-                target: "qsym2-output",
-                "Note 1: `FS` contains the classification of the irreps using the Frobenius--Schur indicator:\n  \
-                `r` = real: the irrep and its complex-conjugate partner are real and identical,\n  \
-                `c` = complex: the irrep and its complex-conjugate partner are complex and inequivalent,\n  \
-                `q` = quaternion: the irrep and its complex-conjugate partner are complex and equivalent.\n\n\
-                Note 2: The conjugacy classes are sorted according to the following order:\n  \
-                E -> C_n (n descending) -> C2 -> i -> S_n (n decending) -> σ\n  \
-                Within each order and power, elements with axes close to Cartesian axes are put first.\n  \
-                Within each equi-inclination from Cartesian axes, z-inclined axes are put first, then y, then x.\n\n\
-                Note 3: The Mulliken labels generated for the irreps in the table above are internally consistent.\n  \
-                However, certain labels might differ from those tabulated elsewhere using other conventions.\n  \
-                If need be, please check with other literature to ensure external consistency."
-            );
+            "Note 1: `FS` contains the classification of the irreps using the Frobenius--Schur indicator:\n  \
+            `r` = real: the irrep and its complex-conjugate partner are real and identical,\n  \
+            `c` = complex: the irrep and its complex-conjugate partner are complex and inequivalent,\n  \
+            `q` = quaternion: the irrep and its complex-conjugate partner are complex and equivalent.\n\n\
+            Note 2: The conjugacy classes are sorted according to the following order:\n  \
+            E -> C_n (n descending) -> C2 -> i -> S_n (n decending) -> σ\n  \
+            Within each order and power, elements with axes close to Cartesian axes are put first.\n  \
+            Within each equi-inclination from Cartesian axes, z-inclined axes are put first, then y, then x.\n\n\
+            Note 3: The Mulliken labels generated for the irreps in the table above are internally consistent.\n  \
+            However, certain labels might differ from those tabulated elsewhere using other conventions.\n  \
+            If need be, please check with other literature to ensure external consistency.".log_output_display();
             log::info!(target: "qsym2-output", "");
         }
         Ok(group)
@@ -820,30 +833,24 @@ where
             match chartab_display {
                 CharacterTableDisplay::Symbolic => {
                     group.character_table().log_output_debug();
-                    log::info!(
-                        target: "qsym2-output",
-                        "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
-                        En = exp(2πi/n)"
-                    );
+                    "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
+                    En = exp(2πi/n)".log_output_display();
                 }
                 CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
             }
             log::info!(target: "qsym2-output", "");
-            log::info!(
-                target: "qsym2-output",
-                "Note 1: The ircorep notation `D[Δ]` means that this ircorep is induced by the representation Δ\n  \
-                of the unitary halving subgroup. The exact nature of Δ determines the kind of D[Δ].\n\n\
-                Note 2: `IN` shows the intertwining numbers of the ircoreps which classify them into three kinds:\n  \
-                `1` = 1st kind: the ircorep is induced by a single irrep of the unitary halving subgroup once,\n  \
-                `4` = 2nd kind: the ircorep is induced by a single irrep of the unitary halving subgroup twice,\n  \
-                `2` = 3rd kind: the ircorep is induced by an irrep of the unitary halving subgroup and its Wigner conjugate.\n\n\
-                Note 3: Only unitary-represented elements are shown in the character table, as characters of\n  \
-                antiunitary-represented elements are not invariant under a change of basis.\n\n\
-                Refs:\n  \
-                Newmarch, J. D. & Golding, R. M. J. Math. Phys. 23, 695–704 (1982)\n  \
-                Bradley, C. J. & Davies, B. L. Rev. Mod. Phys. 40, 359–379 (1968)\n  \
-                Newmarch, J. D. J. Math. Phys. 24, 742–756 (1983)"
-            );
+            "Note 1: The ircorep notation `D[Δ]` means that this ircorep is induced by the representation Δ\n  \
+            of the unitary halving subgroup. The exact nature of Δ determines the kind of D[Δ].\n\n\
+            Note 2: `IN` shows the intertwining numbers of the ircoreps which classify them into three kinds:\n  \
+            `1` = 1st kind: the ircorep is induced by a single irrep of the unitary halving subgroup once,\n  \
+            `4` = 2nd kind: the ircorep is induced by a single irrep of the unitary halving subgroup twice,\n  \
+            `2` = 3rd kind: the ircorep is induced by an irrep of the unitary halving subgroup and its Wigner conjugate.\n\n\
+            Note 3: Only unitary-represented elements are shown in the character table, as characters of\n  \
+            antiunitary-represented elements are not invariant under a change of basis.\n\n\
+            Refs:\n  \
+            Newmarch, J. D. & Golding, R. M. J. Math. Phys. 23, 695–704 (1982)\n  \
+            Bradley, C. J. & Davies, B. L. Rev. Mod. Phys. 40, 359–379 (1968)\n  \
+            Newmarch, J. D. J. Math. Phys. 24, 742–756 (1983)".log_output_display();
             log::info!(target: "qsym2-output", "");
         }
 

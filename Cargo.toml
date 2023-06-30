@@ -17,6 +17,8 @@ divisors = "0.2.1"
 env_logger = "0.10.0"
 factorial = "0.3.0"
 fraction = { version = "0.13.1", features = ["with-serde-support"] }
+hdf5 = { version = "0.8.1", optional = true }
+hdf5-sys = {version = "0.8.1", features = ["static"], optional = true }
 itertools = "0.10.3"
 indexmap = { version = "1.9.1", features = ["rayon", "serde"] }
 lazy_static = "1.4.0"
@@ -48,12 +50,13 @@ serde-inline-default = "0.1.1"
 serde_yaml = "0.9.22"
 
 [features]
-openblas-static = ["ndarray-linalg/openblas-static"]
 intel-mkl-static = ["ndarray-linalg/intel-mkl-static"]
-netlib-static = ["ndarray-linalg/netlib-static"]
-openblas-system = ["ndarray-linalg/openblas-system"]
 intel-mkl-system = ["ndarray-linalg/intel-mkl-system"]
+netlib-static = ["ndarray-linalg/netlib-static"]
 netlib-system = ["ndarray-linalg/netlib-system"]
+openblas-static = ["ndarray-linalg/openblas-static"]
+openblas-system = ["ndarray-linalg/openblas-system"]
+qchem = ["dep:hdf5", "dep:hdf5-sys"]
 
 [package.metadata.docs.rs]
 rustdoc-args = [

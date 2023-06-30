@@ -36,12 +36,9 @@ impl fmt::Display for CharacterTableDisplay {
 fn log_bao(bao: &BasisAngularOrder) {
     log_subtitle("Basis angular order");
     log::info!(target: "qsym2-output", "");
-    log::info!(
-        target: "qsym2-output",
-        "The basis angular order information dictates how basis functions in each basis shell are transformed.\n\
-        It is important to check that this is consistent with the basis set being used, otherwise incorrect\n\
-        symmetry results will be obtained."
-    );
+    "The basis angular order information dictates how basis functions in each basis shell are transformed.\n\
+    It is important to check that this is consistent with the basis set being used, otherwise incorrect\n\
+    symmetry results will be obtained.".log_output_display();
     bao.log_output_display();
     log::info!(target: "qsym2-output", "");
 }

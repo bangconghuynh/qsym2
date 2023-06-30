@@ -506,6 +506,15 @@ where
         &self,
         symop: &SymmetryOperation,
     ) -> Result<Permutation<usize>, TransformationError> {
+        if (symop.generating_element.threshold().log10() - self.mol.threshold.log10()).abs() >= 3.0
+        {
+            log::warn!(
+                "Symmetry operation threshold ({:.3e}) and molecule threshold ({:.3e}) \
+                differ by more than three orders of magnitudes.",
+                symop.generating_element.threshold(),
+                self.mol.threshold
+            )
+        }
         symop
             .act_permute(&self.mol.molecule_ordinary_atoms())
             .ok_or(TransformationError(format!(

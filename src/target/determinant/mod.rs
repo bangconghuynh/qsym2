@@ -159,6 +159,11 @@ where
         SlaterDeterminantBuilder::default()
     }
 
+    /// Returns the complex-symmetric flag of the determinant.
+    pub fn complex_symmetric(&self) -> bool {
+        self.complex_symmetric
+    }
+
     /// Returns the spin constraint imposed on the coefficients.
     pub fn spin_constraint(&self) -> &SpinConstraint {
         &self.spin_constraint
