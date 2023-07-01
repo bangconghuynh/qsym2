@@ -37,7 +37,7 @@ tarpaulin:
   before_script:
     - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin"
     - apt-get update
-    - apt-get install gfortran build-essential -y
+    - apt-get install gfortran build-essential cmake -y
   script:
     - cargo install cargo-tarpaulin
     - cargo tarpaulin -t 1800 --release --workspace --engine llvm --skip-clean --no-dead-code --features standard --color always
