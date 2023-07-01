@@ -225,11 +225,23 @@ impl Default for InputBasisAngularOrder {
         Self(vec![
             InputBasisAtom::builder()
                 .atom((0, "H".to_string()))
-                .basis_shells(vec![InputBasisShell::builder()
-                    .l(0)
-                    .shell_order(InputShellOrder::PureIncreasingm)
-                    .build()
-                    .expect("Unable to construct a default input basis shell.")])
+                .basis_shells(vec![
+                    InputBasisShell::builder()
+                        .l(0)
+                        .shell_order(InputShellOrder::PureIncreasingm)
+                        .build()
+                        .expect("Unable to construct a default input basis shell."),
+                    InputBasisShell::builder()
+                        .l(1)
+                        .shell_order(InputShellOrder::PureDecreasingm)
+                        .build()
+                        .expect("Unable to construct a default input basis shell."),
+                    InputBasisShell::builder()
+                        .l(2)
+                        .shell_order(InputShellOrder::PureCustom(vec![0, 1, -1, 2, -2]))
+                        .build()
+                        .expect("Unable to construct a default input basis shell."),
+                ])
                 .build()
                 .expect("Unable to construct a default input basis atom."),
             InputBasisAtom::builder()
