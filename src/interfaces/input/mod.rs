@@ -6,8 +6,8 @@ use crate::io::QSym2FileType;
 
 use representation_analysis::RepAnalysisTarget;
 
-pub(crate) mod ao_basis;
-mod representation_analysis;
+pub mod ao_basis;
+pub mod representation_analysis;
 
 // ===============
 // Driver controls
@@ -54,15 +54,6 @@ struct Input {
     symmetry_group_detection: Option<SymmetryGroupDetectionInputKind>,
 
     representation_analysis_target: Option<RepAnalysisTarget>,
-    ///// Specification for Slater determinant representation analysis. If `None`, no Slater
-    ///// determinant representation analysis will be performed. If not `None`, then this specifies
-    ///// the parameters for Slater determinant representation analysis.
-    /////
-    ///// # Default
-    /////
-    ///// If not specified, this will be taken to be `None`.
-    //#[serde(default)]
-    //det_representation_analysis: Option<SlaterDeterminantRepAnalysisParams<f64>>,
 }
 
 impl Default for Input {

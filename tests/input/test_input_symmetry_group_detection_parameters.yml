@@ -15,9 +15,12 @@ symmetry_group_detection: !Parameters
   # result_save_name: null
 
 representation_analysis_target: !SlaterDeterminant
-  source: !QChemScratch
-    scratch_path: test_scratch_path
-    fchk_path: test_fchk_path
+  source: !Custom
+    bao:
+    - atom: [0, "H"]
+      basis_shells:
+      - l: 0
+        shell_order: !PureIncreasingm
   control:
     integrality_threshold: 1e-8
     linear_independence_threshold: 1e-7

@@ -13,9 +13,17 @@ use crate::aux::molecule::Molecule;
 /// a shell and how they are ordered.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) enum InputShellOrder {
-    /// This variant indicates that the angular functions are real solid harmonics. The associated
-    /// value is a flag indicating if the functions are arranged in increasing $`m`$ order.
-    Pure(bool),
+    /// This variant indicates that the angular functions are real solid harmonics arranged in
+    /// increasing $`m`$ order.
+    PureIncreasingm,
+
+    /// This variant indicates that the angular functions are real solid harmonics arranged in
+    /// decreasing $`m`$ order.
+    PureDecreasingm,
+
+    /// This variant indicates that the angular functions are real solid harmonics arranged in
+    /// a custom order specified by the $`m_l`$ values.
+    PureCustom(Vec<i32>),
 
     /// This variant indicates that the angular functions are Cartesian functions arranged in
     /// lexicographic order.
@@ -34,12 +42,10 @@ impl InputShellOrder {
     /// Converts the [`InputShellOrder`] to a corresponding [`ShellOrder`].
     fn to_shell_order(&self, l: u32) -> ShellOrder {
         match self {
-            InputShellOrder::Pure(increasing_m) => {
-                if *increasing_m {
-                    ShellOrder::Pure(PureOrder::increasingm(l))
-                } else {
-                    ShellOrder::Pure(PureOrder::decreasingm(l))
-                }
+            InputShellOrder::PureIncreasingm => ShellOrder::Pure(PureOrder::increasingm(l)),
+            InputShellOrder::PureDecreasingm => ShellOrder::Pure(PureOrder::decreasingm(l)),
+            InputShellOrder::PureCustom(mls) => {
+                ShellOrder::Pure(PureOrder::new(mls).expect("Invalid ml sequence specified."))
             }
             InputShellOrder::CartLexicographic => ShellOrder::Cart(CartOrder::lex(l)),
             InputShellOrder::CartQChem => ShellOrder::Cart(CartOrder::qchem(l)),
@@ -74,7 +80,9 @@ impl InputBasisShell {
     fn n_funcs(&self) -> usize {
         let lsize = self.l as usize;
         match self.shell_order {
-            InputShellOrder::Pure(_) => 2 * lsize + 1,
+            InputShellOrder::PureIncreasingm
+            | InputShellOrder::PureDecreasingm
+            | InputShellOrder::PureCustom(_) => 2 * lsize + 1,
             InputShellOrder::CartQChem
             | InputShellOrder::CartLexicographic
             | InputShellOrder::CartCustom(_) => ((lsize + 1) * (lsize + 2)).div_euclid(2),
@@ -168,7 +176,7 @@ impl InputBasisAtom {
 /// The associated anonymous field is an ordered sequence of [`InputBasisAtom`] in the order the
 /// atoms are defined in the molecule.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub(crate) struct InputBasisAngularOrder(pub(crate) Vec<InputBasisAtom>);
+pub struct InputBasisAngularOrder(pub(crate) Vec<InputBasisAtom>);
 
 impl InputBasisAngularOrder {
     /// Returns the number of basis functions in this basis set.
@@ -209,5 +217,46 @@ impl InputBasisAngularOrder {
             .basis_atoms(&basis_atoms)
             .build()
             .map_err(|err| format_err!(err))
+    }
+}
+
+impl Default for InputBasisAngularOrder {
+    fn default() -> Self {
+        Self(vec![
+            InputBasisAtom::builder()
+                .atom((0, "H".to_string()))
+                .basis_shells(vec![InputBasisShell::builder()
+                    .l(0)
+                    .shell_order(InputShellOrder::PureIncreasingm)
+                    .build()
+                    .expect("Unable to construct a default input basis shell.")])
+                .build()
+                .expect("Unable to construct a default input basis atom."),
+            InputBasisAtom::builder()
+                .atom((1, "O".to_string()))
+                .basis_shells(vec![
+                    InputBasisShell::builder()
+                        .l(1)
+                        .shell_order(InputShellOrder::CartCustom(vec![
+                            (0, 1, 0),
+                            (1, 0, 0),
+                            (0, 0, 1),
+                        ]))
+                        .build()
+                        .expect("Unable to construct a default input basis shell."),
+                    InputBasisShell::builder()
+                        .l(2)
+                        .shell_order(InputShellOrder::CartQChem)
+                        .build()
+                        .expect("Unable to construct a default input basis shell."),
+                    InputBasisShell::builder()
+                        .l(3)
+                        .shell_order(InputShellOrder::CartLexicographic)
+                        .build()
+                        .expect("Unable to construct a default input basis shell."),
+                ])
+                .build()
+                .expect("Unable to construct a default input basis atom."),
+        ])
     }
 }

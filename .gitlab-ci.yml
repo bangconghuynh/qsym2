@@ -22,9 +22,9 @@ check:
   before_script:
     - export RUSTFLAGS="-Cdebuginfo=2 --cfg=tarpaulin"
     - apt-get update
-    - apt-get install gfortran build-essential -y
+    - apt-get install gfortran build-essential cmake -y
   script:
-    - cargo check --release --verbose --features openblas-static --color always
+    - cargo check --release --verbose --features standard --color always
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

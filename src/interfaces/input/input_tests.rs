@@ -1,11 +1,9 @@
 use nalgebra::{Point3, Vector3};
 
-use crate::aux::molecule::Molecule;
 use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::io::read_qsym2_yaml;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
-use super::representation_analysis::SlaterDeterminantSource;
 use super::{Input, RepAnalysisTarget, SymmetryGroupDetectionInputKind};
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
@@ -98,6 +96,9 @@ fn test_interfaces_input_symmetry_group_detection_fromfile() {
 
 #[test]
 fn test_interfaces_input_bao() {
+    use crate::aux::molecule::Molecule;
+    use super::representation_analysis::SlaterDeterminantSource;
+
     let name = format!("{ROOT}/tests/input/test_input_bao.yml");
     let xyz = format!("{ROOT}/tests/xyz/water.xyz");
     let inp = read_qsym2_yaml::<Input>(&name).unwrap();
@@ -106,11 +107,9 @@ fn test_interfaces_input_bao() {
     if let RepAnalysisTarget::SlaterDeterminant(sd_control) =
         inp.representation_analysis_target.unwrap()
     {
-        if let SlaterDeterminantSource::QChemScratch(qc_source) = sd_control.source {
-            assert_eq!(qc_source.scratch_path, "test_scratch_path");
-            assert_eq!(qc_source.fchk_path, "test_fchk_path");
-            let bao = qc_source.bao.unwrap().to_basis_angular_order(&mol).unwrap();
-            assert_eq!(bao.n_funcs(), 34);
+        if let SlaterDeterminantSource::Custom(custom_source) = sd_control.source {
+            let bao = custom_source.bao.to_basis_angular_order(&mol).unwrap();
+            assert_eq!(bao.n_funcs(), 41);
             assert_eq!(
                 bao.basis_shells().skip(3).next().unwrap().shell_order.to_string(),
                 "Cart (xxx, xxy, xyy, yyy, xxz, xyz, yyz, xzz, yzz, zzz)"
@@ -122,6 +121,10 @@ fn test_interfaces_input_bao() {
             assert_eq!(
                 bao.basis_shells().skip(7).next().unwrap().shell_order.to_string(),
                 "Cart (xx, xy, xz, yy, yz, zz)"
+            );
+            assert_eq!(
+                bao.basis_shells().skip(8).next().unwrap().shell_order.to_string(),
+                "Pure (0, 1, -1, 2, -2, 3, -3)"
             );
         } else {
             assert!(false);

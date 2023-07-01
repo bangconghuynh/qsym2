@@ -59,6 +59,8 @@ openblas-static = ["ndarray-linalg/openblas-static"]
 openblas-system = ["ndarray-linalg/openblas-system"]
 qchem = ["dep:hdf5", "dep:hdf5-sys"]
 
+standard = ["openblas-static", "qchem"]
+
 [package.metadata.docs.rs]
 rustdoc-args = [
   "--html-in-header",
