@@ -10,6 +10,7 @@ use ndarray::{Array1, Array2, Axis, Ix3};
 use ndarray_linalg::types::Lapack;
 use num_complex::ComplexFloat;
 use num_traits::{One, Zero};
+use numeric_sort;
 use periodic_table::periodic_table;
 use regex::Regex;
 
@@ -17,6 +18,7 @@ use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::ao_basis::*;
 use crate::aux::atom::{Atom, ElementMap};
+use crate::aux::format::{log_macsec_begin, log_macsec_end};
 use crate::aux::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -103,7 +105,7 @@ where
 impl<'a> QChemH5Driver<'a, f64> {
     /// Performs analysis for all real-valued single-point determinants.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
-        let sp_paths = self
+        let mut sp_paths = self
             .f
             .group(".counters")?
             .member_names()?
@@ -117,6 +119,7 @@ impl<'a> QChemH5Driver<'a, f64> {
                 }
             })
             .collect::<Vec<_>>();
+        numeric_sort::sort(&mut sp_paths);
 
         let pd_params = self.symmetry_group_detection_parameters;
         let afa_params = self.angular_function_analysis_parameters;
@@ -124,7 +127,7 @@ impl<'a> QChemH5Driver<'a, f64> {
         let result = sp_paths
             .iter()
             .map(|sp_path| {
-                log::info!(target: "qsym2-output", ">>>>> Beginning of analysis for {sp_path}.");
+                log_macsec_begin(&format!("Analysis for {sp_path}"));
                 log::info!(target: "qsym2-output", "");
                 let sp = self.f.group(sp_path)?;
                 let sp_driver_result = if sda_params.use_magnetic_group {
@@ -166,7 +169,7 @@ impl<'a> QChemH5Driver<'a, f64> {
                     })
                 };
                 log::info!(target: "qsym2-output", "");
-                log::info!(target: "qsym2-output", "<<<<< End of analysis for {sp_path}.");
+                log_macsec_end(&format!("Analysis for {sp_path}"));
                 log::info!(target: "qsym2-output", "");
                 sp_driver_result
             })
@@ -177,6 +180,49 @@ impl<'a> QChemH5Driver<'a, f64> {
                 ))
             })
             .collect::<Vec<_>>();
+
+        log_macsec_begin("Q-Chem HDF5 Archive Summary");
+        log::info!(target: "qsym2-output", "");
+        let path_length = sp_paths
+            .iter()
+            .map(|path| path.chars().count())
+            .max()
+            .unwrap_or(18)
+            .max(18);
+        let group_length = result
+            .iter()
+            .map(|(group, _)| group.chars().count())
+            .max()
+            .unwrap_or(5)
+            .max(5);
+        let sym_length = result
+            .iter()
+            .map(|(_, sym)| sym.chars().count())
+            .max()
+            .unwrap_or(13)
+            .max(13);
+        let table_width = path_length + group_length + sym_length + 6;
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(table_width));
+        log::info!(
+            target: "qsym2-output",
+            " {:<path_length$}  {:<group_length$}  {:<}",
+            "Single-point calc.", "Group", "Det. symmetry"
+        );
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(table_width));
+        sp_paths
+            .iter()
+            .zip(result.iter())
+            .for_each(|(path, (group, sym))| {
+                log::info!(
+                    target: "qsym2-output",
+                    " {:<path_length$}  {:<group_length$}  {:<}",
+                    path, group, sym
+                );
+            });
+        log::info!(target: "qsym2-output", "{}", "┈".repeat(table_width));
+        log::info!(target: "qsym2-output", "");
+        log_macsec_end("Q-Chem HDF5 Archive Summary");
+
         self.result = Some(result);
         Ok(())
     }

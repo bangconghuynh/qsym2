@@ -37,7 +37,7 @@ fn test_interfaces_qchem_hdf5_sp_vf63m_ms1() {
 
 #[test]
 fn test_interfaces_qchem_hdf5_sp_vf63m_sym() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let name = format!("{ROOT}/tests/qchem/vf63m_sym.qarchive.h5");
     let f = hdf5::File::open(&name).unwrap();
     let sp = f.group("job/1/sp").unwrap();
@@ -87,7 +87,7 @@ fn test_interfaces_qchem_hdf5_sp_o2_ms0_zero_field() {
 
 #[test]
 fn test_interfaces_qchem_hdf5_sp_o2_ms0_perpendicular_magnetic_field() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let name = format!("{ROOT}/tests/qchem/o2_ms0.qarchive.h5");
     let f = hdf5::File::open(&name).unwrap();
     let sp = f.group("job/1/sp").unwrap();
@@ -132,7 +132,7 @@ fn test_interfaces_qchem_hdf5_sp_o2_ms0_perpendicular_magnetic_field() {
 
 #[test]
 fn test_interfaces_qchem_hdf5_sp_o3p_perpendicular_magnetic_field() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let name = format!("{ROOT}/tests/qchem/o3p.qarchive.h5");
     let f = hdf5::File::open(&name).unwrap();
     let sp = f.group("job/1/sp").unwrap();
@@ -176,8 +176,8 @@ fn test_interfaces_qchem_hdf5_sp_o3p_perpendicular_magnetic_field() {
 }
 
 #[test]
-fn test_interfaces_qchem_hdf5_full() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+fn test_interfaces_qchem_hdf5_geomopt() {
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let name = format!("{ROOT}/tests/qchem/geomopt.qarchive.h5");
     let f = hdf5::File::open(&name).unwrap();
     let pd_params = SymmetryGroupDetectionParams::default();
@@ -205,6 +205,48 @@ fn test_interfaces_qchem_hdf5_full() {
             ("C2v".to_string(), "|A|_(1)".to_string()),
             ("C2v".to_string(), "|A|_(1)".to_string()),
             ("C2v".to_string(), "|A|_(1)".to_string()),
+        ]
+    );
+}
+
+#[test]
+fn test_interfaces_qchem_hdf5_pcl5_geomopt_freq() {
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    let name = format!("{ROOT}/tests/qchem/pcl5_opt_freq.qarchive.h5");
+    let f = hdf5::File::open(&name).unwrap();
+    let pd_params = SymmetryGroupDetectionParams::default();
+    let mut afa_params = AngularFunctionRepAnalysisParams::default();
+    afa_params.linear_independence_threshold = 1e-3;
+    afa_params.integrality_threshold = 1e-5;
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::default();
+    let mut qchem_h5_driver = QChemH5Driver::<f64>::builder()
+        .f(&f)
+        .symmetry_group_detection_parameters(&pd_params)
+        .angular_function_analysis_parameters(&afa_params)
+        .slater_det_rep_analysis_parameters(&sda_params)
+        .build()
+        .unwrap();
+    assert!(qchem_h5_driver.run().is_ok());
+    let res = qchem_h5_driver.result().unwrap();
+    assert_eq!(
+        *res,
+        vec![
+            ("Cs".to_string(), "|A|^(')".to_string()),
+            ("C1".to_string(), "|A|".to_string()),
+            ("C1".to_string(), "|A|".to_string()),
+            ("C1".to_string(), "|A|".to_string()),
+            ("C1".to_string(), "|A|".to_string()),
+            ("C1".to_string(), "|A|".to_string()),
+            ("C1".to_string(), "|A|".to_string()),
+            ("C1".to_string(), "|A|".to_string()),
+            ("C1".to_string(), "|A|".to_string()),
+            ("C1".to_string(), "|A|".to_string()),
+            ("C2v".to_string(), "|A|_(1)".to_string()),
+            ("C1".to_string(), "|A|".to_string()),
+            ("D3h".to_string(), "|A|^(')_(1)".to_string()),
+            ("D3h".to_string(), "|A|^(')_(1)".to_string()),
+            ("D3h".to_string(), "|A|^(')_(1)".to_string()),
+            ("D3h".to_string(), "|A|^(')_(1)".to_string()),
         ]
     );
 }
