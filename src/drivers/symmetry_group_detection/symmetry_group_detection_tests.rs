@@ -1,5 +1,3 @@
-
-
 use nalgebra::{Point3, Vector3};
 
 use crate::drivers::symmetry_group_detection::{

@@ -38,6 +38,16 @@ pub(crate) fn log_subtitle(subtitle: &str) {
     log::info!(target: "qsym2-output", "{}", bar);
 }
 
+/// Logs a nicely formatted macro-section beginning to the `qsym2-output` logger.
+pub(crate) fn log_macsec_begin(sectitle: &str) {
+    log::info!(target: "qsym2-output", "<<<<< [Begin] {sectitle}");
+}
+
+/// Logs a nicely formatted macro-section ending to the `qsym2-output` logger.
+pub(crate) fn log_macsec_end(sectitle: &str) {
+    log::info!(target: "qsym2-output", ">>>>> [End] {sectitle}");
+}
+
 /// Turns a boolean into a string of `yes` or `no`.
 pub(crate) fn nice_bool(b: bool) -> String {
     if b { "yes".to_string() } else { "no".to_string() }

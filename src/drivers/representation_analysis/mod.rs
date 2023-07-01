@@ -1,5 +1,7 @@
 use std::fmt;
 
+use serde::{Deserialize, Serialize};
+
 use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::format::{log_subtitle, QSym2Output};
 use crate::group::class::ClassPropertiesSummary;
@@ -8,7 +10,7 @@ pub mod slater_determinant;
 pub mod angular_function;
 
 /// An enumerated type indicating the format of character table print-out.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum CharacterTableDisplay {
     /// Prints the character table symbolically showing explicitly the roots of unity.
     Symbolic,
@@ -34,12 +36,9 @@ impl fmt::Display for CharacterTableDisplay {
 fn log_bao(bao: &BasisAngularOrder) {
     log_subtitle("Basis angular order");
     log::info!(target: "qsym2-output", "");
-    log::info!(
-        target: "qsym2-output",
-        "The basis angular order information dictates how basis functions in each basis shell are transformed.\n\
-        It is important to check that this is consistent with the basis set being used, otherwise incorrect\n\
-        symmetry results will be obtained."
-    );
+    "The basis angular order information dictates how basis functions in each basis shell are transformed.\n\
+    It is important to check that this is consistent with the basis set being used, otherwise incorrect\n\
+    symmetry results will be obtained.".log_output_display();
     bao.log_output_display();
     log::info!(target: "qsym2-output", "");
 }

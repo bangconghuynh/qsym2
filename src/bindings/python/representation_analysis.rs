@@ -19,7 +19,7 @@ use crate::drivers::representation_analysis::slater_determinant::{
 use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
-use crate::io::{read_qsym2, QSym2FileType};
+use crate::io::{read_qsym2_binary, QSym2FileType};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
@@ -601,7 +601,7 @@ pub fn rep_analyse_slater_determinant(
     angular_function_linear_independence_threshold: f64,
     angular_function_max_angular_momentum: u32,
 ) -> PyResult<()> {
-    let pd_res: SymmetryGroupDetectionResult = read_qsym2(&inp_sym, QSym2FileType::Sym)
+    let pd_res: SymmetryGroupDetectionResult = read_qsym2_binary(&inp_sym, QSym2FileType::Sym)
         .map_err(|err| PyIOError::new_err(err.to_string()))?;
     let mol = &pd_res.pre_symmetry.recentred_molecule;
     let bao = pybao
@@ -691,7 +691,7 @@ pub fn rep_analyse_slater_determinant(
             };
             let det_c: SlaterDeterminant<C128> = det_r.into();
             let sao_spatial_c = pysao_c.to_owned_array();
-            let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+            let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
                 .integrality_threshold(integrality_threshold)
                 .linear_independence_threshold(linear_independence_threshold)
                 .use_magnetic_group(use_magnetic_group)
@@ -754,7 +754,7 @@ pub fn rep_analyse_slater_determinant(
                 PySAO::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
                 PySAO::Complex(pysao_c) => pysao_c.to_owned_array(),
             };
-            let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+            let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
                 .integrality_threshold(integrality_threshold)
                 .linear_independence_threshold(linear_independence_threshold)
                 .use_magnetic_group(use_magnetic_group)

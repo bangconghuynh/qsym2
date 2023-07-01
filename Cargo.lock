@@ -112,6 +112,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bddcadddf5e9015d310179a59bb28c4d4b9920ad0f11e8e14dbadf654890c9a6"
 
 [[package]]
+name = "ascii"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d92bec98840b8f03a5ff5413de5293bfcd8bf96467cf5452609f939ec6f5de16"
+
+[[package]]
 name = "askama"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -639,6 +645,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "equivalent"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88bffebc5d80432c9b140ee17875ff173a8ab62faad5b257da912bd2f6c1c0a1"
+
+[[package]]
 name = "errno"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -794,6 +806,78 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
 
 [[package]]
+name = "hashbrown"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c6201b9ff9fd90a5a3bac2e56a830d0caa509576f0e503818ee82c181b3437a"
+
+[[package]]
+name = "hdf5"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bdcd9b131fd67bb827b386d0dc63d3e74196a14616ef800acf87ca5fef741a10"
+dependencies = [
+ "bitflags",
+ "cfg-if",
+ "hdf5-derive",
+ "hdf5-sys",
+ "hdf5-types",
+ "lazy_static",
+ "libc",
+ "ndarray",
+ "parking_lot 0.11.2",
+ "paste",
+]
+
+[[package]]
+name = "hdf5-derive"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5a77ac6a41e6880594d506118c0b8bc665ec959fe4636e0c84809756d224820"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "hdf5-src"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e01493db39ddc0519cf2a83d620d2c037fee60f4fed724cb72dc23763f1727a8"
+dependencies = [
+ "cmake",
+]
+
+[[package]]
+name = "hdf5-sys"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4842d5980dc311a7c8933c7b45534fdae84df5ae7939a0ae8e449a56d4beb3d2"
+dependencies = [
+ "hdf5-src",
+ "libc",
+ "libloading",
+ "pkg-config",
+ "regex",
+ "serde",
+ "serde_derive",
+ "winreg",
+]
+
+[[package]]
+name = "hdf5-types"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b47268c0dfb499b1ffe5638b6e7694e7a87fe49fb92eca998a4346e5483e428f"
+dependencies = [
+ "ascii",
+ "cfg-if",
+ "hdf5-sys",
+ "libc",
+]
+
+[[package]]
 name = "hermit-abi"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -869,9 +953,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
- "hashbrown",
+ "hashbrown 0.12.3",
  "rayon",
  "serde",
+]
+
+[[package]]
+name = "indexmap"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5477fe2230a79769d8dc68e0eabf5437907c0457a5614a9e8dddb67f65eb65d"
+dependencies = [
+ "equivalent",
+ "hashbrown 0.14.0",
 ]
 
 [[package]]
@@ -1007,6 +1101,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f92be4933c13fd498862a9e02a3055f8a8d9c039ce33db97306fd5a6caa7f29b"
 
 [[package]]
+name = "libloading"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b67380fd3b2fbe7527a606e18729d21c6f3951633d0500574c4dc22d2d638b9f"
+dependencies = [
+ "cfg-if",
+ "winapi",
+]
+
+[[package]]
 name = "libm"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1064,11 +1168,11 @@ dependencies = [
  "libc",
  "log",
  "log-mdc",
- "parking_lot",
+ "parking_lot 0.12.1",
  "serde",
  "serde-value",
  "serde_json",
- "serde_yaml",
+ "serde_yaml 0.8.26",
  "thiserror",
  "thread-id",
  "typemap-ors",
@@ -1231,6 +1335,12 @@ checksum = "39f41f36bb4d46906d5a72da5b73a804d9de1a7282eb7c89617201acda7b8212"
 dependencies = [
  "cmake",
 ]
+
+[[package]]
+name = "no-std-compat"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b93853da6d84c2e3c7d730d6473e8817692dd89be387eb01b94d7f108ecb5b8c"
 
 [[package]]
 name = "nom"
@@ -1397,6 +1507,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "numeric-sort"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5f2c4adf593c928171160e2632096353bb0306d3c8447143861374d5e678e37"
+dependencies = [
+ "no-std-compat",
+]
+
+[[package]]
 name = "numpy"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1557,12 +1676,37 @@ dependencies = [
 
 [[package]]
 name = "parking_lot"
+version = "0.11.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d17b78036a60663b797adeaee46f5c9dfebb86948d1255007a1d6be0271ff99"
+dependencies = [
+ "instant",
+ "lock_api",
+ "parking_lot_core 0.8.6",
+]
+
+[[package]]
+name = "parking_lot"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3742b2c103b9f06bc9fff0a37ff4912935851bee6d36f3c02bcc755bcfec228f"
 dependencies = [
  "lock_api",
- "parking_lot_core",
+ "parking_lot_core 0.9.8",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.8.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60a2cfe6f0ad2bfc16aefa463b497d5c7a5ecd44a23efa72aa342d90177356dc"
+dependencies = [
+ "cfg-if",
+ "instant",
+ "libc",
+ "redox_syscall 0.2.16",
+ "smallvec",
+ "winapi",
 ]
 
 [[package]]
@@ -1751,7 +1895,7 @@ dependencies = [
  "libc",
  "memoffset",
  "num-complex 0.4.3",
- "parking_lot",
+ "parking_lot 0.12.1",
  "pyo3-build-config",
  "pyo3-ffi",
  "pyo3-macros",
@@ -1827,8 +1971,11 @@ dependencies = [
  "env_logger",
  "factorial",
  "fraction",
- "indexmap",
+ "hdf5",
+ "hdf5-sys",
+ "indexmap 1.9.3",
  "itertools",
+ "lazy_static",
  "log",
  "log4rs",
  "nalgebra",
@@ -1840,6 +1987,7 @@ dependencies = [
  "num-modular",
  "num-ord",
  "num-traits",
+ "numeric-sort",
  "numpy",
  "openssl",
  "ordered-float 3.7.0",
@@ -1853,6 +2001,8 @@ dependencies = [
  "rayon",
  "regex",
  "serde",
+ "serde-inline-default",
+ "serde_yaml 0.9.22",
 ]
 
 [[package]]
@@ -2167,6 +2317,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde-inline-default"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa824cde50b5f01ff28a955114d8152a07cd62d81f53459dad0f2610136be844"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "serde-value"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2204,10 +2365,23 @@ version = "0.8.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "578a7433b776b56a35785ed5ce9a7e777ac0598aac5a6dd1b4b18a307c7fc71b"
 dependencies = [
- "indexmap",
+ "indexmap 1.9.3",
  "ryu",
  "serde",
  "yaml-rust",
+]
+
+[[package]]
+name = "serde_yaml"
+version = "0.9.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "452e67b9c20c37fa79df53201dc03839651086ed9bbe92b3ca585ca9fdaa7d85"
+dependencies = [
+ "indexmap 2.0.0",
+ "itoa",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
 ]
 
 [[package]]
@@ -2457,6 +2631,12 @@ checksum = "e0a303d30665362d9680d7d91d78b23f5f899504d4f08b3c4cf08d055d87c0ad"
 dependencies = [
  "destructure_traitobject",
 ]
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1865806a559042e51ab5414598446a5871b561d21b6764f2eabb0dd481d880a6"
 
 [[package]]
 name = "untrusted"
@@ -2798,6 +2978,16 @@ name = "windows_x86_64_msvc"
 version = "0.48.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a515f5799fe4961cb532f983ce2b23082366b898e52ffbce459c86f67c8378a"
+
+[[package]]
+name = "winreg"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80d0f4e272c85def139476380b12f9ac60926689dd2e01d4923222f40580869d"
+dependencies = [
+ "serde",
+ "winapi",
+]
 
 [[package]]
 name = "wyz"

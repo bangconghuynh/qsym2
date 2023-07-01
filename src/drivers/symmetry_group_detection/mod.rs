@@ -11,7 +11,7 @@ use crate::aux::atom::{Atom, AtomKind};
 use crate::aux::format::{log_subtitle, log_title, nice_bool, write_subtitle, QSym2Output};
 use crate::aux::molecule::Molecule;
 use crate::drivers::QSym2Driver;
-use crate::io::{write_qsym2, QSym2FileType};
+use crate::io::{write_qsym2_binary, QSym2FileType};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::{AntiunitaryKind, SymmetryElementKind};
 
@@ -27,18 +27,26 @@ mod symmetry_group_detection_tests;
 // Parameters
 // ----------
 
+fn default_thresholds() -> Vec<f64> {
+    vec![1.0e-4, 1.0e-5, 1.0e-6]
+}
+
 /// A structure containing control parameters for symmetry-group detection.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct SymmetryGroupDetectionParams {
     /// Thresholds for moment-of-inertia comparisons.
     #[builder(setter(custom), default = "vec![1.0e-4, 1.0e-5, 1.0e-6]")]
+    #[serde(default = "default_thresholds")]
     pub moi_thresholds: Vec<f64>,
 
     /// Thresholds for distance and geometry comparisons.
     #[builder(setter(custom), default = "vec![1.0e-4, 1.0e-5, 1.0e-6]")]
+    #[serde(default = "default_thresholds")]
     pub distance_thresholds: Vec<f64>,
 
     /// Boolean indicating if time reversal is to be taken into account.
+    #[builder(default = "false")]
+    #[serde(default)]
     pub time_reversal: bool,
 
     /// Fictitious magnetic fields to be added to the system. Each magnetic field is specified by an
@@ -46,28 +54,33 @@ pub struct SymmetryGroupDetectionParams {
     /// will be added at $`\mathbf{O} + \mathbf{v}`$, and a `magnetic(-)` special atom will be
     /// added at $`\mathbf{O} - \mathbf{v}`$.
     #[builder(default = "None")]
+    #[serde(default)]
     pub fictitious_magnetic_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
     /// Fictitious electric fields to be added to the system. Each electric field is specified by an
     /// origin $`\mathbf{O}`$ and a vector $`\mathbf{v}`$, for which an `electric(+)` special atom
     /// will be added at $`\mathbf{O} + \mathbf{v}`$.
     #[builder(default = "None")]
+    #[serde(default)]
     pub fictitious_electric_fields: Option<Vec<(Point3<f64>, Vector3<f64>)>>,
 
     /// Boolean indicating if the origins specified in [`Self::fictitious_magnetic_fields`] and
     /// [`Self::fictitious_electric_fields`] are to be taken relative to the molecule's centre of
     /// mass rather than to the space-fixed origin.
     #[builder(default = "false")]
+    #[serde(default)]
     pub field_origin_com: bool,
 
     /// Boolean indicating if a summary of the located symmetry elements is to be written to the
     /// output file.
     #[builder(default = "false")]
+    #[serde(default)]
     pub write_symmetry_elements: bool,
 
     /// Optional name for saving the result as a binary file of type [`QSym2FileType::Sym`]. If
     /// `None`, the result will not be saved.
     #[builder(default = "None")]
+    #[serde(default)]
     pub result_save_name: Option<String>,
 }
 
@@ -87,6 +100,14 @@ impl SymmetryGroupDetectionParamsBuilder {
     pub fn distance_thresholds(&mut self, threshs: &[f64]) -> &mut Self {
         self.distance_thresholds = Some(threshs.to_vec());
         self
+    }
+}
+
+impl Default for SymmetryGroupDetectionParams {
+    fn default() -> Self {
+        Self::builder()
+            .build()
+            .expect("Unable to construct a default `SymmetryGroupDetectionParams`.")
     }
 }
 
@@ -609,7 +630,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
         if let Some(pd_res) = self.result.as_ref() {
             pd_res.log_output_display();
             if let Some(name) = params.result_save_name.as_ref() {
-                write_qsym2(name, QSym2FileType::Sym, pd_res)?;
+                write_qsym2_binary(name, QSym2FileType::Sym, pd_res)?;
                 log::info!(
                     target: "qsym2-output",
                     "Symmetry-group detection results saved as {name}{}.",
