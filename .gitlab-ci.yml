@@ -40,7 +40,7 @@ tarpaulin:
     - apt-get install gfortran build-essential -y
   script:
     - cargo install cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --skip-clean --no-dead-code --features openblas-static --color always
+    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --skip-clean --no-dead-code --features standard --color always
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
