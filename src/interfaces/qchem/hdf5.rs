@@ -51,21 +51,30 @@ lazy_static! {
 // Struct definition
 // ~~~~~~~~~~~~~~~~~
 
+/// A driver to perform symmetry-group detection and representation symmetry analysis for all
+/// discoverable single-point calculation data stored in a Q-Chem's `qarchive.h5` file.
 #[derive(Clone, Builder)]
 struct QChemH5Driver<'a, T>
 where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
+    /// The `qarchive.h5` file.
     f: &'a hdf5::File,
 
+    /// The parameters controlling symmetry-group detection.
     symmetry_group_detection_parameters: &'a SymmetryGroupDetectionParams,
 
+    /// The parameters controlling representation analysis of standard angular functions.
     angular_function_analysis_parameters: &'a AngularFunctionRepAnalysisParams,
 
+    /// The parameters controlling representation analysis of Slater determinants.
     slater_det_rep_analysis_parameters:
         &'a SlaterDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
+    /// The simplified result of the analysis. Each element in the vector is a tuple containing the
+    /// group name and the representation symmetry of the Slater determinant for one single-point
+    /// calculation.
     #[builder(default = "None")]
     result: Option<Vec<(String, String)>>,
 }
@@ -82,6 +91,7 @@ where
     T: ComplexFloat + Lapack + H5Type,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
+    /// Returns a builder to construct a [`QChemH5Driver`].
     fn builder() -> QChemH5DriverBuilder<'a, T> {
         QChemH5DriverBuilder::default()
     }
@@ -91,6 +101,7 @@ where
 // '''''''''''''''''''''''''''''''''''''''''
 
 impl<'a> QChemH5Driver<'a, f64> {
+    /// Performs analysis for all real-valued single-point determinants.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
         let sp_paths = self
             .f
@@ -193,6 +204,8 @@ impl<'a> QSym2Driver for QChemH5Driver<'a, f64> {
 // Struct definition
 // ~~~~~~~~~~~~~~~~~
 
+/// A driver to perform symmetry-group detection and representation analysis for a single-point
+/// calculation result in a Q-Chem's `qarchive.h5` file.
 #[derive(Clone, Builder)]
 struct QChemH5SinglePointDriver<'a, G, T>
 where
@@ -201,15 +214,20 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
+    /// A H5 group containing data from a single-point calculation.
     sp_group: &'a hdf5::Group,
 
+    /// The parameters controlling symmetry-group detection.
     symmetry_group_detection_parameters: &'a SymmetryGroupDetectionParams,
 
+    /// The parameters controlling representation analysis of standard angular functions.
     angular_function_analysis_parameters: &'a AngularFunctionRepAnalysisParams,
 
+    /// The parameters controlling representation analysis of Slater determinants.
     slater_det_rep_analysis_parameters:
         &'a SlaterDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
+    /// The symmetry of the system and the representation of the Slater determinant.
     #[builder(default = "None")]
     result: Option<(
         Symmetry,
@@ -231,10 +249,12 @@ where
     T: ComplexFloat + Lapack + H5Type,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
+    /// Returns a builder to construct a [`QChemH5SinglePointDriver`].
     fn builder() -> QChemH5SinglePointDriverBuilder<'a, G, T> {
         QChemH5SinglePointDriverBuilder::default()
     }
 
+    /// Extracts the molecular structure from the single-point H5 group.
     fn extract_molecule(&self) -> Result<Molecule, anyhow::Error> {
         let emap = ElementMap::new();
         let coordss = self
@@ -267,6 +287,7 @@ where
         Ok(mol)
     }
 
+    /// Extracts the spatial atomic-orbital overlap matrix from the single-point H5 group.
     fn extract_sao(&self) -> Result<Array2<T>, anyhow::Error> {
         self.sp_group
             .dataset("aobasis/overlap_matrix")?
@@ -274,6 +295,7 @@ where
             .map_err(|err| err.into())
     }
 
+    /// Extracts the basis angular order information from the single-point H5 group.
     fn extract_bao(&self, mol: &'a Molecule) -> Result<BasisAngularOrder<'a>, anyhow::Error> {
         let shell_types = self
             .sp_group
@@ -346,6 +368,7 @@ where
         Ok(BasisAngularOrder::new(&batms))
     }
 
+    /// Extracts the Slater determinant from the single-point H5 group.
     fn extract_determinant(
         &self,
         mol: &'a Molecule,
@@ -466,6 +489,7 @@ where
 // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
+    /// Performs symmetry-group detection and unitary-represented representation analysis.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
         let mol = self.extract_molecule()?;
         let mut pd_driver = SymmetryGroupDetectionDriver::builder()
@@ -515,6 +539,7 @@ impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 impl<'a> QChemH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
+    /// Performs symmetry-group detection and magnetic-represented corepresentation analysis.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
         let mol = self.extract_molecule()?;
         let mut pd_driver = SymmetryGroupDetectionDriver::builder()
