@@ -7974,78 +7974,79 @@ fn test_chartab_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_bw_dnh_cnh(
 ///
 /// Panics when any expected condition is not fulfilled.
 fn verify_cnh(mol: &Molecule, thresh: f64, n: usize) {
-    let expected_irreps =
-        if n % 2 == 0 {
-            let mut irreps = vec![MullikenIrrepSymbol::new("||A|_(g)|").unwrap()];
-            if n == 4 {
-                irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ|_(g)|").unwrap());
-            } else {
-                irreps
-                    .extend((1..n.div_euclid(2)).map(|k| {
-                        MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({k}g)|")).unwrap()
-                    }));
-            }
-            irreps.push(MullikenIrrepSymbol::new("||B|_(g)|").unwrap());
-            if n == 4 {
-                irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ|_(g)|").unwrap());
-            } else {
-                irreps.extend(
-                    (1..n.div_euclid(2))
-                        .rev()
-                        .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({k}g)|")).unwrap()),
-                );
-            }
-            irreps.push(MullikenIrrepSymbol::new("||A|_(u)|").unwrap());
-            if n == 4 {
-                irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ|_(u)|").unwrap());
-            } else {
-                irreps
-                    .extend((1..n.div_euclid(2)).map(|k| {
-                        MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({k}u)|")).unwrap()
-                    }));
-            }
-            irreps.push(MullikenIrrepSymbol::new("||B|_(u)|").unwrap());
-            if n == 4 {
-                irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ|_(u)|").unwrap());
-            } else {
-                irreps.extend(
-                    (1..n.div_euclid(2))
-                        .rev()
-                        .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({k}u)|")).unwrap()),
-                );
-            }
-            irreps
+    let expected_irreps = if n % 2 == 0 {
+        let mut irreps = vec![MullikenIrrepSymbol::new("||A|_(g)|").unwrap()];
+        if n == 4 {
+            irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ|_(g)|").unwrap());
         } else {
-            let mut irreps = vec![MullikenIrrepSymbol::new("||A|^(')|").unwrap()];
-            if n == 3 {
-                irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ|^(')|").unwrap());
-                irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ|^(')|").unwrap());
-            } else {
-                irreps.extend(
-                    (1..=n.div_euclid(2)).map(|k| {
-                        MullikenIrrepSymbol::new(&format!("|_(a)|Γ|^(')_({k})|")).unwrap()
-                    }),
-                );
-                irreps.extend(
-                    (1..=n.div_euclid(2)).rev().map(|k| {
-                        MullikenIrrepSymbol::new(&format!("|_(b)|Γ|^(')_({k})|")).unwrap()
-                    }),
-                );
-            }
-            irreps.push(MullikenIrrepSymbol::new("||A|^('')|").unwrap());
-            if n == 3 {
-                irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ|^('')|").unwrap());
-                irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ|^('')|").unwrap());
-            } else {
-                irreps.extend((1..=n.div_euclid(2)).map(|k| {
-                    MullikenIrrepSymbol::new(&format!("|_(a)|Γ|^('')_({k})|")).unwrap()
-                }));
-                irreps.extend((1..=n.div_euclid(2)).rev().map(|k| {
-                    MullikenIrrepSymbol::new(&format!("|_(b)|Γ|^('')_({k})|")).unwrap()
-                }));
-            }
-            irreps
-        };
+            irreps.extend(
+                (1..n.div_euclid(2))
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({k}g)|")).unwrap()),
+            );
+        }
+        irreps.push(MullikenIrrepSymbol::new("||B|_(g)|").unwrap());
+        if n == 4 {
+            irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ|_(g)|").unwrap());
+        } else {
+            irreps.extend(
+                (1..n.div_euclid(2))
+                    .rev()
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({k}g)|")).unwrap()),
+            );
+        }
+        irreps.push(MullikenIrrepSymbol::new("||A|_(u)|").unwrap());
+        if n == 4 {
+            irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ|_(u)|").unwrap());
+        } else {
+            irreps.extend(
+                (1..n.div_euclid(2))
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|_({k}u)|")).unwrap()),
+            );
+        }
+        irreps.push(MullikenIrrepSymbol::new("||B|_(u)|").unwrap());
+        if n == 4 {
+            irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ|_(u)|").unwrap());
+        } else {
+            irreps.extend(
+                (1..n.div_euclid(2))
+                    .rev()
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|_({k}u)|")).unwrap()),
+            );
+        }
+        irreps
+    } else {
+        let mut irreps = vec![MullikenIrrepSymbol::new("||A|^(')|").unwrap()];
+        if n == 3 {
+            irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ|^(')|").unwrap());
+            irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ|^(')|").unwrap());
+        } else {
+            irreps.extend(
+                (1..=n.div_euclid(2))
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|^(')_({k})|")).unwrap()),
+            );
+            irreps.extend(
+                (1..=n.div_euclid(2))
+                    .rev()
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|^(')_({k})|")).unwrap()),
+            );
+        }
+        irreps.push(MullikenIrrepSymbol::new("||A|^('')|").unwrap());
+        if n == 3 {
+            irreps.push(MullikenIrrepSymbol::new("|_(a)|Γ|^('')|").unwrap());
+            irreps.push(MullikenIrrepSymbol::new("|_(b)|Γ|^('')|").unwrap());
+        } else {
+            irreps.extend(
+                (1..=n.div_euclid(2))
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(a)|Γ|^('')_({k})|")).unwrap()),
+            );
+            irreps.extend(
+                (1..=n.div_euclid(2))
+                    .rev()
+                    .map(|k| MullikenIrrepSymbol::new(&format!("|_(b)|Γ|^('')_({k})|")).unwrap()),
+            );
+        }
+        irreps
+    };
     test_chartab_ordinary_group(
         mol,
         thresh,

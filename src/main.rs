@@ -6,8 +6,8 @@ use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
-use qsym2::interfaces::cli::{log_heading, Cli};
 use qsym2::drivers::representation_analysis::CharacterTableDisplay;
+use qsym2::interfaces::cli::{log_heading, Cli};
 use qsym2::io::read_qsym2_yaml;
 
 use qsym2::interfaces::input::Input;

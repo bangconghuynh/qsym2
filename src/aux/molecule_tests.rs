@@ -292,16 +292,7 @@ fn test_molecule_get_perm_of() {
         ],
         1e-7,
     );
-    let mol4 = Molecule::from_atoms(
-        &[
-            atom_0p,
-            atom_1,
-            atom_4,
-            atom_3,
-            atom_2,
-        ],
-        1e-7,
-    );
+    let mol4 = Molecule::from_atoms(&[atom_0p, atom_1, atom_4, atom_3, atom_2], 1e-7);
 
     assert_eq!(
         mol1.get_perm_of(&mol2),
@@ -370,16 +361,7 @@ fn test_molecule_permute() {
             atom_2.clone(),
         ]
     );
-    assert_ne!(
-        mol3.atoms,
-        &[
-            atom_0,
-            atom_4,
-            atom_3,
-            atom_1,
-            atom_2,
-        ]
-    );
+    assert_ne!(mol3.atoms, &[atom_0, atom_4, atom_3, atom_1, atom_2,]);
 }
 
 #[test]
@@ -392,8 +374,12 @@ fn test_molecule_permute_with_special_atoms() {
     let atom_4 = Atom::from_xyz("H 0.0 -1.0 0.0", &emap, 1e-7).unwrap();
     let atom_b1 =
         Atom::new_special(AtomKind::Magnetic(true), Point3::new(0.1, 0.1, 0.1), 1e-7).unwrap();
-    let atom_b2 =
-        Atom::new_special(AtomKind::Magnetic(false), Point3::new(-0.1, -0.1, -0.1), 1e-7).unwrap();
+    let atom_b2 = Atom::new_special(
+        AtomKind::Magnetic(false),
+        Point3::new(-0.1, -0.1, -0.1),
+        1e-7,
+    )
+    .unwrap();
     let atom_e1 =
         Atom::new_special(AtomKind::Electric(true), Point3::new(0.0, 0.0, 0.1), 1e-7).unwrap();
     let atom_e2 =
@@ -426,17 +412,9 @@ fn test_molecule_permute_with_special_atoms() {
     );
     assert_eq!(
         mol2.magnetic_atoms.unwrap(),
-        &[
-            atom_b1.clone(),
-            atom_b2.clone(),
-        ]
+        &[atom_b1.clone(), atom_b2.clone(),]
     );
-    assert_eq!(
-        mol2.electric_atoms.unwrap(),
-        &[
-            atom_e1.clone(),
-        ]
-    );
+    assert_eq!(mol2.electric_atoms.unwrap(), &[atom_e1.clone(),]);
 
     let perm2 = Permutation::<usize>::from_image(vec![1, 4, 3, 0, 2, 6, 5, 7]);
     let mol3 = mol1.permute(&perm2);
@@ -450,19 +428,8 @@ fn test_molecule_permute_with_special_atoms() {
             atom_2.clone(),
         ]
     );
-    assert_eq!(
-        mol3.magnetic_atoms.unwrap(),
-        &[
-            atom_b2,
-            atom_b1,
-        ]
-    );
-    assert_eq!(
-        mol3.electric_atoms.unwrap(),
-        &[
-            atom_e1.clone(),
-        ]
-    );
+    assert_eq!(mol3.magnetic_atoms.unwrap(), &[atom_b2, atom_b1,]);
+    assert_eq!(mol3.electric_atoms.unwrap(), &[atom_e1.clone(),]);
 
     let mol4 = Molecule::from_atoms(
         &[
@@ -479,21 +446,6 @@ fn test_molecule_permute_with_special_atoms() {
 
     let perm3 = Permutation::<usize>::from_image(vec![0, 1, 3, 4, 2, 6, 5]);
     let mol5 = mol4.permute(&perm3);
-    assert_eq!(
-        mol5.atoms,
-        &[
-            atom_0,
-            atom_1,
-            atom_3,
-            atom_4,
-            atom_2,
-        ]
-    );
-    assert_eq!(
-        mol5.electric_atoms.unwrap(),
-        &[
-            atom_e2,
-            atom_e1,
-        ]
-    );
+    assert_eq!(mol5.atoms, &[atom_0, atom_1, atom_3, atom_4, atom_2,]);
+    assert_eq!(mol5.electric_atoms.unwrap(), &[atom_e2, atom_e1,]);
 }

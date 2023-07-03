@@ -96,8 +96,8 @@ fn test_interfaces_input_symmetry_group_detection_fromfile() {
 
 #[test]
 fn test_interfaces_input_bao() {
-    use crate::aux::molecule::Molecule;
     use super::representation_analysis::SlaterDeterminantSource;
+    use crate::aux::molecule::Molecule;
 
     let name = format!("{ROOT}/tests/input/test_input_bao.yml");
     let xyz = format!("{ROOT}/tests/xyz/water.xyz");
@@ -111,19 +111,39 @@ fn test_interfaces_input_bao() {
             let bao = custom_source.bao.to_basis_angular_order(&mol).unwrap();
             assert_eq!(bao.n_funcs(), 41);
             assert_eq!(
-                bao.basis_shells().skip(3).next().unwrap().shell_order.to_string(),
+                bao.basis_shells()
+                    .skip(3)
+                    .next()
+                    .unwrap()
+                    .shell_order
+                    .to_string(),
                 "Cart (xxx, xxy, xyy, yyy, xxz, xyz, yyz, xzz, yzz, zzz)"
             );
             assert_eq!(
-                bao.basis_shells().skip(5).next().unwrap().shell_order.to_string(),
+                bao.basis_shells()
+                    .skip(5)
+                    .next()
+                    .unwrap()
+                    .shell_order
+                    .to_string(),
                 "Cart (xx, xy, yy, xz, yz, zz)"
             );
             assert_eq!(
-                bao.basis_shells().skip(7).next().unwrap().shell_order.to_string(),
+                bao.basis_shells()
+                    .skip(7)
+                    .next()
+                    .unwrap()
+                    .shell_order
+                    .to_string(),
                 "Cart (xx, xy, xz, yy, yz, zz)"
             );
             assert_eq!(
-                bao.basis_shells().skip(8).next().unwrap().shell_order.to_string(),
+                bao.basis_shells()
+                    .skip(8)
+                    .next()
+                    .unwrap()
+                    .shell_order
+                    .to_string(),
                 "Pure (0, 1, -1, 2, -2, 3, -3)"
             );
         } else {

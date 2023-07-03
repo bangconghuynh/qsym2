@@ -26,16 +26,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
     let atm_h1 = Atom::from_xyz("H  0.4881263    0.8454595    0.2287327", &emap, 1e-6).unwrap();
     let atm_h2 = Atom::from_xyz("H -0.9762526    0.0000000    0.2287327", &emap, 1e-6).unwrap();
 
-    let mol_nh3 = Molecule::from_atoms(
-        &[
-            atm_n,
-            atm_h0,
-            atm_h1,
-            atm_h2,
-        ],
-        1e-6,
-    )
-    .recentre();
+    let mol_nh3 = Molecule::from_atoms(&[atm_n, atm_h0, atm_h1, atm_h2], 1e-6).recentre();
 
     let presym = PreSymmetry::builder()
         .moi_threshold(1e-6)
@@ -72,7 +63,8 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib1
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_nh3_spatial_vib1.analyse_rep().unwrap(),
@@ -105,7 +97,8 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib2
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_nh3_spatial_vib2.analyse_rep().unwrap(),
@@ -138,7 +131,8 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib3
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_nh3_spatial_vib3.analyse_rep().unwrap(),
@@ -171,7 +165,8 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib4
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_nh3_spatial_vib4.analyse_rep().unwrap(),
@@ -204,7 +199,8 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib5
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_nh3_spatial_vib5.analyse_rep().unwrap(),
@@ -237,7 +233,8 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib6
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_nh3_spatial_vib6.analyse_rep().unwrap(),
@@ -288,7 +285,8 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib1
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_ch4_spatial_vib1.analyse_rep().unwrap(),
@@ -322,7 +320,8 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib2
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_ch4_spatial_vib2.analyse_rep().unwrap(),
@@ -356,7 +355,8 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib3
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_ch4_spatial_vib3.analyse_rep().unwrap(),
@@ -390,7 +390,8 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib4
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_ch4_spatial_vib4.analyse_rep().unwrap(),
@@ -424,7 +425,8 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib5
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_ch4_spatial_vib5.analyse_rep().unwrap(),
@@ -458,7 +460,8 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib6
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_ch4_spatial_vib6.analyse_rep().unwrap(),
@@ -492,7 +495,8 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib7
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_ch4_spatial_vib7.analyse_rep().unwrap(),
@@ -526,7 +530,8 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib8
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_ch4_spatial_vib8.analyse_rep().unwrap(),
@@ -560,7 +565,8 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib9
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_ch4_spatial_vib9.analyse_rep().unwrap(),
@@ -618,7 +624,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib1
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_d4h_ch4_spatial_vib1.analyse_rep().unwrap(),
@@ -634,7 +641,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib1
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_c4h_ch4_spatial_vib1.analyse_rep().unwrap(),
@@ -668,7 +676,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib2
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_d4h_ch4_spatial_vib2.analyse_rep().unwrap(),
@@ -684,7 +693,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib2
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_c4h_ch4_spatial_vib2.analyse_rep().unwrap(),
@@ -718,7 +728,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib3
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_d4h_ch4_spatial_vib3.analyse_rep().unwrap(),
@@ -734,7 +745,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib3
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_c4h_ch4_spatial_vib3.analyse_rep().unwrap(),
@@ -768,7 +780,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib4
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_d4h_ch4_spatial_vib4.analyse_rep().unwrap(),
@@ -784,7 +797,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib4
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_c4h_ch4_spatial_vib4.analyse_rep().unwrap(),
@@ -818,7 +832,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib5
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_d4h_ch4_spatial_vib5.analyse_rep().unwrap(),
@@ -834,7 +849,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib5
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_c4h_ch4_spatial_vib5.analyse_rep().unwrap(),
@@ -868,7 +884,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib6
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_d4h_ch4_spatial_vib6.analyse_rep().unwrap(),
@@ -884,7 +901,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib6
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_c4h_ch4_spatial_vib6.analyse_rep().unwrap(),
@@ -918,7 +936,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib7
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_d4h_ch4_spatial_vib7.analyse_rep().unwrap(),
@@ -934,7 +953,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib7
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_c4h_ch4_spatial_vib7.analyse_rep().unwrap(),
@@ -968,7 +988,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib8
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_d4h_ch4_spatial_vib8.analyse_rep().unwrap(),
@@ -984,7 +1005,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib8
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_c4h_ch4_spatial_vib8.analyse_rep().unwrap(),
@@ -1018,7 +1040,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib9
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_d4h_ch4_spatial_vib9.analyse_rep().unwrap(),
@@ -1034,7 +1057,8 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib9
-        .calc_smat(None).unwrap()
+        .calc_smat(None)
+        .unwrap()
         .calc_xmat(false);
     assert_eq!(
         orbit_u_c4h_ch4_spatial_vib9.analyse_rep().unwrap(),

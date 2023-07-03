@@ -507,23 +507,21 @@ impl SymmetryOperation {
             -self.generating_element.threshold <= scalar_part
                 && scalar_part <= 1.0 + self.generating_element.threshold
         );
-        debug_assert!(
-            if approx::relative_eq!(
-                scalar_part,
-                0.0,
-                max_relative = c_self.generating_element.threshold,
-                epsilon = c_self.generating_element.threshold
-            ) {
-                c_self
-                    .positive_hemisphere
-                    .as_ref()
-                    .cloned()
-                    .unwrap_or_default()
-                    .check_positive_pole(&vector_part, c_self.generating_element.threshold)
-            } else {
-                true
-            },
-        );
+        debug_assert!(if approx::relative_eq!(
+            scalar_part,
+            0.0,
+            max_relative = c_self.generating_element.threshold,
+            epsilon = c_self.generating_element.threshold
+        ) {
+            c_self
+                .positive_hemisphere
+                .as_ref()
+                .cloned()
+                .unwrap_or_default()
+                .check_positive_pole(&vector_part, c_self.generating_element.threshold)
+        } else {
+            true
+        },);
 
         if self.is_su2_class_1() {
             (-scalar_part, -vector_part)
@@ -1647,9 +1645,7 @@ pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
                 .expect("The denominator of the total proper fraction cannot be extracted."),
         )
         .unwrap_or_else(|_| {
-            panic!(
-                "Unable to convert the denominator of `{total_proper_fraction:?}` to `i64`."
-            )
+            panic!("Unable to convert the denominator of `{total_proper_fraction:?}` to `i64`.")
         });
         let numer = i64::try_from(
             *total_proper_fraction
@@ -1657,9 +1653,7 @@ pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
                 .expect("The numerator of the total proper fraction cannot be extracted."),
         )
         .unwrap_or_else(|_| {
-            panic!(
-                "Unable to convert the numerator of `{total_proper_fraction:?}` to `i64`."
-            )
+            panic!("Unable to convert the numerator of `{total_proper_fraction:?}` to `i64`.")
         });
 
         let negative_rotation = !c_op

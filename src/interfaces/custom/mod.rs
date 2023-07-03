@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::interfaces::input::ao_basis::InputBasisAngularOrder;
 

@@ -611,10 +611,7 @@ impl<'a> QChemH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
                 pd_res.clone()
             }
             SymmetryGroupDetectionInputKind::FromFile(path) => {
-                read_qsym2_binary::<SymmetryGroupDetectionResult, _>(
-                    path,
-                    QSym2FileType::Sym,
-                )?
+                read_qsym2_binary::<SymmetryGroupDetectionResult, _>(path, QSym2FileType::Sym)?
             }
         };
         let recentred_mol = &pd_res.pre_symmetry.recentred_molecule;

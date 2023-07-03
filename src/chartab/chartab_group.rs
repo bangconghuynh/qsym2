@@ -517,8 +517,7 @@ where
             .collect::<Vec<_>>();
         let default_principal_classes = vec![self
             .get_cc_symbol_of_index(0)
-            .expect("No conjugacy class symbols found.")
-            ];
+            .expect("No conjugacy class symbols found.")];
 
         log::debug!("Computing the Frobenius--Schur indicators in GF({p})...");
         let group_order = class_sizes.iter().sum::<usize>();
@@ -592,7 +591,6 @@ where
                             );
                         panic!("Class symbol for conjugacy class `{i}` with representative element `{rep:?}` cannot be found.")
                     })
-                    
             })
             .collect::<Vec<_>>();
         self.set_irrep_character_table(RepCharacterTable::new(
@@ -1002,7 +1000,8 @@ where
         + CharacterProperties,
     <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
     <UG as CharacterProperties>::CharTab: Serialize + DeserializeOwned,
-    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>:
+        Serialize + DeserializeOwned,
 {
     type RowSymbol = RowSymbol;
     type CharTab = CorepCharacterTable<Self::RowSymbol, UG::CharTab>;
@@ -1037,7 +1036,8 @@ where
         + CharacterProperties,
     <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
     <UG as CharacterProperties>::CharTab: Serialize + DeserializeOwned,
-    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>:
+        Serialize + DeserializeOwned,
 {
     fn set_ircorep_character_table(&mut self, chartab: Self::CharTab) {
         self.ircorep_character_table = Some(chartab);

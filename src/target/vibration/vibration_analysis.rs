@@ -58,15 +58,13 @@ where
         );
 
         let ov = if let Some(s) = metric {
-            self
-                .coefficients
+            self.coefficients
                 .t()
                 .mapv(|x| x.conj())
                 .dot(s)
                 .dot(&other.coefficients)
         } else {
-            self
-                .coefficients
+            self.coefficients
                 .t()
                 .mapv(|x| x.conj())
                 .dot(&other.coefficients)

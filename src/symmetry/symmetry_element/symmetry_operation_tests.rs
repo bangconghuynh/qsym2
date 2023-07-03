@@ -7,7 +7,8 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{
-    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, TRINV, TRROT, TRSIG, SO3, SU2_0, SU2_1
+    ElementOrder, RotationGroup, SymmetryElement, F, INV, ROT, SIG, SO3, SU2_0, SU2_1, TRINV,
+    TRROT, TRSIG,
 };
 
 #[test]
@@ -1965,10 +1966,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c2.calc_pole(),
-        Point3::new(1.0, 1.0, 0.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c2.calc_pole(), Point3::new(1.0, 1.0, 0.0) / 2.0f64.sqrt());
 
     let c2pm1 = SymmetryOperation::builder()
         .generating_element(c2_element.clone())
@@ -2002,10 +2000,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c2b.calc_pole(),
-        Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c2b.calc_pole(), Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt());
 
     let c2bpm1 = SymmetryOperation::builder()
         .generating_element(c2b_element)
@@ -2032,10 +2027,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c3.calc_pole(),
-        Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c3.calc_pole(), Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt());
 
     let c3p2 = SymmetryOperation::builder()
         .generating_element(c3_element.clone())
@@ -2079,10 +2071,7 @@ fn test_symmetry_operation_poles() {
         .power(4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c3p4.calc_pole(),
-        Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c3p4.calc_pole(), Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt());
 
     let c3pm4 = SymmetryOperation::builder()
         .generating_element(c3_element)
@@ -2139,10 +2128,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c4.calc_pole(),
-        Point3::new(1.0, 1.0, -1.0) / 3.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c4.calc_pole(), Point3::new(1.0, 1.0, -1.0) / 3.0f64.sqrt());
 
     let c4p2 = SymmetryOperation::builder()
         .generating_element(c4_element.clone())
@@ -2196,10 +2182,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        c7.calc_pole(),
-        Point3::new(1.0, 1.0, -2.0) / 6.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(c7.calc_pole(), Point3::new(1.0, 1.0, -2.0) / 6.0f64.sqrt());
 
     let c7p2 = SymmetryOperation::builder()
         .generating_element(c7_element.clone())
@@ -2253,10 +2236,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        ci.calc_pole(),
-        Point3::new(1.0, 0.0, -1.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(ci.calc_pole(), Point3::new(1.0, 0.0, -1.0) / 2.0f64.sqrt());
 
     let cip2 = SymmetryOperation::builder()
         .generating_element(ci_element.clone())
@@ -2353,10 +2333,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        sd2.calc_pole(),
-        Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(sd2.calc_pole(), Point3::new(1.0, -1.0, 0.0) / 2.0f64.sqrt());
 
     let sd2c = sd2.convert_to_improper_kind(&SIG);
     approx::assert_relative_eq!(sd2.calc_pole(), sd2c.calc_pole());
@@ -2566,10 +2543,7 @@ fn test_symmetry_operation_poles() {
         .power(-5)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        s3pm5.calc_pole(),
-        -Point3::new(2.0, 2.0, 1.0) / 3.0
-    );
+    approx::assert_relative_eq!(s3pm5.calc_pole(), -Point3::new(2.0, 2.0, 1.0) / 3.0);
 
     let s3pm5c = s3pm5.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s3pm5.calc_pole(), s3pm5c.calc_pole());
@@ -2658,10 +2632,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        sd3.calc_pole(),
-        Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(sd3.calc_pole(), Point3::new(1.0, 1.0, 1.0) / 3.0f64.sqrt());
 
     let sd3p2 = SymmetryOperation::builder()
         .generating_element(sd3_element.clone())
@@ -2705,10 +2676,7 @@ fn test_symmetry_operation_poles() {
         .power(-1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        s7pm1.calc_pole(),
-        Point3::new(2.0, 2.0, -1.0) / 3.0
-    );
+    approx::assert_relative_eq!(s7pm1.calc_pole(), Point3::new(2.0, 2.0, -1.0) / 3.0);
 
     let s7pm1c = s7pm1.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s7pm1.calc_pole(), s7pm1c.calc_pole());
@@ -2718,10 +2686,7 @@ fn test_symmetry_operation_poles() {
         .power(4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        s7p4.calc_pole(),
-        -Point3::new(2.0, 2.0, -1.0) / 3.0
-    );
+    approx::assert_relative_eq!(s7p4.calc_pole(), -Point3::new(2.0, 2.0, -1.0) / 3.0);
 
     let s7p4c = s7p4.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s7p4.calc_pole(), s7p4c.calc_pole());
@@ -2731,10 +2696,7 @@ fn test_symmetry_operation_poles() {
         .power(-4)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        s7pm4.calc_pole(),
-        Point3::new(2.0, 2.0, -1.0) / 3.0
-    );
+    approx::assert_relative_eq!(s7pm4.calc_pole(), Point3::new(2.0, 2.0, -1.0) / 3.0);
 
     let s7pm4c = s7pm4.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s7pm4.calc_pole(), s7pm4c.calc_pole());
@@ -2754,10 +2716,7 @@ fn test_symmetry_operation_poles() {
         .power(-5)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        s7pm5.calc_pole(),
-        -Point3::new(2.0, 2.0, -1.0) / 3.0
-    );
+    approx::assert_relative_eq!(s7pm5.calc_pole(), -Point3::new(2.0, 2.0, -1.0) / 3.0);
 
     let s7pm5c = s7pm5.convert_to_improper_kind(&INV);
     approx::assert_relative_eq!(s7pm5.calc_pole(), s7pm5c.calc_pole());
@@ -2777,20 +2736,14 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        si.calc_pole(),
-        -Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(si.calc_pole(), -Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
 
     let sip2 = SymmetryOperation::builder()
         .generating_element(si_element)
         .power(2)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        sip2.calc_pole(),
-        Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(sip2.calc_pole(), Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
 
     let sdi_element = SymmetryElement::builder()
         .threshold(1e-14)
@@ -2807,10 +2760,7 @@ fn test_symmetry_operation_poles() {
         .power(1)
         .build()
         .unwrap();
-    approx::assert_relative_eq!(
-        sdi.calc_pole(),
-        Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt()
-    );
+    approx::assert_relative_eq!(sdi.calc_pole(), Point3::new(1.0, 0.0, 1.0) / 2.0f64.sqrt());
 
     let sdip2 = SymmetryOperation::builder()
         .generating_element(sdi_element)
@@ -9553,14 +9503,20 @@ fn test_symmetry_operation_to_symmetry_element() {
         .power(1)
         .build()
         .unwrap();
-    assert_eq!(tc3_su2.to_symmetry_element().to_string(), "θ·C3(Σ)(+0.577, +0.577, +0.577)");
+    assert_eq!(
+        tc3_su2.to_symmetry_element().to_string(),
+        "θ·C3(Σ)(+0.577, +0.577, +0.577)"
+    );
 
     let tc3p2_su2 = SymmetryOperation::builder()
         .generating_element(tc3_element_su2)
         .power(2)
         .build()
         .unwrap();
-    assert_eq!(tc3p2_su2.to_symmetry_element().to_string(), "C3(Σ)(-0.577, -0.577, -0.577)");
+    assert_eq!(
+        tc3p2_su2.to_symmetry_element().to_string(),
+        "C3(Σ)(-0.577, -0.577, -0.577)"
+    );
 
     let tc4y_element_su2 = SymmetryElement::builder()
         .threshold(1e-14)
@@ -9577,21 +9533,30 @@ fn test_symmetry_operation_to_symmetry_element() {
         .power(1)
         .build()
         .unwrap();
-    assert_eq!(tc4y_su2.to_symmetry_element().to_string(), "θ·C4(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(
+        tc4y_su2.to_symmetry_element().to_string(),
+        "θ·C4(Σ)(+0.000, +1.000, +0.000)"
+    );
 
     let tc4yp2_su2 = SymmetryOperation::builder()
         .generating_element(tc4y_element_su2.clone())
         .power(2)
         .build()
         .unwrap();
-    assert_eq!(tc4yp2_su2.to_symmetry_element().to_string(), "C2(QΣ)(+0.000, +1.000, +0.000)");
+    assert_eq!(
+        tc4yp2_su2.to_symmetry_element().to_string(),
+        "C2(QΣ)(+0.000, +1.000, +0.000)"
+    );
 
     let tc4yp3_su2 = SymmetryOperation::builder()
         .generating_element(tc4y_element_su2.clone())
         .power(3)
         .build()
         .unwrap();
-    assert_eq!(tc4yp3_su2.to_symmetry_element().to_string(), "θ·C4(Σ)(+0.000, -1.000, +0.000)");
+    assert_eq!(
+        tc4yp3_su2.to_symmetry_element().to_string(),
+        "θ·C4(Σ)(+0.000, -1.000, +0.000)"
+    );
 
     let tc4yp4_su2 = SymmetryOperation::builder()
         .generating_element(tc4y_element_su2.clone())
@@ -9605,21 +9570,30 @@ fn test_symmetry_operation_to_symmetry_element() {
         .power(5)
         .build()
         .unwrap();
-    assert_eq!(tc4yp5_su2.to_symmetry_element().to_string(), "θ·C4(QΣ)(+0.000, +1.000, +0.000)");
+    assert_eq!(
+        tc4yp5_su2.to_symmetry_element().to_string(),
+        "θ·C4(QΣ)(+0.000, +1.000, +0.000)"
+    );
 
     let tc4yp6_su2 = SymmetryOperation::builder()
         .generating_element(tc4y_element_su2.clone())
         .power(6)
         .build()
         .unwrap();
-    assert_eq!(tc4yp6_su2.to_symmetry_element().to_string(), "C2(Σ)(+0.000, +1.000, +0.000)");
+    assert_eq!(
+        tc4yp6_su2.to_symmetry_element().to_string(),
+        "C2(Σ)(+0.000, +1.000, +0.000)"
+    );
 
     let tc4yp7_su2 = SymmetryOperation::builder()
         .generating_element(tc4y_element_su2.clone())
         .power(7)
         .build()
         .unwrap();
-    assert_eq!(tc4yp7_su2.to_symmetry_element().to_string(), "θ·C4(QΣ)(+0.000, -1.000, +0.000)");
+    assert_eq!(
+        tc4yp7_su2.to_symmetry_element().to_string(),
+        "θ·C4(QΣ)(+0.000, -1.000, +0.000)"
+    );
 
     let tc4yp8_su2 = SymmetryOperation::builder()
         .generating_element(tc4y_element_su2)
@@ -9911,7 +9885,10 @@ fn test_symmetry_operation_composition_time_reversal() {
     let tc2z_tc2z_tc2z = (&tc2z_p2) * &tc2z;
     assert!(!tc2z_tc2z_tc2z.is_su2_class_1());
     assert!(!tc2z_tc2z_tc2z.is_time_reversal());
-    assert_eq!(tc2z_tc2z_tc2z.to_string(), "θ·C2(Σ)(+0.000, +0.000, +1.000)");
+    assert_eq!(
+        tc2z_tc2z_tc2z.to_string(),
+        "θ·C2(Σ)(+0.000, +0.000, +1.000)"
+    );
     assert_eq!(tc2z_tc2z_tc2z.get_abbreviated_symbol(), "θ·C2(Σ)");
 
     let tc2z_p4 = (&tc2z).pow(4);
@@ -9974,7 +9951,10 @@ fn test_symmetry_operation_composition_time_reversal() {
 
     let tc3_tc3_tc3_tc3 = (&tc3_p2) * (&tc3_p2);
     assert!(tc3_tc3_tc3_tc3.is_su2_class_1());
-    assert_eq!(tc3_tc3_tc3_tc3.to_string(), "C3(QΣ)(+0.577, +0.577, +0.577)");
+    assert_eq!(
+        tc3_tc3_tc3_tc3.to_string(),
+        "C3(QΣ)(+0.577, +0.577, +0.577)"
+    );
     assert_eq!(tc3_tc3_tc3_tc3.get_abbreviated_symbol(), "C3(QΣ)");
 
     let c2z_element = SymmetryElement::builder()
@@ -10001,10 +9981,7 @@ fn test_symmetry_operation_composition_time_reversal() {
     let tc2z_c2z = (&tc2z) * (&c2z);
     assert!(!tc2z_c2z.is_time_reversal());
     assert_eq!(tc2z_c2z.to_string(), "θ(QΣ)");
-    assert_eq!(
-        format!("{tc2z_c2z:?}"),
-        "θ·C1(QΣ)(+0.000, +0.000, +1.000)"
-    );
+    assert_eq!(format!("{tc2z_c2z:?}"), "θ·C1(QΣ)(+0.000, +0.000, +1.000)");
     assert_eq!(tc2z_c2z.get_abbreviated_symbol(), "θ(QΣ)");
 
     let tc2z_c2zpm1 = (&tc2z) * (&c2zpm1);

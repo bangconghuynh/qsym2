@@ -2,7 +2,7 @@ use ndarray::{concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
-use crate::aux::ao_basis::{BasisAngularOrder, BasisShell, BasisAtom, CartOrder, ShellOrder};
+use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::aux::molecule::Molecule;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
@@ -46,18 +46,16 @@ where
             .shell_boundary_indices()
             .into_iter()
             .zip(tmats.iter())
-            .map(|((shl_start, shl_end), tmat)| {
-                tmat.dot(&p_coeff.slice(s![shl_start..shl_end]))
-            })
+            .map(|((shl_start, shl_end), tmat)| tmat.dot(&p_coeff.slice(s![shl_start..shl_end])))
             .collect::<Vec<_>>();
         let new_coefficients = concatenate(
-                Axis(0),
-                &t_p_blocks
-                    .iter()
-                    .map(|t_p_block| t_p_block.view())
-                    .collect::<Vec<_>>(),
-            )
-            .expect("Unable to concatenate the transformed rows for the various atoms.");
+            Axis(0),
+            &t_p_blocks
+                .iter()
+                .map(|t_p_block| t_p_block.view())
+                .collect::<Vec<_>>(),
+        )
+        .expect("Unable to concatenate the transformed rows for the various atoms.");
         self.coefficients = new_coefficients;
         self
     }

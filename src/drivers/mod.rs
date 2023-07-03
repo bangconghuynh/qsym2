@@ -1,8 +1,8 @@
 use anyhow;
 
+pub mod molecule_symmetrisation;
 pub mod representation_analysis;
 pub mod symmetry_group_detection;
-pub mod molecule_symmetrisation;
 
 // =================
 // Trait definitions

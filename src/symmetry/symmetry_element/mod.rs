@@ -76,7 +76,7 @@ impl SymmetryElementKind {
         match self {
             Self::Proper(au)
             | Self::ImproperMirrorPlane(au)
-            | Self::ImproperInversionCentre(au) => au.is_some()
+            | Self::ImproperInversionCentre(au) => au.is_some(),
         }
     }
 

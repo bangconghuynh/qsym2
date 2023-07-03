@@ -330,8 +330,8 @@ impl LinearSpaceSymbol for PermutationIrrepSymbol {
                 false
             }
         } else if self.main() != "Sym" && self.main() != "Alt" {
-                self.dim = Some(dim);
-                true
+            self.dim = Some(dim);
+            true
         } else {
             false
         }

@@ -518,10 +518,7 @@ where
         .collect::<Vec<_>>();
 
     let thresh = det.threshold();
-    let indexed_dets = det_orbit
-        .iter()
-        .enumerate()
-        .collect::<Vec<_>>();
+    let indexed_dets = det_orbit.iter().enumerate().collect::<Vec<_>>();
     for det_pair in indexed_dets.iter().product_repeat(2) {
         let (w, det_w) = &det_pair[0];
         let (x, det_x) = &det_pair[1];

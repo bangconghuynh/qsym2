@@ -224,10 +224,7 @@ impl fmt::Display for Atom {
             write!(
                 f,
                 "{:>13} {:+length$.precision$} {:+length$.precision$} {:+length$.precision$}",
-                self.kind,
-                self.coordinates[0],
-                self.coordinates[1],
-                self.coordinates[2],
+                self.kind, self.coordinates[0], self.coordinates[1], self.coordinates[2],
             )
         }
     }

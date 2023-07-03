@@ -4,15 +4,15 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
-use log;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
+use log;
 use nalgebra::Vector3;
 use ndarray::{Array2, ArrayView2, Axis};
 use num_traits::ToPrimitive;
 use phf::{phf_map, phf_set};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::chartab::character::Character;
 use crate::chartab::chartab_symbols::{
@@ -684,9 +684,8 @@ pub(super) fn sort_irreps<R: Clone + Serialize + SpecialSymmetryTransformation>(
     let class_s: SymmetryClassSymbol<R> =
         SymmetryClassSymbol::new(&format!("1||σh{su2_0}||"), None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh{su2_0}||`."));
-    let class_s2: SymmetryClassSymbol<R> =
-        SymmetryClassSymbol::new("1||σh(Σ), σh(QΣ)||", None)
-            .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh(Σ), σh(QΣ)||`."));
+    let class_s2: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||σh(Σ), σh(QΣ)||", None)
+        .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh(Σ), σh(QΣ)||`."));
     let class_ts: SymmetryClassSymbol<R> =
         SymmetryClassSymbol::new(&format!("1||θ·σh{su2_0}||"), None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·σh{su2_0}||`."));
@@ -981,9 +980,8 @@ where
         .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·i{su2_0}||`."));
     let s_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new(&format!("1||σh{su2_0}||"), None)
         .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh{su2_0}||`."));
-    let s2_cc: SymmetryClassSymbol<R> =
-        SymmetryClassSymbol::new("1||σh(Σ), σh(QΣ)||", None)
-            .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh(Σ), σh(QΣ)||`."));
+    let s2_cc: SymmetryClassSymbol<R> = SymmetryClassSymbol::new("1||σh(Σ), σh(QΣ)||", None)
+        .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||σh(Σ), σh(QΣ)||`."));
     let ts_cc: SymmetryClassSymbol<R> =
         SymmetryClassSymbol::new(&format!("1||θ·σh{su2_0}||"), None)
             .unwrap_or_else(|_| panic!("Unable to construct class symbol `1||θ·σh{su2_0}||`."));

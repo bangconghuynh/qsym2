@@ -69,7 +69,8 @@ fn test_abstract_group_creation() {
         .unwrap();
 
     let group_c29 =
-        EagerGroup::<SymmetryOperation>::new("C29", (0..29).map(|k| (&c29).pow(k)).collect()).unwrap();
+        EagerGroup::<SymmetryOperation>::new("C29", (0..29).map(|k| (&c29).pow(k)).collect())
+            .unwrap();
     let mut elements = group_c29.elements().iter();
     for i in 0..29 {
         let op = elements.next().unwrap();
@@ -429,7 +430,8 @@ fn test_ur_magnetic_group_from_infinite(
         .unwrap();
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
+    let group =
+        UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
     assert_eq!(
         group
             .elements()
@@ -464,7 +466,8 @@ fn test_mr_magnetic_group_from_infinite(
         .unwrap();
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true).unwrap();
-    let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
+    let group =
+        MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
     assert_eq!(
         group
             .elements()

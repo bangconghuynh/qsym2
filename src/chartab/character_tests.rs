@@ -132,11 +132,7 @@ fn test_character_debug() {
     assert_eq!(format!("{c6:?}"), "0".to_string());
 
     let e7 = UnityRoot::new(1u32, 7u32);
-    let c7 = Character::new(
-        &(0..=6)
-            .map(|x| (e7.pow(x), 1))
-            .collect::<Vec<_>>(),
-    );
+    let c7 = Character::new(&(0..=6).map(|x| (e7.pow(x), 1)).collect::<Vec<_>>());
     assert_eq!(
         format!("{c7:?}"),
         "1 + E7 + (E7)^2 + (E7)^3 + (E7)^4 + (E7)^5 + (E7)^6".to_string()
@@ -209,11 +205,7 @@ fn test_character_fmt() {
     );
 
     let e7 = UnityRoot::new(1u32, 7u32);
-    let c9 = Character::new(
-        &(0..=6)
-            .map(|x| (e7.pow(x), 1))
-            .collect::<Vec<_>>(),
-    );
+    let c9 = Character::new(&(0..=6).map(|x| (e7.pow(x), 1)).collect::<Vec<_>>());
     assert_eq!(format!("{c9}"), "0".to_string());
     assert_eq!(format!("{}", c9.get_concise(true)), "0".to_string());
     assert_eq!(
@@ -366,11 +358,7 @@ fn test_character_algebra() {
     assert_eq!(c10, c10_ref);
 
     let c11 = &c4 - &c1;
-    let c11_ref = Character::new(&[
-        (e6p0, 1usize),
-        (e6p1, 1usize),
-        (e6p5, 1usize),
-    ]);
+    let c11_ref = Character::new(&[(e6p0, 1usize), (e6p1, 1usize), (e6p5, 1usize)]);
     assert_eq!(c11, c11_ref);
     assert_eq!(c11, -c10_ref);
     assert!((c10 + c11).is_zero());

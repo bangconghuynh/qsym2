@@ -61,7 +61,6 @@ pub struct Input {
 
 impl Input {
     fn handle(&self) -> Result<(), anyhow::Error> {
-
         Ok(())
     }
 }
