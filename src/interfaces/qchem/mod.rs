@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use serde::{Serialize, Deserialize};
 
 mod hdf5;
@@ -11,13 +13,13 @@ mod hdf5;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct QChemArchiveSlaterDeterminantSource {
     /// The path to the Q-Chem HDF5 archive file (`qarchive.h5`).
-    pub(super) path: String,
+    pub(super) path: PathBuf,
 }
 
 impl Default for QChemArchiveSlaterDeterminantSource {
     fn default() -> Self {
         QChemArchiveSlaterDeterminantSource {
-            path: "path/to/qchem/qarchive.h5".to_string(),
+            path: PathBuf::from("path/to/qchem/qarchive.h5"),
         }
     }
 }

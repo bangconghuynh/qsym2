@@ -13,9 +13,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::RepAnalysis;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::format::{
-    log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
-};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::{
@@ -25,6 +22,9 @@ use crate::drivers::representation_analysis::{log_bao, log_cc_transversal, Chara
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
+use crate::io::format::{
+    log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
+};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };

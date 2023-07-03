@@ -3,8 +3,8 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::aux::ao_basis::BasisAngularOrder;
-use crate::aux::format::{log_subtitle, qsym2_output, QSym2Output};
 use crate::group::class::ClassPropertiesSummary;
+use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
 
 pub mod angular_function;
 pub mod slater_determinant;

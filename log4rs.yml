@@ -8,7 +8,7 @@ appenders:
     path: output.log
     append: false
     encoder:
-      pattern: "QSym²┊{m}{n}"
+      pattern: "{m}{n}"
 
 root:
   level: debug

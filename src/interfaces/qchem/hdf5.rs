@@ -18,7 +18,6 @@ use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::ao_basis::*;
 use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::format::{log_macsec_begin, log_macsec_end, qsym2_output};
 use crate::aux::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -30,6 +29,7 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
+use crate::io::format::{log_macsec_begin, log_macsec_end, qsym2_output};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,

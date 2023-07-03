@@ -8,10 +8,10 @@ use nalgebra::{Point3, Vector3};
 use serde::{Deserialize, Serialize};
 
 use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::format::{log_subtitle, log_title, nice_bool, write_subtitle, QSym2Output, qsym2_output};
 use crate::aux::molecule::Molecule;
 use crate::drivers::QSym2Driver;
 use crate::io::{write_qsym2_binary, QSym2FileType};
+use crate::io::format::{log_subtitle, log_title, nice_bool, write_subtitle, QSym2Output, qsym2_output};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::{AntiunitaryKind, SymmetryElementKind};
 

@@ -6,12 +6,12 @@ use nalgebra::Point3;
 use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
 
-use crate::aux::format::{log_subtitle, log_title, nice_bool, qsym2_output, QSym2Output};
 use crate::aux::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams, SymmetryGroupDetectionResult,
 };
 use crate::drivers::QSym2Driver;
+use crate::io::format::{log_subtitle, log_title, nice_bool, qsym2_output, QSym2Output};
 use crate::io::QSym2FileType;
 use crate::permutation::IntoPermutation;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
@@ -512,8 +512,15 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 symmetrisation_count,
                 tight_moi_threshold,
                 tight_dist_threshold,
-                trial_magsym.as_ref().map(|magsym| magsym.group_name.as_ref()).unwrap_or(None).unwrap_or(&"--".to_string()),
-                trial_unisym.group_name.as_ref().unwrap_or(&"--".to_string()),
+                trial_magsym
+                    .as_ref()
+                    .map(|magsym| magsym.group_name.as_ref())
+                    .unwrap_or(None)
+                    .unwrap_or(&"--".to_string()),
+                trial_unisym
+                    .group_name
+                    .as_ref()
+                    .unwrap_or(&"--".to_string()),
             );
         }
         qsym2_output!("{}", "┈".repeat(count_length + 55));
@@ -522,7 +529,11 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
         if unisym_check && magsym_check {
             qsym2_output!(
                 "Molecule symmetrisation has completed after {symmetrisation_count} {}.",
-                if symmetrisation_count != 1 { "iterations" } else { "iteration" }
+                if symmetrisation_count != 1 {
+                    "iterations"
+                } else {
+                    "iteration"
+                }
             );
             qsym2_output!("");
             qsym2_output!("Symmetrised recentred molecule:");

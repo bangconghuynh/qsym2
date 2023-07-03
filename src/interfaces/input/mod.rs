@@ -1,3 +1,4 @@
+use anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionParams;
@@ -20,7 +21,7 @@ pub mod representation_analysis;
 /// An enumerated type representing possible input kinds for symmetry-group detection from a YAML
 /// input file.
 #[derive(Clone, Serialize, Deserialize)]
-enum SymmetryGroupDetectionInputKind {
+pub enum SymmetryGroupDetectionInputKind {
     /// Variant indicating that the parameters for the symmetry-group detection driver will be
     /// specified.
     Parameters(SymmetryGroupDetectionParams),
@@ -44,16 +45,23 @@ impl Default for SymmetryGroupDetectionInputKind {
 /// A structure containing `QSym2` input parameters which can be serialised into and deserialised
 /// from a YAML input file.
 #[derive(Clone, Serialize, Deserialize)]
-struct Input {
+pub struct Input {
     /// Specification for symmetry-group detection. If `None`, no symmetry-group detection will be
     /// performed. If not `None`, then this either specifies the parameters for symmetry-group
     /// detection, or the name of a [`QSym2FileType:Sym`] binary file containing the symmetry-group
     /// detection results (without the `.qsym2.sym` extension).
     ///
     /// If not specified, this will be taken to be `None`.
-    symmetry_group_detection: Option<SymmetryGroupDetectionInputKind>,
+    pub symmetry_group_detection: Option<SymmetryGroupDetectionInputKind>,
 
-    representation_analysis_target: Option<RepAnalysisTarget>,
+    pub representation_analysis_target: Option<RepAnalysisTarget>,
+}
+
+impl Input {
+    fn handle(&self) -> Result<(), anyhow::Error> {
+
+        Ok(())
+    }
 }
 
 impl Default for Input {

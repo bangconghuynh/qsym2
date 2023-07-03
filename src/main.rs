@@ -1,34 +1,57 @@
-use clap::{command, arg};
-use std::process;
+use clap::Parser;
+use log;
+use log::LevelFilter;
+use log4rs::append::console::ConsoleAppender;
+use log4rs::append::file::FileAppender;
+use log4rs::config::{Appender, Config, Logger, Root};
+use log4rs::encode::pattern::PatternEncoder;
 
-use qsym2::aux::molecule::Molecule;
-use qsym2::rotsym;
+use qsym2::interfaces::cli::{log_heading, Cli};
+use qsym2::drivers::representation_analysis::CharacterTableDisplay;
+use qsym2::io::read_qsym2_yaml;
+
+use qsym2::interfaces::input::Input;
 
 fn main() {
-    let matches = command!()
-        .arg(arg!([XYZ_FILE] "xyz file"))
-        .arg(
-            arg!(-t --threshold <THRESHOLD> "Threshold for moment of inertia comparison")
-                .required(false)
-                .default_value("1e-6"),
-        )
-        .get_matches();
+    // Parse CLI arguments
+    let cli = Cli::parse();
+    let config_path = cli
+        .config
+        .as_deref()
+        .expect("No configuration file specified with -c/--config.");
+    let output_path = cli
+        .output
+        .as_deref()
+        .expect("No output file specified with -o/--output.");
 
-    let filename = matches.get_one::<String>("XYZ_FILE").unwrap_or_else(|| {
-        println!("No xyz file provided.");
-        process::exit(1);
+    // Parse input config
+    let config = read_qsym2_yaml::<Input, _>(config_path).unwrap_or_else(|err| {
+        log::error!("{err}");
+        panic!("Failed to parse the configuration file with error: {err}");
     });
-    let thresh = matches
-        .get_one::<String>("threshold")
-        .expect("Threshold value not found.")
-        .parse::<f64>()
-        .expect("Unable to parse threshold value.");
 
-    let mol = Molecule::from_xyz(filename, 1e-4);
-    let com = mol.calc_com();
-    let inertia = mol.calc_inertia_tensor(&com);
-    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, thresh);
-    println!("Rotational symmetry: {rotsym_result}");
-    let sea_groups = mol.calc_sea_groups();
-    println!("SEAs: {sea_groups:?}");
+    // Set up loggers
+    let stdout = ConsoleAppender::builder().build();
+
+    let output_log_appender = FileAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{m}{n}")))
+        .append(false)
+        .build(output_path)
+        .expect("Unable to construct an output log `FileAppender`.");
+
+    let output_log_config = Config::builder()
+        .appender(Appender::builder().build("stdout", Box::new(stdout)))
+        .appender(Appender::builder().build("output_ap", Box::new(output_log_appender)))
+        .logger(
+            Logger::builder()
+                .appender("output_ap")
+                .additive(false)
+                .build("qsym2-output", LevelFilter::Info),
+        )
+        .build(Root::builder().appender("stdout").build(LevelFilter::Warn))
+        .expect("Unable to construct an output log `Config`.");
+
+    let handle = log4rs::init_config(output_log_config).unwrap();
+
+    log_heading();
 }

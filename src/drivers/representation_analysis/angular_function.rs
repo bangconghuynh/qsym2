@@ -12,10 +12,10 @@ use crate::aux::ao_basis::{
     cart_tuple_to_str, BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
 use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::format::{log_subtitle, qsym2_output};
 use crate::aux::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
+use crate::io::format::{log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;

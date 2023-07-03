@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 
@@ -5,6 +6,8 @@ use anyhow::{self, format_err};
 use bincode;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_yaml;
+
+pub(crate) mod format;
 
 /// An enumerated type for `QSym2` file types.
 pub enum QSym2FileType {
@@ -84,7 +87,7 @@ where
 /// # Returns
 ///
 /// A `Result` containing the structure deserialised from the read-in file.
-pub fn read_qsym2_yaml<T>(name: &str) -> Result<T, anyhow::Error>
+pub fn read_qsym2_yaml<T, P: AsRef<Path>>(name: P) -> Result<T, anyhow::Error>
 where
     T: DeserializeOwned,
 {
