@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow;
 use serde::{Deserialize, Serialize};
 
@@ -29,7 +31,7 @@ pub enum SymmetryGroupDetectionInputKind {
     /// Variant indicating that the symmetry-group detection results will be read in from a `QSym2`
     /// [`QSym2FileType:Sym`] binary file. The associated string gives the name of the file without
     /// its `.qsym2.sym` extension.
-    FromFile(String),
+    FromFile(PathBuf),
 }
 
 impl Default for SymmetryGroupDetectionInputKind {

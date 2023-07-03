@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::{self, bail, ensure, format_err};
 use log;
 use ndarray::{Array1, Array2};
@@ -583,7 +585,7 @@ pub enum PySAO<'a> {
 #[pyfunction]
 #[pyo3(signature = (inp_sym, pydet, pybao, sao_spatial, integrality_threshold, linear_independence_threshold, use_magnetic_group, use_double_group, use_corepresentation, symmetry_transformation_kind, analyse_mo_symmetries=true, write_overlap_eigenvalues=true, write_character_table=true, infinite_order_to_finite=None, angular_function_integrality_threshold=1e-7, angular_function_linear_independence_threshold=1e-7, angular_function_max_angular_momentum=2))]
 pub fn rep_analyse_slater_determinant(
-    inp_sym: String,
+    inp_sym: PathBuf,
     pydet: PySlaterDeterminant,
     pybao: &PyBasisAngularOrder,
     sao_spatial: PySAO,
@@ -601,7 +603,7 @@ pub fn rep_analyse_slater_determinant(
     angular_function_linear_independence_threshold: f64,
     angular_function_max_angular_momentum: u32,
 ) -> PyResult<()> {
-    let pd_res: SymmetryGroupDetectionResult = read_qsym2_binary(&inp_sym, QSym2FileType::Sym)
+    let pd_res: SymmetryGroupDetectionResult = read_qsym2_binary(inp_sym, QSym2FileType::Sym)
         .map_err(|err| PyIOError::new_err(err.to_string()))?;
     let mol = &pd_res.pre_symmetry.recentred_molecule;
     let bao = pybao

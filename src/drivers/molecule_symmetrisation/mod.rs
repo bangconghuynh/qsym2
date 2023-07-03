@@ -1,4 +1,5 @@
 use std::fmt;
+use std::path::PathBuf;
 
 use anyhow::{ensure, format_err};
 use derive_builder::Builder;
@@ -69,7 +70,7 @@ pub struct MoleculeSymmetrisationParams {
     /// Optional name for saving the symmetry-group detection result of the symmetrised system as a
     /// binary file of type [`QSym2FileType::Sym`]. If `None`, the result will not be saved.
     #[builder(default = "None")]
-    pub symmetrised_result_save_name: Option<String>,
+    pub symmetrised_result_save_name: Option<PathBuf>,
 }
 
 impl MoleculeSymmetrisationParams {
@@ -118,7 +119,9 @@ impl fmt::Display for MoleculeSymmetrisationParams {
             f,
             "Save symmetry-group detection results of symmetrised system to file: {}",
             if let Some(name) = self.symmetrised_result_save_name.as_ref() {
-                format!("{name}{}", QSym2FileType::Sym.ext())
+                let mut path = name.clone();
+                path.set_extension(QSym2FileType::Sym.ext());
+                path.display().to_string()
             } else {
                 nice_bool(false)
             }

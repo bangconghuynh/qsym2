@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use nalgebra::{Point3, Vector3};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -127,9 +129,9 @@ impl From<PyMolecule> for Molecule {
 #[pyfunction]
 #[pyo3(signature = (inp_xyz, inp_mol, out_sym, moi_thresholds, distance_thresholds, time_reversal, write_symmetry_elements=true, fictitious_magnetic_field=None, fictitious_electric_field=None))]
 pub fn detect_symmetry_group(
-    inp_xyz: Option<String>,
+    inp_xyz: Option<PathBuf>,
     inp_mol: Option<PyMolecule>,
-    out_sym: Option<String>,
+    out_sym: Option<PathBuf>,
     moi_thresholds: Vec<f64>,
     distance_thresholds: Vec<f64>,
     time_reversal: bool,

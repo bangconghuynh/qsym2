@@ -1,6 +1,6 @@
-use std::path::Path;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
+use std::path::Path;
 
 use anyhow::{self, format_err};
 use bincode;
@@ -28,10 +28,10 @@ impl QSym2FileType {
     /// Returns the extension of the file type.
     pub fn ext(&self) -> String {
         match self {
-            QSym2FileType::Sym => ".qsym2.sym".to_string(),
-            QSym2FileType::Grp => ".qsym2.grp".to_string(),
-            QSym2FileType::Rep => ".qsym2.rep".to_string(),
-            QSym2FileType::Chr => ".qsym2.chr".to_string(),
+            QSym2FileType::Sym => "qsym2.sym".to_string(),
+            QSym2FileType::Grp => "qsym2.grp".to_string(),
+            QSym2FileType::Rep => "qsym2.rep".to_string(),
+            QSym2FileType::Chr => "qsym2.chr".to_string(),
         }
     }
 }
@@ -46,12 +46,16 @@ impl QSym2FileType {
 /// # Returns
 ///
 /// A `Result` containing the structure deserialised from the read-in file.
-pub fn read_qsym2_binary<T>(name: &str, file_type: QSym2FileType) -> Result<T, anyhow::Error>
+pub fn read_qsym2_binary<T, P: AsRef<Path>>(
+    name: P,
+    file_type: QSym2FileType,
+) -> Result<T, anyhow::Error>
 where
     T: DeserializeOwned,
 {
-    let file_name = format!("{name}{}", file_type.ext());
-    let mut reader = BufReader::new(File::open(file_name).map_err(|err| format_err!(err))?);
+    let mut path = name.as_ref().to_path_buf();
+    path.set_extension(file_type.ext());
+    let mut reader = BufReader::new(File::open(path).map_err(|err| format_err!(err))?);
     bincode::deserialize_from(&mut reader).map_err(|err| format_err!(err))
 }
 
@@ -65,16 +69,17 @@ where
 /// # Returns
 ///
 /// A `Result` indicating if the serialisation and writing processes have been successful.
-pub fn write_qsym2_binary<T>(
-    name: &str,
+pub fn write_qsym2_binary<T, P: AsRef<Path>>(
+    name: P,
     file_type: QSym2FileType,
     value: &T,
 ) -> Result<(), anyhow::Error>
 where
     T: Serialize,
 {
-    let file_name = format!("{name}{}", file_type.ext());
-    let mut writer = BufWriter::new(File::create(file_name)?);
+    let mut path = name.as_ref().to_path_buf();
+    path.set_extension(file_type.ext());
+    let mut writer = BufWriter::new(File::create(path)?);
     bincode::serialize_into(&mut writer, value).map_err(|err| format_err!(err))
 }
 
@@ -105,14 +110,12 @@ where
 /// # Returns
 ///
 /// A `Result` indicating if the serialisation and writing processes have been successful.
-pub fn write_qsym2_yaml<T>(
-    name: &str,
-    value: &T,
-) -> Result<(), anyhow::Error>
+pub fn write_qsym2_yaml<T, P: AsRef<Path>>(name: P, value: &T) -> Result<(), anyhow::Error>
 where
     T: Serialize,
 {
-    let file_name = format!("{name}.yml");
-    let mut writer = BufWriter::new(File::create(file_name)?);
+    let mut path = name.as_ref().to_path_buf();
+    path.set_extension("yml");
+    let mut writer = BufWriter::new(File::create(path)?);
     serde_yaml::to_writer(&mut writer, value).map_err(|err| format_err!(err))
 }

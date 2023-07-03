@@ -11,7 +11,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 #[test]
 fn test_interfaces_input_symmetry_group_detection_parameters() {
     let name = format!("{ROOT}/tests/input/test_input_symmetry_group_detection_parameters.yml");
-    let inp = read_qsym2_yaml::<Input>(&name).unwrap();
+    let inp = read_qsym2_yaml::<Input, _>(&name).unwrap();
 
     if let SymmetryGroupDetectionInputKind::Parameters(inp_pd_params) =
         inp.symmetry_group_detection.unwrap()
@@ -62,10 +62,10 @@ fn test_interfaces_input_symmetry_group_detection_parameters() {
 #[test]
 fn test_interfaces_input_symmetry_group_detection_fromfile() {
     let name = format!("{ROOT}/tests/input/test_input_symmetry_group_detection_fromfile.yml");
-    let inp = read_qsym2_yaml::<Input>(&name).unwrap();
+    let inp = read_qsym2_yaml::<Input, _>(&name).unwrap();
 
     if let SymmetryGroupDetectionInputKind::FromFile(name) = inp.symmetry_group_detection.unwrap() {
-        assert_eq!(name, "test_file")
+        assert_eq!(name.to_str().unwrap(), "test_file")
     } else {
         assert!(false);
     }
@@ -101,7 +101,7 @@ fn test_interfaces_input_bao() {
 
     let name = format!("{ROOT}/tests/input/test_input_bao.yml");
     let xyz = format!("{ROOT}/tests/xyz/water.xyz");
-    let inp = read_qsym2_yaml::<Input>(&name).unwrap();
+    let inp = read_qsym2_yaml::<Input, _>(&name).unwrap();
     let mol = Molecule::from_xyz(&xyz, 1e-7);
 
     if let RepAnalysisTarget::SlaterDeterminant(sd_control) =

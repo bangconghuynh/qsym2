@@ -44,7 +44,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&pd_params)
-        .xyz(Some(path))
+        .xyz(Some(path.into()))
         .build()
         .unwrap();
     assert!(pd_driver.run().is_ok());

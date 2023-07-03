@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs;
+use std::path::Path;
 use std::process;
 
 use log;
@@ -57,9 +58,9 @@ impl Molecule {
     ///
     /// Panics when unable to parse the provided `xyz` file.
     #[must_use]
-    pub fn from_xyz(filename: &str, thresh: f64) -> Self {
-        let contents = fs::read_to_string(filename).unwrap_or_else(|err| {
-            log::error!("Unable to read file {}.", filename);
+    pub fn from_xyz<P: AsRef<Path>>(filename: P, thresh: f64) -> Self {
+        let contents = fs::read_to_string(&filename).unwrap_or_else(|err| {
+            log::error!("Unable to read file {}.", filename.as_ref().display());
             log::error!("{}", err);
             process::exit(1);
         });
@@ -70,7 +71,10 @@ impl Molecule {
         for (i, line) in contents.lines().enumerate() {
             if i == 0 {
                 n_atoms = line.parse::<usize>().unwrap_or_else(|err| {
-                    log::error!("Unable to read number of atoms in {}.", filename);
+                    log::error!(
+                        "Unable to read number of atoms in {}.",
+                        filename.as_ref().display()
+                    );
                     log::error!("{}", err);
                     process::exit(1);
                 });
