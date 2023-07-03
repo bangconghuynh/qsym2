@@ -18,7 +18,7 @@ use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::BasisAngularOrder;
 use crate::aux::ao_basis::*;
 use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::format::{log_macsec_begin, log_macsec_end};
+use crate::aux::format::{log_macsec_begin, log_macsec_end, qsym2_output};
 use crate::aux::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -128,7 +128,7 @@ impl<'a> QChemH5Driver<'a, f64> {
             .iter()
             .map(|sp_path| {
                 log_macsec_begin(&format!("Analysis for {sp_path}"));
-                log::info!(target: "qsym2-output", "");
+                qsym2_output!("");
                 let sp = self.f.group(sp_path)?;
                 let sp_driver_result = if sda_params.use_magnetic_group {
                     let mut sp_driver =
@@ -168,9 +168,9 @@ impl<'a> QChemH5Driver<'a, f64> {
                         )
                     })
                 };
-                log::info!(target: "qsym2-output", "");
+                qsym2_output!("");
                 log_macsec_end(&format!("Analysis for {sp_path}"));
-                log::info!(target: "qsym2-output", "");
+                qsym2_output!("");
                 sp_driver_result
             })
             .map(|res| {
@@ -182,7 +182,7 @@ impl<'a> QChemH5Driver<'a, f64> {
             .collect::<Vec<_>>();
 
         log_macsec_begin("Q-Chem HDF5 Archive Summary");
-        log::info!(target: "qsym2-output", "");
+        qsym2_output!("");
         let path_length = sp_paths
             .iter()
             .map(|path| path.chars().count())
@@ -202,25 +202,23 @@ impl<'a> QChemH5Driver<'a, f64> {
             .unwrap_or(13)
             .max(13);
         let table_width = path_length + group_length + sym_length + 6;
-        log::info!(target: "qsym2-output", "{}", "┈".repeat(table_width));
-        log::info!(
-            target: "qsym2-output",
+        qsym2_output!("{}", "┈".repeat(table_width));
+        qsym2_output!(
             " {:<path_length$}  {:<group_length$}  {:<}",
             "Single-point calc.", "Group", "Det. symmetry"
         );
-        log::info!(target: "qsym2-output", "{}", "┈".repeat(table_width));
+        qsym2_output!("{}", "┈".repeat(table_width));
         sp_paths
             .iter()
             .zip(result.iter())
             .for_each(|(path, (group, sym))| {
-                log::info!(
-                    target: "qsym2-output",
+                qsym2_output!(
                     " {:<path_length$}  {:<group_length$}  {:<}",
                     path, group, sym
                 );
             });
-        log::info!(target: "qsym2-output", "{}", "┈".repeat(table_width));
-        log::info!(target: "qsym2-output", "");
+        qsym2_output!("{}", "┈".repeat(table_width));
+        qsym2_output!("");
         log_macsec_end("Q-Chem HDF5 Archive Summary");
 
         self.result = Some(result);

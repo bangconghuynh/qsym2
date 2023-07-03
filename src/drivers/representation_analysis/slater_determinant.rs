@@ -13,7 +13,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::RepAnalysis;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::format::{log_subtitle, nice_bool, write_subtitle, write_title, QSym2Output};
+use crate::aux::format::{
+    log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
+};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::{
@@ -552,15 +554,14 @@ where
             UnitaryRepresentedGroup::from_molecular_symmetry(sym, params.infinite_order_to_finite)?
         };
 
-        log::info!(
-            target: "qsym2-output",
+        qsym2_output!(
             "Unitary-represented group for representation analysis: {}",
             group.name()
         );
-        log::info!(target: "qsym2-output", "");
+        qsym2_output!("");
         if let Some(chartab_display) = params.write_character_table.as_ref() {
             log_subtitle("Character table of irreducible representations");
-            log::info!(target: "qsym2-output", "");
+            qsym2_output!("");
             match chartab_display {
                 CharacterTableDisplay::Symbolic => {
                     group.character_table().log_output_debug();
@@ -569,7 +570,7 @@ where
                 }
                 CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
             }
-            log::info!(target: "qsym2-output", "");
+            qsym2_output!("");
             "Note 1: `FS` contains the classification of the irreps using the Frobenius--Schur indicator:\n  \
             `r` = real: the irrep and its complex-conjugate partner are real and identical,\n  \
             `c` = complex: the irrep and its complex-conjugate partner are complex and inequivalent,\n  \
@@ -581,7 +582,7 @@ where
             Note 3: The Mulliken labels generated for the irreps in the table above are internally consistent.\n  \
             However, certain labels might differ from those tabulated elsewhere using other conventions.\n  \
             If need be, please check with other literature to ensure external consistency.".log_output_display();
-            log::info!(target: "qsym2-output", "");
+            qsym2_output!("");
         }
         Ok(group)
     }
@@ -625,7 +626,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                         params.linear_independence_threshold,
                         |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                     );
-                    log::info!(target: "qsym2-output", "");
+                    qsym2_output!("");
                 }
             }
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
@@ -666,7 +667,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                                 params.linear_independence_threshold,
                                 |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                             );
-                            log::info!(target: "qsym2-output", "");
+                            qsym2_output!("");
                         }
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -726,7 +727,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                         params.linear_independence_threshold,
                         |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                     );
-                    log::info!(target: "qsym2-output", "");
+                    qsym2_output!("");
                 }
             }
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
@@ -767,7 +768,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                                 params.linear_independence_threshold,
                                 |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                             );
-                            log::info!(target: "qsym2-output", "");
+                            qsym2_output!("");
                         }
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -820,16 +821,15 @@ where
             MagneticRepresentedGroup::from_molecular_symmetry(sym, params.infinite_order_to_finite)?
         };
 
-        log::info!(
-            target: "qsym2-output",
+        qsym2_output!(
             "Magnetic-represented group for corepresentation analysis: {}",
             group.name()
         );
-        log::info!(target: "qsym2-output", "");
+        qsym2_output!("");
 
         if let Some(chartab_display) = params.write_character_table.as_ref() {
             log_subtitle("Character table of irreducible corepresentations");
-            log::info!(target: "qsym2-output", "");
+            qsym2_output!("");
             match chartab_display {
                 CharacterTableDisplay::Symbolic => {
                     group.character_table().log_output_debug();
@@ -838,7 +838,7 @@ where
                 }
                 CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
             }
-            log::info!(target: "qsym2-output", "");
+            qsym2_output!("");
             "Note 1: The ircorep notation `D[Δ]` means that this ircorep is induced by the representation Δ\n  \
             of the unitary halving subgroup. The exact nature of Δ determines the kind of D[Δ].\n\n\
             Note 2: `IN` shows the intertwining numbers of the ircoreps which classify them into three kinds:\n  \
@@ -851,7 +851,7 @@ where
             Newmarch, J. D. & Golding, R. M. J. Math. Phys. 23, 695–704 (1982)\n  \
             Bradley, C. J. & Davies, B. L. Rev. Mod. Phys. 40, 359–379 (1968)\n  \
             Newmarch, J. D. J. Math. Phys. 24, 742–756 (1983)".log_output_display();
-            log::info!(target: "qsym2-output", "");
+            qsym2_output!("");
         }
 
         Ok(group)
@@ -896,7 +896,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                         params.linear_independence_threshold,
                         |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                     );
-                    log::info!(target: "qsym2-output", "");
+                    qsym2_output!("");
                 }
             }
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
@@ -937,7 +937,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                                 params.linear_independence_threshold,
                                 |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                             );
-                            log::info!(target: "qsym2-output", "");
+                            qsym2_output!("");
                         }
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -997,7 +997,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                         params.linear_independence_threshold,
                         |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                     );
-                    log::info!(target: "qsym2-output", "");
+                    qsym2_output!("");
                 }
             }
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
@@ -1038,7 +1038,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                                 params.linear_independence_threshold,
                                 |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                             );
-                            log::info!(target: "qsym2-output", "");
+                            qsym2_output!("");
                         }
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -1207,46 +1207,29 @@ fn log_overlap_eigenvalues<T>(
         .map(|v| format!("{v:+.3e}"))
         .collect::<Vec<_>>();
     log_subtitle("Orbit overlap eigenvalues");
-    log::info!(target: "qsym2-output", "");
+    qsym2_output!("");
 
-    log::info!(
-        target: "qsym2-output", "{}",
-        "Eigenvalues are sorted in decreasing magnitude order."
-    );
+    qsym2_output!("Eigenvalues are sorted in decreasing magnitude order.");
     let count_length = usize::try_from(eigvals.len().ilog10() + 2).unwrap_or(2);
     let eigval_length = eigvals_str
         .iter()
         .map(|v| v.chars().count())
         .max()
         .unwrap_or(20);
-    log::info!(
-        target: "qsym2-output", "{}",
-        "┈".repeat(count_length + 3 + eigval_length)
-    );
-    log::info!(
-        target: "qsym2-output", "{:>count_length$}  Eigenvalue",
-        "#"
-    );
-    log::info!(
-        target: "qsym2-output", "{}",
-        "┈".repeat(count_length + 3 + eigval_length)
-    );
+    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
+    qsym2_output!("{:>count_length$}  Eigenvalue", "#");
+    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
     let mut write_thresh = false;
     for (i, eigval) in eigvals_str.iter().enumerate() {
         if thresh_cmp(eigvals[i], &thresh) == Ordering::Less && !write_thresh {
-            log::info!(
-                target: "qsym2-output", "{} <-- linear independence threshold (magnitude-based): {:+.3e}",
+            qsym2_output!(
+                "{} <-- linear independence threshold (magnitude-based): {:+.3e}",
                 "-".repeat(count_length + 3 + eigval_length),
                 thresh
             );
             write_thresh = true;
         }
-        log::info!(
-            target: "qsym2-output", "{i:>count_length$}  {eigval}",
-        );
+        qsym2_output!("{i:>count_length$}  {eigval}",);
     }
-    log::info!(
-        target: "qsym2-output", "{}",
-        "┈".repeat(count_length + 3 + eigval_length)
-    );
+    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
 }

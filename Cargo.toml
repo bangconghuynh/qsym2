@@ -10,7 +10,7 @@ anyhow = "1.0.71"
 approx = "0.5.1"
 bincode = "1.3.3"
 bitvec = "1.0.1"
-clap = { version = "4.3.10", features = ["cargo"] }
+clap = { version = "4.3.10", features = ["cargo", "derive"] }
 counter = "0.5.7"
 derive_builder = "0.12.0"
 divisors = "0.2.1"
