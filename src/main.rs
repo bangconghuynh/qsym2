@@ -124,5 +124,8 @@ fn main() {
     qsym2_output_contributors();
     qsym2_output_calculation_summary(config_path, &cli);
 
-    input_config.handle().unwrap()
+    input_config.handle().unwrap_or_else(|err| {
+        log::error!("{err}");
+        panic!("QSym² has failed with the following error:\n  {err}");
+    })
 }
