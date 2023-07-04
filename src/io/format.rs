@@ -2,6 +2,8 @@ use std::fmt;
 
 use log;
 
+const QSYM2_BANNER_LENGTH: usize = 103;
+
 /// Logs an error to the `qsym2-output` logger.
 macro_rules! qsym2_error {
     ($fmt:expr $(, $($arg:tt)*)?) => { log::error!(target: "qsym2-output", $fmt, $($($arg)*)?); }
@@ -17,25 +19,25 @@ macro_rules! qsym2_output {
     ($fmt:expr $(, $($arg:tt)*)?) => { log::info!(target: "qsym2-output", $fmt, $($($arg)*)?); }
 }
 
-pub(crate) use {qsym2_output, qsym2_warn, qsym2_error};
+pub(crate) use {qsym2_error, qsym2_output, qsym2_warn};
 
 /// Writes a nicely formatted section title.
 pub(crate) fn write_title(f: &mut fmt::Formatter<'_>, title: &str) -> fmt::Result {
-    let length = title.chars().count();
+    let length = title.chars().count().max(QSYM2_BANNER_LENGTH - 6);
     let bar = "─".repeat(length);
     writeln!(f, "┌──{bar}──┐")?;
-    writeln!(f, "│§ {title} §│")?;
+    writeln!(f, "│§ {title:^length$} §│")?;
     writeln!(f, "└──{bar}──┘")?;
     Ok(())
 }
 
 /// Logs a nicely formatted section title to the `qsym2-output` logger.
 pub(crate) fn log_title(title: &str) {
-    let length = title.chars().count();
+    let length = title.chars().count().max(QSYM2_BANNER_LENGTH - 6);
     let bar = "─".repeat(length);
-    qsym2_output!("┌──{}──┐", bar);
-    qsym2_output!("│§ {} §│", title);
-    qsym2_output!("└──{}──┘", bar);
+    qsym2_output!("┌──{bar}──┐");
+    qsym2_output!("│§ {title:^length$} §│");
+    qsym2_output!("└──{bar}──┘");
 }
 
 /// Writes a nicely formatted subtitle.
@@ -57,12 +59,16 @@ pub(crate) fn log_subtitle(subtitle: &str) {
 
 /// Logs a nicely formatted macro-section beginning to the `qsym2-output` logger.
 pub(crate) fn log_macsec_begin(sectitle: &str) {
-    qsym2_output!("<<<<< [Begin] {sectitle}");
+    let width = QSYM2_BANNER_LENGTH - 14;
+    let sectitle_space = sectitle.to_string() + " ";
+    qsym2_output!("❬❬❬❬❬ [Begin] {sectitle_space:❬<width$}");
 }
 
 /// Logs a nicely formatted macro-section ending to the `qsym2-output` logger.
 pub(crate) fn log_macsec_end(sectitle: &str) {
-    qsym2_output!(">>>>> [End] {sectitle}");
+    let width = QSYM2_BANNER_LENGTH - 12;
+    let sectitle_space = sectitle.to_string() + " ";
+    qsym2_output!("❭❭❭❭❭ [End] {sectitle_space:❭<width$}");
 }
 
 /// Turns a boolean into a string of `yes` or `no`.

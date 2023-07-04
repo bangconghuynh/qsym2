@@ -1,18 +1,69 @@
-use std::path::PathBuf;
+use std::fmt;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
+use lazy_static::lazy_static;
+use regex::Regex;
 
-use crate::io::format::qsym2_output;
+use crate::aux::contributors::CONTRIBUTORS;
+use crate::io::format::{log_subtitle, log_title, qsym2_output};
 
 const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 
-/// Logs a nicely formatted QSym2 heading to the `qsym2-output` logger.
-pub fn log_heading() {
+// =======
+// Structs
+// =======
+
+/// A structure to handle command-line interface parsing.
+#[derive(Parser)]
+#[command(author, version, about)]
+#[command(next_line_help = true)]
+pub struct Cli {
+    /// The configuration YAML file specifying parameters for the calculation.
+    #[arg(short, long, required = true)]
+    pub config: PathBuf,
+
+    /// The output filename.
+    #[arg(short, long, required = true)]
+    pub output: PathBuf,
+
+    /// Turn debugging information on.
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub debug: u8,
+}
+
+impl fmt::Display for Cli {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(
+            f,
+            "{:<11}: {}",
+            "Config file",
+            self.config.display().to_string()
+        )?;
+        writeln!(
+            f,
+            "{:<11}: {}",
+            "Output file",
+            self.output.display().to_string()
+        )?;
+        writeln!(f, "{:<11}: {}", "Debug level", self.debug)?;
+        Ok(())
+    }
+}
+
+// =========
+// Functions
+// =========
+
+/// Outputs a nicely formatted QSym2 heading to the `qsym2-output` logger.
+pub fn qsym2_output_heading() {
     let version = if let Some(ver) = VERSION {
         format!("v{ver}")
     } else {
         format!("v unknown")
     };
+    // Banner length: 103
     qsym2_output!("╭─────────────────────────────────────────────────────────────────────────────────────────────────────╮");
     qsym2_output!("│                                                                                 222222222222222     │");
     qsym2_output!("│                                                                                2:::::::::::::::22   │");
@@ -39,20 +90,66 @@ pub fn log_heading() {
     qsym2_output!("│               QQQQQQ                 y:::::y                A program for Quantum Symbolic Symmetry │");
     qsym2_output!("│                                     y:::::y                                                         │");
     qsym2_output!("│                                    y:::::y                                            {version:>13} │");
-    qsym2_output!("│                                   yyyyyyy                                     Author: Bang C. Huynh │");
+    qsym2_output!("│                                   yyyyyyy                                      © 2023 Bang C. Huynh │");
     qsym2_output!("╰─────────────────────────────────────────────────────────────────────────────────────────────────────╯");
     qsym2_output!("");
 }
 
-#[derive(Parser)]
-#[command(author, version, about)]
-pub struct Cli {
-    #[arg(short, long)]
-    pub config: Option<PathBuf>,
+lazy_static! {
+    static ref COMMENT_RE: Regex = Regex::new(r"^\s*#.*?").expect("Regex pattern invalid.");
+}
 
-    #[arg(short, long)]
-    pub output: Option<PathBuf>,
+/// Outputs a nicely formatted list of contributors.
+pub fn qsym2_output_contributors() {
+    qsym2_output!("    Contributors (in alphabetical order):");
+    CONTRIBUTORS.iter().for_each(|contrib| {
+        qsym2_output!("      {}", contrib.trim());
+    });
+    qsym2_output!("");
+}
 
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    pub debug: u8,
+/// Outputs a summary of the calculation.
+///
+/// # Arguments
+///
+/// * `config_path` - The path of the configuration YAML file defining the calculation parameters.
+/// * `cli` - The parsed command-line arguments.
+pub fn qsym2_output_calculation_summary<P: AsRef<Path>>(config_path: P, cli: &Cli) {
+    log_title("Calculation Summary");
+    qsym2_output!("");
+
+    log_subtitle("Command line arguments");
+    qsym2_output!("{cli}");
+
+    log_subtitle("Input YAML configuration file");
+    let config_contents =
+        fs::read_to_string(&config_path).expect("Input configuration YAML file could not be read.");
+
+    qsym2_output!("File path: {}", config_path.as_ref().display());
+    let filtered_config_contents = config_contents
+        .lines()
+        .filter_map(|line| {
+            if COMMENT_RE.is_match(line) {
+                None
+            } else {
+                Some(line.trim_end().to_string())
+            }
+        })
+        .collect::<Vec<_>>();
+    let length = filtered_config_contents
+        .iter()
+        .map(|line| line.chars().count())
+        .max()
+        .unwrap_or(20);
+    let formatted_config_contents = itertools::intersperse(
+        filtered_config_contents
+            .iter()
+            .map(|line| format!("┊ {line:<length$} ┊")),
+        "\n".to_string(),
+    )
+    .collect::<String>();
+    qsym2_output!("┌{}┐", "┄".repeat(length + 2));
+    qsym2_output!("{}", formatted_config_contents.trim());
+    qsym2_output!("└{}┘", "┄".repeat(length + 2));
+    qsym2_output!("\n");
 }

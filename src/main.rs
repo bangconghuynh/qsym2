@@ -6,7 +6,9 @@ use log4rs::append::file::FileAppender;
 use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
-use qsym2::interfaces::cli::{log_heading, Cli};
+use qsym2::interfaces::cli::{
+    qsym2_output_calculation_summary, qsym2_output_contributors, qsym2_output_heading, Cli,
+};
 use qsym2::io::read_qsym2_yaml;
 
 use qsym2::interfaces::input::Input;
@@ -14,14 +16,8 @@ use qsym2::interfaces::input::Input;
 fn main() {
     // Parse CLI arguments
     let cli = Cli::parse();
-    let config_path = cli
-        .config
-        .as_deref()
-        .expect("No configuration file specified with -c/--config.");
-    let output_path = cli
-        .output
-        .as_deref()
-        .expect("No output file specified with -o/--output.");
+    let config_path = &cli.config;
+    let output_path = &cli.output;
     let mut debug_path = output_path.to_path_buf();
     debug_path.set_extension("dbg");
 
@@ -124,7 +120,9 @@ fn main() {
         }
     };
 
-    log_heading();
+    qsym2_output_heading();
+    qsym2_output_contributors();
+    qsym2_output_calculation_summary(config_path, &cli);
 
     input_config.handle().unwrap()
 }

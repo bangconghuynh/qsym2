@@ -67,8 +67,7 @@ fn test_interfaces_input_symmetry_group_detection_fromfile() {
         assert!(false);
     }
 
-    if let AnalysisTarget::SlaterDeterminant(sd_control) = inp.analysis_target
-    {
+    if let AnalysisTarget::SlaterDeterminant(sd_control) = inp.analysis_target {
         let inp_rep_params = sd_control.control;
         assert_eq!(inp_rep_params.integrality_threshold, 1e-7);
         assert_eq!(inp_rep_params.linear_independence_threshold, 1e-7);
@@ -100,8 +99,7 @@ fn test_interfaces_input_bao() {
     let inp = read_qsym2_yaml::<Input, _>(&name).unwrap();
     let mol = Molecule::from_xyz(&xyz, 1e-7);
 
-    if let AnalysisTarget::SlaterDeterminant(sd_control) = inp.analysis_target
-    {
+    if let AnalysisTarget::SlaterDeterminant(sd_control) = inp.analysis_target {
         if let SlaterDeterminantSource::Custom(custom_source) = sd_control.source {
             let bao = custom_source.bao.to_basis_angular_order(&mol).unwrap();
             assert_eq!(bao.n_funcs(), 41);

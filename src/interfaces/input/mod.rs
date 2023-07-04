@@ -1,10 +1,12 @@
 use std::path::PathBuf;
 
-use anyhow;
+use anyhow::{self, bail};
 use serde::{Deserialize, Serialize};
 
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
-use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionParams;
+use crate::drivers::symmetry_group_detection::{
+    SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
+};
 use crate::drivers::QSym2Driver;
 #[cfg(feature = "qchem")]
 use crate::interfaces::qchem::hdf5::QChemH5Driver;
@@ -15,6 +17,10 @@ use analysis::{AnalysisTarget, SlaterDeterminantSource};
 
 pub mod analysis;
 pub mod ao_basis;
+
+#[cfg(test)]
+#[path = "input_tests.rs"]
+mod input_tests;
 
 // ===============
 // Driver controls
@@ -52,12 +58,12 @@ impl Default for SymmetryGroupDetectionInputKind {
 /// from a YAML input file.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Input {
-    /// Specification for symmetry-group detection. If `None`, no symmetry-group detection will be
-    /// performed. If not `None`, then this either specifies the parameters for symmetry-group
-    /// detection, or the name of a [`QSym2FileType:Sym`] binary file containing the symmetry-group
-    /// detection results (without the `.qsym2.sym` extension).
+    /// Specification for symmetry-group detection. This either specifies the parameters for
+    /// symmetry-group detection, or the name of a [`QSym2FileType:Sym`] binary file containing the
+    /// symmetry-group detection results (without the `.qsym2.sym` extension).
     pub symmetry_group_detection: SymmetryGroupDetectionInputKind,
 
+    /// Specification for analysis target.
     pub analysis_target: AnalysisTarget,
 }
 
@@ -80,16 +86,29 @@ impl Input {
                             .symmetry_group_detection_input(&pd_params_inp)
                             .angular_function_analysis_parameters(&afa_params)
                             .slater_det_rep_analysis_parameters(&sda_params)
-                            .build()
-                            .unwrap();
-                        qchem_h5_driver.run()?
+                            .build()?;
+                        qchem_h5_driver.run()
                     }
-                    SlaterDeterminantSource::Custom(_) => {}
+                    SlaterDeterminantSource::Custom(_) => Ok(()),
                 }
             }
-            AnalysisTarget::MoleculeOnly => {}
+            AnalysisTarget::MolecularSymmetry { xyz } => {
+                let pd_params = match pd_params_inp {
+                    SymmetryGroupDetectionInputKind::Parameters(pd_params) => pd_params,
+                    SymmetryGroupDetectionInputKind::FromFile(_) => {
+                        bail!(
+                            "It is pointless to provide a pre-calculated symmetry-group \
+                            detection result when only symmetry-group detection is required."
+                        )
+                    }
+                };
+                let mut pd_driver = SymmetryGroupDetectionDriver::builder()
+                    .parameters(pd_params)
+                    .xyz(Some(xyz.into()))
+                    .build()?;
+                pd_driver.run()
+            }
         }
-        Ok(())
     }
 }
 
@@ -101,7 +120,3 @@ impl Default for Input {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "input_tests.rs"]
-mod input_tests;

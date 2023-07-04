@@ -31,7 +31,7 @@ use crate::drivers::symmetry_group_detection::{
 };
 use crate::drivers::QSym2Driver;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
-use crate::io::format::{log_macsec_begin, log_macsec_end, qsym2_output, qsym2_error};
+use crate::io::format::{log_macsec_begin, log_macsec_end, qsym2_error, qsym2_output};
 use crate::io::{read_qsym2_binary, QSym2FileType};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_group::{
