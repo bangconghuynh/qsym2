@@ -1,4 +1,5 @@
 use std::fmt;
+use std::path::PathBuf;
 
 use anyhow::{self, bail, format_err};
 use derive_builder::Builder;
@@ -30,7 +31,7 @@ use crate::drivers::symmetry_group_detection::{
 };
 use crate::drivers::QSym2Driver;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
-use crate::io::format::{log_macsec_begin, log_macsec_end, qsym2_output};
+use crate::io::format::{log_macsec_begin, log_macsec_end, qsym2_output, qsym2_error};
 use crate::io::{read_qsym2_binary, QSym2FileType};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_group::{
@@ -58,13 +59,13 @@ lazy_static! {
 /// A driver to perform symmetry-group detection and representation symmetry analysis for all
 /// discoverable single-point calculation data stored in a Q-Chem's `qarchive.h5` file.
 #[derive(Clone, Builder)]
-struct QChemH5Driver<'a, T>
+pub(crate) struct QChemH5Driver<'a, T>
 where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
-    /// The `qarchive.h5` file.
-    f: &'a hdf5::File,
+    /// The `qarchive.h5` file name.
+    filename: PathBuf,
 
     /// The input specification controlling symmetry-group detection.
     symmetry_group_detection_input: &'a SymmetryGroupDetectionInputKind,
@@ -96,7 +97,7 @@ where
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a [`QChemH5Driver`].
-    fn builder() -> QChemH5DriverBuilder<'a, T> {
+    pub(crate) fn builder() -> QChemH5DriverBuilder<'a, T> {
         QChemH5DriverBuilder::default()
     }
 }
@@ -107,8 +108,8 @@ where
 impl<'a> QChemH5Driver<'a, f64> {
     /// Performs analysis for all real-valued single-point determinants.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
-        let mut sp_paths = self
-            .f
+        let f = hdf5::File::open(&self.filename)?;
+        let mut sp_paths = f
             .group(".counters")?
             .member_names()?
             .iter()
@@ -130,7 +131,7 @@ impl<'a> QChemH5Driver<'a, f64> {
             .map(|sp_path| {
                 log_macsec_begin(&format!("Analysis for {sp_path}"));
                 qsym2_output!("");
-                let sp = self.f.group(sp_path)?;
+                let sp = f.group(sp_path)?;
                 let sp_driver_result = if sda_params.use_magnetic_group {
                     let mut sp_driver =
                         QChemH5SinglePointDriver::<MagneticRepresentedSymmetryGroup, f64>::builder(
@@ -147,7 +148,9 @@ impl<'a> QChemH5Driver<'a, f64> {
                                 .as_ref()
                                 .unwrap_or(&String::new())
                                 .to_string(),
-                            rep.to_string(),
+                            rep.as_ref()
+                                .map(|rep| rep.to_string())
+                                .unwrap_or_else(|err| err.to_string()),
                         )
                     })
                 } else {
@@ -165,7 +168,9 @@ impl<'a> QChemH5Driver<'a, f64> {
                                 .as_ref()
                                 .unwrap_or(&String::new())
                                 .to_string(),
-                            rep.to_string(),
+                            rep.as_ref()
+                                .map(|rep| rep.to_string())
+                                .unwrap_or_else(|err| err.to_string()),
                         )
                     })
                 };
@@ -280,7 +285,7 @@ where
     #[builder(default = "None")]
     result: Option<(
         Symmetry,
-        <G::CharTab as SubspaceDecomposable<T>>::Decomposition,
+        Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>,
     )>,
 }
 
@@ -576,18 +581,22 @@ impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
                 .symmetry_group(&pd_res)
                 .build()
                 .unwrap();
-        sda_driver.run()?;
-        let sda_res = sda_driver.result()?;
+        let sda_run = sda_driver.run();
+        if let Err(err) = sda_run {
+            qsym2_error!("Representation analysis has failed with error:");
+            qsym2_error!("  {err}");
+        }
         let sym = if self.slater_det_rep_analysis_parameters.use_magnetic_group {
             pd_res.magnetic_symmetry.clone()
         } else {
             Some(pd_res.unitary_symmetry.clone())
         }
         .ok_or(format_err!("Symmetry not found."))?;
-        self.result = Some((
-            sym,
-            sda_res.determinant_symmetry().as_ref().unwrap().clone(),
-        ));
+        let rep = sda_driver
+            .result()
+            .map_err(|err| err.to_string())
+            .and_then(|sda_res| sda_res.determinant_symmetry().clone());
+        self.result = Some((sym, rep));
         Ok(())
     }
 }
@@ -634,18 +643,22 @@ impl<'a> QChemH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
                 .symmetry_group(&pd_res)
                 .build()
                 .unwrap();
-        sda_driver.run()?;
-        let sda_res = sda_driver.result()?;
+        let sda_run = sda_driver.run();
+        if let Err(err) = sda_run {
+            qsym2_error!("Representation analysis has failed with error:");
+            qsym2_error!("  {err}");
+        }
         let sym = if self.slater_det_rep_analysis_parameters.use_magnetic_group {
             pd_res.magnetic_symmetry.clone()
         } else {
             Some(pd_res.unitary_symmetry.clone())
         }
         .ok_or(format_err!("Symmetry not found."))?;
-        self.result = Some((
-            sym,
-            sda_res.determinant_symmetry().as_ref().unwrap().clone(),
-        ));
+        let rep = sda_driver
+            .result()
+            .map_err(|err| err.to_string())
+            .and_then(|sda_res| sda_res.determinant_symmetry().clone());
+        self.result = Some((sym, rep));
         Ok(())
     }
 }
@@ -660,7 +673,7 @@ impl<'a> QChemH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
 impl<'a> QSym2Driver for QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
     type Outcome = (
         Symmetry,
-        <<UnitaryRepresentedSymmetryGroup as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition,
+        Result<<<UnitaryRepresentedSymmetryGroup as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition, String>,
     );
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
@@ -680,7 +693,7 @@ impl<'a> QSym2Driver for QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetry
 impl<'a> QSym2Driver for QChemH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
     type Outcome = (
         Symmetry,
-        <<MagneticRepresentedSymmetryGroup as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition,
+        Result<<<MagneticRepresentedSymmetryGroup as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition, String>,
     );
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {

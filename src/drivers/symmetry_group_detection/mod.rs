@@ -31,7 +31,7 @@ mod symmetry_group_detection_tests;
 // ----------
 
 fn default_thresholds() -> Vec<f64> {
-    vec![1.0e-4, 1.0e-5, 1.0e-6]
+    vec![1.0e-4, 1e-5, 1.0e-6]
 }
 
 /// A structure containing control parameters for symmetry-group detection.

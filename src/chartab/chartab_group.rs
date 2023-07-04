@@ -306,11 +306,11 @@ where
                                     degenerate_2d_subspaces.len()
                                 );
                             } else {
-                                log::warn!(
+                                log::debug!(
                                     "2-D subspace index {} cannot be split greedily.",
                                     degenerate_2d_subspaces.len()
                                 );
-                                log::warn!(
+                                log::debug!(
                                     "Stashing this 2-D subspace for splitting with class matrices..."
                                 );
                                 degenerate_subspaces.push(subspace);

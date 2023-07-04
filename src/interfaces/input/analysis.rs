@@ -16,15 +16,19 @@ use crate::interfaces::qchem::QChemArchiveSlaterDeterminantSource;
 /// A serialisable/deserialisable enumerated type representing possibilities of representation
 /// analysis targets.
 #[derive(Clone, Serialize, Deserialize)]
-pub enum RepAnalysisTarget {
+pub enum AnalysisTarget {
+    /// Variant representing the choice of only performing a symmetry-group detection for a
+    /// molecule.
+    MoleculeOnly,
+
     /// Variant representing the choice of Slater determinant as the target for representation
     /// analysis. The associated structure contains the control parameters for this.
     SlaterDeterminant(SlaterDeterminantControl),
 }
 
-impl Default for RepAnalysisTarget {
+impl Default for AnalysisTarget {
     fn default() -> Self {
-        RepAnalysisTarget::SlaterDeterminant(SlaterDeterminantControl::default())
+        AnalysisTarget::SlaterDeterminant(SlaterDeterminantControl::default())
     }
 }
 

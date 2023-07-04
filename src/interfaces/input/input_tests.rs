@@ -4,7 +4,7 @@ use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::io::read_qsym2_yaml;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
-use super::{Input, RepAnalysisTarget, SymmetryGroupDetectionInputKind};
+use super::{AnalysisTarget, Input, SymmetryGroupDetectionInputKind};
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -13,8 +13,7 @@ fn test_interfaces_input_symmetry_group_detection_parameters() {
     let name = format!("{ROOT}/tests/input/test_input_symmetry_group_detection_parameters.yml");
     let inp = read_qsym2_yaml::<Input, _>(&name).unwrap();
 
-    if let SymmetryGroupDetectionInputKind::Parameters(inp_pd_params) =
-        inp.symmetry_group_detection.unwrap()
+    if let SymmetryGroupDetectionInputKind::Parameters(inp_pd_params) = inp.symmetry_group_detection
     {
         assert_eq!(inp_pd_params.moi_thresholds, vec![1e-4, 1e-5, 1e-6]);
         assert_eq!(inp_pd_params.distance_thresholds, vec![1e-5, 1e-6]);
@@ -35,9 +34,7 @@ fn test_interfaces_input_symmetry_group_detection_parameters() {
         assert!(false);
     }
 
-    if let RepAnalysisTarget::SlaterDeterminant(sd_control) =
-        inp.representation_analysis_target.unwrap()
-    {
+    if let AnalysisTarget::SlaterDeterminant(sd_control) = inp.analysis_target {
         let inp_rep_params = sd_control.control;
         assert_eq!(inp_rep_params.integrality_threshold, 1e-8);
         assert_eq!(inp_rep_params.linear_independence_threshold, 1e-7);
@@ -64,14 +61,13 @@ fn test_interfaces_input_symmetry_group_detection_fromfile() {
     let name = format!("{ROOT}/tests/input/test_input_symmetry_group_detection_fromfile.yml");
     let inp = read_qsym2_yaml::<Input, _>(&name).unwrap();
 
-    if let SymmetryGroupDetectionInputKind::FromFile(name) = inp.symmetry_group_detection.unwrap() {
+    if let SymmetryGroupDetectionInputKind::FromFile(name) = inp.symmetry_group_detection {
         assert_eq!(name.to_str().unwrap(), "test_file")
     } else {
         assert!(false);
     }
 
-    if let RepAnalysisTarget::SlaterDeterminant(sd_control) =
-        inp.representation_analysis_target.unwrap()
+    if let AnalysisTarget::SlaterDeterminant(sd_control) = inp.analysis_target
     {
         let inp_rep_params = sd_control.control;
         assert_eq!(inp_rep_params.integrality_threshold, 1e-7);
@@ -96,7 +92,7 @@ fn test_interfaces_input_symmetry_group_detection_fromfile() {
 
 #[test]
 fn test_interfaces_input_bao() {
-    use super::representation_analysis::SlaterDeterminantSource;
+    use super::analysis::SlaterDeterminantSource;
     use crate::aux::molecule::Molecule;
 
     let name = format!("{ROOT}/tests/input/test_input_bao.yml");
@@ -104,8 +100,7 @@ fn test_interfaces_input_bao() {
     let inp = read_qsym2_yaml::<Input, _>(&name).unwrap();
     let mol = Molecule::from_xyz(&xyz, 1e-7);
 
-    if let RepAnalysisTarget::SlaterDeterminant(sd_control) =
-        inp.representation_analysis_target.unwrap()
+    if let AnalysisTarget::SlaterDeterminant(sd_control) = inp.analysis_target
     {
         if let SlaterDeterminantSource::Custom(custom_source) = sd_control.source {
             let bao = custom_source.bao.to_basis_angular_order(&mol).unwrap();

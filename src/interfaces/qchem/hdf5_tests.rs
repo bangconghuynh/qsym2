@@ -33,7 +33,7 @@ fn test_interfaces_qchem_hdf5_sp_vf63m_ms1() {
     assert!(qchem_sp.run().is_ok());
     let res = qchem_sp.result().unwrap();
     assert_eq!(res.0.group_name.as_ref().unwrap(), "Oh");
-    assert_eq!(res.1.to_string(), "|T|_(1g)");
+    assert_eq!(res.1.as_ref().unwrap().to_string(), "|T|_(1g)");
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn test_interfaces_qchem_hdf5_sp_vf63m_sym() {
     assert!(qchem_sp.run().is_ok());
     let res = qchem_sp.result().unwrap();
     assert_eq!(res.0.group_name.as_ref().unwrap(), "Oh");
-    assert_eq!(res.1.to_string(), "|T|_(1g)");
+    assert_eq!(res.1.as_ref().unwrap().to_string(), "|T|_(1g)");
 }
 
 #[test]
@@ -83,7 +83,7 @@ fn test_interfaces_qchem_hdf5_sp_o2_ms0_zero_field() {
     let res = qchem_sp.result().unwrap();
     assert_eq!(res.0.group_name.as_ref().unwrap(), "D∞h");
     assert_eq!(
-        res.1.to_string(),
+        res.1.as_ref().unwrap().to_string(),
         "|A|_(1g) ⊕ |E|_(2g) ⊕ |E|_(4g) ⊕ |E|_(6g)"
     );
 }
@@ -116,7 +116,7 @@ fn test_interfaces_qchem_hdf5_sp_o2_ms0_perpendicular_magnetic_field() {
     assert!(qchem_sp_uni.run().is_ok());
     let res_uni = qchem_sp_uni.result().unwrap();
     assert_eq!(res_uni.0.group_name.as_ref().unwrap(), "C2h");
-    assert_eq!(res_uni.1.to_string(), "|A|_(g)");
+    assert_eq!(res_uni.1.as_ref().unwrap().to_string(), "|A|_(g)");
 
     let mut sda_params_mag = SlaterDeterminantRepAnalysisParams::<f64>::default();
     sda_params_mag.use_magnetic_group = true;
@@ -131,7 +131,7 @@ fn test_interfaces_qchem_hdf5_sp_o2_ms0_perpendicular_magnetic_field() {
     assert!(qchem_sp_mag.run().is_ok());
     let res_mag = qchem_sp_mag.result().unwrap();
     assert_eq!(res_mag.0.group_name.as_ref().unwrap(), "D2h");
-    assert_eq!(res_mag.1.to_string(), "D[|A|_(g)]");
+    assert_eq!(res_mag.1.as_ref().unwrap().to_string(), "D[|A|_(g)]");
 }
 
 #[test]
@@ -165,7 +165,10 @@ fn test_interfaces_qchem_hdf5_sp_o3p_perpendicular_magnetic_field() {
     assert!(qchem_sp_zerofield.run().is_ok());
     let res_zerofield = qchem_sp_zerofield.result().unwrap();
     assert_eq!(res_zerofield.0.group_name.as_ref().unwrap(), "D3h");
-    assert_eq!(res_zerofield.1.to_string(), "|A|^('')_(2) ⊕ |E|^('')");
+    assert_eq!(
+        res_zerofield.1.as_ref().unwrap().to_string(),
+        "|A|^('')_(2) ⊕ |E|^('')"
+    );
 
     let mut qchem_sp_perpfield =
         QChemH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
@@ -179,7 +182,7 @@ fn test_interfaces_qchem_hdf5_sp_o3p_perpendicular_magnetic_field() {
     let res_perpfield = qchem_sp_perpfield.result().unwrap();
     assert_eq!(res_perpfield.0.group_name.as_ref().unwrap(), "C3h");
     assert_eq!(
-        res_perpfield.1.to_string(),
+        res_perpfield.1.as_ref().unwrap().to_string(),
         "|A|^('') ⊕ _(a)|Γ|^('') ⊕ _(b)|Γ|^('')"
     );
 }
@@ -188,7 +191,6 @@ fn test_interfaces_qchem_hdf5_sp_o3p_perpendicular_magnetic_field() {
 fn test_interfaces_qchem_hdf5_geomopt() {
     // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let name = format!("{ROOT}/tests/qchem/geomopt.qarchive.h5");
-    let f = hdf5::File::open(&name).unwrap();
     let pd_params = SymmetryGroupDetectionParams::default();
     let pd_params_inp = SymmetryGroupDetectionInputKind::Parameters(pd_params);
     let mut afa_params = AngularFunctionRepAnalysisParams::default();
@@ -196,7 +198,7 @@ fn test_interfaces_qchem_hdf5_geomopt() {
     afa_params.integrality_threshold = 1e-5;
     let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::default();
     let mut qchem_h5_driver = QChemH5Driver::<f64>::builder()
-        .f(&f)
+        .filename(name.into())
         .symmetry_group_detection_input(&pd_params_inp)
         .angular_function_analysis_parameters(&afa_params)
         .slater_det_rep_analysis_parameters(&sda_params)
@@ -223,7 +225,6 @@ fn test_interfaces_qchem_hdf5_geomopt() {
 fn test_interfaces_qchem_hdf5_pcl5_geomopt_freq() {
     // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let name = format!("{ROOT}/tests/qchem/pcl5_opt_freq.qarchive.h5");
-    let f = hdf5::File::open(&name).unwrap();
     let pd_params = SymmetryGroupDetectionParams::default();
     let pd_params_inp = SymmetryGroupDetectionInputKind::Parameters(pd_params);
     let mut afa_params = AngularFunctionRepAnalysisParams::default();
@@ -231,7 +232,7 @@ fn test_interfaces_qchem_hdf5_pcl5_geomopt_freq() {
     afa_params.integrality_threshold = 1e-5;
     let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::default();
     let mut qchem_h5_driver = QChemH5Driver::<f64>::builder()
-        .f(&f)
+        .filename(name.into())
         .symmetry_group_detection_input(&pd_params_inp)
         .angular_function_analysis_parameters(&afa_params)
         .slater_det_rep_analysis_parameters(&sda_params)

@@ -82,9 +82,17 @@ where
     <<G as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition: Send + Sync,
 {
     let emap = ElementMap::new();
+    let thresh = group
+        .elements()
+        .clone()
+        .into_iter()
+        .next()
+        .expect("No symmetry operation found.")
+        .generating_element
+        .threshold();
     let mol = Molecule::from_atoms(
-        &[Atom::new_ordinary("H", Point3::origin(), &emap, 1e-13)],
-        1e-13,
+        &[Atom::new_ordinary("H", Point3::origin(), &emap, thresh)],
+        thresh,
     );
     let lmax = params.max_angular_momentum;
 

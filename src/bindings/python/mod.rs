@@ -1,4 +1,3 @@
-use log4rs;
 use pyo3::prelude::*;
 
 pub mod molecule_symmetrisation;

@@ -2,12 +2,22 @@ use std::fmt;
 
 use log;
 
-/// Logs to the `qsym2-output` logger.
+/// Logs an error to the `qsym2-output` logger.
+macro_rules! qsym2_error {
+    ($fmt:expr $(, $($arg:tt)*)?) => { log::error!(target: "qsym2-output", $fmt, $($($arg)*)?); }
+}
+
+/// Logs a warning to the `qsym2-output` logger.
+macro_rules! qsym2_warn {
+    ($fmt:expr $(, $($arg:tt)*)?) => { log::warn!(target: "qsym2-output", $fmt, $($($arg)*)?); }
+}
+
+/// Logs a main output line to the `qsym2-output` logger.
 macro_rules! qsym2_output {
     ($fmt:expr $(, $($arg:tt)*)?) => { log::info!(target: "qsym2-output", $fmt, $($($arg)*)?); }
 }
 
-pub(crate) use qsym2_output;
+pub(crate) use {qsym2_output, qsym2_warn, qsym2_error};
 
 /// Writes a nicely formatted section title.
 pub(crate) fn write_title(f: &mut fmt::Formatter<'_>, title: &str) -> fmt::Result {

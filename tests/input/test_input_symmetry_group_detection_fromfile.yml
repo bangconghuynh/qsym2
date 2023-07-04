@@ -1,7 +1,7 @@
 symmetry_group_detection: !FromFile
   test_file
 
-representation_analysis_target: !SlaterDeterminant
+analysis_target: !SlaterDeterminant
   source: !Custom
     bao:
     - atom: [0, "H"]

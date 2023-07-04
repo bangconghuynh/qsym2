@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use clap::Parser;
 
@@ -36,7 +36,7 @@ pub fn log_heading() {
     qsym2_output!("│    QQ:::::::::::Q  S:::::::::::::::SS   y:::::y        m::::m   m::::m   m::::m                     │");
     qsym2_output!("│      QQQQQQQQ::::QQ SSSSSSSSSSSSSSS    y:::::y         mmmmmm   mmmmmm   mmmmmm                     │");
     qsym2_output!("│              Q:::::Q                  y:::::y                                                       │");
-    qsym2_output!("│               QQQQQQ                 y:::::y                                                        │");
+    qsym2_output!("│               QQQQQQ                 y:::::y                A program for Quantum Symbolic Symmetry │");
     qsym2_output!("│                                     y:::::y                                                         │");
     qsym2_output!("│                                    y:::::y                                            {version:>13} │");
     qsym2_output!("│                                   yyyyyyy                                     Author: Bang C. Huynh │");
@@ -52,4 +52,7 @@ pub struct Cli {
 
     #[arg(short, long)]
     pub output: Option<PathBuf>,
+
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    pub debug: u8,
 }

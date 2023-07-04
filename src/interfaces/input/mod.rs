@@ -3,14 +3,18 @@ use std::path::PathBuf;
 use anyhow;
 use serde::{Deserialize, Serialize};
 
+use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionParams;
+use crate::drivers::QSym2Driver;
+#[cfg(feature = "qchem")]
+use crate::interfaces::qchem::hdf5::QChemH5Driver;
 #[allow(unused_imports)]
 use crate::io::QSym2FileType;
 
-use representation_analysis::RepAnalysisTarget;
+use analysis::{AnalysisTarget, SlaterDeterminantSource};
 
+pub mod analysis;
 pub mod ao_basis;
-pub mod representation_analysis;
 
 // ===============
 // Driver controls
@@ -52,15 +56,39 @@ pub struct Input {
     /// performed. If not `None`, then this either specifies the parameters for symmetry-group
     /// detection, or the name of a [`QSym2FileType:Sym`] binary file containing the symmetry-group
     /// detection results (without the `.qsym2.sym` extension).
-    ///
-    /// If not specified, this will be taken to be `None`.
-    pub symmetry_group_detection: Option<SymmetryGroupDetectionInputKind>,
+    pub symmetry_group_detection: SymmetryGroupDetectionInputKind,
 
-    pub representation_analysis_target: Option<RepAnalysisTarget>,
+    pub analysis_target: AnalysisTarget,
 }
 
 impl Input {
-    fn handle(&self) -> Result<(), anyhow::Error> {
+    pub fn handle(&self) -> Result<(), anyhow::Error> {
+        let pd_params_inp = &self.symmetry_group_detection;
+        let mut afa_params = AngularFunctionRepAnalysisParams::default();
+        match &self.analysis_target {
+            AnalysisTarget::SlaterDeterminant(sd_control) => {
+                let sd_source = &sd_control.source;
+                let sda_params = &sd_control.control;
+                afa_params.linear_independence_threshold = sda_params.linear_independence_threshold;
+                afa_params.integrality_threshold = sda_params.integrality_threshold;
+                match sd_source {
+                    #[cfg(feature = "qchem")]
+                    SlaterDeterminantSource::QChemArchive(qchemarchive_sd_source) => {
+                        let qchemarchive_path = &qchemarchive_sd_source.path;
+                        let mut qchem_h5_driver = QChemH5Driver::<f64>::builder()
+                            .filename(qchemarchive_path.into())
+                            .symmetry_group_detection_input(&pd_params_inp)
+                            .angular_function_analysis_parameters(&afa_params)
+                            .slater_det_rep_analysis_parameters(&sda_params)
+                            .build()
+                            .unwrap();
+                        qchem_h5_driver.run()?
+                    }
+                    SlaterDeterminantSource::Custom(_) => {}
+                }
+            }
+            AnalysisTarget::MoleculeOnly => {}
+        }
         Ok(())
     }
 }
@@ -68,8 +96,8 @@ impl Input {
 impl Default for Input {
     fn default() -> Self {
         Input {
-            symmetry_group_detection: Some(SymmetryGroupDetectionInputKind::default()),
-            representation_analysis_target: Some(RepAnalysisTarget::default()),
+            symmetry_group_detection: SymmetryGroupDetectionInputKind::default(),
+            analysis_target: AnalysisTarget::default(),
         }
     }
 }

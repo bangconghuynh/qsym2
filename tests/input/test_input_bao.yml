@@ -1,6 +1,6 @@
 symmetry_group_detection: !Parameters
 
-representation_analysis_target: !SlaterDeterminant
+analysis_target: !SlaterDeterminant
   source: !Custom
     bao:
     - atom: [0, "O"]
