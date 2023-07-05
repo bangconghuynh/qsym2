@@ -8,6 +8,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_yaml;
 
 pub(crate) mod format;
+pub(crate) mod numeric;
 
 /// An enumerated type for `QSym2` file types.
 pub enum QSym2FileType {

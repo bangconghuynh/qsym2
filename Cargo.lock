@@ -1983,6 +1983,7 @@ dependencies = [
  "approx 0.5.1",
  "bincode",
  "bitvec",
+ "byteorder",
  "clap",
  "counter",
  "derive_builder 0.12.0",
