@@ -22,6 +22,7 @@ use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
+use crate::drivers::representation_analysis::MagneticSymmetryKind;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
@@ -132,47 +133,50 @@ impl<'a> QChemH5Driver<'a, f64> {
                 log_macsec_begin(&format!("Analysis for {sp_path}"));
                 qsym2_output!("");
                 let sp = f.group(sp_path)?;
-                let sp_driver_result = if sda_params.use_magnetic_group {
-                    let mut sp_driver =
-                        QChemH5SinglePointDriver::<MagneticRepresentedSymmetryGroup, f64>::builder(
-                        )
-                        .sp_group(&sp)
-                        .symmetry_group_detection_input(pd_input)
-                        .angular_function_analysis_parameters(afa_params)
-                        .slater_det_rep_analysis_parameters(sda_params)
-                        .build()?;
-                    let _ = sp_driver.run();
-                    sp_driver.result().map(|(sym, rep)| {
-                        (
-                            sym.group_name
-                                .as_ref()
-                                .unwrap_or(&String::new())
-                                .to_string(),
-                            rep.as_ref()
-                                .map(|rep| rep.to_string())
-                                .unwrap_or_else(|err| err.to_string()),
-                        )
-                    })
-                } else {
-                    let mut sp_driver =
-                        QChemH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
+                let sp_driver_result = match sda_params.use_magnetic_group {
+                    Some(MagneticSymmetryKind::Corepresentation) => {
+                        let mut sp_driver =
+                            QChemH5SinglePointDriver::<MagneticRepresentedSymmetryGroup, f64>::builder(
+                            )
                             .sp_group(&sp)
                             .symmetry_group_detection_input(pd_input)
                             .angular_function_analysis_parameters(afa_params)
                             .slater_det_rep_analysis_parameters(sda_params)
                             .build()?;
-                    let _ = sp_driver.run();
-                    sp_driver.result().map(|(sym, rep)| {
-                        (
-                            sym.group_name
-                                .as_ref()
-                                .unwrap_or(&String::new())
-                                .to_string(),
-                            rep.as_ref()
-                                .map(|rep| rep.to_string())
-                                .unwrap_or_else(|err| err.to_string()),
-                        )
-                    })
+                        let _ = sp_driver.run();
+                        sp_driver.result().map(|(sym, rep)| {
+                            (
+                                sym.group_name
+                                    .as_ref()
+                                    .unwrap_or(&String::new())
+                                    .to_string(),
+                                rep.as_ref()
+                                    .map(|rep| rep.to_string())
+                                    .unwrap_or_else(|err| err.to_string()),
+                            )
+                        })
+                    }
+                    Some(MagneticSymmetryKind::Representation) | None => {
+                        let mut sp_driver =
+                            QChemH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
+                                .sp_group(&sp)
+                                .symmetry_group_detection_input(pd_input)
+                                .angular_function_analysis_parameters(afa_params)
+                                .slater_det_rep_analysis_parameters(sda_params)
+                                .build()?;
+                        let _ = sp_driver.run();
+                        sp_driver.result().map(|(sym, rep)| {
+                            (
+                                sym.group_name
+                                    .as_ref()
+                                    .unwrap_or(&String::new())
+                                    .to_string(),
+                                rep.as_ref()
+                                    .map(|rep| rep.to_string())
+                                    .unwrap_or_else(|err| err.to_string()),
+                            )
+                        })
+                    }
                 };
                 qsym2_output!("");
                 log_macsec_end(&format!("Analysis for {sp_path}"));
@@ -586,7 +590,7 @@ impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
             qsym2_error!("Representation analysis has failed with error:");
             qsym2_error!("  {err}");
         }
-        let sym = if self.slater_det_rep_analysis_parameters.use_magnetic_group {
+        let sym = if self.slater_det_rep_analysis_parameters.use_magnetic_group.is_some() {
             pd_res.magnetic_symmetry.clone()
         } else {
             Some(pd_res.unitary_symmetry.clone())
@@ -648,7 +652,7 @@ impl<'a> QChemH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
             qsym2_error!("Representation analysis has failed with error:");
             qsym2_error!("  {err}");
         }
-        let sym = if self.slater_det_rep_analysis_parameters.use_magnetic_group {
+        let sym = if self.slater_det_rep_analysis_parameters.use_magnetic_group.is_some() {
             pd_res.magnetic_symmetry.clone()
         } else {
             Some(pd_res.unitary_symmetry.clone())

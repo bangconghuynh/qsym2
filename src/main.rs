@@ -14,7 +14,7 @@ use qsym2::io::read_qsym2_yaml;
 use qsym2::interfaces::InputHandle;
 use qsym2::interfaces::input::Input;
 
-fn main() {
+fn try_main() -> Result<(), anyhow::Error> {
     // Parse CLI arguments
     let cli = Cli::parse();
     let config_path = &cli.config;
@@ -23,23 +23,19 @@ fn main() {
     debug_path.set_extension("dbg");
 
     // Parse input config
-    let input_config = read_qsym2_yaml::<Input, _>(config_path).unwrap_or_else(|err| {
-        log::error!("{err}");
-        panic!("Failed to parse the configuration file with error: {err}");
-    });
+    let input_config = read_qsym2_yaml::<Input, _>(config_path)?;
 
     // Set up loggers
     let stdout = ConsoleAppender::builder()
         .encoder(Box::new(PatternEncoder::new(
-            "{d(%Y-%m-%d %H:%M:%S %Z)(utc)} {h({l})} {t} - {m}{n}",
+            "{d(%Y-%m-%d %H:%M:%S %Z)(utc)} {h({l:<5})} {t} - {m}{n}",
         )))
         .build();
 
     let output_log_appender = FileAppender::builder()
         .encoder(Box::new(PatternEncoder::new("{m}{n}")))
         .append(false)
-        .build(output_path)
-        .expect("Unable to construct an output log `FileAppender`.");
+        .build(output_path)?;
 
     match cli.debug {
         0 => {
@@ -54,9 +50,8 @@ fn main() {
                         .additive(false)
                         .build("qsym2-output", LevelFilter::Info),
                 )
-                .build(Root::builder().appender("stdout").build(LevelFilter::Warn))
-                .expect("Unable to construct an output log `Config`.");
-            log4rs::init_config(output_log_config).expect("Unable to initialise logging.");
+                .build(Root::builder().appender("stdout").build(LevelFilter::Warn))?;
+            log4rs::init_config(output_log_config)?;
         }
         1 => {
             // Main output to output file
@@ -64,11 +59,10 @@ fn main() {
             // Non-qsym2 warnings and errors to stdout
             let debug_log_appender = FileAppender::builder()
                 .encoder(Box::new(PatternEncoder::new(
-                    "{d(%Y-%m-%d %H:%M:%S %Z)(utc)} {h({l})} {t} - {m}{n}",
+                    "{d(%Y-%m-%d %H:%M:%S %Z)(utc)} {h({l:<5})} {t} - {m}{n}",
                 )))
                 .append(false)
-                .build(debug_path)
-                .expect("Unable to construct a debug log `FileAppender`.");
+                .build(debug_path)?;
             let output_log_config = Config::builder()
                 .appender(Appender::builder().build("stdout", Box::new(stdout)))
                 .appender(Appender::builder().build("output_ap", Box::new(output_log_appender)))
@@ -86,20 +80,18 @@ fn main() {
                         .additive(false)
                         .build("qsym2", LevelFilter::Debug),
                 )
-                .build(Root::builder().appender("stdout").build(LevelFilter::Warn))
-                .expect("Unable to construct an output log `Config`.");
-            log4rs::init_config(output_log_config).expect("Unable to initialise logging.");
+                .build(Root::builder().appender("stdout").build(LevelFilter::Warn))?;
+            log4rs::init_config(output_log_config)?;
         }
         _ => {
             // Main output to output file
             // All debugs, main output, warnings and errors to debug file and stdout
             let debug_log_appender = FileAppender::builder()
                 .encoder(Box::new(PatternEncoder::new(
-                    "{d(%Y-%m-%d %H:%M:%S %Z)(utc)} {h({l})} {t} - {m}{n}",
+                    "{d(%Y-%m-%d %H:%M:%S %Z)(utc)} {h({l:<5})} {t} - {m}{n}",
                 )))
                 .append(false)
-                .build(debug_path)
-                .expect("Unable to construct a debug log `FileAppender`.");
+                .build(debug_path)?;
             let output_log_config = Config::builder()
                 .appender(Appender::builder().build("stdout", Box::new(stdout)))
                 .appender(Appender::builder().build("output_ap", Box::new(output_log_appender)))
@@ -115,9 +107,8 @@ fn main() {
                         .appender("debug_ap")
                         .appender("stdout")
                         .build(LevelFilter::Debug),
-                )
-                .expect("Unable to construct an output log `Config`.");
-            log4rs::init_config(output_log_config).expect("Unable to initialise logging.");
+                )?;
+            log4rs::init_config(output_log_config)?;
         }
     };
 
@@ -125,8 +116,13 @@ fn main() {
     qsym2_output_contributors();
     qsym2_output_calculation_summary(config_path, &cli);
 
-    input_config.handle().unwrap_or_else(|err| {
-        log::error!("{err}");
-        panic!("QSym² has failed with the following error:\n  {err}");
-    })
+    input_config.handle()
+}
+
+fn main() -> Result<(), anyhow::Error> {
+    let main_res = try_main();
+    if let Err(err) = main_res.as_ref() {
+        log::error!("{err:#}");
+    }
+    main_res
 }

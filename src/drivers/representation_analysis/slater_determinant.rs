@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, format_err};
+use anyhow::{self, bail, format_err};
 use derive_builder::Builder;
 use ndarray::{s, Array2};
 use ndarray_linalg::types::Lapack;
@@ -18,7 +18,7 @@ use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::{
     find_angular_function_representation, AngularFunctionRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::{log_bao, log_cc_transversal, CharacterTableDisplay};
+use crate::drivers::representation_analysis::{log_bao, log_cc_transversal, CharacterTableDisplay, MagneticSymmetryKind};
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
@@ -67,10 +67,11 @@ pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     #[serde(default = "default_true")]
     pub analyse_mo_symmetries: bool,
 
-    /// Boolean indicating if the magnetic group is to be used for symmetry analysis.
-    #[builder(default = "false")]
+    /// Option indicating if the magnetic group is to be used for symmetry analysis, and if so,
+    /// whether unitary representations or unitary-antiunitary corepresentations should be used.
+    #[builder(default = "None")]
     #[serde(default)]
-    pub use_magnetic_group: bool,
+    pub use_magnetic_group: Option<MagneticSymmetryKind>,
 
     /// Boolean indicating if the double group is to be used for symmetry analysis.
     #[builder(default = "false")]
@@ -151,7 +152,12 @@ where
         writeln!(
             f,
             "Use magnetic group for analysis: {}",
-            nice_bool(self.use_magnetic_group)
+            match self.use_magnetic_group {
+                None => "no",
+                Some(MagneticSymmetryKind::Representation) => "yes, using unitary representations",
+                Some(MagneticSymmetryKind::Corepresentation) =>
+                    "yes, using magnetic corepresentations",
+            }
         )?;
         writeln!(
             f,
@@ -450,7 +456,7 @@ where
             .determinant
             .ok_or("No Slater determinant found.".to_string())?;
 
-        let sym = if params.use_magnetic_group {
+        let sym = if params.use_magnetic_group.is_some() {
             sym_res
                 .magnetic_symmetry
                 .as_ref()
@@ -535,17 +541,17 @@ where
     /// for representation analysis.
     fn construct_unitary_group(&self) -> Result<UnitaryRepresentedSymmetryGroup, anyhow::Error> {
         let params = self.parameters;
-        let sym = if params.use_magnetic_group {
-            self.symmetry_group
+        let sym = match params.use_magnetic_group {
+            Some(MagneticSymmetryKind::Representation) => self.symmetry_group
                 .magnetic_symmetry
                 .as_ref()
                 .ok_or_else(|| {
                     format_err!(
                         "Magnetic symmetry requested for analysis, but no magnetic symmetry found."
                     )
-                })?
-        } else {
-            &self.symmetry_group.unitary_symmetry
+                })?,
+            Some(MagneticSymmetryKind::Corepresentation) => bail!("Magnetic corepresentations requested, but unitary-represented group is being constructed."),
+            None => &self.symmetry_group.unitary_symmetry
         };
         let group = if params.use_double_group {
             UnitaryRepresentedGroup::from_molecular_symmetry(sym, params.infinite_order_to_finite)?
@@ -802,17 +808,17 @@ where
     /// corepresentation analysis.
     fn construct_magnetic_group(&self) -> Result<MagneticRepresentedSymmetryGroup, anyhow::Error> {
         let params = self.parameters;
-        let sym = if params.use_magnetic_group {
-            self.symmetry_group
+        let sym = match params.use_magnetic_group {
+            Some(MagneticSymmetryKind::Corepresentation) => self.symmetry_group
                 .magnetic_symmetry
                 .as_ref()
                 .ok_or_else(|| {
                     format_err!(
                         "Magnetic symmetry requested for analysis, but no magnetic symmetry found."
                     )
-                })?
-        } else {
-            &self.symmetry_group.unitary_symmetry
+                })?,
+            Some(MagneticSymmetryKind::Representation) => bail!("Unitary representations requested, but magnetic-represented group is being constructed."),
+            None => &self.symmetry_group.unitary_symmetry
         };
         let group = if params.use_double_group {
             MagneticRepresentedGroup::from_molecular_symmetry(sym, params.infinite_order_to_finite)?

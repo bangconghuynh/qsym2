@@ -6,6 +6,7 @@ analysis_target: !SlaterDeterminant
     xyz: path/to/xyz
     sao: path/to/sao
     coefficients: [path/to/ca, path/to/cb]
+    occupations: [path/to/occa, path/to/occb]
     spin_constraint: !Unrestricted
     - 2
     - false

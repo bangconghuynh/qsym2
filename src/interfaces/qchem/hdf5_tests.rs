@@ -2,6 +2,7 @@ use hdf5;
 use nalgebra::{Point3, Vector3};
 
 use super::{QChemH5Driver, QChemH5SinglePointDriver};
+use crate::drivers::representation_analysis::MagneticSymmetryKind;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionParams;
@@ -119,7 +120,7 @@ fn test_interfaces_qchem_hdf5_sp_o2_ms0_perpendicular_magnetic_field() {
     assert_eq!(res_uni.1.as_ref().unwrap().to_string(), "|A|_(g)");
 
     let mut sda_params_mag = SlaterDeterminantRepAnalysisParams::<f64>::default();
-    sda_params_mag.use_magnetic_group = true;
+    sda_params_mag.use_magnetic_group = Some(MagneticSymmetryKind::Corepresentation);
     let mut qchem_sp_mag =
         QChemH5SinglePointDriver::<MagneticRepresentedSymmetryGroup, f64>::builder()
             .sp_group(&sp)

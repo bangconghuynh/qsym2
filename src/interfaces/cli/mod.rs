@@ -7,7 +7,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 use crate::aux::contributors::CONTRIBUTORS;
-use crate::io::format::{log_subtitle, log_title, qsym2_output};
+use crate::io::format::{log_subtitle, log_title, qsym2_output, QSym2Output};
 
 const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 
@@ -103,7 +103,7 @@ lazy_static! {
 pub fn qsym2_output_contributors() {
     qsym2_output!("    Contributors (in alphabetical order):");
     CONTRIBUTORS.iter().for_each(|contrib| {
-        qsym2_output!("      {}", contrib.trim());
+        qsym2_output!("        {}", contrib.trim());
     });
     qsym2_output!("");
 }
@@ -149,7 +149,8 @@ pub fn qsym2_output_calculation_summary<P: AsRef<Path>>(config_path: P, cli: &Cl
     )
     .collect::<String>();
     qsym2_output!("┌{}┐", "┄".repeat(length + 2));
-    qsym2_output!("{}", formatted_config_contents.trim());
+    formatted_config_contents.trim().log_output_display();
     qsym2_output!("└{}┘", "┄".repeat(length + 2));
-    qsym2_output!("\n");
+    qsym2_output!("");
+    qsym2_output!("");
 }

@@ -5,6 +5,7 @@ pub mod representation_analysis;
 pub mod symmetry_group_detection;
 
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
+use crate::drivers::representation_analysis::MagneticSymmetryKind;
 
 /// A Python module for `QSym2` implemented in Rust.
 #[pymodule]
@@ -27,6 +28,7 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<representation_analysis::PySpinConstraint>()?;
     m.add_class::<representation_analysis::PySlaterDeterminantReal>()?;
     m.add_class::<representation_analysis::PySlaterDeterminantComplex>()?;
+    m.add_class::<MagneticSymmetryKind>()?;
     m.add_class::<SymmetryTransformationKind>()?;
     Ok(())
 }

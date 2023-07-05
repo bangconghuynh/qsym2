@@ -1,5 +1,6 @@
 use std::fmt;
 
+use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::aux::ao_basis::BasisAngularOrder;
@@ -24,6 +25,29 @@ impl fmt::Display for CharacterTableDisplay {
         match self {
             CharacterTableDisplay::Symbolic => write!(f, "Symbolic"),
             CharacterTableDisplay::Numerical => write!(f, "Numerical"),
+        }
+    }
+}
+
+/// An enumerated type indicating the type of magnetic symmetry to be used for representation
+/// analysis.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[pyclass]
+pub enum MagneticSymmetryKind {
+    /// Variant indicating that unitary representations should be used for magnetic symmetry
+    /// analysis.
+    Representation,
+
+    /// Variant indicating that magnetic corepresentations should be used for magnetic symmetry
+    /// analysis.
+    Corepresentation,
+}
+
+impl fmt::Display for MagneticSymmetryKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MagneticSymmetryKind::Representation => write!(f, "Unitary representations"),
+            MagneticSymmetryKind::Corepresentation => write!(f, "Magnetic corepresentations"),
         }
     }
 }

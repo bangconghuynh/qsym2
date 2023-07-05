@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
+use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
-use crate::drivers::QSym2Driver;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
+use crate::drivers::QSym2Driver;
 use crate::interfaces::input::analysis::SlaterDeterminantSourceHandle;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 use crate::interfaces::qchem::hdf5::QChemH5Driver;
@@ -44,7 +45,8 @@ impl SlaterDeterminantSourceHandle for QChemArchiveSlaterDeterminantSource {
             .symmetry_group_detection_input(&pd_params_inp)
             .angular_function_analysis_parameters(&afa_params)
             .slater_det_rep_analysis_parameters(&sda_params)
-            .build()?;
+            .build()
+            .with_context(|| "Unable to construct a Q-Chem HDF5 driver when handling Q-Chem archive Slater determinant source")?;
         qchem_h5_driver.run()
     }
 }

@@ -39,7 +39,7 @@ fn test_interfaces_input_symmetry_group_detection_parameters() {
         assert_eq!(inp_rep_params.integrality_threshold, 1e-8);
         assert_eq!(inp_rep_params.linear_independence_threshold, 1e-7);
         assert!(inp_rep_params.analyse_mo_symmetries);
-        assert!(!inp_rep_params.use_magnetic_group);
+        assert!(inp_rep_params.use_magnetic_group.is_none());
         assert!(!inp_rep_params.use_double_group);
         assert!(matches!(
             inp_rep_params.symmetry_transformation_kind,
@@ -72,7 +72,7 @@ fn test_interfaces_input_symmetry_group_detection_fromfile() {
         assert_eq!(inp_rep_params.integrality_threshold, 1e-7);
         assert_eq!(inp_rep_params.linear_independence_threshold, 1e-7);
         assert!(inp_rep_params.analyse_mo_symmetries);
-        assert!(!inp_rep_params.use_magnetic_group);
+        assert!(inp_rep_params.use_magnetic_group.is_none());
         assert!(!inp_rep_params.use_double_group);
         assert!(matches!(
             inp_rep_params.symmetry_transformation_kind,
