@@ -1,11 +1,14 @@
 use std::path::PathBuf;
 
+use anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
+use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::interfaces::custom::CustomSlaterDeterminantSource;
 #[cfg(feature = "qchem")]
 use crate::interfaces::qchem::QChemArchiveSlaterDeterminantSource;
+use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 
 // =======================================
 // Representation analysis target controls
@@ -38,6 +41,17 @@ impl Default for AnalysisTarget {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Target: Slater determinant
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+/// A trait for handling of Slater determinant input sources.
+pub(crate) trait SlaterDeterminantSourceHandle {
+    /// Handles the Slater determinant inpur source and runs relevant calculations.
+    fn sd_source_handle(
+        &self,
+        pd_params_inp: &SymmetryGroupDetectionInputKind,
+        afa_params: &AngularFunctionRepAnalysisParams,
+        sda_params: &SlaterDeterminantRepAnalysisParams<f64>,
+    ) -> Result<(), anyhow::Error>;
+}
 
 /// A serialisable/deserialisable structure containing control parameters for Slater determinant
 /// representation analysis.

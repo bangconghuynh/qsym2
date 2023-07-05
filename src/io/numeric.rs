@@ -11,7 +11,7 @@ use byteorder::{BigEndian, ByteOrder, LittleEndian};
 mod numeric_tests;
 
 /// An iterable structure for reading numeric binary files.
-struct NumericReader<R: BufRead, B: ByteOrder, T> {
+pub(crate) struct NumericReader<R: BufRead, B: ByteOrder, T> {
     /// The inner file reader.
     inner: R,
 
@@ -44,7 +44,7 @@ impl<B: ByteOrder, T> NumericReader<BufReader<File>, B, T> {
     /// # Arguments
     ///
     /// * `filename` - The path to the file to be read.
-    fn from_file<P: AsRef<Path>>(filename: P) -> Result<Self, anyhow::Error> {
+    pub(crate) fn from_file<P: AsRef<Path>>(filename: P) -> Result<Self, anyhow::Error> {
         let f = File::open(&filename)?;
         Ok(Self::new(BufReader::new(f)))
     }

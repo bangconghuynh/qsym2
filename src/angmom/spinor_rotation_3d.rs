@@ -7,6 +7,7 @@ use nalgebra::Vector3;
 use ndarray::{array, Array2, Axis};
 use num::{BigUint, Complex, Zero};
 use num_traits::ToPrimitive;
+use serde::{Serialize, Deserialize};
 
 #[cfg(test)]
 #[path = "spinor_rotation_3d_tests.rs"]
@@ -17,7 +18,7 @@ mod spinor_rotation_3d_tests;
 // ================
 
 /// An enumerated type to manage spin constraints and spin space information.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SpinConstraint {
     /// Variant for restricted spin constraint: the spatial parts of all spin spaces are identical.
     /// The associated value is the number of spin spaces.

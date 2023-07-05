@@ -3,6 +3,14 @@ symmetry_group_detection: !FromFile
 
 analysis_target: !SlaterDeterminant
   source: !Custom
+    xyz: path/to/xyz
+    sao: path/to/sao
+    coefficients: [path/to/ca, path/to/cb]
+    spin_constraint: !Unrestricted
+    - 2
+    - false
+    matrix_order: RowMajor
+    byte_order: LittleEndian
     bao:
     - atom: [0, "H"]
       basis_shells:

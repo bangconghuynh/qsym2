@@ -8,12 +8,12 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
-#[cfg(feature = "qchem")]
-use crate::interfaces::qchem::hdf5::QChemH5Driver;
+use crate::interfaces::input::analysis::{
+    AnalysisTarget, SlaterDeterminantSource, SlaterDeterminantSourceHandle,
+};
+use crate::interfaces::InputHandle;
 #[allow(unused_imports)]
-use crate::io::QSym2FileType;
-
-use analysis::{AnalysisTarget, SlaterDeterminantSource};
+use crate::io::{read_qsym2_binary, QSym2FileType};
 
 pub mod analysis;
 pub mod ao_basis;
@@ -67,8 +67,9 @@ pub struct Input {
     pub analysis_target: AnalysisTarget,
 }
 
-impl Input {
-    pub fn handle(&self) -> Result<(), anyhow::Error> {
+impl InputHandle for Input {
+    /// Handles the main input structure.
+    fn handle(&self) -> Result<(), anyhow::Error> {
         let pd_params_inp = &self.symmetry_group_detection;
         let mut afa_params = AngularFunctionRepAnalysisParams::default();
         match &self.analysis_target {
@@ -80,16 +81,19 @@ impl Input {
                 match sd_source {
                     #[cfg(feature = "qchem")]
                     SlaterDeterminantSource::QChemArchive(qchemarchive_sd_source) => {
-                        let qchemarchive_path = &qchemarchive_sd_source.path;
-                        let mut qchem_h5_driver = QChemH5Driver::<f64>::builder()
-                            .filename(qchemarchive_path.into())
-                            .symmetry_group_detection_input(&pd_params_inp)
-                            .angular_function_analysis_parameters(&afa_params)
-                            .slater_det_rep_analysis_parameters(&sda_params)
-                            .build()?;
-                        qchem_h5_driver.run()
+                        qchemarchive_sd_source.sd_source_handle(
+                            &pd_params_inp,
+                            &afa_params,
+                            &sda_params,
+                        )
                     }
-                    SlaterDeterminantSource::Custom(_) => Ok(()),
+                    SlaterDeterminantSource::Custom(custom_sd_source) => {
+                        custom_sd_source.sd_source_handle(
+                            &pd_params_inp,
+                            &afa_params,
+                            &sda_params,
+                        )
+                    }
                 }
             }
             AnalysisTarget::MolecularSymmetry { xyz } => {
