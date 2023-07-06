@@ -6,7 +6,10 @@ const QSYM2_BANNER_LENGTH: usize = 103;
 
 /// Logs an error to the `qsym2-output` logger.
 macro_rules! qsym2_error {
-    ($fmt:expr $(, $($arg:tt)*)?) => { log::error!(target: "qsym2-output", $fmt, $($($arg)*)?); }
+    ($fmt:expr $(, $($arg:tt)*)?) => {
+        log::error!($fmt, $($($arg)*)?);
+        log::error!(target: "qsym2-output", $fmt, $($($arg)*)?);
+    }
 }
 
 /// Logs a warning to the `qsym2-output` logger.

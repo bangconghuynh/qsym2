@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use anyhow::{format_err, Context};
-use derive_builder::Builder;
 use byteorder::{BigEndian, LittleEndian};
+use derive_builder::Builder;
 use ndarray::{Array1, Array2, ShapeBuilder};
 use serde::{Deserialize, Serialize};
 

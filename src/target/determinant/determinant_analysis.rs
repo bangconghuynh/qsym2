@@ -24,6 +24,7 @@ use crate::aux::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
+use crate::io::format::qsym2_error;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
@@ -312,22 +313,27 @@ where
             self.origin,
             match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => |op, det| {
-                    det.sym_transform_spatial(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spatially on the origin determinant.")
-                    })
+                    let tdet = det.sym_transform_spatial(op).ok();
+                    if tdet.is_none() {
+                        qsym2_error!("Unable to apply `{op}` spatially on the origin determinant.");
+                    }
+                    tdet
                 },
                 SymmetryTransformationKind::Spin => |op, det| {
-                    det.sym_transform_spin(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spin-wise on the origin determinant.")
-                    })
+                    let sdet = det.sym_transform_spin(op).ok();
+                    if sdet.is_none() {
+                        qsym2_error!("Unable to apply `{op}` spin-wise on the origin determinant.");
+                    }
+                    sdet
                 },
                 SymmetryTransformationKind::SpinSpatial => |op, det| {
-                    det.sym_transform_spin_spatial(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spin-spatially on the origin determinant.")
-                    })
+                    let tsdet = det.sym_transform_spin_spatial(op).ok();
+                    if tsdet.is_none() {
+                        qsym2_error!(
+                            "Unable to apply `{op}` spin-spatially on the origin determinant."
+                        );
+                    }
+                    tsdet
                 },
             },
         )

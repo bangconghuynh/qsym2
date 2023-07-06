@@ -4,8 +4,8 @@ pub mod molecule_symmetrisation;
 pub mod representation_analysis;
 pub mod symmetry_group_detection;
 
-use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
+use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
 /// A Python module for `QSym2` implemented in Rust.
 #[pymodule]

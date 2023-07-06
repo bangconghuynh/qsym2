@@ -47,7 +47,9 @@ impl fmt::Display for MagneticSymmetryAnalysisKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             MagneticSymmetryAnalysisKind::Representation => write!(f, "Unitary representations"),
-            MagneticSymmetryAnalysisKind::Corepresentation => write!(f, "Magnetic corepresentations"),
+            MagneticSymmetryAnalysisKind::Corepresentation => {
+                write!(f, "Magnetic corepresentations")
+            }
         }
     }
 }

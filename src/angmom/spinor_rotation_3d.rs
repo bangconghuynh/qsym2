@@ -7,7 +7,7 @@ use nalgebra::Vector3;
 use ndarray::{array, Array2, Axis};
 use num::{BigUint, Complex, Zero};
 use num_traits::ToPrimitive;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
 #[path = "spinor_rotation_3d_tests.rs"]

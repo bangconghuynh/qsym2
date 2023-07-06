@@ -2,9 +2,9 @@ use hdf5;
 use nalgebra::{Point3, Vector3};
 
 use super::{QChemH5Driver, QChemH5SinglePointDriver};
-use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
+use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionParams;
 use crate::drivers::QSym2Driver;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;

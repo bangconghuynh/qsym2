@@ -1,6 +1,6 @@
 use std::fmt;
 
-use anyhow;
+use anyhow::{self, format_err};
 use itertools::Itertools;
 use ndarray::{s, Array, Array2, Axis, Dimension, Ix0, Ix2};
 use ndarray_einsum_beta::*;
@@ -59,7 +59,7 @@ where
     origin: &'a I,
 
     /// A function defining the action of each group element on the origin.
-    action: fn(&G::GroupElement, &I) -> I,
+    action: fn(&G::GroupElement, &I) -> Option<I>,
 }
 
 impl<'a, G, I> OrbitIterator<'a, G, I>
@@ -77,7 +77,7 @@ where
     /// # Returns
     ///
     /// An orbit iterator.
-    pub fn new(group: &G, origin: &'a I, action: fn(&G::GroupElement, &I) -> I) -> Self {
+    pub fn new(group: &G, origin: &'a I, action: fn(&G::GroupElement, &I) -> Option<I>) -> Self {
         Self {
             group_iter: group.elements().clone().into_iter(),
             origin,
@@ -90,7 +90,7 @@ impl<'a, G, I> Iterator for OrbitIterator<'a, G, I>
 where
     G: GroupProperties,
 {
-    type Item = I;
+    type Item = Option<I>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.group_iter
@@ -109,7 +109,7 @@ where
     G: GroupProperties,
 {
     /// Type of the iterator over items in the orbit.
-    type OrbitIter: Iterator<Item = I>;
+    type OrbitIter: Iterator<Item = Option<I>>;
 
     /// The group generating the orbit.
     fn group(&self) -> &G;
@@ -140,7 +140,7 @@ where
     G::CharTab: SubspaceDecomposable<T>,
     D: Dimension,
     I: Overlap<T, D> + Clone,
-    Self::OrbitIter: Iterator<Item = I>,
+    Self::OrbitIter: Iterator<Item = Option<I>>,
 {
     // ----------------
     // Required methods
@@ -211,8 +211,14 @@ where
         let order = self.group().order();
         let mut smat = Array2::<T>::zeros((order, order));
         for pair in self.iter().enumerate().combinations_with_replacement(2) {
-            let (w, item_w) = &pair[0];
-            let (x, item_x) = &pair[1];
+            let (w, item_w_opt) = &pair[0];
+            let (x, item_x_opt) = &pair[1];
+            let item_w = item_w_opt.as_ref().ok_or(format_err!(
+                "One of the items in the orbit is not available."
+            ))?;
+            let item_x = item_x_opt.as_ref().ok_or(format_err!(
+                "One of the items in the orbit is not available."
+            ))?;
             smat[(*w, *x)] = item_w.overlap(item_x, metric).map_err(|err| {
                 log::error!("{err}");
                 log::error!(

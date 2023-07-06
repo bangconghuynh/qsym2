@@ -11,8 +11,8 @@ use qsym2::interfaces::cli::{
 };
 use qsym2::io::read_qsym2_yaml;
 
-use qsym2::interfaces::InputHandle;
 use qsym2::interfaces::input::Input;
+use qsym2::interfaces::InputHandle;
 
 fn try_main() -> Result<(), anyhow::Error> {
     // Parse CLI arguments

@@ -24,6 +24,7 @@ use crate::aux::misc::{complex_modified_gram_schmidt, ProductRepeat};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
+use crate::io::format::qsym2_error;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
@@ -315,22 +316,27 @@ where
             self.origin,
             match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => |op, orb| {
-                    orb.sym_transform_spatial(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spatially on the origin orbital.")
-                    })
+                    let torb = orb.sym_transform_spatial(op).ok();
+                    if torb.is_none() {
+                        qsym2_error!("Unable to apply `{op}` spatially on the origin orbital.");
+                    }
+                    torb
                 },
                 SymmetryTransformationKind::Spin => |op, orb| {
-                    orb.sym_transform_spin(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spin-wise on the origin orbital.")
-                    })
+                    let sorb = orb.sym_transform_spin(op).ok();
+                    if sorb.is_none() {
+                        qsym2_error!("Unable to apply `{op}` spin-wise on the origin orbital.");
+                    }
+                    sorb
                 },
                 SymmetryTransformationKind::SpinSpatial => |op, orb| {
-                    orb.sym_transform_spin_spatial(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spin-spatially on the origin orbital.",)
-                    })
+                    let tsorb = orb.sym_transform_spin_spatial(op).ok();
+                    if tsorb.is_none() {
+                        qsym2_error!(
+                            "Unable to apply `{op}` spin-spatially on the origin orbital.",
+                        );
+                    }
+                    tsorb
                 },
             },
         )
@@ -520,8 +526,14 @@ where
     let thresh = det.threshold();
     let indexed_dets = det_orbit.iter().enumerate().collect::<Vec<_>>();
     for det_pair in indexed_dets.iter().product_repeat(2) {
-        let (w, det_w) = &det_pair[0];
-        let (x, det_x) = &det_pair[1];
+        let (w, det_w_opt) = &det_pair[0];
+        let (x, det_x_opt) = &det_pair[1];
+        let det_w = det_w_opt.as_ref().ok_or(format_err!(
+            "One of the determinants in the orbit is not available."
+        ))?;
+        let det_x = det_x_opt.as_ref().ok_or(format_err!(
+            "One of the determinants in the orbit is not available."
+        ))?;
 
         let wx_ov = izip!(
             det_w.coefficients(),

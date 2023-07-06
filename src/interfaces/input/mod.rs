@@ -81,14 +81,13 @@ impl InputHandle for Input {
                 match sd_source {
                     #[cfg(feature = "qchem")]
                     SlaterDeterminantSource::QChemArchive(qchemarchive_sd_source) => {
-                        qchemarchive_sd_source.sd_source_handle(
-                            &pd_params_inp,
-                            &afa_params,
-                            &sda_params,
-                        ).map(|_| ())
+                        qchemarchive_sd_source
+                            .sd_source_handle(&pd_params_inp, &afa_params, &sda_params)
+                            .map(|_| ())
                     }
                     SlaterDeterminantSource::Binaries(binaries_sd_source) => binaries_sd_source
-                        .sd_source_handle(&pd_params_inp, &afa_params, &sda_params).map(|_| ()),
+                        .sd_source_handle(&pd_params_inp, &afa_params, &sda_params)
+                        .map(|_| ()),
                 }
             }
             AnalysisTarget::MolecularSymmetry { xyz } => {

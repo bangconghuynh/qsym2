@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use anyhow;
 use serde::{Deserialize, Serialize};
 
-use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
+use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
 use crate::interfaces::binaries::BinariesSlaterDeterminantSource;
+use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 #[cfg(feature = "qchem")]
 use crate::interfaces::qchem::QChemArchiveSlaterDeterminantSource;
-use crate::interfaces::input::SymmetryGroupDetectionInputKind;
 
 // =======================================
 // Representation analysis target controls

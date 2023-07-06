@@ -18,7 +18,9 @@ use crate::drivers::representation_analysis::angular_function::AngularFunctionRe
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::{CharacterTableDisplay, MagneticSymmetryAnalysisKind};
+use crate::drivers::representation_analysis::{
+    CharacterTableDisplay, MagneticSymmetryAnalysisKind,
+};
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::io::{read_qsym2_binary, QSym2FileType};
