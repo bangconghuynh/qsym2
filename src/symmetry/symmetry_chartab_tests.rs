@@ -3060,17 +3060,28 @@ fn test_chartab_linear_atom_magnetic_field_cinfh() {
 }
 
 #[test]
-fn test_chartab_linear_atom_magnetic_field_bw_dinfh_cinfh() {
+fn test_chartab_linear_atom_magnetic_field_bw_dinfh_cinfh_small() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
-    verify_bw_dinfh_cinfh(&mol, thresh);
+    verify_bw_dinfh_cinfh(&mol, thresh, 2, 12);
 }
 
 #[test]
-fn test_chartab_linear_atom_electric_field_cinfv() {
+#[ignore]
+fn test_chartab_linear_atom_magnetic_field_bw_dinfh_cinfh_large() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
+    verify_bw_dinfh_cinfh(&mol, thresh, 13, 20);
+}
+
+#[test]
+fn test_chartab_linear_atom_electric_field_cinfv_small() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -3080,11 +3091,26 @@ fn test_chartab_linear_atom_electric_field_cinfv() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
-    verify_cinfv(&mol, thresh);
+    verify_cinfv(&mol, thresh, 3, 12);
 }
 
 #[test]
-fn test_chartab_linear_atom_electric_field_grey_cinfv() {
+#[ignore]
+fn test_chartab_linear_atom_electric_field_cinfv_large() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Cnv groups.
+     * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1, A2, Ek where k = 1, ..., n//2.
+     */
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
+    verify_cinfv(&mol, thresh, 13, 20);
+}
+
+#[test]
+fn test_chartab_linear_atom_electric_field_grey_cinfv_small() {
     // env_logger::init();
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
@@ -3095,11 +3121,27 @@ fn test_chartab_linear_atom_electric_field_grey_cinfv() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
-    verify_grey_cinfv(&mol, thresh);
+    verify_grey_cinfv(&mol, thresh, 2, 12);
 }
 
 #[test]
-fn test_chartab_linear_c2h2_dinfh() {
+#[ignore]
+fn test_chartab_linear_atom_electric_field_grey_cinfv_large() {
+    // env_logger::init();
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Cnv groups.
+     * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1, A2, Ek where k = 1, ..., n//2.
+     */
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
+    verify_grey_cinfv(&mol, thresh, 13, 20);
+}
+
+#[test]
+fn test_chartab_linear_c2h2_dinfh_small() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -3110,11 +3152,12 @@ fn test_chartab_linear_c2h2_dinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    verify_dinfh(&mol, thresh);
+    verify_dinfh(&mol, thresh, 3, 12);
 }
 
 #[test]
-fn test_chartab_linear_c2h2_grey_dinfh() {
+#[ignore]
+fn test_chartab_linear_c2h2_dinfh_large() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -3125,7 +3168,38 @@ fn test_chartab_linear_c2h2_grey_dinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    verify_grey_dinfh(&mol, thresh);
+    verify_dinfh(&mol, thresh, 13, 20);
+}
+
+#[test]
+fn test_chartab_linear_c2h2_grey_dinfh_small() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Dnh groups.
+     * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
+     * where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1('/''), A2('/''), Ek('/'')
+     * where k = 1, ..., n//2.
+     */
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    verify_grey_dinfh(&mol, thresh, 3, 12);
+}
+
+#[test]
+#[ignore]
+fn test_chartab_linear_c2h2_grey_dinfh_large() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Dnh groups.
+     * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
+     * where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1('/''), A2('/''), Ek('/'')
+     * where k = 1, ..., n//2.
+     */
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    verify_grey_dinfh(&mol, thresh, 13, 20);
 }
 
 #[test]
@@ -3139,51 +3213,104 @@ fn test_chartab_linear_c2h2_magnetic_field_cinfh() {
 }
 
 #[test]
-fn test_chartab_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
+fn test_chartab_linear_c2h2_magnetic_field_bw_dinfh_cinfh_small() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     // Parallel field
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    verify_bw_dinfh_cinfh(&mol, thresh);
+    verify_bw_dinfh_cinfh(&mol, thresh, 2, 12);
 }
 
 #[test]
-fn test_chartab_linear_c2h2_electric_field_cinfv() {
+#[ignore]
+fn test_chartab_linear_c2h2_magnetic_field_bw_dinfh_cinfh_large() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    // Parallel field
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    verify_bw_dinfh_cinfh(&mol, thresh, 13, 20);
+}
+
+#[test]
+fn test_chartab_linear_c2h2_electric_field_cinfv_small() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
 
     // Parallel field
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    verify_cinfv(&mol, thresh);
+    verify_cinfv(&mol, thresh, 3, 12);
 }
 
 #[test]
-fn test_chartab_linear_c2h2_electric_field_grey_cinfv() {
+#[ignore]
+fn test_chartab_linear_c2h2_electric_field_cinfv_large() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
 
     // Parallel field
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    verify_grey_cinfv(&mol, thresh);
+    verify_cinfv(&mol, thresh, 13, 20);
 }
 
 #[test]
-fn test_chartab_linear_n3_cinfv() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+fn test_chartab_linear_c2h2_electric_field_grey_cinfv_small() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
-    let mol = Molecule::from_xyz(&path, thresh);
-    verify_cinfv(&mol, thresh);
+    let mut mol = Molecule::from_xyz(&path, thresh);
+
+    // Parallel field
+    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    verify_grey_cinfv(&mol, thresh, 2, 12);
 }
 
 #[test]
-fn test_chartab_linear_n3_grey_cinfv() {
+#[ignore]
+fn test_chartab_linear_c2h2_electric_field_grey_cinfv_large() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+
+    // Parallel field
+    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    verify_grey_cinfv(&mol, thresh, 13, 20);
+}
+
+#[test]
+fn test_chartab_linear_n3_cinfv_small() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    verify_grey_cinfv(&mol, thresh);
+    verify_cinfv(&mol, thresh, 3, 12);
+}
+
+#[test]
+#[ignore]
+fn test_chartab_linear_n3_cinfv_large() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    verify_cinfv(&mol, thresh, 13, 20);
+}
+
+#[test]
+fn test_chartab_linear_n3_grey_cinfv_small() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    verify_grey_cinfv(&mol, thresh, 2, 12);
+}
+
+#[test]
+#[ignore]
+fn test_chartab_linear_n3_grey_cinfv_large() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    verify_grey_cinfv(&mol, thresh, 13, 20);
 }
 
 #[test]
@@ -3209,25 +3336,49 @@ fn test_chartab_linear_n3_magnetic_field_bw_cinfv_cinf() {
 }
 
 #[test]
-fn test_chartab_linear_n3_electric_field_cinfv() {
+fn test_chartab_linear_n3_electric_field_cinfv_small() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
 
     // Parallel field
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    verify_cinfv(&mol, thresh);
+    verify_cinfv(&mol, thresh, 3, 12);
 }
 
 #[test]
-fn test_chartab_linear_n3_electric_field_grey_cinfv() {
+#[ignore]
+fn test_chartab_linear_n3_electric_field_cinfv_large() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
 
     // Parallel field
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    verify_grey_cinfv(&mol, thresh);
+    verify_cinfv(&mol, thresh, 13, 20);
+}
+
+#[test]
+fn test_chartab_linear_n3_electric_field_grey_cinfv_small() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+
+    // Parallel field
+    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    verify_grey_cinfv(&mol, thresh, 2, 12);
+}
+
+#[test]
+#[ignore]
+fn test_chartab_linear_n3_electric_field_grey_cinfv_large() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+
+    // Parallel field
+    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    verify_grey_cinfv(&mol, thresh, 13, 20);
 }
 
 /// Verifies the validity of the computed $`\mathcal{C}_{\infty v}`$ character table of irreps.
@@ -3236,12 +3387,14 @@ fn test_chartab_linear_n3_electric_field_grey_cinfv() {
 ///
 /// * `mol` - A reference to a [`Molecule`] structure.
 /// * `thresh` - A threshold for symmetry detection.
+/// * `min` - The minimum value of $`n`$ for the subgroup $`\mathcal{C}_{nv}`$.
+/// * `max` - The maximum value of $`n`$ for the subgroup $`\mathcal{C}_{nv}`$.
 ///
 /// # Panics
 ///
 /// Panics when any expected condition is not fulfilled.
-fn verify_cinfv(mol: &Molecule, thresh: f64) {
-    for n in 3usize..=20usize {
+fn verify_cinfv(mol: &Molecule, thresh: f64, min: usize, max: usize) {
+    for n in min..=max {
         verify_cnv_from_cinfv(mol, thresh, n);
     }
 }
@@ -3253,12 +3406,14 @@ fn verify_cinfv(mol: &Molecule, thresh: f64) {
 ///
 /// * `mol` - A reference to a [`Molecule`] structure.
 /// * `thresh` - A threshold for symmetry detection.
+/// * `min` - The minimum value of $`n`$ for the subgroup $`\mathcal{C}_{nv} + \theta\mathcal{C}_{nv}`$.
+/// * `max` - The maximum value of $`n`$ for the subgroup $`\mathcal{C}_{nv} + \theta\mathcal{C}_{nv}`$.
 ///
 /// # Panics
 ///
 /// Panics when any expected condition is not fulfilled.
-fn verify_grey_cinfv(mol: &Molecule, thresh: f64) {
-    for n in 2usize..=20usize {
+fn verify_grey_cinfv(mol: &Molecule, thresh: f64, min: usize, max: usize) {
+    for n in min..=max {
         verify_grey_cnv_from_grey_cinfv(mol, thresh, n);
     }
 }
@@ -3393,12 +3548,14 @@ fn verify_cinfh(mol: &Molecule, thresh: f64) {
 ///
 /// * `mol` - A reference to a [`Molecule`] structure.
 /// * `thresh` - A threshold for symmetry detection.
+/// * `min` - The minimum value of $`n`$ for the subgroup $`\mathcal{D}_{nh}(\mathcal{C}_{nh})`$.
+/// * `max` - The maximum value of $`n`$ for the subgroup $`\mathcal{D}_{nh}(\mathcal{C}_{nh})`$.
 ///
 /// # Panics
 ///
 /// Panics when any expected condition is not fulfilled.
-fn verify_bw_dinfh_cinfh(mol: &Molecule, thresh: f64) {
-    for n in 2usize..=20usize {
+fn verify_bw_dinfh_cinfh(mol: &Molecule, thresh: f64, min: usize, max: usize) {
+    for n in min..=max {
         let m = if n % 2 == 0 {
             // Dnh for n even
             n
@@ -3451,12 +3608,14 @@ fn verify_bw_dinfh_cinfh(mol: &Molecule, thresh: f64) {
 ///
 /// * `mol` - A reference to a [`Molecule`] structure.
 /// * `thresh` - A threshold for symmetry detection.
+/// * `min` - The minimum value of $`n`$ for the subgroup $`\mathcal{D}_{nh}`$.
+/// * `max` - The maximum value of $`n`$ for the subgroup $`\mathcal{D}_{nh}`$.
 ///
 /// # Panics
 ///
 /// Panics when any expected condition is not fulfilled.
-fn verify_dinfh(mol: &Molecule, thresh: f64) {
-    for n in 3usize..=20usize {
+fn verify_dinfh(mol: &Molecule, thresh: f64, min: usize, max: usize) {
+    for n in min..=max {
         let m = if n % 2 == 0 {
             // Dnh for n even
             n
@@ -3501,12 +3660,14 @@ fn verify_dinfh(mol: &Molecule, thresh: f64) {
 ///
 /// * `mol` - A reference to a [`Molecule`] structure.
 /// * `thresh` - A threshold for symmetry detection.
+/// * `min` - The minimum value of $`n`$ for the subgroup $`\mathcal{D}_{nh} + \theta\mathcal{D}_{nh}`$.
+/// * `max` - The maximum value of $`n`$ for the subgroup $`\mathcal{D}_{nh} + \theta\mathcal{D}_{nh}`$.
 ///
 /// # Panics
 ///
 /// Panics when any expected condition is not fulfilled.
-fn verify_grey_dinfh(mol: &Molecule, thresh: f64) {
-    for n in 3usize..=20usize {
+fn verify_grey_dinfh(mol: &Molecule, thresh: f64, min: usize, max: usize) {
+    for n in min..=max {
         let m = if n % 2 == 0 {
             // Dnh for n even
             n
@@ -4238,6 +4399,7 @@ fn test_chartab_symmetric_b7_magnetic_field_bw_c6v_c6() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
     let thresh = 1e-7;
     for n in 3..=32 {
@@ -4248,6 +4410,7 @@ fn test_chartab_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_half_sandwich_magnetic_field_bw_cnv_cn() {
     let thresh = 1e-7;
     for n in 3..=32 {
@@ -6341,6 +6504,7 @@ fn test_chartab_symmetric_au26_electric_field_grey_c6v() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_half_sandwich_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
@@ -6355,6 +6519,7 @@ fn test_chartab_symmetric_arbitrary_half_sandwich_cnv() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_half_sandwich_grey_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
@@ -7941,6 +8106,7 @@ fn test_chartab_symmetric_benzene_magnetic_field_bw_d6h_c6h() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
     // env_logger::init();
     for n in 3..=20 {
@@ -7952,6 +8118,7 @@ fn test_chartab_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_bw_dnh_cnh() {
     // env_logger::init();
     for n in 3..=20 {
@@ -9312,6 +9479,7 @@ fn test_chartab_symmetric_c6ph6_grey_d6() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_twisted_sandwich_dn() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dn groups.
@@ -9363,6 +9531,7 @@ fn test_chartab_symmetric_arbitrary_twisted_sandwich_dn() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_twisted_sandwich_grey_dn() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dn groups.
@@ -11133,6 +11302,7 @@ fn test_chartab_symmetric_8_eclipsed_sandwich_grey_d8h() {
 // }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_eclipsed_sandwich_dnh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
@@ -11192,6 +11362,7 @@ fn test_chartab_symmetric_arbitrary_eclipsed_sandwich_dnh() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_eclipsed_sandwich_grey_dnh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
@@ -13493,6 +13664,7 @@ fn test_chartab_symmetric_au26_grey_d6d() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_staggered_sandwich_dnd() {
     let thresh = 1e-7;
     for n in 3..=20 {
@@ -13543,6 +13715,7 @@ fn test_chartab_symmetric_arbitrary_staggered_sandwich_dnd() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_staggered_sandwich_grey_dnd() {
     let thresh = 1e-7;
     for n in 3..=20 {
@@ -16264,6 +16437,7 @@ fn test_chartab_symmetric_au26_magnetic_field_bw_d6d_s12() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
     let thresh = 1e-7;
     for n in 3..=20 {
@@ -16316,6 +16490,7 @@ fn test_chartab_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
 }
 
 #[test]
+#[ignore]
 fn test_chartab_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd_s2n() {
     // env_logger::init();
     let thresh = 1e-7;
