@@ -66,9 +66,9 @@ pub(crate) fn log_macsec_begin(sectitle: &str) {
 
 /// Logs a nicely formatted macro-section ending to the `qsym2-output` logger.
 pub(crate) fn log_macsec_end(sectitle: &str) {
-    let width = QSYM2_BANNER_LENGTH - 12;
+    let width = QSYM2_BANNER_LENGTH - 14;
     let sectitle_space = sectitle.to_string() + " ";
-    qsym2_output!("❭❭❭❭❭ [End] {sectitle_space:❭<width$}");
+    qsym2_output!("❭❭❭❭❭ [ End ] {sectitle_space:❭<width$}");
 }
 
 /// Turns a boolean into a string of `yes` or `no`.
