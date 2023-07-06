@@ -16,7 +16,7 @@ const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 // =======
 
 /// A structure to handle command-line interface parsing.
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[command(author, version, about)]
 #[command(next_line_help = true)]
 pub struct Cli {
@@ -119,7 +119,8 @@ pub fn qsym2_output_calculation_summary<P: AsRef<Path>>(config_path: P, cli: &Cl
     qsym2_output!("");
 
     log_subtitle("Command line arguments");
-    qsym2_output!("{cli}");
+    cli.log_output_display();
+    qsym2_output!("");
 
     log_subtitle("Input YAML configuration file");
     let config_contents =
