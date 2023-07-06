@@ -10,7 +10,9 @@ use crate::drivers::representation_analysis::angular_function::AngularFunctionRe
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::{CharacterTableDisplay, MagneticSymmetryKind};
+use crate::drivers::representation_analysis::{
+    CharacterTableDisplay, MagneticSymmetryAnalysisKind,
+};
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
@@ -207,7 +209,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .use_magnetic_group(Some(MagneticSymmetryKind::Representation))
+        .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Representation))
         .use_double_group(false)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_overlap_eigenvalues(false)
@@ -234,7 +236,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .use_magnetic_group(Some(MagneticSymmetryKind::Representation))
+        .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Representation))
         .use_double_group(true)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_overlap_eigenvalues(false)
@@ -261,7 +263,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .use_magnetic_group(Some(MagneticSymmetryKind::Corepresentation))
+        .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Corepresentation))
         .use_double_group(false)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_overlap_eigenvalues(false)
@@ -296,7 +298,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .use_magnetic_group(Some(MagneticSymmetryKind::Corepresentation))
+        .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Corepresentation))
         .use_double_group(true)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_overlap_eigenvalues(true)

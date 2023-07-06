@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::{format_err, Context};
+use derive_builder::Builder;
 use byteorder::{BigEndian, LittleEndian};
 use ndarray::{Array1, Array2, ShapeBuilder};
 use serde::{Deserialize, Serialize};
@@ -23,13 +24,17 @@ use crate::symmetry::symmetry_group::{
 };
 use crate::target::determinant::SlaterDeterminant;
 
+#[cfg(test)]
+#[path = "binaries_tests.rs"]
+mod binaries_tests;
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Input target: Slater determinant; source: binaries
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 /// A serialisable/deserialisable structure containing control parameters for acquiring Slater
 /// determinant(s) from a custom specification.
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Builder, Serialize, Deserialize)]
 pub struct BinariesSlaterDeterminantSource {
     /// Path to an XYZ file containing the molecular geometry.
     pub xyz: PathBuf,
@@ -55,6 +60,14 @@ pub struct BinariesSlaterDeterminantSource {
 
     /// Specification of the byte order numerical values are stored in binary files.
     pub byte_order: ByteOrder,
+}
+
+impl BinariesSlaterDeterminantSource {
+    /// Returns a builder to construct a structure for handling binaries Slater determinant
+    /// source.
+    fn builder() -> BinariesSlaterDeterminantSourceBuilder {
+        BinariesSlaterDeterminantSourceBuilder::default()
+    }
 }
 
 impl Default for BinariesSlaterDeterminantSource {
