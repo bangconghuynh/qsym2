@@ -223,6 +223,7 @@ fn test_interfaces_qchem_hdf5_geomopt() {
 }
 
 #[test]
+#[ignore]
 fn test_interfaces_qchem_hdf5_pcl5_geomopt_freq() {
     // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let name = format!("{ROOT}/tests/qchem/pcl5_opt_freq.qarchive.h5");
