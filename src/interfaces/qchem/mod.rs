@@ -49,7 +49,7 @@ impl SlaterDeterminantSourceHandle for QChemArchiveSlaterDeterminantSource {
             .slater_det_rep_analysis_parameters(&sda_params)
             .build()
             .with_context(|| "Unable to construct a Q-Chem HDF5 driver when handling Q-Chem archive Slater determinant source")?;
-        qchem_h5_driver.run().with_context(|| "Unable to execute the Q-Chem HDf5 driver successfully when handling Q-Chem archive Slater determinant source")?;
+        qchem_h5_driver.run().with_context(|| "Unable to execute the Q-Chem HDF5 driver successfully when handling Q-Chem archive Slater determinant source")?;
         qchem_h5_driver.result().cloned()
     }
 }

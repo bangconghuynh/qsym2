@@ -1,7 +1,7 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use anyhow::{self, bail, format_err};
+use anyhow::{self, bail, format_err, Context};
 use derive_builder::Builder;
 use hdf5::{self, H5Type};
 use lazy_static::lazy_static;
@@ -22,11 +22,11 @@ use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
-use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
+use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionResult,
 };
@@ -116,72 +116,96 @@ impl<'a> QChemH5Driver<'a, f64> {
             .iter()
             .filter_map(|path| {
                 if SP_PATH_RE.is_match(path) {
-                    Some(path.replace("\\", "/").replace("/energy_function", ""))
+                    let path = path.replace("\\", "/");
+                    let mut energy_function_indices = f
+                        .group(&path)
+                        .and_then(|sp_energy_function_group| {
+                            sp_energy_function_group.member_names()
+                        })
+                        .ok()?;
+                    numeric_sort::sort(&mut energy_function_indices);
+                    Some((
+                        path.replace("/energy_function", ""),
+                        energy_function_indices,
+                    ))
                 } else {
                     None
                 }
             })
             .collect::<Vec<_>>();
-        numeric_sort::sort(&mut sp_paths);
+        sp_paths.sort_by(|(path_a, _), (path_b, _)| numeric_sort::cmp(path_a, path_b));
 
         let pd_input = self.symmetry_group_detection_input;
         let afa_params = self.angular_function_analysis_parameters;
         let sda_params = self.slater_det_rep_analysis_parameters;
         let result = sp_paths
             .iter()
-            .map(|sp_path| {
-                log_macsec_begin(&format!("Analysis for {sp_path}"));
-                qsym2_output!("");
-                let sp = f.group(sp_path)?;
-                let sp_driver_result = match sda_params.use_magnetic_group {
-                    Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
-                        let mut sp_driver =
-                            QChemH5SinglePointDriver::<MagneticRepresentedSymmetryGroup, f64>::builder(
-                            )
+            .flat_map(|(sp_path, energy_function_indices)| {
+                energy_function_indices.iter().map(|energy_function_index| {
+                    log_macsec_begin(&format!(
+                        "Analysis for {} (energy function {energy_function_index})",
+                        sp_path.clone()
+                    ));
+                    qsym2_output!("");
+                    let sp = f.group(sp_path)?;
+                    let sp_driver_result = match sda_params.use_magnetic_group {
+                        Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
+                            let mut sp_driver = QChemH5SinglePointDriver::<
+                                MagneticRepresentedSymmetryGroup,
+                                f64,
+                            >::builder()
                             .sp_group(&sp)
+                            .energy_function_index(energy_function_index.clone())
                             .symmetry_group_detection_input(pd_input)
                             .angular_function_analysis_parameters(afa_params)
                             .slater_det_rep_analysis_parameters(sda_params)
                             .build()?;
-                        let _ = sp_driver.run();
-                        sp_driver.result().map(|(sym, rep)| {
-                            (
-                                sym.group_name
-                                    .as_ref()
-                                    .unwrap_or(&String::new())
-                                    .to_string(),
-                                rep.as_ref()
-                                    .map(|rep| rep.to_string())
-                                    .unwrap_or_else(|err| err.to_string()),
-                            )
-                        })
-                    }
-                    Some(MagneticSymmetryAnalysisKind::Representation) | None => {
-                        let mut sp_driver =
-                            QChemH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
-                                .sp_group(&sp)
-                                .symmetry_group_detection_input(pd_input)
-                                .angular_function_analysis_parameters(afa_params)
-                                .slater_det_rep_analysis_parameters(sda_params)
-                                .build()?;
-                        let _ = sp_driver.run();
-                        sp_driver.result().map(|(sym, rep)| {
-                            (
-                                sym.group_name
-                                    .as_ref()
-                                    .unwrap_or(&String::new())
-                                    .to_string(),
-                                rep.as_ref()
-                                    .map(|rep| rep.to_string())
-                                    .unwrap_or_else(|err| err.to_string()),
-                            )
-                        })
-                    }
-                };
-                qsym2_output!("");
-                log_macsec_end(&format!("Analysis for {sp_path}"));
-                qsym2_output!("");
-                sp_driver_result
+                            let _ = sp_driver.run();
+                            sp_driver.result().map(|(sym, rep)| {
+                                (
+                                    sym.group_name
+                                        .as_ref()
+                                        .unwrap_or(&String::new())
+                                        .to_string(),
+                                    rep.as_ref()
+                                        .map(|rep| rep.to_string())
+                                        .unwrap_or_else(|err| err.to_string()),
+                                )
+                            })
+                        }
+                        Some(MagneticSymmetryAnalysisKind::Representation) | None => {
+                            let mut sp_driver = QChemH5SinglePointDriver::<
+                                UnitaryRepresentedSymmetryGroup,
+                                f64,
+                            >::builder()
+                            .sp_group(&sp)
+                            .energy_function_index(energy_function_index.clone())
+                            .symmetry_group_detection_input(pd_input)
+                            .angular_function_analysis_parameters(afa_params)
+                            .slater_det_rep_analysis_parameters(sda_params)
+                            .build()?;
+                            let _ = sp_driver.run();
+                            sp_driver.result().map(|(sym, rep)| {
+                                (
+                                    sym.group_name
+                                        .as_ref()
+                                        .unwrap_or(&String::new())
+                                        .to_string(),
+                                    rep.as_ref()
+                                        .map(|rep| rep.to_string())
+                                        .unwrap_or_else(|err| err.to_string()),
+                                )
+                            })
+                        }
+                    };
+                    qsym2_output!("");
+                    log_macsec_end(&format!(
+                        "Analysis for {} (energy function {energy_function_index})",
+                        sp_path.clone()
+                    ));
+                    qsym2_output!("");
+                    sp_driver_result
+                })
             })
             .map(|res| {
                 res.unwrap_or((
@@ -195,10 +219,23 @@ impl<'a> QChemH5Driver<'a, f64> {
         qsym2_output!("");
         let path_length = sp_paths
             .iter()
-            .map(|path| path.chars().count())
+            .map(|(path, _)| path.chars().count())
             .max()
             .unwrap_or(18)
             .max(18);
+        let energy_function_length = sp_paths
+            .iter()
+            .map(|(_, energy_function_indices)| {
+                energy_function_indices
+                    .iter()
+                    .map(|index| index.chars().count())
+                    .max()
+                    .unwrap_or(1)
+                    .max(1)
+            })
+            .max()
+            .unwrap_or(7)
+            .max(7);
         let group_length = result
             .iter()
             .map(|(group, _)| group.chars().count())
@@ -211,22 +248,29 @@ impl<'a> QChemH5Driver<'a, f64> {
             .max()
             .unwrap_or(13)
             .max(13);
-        let table_width = path_length + group_length + sym_length + 6;
+        let table_width = path_length + energy_function_length + group_length + sym_length + 8;
         qsym2_output!("{}", "┈".repeat(table_width));
         qsym2_output!(
-            " {:<path_length$}  {:<group_length$}  {:<}",
+            " {:<path_length$}  {:<energy_function_length$}  {:<group_length$}  {:<}",
             "Single-point calc.",
+            "E func.",
             "Group",
             "Det. symmetry"
         );
         qsym2_output!("{}", "┈".repeat(table_width));
         sp_paths
             .iter()
+            .flat_map(|(sp_path, energy_function_indices)| {
+                energy_function_indices
+                    .iter()
+                    .map(|index| (sp_path.clone(), index))
+            })
             .zip(result.iter())
-            .for_each(|(path, (group, sym))| {
+            .for_each(|((path, index), (group, sym))| {
                 qsym2_output!(
-                    " {:<path_length$}  {:<group_length$}  {:<}",
+                    " {:<path_length$}  {:<energy_function_length$}  {:<group_length$}  {:<}",
                     path,
+                    index,
                     group,
                     sym
                 );
@@ -274,6 +318,8 @@ where
 {
     /// A H5 group containing data from a single-point calculation.
     sp_group: &'a hdf5::Group,
+
+    energy_function_index: String,
 
     /// The parameters controlling symmetry-group detection.
     symmetry_group_detection_input: &'a SymmetryGroupDetectionInputKind,
@@ -437,12 +483,18 @@ where
 
         let energy = self
             .sp_group
-            .dataset("energy_function/1/energy")?
+            .dataset(&format!(
+                "energy_function/{}/energy",
+                self.energy_function_index
+            ))?
             .read_scalar::<T>()
             .map_err(|err| err.to_string());
         let nspins = self
             .sp_group
-            .dataset("energy_function/1/method/scf/molecular_orbitals/nsets")?
+            .dataset(&format!(
+                "energy_function/{}/method/scf/molecular_orbitals/nsets",
+                self.energy_function_index
+            ))?
             .read_scalar::<usize>()?;
         let (spincons, occs) = match nspins {
             1 => {
@@ -509,14 +561,20 @@ where
         };
         let cs = self
             .sp_group
-            .dataset("energy_function/1/method/scf/molecular_orbitals/mo_coefficients")?
+            .dataset(&format!(
+                "energy_function/{}/method/scf/molecular_orbitals/mo_coefficients",
+                self.energy_function_index
+            ))?
             .read::<T, Ix3>()?
             .axis_iter(Axis(0))
             .map(|c| c.to_owned())
             .collect::<Vec<_>>();
         let mo_energies = self
             .sp_group
-            .dataset("energy_function/1/method/scf/molecular_orbitals/mo_energies")
+            .dataset(&format!(
+                "energy_function/{}/method/scf/molecular_orbitals/mo_energies",
+                self.energy_function_index
+            ))
             .and_then(|mo_energies_dataset| {
                 mo_energies_dataset.read_2d::<T>().map(|mo_energies_arr| {
                     mo_energies_arr
@@ -549,7 +607,9 @@ where
 impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
     /// Performs symmetry-group detection and unitary-represented representation analysis.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
-        let mol = self.extract_molecule()?;
+        let mol = self.extract_molecule()
+            .with_context(|| "Unable to extract the molecule from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")?;
+        log::debug!("Performing symmetry-group detection...");
         let pd_res = match self.symmetry_group_detection_input {
             SymmetryGroupDetectionInputKind::Parameters(pd_params) => {
                 let mut pd_driver = SymmetryGroupDetectionDriver::builder()
@@ -557,50 +617,76 @@ impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
                     .molecule(Some(&mol))
                     .build()
                     .unwrap();
-                pd_driver.run()?;
+                let pd_run = pd_driver.run();
+                if let Err(err) = pd_run {
+                    qsym2_error!("Symmetry-group detection has failed with error:");
+                    qsym2_error!("  {err:#}");
+                }
                 let pd_res = pd_driver.result()?;
                 pd_res.clone()
             }
             SymmetryGroupDetectionInputKind::FromFile(path) => {
-                read_qsym2_binary::<SymmetryGroupDetectionResult, _>(path, QSym2FileType::Sym)?
+                read_qsym2_binary::<SymmetryGroupDetectionResult, _>(path, QSym2FileType::Sym)
+                    .with_context(|| "Unable to read the specified .qsym2.sym file while performing symmetry analysis for a single-point Q-Chem calculation")?
             }
         };
         let recentred_mol = &pd_res.pre_symmetry.recentred_molecule;
-
-        let sao = self.extract_sao()?;
-        let bao = self.extract_bao(recentred_mol)?;
-        let det = self.extract_determinant(
-            recentred_mol,
-            &bao,
-            self.slater_det_rep_analysis_parameters
-                .linear_independence_threshold,
-        )?;
-
-        let mut sda_driver =
-            SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
-                .parameters(self.slater_det_rep_analysis_parameters)
-                .angular_function_parameters(self.angular_function_analysis_parameters)
-                .determinant(&det)
-                .sao_spatial(&sao)
-                .symmetry_group(&pd_res)
-                .build()
-                .unwrap();
-        let sda_run = sda_driver.run();
-        if let Err(err) = sda_run {
-            qsym2_error!("Representation analysis has failed with error:");
-            qsym2_error!("  {err}");
-        }
-        let sym = if self.slater_det_rep_analysis_parameters.use_magnetic_group.is_some() {
+        let sym = if self
+            .slater_det_rep_analysis_parameters
+            .use_magnetic_group
+            .is_some()
+        {
             pd_res.magnetic_symmetry.clone()
         } else {
             Some(pd_res.unitary_symmetry.clone())
         }
         .ok_or(format_err!("Symmetry not found."))?;
-        let rep = sda_driver
-            .result()
-            .map_err(|err| err.to_string())
-            .and_then(|sda_res| sda_res.determinant_symmetry().clone());
-        self.result = Some((sym, rep));
+        log::debug!("Performing symmetry-group detection... Done.");
+
+        let rep = || {
+            log::debug!("Extracting AO basis information for representation analysis...");
+            let sao = self.extract_sao()
+                .with_context(|| "Unable to extract the SAO matrix from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
+                .map_err(|err| err.to_string())?;
+            let bao = self.extract_bao(recentred_mol)
+                .with_context(|| "Unable to extract the basis angular order information from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
+                .map_err(|err| err.to_string())?;
+            log::debug!("Extracting AO basis information for representation analysis... Done.");
+            log::debug!("Extracting determinant information for representation analysis...");
+            let det = self.extract_determinant(
+                recentred_mol,
+                &bao,
+                self.slater_det_rep_analysis_parameters
+                    .linear_independence_threshold,
+            )
+            .with_context(|| "Unable to extract the determinant from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
+            .map_err(|err| err.to_string())?;
+            log::debug!("Extracting determinant information for representation analysis... Done.");
+
+            log::debug!("Running representation analysis...");
+            let mut sda_driver =
+                SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
+                    .parameters(self.slater_det_rep_analysis_parameters)
+                    .angular_function_parameters(self.angular_function_analysis_parameters)
+                    .determinant(&det)
+                    .sao_spatial(&sao)
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .with_context(|| "Unable to extract a Slater determinant representation analysis driver while performing symmetry analysis for a single-point Q-Chem calculation")
+                    .map_err(|err| err.to_string())?;
+            let sda_run = sda_driver.run();
+            log::debug!("Running representation analysis... Done.");
+
+            if let Err(err) = sda_run {
+                qsym2_error!("Representation analysis has failed with error:");
+                qsym2_error!("  {err:#}");
+            }
+            sda_driver
+                .result()
+                .map_err(|err| err.to_string())
+                .and_then(|sda_res| sda_res.determinant_symmetry().clone())
+        };
+        self.result = Some((sym, rep()));
         Ok(())
     }
 }
@@ -611,7 +697,9 @@ impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
 impl<'a> QChemH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
     /// Performs symmetry-group detection and magnetic-represented corepresentation analysis.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
-        let mol = self.extract_molecule()?;
+        let mol = self.extract_molecule()
+            .with_context(|| "Unable to extract the molecule from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")?;
+        log::debug!("Performing symmetry-group detection...");
         let pd_res = match self.symmetry_group_detection_input {
             SymmetryGroupDetectionInputKind::Parameters(pd_params) => {
                 let mut pd_driver = SymmetryGroupDetectionDriver::builder()
@@ -619,50 +707,76 @@ impl<'a> QChemH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
                     .molecule(Some(&mol))
                     .build()
                     .unwrap();
-                pd_driver.run()?;
+                let pd_run = pd_driver.run();
+                if let Err(err) = pd_run {
+                    qsym2_error!("Symmetry-group detection has failed with error:");
+                    qsym2_error!("  {err:#}");
+                }
                 let pd_res = pd_driver.result()?;
                 pd_res.clone()
             }
             SymmetryGroupDetectionInputKind::FromFile(path) => {
-                read_qsym2_binary::<SymmetryGroupDetectionResult, _>(path, QSym2FileType::Sym)?
+                read_qsym2_binary::<SymmetryGroupDetectionResult, _>(path, QSym2FileType::Sym)
+                    .with_context(|| "Unable to read the specified .qsym2.sym file while performing symmetry analysis for a single-point Q-Chem calculation")?
             }
         };
         let recentred_mol = &pd_res.pre_symmetry.recentred_molecule;
-
-        let sao = self.extract_sao()?;
-        let bao = self.extract_bao(recentred_mol)?;
-        let det = self.extract_determinant(
-            recentred_mol,
-            &bao,
-            self.slater_det_rep_analysis_parameters
-                .linear_independence_threshold,
-        )?;
-
-        let mut sda_driver =
-            SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, f64>::builder()
-                .parameters(self.slater_det_rep_analysis_parameters)
-                .angular_function_parameters(self.angular_function_analysis_parameters)
-                .determinant(&det)
-                .sao_spatial(&sao)
-                .symmetry_group(&pd_res)
-                .build()
-                .unwrap();
-        let sda_run = sda_driver.run();
-        if let Err(err) = sda_run {
-            qsym2_error!("Representation analysis has failed with error:");
-            qsym2_error!("  {err}");
-        }
-        let sym = if self.slater_det_rep_analysis_parameters.use_magnetic_group.is_some() {
+        let sym = if self
+            .slater_det_rep_analysis_parameters
+            .use_magnetic_group
+            .is_some()
+        {
             pd_res.magnetic_symmetry.clone()
         } else {
             Some(pd_res.unitary_symmetry.clone())
         }
         .ok_or(format_err!("Symmetry not found."))?;
-        let rep = sda_driver
-            .result()
-            .map_err(|err| err.to_string())
-            .and_then(|sda_res| sda_res.determinant_symmetry().clone());
-        self.result = Some((sym, rep));
+        log::debug!("Performing symmetry-group detection... Done.");
+
+        let rep = || {
+            log::debug!("Extracting AO basis information for representation analysis...");
+            let sao = self.extract_sao()
+                .with_context(|| "Unable to extract the SAO matrix from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
+                .map_err(|err| err.to_string())?;
+            let bao = self.extract_bao(recentred_mol)
+                .with_context(|| "Unable to extract the basis angular order information from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
+                .map_err(|err| err.to_string())?;
+            log::debug!("Extracting AO basis information for representation analysis... Done.");
+            log::debug!("Extracting determinant information for representation analysis...");
+            let det = self.extract_determinant(
+                recentred_mol,
+                &bao,
+                self.slater_det_rep_analysis_parameters
+                    .linear_independence_threshold,
+            )
+            .with_context(|| "Unable to extract the determinant from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
+            .map_err(|err| err.to_string())?;
+            log::debug!("Extracting determinant information for representation analysis... Done.");
+
+            log::debug!("Running representation analysis...");
+            let mut sda_driver =
+                SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, f64>::builder()
+                    .parameters(self.slater_det_rep_analysis_parameters)
+                    .angular_function_parameters(self.angular_function_analysis_parameters)
+                    .determinant(&det)
+                    .sao_spatial(&sao)
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .with_context(|| "Unable to extract a Slater determinant representation analysis driver while performing symmetry analysis for a single-point Q-Chem calculation")
+                    .map_err(|err| err.to_string())?;
+            let sda_run = sda_driver.run();
+            log::debug!("Running representation analysis... Done.");
+
+            if let Err(err) = sda_run {
+                qsym2_error!("Representation analysis has failed with error:");
+                qsym2_error!("  {err:#}");
+            }
+            sda_driver
+                .result()
+                .map_err(|err| err.to_string())
+                .and_then(|sda_res| sda_res.determinant_symmetry().clone())
+        };
+        self.result = Some((sym, rep()));
         Ok(())
     }
 }

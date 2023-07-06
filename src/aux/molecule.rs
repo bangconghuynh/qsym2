@@ -924,8 +924,8 @@ impl PermutableCollection for Molecule {
                 o_atoms
                     .get(s_atom)
                     .or_else(|| {
-                        log::debug!("Unable to retrieve matching original atom by hash. Falling back on distance comparisons...");
                         let thresh = s_atom.threshold;
+                        log::debug!("Unable to retrieve matching original atom by hash. Falling back on distance comparisons with threshold {thresh:.3e}...");
                         o_atoms.iter().find_map(|(o_atom, o_atom_idx)| {
                             if s_atom.atomic_number == o_atom.atomic_number
                                 && s_atom.kind == o_atom.kind
