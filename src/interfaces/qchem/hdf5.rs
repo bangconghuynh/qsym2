@@ -22,7 +22,7 @@ use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
-use crate::drivers::representation_analysis::MagneticSymmetryKind;
+use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
@@ -134,7 +134,7 @@ impl<'a> QChemH5Driver<'a, f64> {
                 qsym2_output!("");
                 let sp = f.group(sp_path)?;
                 let sp_driver_result = match sda_params.use_magnetic_group {
-                    Some(MagneticSymmetryKind::Corepresentation) => {
+                    Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                         let mut sp_driver =
                             QChemH5SinglePointDriver::<MagneticRepresentedSymmetryGroup, f64>::builder(
                             )
@@ -156,7 +156,7 @@ impl<'a> QChemH5Driver<'a, f64> {
                             )
                         })
                     }
-                    Some(MagneticSymmetryKind::Representation) | None => {
+                    Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                         let mut sp_driver =
                             QChemH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
                                 .sp_group(&sp)

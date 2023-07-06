@@ -15,7 +15,7 @@ symmetry_group_detection: !Parameters
   # result_save_name: null
 
 analysis_target: !SlaterDeterminant
-  source: !Custom
+  source: !Binaries
     xyz: path/to/xyz
     sao: path/to/sao
     coefficients: [path/to/ca, path/to/cb]

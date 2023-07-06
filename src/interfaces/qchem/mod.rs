@@ -33,12 +33,14 @@ impl Default for QChemArchiveSlaterDeterminantSource {
 }
 
 impl SlaterDeterminantSourceHandle for QChemArchiveSlaterDeterminantSource {
+    type Outcome = Vec<(String, String)>;
+
     fn sd_source_handle(
         &self,
         pd_params_inp: &SymmetryGroupDetectionInputKind,
         afa_params: &AngularFunctionRepAnalysisParams,
         sda_params: &SlaterDeterminantRepAnalysisParams<f64>,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<Self::Outcome, anyhow::Error> {
         let qchemarchive_path = &self.path;
         let mut qchem_h5_driver = QChemH5Driver::<f64>::builder()
             .filename(qchemarchive_path.into())
@@ -47,6 +49,7 @@ impl SlaterDeterminantSourceHandle for QChemArchiveSlaterDeterminantSource {
             .slater_det_rep_analysis_parameters(&sda_params)
             .build()
             .with_context(|| "Unable to construct a Q-Chem HDF5 driver when handling Q-Chem archive Slater determinant source")?;
-        qchem_h5_driver.run()
+        qchem_h5_driver.run().with_context(|| "Unable to execute the Q-Chem HDf5 driver successfully when handling Q-Chem archive Slater determinant source")?;
+        qchem_h5_driver.result().cloned()
     }
 }

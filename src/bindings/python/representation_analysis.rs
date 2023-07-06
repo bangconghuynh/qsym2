@@ -18,7 +18,7 @@ use crate::drivers::representation_analysis::angular_function::AngularFunctionRe
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::{CharacterTableDisplay, MagneticSymmetryKind};
+use crate::drivers::representation_analysis::{CharacterTableDisplay, MagneticSymmetryAnalysisKind};
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::io::{read_qsym2_binary, QSym2FileType};
@@ -591,7 +591,7 @@ pub fn rep_analyse_slater_determinant(
     sao_spatial: PySAO,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
-    use_magnetic_group: Option<MagneticSymmetryKind>,
+    use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
     use_double_group: bool,
     symmetry_transformation_kind: SymmetryTransformationKind,
     analyse_mo_symmetries: bool,
@@ -648,7 +648,7 @@ pub fn rep_analyse_slater_determinant(
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
             match &use_magnetic_group {
-                Some(MagneticSymmetryKind::Corepresentation) => {
+                Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         MagneticRepresentedSymmetryGroup,
                         f64,
@@ -664,7 +664,7 @@ pub fn rep_analyse_slater_determinant(
                         .run()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                 }
-                Some(MagneticSymmetryKind::Representation) | None => {
+                Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         UnitaryRepresentedSymmetryGroup,
                         f64,
@@ -712,7 +712,7 @@ pub fn rep_analyse_slater_determinant(
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
             match &use_magnetic_group {
-                Some(MagneticSymmetryKind::Corepresentation) => {
+                Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         MagneticRepresentedSymmetryGroup,
                         C128,
@@ -728,7 +728,7 @@ pub fn rep_analyse_slater_determinant(
                         .run()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                 }
-                Some(MagneticSymmetryKind::Representation) | None => {
+                Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         UnitaryRepresentedSymmetryGroup,
                         C128,
@@ -778,7 +778,7 @@ pub fn rep_analyse_slater_determinant(
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
             match &use_magnetic_group {
-                Some(MagneticSymmetryKind::Corepresentation) => {
+                Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         MagneticRepresentedSymmetryGroup,
                         C128,
@@ -794,7 +794,7 @@ pub fn rep_analyse_slater_determinant(
                         .run()
                         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
                 }
-                Some(MagneticSymmetryKind::Representation) | None => {
+                Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                         UnitaryRepresentedSymmetryGroup,
                         C128,

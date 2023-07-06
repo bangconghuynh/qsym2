@@ -100,8 +100,8 @@ fn test_interfaces_input_bao() {
     let mol = Molecule::from_xyz(&xyz, 1e-7);
 
     if let AnalysisTarget::SlaterDeterminant(sd_control) = inp.analysis_target {
-        if let SlaterDeterminantSource::Custom(custom_source) = sd_control.source {
-            let bao = custom_source.bao.to_basis_angular_order(&mol).unwrap();
+        if let SlaterDeterminantSource::Binaries(binaries_source) = sd_control.source {
+            let bao = binaries_source.bao.to_basis_angular_order(&mol).unwrap();
             assert_eq!(bao.n_funcs(), 41);
             assert_eq!(
                 bao.basis_shells()

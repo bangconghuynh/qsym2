@@ -1,7 +1,7 @@
 use anyhow;
 
+pub mod binaries;
 pub mod cli;
-pub mod custom;
 pub mod input;
 #[cfg(feature = "qchem")]
 pub mod qchem;

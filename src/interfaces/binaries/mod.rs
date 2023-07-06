@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::{format_err, Context};
 use byteorder::{BigEndian, LittleEndian};
 use ndarray::{Array1, Array2, ShapeBuilder};
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,7 @@ use crate::drivers::representation_analysis::angular_function::AngularFunctionRe
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::MagneticSymmetryKind;
+use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionDriver;
 use crate::drivers::QSym2Driver;
 use crate::interfaces::input::analysis::SlaterDeterminantSourceHandle;
@@ -23,14 +23,14 @@ use crate::symmetry::symmetry_group::{
 };
 use crate::target::determinant::SlaterDeterminant;
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Input target: Slater determinant; source: custom
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Input target: Slater determinant; source: binaries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 /// A serialisable/deserialisable structure containing control parameters for acquiring Slater
 /// determinant(s) from a custom specification.
 #[derive(Clone, Serialize, Deserialize)]
-pub struct CustomSlaterDeterminantSource {
+pub struct BinariesSlaterDeterminantSource {
     /// Path to an XYZ file containing the molecular geometry.
     pub xyz: PathBuf,
 
@@ -57,9 +57,9 @@ pub struct CustomSlaterDeterminantSource {
     pub byte_order: ByteOrder,
 }
 
-impl Default for CustomSlaterDeterminantSource {
+impl Default for BinariesSlaterDeterminantSource {
     fn default() -> Self {
-        CustomSlaterDeterminantSource {
+        BinariesSlaterDeterminantSource {
             xyz: PathBuf::default(),
             sao: PathBuf::default(),
             coefficients: vec![PathBuf::default(), PathBuf::default()],
@@ -72,13 +72,15 @@ impl Default for CustomSlaterDeterminantSource {
     }
 }
 
-impl SlaterDeterminantSourceHandle for CustomSlaterDeterminantSource {
+impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
+    type Outcome = (String, String);
+
     fn sd_source_handle(
         &self,
         pd_params_inp: &SymmetryGroupDetectionInputKind,
         afa_params: &AngularFunctionRepAnalysisParams,
         sda_params: &SlaterDeterminantRepAnalysisParams<f64>,
-    ) -> Result<(), anyhow::Error> {
+    ) -> Result<Self::Outcome, anyhow::Error> {
         let pd_res = match pd_params_inp {
             SymmetryGroupDetectionInputKind::Parameters(pd_params) => {
                 let mut pd_driver = SymmetryGroupDetectionDriver::builder()
@@ -222,7 +224,7 @@ impl SlaterDeterminantSourceHandle for CustomSlaterDeterminantSource {
             .with_context(|| "Failed to construct a Slater determinant when handling custom Slater determinant source")?;
 
         match &sda_params.use_magnetic_group {
-            Some(MagneticSymmetryKind::Corepresentation) => {
+            Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                 let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                     MagneticRepresentedSymmetryGroup,
                     f64,
@@ -236,9 +238,31 @@ impl SlaterDeterminantSourceHandle for CustomSlaterDeterminantSource {
                 .with_context(|| {
                     "Failed to construct a Slater determinant corepresentation analysis driver when handling custom Slater determinant source"
                 })?;
-                sda_driver.run()
+                sda_driver
+                    .run()
+                    .with_context(|| {
+                        "Failed to execute the Slater determinant corepresentation analysis driver successfully when handling custom Slater determinant source"
+                    })?;
+                let group_name = pd_res
+                    .magnetic_symmetry
+                    .as_ref()
+                    .and_then(|magsym| magsym.group_name.clone())
+                    .ok_or(format_err!("Magnetic group name not found when handling custom Slater determinant source."))?;
+                let sym = sda_driver
+                    .result()
+                    .with_context(|| {
+                        "Failed to obtain corepresentation analysis result when handling custom Slater determinant source"
+                    })?
+                    .determinant_symmetry()
+                    .as_ref()
+                    .map_err(|err| format_err!(err.clone()))
+                    .with_context(|| {
+                        "Failed to obtain determinant symmetry from corepresentation analysis result when handling custom Slater determinant source"
+                    })?
+                    .to_string();
+                Ok((group_name, sym))
             }
-            Some(MagneticSymmetryKind::Representation) | None => {
+            Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                 let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
                     UnitaryRepresentedSymmetryGroup,
                     f64,
@@ -252,7 +276,37 @@ impl SlaterDeterminantSourceHandle for CustomSlaterDeterminantSource {
                 .with_context(|| {
                     "Failed to construct a Slater determinant representation analysis driver when handling custom Slater determinant source"
                 })?;
-                sda_driver.run()
+                sda_driver
+                    .run()
+                    .with_context(|| {
+                        "Failed to execute the Slater determinant representation analysis driver successfully when handling custom Slater determinant source"
+                    })?;
+                let group_name = if sda_params.use_magnetic_group.is_none() {
+                    pd_res
+                        .unitary_symmetry
+                        .group_name
+                        .as_ref()
+                        .ok_or(format_err!("Unitary group name not found when handling custom Slater determinant source."))?.clone()
+                } else {
+                    pd_res
+                        .magnetic_symmetry
+                        .as_ref()
+                        .and_then(|magsym| magsym.group_name.clone())
+                        .ok_or(format_err!("Magnetic group name not found when handling custom Slater determinant source."))?
+                };
+                let sym = sda_driver
+                    .result()
+                    .with_context(|| {
+                        "Failed to obtain representation analysis result when handling custom Slater determinant source"
+                    })?
+                    .determinant_symmetry()
+                    .as_ref()
+                    .map_err(|err| format_err!(err.clone()))
+                    .with_context(|| {
+                        "Failed to obtain determinant symmetry from representation analysis result when handling custom Slater determinant source"
+                    })?
+                    .to_string();
+                Ok((group_name, sym))
             }
         }
     }

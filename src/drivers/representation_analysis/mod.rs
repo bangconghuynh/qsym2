@@ -33,7 +33,7 @@ impl fmt::Display for CharacterTableDisplay {
 /// analysis.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[pyclass]
-pub enum MagneticSymmetryKind {
+pub enum MagneticSymmetryAnalysisKind {
     /// Variant indicating that unitary representations should be used for magnetic symmetry
     /// analysis.
     Representation,
@@ -43,11 +43,11 @@ pub enum MagneticSymmetryKind {
     Corepresentation,
 }
 
-impl fmt::Display for MagneticSymmetryKind {
+impl fmt::Display for MagneticSymmetryAnalysisKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            MagneticSymmetryKind::Representation => write!(f, "Unitary representations"),
-            MagneticSymmetryKind::Corepresentation => write!(f, "Magnetic corepresentations"),
+            MagneticSymmetryAnalysisKind::Representation => write!(f, "Unitary representations"),
+            MagneticSymmetryAnalysisKind::Corepresentation => write!(f, "Magnetic corepresentations"),
         }
     }
 }

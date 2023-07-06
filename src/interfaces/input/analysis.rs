@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
-use crate::interfaces::custom::CustomSlaterDeterminantSource;
+use crate::interfaces::binaries::BinariesSlaterDeterminantSource;
 #[cfg(feature = "qchem")]
 use crate::interfaces::qchem::QChemArchiveSlaterDeterminantSource;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
@@ -44,13 +44,15 @@ impl Default for AnalysisTarget {
 
 /// A trait for handling of Slater determinant input sources.
 pub(crate) trait SlaterDeterminantSourceHandle {
+    type Outcome;
+
     /// Handles the Slater determinant inpur source and runs relevant calculations.
     fn sd_source_handle(
         &self,
         pd_params_inp: &SymmetryGroupDetectionInputKind,
         afa_params: &AngularFunctionRepAnalysisParams,
         sda_params: &SlaterDeterminantRepAnalysisParams<f64>,
-    ) -> Result<(), anyhow::Error>;
+    ) -> Result<Self::Outcome, anyhow::Error>;
 }
 
 /// A serialisable/deserialisable structure containing control parameters for Slater determinant
@@ -73,12 +75,12 @@ pub enum SlaterDeterminantSource {
     #[cfg(feature = "qchem")]
     QChemArchive(QChemArchiveSlaterDeterminantSource),
 
-    /// Slater determinant from a custom specification.
-    Custom(CustomSlaterDeterminantSource),
+    /// Slater determinant from a binaries specification.
+    Binaries(BinariesSlaterDeterminantSource),
 }
 
 impl Default for SlaterDeterminantSource {
     fn default() -> Self {
-        SlaterDeterminantSource::Custom(CustomSlaterDeterminantSource::default())
+        SlaterDeterminantSource::Binaries(BinariesSlaterDeterminantSource::default())
     }
 }

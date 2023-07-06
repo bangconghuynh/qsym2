@@ -85,15 +85,10 @@ impl InputHandle for Input {
                             &pd_params_inp,
                             &afa_params,
                             &sda_params,
-                        )
+                        ).map(|_| ())
                     }
-                    SlaterDeterminantSource::Custom(custom_sd_source) => {
-                        custom_sd_source.sd_source_handle(
-                            &pd_params_inp,
-                            &afa_params,
-                            &sda_params,
-                        )
-                    }
+                    SlaterDeterminantSource::Binaries(binaries_sd_source) => binaries_sd_source
+                        .sd_source_handle(&pd_params_inp, &afa_params, &sda_params).map(|_| ()),
                 }
             }
             AnalysisTarget::MolecularSymmetry { xyz } => {
