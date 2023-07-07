@@ -261,6 +261,22 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             .pre_symmetry
             .recentred_molecule
             .adjust_threshold(tight_dist_threshold);
+
+        qsym2_output!("Unsymmetrised recentred molecule:");
+        trial_mol.log_output_display();
+        qsym2_output!("");
+        if params.reorientate_molecule {
+            // If reorientation is requested, the trial molecule is reoriented prior to
+            // symmetrisation, so that the symmetrisation procedure acts on the reoriented molecule
+            // itself. The molecule might become disoriented during the symmetrisation process, but
+            // any such disorientation is likely to be fairly small, and post-symmetrisation
+            // corrections on small disorientation are better than on large disorientation.
+            trial_mol.reorientate_mut(tight_moi_threshold);
+            qsym2_output!("Unsymmetrised recentred and reoriented molecule:");
+            trial_mol.log_output_display();
+            qsym2_output!("");
+        };
+
         let target_unisym = &self.target_symmetry_result.unitary_symmetry;
         let target_magsym = &self.target_symmetry_result.magnetic_symmetry.as_ref();
 
