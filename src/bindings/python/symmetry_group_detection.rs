@@ -1,18 +1,32 @@
+use std::collections::HashMap;
+use std::fmt;
 use std::path::PathBuf;
 
+use anyhow::{self, format_err};
 use nalgebra::{Point3, Vector3};
+use numpy::{PyArray1, ToPyArray};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
 use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::molecule::Molecule;
-
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
 #[allow(unused_imports)]
 use crate::io::QSym2FileType;
+use crate::symmetry::symmetry_core::Symmetry;
+use crate::symmetry::symmetry_element::{AntiunitaryKind, SymmetryElementKind};
+use crate::symmetry::symmetry_element_order::ElementOrder;
+
+// ===========================
+// Struct and enum definitions
+// ===========================
+
+// ----------
+// PyMolecule
+// ----------
 
 /// A Python-exposed structure to marshall molecular structure information between Rust and Python.
 ///
@@ -100,6 +114,124 @@ impl From<PyMolecule> for Molecule {
         mol
     }
 }
+
+// ---------------------
+// PySymmetryElementKind
+// ---------------------
+
+/// A Python-exposed structure to marshall symmetry element kind one-way from Rust to Python.
+#[pyclass]
+#[derive(Clone, Hash, PartialEq, Eq)]
+pub enum PySymmetryElementKind {
+    Proper,
+    ProperTR,
+    ImproperMirrorPlane,
+    ImproperMirrorPlaneTR,
+}
+
+impl fmt::Display for PySymmetryElementKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PySymmetryElementKind::Proper => write!(f, "Proper"),
+            PySymmetryElementKind::ProperTR => write!(f, "Time-reversed proper"),
+            PySymmetryElementKind::ImproperMirrorPlane => {
+                write!(f, "Improper (mirror-plane convention)")
+            }
+            PySymmetryElementKind::ImproperMirrorPlaneTR => {
+                write!(f, "Time-reversed improper (mirror-plane convention)")
+            }
+        }
+    }
+}
+
+impl TryFrom<&SymmetryElementKind> for PySymmetryElementKind {
+    type Error = anyhow::Error;
+
+    fn try_from(symkind: &SymmetryElementKind) -> Result<Self, Self::Error> {
+        match symkind {
+            SymmetryElementKind::Proper(None) => Ok(Self::Proper),
+            SymmetryElementKind::Proper(Some(AntiunitaryKind::TimeReversal)) => Ok(Self::ProperTR),
+            SymmetryElementKind::ImproperMirrorPlane(None) => Ok(Self::ImproperMirrorPlane),
+            SymmetryElementKind::ImproperMirrorPlane(Some(AntiunitaryKind::TimeReversal)) => {
+                Ok(Self::ImproperMirrorPlaneTR)
+            }
+            _ => Err(format_err!(
+                "Symmetry element kind `{symkind}` is not yet supported in Python."
+            )),
+        }
+    }
+}
+
+// ----------
+// PySymmetry
+// ----------
+
+/// A Python-exposed structure to marshall symmetry information one-way from Rust to Python.
+#[pyclass]
+#[derive(Clone)]
+pub struct PySymmetry {
+    /// The symmetry elements.
+    ///
+    /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
+    pub elements: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+
+    /// The symmetry generators.
+    ///
+    /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
+    pub generators: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+}
+
+#[pymethods]
+impl PySymmetry {
+    fn get_elements_of_kind(
+        &self,
+        kind: &PySymmetryElementKind,
+    ) -> PyResult<HashMap<i32, Vec<Py<PyArray1<f64>>>>> {
+        self.elements
+            .get(kind)
+            .cloned()
+            .ok_or(PyRuntimeError::new_err(format!(
+                "Elements of kind `{kind}` not found."
+            )))
+    }
+
+    fn get_generators_of_kind(
+        &self,
+        kind: &PySymmetryElementKind,
+    ) -> PyResult<HashMap<i32, Vec<Py<PyArray1<f64>>>>> {
+        self.generators
+            .get(kind)
+            .cloned()
+            .ok_or(PyRuntimeError::new_err(format!(
+                "Elements of kind `{kind}` not found."
+            )))
+    }
+}
+
+impl TryFrom<&Symmetry> for PySymmetry {
+    type Error = anyhow::Error;
+
+    fn try_from(sym: &Symmetry) -> Result<Self, Self::Error> {
+        let elements = sym.elements.iter().map(|(symkind, kind_elements)| {
+            let pysymkind = PySymmetryElementKind::try_from(symkind)?;
+            let pykind_elements = kind_elements.iter().map(|order, elements| {
+                let order_i32 = match order {
+                    ElementOrder::Int(ord) => i32::try_from(ord)?,
+                    ElementOrder::Inf => -1,
+                };
+                let pyelements = elements
+                    .iter()
+                    .map(|ele| ele.raw_axis().to_pyarray())
+                    .collect::<Vec<_>>();
+            });
+            Ok(())
+        });
+    }
+}
+
+// =========
+// Functions
+// =========
 
 /// A Python-exposed function to perform symmetry-group detection and log the result via the
 /// `qsym2-output` logger at the `INFO` level.
