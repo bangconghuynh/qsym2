@@ -424,10 +424,10 @@ impl PartialEq for Atom {
                 self.coordinates[2].round_factor(self.threshold),
                 other.coordinates[2].round_factor(other.threshold),
             );
-        if result {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
-        }
-        result
+        // if result {
+        //     assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+        // }
+        result && (misc::calculate_hash(self) == misc::calculate_hash(other))
     }
 }
 

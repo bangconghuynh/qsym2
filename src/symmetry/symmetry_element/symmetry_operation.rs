@@ -1340,8 +1340,9 @@ impl PartialEq for SymmetryOperation {
         // At this stage, `self` and `other` must have the same spatial parity, unitarity, and
         // SO3/SU2 properties.
         if self.is_spatial_identity() && other.is_spatial_identity() {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
-            return true;
+            // assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            // return true;
+            return misc::calculate_hash(self) == misc::calculate_hash(other);
         }
 
         // ======
@@ -1396,14 +1397,14 @@ impl PartialEq for SymmetryOperation {
                 )
         };
 
-        if result {
-            assert_eq!(
-                misc::calculate_hash(self),
-                misc::calculate_hash(other),
-                "`{self}` and `{other}` have unequal hashes.",
-            );
-        }
-        result
+        // if result {
+        //     assert_eq!(
+        //         misc::calculate_hash(self),
+        //         misc::calculate_hash(other),
+        //         "`{self}` and `{other}` have unequal hashes.",
+        //     );
+        // }
+        result && (misc::calculate_hash(self) == misc::calculate_hash(other))
     }
 }
 

@@ -1528,22 +1528,24 @@ impl PartialEq for SymmetryElement {
 
         if self.is_o3_identity(au) && other.is_o3_identity(au) {
             // Both are spatial identity.
-            assert_eq!(
-                misc::calculate_hash(self),
-                misc::calculate_hash(other),
-                "{self} and {other} have unequal hashes."
-            );
-            return true;
+            // assert_eq!(
+            //     misc::calculate_hash(self),
+            //     misc::calculate_hash(other),
+            //     "{self} and {other} have unequal hashes."
+            // );
+            // return true;
+            return misc::calculate_hash(self) == misc::calculate_hash(other);
         }
 
         if self.is_o3_inversion_centre(au) && other.is_o3_inversion_centre(au) {
             // Both are spatial inversion centre.
-            assert_eq!(
-                misc::calculate_hash(self),
-                misc::calculate_hash(other),
-                "{self} and {other} have unequal hashes."
-            );
-            return true;
+            // assert_eq!(
+            //     misc::calculate_hash(self),
+            //     misc::calculate_hash(other),
+            //     "{self} and {other} have unequal hashes."
+            // );
+            // return true;
+            return misc::calculate_hash(self) == misc::calculate_hash(other);
         }
 
         let thresh = (self.threshold * other.threshold).sqrt();
@@ -1633,14 +1635,14 @@ impl PartialEq for SymmetryElement {
             similar_poles && similar_angles
         };
 
-        if result {
-            assert_eq!(
-                misc::calculate_hash(self),
-                misc::calculate_hash(other),
-                "`{self}` and `{other}` have unequal hashes."
-            );
-        }
-        result
+        // if result {
+        //     assert_eq!(
+        //         misc::calculate_hash(self),
+        //         misc::calculate_hash(other),
+        //         "`{self}` and `{other}` have unequal hashes."
+        //     );
+        // }
+        result && (misc::calculate_hash(self) == misc::calculate_hash(other))
     }
 }
 
