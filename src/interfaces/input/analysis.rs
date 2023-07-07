@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use anyhow;
 use serde::{Deserialize, Serialize};
 
+use crate::drivers::molecule_symmetrisation::MoleculeSymmetrisationParams;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::SlaterDeterminantRepAnalysisParams;
 use crate::interfaces::binaries::BinariesSlaterDeterminantSource;
@@ -23,9 +24,14 @@ use crate::interfaces::qchem::QChemArchiveSlaterDeterminantSource;
 #[derive(Clone, Serialize, Deserialize)]
 pub enum AnalysisTarget {
     /// Variant representing the choice of only performing a symmetry-group detection for a
-    /// molecule. The associated value gives a path to an XYZ file containing the molecular
-    /// structure for symmetry-group detection.
-    MolecularSymmetry { xyz: PathBuf },
+    /// molecule.
+    MolecularSymmetry {
+        /// Path to an XYZ file containing the molecular structure for symmetry-group detection.
+        xyz: PathBuf,
+
+        /// Optional parameters for performing symmetrisation on the structure.
+        symmetrisation: Option<MoleculeSymmetrisationParams>
+    },
 
     /// Variant representing the choice of Slater determinant as the target for representation
     /// analysis. The associated structure contains the control parameters for this.

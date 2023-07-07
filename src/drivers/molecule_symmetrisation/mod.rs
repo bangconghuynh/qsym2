@@ -6,6 +6,7 @@ use derive_builder::Builder;
 use nalgebra::Point3;
 use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
+use serde::{Deserialize, Serialize};
 
 use crate::aux::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::{
@@ -29,22 +30,29 @@ mod molecule_symmetrisation_tests;
 // Parameters
 // ----------
 
+fn default_true() -> bool { true }
+fn default_max_iterations() -> usize { 5 }
+fn default_target_threshold() -> f64 { 1e-7 }
+
 /// A structure containing control parameters for molecule symmetrisation.
-#[derive(Clone, Builder, Debug)]
+#[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct MoleculeSymmetrisationParams {
     /// Boolean indicating if any available magnetic group should be used for symmetrisation
     /// instead of the unitary group.
     #[builder(default = "false")]
+    #[serde(default)]
     pub use_magnetic_group: bool,
 
     /// The target moment-of-inertia threshold for the symmetrisation, *i.e.* the symmetrised
     /// molecule will have the target symmetry group at this target moment-of-inertia threshold.
     #[builder(default = "1e-7")]
+    #[serde(default = "default_target_threshold")]
     pub target_moi_threshold: f64,
 
     /// The target distance threshold for the symmetrisation, *i.e.* the symmetrised molecule will
     /// have the target symmetry group at this target distance threshold.
     #[builder(default = "1e-7")]
+    #[serde(default = "default_target_threshold")]
     pub target_distance_threshold: f64,
 
     /// Boolean indicating if the symmetrised molecule is also reoriented to align its principal
@@ -52,24 +60,29 @@ pub struct MoleculeSymmetrisationParams {
     ///
     /// See [`Molecule::reorientate`] for more information.
     #[builder(default = "true")]
+    #[serde(default = "default_true")]
     pub reorientate_molecule: bool,
 
     /// The maximum number of symmetrisation iterations.
     #[builder(default = "5")]
+    #[serde(default = "default_max_iterations")]
     pub max_iterations: usize,
 
     /// The finite order to which any infinite-order symmetry element is reduced, so that a finite
     /// subgroup of an infinite group can be used for the symmetrisation.
     #[builder(default = "None")]
+    #[serde(default)]
     pub infinite_order_to_finite: Option<u32>,
 
     /// The output verbosity level.
     #[builder(default = "0")]
+    #[serde(default)]
     pub verbose: u8,
 
     /// Optional name for saving the symmetry-group detection result of the symmetrised system as a
     /// binary file of type [`QSym2FileType::Sym`]. If `None`, the result will not be saved.
     #[builder(default = "None")]
+    #[serde(default)]
     pub symmetrised_result_save_name: Option<PathBuf>,
 }
 

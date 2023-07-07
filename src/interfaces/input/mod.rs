@@ -1,8 +1,10 @@
 use std::path::PathBuf;
 
-use anyhow::{self, bail};
+use anyhow::{self, bail, Context};
+use log;
 use serde::{Deserialize, Serialize};
 
+use crate::drivers::molecule_symmetrisation::MoleculeSymmetrisationDriver;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
@@ -73,24 +75,11 @@ impl InputHandle for Input {
         let pd_params_inp = &self.symmetry_group_detection;
         let mut afa_params = AngularFunctionRepAnalysisParams::default();
         match &self.analysis_target {
-            AnalysisTarget::SlaterDeterminant(sd_control) => {
-                let sd_source = &sd_control.source;
-                let sda_params = &sd_control.control;
-                afa_params.linear_independence_threshold = sda_params.linear_independence_threshold;
-                afa_params.integrality_threshold = sda_params.integrality_threshold;
-                match sd_source {
-                    #[cfg(feature = "qchem")]
-                    SlaterDeterminantSource::QChemArchive(qchemarchive_sd_source) => {
-                        qchemarchive_sd_source
-                            .sd_source_handle(&pd_params_inp, &afa_params, &sda_params)
-                            .map(|_| ())
-                    }
-                    SlaterDeterminantSource::Binaries(binaries_sd_source) => binaries_sd_source
-                        .sd_source_handle(&pd_params_inp, &afa_params, &sda_params)
-                        .map(|_| ()),
-                }
-            }
-            AnalysisTarget::MolecularSymmetry { xyz } => {
+            AnalysisTarget::MolecularSymmetry {
+                xyz,
+                symmetrisation,
+            } => {
+                log::debug!("Analysis target: Molecular symmetry");
                 let pd_params = match pd_params_inp {
                     SymmetryGroupDetectionInputKind::Parameters(pd_params) => pd_params,
                     SymmetryGroupDetectionInputKind::FromFile(_) => {
@@ -100,11 +89,57 @@ impl InputHandle for Input {
                         )
                     }
                 };
+                log::debug!(
+                    "Molecular symmetry group will be identified based on specified parameters."
+                );
                 let mut pd_driver = SymmetryGroupDetectionDriver::builder()
                     .parameters(pd_params)
                     .xyz(Some(xyz.into()))
-                    .build()?;
-                pd_driver.run()
+                    .build()
+                    .with_context(|| "Unable to construct a symmetry-group detection driver while handling molecular symmetry analysis target")?;
+                let pd_res = pd_driver
+                    .run()
+                    .with_context(|| "Unable to execute the symmetry-group detection driver successfully while handling molecular symmetry analysis target");
+                if let Some(ms_params) = symmetrisation.as_ref() {
+                    log::debug!("Performing molecule symmetrisation...");
+                    let pd_res = pd_driver
+                        .result()
+                        .with_context(|| "Unable to extract the target symmetry-group detection result for molecule symmetrisation while handling molecular symmetry analysis target")?;
+                    let mut ms_driver = MoleculeSymmetrisationDriver::builder()
+                        .parameters(ms_params)
+                        .target_symmetry_result(pd_res)
+                        .build()
+                        .with_context(|| "Unable to construct a molecule symmetrisation driver while handling molecular symmetry analysis target")?;
+                    let ms_res = ms_driver
+                        .run()
+                        .with_context(|| "Unable to execute the molecule symmetrisation driver successfully while handling molecular symmetry analysis target");
+                    log::debug!("Performing molecule symmetrisation... Done.");
+                    ms_res
+                } else {
+                    pd_res
+                }
+            }
+            AnalysisTarget::SlaterDeterminant(sd_control) => {
+                log::debug!("Analysis target: Slater determinant");
+                let sd_source = &sd_control.source;
+                let sda_params = &sd_control.control;
+                afa_params.linear_independence_threshold = sda_params.linear_independence_threshold;
+                afa_params.integrality_threshold = sda_params.integrality_threshold;
+                match sd_source {
+                    #[cfg(feature = "qchem")]
+                    SlaterDeterminantSource::QChemArchive(qchemarchive_sd_source) => {
+                        log::debug!("Slater determinant source: Q-Chem archive");
+                        qchemarchive_sd_source
+                            .sd_source_handle(&pd_params_inp, &afa_params, &sda_params)
+                            .map(|_| ())
+                    }
+                    SlaterDeterminantSource::Binaries(binaries_sd_source) => {
+                        log::debug!("Slater determinant source: binary files");
+                        binaries_sd_source
+                            .sd_source_handle(&pd_params_inp, &afa_params, &sda_params)
+                            .map(|_| ())
+                    }
+                }
             }
         }
     }
