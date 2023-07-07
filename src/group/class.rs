@@ -349,11 +349,7 @@ where
                 .as_ref()
                 .expect("Conjugacy classes have not been found.")
                 .iter()
-                .map(|cc| {
-                    *cc.iter()
-                        .min()
-                        .expect("No conjugacy classes can be empty.")
-                })
+                .map(|cc| *cc.iter().min().expect("No conjugacy classes can be empty."))
                 .collect::<Vec<usize>>(),
         );
         self

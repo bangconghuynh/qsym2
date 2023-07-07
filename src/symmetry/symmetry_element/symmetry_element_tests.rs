@@ -2295,10 +2295,7 @@ fn test_symmetry_element_su2_construction() {
     let i_sr_tc1 = tc1.to_su2(false).unwrap();
     assert!(i_sr_tc1.is_su2_class_1());
     assert_eq!(i_sr_tc1.to_string(), "θ(QΣ)");
-    assert_eq!(
-        format!("{i_sr_tc1:?}"),
-        "θ·C1(QΣ)(+0.000, +1.000, +0.000)"
-    );
+    assert_eq!(format!("{i_sr_tc1:?}"), "θ·C1(QΣ)(+0.000, +1.000, +0.000)");
     assert!(i_sr_tc1.to_su2(true).is_none());
 
     let c3 = SymmetryElement::builder()

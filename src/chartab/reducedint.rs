@@ -501,10 +501,10 @@ where
                 rint_l == rint_r
             }
         };
-        if result {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
-        }
-        result
+        // if result {
+        //     assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+        // }
+        result && (misc::calculate_hash(self) == misc::calculate_hash(other))
     }
 }
 

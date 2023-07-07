@@ -69,7 +69,8 @@ fn test_abstract_group_creation() {
         .unwrap();
 
     let group_c29 =
-        EagerGroup::<SymmetryOperation>::new("C29", (0..29).map(|k| (&c29).pow(k)).collect()).unwrap();
+        EagerGroup::<SymmetryOperation>::new("C29", (0..29).map(|k| (&c29).pow(k)).collect())
+            .unwrap();
     let mut elements = group_c29.elements().iter();
     for i in 0..29 {
         let op = elements.next().unwrap();
@@ -429,7 +430,8 @@ fn test_ur_magnetic_group_from_infinite(
         .unwrap();
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true).unwrap();
-    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
+    let group =
+        UnitaryRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
     assert_eq!(
         group
             .elements()
@@ -464,7 +466,8 @@ fn test_mr_magnetic_group_from_infinite(
         .unwrap();
     let mut magsym = Symmetry::new();
     magsym.analyse(&presym, true).unwrap();
-    let group = MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
+    let group =
+        MagneticRepresentedGroup::from_molecular_symmetry(&magsym, Some(finite_order)).unwrap();
     assert_eq!(
         group
             .elements()
@@ -1375,13 +1378,13 @@ Linear
 *****/
 
 #[test]
-fn test_ur_group_linear_atom_magnetic_field_cinfh() {
+fn test_ur_group_linear_atom_magnetic_field_cinfh_small() {
     // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
-    for n in 2usize..=20usize {
+    for n in 2usize..=12usize {
         if n % 2 == 0 {
             test_ur_ordinary_group_from_infinite(
                 &mol,
@@ -1409,7 +1412,42 @@ fn test_ur_group_linear_atom_magnetic_field_cinfh() {
 }
 
 #[test]
-fn test_ur_group_linear_atom_magnetic_field_bw_dinfh_cinfh() {
+#[ignore]
+fn test_ur_group_linear_atom_magnetic_field_cinfh_large() {
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
+    for n in 13usize..=20usize {
+        if n % 2 == 0 {
+            test_ur_ordinary_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "C∞h",
+                format!("C{n}h").as_str(),
+                2 * n,
+                2 * n,
+                true,
+            );
+        } else {
+            test_ur_ordinary_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "C∞h",
+                format!("C{}h", 2 * n).as_str(),
+                4 * n,
+                4 * n,
+                true,
+            );
+        }
+    }
+}
+
+#[test]
+fn test_ur_group_linear_atom_magnetic_field_bw_dinfh_cinfh_small() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -1422,7 +1460,7 @@ fn test_ur_group_linear_atom_magnetic_field_bw_dinfh_cinfh() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
-    for n in 2usize..=20usize {
+    for n in 2usize..=12usize {
         if n % 2 == 0 {
             test_ur_magnetic_group_from_infinite(
                 &mol,
@@ -1452,7 +1490,51 @@ fn test_ur_group_linear_atom_magnetic_field_bw_dinfh_cinfh() {
 }
 
 #[test]
-fn test_ur_group_linear_atom_electric_field_cinfv() {
+#[ignore]
+fn test_ur_group_linear_atom_magnetic_field_bw_dinfh_cinfh_large() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Dnh groups.
+     * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
+     * where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1('/''), A2('/''), Ek('/'')
+     * where k = 1, ..., n//2.
+     */
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 2.0, -1.0)));
+    for n in 12usize..=20usize {
+        if n % 2 == 0 {
+            test_ur_magnetic_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h",
+                format!("D{n}h").as_str(),
+                4 * n,
+                2 * (n / 2 - 1 + 4),
+                n == 2,
+                BWGRP,
+            );
+        } else {
+            test_ur_magnetic_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h",
+                format!("D{}h", 2 * n).as_str(),
+                8 * n,
+                2 * (n - 1 + 4),
+                false,
+                BWGRP,
+            );
+        }
+    }
+}
+
+#[test]
+fn test_ur_group_linear_atom_electric_field_cinfv_small() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
      * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
@@ -1462,7 +1544,7 @@ fn test_ur_group_linear_atom_electric_field_cinfv() {
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
-    for n in 3usize..=20usize {
+    for n in 3usize..=12usize {
         test_ur_ordinary_group_from_infinite(
             &mol,
             n as u32,
@@ -1489,7 +1571,45 @@ fn test_ur_group_linear_atom_electric_field_cinfv() {
 }
 
 #[test]
-fn test_ur_group_linear_c2h2_dinfh() {
+#[ignore]
+fn test_ur_group_linear_atom_electric_field_cinfv_large() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Cnv groups.
+     * When n is even, the irreps are A1, A2, B1, B2, Ek where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1, A2, Ek where k = 1, ..., n//2.
+     */
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/th.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_electric_field(Some(Vector3::new(-1.0, 3.0, -2.0)));
+    for n in 13usize..=20usize {
+        test_ur_ordinary_group_from_infinite(
+            &mol,
+            n as u32,
+            thresh,
+            "C∞v",
+            format!("C{n}v").as_str(),
+            2 * n,
+            ({
+                if n % 2 == 0 {
+                    n / 2 - 1
+                } else {
+                    n / 2
+                }
+            } + {
+                if n % 2 == 0 {
+                    4
+                } else {
+                    2
+                }
+            }),
+            false,
+        );
+    }
+}
+
+#[test]
+fn test_ur_group_linear_c2h2_dinfh_small() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -1500,7 +1620,7 @@ fn test_ur_group_linear_c2h2_dinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    for n in 3usize..=20usize {
+    for n in 3usize..=12usize {
         if n % 2 == 0 {
             test_ur_ordinary_group_from_infinite(
                 &mol,
@@ -1528,7 +1648,8 @@ fn test_ur_group_linear_c2h2_dinfh() {
 }
 
 #[test]
-fn test_ur_group_linear_c2h2_grey_dinfh() {
+#[ignore]
+fn test_ur_group_linear_c2h2_dinfh_large() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -1539,7 +1660,46 @@ fn test_ur_group_linear_c2h2_grey_dinfh() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mol = Molecule::from_xyz(&path, thresh);
-    for n in 3usize..=20usize {
+    for n in 13usize..=20usize {
+        if n % 2 == 0 {
+            test_ur_ordinary_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h",
+                format!("D{n}h").as_str(),
+                4 * n,
+                2 * (n / 2 - 1 + 4),
+                false,
+            );
+        } else {
+            test_ur_ordinary_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h",
+                format!("D{}h", 2 * n).as_str(),
+                8 * n,
+                2 * (n - 1 + 4),
+                false,
+            );
+        }
+    }
+}
+
+#[test]
+fn test_ur_group_linear_c2h2_grey_dinfh_small() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Dnh groups.
+     * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
+     * where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1('/''), A2('/''), Ek('/'')
+     * where k = 1, ..., n//2.
+     */
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    for n in 3usize..=12usize {
         if n % 2 == 0 {
             test_ur_magnetic_group_from_infinite(
                 &mol,
@@ -1569,13 +1729,55 @@ fn test_ur_group_linear_c2h2_grey_dinfh() {
 }
 
 #[test]
-fn test_ur_group_linear_c2h2_magnetic_field_cinfh() {
+#[ignore]
+fn test_ur_group_linear_c2h2_grey_dinfh_large() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Dnh groups.
+     * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
+     * where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1('/''), A2('/''), Ek('/'')
+     * where k = 1, ..., n//2.
+     */
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    for n in 13usize..=20usize {
+        if n % 2 == 0 {
+            test_ur_magnetic_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h + θ·D∞h",
+                format!("D{n}h + θ·D{n}h").as_str(),
+                8 * n,
+                4 * (n / 2 - 1 + 4),
+                false,
+                GRGRP,
+            );
+        } else {
+            test_ur_magnetic_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h + θ·D∞h",
+                format!("D{}h + θ·D{}h", 2 * n, 2 * n).as_str(),
+                16 * n,
+                4 * (n - 1 + 4),
+                false,
+                GRGRP,
+            );
+        }
+    }
+}
+
+#[test]
+fn test_ur_group_linear_c2h2_magnetic_field_cinfh_small() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     // Parallel field
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    for n in 2usize..=20usize {
+    for n in 2usize..=12usize {
         if n % 2 == 0 {
             test_ur_ordinary_group_from_infinite(
                 &mol,
@@ -1603,7 +1805,42 @@ fn test_ur_group_linear_c2h2_magnetic_field_cinfh() {
 }
 
 #[test]
-fn test_ur_group_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
+#[ignore]
+fn test_ur_group_linear_c2h2_magnetic_field_cinfh_large() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    // Parallel field
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    for n in 13usize..=20usize {
+        if n % 2 == 0 {
+            test_ur_ordinary_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "C∞h",
+                format!("C{n}h").as_str(),
+                2 * n,
+                2 * n,
+                true,
+            );
+        } else {
+            test_ur_ordinary_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "C∞h",
+                format!("C{}h", 2 * n).as_str(),
+                4 * n,
+                4 * n,
+                true,
+            );
+        }
+    }
+}
+
+#[test]
+fn test_ur_group_linear_c2h2_magnetic_field_bw_dinfh_cinfh_small() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
      * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
@@ -1616,7 +1853,7 @@ fn test_ur_group_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    for n in 2usize..=20usize {
+    for n in 2usize..=12usize {
         if n % 2 == 0 {
             test_ur_magnetic_group_from_infinite(
                 &mol,
@@ -1646,14 +1883,58 @@ fn test_ur_group_linear_c2h2_magnetic_field_bw_dinfh_cinfh() {
 }
 
 #[test]
-fn test_ur_group_linear_c2h2_electric_field_cinfv() {
+#[ignore]
+fn test_ur_group_linear_c2h2_magnetic_field_bw_dinfh_cinfh_large() {
+    /* The expected number of classes is deduced from the irrep structures of
+     * the Dnh groups.
+     * When n is even, the irreps are A1(g/u), A2(g/u), B1(g/u), B2(g/u), Ek(g/u)
+     * where k = 1, ..., n/2 - 1.
+     * When n is odd, the irreps are A1('/''), A2('/''), Ek('/'')
+     * where k = 1, ..., n//2.
+     */
+    // env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    for n in 13usize..=20usize {
+        if n % 2 == 0 {
+            test_ur_magnetic_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h",
+                format!("D{n}h").as_str(),
+                4 * n,
+                2 * (n / 2 - 1 + 4),
+                n == 2,
+                BWGRP,
+            );
+        } else {
+            test_ur_magnetic_group_from_infinite(
+                &mol,
+                n as u32,
+                thresh,
+                "D∞h",
+                format!("D{}h", 2 * n).as_str(),
+                8 * n,
+                2 * (n - 1 + 4),
+                false,
+                BWGRP,
+            );
+        }
+    }
+}
+
+#[test]
+fn test_ur_group_linear_c2h2_electric_field_cinfv_small() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
 
     // Parallel field
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    for n in 3usize..=20usize {
+    for n in 3usize..=12usize {
         test_ur_ordinary_group_from_infinite(
             &mol,
             n as u32,
@@ -1680,14 +1961,49 @@ fn test_ur_group_linear_c2h2_electric_field_cinfv() {
 }
 
 #[test]
-fn test_ur_group_linear_c2h2_electric_field_grey_cinfv() {
+#[ignore]
+fn test_ur_group_linear_c2h2_electric_field_cinfv_large() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
 
     // Parallel field
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    for n in 3usize..=20usize {
+    for n in 13usize..=20usize {
+        test_ur_ordinary_group_from_infinite(
+            &mol,
+            n as u32,
+            thresh,
+            "C∞v",
+            format!("C{n}v").as_str(),
+            2 * n,
+            ({
+                if n % 2 == 0 {
+                    n / 2 - 1
+                } else {
+                    n / 2
+                }
+            } + {
+                if n % 2 == 0 {
+                    4
+                } else {
+                    2
+                }
+            }),
+            false,
+        );
+    }
+}
+
+#[test]
+fn test_ur_group_linear_c2h2_electric_field_grey_cinfv_small() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+
+    // Parallel field
+    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    for n in 3usize..=12usize {
         test_ur_magnetic_group_from_infinite(
             &mol,
             n as u32,
@@ -1715,42 +2031,15 @@ fn test_ur_group_linear_c2h2_electric_field_grey_cinfv() {
 }
 
 #[test]
-fn test_ur_group_linear_n3_cinfv() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+#[ignore]
+fn test_ur_group_linear_c2h2_electric_field_grey_cinfv_large() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/c2h2.xyz");
     let thresh = 1e-6;
-    let mol = Molecule::from_xyz(&path, thresh);
-    for n in 3usize..=20usize {
-        test_ur_ordinary_group_from_infinite(
-            &mol,
-            n as u32,
-            thresh,
-            "C∞v",
-            format!("C{n}v").as_str(),
-            2 * n,
-            ({
-                if n % 2 == 0 {
-                    n / 2 - 1
-                } else {
-                    n / 2
-                }
-            } + {
-                if n % 2 == 0 {
-                    4
-                } else {
-                    2
-                }
-            }),
-            false,
-        );
-    }
-}
+    let mut mol = Molecule::from_xyz(&path, thresh);
 
-#[test]
-fn test_ur_group_linear_n3_grey_cinfv() {
-    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
-    let thresh = 1e-6;
-    let mol = Molecule::from_xyz(&path, thresh);
-    for n in 3usize..=20usize {
+    // Parallel field
+    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    for n in 13usize..=20usize {
         test_ur_magnetic_group_from_infinite(
             &mol,
             n as u32,
@@ -1778,14 +2067,142 @@ fn test_ur_group_linear_n3_grey_cinfv() {
 }
 
 #[test]
-fn test_ur_group_linear_n3_magnetic_field_cinf() {
+fn test_ur_group_linear_n3_cinfv_small() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    for n in 3usize..=12usize {
+        test_ur_ordinary_group_from_infinite(
+            &mol,
+            n as u32,
+            thresh,
+            "C∞v",
+            format!("C{n}v").as_str(),
+            2 * n,
+            ({
+                if n % 2 == 0 {
+                    n / 2 - 1
+                } else {
+                    n / 2
+                }
+            } + {
+                if n % 2 == 0 {
+                    4
+                } else {
+                    2
+                }
+            }),
+            false,
+        );
+    }
+}
+
+#[test]
+#[ignore]
+fn test_ur_group_linear_n3_cinfv_large() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    for n in 13usize..=20usize {
+        test_ur_ordinary_group_from_infinite(
+            &mol,
+            n as u32,
+            thresh,
+            "C∞v",
+            format!("C{n}v").as_str(),
+            2 * n,
+            ({
+                if n % 2 == 0 {
+                    n / 2 - 1
+                } else {
+                    n / 2
+                }
+            } + {
+                if n % 2 == 0 {
+                    4
+                } else {
+                    2
+                }
+            }),
+            false,
+        );
+    }
+}
+
+#[test]
+fn test_ur_group_linear_n3_grey_cinfv_small() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    for n in 3usize..=12usize {
+        test_ur_magnetic_group_from_infinite(
+            &mol,
+            n as u32,
+            thresh,
+            "C∞v + θ·C∞v",
+            format!("C{n}v + θ·C{n}v").as_str(),
+            4 * n,
+            2 * ({
+                if n % 2 == 0 {
+                    n / 2 - 1
+                } else {
+                    n / 2
+                }
+            } + {
+                if n % 2 == 0 {
+                    4
+                } else {
+                    2
+                }
+            }),
+            false,
+            GRGRP,
+        );
+    }
+}
+
+#[test]
+#[ignore]
+fn test_ur_group_linear_n3_grey_cinfv_large() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    for n in 13usize..=20usize {
+        test_ur_magnetic_group_from_infinite(
+            &mol,
+            n as u32,
+            thresh,
+            "C∞v + θ·C∞v",
+            format!("C{n}v + θ·C{n}v").as_str(),
+            4 * n,
+            2 * ({
+                if n % 2 == 0 {
+                    n / 2 - 1
+                } else {
+                    n / 2
+                }
+            } + {
+                if n % 2 == 0 {
+                    4
+                } else {
+                    2
+                }
+            }),
+            false,
+            GRGRP,
+        );
+    }
+}
+
+#[test]
+fn test_ur_group_linear_n3_magnetic_field_cinf_small() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
 
     // Parallel field
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    for n in 2usize..=20usize {
+    for n in 2usize..=12usize {
         test_ur_ordinary_group_from_infinite(
             &mol,
             n as u32,
@@ -1800,14 +2217,37 @@ fn test_ur_group_linear_n3_magnetic_field_cinf() {
 }
 
 #[test]
-fn test_ur_group_linear_n3_magnetic_field_bw_cinfv_cinf() {
+#[ignore]
+fn test_ur_group_linear_n3_magnetic_field_cinf_large() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
 
     // Parallel field
     mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    for n in 2usize..=20usize {
+    for n in 13usize..=20usize {
+        test_ur_ordinary_group_from_infinite(
+            &mol,
+            n as u32,
+            thresh,
+            "C∞",
+            format!("C{n}").as_str(),
+            n,
+            n,
+            true,
+        );
+    }
+}
+
+#[test]
+fn test_ur_group_linear_n3_magnetic_field_bw_cinfv_cinf_small() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+
+    // Parallel field
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    for n in 2usize..=12usize {
         test_ur_magnetic_group_from_infinite(
             &mol,
             n as u32,
@@ -1835,14 +2275,50 @@ fn test_ur_group_linear_n3_magnetic_field_bw_cinfv_cinf() {
 }
 
 #[test]
-fn test_ur_group_linear_n3_electric_field_cinfv() {
+#[ignore]
+fn test_ur_group_linear_n3_magnetic_field_bw_cinfv_cinf_large() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+
+    // Parallel field
+    mol.set_magnetic_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    for n in 13usize..=20usize {
+        test_ur_magnetic_group_from_infinite(
+            &mol,
+            n as u32,
+            thresh,
+            "C∞v",
+            format!("C{n}v").as_str(),
+            2 * n,
+            ({
+                if n % 2 == 0 {
+                    n / 2 - 1
+                } else {
+                    n / 2
+                }
+            } + {
+                if n % 2 == 0 {
+                    4
+                } else {
+                    2
+                }
+            }),
+            n == 2,
+            BWGRP,
+        );
+    }
+}
+
+#[test]
+fn test_ur_group_linear_n3_electric_field_cinfv_small() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
 
     // Parallel field
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    for n in 3usize..=20usize {
+    for n in 3usize..=12usize {
         test_ur_ordinary_group_from_infinite(
             &mol,
             n as u32,
@@ -1869,14 +2345,85 @@ fn test_ur_group_linear_n3_electric_field_cinfv() {
 }
 
 #[test]
-fn test_ur_group_linear_n3_electric_field_grey_cinfv() {
+#[ignore]
+fn test_ur_group_linear_n3_electric_field_cinfv_large() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
     let thresh = 1e-6;
     let mut mol = Molecule::from_xyz(&path, thresh);
 
     // Parallel field
     mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
-    for n in 3usize..=20usize {
+    for n in 13usize..=20usize {
+        test_ur_ordinary_group_from_infinite(
+            &mol,
+            n as u32,
+            thresh,
+            "C∞v",
+            format!("C{n}v").as_str(),
+            2 * n,
+            ({
+                if n % 2 == 0 {
+                    n / 2 - 1
+                } else {
+                    n / 2
+                }
+            } + {
+                if n % 2 == 0 {
+                    4
+                } else {
+                    2
+                }
+            }),
+            false,
+        );
+    }
+}
+
+#[test]
+fn test_ur_group_linear_n3_electric_field_grey_cinfv_small() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+
+    // Parallel field
+    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    for n in 3usize..=12usize {
+        test_ur_magnetic_group_from_infinite(
+            &mol,
+            n as u32,
+            thresh,
+            "C∞v + θ·C∞v",
+            format!("C{n}v + θ·C{n}v").as_str(),
+            4 * n,
+            2 * ({
+                if n % 2 == 0 {
+                    n / 2 - 1
+                } else {
+                    n / 2
+                }
+            } + {
+                if n % 2 == 0 {
+                    4
+                } else {
+                    2
+                }
+            }),
+            false,
+            GRGRP,
+        );
+    }
+}
+
+#[test]
+#[ignore]
+fn test_ur_group_linear_n3_electric_field_grey_cinfv_large() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/n3.xyz");
+    let thresh = 1e-6;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+
+    // Parallel field
+    mol.set_electric_field(Some(Vector3::new(1.0, 1.0, 1.0)));
+    for n in 13usize..=20usize {
         test_ur_magnetic_group_from_infinite(
             &mol,
             n as u32,
@@ -2235,6 +2782,7 @@ fn test_ur_group_symmetric_b7_magnetic_field_bw_c6v_c6_class_order() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
     // env_logger::init();
     let thresh = 1e-7;
@@ -2253,6 +2801,7 @@ fn test_ur_group_symmetric_arbitrary_half_sandwich_magnetic_field_cn() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_half_sandwich_magnetic_field_bw_cnv_cn() {
     let thresh = 1e-7;
     for n in 3..=32 {
@@ -3275,6 +3824,7 @@ fn test_ur_group_symmetric_benzene_electric_field_grey_c6v_class_order() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_half_sandwich_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
@@ -3308,6 +3858,7 @@ fn test_ur_group_symmetric_arbitrary_half_sandwich_cnv() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_half_sandwich_grey_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
@@ -3342,6 +3893,7 @@ fn test_ur_group_symmetric_arbitrary_half_sandwich_grey_cnv() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_staggered_sandwich_electric_field_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
@@ -3376,6 +3928,7 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_electric_field_cnv() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_staggered_sandwich_electric_field_grey_cnv() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Cnv groups.
@@ -4068,6 +4621,7 @@ fn test_ur_group_symmetric_benzene_magnetic_field_bw_d6h_c6h_class_order() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
     // env_logger::init();
     for n in 3..=20 {
@@ -4086,6 +4640,7 @@ fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_cnh() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_magnetic_field_bw_dnh_cnh() {
     // env_logger::init();
     for n in 3..=20 {
@@ -4619,6 +5174,7 @@ fn test_ur_group_symmetric_c6ph6_grey_d6_class_order() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_twisted_sandwich_dn() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dn groups.
@@ -4652,6 +5208,7 @@ fn test_ur_group_symmetric_arbitrary_twisted_sandwich_dn() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_twisted_sandwich_grey_dn() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dn groups.
@@ -5302,6 +5859,7 @@ fn test_ur_group_symmetric_benzene_grey_d6h_class_order() {
 // }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_dnh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
@@ -5337,6 +5895,7 @@ fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_dnh() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_eclipsed_sandwich_grey_dnh() {
     /* The expected number of classes is deduced from the irrep structures of
      * the Dnh groups.
@@ -6351,6 +6910,7 @@ fn test_ur_group_symmetric_au26_grey_d6d_class_order() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_staggered_sandwich_dnd() {
     let thresh = 1e-7;
     for n in 3..=20 {
@@ -6367,6 +6927,7 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_dnd() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_staggered_sandwich_grey_dnd() {
     let thresh = 1e-7;
     for n in 3..=20 {
@@ -7439,6 +8000,7 @@ fn test_ur_group_symmetric_au26_magnetic_field_bw_d6d_s12_class_order() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
     let thresh = 1e-7;
     for n in 3..=20 {
@@ -7456,6 +8018,7 @@ fn test_ur_group_symmetric_arbitrary_staggered_sandwich_magnetic_field_s2n() {
 }
 
 #[test]
+#[ignore]
 fn test_ur_group_symmetric_arbitrary_staggered_sandwich_magnetic_field_bw_dnd_s2n() {
     let thresh = 1e-7;
     for n in 3..=20 {

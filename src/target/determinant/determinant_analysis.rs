@@ -1,8 +1,7 @@
-use log;
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, ensure, format_err};
+use anyhow::{self, ensure, format_err, Context};
 use approx;
 use derive_builder::Builder;
 use itertools::{izip, Itertools};
@@ -312,21 +311,18 @@ where
             self.origin,
             match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => |op, det| {
-                    det.sym_transform_spatial(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spatially on the origin determinant.")
+                    det.sym_transform_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially on the origin determinant")
                     })
                 },
                 SymmetryTransformationKind::Spin => |op, det| {
-                    det.sym_transform_spin(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spin-wise on the origin determinant.")
+                    det.sym_transform_spin(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-wise on the origin determinant")
                     })
                 },
                 SymmetryTransformationKind::SpinSpatial => |op, det| {
-                    det.sym_transform_spin_spatial(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spin-spatially on the origin determinant.")
+                    det.sym_transform_spin_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-spatially on the origin determinant")
                     })
                 },
             },

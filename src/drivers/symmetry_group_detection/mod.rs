@@ -1,4 +1,5 @@
 use std::fmt;
+use std::path::PathBuf;
 
 use anyhow::{bail, format_err};
 use derive_builder::Builder;
@@ -8,9 +9,11 @@ use nalgebra::{Point3, Vector3};
 use serde::{Deserialize, Serialize};
 
 use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::format::{log_subtitle, log_title, nice_bool, write_subtitle, QSym2Output};
 use crate::aux::molecule::Molecule;
 use crate::drivers::QSym2Driver;
+use crate::io::format::{
+    log_subtitle, log_title, nice_bool, qsym2_output, write_subtitle, QSym2Output,
+};
 use crate::io::{write_qsym2_binary, QSym2FileType};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::{AntiunitaryKind, SymmetryElementKind};
@@ -28,7 +31,7 @@ mod symmetry_group_detection_tests;
 // ----------
 
 fn default_thresholds() -> Vec<f64> {
-    vec![1.0e-4, 1.0e-5, 1.0e-6]
+    vec![1.0e-4, 1e-5, 1.0e-6]
 }
 
 /// A structure containing control parameters for symmetry-group detection.
@@ -81,7 +84,7 @@ pub struct SymmetryGroupDetectionParams {
     /// `None`, the result will not be saved.
     #[builder(default = "None")]
     #[serde(default)]
-    pub result_save_name: Option<String>,
+    pub result_save_name: Option<PathBuf>,
 }
 
 impl SymmetryGroupDetectionParams {
@@ -191,7 +194,9 @@ impl fmt::Display for SymmetryGroupDetectionParams {
             f,
             "Save symmetry-group detection results to file: {}",
             if let Some(name) = self.result_save_name.as_ref() {
-                format!("{name}{}", QSym2FileType::Sym.ext())
+                let mut path = name.clone();
+                path.set_extension(QSym2FileType::Sym.ext());
+                path.display().to_string()
             } else {
                 nice_bool(false)
             }
@@ -342,7 +347,7 @@ pub struct SymmetryGroupDetectionDriver<'a> {
     /// A path to a `.xyz` file specifying the geometry of the molecule for symmetry analysis.
     /// Only one of this or [`Self::molecule`] should be specified.
     #[builder(default = "None")]
-    xyz: Option<String>,
+    xyz: Option<PathBuf>,
 
     /// A molecule for symmetry analysis. Only one of this or [`Self::xyz`] should be specified.
     #[builder(default = "None")]
@@ -362,7 +367,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
     /// Executes symmetry-group detection.
     fn detect_symmetry_group(&mut self) -> Result<(), anyhow::Error> {
         log_title("Symmetry-Group Detection");
-        log::info!(target: "qsym2-output", "");
+        qsym2_output!("");
         let params = self.parameters;
         params.log_output_display();
 
@@ -382,9 +387,9 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             (None, Some(xyz)) => Molecule::from_xyz(xyz, smallest_dist_thresh),
             _ => bail!("Neither or both `molecule` and `xyz` are specified."),
         };
-        log::info!(target: "qsym2-output", "Molecule for symmetry-group detection:");
+        qsym2_output!("Molecule for symmetry-group detection:");
         target_mol.log_output_display();
-        log::info!(target: "qsym2-output", "");
+        qsym2_output!("");
 
         let threshs = params
             .moi_thresholds
@@ -393,14 +398,13 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
         let nthreshs = threshs.clone().count();
 
         log_subtitle("Threshold-scanning symmetry-group detection");
-        log::info!(target: "qsym2-output", "");
+        qsym2_output!("");
 
         let count_length = usize::try_from(nthreshs.ilog10() + 2).map_err(|_| {
             format_err!("Unable to convert `{}` to `usize`.", nthreshs.ilog10() + 2)
         })?;
-        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 75));
-        log::info!(
-            target: "qsym2-output",
+        qsym2_output!("{}", "┈".repeat(count_length + 75));
+        qsym2_output!(
             "{:>width$} {:>12} {:>12} {:>14} {:>9} {:>12} {:>9}",
             "#",
             "MoI thresh",
@@ -411,7 +415,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             "Elements",
             width = count_length
         );
-        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 75));
+        qsym2_output!("{}", "┈".repeat(count_length + 75));
         let mut i = 0;
         let syms = threshs.map(|(moi_thresh, dist_thresh)| {
             // Create a new molecule with the current distance threshold for symmetry analysis
@@ -425,7 +429,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                     *dist_thresh
                 ),
                 _ => {
-                    log::info!(target: "qsym2-output", "Neither or both `molecule` and `xyz` are specified.");
+                    qsym2_output!("Neither or both `molecule` and `xyz` are specified.");
                     bail!("Neither or both `molecule` and `xyz` are specified.")
                 }
             };
@@ -521,8 +525,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
 
             i += 1;
             if uni_ok && mag_ok {
-                log::info!(
-                    target: "qsym2-output",
+                qsym2_output!(
                     "{:>width$} {:>12.3e} {:>12.3e} {:>14} {:>9} {:>12} {:>9}",
                     i,
                     moi_thresh,
@@ -549,8 +552,7 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
                         dist_thresh
                     );
                 }
-                log::info!(
-                    target: "qsym2-output",
+                qsym2_output!(
                     "{:>width$} {:>12.3e} {:>12.3e} {:>14} {:>9} {:>12} {:>9}",
                     i,
                     moi_thresh,
@@ -575,9 +577,11 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
         })
         .filter_map(|res_sym| res_sym.ok())
         .collect_vec();
-        log::info!(target: "qsym2-output", "{}", "┈".repeat(count_length + 75));
-        log::info!(target: "qsym2-output", "(The number of symmetry elements is not the same as the order of the group.)");
-        log::info!(target: "qsym2-output", "");
+        qsym2_output!("{}", "┈".repeat(count_length + 75));
+        qsym2_output!(
+            "(The number of symmetry elements is not the same as the order of the group.)"
+        );
+        qsym2_output!("");
 
         let (highest_presym, highest_uni_sym, highest_mag_sym_opt) = syms
             .into_iter()
@@ -631,12 +635,13 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
             pd_res.log_output_display();
             if let Some(name) = params.result_save_name.as_ref() {
                 write_qsym2_binary(name, QSym2FileType::Sym, pd_res)?;
-                log::info!(
-                    target: "qsym2-output",
-                    "Symmetry-group detection results saved as {name}{}.",
-                    QSym2FileType::Sym.ext()
-             );
-                log::info!(target: "qsym2-output", "");
+                let mut path = name.to_path_buf();
+                path.set_extension(QSym2FileType::Sym.ext());
+                qsym2_output!(
+                    "Symmetry-group detection results saved as {}.",
+                    path.display().to_string()
+                );
+                qsym2_output!("");
             }
         }
 
@@ -697,44 +702,39 @@ fn write_element_table(f: &mut fmt::Formatter<'_>, sym: &Symmetry) -> fmt::Resul
                     "", "Symbol", "x", "y", "z"
                 )?;
                 writeln!(f, "{}", "┈".repeat(54))?;
-                kind_elements
-                    .keys()
-                    .sorted()
-                    .try_for_each(|order| {
-                        let order_elements = kind_elements.get(order).unwrap_or_else(|| {
-                            panic!("Elements/generators of order `{order}` cannot be retrieved.")
-                        });
-                        let any_element = order_elements
-                            .get_index(0)
-                            .expect("Unable to retrieve an element/generator of order `{order}`.");
-                        let kind_str = match any_element.kind() {
-                            SymmetryElementKind::Proper(_) => "",
-                            SymmetryElementKind::ImproperInversionCentre(_) => {
-                                " (inversion-centre)"
-                            }
-                            SymmetryElementKind::ImproperMirrorPlane(_) => " (mirror-plane)",
-                        };
-                        let au_str = match any_element.contains_antiunitary() {
-                            None => "",
-                            Some(AntiunitaryKind::TimeReversal) => " (time-reversed)",
-                            Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",
-                        };
-                        writeln!(f, " Order: {order}{au_str}{kind_str}")?;
-                        order_elements.iter().try_for_each(|element| {
-                            let axis = element.raw_axis();
-                            writeln!(
-                                f,
-                                "{:>7} {:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
-                                element.get_simplified_symbol(),
-                                element.get_full_symbol(),
-                                axis[0],
-                                axis[1],
-                                axis[2]
-                            )?;
-                            Ok::<(), fmt::Error>(())
-                        })?;
+                kind_elements.keys().sorted().try_for_each(|order| {
+                    let order_elements = kind_elements.get(order).unwrap_or_else(|| {
+                        panic!("Elements/generators of order `{order}` cannot be retrieved.")
+                    });
+                    let any_element = order_elements
+                        .get_index(0)
+                        .expect("Unable to retrieve an element/generator of order `{order}`.");
+                    let kind_str = match any_element.kind() {
+                        SymmetryElementKind::Proper(_) => "",
+                        SymmetryElementKind::ImproperInversionCentre(_) => " (inversion-centre)",
+                        SymmetryElementKind::ImproperMirrorPlane(_) => " (mirror-plane)",
+                    };
+                    let au_str = match any_element.contains_antiunitary() {
+                        None => "",
+                        Some(AntiunitaryKind::TimeReversal) => " (time-reversed)",
+                        Some(AntiunitaryKind::ComplexConjugation) => " (complex-conjugated)",
+                    };
+                    writeln!(f, " Order: {order}{au_str}{kind_str}")?;
+                    order_elements.iter().try_for_each(|element| {
+                        let axis = element.raw_axis();
+                        writeln!(
+                            f,
+                            "{:>7} {:>7} {:>+11.7}  {:>+11.7}  {:>+11.7}",
+                            element.get_simplified_symbol(),
+                            element.get_full_symbol(),
+                            axis[0],
+                            axis[1],
+                            axis[2]
+                        )?;
                         Ok::<(), fmt::Error>(())
                     })?;
+                    Ok::<(), fmt::Error>(())
+                })?;
                 writeln!(f, "{}", "┈".repeat(54))?;
                 writeln!(f)?;
                 Ok::<(), fmt::Error>(())

@@ -592,7 +592,8 @@ where
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
     <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
-    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>:
+        Serialize + DeserializeOwned,
 {
     /// A name for the magnetic-represented group.
     name: String,
@@ -636,7 +637,8 @@ where
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
     <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
-    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>:
+        Serialize + DeserializeOwned,
 {
     fn finite_subgroup_name(&mut self, name_opt: Option<String>) -> &mut Self {
         if name_opt.is_some() {
@@ -677,7 +679,8 @@ where
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
     <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
-    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>:
+        Serialize + DeserializeOwned,
 {
     /// Sets the finite subgroup name of this group.
     ///
@@ -702,7 +705,8 @@ where
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
     <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
     <UG as CharacterProperties>::CharTab: Serialize + DeserializeOwned,
-    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>:
+        Serialize + DeserializeOwned,
 {
     /// Returns a builder to construct a new magnetic-represented group.
     ///
@@ -746,7 +750,8 @@ where
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
     <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
-    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>:
+        Serialize + DeserializeOwned,
 {
     type GroupElement = T;
     type ElementCollection = IndexSet<T>;
@@ -795,7 +800,8 @@ where
     RowSymbol: ReducibleLinearSpaceSymbol<Subspace = UG::RowSymbol>,
     UG: Clone + GroupProperties<GroupElement = T> + CharacterProperties,
     <UG as ClassProperties>::ClassSymbol: Serialize + DeserializeOwned,
-    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>: Serialize + DeserializeOwned,
+    CorepCharacterTable<RowSymbol, <UG as CharacterProperties>::CharTab>:
+        Serialize + DeserializeOwned,
 {
     type UnitarySubgroup = UG;
 

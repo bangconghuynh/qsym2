@@ -1,6 +1,6 @@
-use std::collections::{VecDeque, HashSet};
-use std::ops::Range;
+use std::collections::{HashSet, VecDeque};
 use std::fmt;
+use std::ops::Range;
 
 use anyhow;
 use derive_builder::Builder;
@@ -14,12 +14,12 @@ use crate::chartab::chartab_group::{CharacterProperties, IrrepCharTabConstructio
 use crate::chartab::{CharacterTable, RepCharacterTable};
 use crate::group::class::ClassProperties;
 use crate::group::{GroupProperties, UnitaryRepresentedGroup};
-use crate::permutation::PermutationRank;
 use crate::permutation::permutation_symbols::{
     deduce_permutation_irrep_symbols, sort_perm_irreps, PermutationClassSymbol,
     PermutationIrrepSymbol,
 };
 use crate::permutation::Permutation;
+use crate::permutation::PermutationRank;
 
 #[cfg(test)]
 #[path = "permutation_group_tests.rs"]
@@ -102,7 +102,8 @@ impl PermutationGroup {
 /// `u64` on most modern machines.
 pub trait PermutationGroupProperties:
     ClassProperties<GroupElement = Permutation<u8>, ClassSymbol = PermutationClassSymbol<u8>>
-    + CharacterProperties + Sized
+    + CharacterProperties
+    + Sized
 {
     /// Constructs a permutation group $`Sym(n)`$ from a given rank $`n`$ (*i.e.* the number of
     /// elements in the set to be permuted).
@@ -272,17 +273,14 @@ impl GroupProperties for PermutationGroup {
     }
 
     fn is_abelian(&self) -> bool {
-        self.perms_iter
-            .clone()
-            .enumerate()
-            .all(|(i, gi)| {
-                (0..i).all(|j| {
-                    let gj = self
-                        .get_index(j)
-                        .unwrap_or_else(|| panic!("Element with index `{j}` not found."));
-                    (&gi) * (&gj) == (&gj) * (&gi)
-                })
+        self.perms_iter.clone().enumerate().all(|(i, gi)| {
+            (0..i).all(|j| {
+                let gj = self
+                    .get_index(j)
+                    .unwrap_or_else(|| panic!("Element with index `{j}` not found."));
+                (&gi) * (&gj) == (&gj) * (&gi)
             })
+        })
     }
 
     fn order(&self) -> usize {
@@ -375,9 +373,7 @@ impl ClassProperties for PermutationGroup {
                         .expect("Cycle patterns not found.")
                         .get_index_of(&cycle_pattern)
                         .unwrap_or_else(|| {
-                            panic!(
-                                "Cycle pattern {cycle_pattern:?} is not valid in this group."
-                            );
+                            panic!("Cycle pattern {cycle_pattern:?} is not valid in this group.");
                         }),
                 )
                 .expect("A class index cannot fit within a `u16`.");

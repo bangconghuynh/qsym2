@@ -14,8 +14,17 @@ symmetry_group_detection: !Parameters
   # write_symmetry_elements: false
   # result_save_name: null
 
-representation_analysis_target: !SlaterDeterminant
-  source: !Custom
+analysis_target: !SlaterDeterminant
+  source: !Binaries
+    xyz: path/to/xyz
+    sao: path/to/sao
+    coefficients: [path/to/ca, path/to/cb]
+    occupations: [path/to/occa, path/to/occb]
+    spin_constraint: !Unrestricted
+    - 2
+    - false
+    matrix_order: RowMajor
+    byte_order: LittleEndian
     bao:
     - atom: [0, "H"]
       basis_shells:

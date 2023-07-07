@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::format_err;
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
@@ -48,8 +50,8 @@ use crate::io::{read_qsym2_binary, QSym2FileType};
 #[pyfunction]
 #[pyo3(signature = (inp_loose_sym, out_tight_sym, target_moi_threshold, target_distance_threshold, use_magnetic_group, reorientate_molecule=true, max_iterations=10, verbose=0, infinite_order_to_finite=None))]
 pub fn symmetrise_molecule(
-    inp_loose_sym: String,
-    out_tight_sym: Option<String>,
+    inp_loose_sym: PathBuf,
+    out_tight_sym: Option<PathBuf>,
     target_moi_threshold: f64,
     target_distance_threshold: f64,
     use_magnetic_group: bool,
@@ -59,7 +61,7 @@ pub fn symmetrise_molecule(
     infinite_order_to_finite: Option<u32>,
 ) -> PyResult<PyMolecule> {
     let loose_pd_res: SymmetryGroupDetectionResult =
-        read_qsym2_binary(&inp_loose_sym, QSym2FileType::Sym)
+        read_qsym2_binary(inp_loose_sym, QSym2FileType::Sym)
             .map_err(|err| PyIOError::new_err(err.to_string()))?;
 
     let ms_params = MoleculeSymmetrisationParams::builder()

@@ -4,7 +4,9 @@ use num_complex::Complex;
 
 use crate::analysis::RepAnalysis;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder};
+use crate::aux::ao_basis::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+};
 use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::geometry::Transform;
 use crate::aux::molecule::Molecule;
@@ -207,16 +209,15 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
             .unwrap()
     );
 
-    let orbit_cg_u_oh_double_spin_spatial_d3_orbs =
-        MolecularOrbitalSymmetryOrbit::from_orbitals(
-            &group_u_oh_double,
-            &orbs_d3_cg,
-            SymmetryTransformationKind::SpinSpatial,
-            1e-13,
-            1e-13,
-        )
-        .into_iter()
-        .flatten();
+    let orbit_cg_u_oh_double_spin_spatial_d3_orbs = MolecularOrbitalSymmetryOrbit::from_orbitals(
+        &group_u_oh_double,
+        &orbs_d3_cg,
+        SymmetryTransformationKind::SpinSpatial,
+        1e-13,
+        1e-13,
+    )
+    .into_iter()
+    .flatten();
     let orbs_d3_cg_spin_spatial_ref = vec![
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(2g)| ⊕ ||G~|_(g)|").unwrap(),
         DecomposedSymbol::<MullikenIrrepSymbol>::new("||E~|_(1g)| ⊕ ||G~|_(g)|").unwrap(),

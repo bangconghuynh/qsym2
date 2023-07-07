@@ -1,8 +1,7 @@
-use log;
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, ensure, format_err};
+use anyhow::{self, ensure, format_err, Context};
 use approx;
 use derive_builder::Builder;
 use itertools::{izip, Itertools};
@@ -315,21 +314,18 @@ where
             self.origin,
             match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => |op, orb| {
-                    orb.sym_transform_spatial(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spatially on the origin orbital.")
+                    orb.sym_transform_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially on the origin orbital")
                     })
                 },
                 SymmetryTransformationKind::Spin => |op, orb| {
-                    orb.sym_transform_spin(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spin-wise on the origin orbital.")
+                    orb.sym_transform_spin(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-wise on the origin orbital")
                     })
                 },
                 SymmetryTransformationKind::SpinSpatial => |op, orb| {
-                    orb.sym_transform_spin_spatial(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spin-spatially on the origin orbital.",)
+                    orb.sym_transform_spin_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-spatially on the origin orbital",)
                     })
                 },
             },
@@ -520,11 +516,20 @@ where
     let thresh = det.threshold();
     let indexed_dets = det_orbit
         .iter()
+        .map(|det_res| det_res.map_err(|err| err.to_string()))
         .enumerate()
         .collect::<Vec<_>>();
     for det_pair in indexed_dets.iter().product_repeat(2) {
-        let (w, det_w) = &det_pair[0];
-        let (x, det_x) = &det_pair[1];
+        let (w, det_w_res) = &det_pair[0];
+        let (x, det_x_res) = &det_pair[1];
+        let det_w = det_w_res
+            .as_ref()
+            .map_err(|err| format_err!(err.to_owned()))
+            .with_context(|| "One of the determinants in the orbit is not available")?;
+        let det_x = det_x_res
+            .as_ref()
+            .map_err(|err| format_err!(err.to_owned()))
+            .with_context(|| "One of the determinants in the orbit is not available")?;
 
         let wx_ov = izip!(
             det_w.coefficients(),

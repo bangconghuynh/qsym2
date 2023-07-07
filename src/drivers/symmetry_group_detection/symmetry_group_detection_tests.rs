@@ -21,7 +21,7 @@ fn test_drivers_symmetry_group_detection_vf6() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(path.clone()))
+        .xyz(Some(path.clone().into()))
         .build()
         .unwrap();
     pd_driver.run().unwrap();
@@ -50,7 +50,7 @@ fn test_drivers_symmetry_group_detection_vf6() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(path))
+        .xyz(Some(path.into()))
         .build()
         .unwrap();
     pd_driver.run().unwrap();
@@ -82,7 +82,7 @@ fn test_drivers_symmetry_group_detection_c2h2() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(path.clone()))
+        .xyz(Some(path.clone().into()))
         .build()
         .unwrap();
     pd_driver.run().unwrap();
@@ -111,7 +111,7 @@ fn test_drivers_symmetry_group_detection_c2h2() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(path.clone()))
+        .xyz(Some(path.clone().into()))
         .build()
         .unwrap();
     pd_driver.run().unwrap();
@@ -142,7 +142,7 @@ fn test_drivers_symmetry_group_detection_c2h2() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(path.clone()))
+        .xyz(Some(path.clone().into()))
         .build()
         .unwrap();
     pd_driver.run().unwrap();
@@ -173,7 +173,7 @@ fn test_drivers_symmetry_group_detection_c2h2() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(path))
+        .xyz(Some(path.into()))
         .build()
         .unwrap();
     pd_driver.run().unwrap();
@@ -223,7 +223,7 @@ fn test_drivers_symmetry_group_detection_xef4() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(path))
+        .xyz(Some(path.into()))
         .build()
         .unwrap();
     pd_driver.run().unwrap();

@@ -10,7 +10,7 @@ use indexmap::IndexSet;
 use log;
 use num::{integer::lcm, Integer, Unsigned};
 use num_traits::{Inv, Pow, PrimInt};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::group::FiniteOrder;
 
@@ -239,7 +239,6 @@ impl<T: PermutationRank> Permutation<T> {
 
     /// The rank of the permutation.
     pub fn rank(&self) -> T {
-        
         T::try_from(self.image.len()).unwrap_or_else(|_| {
             panic!(
                 "The rank of `{:?}` is too large to be represented as `u8`.",

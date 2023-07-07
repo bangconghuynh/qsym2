@@ -137,6 +137,21 @@ impl Atom {
         Some(atom)
     }
 
+    /// Writes the atom to an XYZ line.
+    #[must_use]
+    pub(crate) fn to_xyz(&self) -> String {
+        let precision = self.precision();
+        let length = (precision + precision.div_euclid(2)).max(6);
+        if let AtomKind::Ordinary = self.kind {
+            format!(
+                "{:<3} {:+length$.precision$} {:+length$.precision$} {:+length$.precision$}",
+                self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2],
+            )
+        } else {
+            String::new()
+        }
+    }
+
     /// Creates an ordinary atom.
     ///
     /// # Arguments
@@ -197,18 +212,21 @@ impl Atom {
             AtomKind::Ordinary => None,
         }
     }
+
+    /// Computes the precision for printing out atom coordinates in a manner compatible with the
+    /// comparison threshold of the atom.
+    ///
+    /// # Returns
+    ///
+    /// The print-out precision.
+    fn precision(&self) -> usize {
+        self.threshold.log10().abs().round().to_usize().unwrap_or(7) + 1
+    }
 }
 
 impl fmt::Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let precision = self
-            .threshold
-            .log10()
-            .abs()
-            .round()
-            .to_usize()
-            .ok_or(fmt::Error)?
-            + 1;
+        let precision = self.precision();
         let length = (precision + precision.div_euclid(2)).max(6);
         if let AtomKind::Ordinary = self.kind {
             write!(
@@ -224,10 +242,7 @@ impl fmt::Display for Atom {
             write!(
                 f,
                 "{:>13} {:+length$.precision$} {:+length$.precision$} {:+length$.precision$}",
-                self.kind,
-                self.coordinates[0],
-                self.coordinates[1],
-                self.coordinates[2],
+                self.kind, self.coordinates[0], self.coordinates[1], self.coordinates[2],
             )
         }
     }
@@ -402,10 +417,10 @@ impl PartialEq for Atom {
                 self.coordinates[2].round_factor(self.threshold),
                 other.coordinates[2].round_factor(other.threshold),
             );
-        if result {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
-        }
-        result
+        // if result {
+        //     assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+        // }
+        result && (misc::calculate_hash(self) == misc::calculate_hash(other))
     }
 }
 

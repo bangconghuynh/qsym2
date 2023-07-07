@@ -148,7 +148,7 @@ impl InputBasisAtom {
             .ok_or(format_err!("Atom index {atm_i} not found."))?;
         ensure!(
             atom.atomic_symbol == *atm_s,
-            "Mismatched element names: {} != {atm_s}.",
+            "Mismatched element names: {} (expected) != {atm_s} (specified).",
             atom.atomic_symbol
         );
         let bss = self
@@ -204,7 +204,7 @@ impl InputBasisAngularOrder {
     ) -> Result<BasisAngularOrder<'a>, anyhow::Error> {
         ensure!(
             mol.atoms.len() == self.0.len(),
-            "Mismatched numbers of atoms: {} != {}.",
+            "Mismatched numbers of atoms: {} (expected) != {} (specified).",
             mol.atoms.len(),
             self.0.len()
         );

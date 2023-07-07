@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::{self, bail, ensure, format_err};
 use log;
 use ndarray::{Array1, Array2};
@@ -16,7 +18,9 @@ use crate::drivers::representation_analysis::angular_function::AngularFunctionRe
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::CharacterTableDisplay;
+use crate::drivers::representation_analysis::{
+    CharacterTableDisplay, MagneticSymmetryAnalysisKind,
+};
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::io::{read_qsym2_binary, QSym2FileType};
@@ -581,17 +585,16 @@ pub enum PySAO<'a> {
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
 /// angular function symmetry analysis. Python type: `int`.
 #[pyfunction]
-#[pyo3(signature = (inp_sym, pydet, pybao, sao_spatial, integrality_threshold, linear_independence_threshold, use_magnetic_group, use_double_group, use_corepresentation, symmetry_transformation_kind, analyse_mo_symmetries=true, write_overlap_eigenvalues=true, write_character_table=true, infinite_order_to_finite=None, angular_function_integrality_threshold=1e-7, angular_function_linear_independence_threshold=1e-7, angular_function_max_angular_momentum=2))]
+#[pyo3(signature = (inp_sym, pydet, pybao, sao_spatial, integrality_threshold, linear_independence_threshold, use_magnetic_group, use_double_group, symmetry_transformation_kind, analyse_mo_symmetries=true, write_overlap_eigenvalues=true, write_character_table=true, infinite_order_to_finite=None, angular_function_integrality_threshold=1e-7, angular_function_linear_independence_threshold=1e-7, angular_function_max_angular_momentum=2))]
 pub fn rep_analyse_slater_determinant(
-    inp_sym: String,
+    inp_sym: PathBuf,
     pydet: PySlaterDeterminant,
     pybao: &PyBasisAngularOrder,
     sao_spatial: PySAO,
     integrality_threshold: f64,
     linear_independence_threshold: f64,
-    use_magnetic_group: bool,
+    use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
     use_double_group: bool,
-    use_corepresentation: bool,
     symmetry_transformation_kind: SymmetryTransformationKind,
     analyse_mo_symmetries: bool,
     write_overlap_eigenvalues: bool,
@@ -601,7 +604,7 @@ pub fn rep_analyse_slater_determinant(
     angular_function_linear_independence_threshold: f64,
     angular_function_max_angular_momentum: u32,
 ) -> PyResult<()> {
-    let pd_res: SymmetryGroupDetectionResult = read_qsym2_binary(&inp_sym, QSym2FileType::Sym)
+    let pd_res: SymmetryGroupDetectionResult = read_qsym2_binary(inp_sym, QSym2FileType::Sym)
         .map_err(|err| PyIOError::new_err(err.to_string()))?;
     let mol = &pd_res.pre_symmetry.recentred_molecule;
     let bao = pybao
@@ -633,7 +636,7 @@ pub fn rep_analyse_slater_determinant(
             let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
                 .integrality_threshold(integrality_threshold)
                 .linear_independence_threshold(linear_independence_threshold)
-                .use_magnetic_group(use_magnetic_group)
+                .use_magnetic_group(use_magnetic_group.clone())
                 .use_double_group(use_double_group)
                 .symmetry_transformation_kind(symmetry_transformation_kind)
                 .analyse_mo_symmetries(analyse_mo_symmetries)
@@ -646,36 +649,39 @@ pub fn rep_analyse_slater_determinant(
                 .infinite_order_to_finite(infinite_order_to_finite)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-            if use_magnetic_group && use_corepresentation {
-                let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
-                    MagneticRepresentedSymmetryGroup,
-                    f64,
-                >::builder()
-                .parameters(&sda_params)
-                .angular_function_parameters(&afa_params)
-                .determinant(&det_r)
-                .sao_spatial(&sao_spatial)
-                .symmetry_group(&pd_res)
-                .build()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                sda_driver
-                    .run()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-            } else {
-                let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
-                    UnitaryRepresentedSymmetryGroup,
-                    f64,
-                >::builder()
-                .parameters(&sda_params)
-                .angular_function_parameters(&afa_params)
-                .determinant(&det_r)
-                .sao_spatial(&sao_spatial)
-                .symmetry_group(&pd_res)
-                .build()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                sda_driver
-                    .run()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+            match &use_magnetic_group {
+                Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
+                    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+                        MagneticRepresentedSymmetryGroup,
+                        f64,
+                    >::builder()
+                    .parameters(&sda_params)
+                    .angular_function_parameters(&afa_params)
+                    .determinant(&det_r)
+                    .sao_spatial(&sao_spatial)
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    sda_driver
+                        .run()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                }
+                Some(MagneticSymmetryAnalysisKind::Representation) | None => {
+                    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+                        UnitaryRepresentedSymmetryGroup,
+                        f64,
+                    >::builder()
+                    .parameters(&sda_params)
+                    .angular_function_parameters(&afa_params)
+                    .determinant(&det_r)
+                    .sao_spatial(&sao_spatial)
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    sda_driver
+                        .run()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                }
             };
         }
         (PySlaterDeterminant::Real(pydet_r), PySAO::Complex(pysao_c)) => {
@@ -694,7 +700,7 @@ pub fn rep_analyse_slater_determinant(
             let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
                 .integrality_threshold(integrality_threshold)
                 .linear_independence_threshold(linear_independence_threshold)
-                .use_magnetic_group(use_magnetic_group)
+                .use_magnetic_group(use_magnetic_group.clone())
                 .use_double_group(use_double_group)
                 .symmetry_transformation_kind(symmetry_transformation_kind)
                 .analyse_mo_symmetries(analyse_mo_symmetries)
@@ -707,36 +713,39 @@ pub fn rep_analyse_slater_determinant(
                 .infinite_order_to_finite(infinite_order_to_finite)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-            if use_magnetic_group && use_corepresentation {
-                let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
-                    MagneticRepresentedSymmetryGroup,
-                    C128,
-                >::builder()
-                .parameters(&sda_params)
-                .angular_function_parameters(&afa_params)
-                .determinant(&det_c)
-                .sao_spatial(&sao_spatial_c)
-                .symmetry_group(&pd_res)
-                .build()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                sda_driver
-                    .run()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-            } else {
-                let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
-                    UnitaryRepresentedSymmetryGroup,
-                    C128,
-                >::builder()
-                .parameters(&sda_params)
-                .angular_function_parameters(&afa_params)
-                .determinant(&det_c)
-                .sao_spatial(&sao_spatial_c)
-                .symmetry_group(&pd_res)
-                .build()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                sda_driver
-                    .run()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+            match &use_magnetic_group {
+                Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
+                    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+                        MagneticRepresentedSymmetryGroup,
+                        C128,
+                    >::builder()
+                    .parameters(&sda_params)
+                    .angular_function_parameters(&afa_params)
+                    .determinant(&det_c)
+                    .sao_spatial(&sao_spatial_c)
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    sda_driver
+                        .run()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                }
+                Some(MagneticSymmetryAnalysisKind::Representation) | None => {
+                    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+                        UnitaryRepresentedSymmetryGroup,
+                        C128,
+                    >::builder()
+                    .parameters(&sda_params)
+                    .angular_function_parameters(&afa_params)
+                    .determinant(&det_c)
+                    .sao_spatial(&sao_spatial_c)
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    sda_driver
+                        .run()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                }
             };
         }
         (PySlaterDeterminant::Complex(pydet_c), _) => {
@@ -757,7 +766,7 @@ pub fn rep_analyse_slater_determinant(
             let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
                 .integrality_threshold(integrality_threshold)
                 .linear_independence_threshold(linear_independence_threshold)
-                .use_magnetic_group(use_magnetic_group)
+                .use_magnetic_group(use_magnetic_group.clone())
                 .use_double_group(use_double_group)
                 .symmetry_transformation_kind(symmetry_transformation_kind)
                 .analyse_mo_symmetries(analyse_mo_symmetries)
@@ -770,36 +779,39 @@ pub fn rep_analyse_slater_determinant(
                 .infinite_order_to_finite(infinite_order_to_finite)
                 .build()
                 .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-            if use_magnetic_group && use_corepresentation {
-                let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
-                    MagneticRepresentedSymmetryGroup,
-                    C128,
-                >::builder()
-                .parameters(&sda_params)
-                .angular_function_parameters(&afa_params)
-                .determinant(&det_c)
-                .sao_spatial(&sao_spatial_c)
-                .symmetry_group(&pd_res)
-                .build()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                sda_driver
-                    .run()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-            } else {
-                let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
-                    UnitaryRepresentedSymmetryGroup,
-                    C128,
-                >::builder()
-                .parameters(&sda_params)
-                .angular_function_parameters(&afa_params)
-                .determinant(&det_c)
-                .sao_spatial(&sao_spatial_c)
-                .symmetry_group(&pd_res)
-                .build()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                sda_driver
-                    .run()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+            match &use_magnetic_group {
+                Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
+                    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+                        MagneticRepresentedSymmetryGroup,
+                        C128,
+                    >::builder()
+                    .parameters(&sda_params)
+                    .angular_function_parameters(&afa_params)
+                    .determinant(&det_c)
+                    .sao_spatial(&sao_spatial_c)
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    sda_driver
+                        .run()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                }
+                Some(MagneticSymmetryAnalysisKind::Representation) | None => {
+                    let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
+                        UnitaryRepresentedSymmetryGroup,
+                        C128,
+                    >::builder()
+                    .parameters(&sda_params)
+                    .angular_function_parameters(&afa_params)
+                    .determinant(&det_c)
+                    .sao_spatial(&sao_spatial_c)
+                    .symmetry_group(&pd_res)
+                    .build()
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                    sda_driver
+                        .run()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                }
             };
         }
     }

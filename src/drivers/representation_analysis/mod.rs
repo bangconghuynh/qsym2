@@ -1,13 +1,14 @@
 use std::fmt;
 
+use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::aux::ao_basis::BasisAngularOrder;
-use crate::aux::format::{log_subtitle, QSym2Output};
 use crate::group::class::ClassPropertiesSummary;
+use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
 
-pub mod slater_determinant;
 pub mod angular_function;
+pub mod slater_determinant;
 
 /// An enumerated type indicating the format of character table print-out.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -16,7 +17,7 @@ pub enum CharacterTableDisplay {
     Symbolic,
 
     /// Prints the character table numerically where each character is a complex number.
-    Numerical
+    Numerical,
 }
 
 impl fmt::Display for CharacterTableDisplay {
@@ -28,6 +29,31 @@ impl fmt::Display for CharacterTableDisplay {
     }
 }
 
+/// An enumerated type indicating the type of magnetic symmetry to be used for representation
+/// analysis.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[pyclass]
+pub enum MagneticSymmetryAnalysisKind {
+    /// Variant indicating that unitary representations should be used for magnetic symmetry
+    /// analysis.
+    Representation,
+
+    /// Variant indicating that magnetic corepresentations should be used for magnetic symmetry
+    /// analysis.
+    Corepresentation,
+}
+
+impl fmt::Display for MagneticSymmetryAnalysisKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            MagneticSymmetryAnalysisKind::Representation => write!(f, "Unitary representations"),
+            MagneticSymmetryAnalysisKind::Corepresentation => {
+                write!(f, "Magnetic corepresentations")
+            }
+        }
+    }
+}
+
 /// Logs basis angular order information nicely.
 ///
 /// # Arguments
@@ -35,12 +61,12 @@ impl fmt::Display for CharacterTableDisplay {
 /// * `bao` - The basis angular order information structure.
 fn log_bao(bao: &BasisAngularOrder) {
     log_subtitle("Basis angular order");
-    log::info!(target: "qsym2-output", "");
+    qsym2_output!("");
     "The basis angular order information dictates how basis functions in each basis shell are transformed.\n\
     It is important to check that this is consistent with the basis set being used, otherwise incorrect\n\
     symmetry results will be obtained.".log_output_display();
     bao.log_output_display();
-    log::info!(target: "qsym2-output", "");
+    qsym2_output!("");
 }
 
 /// Logs a conjugacy class transversal of a group nicely.
@@ -51,11 +77,10 @@ fn log_bao(bao: &BasisAngularOrder) {
 fn log_cc_transversal<G>(group: &G)
 where
     G: ClassPropertiesSummary,
-    G::GroupElement: fmt::Display
+    G::GroupElement: fmt::Display,
 {
     log_subtitle("Conjugacy class transversal");
-    log::info!(target: "qsym2-output", "");
+    qsym2_output!("");
     group.class_transversal_to_string().log_output_display();
-    log::info!(target: "qsym2-output", "");
-
+    qsym2_output!("");
 }

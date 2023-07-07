@@ -29,6 +29,19 @@ check:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
+unit_tests:
+  stage: Unit Tests
+  tags:
+    - archon
+  before_script:
+    - apt-get update
+    - apt-get install gfortran build-essential cmake -y
+  script:
+    - cargo test -r --features standard -- --include-ignored
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
 tarpaulin:
   stage: Unit Tests
   tags:
@@ -85,7 +98,7 @@ release:
     - echo "Running `release` job for $TAG..."
   release:
     name: "Release $TAG"
-    description: "Release $TAG created using the `release-cli` provided by GitLab."
+    description: "Release $TAG created using the release-cli provided by GitLab."
     ref: "$CI_COMMIT_SHA"
     tag_name: "$TAG"
     assets:
