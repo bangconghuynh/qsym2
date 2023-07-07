@@ -140,22 +140,12 @@ impl Atom {
     /// Writes the atom to an XYZ line.
     #[must_use]
     pub(crate) fn to_xyz(&self) -> String {
-        let precision = self
-            .threshold
-            .log10()
-            .abs()
-            .round()
-            .to_usize()
-            .unwrap_or(7)
-            + 1;
+        let precision = self.precision();
         let length = (precision + precision.div_euclid(2)).max(6);
         if let AtomKind::Ordinary = self.kind {
             format!(
                 "{:<3} {:+length$.precision$} {:+length$.precision$} {:+length$.precision$}",
-                self.atomic_symbol,
-                self.coordinates[0],
-                self.coordinates[1],
-                self.coordinates[2],
+                self.atomic_symbol, self.coordinates[0], self.coordinates[1], self.coordinates[2],
             )
         } else {
             String::new()
@@ -222,18 +212,21 @@ impl Atom {
             AtomKind::Ordinary => None,
         }
     }
+
+    /// Computes the precision for printing out atom coordinates in a manner compatible with the
+    /// comparison threshold of the atom.
+    ///
+    /// # Returns
+    ///
+    /// The print-out precision.
+    fn precision(&self) -> usize {
+        self.threshold.log10().abs().round().to_usize().unwrap_or(7) + 1
+    }
 }
 
 impl fmt::Display for Atom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let precision = self
-            .threshold
-            .log10()
-            .abs()
-            .round()
-            .to_usize()
-            .ok_or(fmt::Error)?
-            + 1;
+        let precision = self.precision();
         let length = (precision + precision.div_euclid(2)).max(6);
         if let AtomKind::Ordinary = self.kind {
             write!(
