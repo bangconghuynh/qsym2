@@ -1,8 +1,7 @@
-use log;
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, ensure, format_err};
+use anyhow::{self, ensure, format_err, Context};
 use approx;
 use derive_builder::Builder;
 use itertools::{izip, Itertools};
@@ -24,7 +23,6 @@ use crate::aux::misc::{complex_modified_gram_schmidt, ProductRepeat};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;
-use crate::io::format::qsym2_error;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
@@ -316,27 +314,19 @@ where
             self.origin,
             match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => |op, orb| {
-                    let torb = orb.sym_transform_spatial(op).ok();
-                    if torb.is_none() {
-                        qsym2_error!("Unable to apply `{op}` spatially on the origin orbital.");
-                    }
-                    torb
+                    orb.sym_transform_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spatially on the origin orbital")
+                    })
                 },
                 SymmetryTransformationKind::Spin => |op, orb| {
-                    let sorb = orb.sym_transform_spin(op).ok();
-                    if sorb.is_none() {
-                        qsym2_error!("Unable to apply `{op}` spin-wise on the origin orbital.");
-                    }
-                    sorb
+                    orb.sym_transform_spin(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-wise on the origin orbital")
+                    })
                 },
                 SymmetryTransformationKind::SpinSpatial => |op, orb| {
-                    let tsorb = orb.sym_transform_spin_spatial(op).ok();
-                    if tsorb.is_none() {
-                        qsym2_error!(
-                            "Unable to apply `{op}` spin-spatially on the origin orbital.",
-                        );
-                    }
-                    tsorb
+                    orb.sym_transform_spin_spatial(op).with_context(|| {
+                        format!("Unable to apply `{op}` spin-spatially on the origin orbital",)
+                    })
                 },
             },
         )
@@ -524,16 +514,22 @@ where
         .collect::<Vec<_>>();
 
     let thresh = det.threshold();
-    let indexed_dets = det_orbit.iter().enumerate().collect::<Vec<_>>();
+    let indexed_dets = det_orbit
+        .iter()
+        .map(|det_res| det_res.map_err(|err| err.to_string()))
+        .enumerate()
+        .collect::<Vec<_>>();
     for det_pair in indexed_dets.iter().product_repeat(2) {
-        let (w, det_w_opt) = &det_pair[0];
-        let (x, det_x_opt) = &det_pair[1];
-        let det_w = det_w_opt.as_ref().ok_or(format_err!(
-            "One of the determinants in the orbit is not available."
-        ))?;
-        let det_x = det_x_opt.as_ref().ok_or(format_err!(
-            "One of the determinants in the orbit is not available."
-        ))?;
+        let (w, det_w_res) = &det_pair[0];
+        let (x, det_x_res) = &det_pair[1];
+        let det_w = det_w_res
+            .as_ref()
+            .map_err(|err| format_err!(err.to_owned()))
+            .with_context(|| "One of the determinants in the orbit is not available")?;
+        let det_x = det_x_res
+            .as_ref()
+            .map_err(|err| format_err!(err.to_owned()))
+            .with_context(|| "One of the determinants in the orbit is not available")?;
 
         let wx_ov = izip!(
             det_w.coefficients(),

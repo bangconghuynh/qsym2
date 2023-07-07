@@ -268,7 +268,7 @@ impl<'a> QChemH5Driver<'a, f64> {
             .zip(result.iter())
             .for_each(|((path, index), (group, sym))| {
                 qsym2_output!(
-                    " {:<path_length$}  {:<energy_function_length$}  {:<group_length$}  {:<}",
+                    " {:<path_length$}  {:<energy_function_length$}  {:<group_length$}  {:<#}",
                     path,
                     index,
                     group,

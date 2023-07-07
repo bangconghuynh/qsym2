@@ -1,8 +1,7 @@
-use log;
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, ensure};
+use anyhow::{self, ensure, format_err, Context};
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
@@ -20,7 +19,6 @@ use num_traits::{Float, Zero};
 use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis};
 use crate::aux::misc::complex_modified_gram_schmidt;
 use crate::chartab::SubspaceDecomposable;
-use crate::io::format::qsym2_error;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
@@ -264,31 +262,25 @@ where
             self.origin,
             match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => |op, orb| {
-                    let torb = orb.sym_transform_spatial(op).ok();
-                    if torb.is_none() {
-                        qsym2_error!(
-                            "Unable to apply `{op}` spatially on the origin vibrational coordinate."
-                        );
-                    }
-                    torb
+                    orb.sym_transform_spatial(op).with_context(|| {
+                        format_err!(
+                            "Unable to apply `{op}` spatially on the origin vibrational coordinate"
+                        )
+                    })
                 },
                 SymmetryTransformationKind::Spin => |op, orb| {
-                    let sorb = orb.sym_transform_spin(op).ok();
-                    if sorb.is_none() {
-                        qsym2_error!(
-                            "Unable to apply `{op}` spin-wise on the origin vibrational coordinate."
-                        );
-                    }
-                    sorb
+                    orb.sym_transform_spin(op).with_context(|| {
+                        format_err!(
+                            "Unable to apply `{op}` spin-wise on the origin vibrational coordinate"
+                        )
+                    })
                 },
                 SymmetryTransformationKind::SpinSpatial => |op, orb| {
-                    let tsorb = orb.sym_transform_spin_spatial(op).ok();
-                    if tsorb.is_none() {
-                        qsym2_error!(
-                            "Unable to apply `{op}` spin-spatially on the origin vibrational coordinate."
-                        );
-                    }
-                    tsorb
+                    orb.sym_transform_spin_spatial(op).with_context(|| {
+                        format_err!(
+                            "Unable to apply `{op}` spin-spatially on the origin vibrational coordinate"
+                        )
+                    })
                 },
             },
         )
