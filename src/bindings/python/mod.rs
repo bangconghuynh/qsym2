@@ -24,6 +24,8 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         m
     )?)?;
     m.add_class::<symmetry_group_detection::PyMolecule>()?;
+    m.add_class::<symmetry_group_detection::PySymmetry>()?;
+    m.add_class::<symmetry_group_detection::PySymmetryElementKind>()?;
     m.add_class::<representation_analysis::PyBasisAngularOrder>()?;
     m.add_class::<representation_analysis::PySpinConstraint>()?;
     m.add_class::<representation_analysis::PySlaterDeterminantReal>()?;

@@ -39,14 +39,14 @@ pub enum PyShellOrder {
     /// Variant for pure shell order. The associated boolean indicates if the functions are
     /// arranged in increasing-$`m`$ order.
     ///
-    /// Python type: `bool`
+    /// Python type: `bool`.
     PureOrder(bool),
 
     /// Variant for Cartesian shell order. If the associated `Option` is `None`, the order will be
     /// taken to be lexicographic. Otherwise, the order will be as specified by the $`(x, y, z)`$
     /// exponent tuples.
     ///
-    /// Python type: Optional[list[tuple[int, int, int]]]
+    /// Python type: Optional[list[tuple[int, int, int]]].
     CartOrder(Option<Vec<(u32, u32, u32)>>),
 }
 
@@ -83,7 +83,7 @@ pub struct PyBasisAngularOrder {
     /// - if the shell is pure, then this is a boolean `increasingm` to indicate if the pure
     /// functions in the shell are arranged in increasing-$`m`$ order.
     ///
-    /// Python type: `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`
+    /// Python type: `list[tuple[str, list[tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]]]]`.
     basis_atoms: Vec<(String, Vec<(String, bool, PyShellOrder)>)>,
 }
 
@@ -243,37 +243,37 @@ impl From<PySpinConstraint> for SpinConstraint {
 pub struct PySlaterDeterminantReal {
     /// The spin constraint applied to the coefficients of the determinant.
     ///
-    /// Python type: `PySpinConstraint`
+    /// Python type: `PySpinConstraint`.
     spin_constraint: PySpinConstraint,
 
     /// A boolean indicating if inner products involving this determinant are complex-symmetric.
     ///
-    /// Python type: `bool`
+    /// Python type: `bool`.
     complex_symmetric: bool,
 
     /// The real coefficien`bool`ts for the molecular orbitals of this determinant.
     ///
-    /// Python type: `list[numpy.2darray[float]]`
+    /// Python type: `list[numpy.2darray[float]]`.
     coefficients: Vec<Array2<f64>>,
 
     /// The occupation patterns for the molecular orbitals.
     ///
-    /// Python type: `list[numpy.1darray[float]]`
+    /// Python type: `list[numpy.1darray[float]]`.
     occupations: Vec<Array1<f64>>,
 
     /// The threshold for comparisons.
     ///
-    /// Python type: `float`
+    /// Python type: `float`.
     threshold: f64,
 
     /// The optional real molecular orbital energies.
     ///
-    /// Python type: `Optional[list[numpy.1darray[float]]]`
+    /// Python type: `Optional[list[numpy.1darray[float]]]`.
     mo_energies: Option<Vec<Array1<f64>>>,
 
     /// The optional real determinantal energy.
     ///
-    /// Python type: `Optional[float]`
+    /// Python type: `Optional[float]`.
     energy: Option<f64>,
 }
 
@@ -392,37 +392,37 @@ impl PySlaterDeterminantReal {
 pub struct PySlaterDeterminantComplex {
     /// The spin constraint applied to the coefficients of the determinant.
     ///
-    /// Python type: `PySpinConstraint`
+    /// Python type: `PySpinConstraint`.
     spin_constraint: PySpinConstraint,
 
     /// A boolean indicating if inner products involving this determinant are complex-symmetric.
     ///
-    /// Python type: `bool`
+    /// Python type: `bool`.
     complex_symmetric: bool,
 
     /// The complex coefficients for the molecular orbitals of this determinant.
     ///
-    /// Python type: `list[numpy.2darray[complex]]`
+    /// Python type: `list[numpy.2darray[complex]]`.
     coefficients: Vec<Array2<C128>>,
 
     /// The occupation patterns for the molecular orbitals.
     ///
-    /// Python type: `list[numpy.1darray[float]]`
+    /// Python type: `list[numpy.1darray[float]]`.
     occupations: Vec<Array1<f64>>,
 
     /// The threshold for comparisons.
     ///
-    /// Python type: `float`
+    /// Python type: `float`.
     threshold: f64,
 
     /// The optional complex molecular orbital energies.
     ///
-    /// Python type: `Optional[list[numpy.1darray[complex]]]`
+    /// Python type: `Optional[list[numpy.1darray[complex]]]`.
     mo_energies: Option<Vec<Array1<C128>>>,
 
     /// The optional complex determinantal energy.
     ///
-    /// Python type: `Optional[complex]`
+    /// Python type: `Optional[complex]`.
     energy: Option<C128>,
 }
 
