@@ -79,6 +79,12 @@ pub struct MoleculeSymmetrisationParams {
     #[serde(default)]
     pub verbose: u8,
 
+    /// Optional name (without the `.xyz` extension) for writing the symmetrised molecule to an XYZ
+    /// file. If `None`, no XYZ files will be written.
+    #[builder(default = "None")]
+    #[serde(default)]
+    pub symmetrised_result_xyz: Option<PathBuf>,
+
     /// Optional name for saving the symmetry-group detection result of the symmetrised system as a
     /// binary file of type [`QSym2FileType::Sym`]. If `None`, the result will not be saved.
     #[builder(default = "None")]
@@ -128,6 +134,17 @@ impl fmt::Display for MoleculeSymmetrisationParams {
             self.max_iterations
         )?;
         writeln!(f, "Output level: {}", self.verbose)?;
+        writeln!(
+            f,
+            "Save symmetrised molecule to XYZ file: {}",
+            if let Some(name) = self.symmetrised_result_xyz.as_ref() {
+                let mut path = name.clone();
+                path.set_extension("xyz");
+                path.display().to_string()
+            } else {
+                nice_bool(false)
+            }
+        )?;
         writeln!(
             f,
             "Save symmetry-group detection results of symmetrised system to file: {}",
@@ -617,6 +634,14 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             );
             qsym2_output!("Verifying symmetrisation results... Done.");
             qsym2_output!("");
+
+            if let Some(xyz_name) = params.symmetrised_result_xyz.as_ref() {
+                let mut path = xyz_name.clone();
+                path.set_extension("xyz");
+                verifying_pd_res.pre_symmetry.recentred_molecule.to_xyz(&path)?;
+                qsym2_output!("Symmetrised molecule written to: {}", path.display());
+                qsym2_output!("");
+            }
 
             Ok(())
         } else {
