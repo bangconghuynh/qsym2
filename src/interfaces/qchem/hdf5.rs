@@ -155,7 +155,7 @@ impl<'a> QChemH5Driver<'a, f64> {
                                 f64,
                             >::builder()
                             .sp_group(&sp)
-                            .energy_function_index(energy_function_index.clone())
+                            .energy_function_index(energy_function_index)
                             .symmetry_group_detection_input(pd_input)
                             .angular_function_analysis_parameters(afa_params)
                             .slater_det_rep_analysis_parameters(sda_params)
@@ -179,7 +179,7 @@ impl<'a> QChemH5Driver<'a, f64> {
                                 f64,
                             >::builder()
                             .sp_group(&sp)
-                            .energy_function_index(energy_function_index.clone())
+                            .energy_function_index(energy_function_index)
                             .symmetry_group_detection_input(pd_input)
                             .angular_function_analysis_parameters(afa_params)
                             .slater_det_rep_analysis_parameters(sda_params)
@@ -319,6 +319,9 @@ where
     /// A H5 group containing data from a single-point calculation.
     sp_group: &'a hdf5::Group,
 
+    /// The index of the energy function whose results are to be considered for this single-point
+    /// symmetry analysis.
+    #[builder(setter(custom))]
     energy_function_index: String,
 
     /// The parameters controlling symmetry-group detection.
@@ -342,6 +345,19 @@ where
 // ~~~~~~~~~~~~~~~~~~~~~~
 // Struct implementations
 // ~~~~~~~~~~~~~~~~~~~~~~
+
+impl<'a, G, T> QChemH5SinglePointDriverBuilder<'a, G, T>
+where
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: ComplexFloat + Lapack,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+{
+    fn energy_function_index(&mut self, idx: &str) -> &mut Self {
+        self.energy_function_index = Some(idx.to_string());
+        self
+    }
+}
 
 // Generic for all symmetry groups G and determinant numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''

@@ -13,7 +13,6 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_interfaces_binaries_bf3() {
-    let name = format!("{ROOT}/tests/qchem/vf63m.qarchive.h5");
     let pd_params = SymmetryGroupDetectionParams::default();
     let pd_params_inp = SymmetryGroupDetectionInputKind::Parameters(pd_params);
     let afa_params = AngularFunctionRepAnalysisParams::default();

@@ -26,6 +26,7 @@ fn test_interfaces_qchem_hdf5_sp_vf63m_ms1() {
     let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::default();
     let mut qchem_sp = QChemH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
         .sp_group(&sp)
+        .energy_function_index("1")
         .symmetry_group_detection_input(&pd_params_inp)
         .angular_function_analysis_parameters(&afa_params)
         .slater_det_rep_analysis_parameters(&sda_params)
@@ -50,6 +51,7 @@ fn test_interfaces_qchem_hdf5_sp_vf63m_sym() {
     sda_params.linear_independence_threshold = 1e-5;
     let mut qchem_sp = QChemH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
         .sp_group(&sp)
+        .energy_function_index("1")
         .symmetry_group_detection_input(&pd_params_inp)
         .angular_function_analysis_parameters(&afa_params)
         .slater_det_rep_analysis_parameters(&sda_params)
@@ -75,6 +77,7 @@ fn test_interfaces_qchem_hdf5_sp_o2_ms0_zero_field() {
 
     let mut qchem_sp = QChemH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
         .sp_group(&sp)
+        .energy_function_index("1")
         .symmetry_group_detection_input(&pd_params_inp)
         .angular_function_analysis_parameters(&afa_params)
         .slater_det_rep_analysis_parameters(&sda_params)
@@ -109,6 +112,7 @@ fn test_interfaces_qchem_hdf5_sp_o2_ms0_perpendicular_magnetic_field() {
     let mut qchem_sp_uni =
         QChemH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
             .sp_group(&sp)
+            .energy_function_index("1")
             .symmetry_group_detection_input(&pd_params_inp)
             .angular_function_analysis_parameters(&afa_params)
             .slater_det_rep_analysis_parameters(&sda_params_uni)
@@ -124,6 +128,7 @@ fn test_interfaces_qchem_hdf5_sp_o2_ms0_perpendicular_magnetic_field() {
     let mut qchem_sp_mag =
         QChemH5SinglePointDriver::<MagneticRepresentedSymmetryGroup, f64>::builder()
             .sp_group(&sp)
+            .energy_function_index("1")
             .symmetry_group_detection_input(&pd_params_inp)
             .angular_function_analysis_parameters(&afa_params)
             .slater_det_rep_analysis_parameters(&sda_params_mag)
@@ -158,6 +163,7 @@ fn test_interfaces_qchem_hdf5_sp_o3p_perpendicular_magnetic_field() {
     let mut qchem_sp_zerofield =
         QChemH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
             .sp_group(&sp)
+            .energy_function_index("1")
             .symmetry_group_detection_input(&pd_params_zerofield_inp)
             .angular_function_analysis_parameters(&afa_params)
             .slater_det_rep_analysis_parameters(&sda_params)
@@ -174,6 +180,7 @@ fn test_interfaces_qchem_hdf5_sp_o3p_perpendicular_magnetic_field() {
     let mut qchem_sp_perpfield =
         QChemH5SinglePointDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
             .sp_group(&sp)
+            .energy_function_index("1")
             .symmetry_group_detection_input(&pd_params_perpfield_inp)
             .angular_function_analysis_parameters(&afa_params)
             .slater_det_rep_analysis_parameters(&sda_params)
