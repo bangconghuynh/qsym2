@@ -1,9 +1,10 @@
 use pyo3::prelude::*;
 
 pub mod molecule_symmetrisation;
-pub mod symmetry_group_detection;
 pub mod representation_analysis;
+pub mod symmetry_group_detection;
 
+use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
 /// A Python module for `QSym2` implemented in Rust.
@@ -23,10 +24,13 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         m
     )?)?;
     m.add_class::<symmetry_group_detection::PyMolecule>()?;
+    m.add_class::<symmetry_group_detection::PySymmetry>()?;
+    m.add_class::<symmetry_group_detection::PySymmetryElementKind>()?;
     m.add_class::<representation_analysis::PyBasisAngularOrder>()?;
     m.add_class::<representation_analysis::PySpinConstraint>()?;
     m.add_class::<representation_analysis::PySlaterDeterminantReal>()?;
     m.add_class::<representation_analysis::PySlaterDeterminantComplex>()?;
+    m.add_class::<MagneticSymmetryAnalysisKind>()?;
     m.add_class::<SymmetryTransformationKind>()?;
     Ok(())
 }

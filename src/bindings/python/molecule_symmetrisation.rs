@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::format_err;
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
@@ -9,7 +11,7 @@ use crate::drivers::molecule_symmetrisation::{
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
-use crate::io::{read_qsym2, QSym2FileType};
+use crate::io::{read_qsym2_binary, QSym2FileType};
 
 /// A Python-exposed function to perform molecule symmetrisation and log the result via the
 /// `qsym2-output` logger at the `INFO` level.
@@ -48,8 +50,8 @@ use crate::io::{read_qsym2, QSym2FileType};
 #[pyfunction]
 #[pyo3(signature = (inp_loose_sym, out_tight_sym, target_moi_threshold, target_distance_threshold, use_magnetic_group, reorientate_molecule=true, max_iterations=10, verbose=0, infinite_order_to_finite=None))]
 pub fn symmetrise_molecule(
-    inp_loose_sym: String,
-    out_tight_sym: Option<String>,
+    inp_loose_sym: PathBuf,
+    out_tight_sym: Option<PathBuf>,
     target_moi_threshold: f64,
     target_distance_threshold: f64,
     use_magnetic_group: bool,
@@ -58,8 +60,9 @@ pub fn symmetrise_molecule(
     verbose: u8,
     infinite_order_to_finite: Option<u32>,
 ) -> PyResult<PyMolecule> {
-    let loose_pd_res: SymmetryGroupDetectionResult = read_qsym2(&inp_loose_sym, QSym2FileType::Sym)
-        .map_err(|err| PyIOError::new_err(err.to_string()))?;
+    let loose_pd_res: SymmetryGroupDetectionResult =
+        read_qsym2_binary(inp_loose_sym, QSym2FileType::Sym)
+            .map_err(|err| PyIOError::new_err(err.to_string()))?;
 
     let ms_params = MoleculeSymmetrisationParams::builder()
         .use_magnetic_group(use_magnetic_group)
@@ -95,9 +98,7 @@ pub fn symmetrise_molecule(
         .as_ref()
         .map(|mag_atoms| {
             if mag_atoms.len() != 2 {
-                Err(format_err!(
-                    "Only a uniform magnetic field is supported."
-                ))
+                Err(format_err!("Only a uniform magnetic field is supported."))
             } else {
                 match (&mag_atoms[0].kind, &mag_atoms[1].kind) {
                     (AtomKind::Magnetic(true), AtomKind::Magnetic(false)) => {
@@ -108,9 +109,7 @@ pub fn symmetrise_molecule(
                         let bvec = mag_atoms[1].coordinates - mag_atoms[0].coordinates;
                         Ok([bvec[0], bvec[1], bvec[2]])
                     }
-                    _ => Err(format_err!(
-                        "Invalid fictitious magnetic atoms detected."
-                    )),
+                    _ => Err(format_err!("Invalid fictitious magnetic atoms detected.")),
                 }
             }
         })
@@ -125,9 +124,7 @@ pub fn symmetrise_molecule(
         .as_ref()
         .map(|elec_atoms| {
             if elec_atoms.len() != 2 {
-                Err(format_err!(
-                    "Only a uniform electric field is supported."
-                ))
+                Err(format_err!("Only a uniform electric field is supported."))
             } else {
                 match (&elec_atoms[0].kind, &elec_atoms[1].kind) {
                     (AtomKind::Magnetic(true), AtomKind::Magnetic(false)) => {
@@ -138,9 +135,7 @@ pub fn symmetrise_molecule(
                         let evec = elec_atoms[1].coordinates - elec_atoms[0].coordinates;
                         Ok([evec[0], evec[1], evec[2]])
                     }
-                    _ => Err(format_err!(
-                        "Invalid fictitious electric atoms detected."
-                    )),
+                    _ => Err(format_err!("Invalid fictitious electric atoms detected.")),
                 }
             }
         })

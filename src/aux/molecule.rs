@@ -1,8 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs;
+use std::path::Path;
 use std::process;
+use std::io::{Write, BufWriter};
 
+use anyhow;
 use log;
 use nalgebra::{DVector, Matrix3, Point3, Vector3};
 use ndarray::{Array2, ShapeBuilder};
@@ -43,11 +46,11 @@ pub struct Molecule {
 }
 
 impl Molecule {
-    /// Parses an `xyz` file to construct a molecule.
+    /// Parses an XYZ file to construct a molecule.
     ///
     /// # Arguments
     ///
-    /// * `filename` - The `xyz` file to be parsed.
+    /// * `filename` - The XYZ file to be parsed.
     ///
     /// # Returns
     ///
@@ -55,11 +58,11 @@ impl Molecule {
     ///
     /// # Panics
     ///
-    /// Panics when unable to parse the provided `xyz` file.
+    /// Panics when unable to parse the provided XYZ file.
     #[must_use]
-    pub fn from_xyz(filename: &str, thresh: f64) -> Self {
-        let contents = fs::read_to_string(filename).unwrap_or_else(|err| {
-            log::error!("Unable to read file {}.", filename);
+    pub fn from_xyz<P: AsRef<Path>>(filename: P, thresh: f64) -> Self {
+        let contents = fs::read_to_string(&filename).unwrap_or_else(|err| {
+            log::error!("Unable to read file {}.", filename.as_ref().display());
             log::error!("{}", err);
             process::exit(1);
         });
@@ -70,7 +73,10 @@ impl Molecule {
         for (i, line) in contents.lines().enumerate() {
             if i == 0 {
                 n_atoms = line.parse::<usize>().unwrap_or_else(|err| {
-                    log::error!("Unable to read number of atoms in {}.", filename);
+                    log::error!(
+                        "Unable to read number of atoms in {}.",
+                        filename.as_ref().display()
+                    );
                     log::error!("{}", err);
                     process::exit(1);
                 });
@@ -96,6 +102,21 @@ impl Molecule {
             magnetic_atoms: None,
             threshold: thresh,
         }
+    }
+
+    /// Writes the ordinary atoms in the molecule to an XYZ file.
+    ///
+    /// # Arguments
+    ///
+    /// * `filename` - The XYZ file to be written.
+    pub fn to_xyz<P: AsRef<Path>>(&self, filename: P) -> Result<(), anyhow::Error> {
+        let mut f = BufWriter::new(fs::File::create(filename)?);
+        writeln!(f, "{}", self.atoms.len())?;
+        writeln!(f, "")?;
+        for atom in self.atoms.iter() {
+            writeln!(f, "{}", atom.to_xyz())?;
+        }
+        Ok(())
     }
 
     /// Construct a molecule from an array of atoms.
@@ -920,8 +941,8 @@ impl PermutableCollection for Molecule {
                 o_atoms
                     .get(s_atom)
                     .or_else(|| {
-                        log::debug!("Unable to retrieve matching original atom by hash. Falling back on distance comparisons...");
                         let thresh = s_atom.threshold;
+                        log::debug!("Unable to retrieve matching original atom by hash. Falling back on distance comparisons with threshold {thresh:.3e}...");
                         o_atoms.iter().find_map(|(o_atom, o_atom_idx)| {
                             if s_atom.atomic_number == o_atom.atomic_number
                                 && s_atom.kind == o_atom.kind

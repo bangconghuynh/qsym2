@@ -1,0 +1,22 @@
+symmetry_group_detection: !FromFile
+  test_file
+
+analysis_target: !SlaterDeterminant
+  source: !Binaries
+    xyz: path/to/xyz
+    sao: path/to/sao
+    coefficients: [path/to/ca, path/to/cb]
+    occupations: [path/to/occa, path/to/occb]
+    spin_constraint: !Unrestricted
+    - 2
+    - false
+    matrix_order: RowMajor
+    byte_order: LittleEndian
+    bao:
+    - atom: [0, "H"]
+      basis_shells:
+      - l: 0
+        shell_order: !PureIncreasingm
+  control:
+    integrality_threshold: 1e-7
+    linear_independence_threshold: 1e-7

@@ -1,14 +1,17 @@
-use log4rs;
 use ndarray::array;
 use num_complex::Complex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
+use crate::aux::ao_basis::{
+    BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
+};
 use crate::chartab::chartab_symbols::DecomposedSymbol;
-use crate::drivers::representation_analysis::CharacterTableDisplay;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
+};
+use crate::drivers::representation_analysis::{
+    CharacterTableDisplay, MagneticSymmetryAnalysisKind,
 };
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
@@ -42,7 +45,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&pd_params)
-        .xyz(Some(path))
+        .xyz(Some(path.into()))
         .build()
         .unwrap();
     assert!(pd_driver.run().is_ok());
@@ -50,7 +53,7 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     let mol_vf6 = &pd_res.pre_symmetry.recentred_molecule;
 
     let bsc_d = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
-    let bsp_s = BasisShell::new(0, ShellOrder::Pure(true));
+    let bsp_s = BasisShell::new(0, ShellOrder::Pure(PureOrder::increasingm(0)));
 
     let batm_v = BasisAtom::new(&mol_vf6.atoms[0], &[bsc_d]);
     let batm_f0 = BasisAtom::new(&mol_vf6.atoms[1], &[bsp_s.clone()]);
@@ -131,11 +134,11 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // u Oh (ordinary, unitary) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .use_magnetic_group(false)
+        .use_magnetic_group(None)
         .use_double_group(false)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_overlap_eigenvalues(false)
@@ -166,11 +169,11 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // u Oh* (ordinary double, unitary) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .use_magnetic_group(false)
+        .use_magnetic_group(None)
         .use_double_group(true)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_overlap_eigenvalues(false)
@@ -202,11 +205,11 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // u Oh + θ·Oh (grey, unitary) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .use_magnetic_group(true)
+        .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Representation))
         .use_double_group(false)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_overlap_eigenvalues(false)
@@ -229,11 +232,11 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // u (Oh + θ·Oh)* (grey double, unitary) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .use_magnetic_group(true)
+        .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Representation))
         .use_double_group(true)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_overlap_eigenvalues(false)
@@ -256,11 +259,11 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // m Oh + θ·Oh (grey, magnetic) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .use_magnetic_group(true)
+        .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Corepresentation))
         .use_double_group(false)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_overlap_eigenvalues(false)
@@ -291,11 +294,11 @@ fn test_drivers_slater_determinant_analysis_vf6_magnetic_field() {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // m (Oh + θ·Oh)* (grey double, unitary) - spin spatial
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    let sda_params = SlaterDeterminantRepAnalysisParams::<C128>::builder()
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .use_magnetic_group(true)
+        .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Corepresentation))
         .use_double_group(true)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
         .write_overlap_eigenvalues(true)

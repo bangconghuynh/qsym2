@@ -1,34 +1,128 @@
-use clap::{command, arg};
-use std::process;
+use clap::Parser;
+use log;
+use log::LevelFilter;
+use log4rs::append::console::ConsoleAppender;
+use log4rs::append::file::FileAppender;
+use log4rs::config::{Appender, Config, Logger, Root};
+use log4rs::encode::pattern::PatternEncoder;
 
-use qsym2::aux::molecule::Molecule;
-use qsym2::rotsym;
+use qsym2::interfaces::cli::{
+    qsym2_output_calculation_summary, qsym2_output_contributors, qsym2_output_heading, Cli,
+};
+use qsym2::io::read_qsym2_yaml;
 
-fn main() {
-    let matches = command!()
-        .arg(arg!([XYZ_FILE] "xyz file"))
-        .arg(
-            arg!(-t --threshold <THRESHOLD> "Threshold for moment of inertia comparison")
-                .required(false)
-                .default_value("1e-6"),
-        )
-        .get_matches();
+use qsym2::interfaces::input::Input;
+use qsym2::interfaces::InputHandle;
 
-    let filename = matches.get_one::<String>("XYZ_FILE").unwrap_or_else(|| {
-        println!("No xyz file provided.");
-        process::exit(1);
-    });
-    let thresh = matches
-        .get_one::<String>("threshold")
-        .expect("Threshold value not found.")
-        .parse::<f64>()
-        .expect("Unable to parse threshold value.");
+fn try_main() -> Result<(), anyhow::Error> {
+    // Parse CLI arguments
+    let cli = Cli::parse();
+    let config_path = &cli.config;
+    let output_path = &cli.output;
+    let mut debug_path = output_path.to_path_buf();
+    debug_path.set_extension("dbg");
 
-    let mol = Molecule::from_xyz(filename, 1e-4);
-    let com = mol.calc_com();
-    let inertia = mol.calc_inertia_tensor(&com);
-    let rotsym_result = rotsym::calc_rotational_symmetry(&inertia, thresh);
-    println!("Rotational symmetry: {rotsym_result}");
-    let sea_groups = mol.calc_sea_groups();
-    println!("SEAs: {sea_groups:?}");
+    // Parse input config
+    let input_config = read_qsym2_yaml::<Input, _>(config_path)?;
+
+    // Set up loggers
+    let stdout = ConsoleAppender::builder()
+        .encoder(Box::new(PatternEncoder::new(
+            "{d(%Y-%m-%d %H:%M:%S %Z)(utc)} {h({l:<5})} {t} - {m}{n}",
+        )))
+        .build();
+
+    let output_log_appender = FileAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{m}{n}")))
+        .append(false)
+        .build(output_path)?;
+
+    match cli.debug {
+        0 => {
+            // Main output to output file
+            // Warnings and errors to stdout
+            let output_log_config = Config::builder()
+                .appender(Appender::builder().build("stdout", Box::new(stdout)))
+                .appender(Appender::builder().build("output_ap", Box::new(output_log_appender)))
+                .logger(
+                    Logger::builder()
+                        .appender("output_ap")
+                        .additive(false)
+                        .build("qsym2-output", LevelFilter::Info),
+                )
+                .build(Root::builder().appender("stdout").build(LevelFilter::Warn))?;
+            log4rs::init_config(output_log_config)?;
+        }
+        1 => {
+            // Main output to output file
+            // Debugs, main output, warnings and errors to debug file
+            // Non-qsym2 warnings and errors to stdout
+            let debug_log_appender = FileAppender::builder()
+                .encoder(Box::new(PatternEncoder::new(
+                    "{d(%Y-%m-%d %H:%M:%S %Z)(utc)} {h({l:<5})} {t} - {m}{n}",
+                )))
+                .append(false)
+                .build(debug_path)?;
+            let output_log_config = Config::builder()
+                .appender(Appender::builder().build("stdout", Box::new(stdout)))
+                .appender(Appender::builder().build("output_ap", Box::new(output_log_appender)))
+                .appender(Appender::builder().build("debug_ap", Box::new(debug_log_appender)))
+                .logger(
+                    Logger::builder()
+                        .appender("output_ap")
+                        .appender("debug_ap")
+                        .additive(false)
+                        .build("qsym2-output", LevelFilter::Info),
+                )
+                .logger(
+                    Logger::builder()
+                        .appender("debug_ap")
+                        .additive(false)
+                        .build("qsym2", LevelFilter::Debug),
+                )
+                .build(Root::builder().appender("stdout").build(LevelFilter::Warn))?;
+            log4rs::init_config(output_log_config)?;
+        }
+        _ => {
+            // Main output to output file
+            // All debugs, main output, warnings and errors to debug file and stdout
+            let debug_log_appender = FileAppender::builder()
+                .encoder(Box::new(PatternEncoder::new(
+                    "{d(%Y-%m-%d %H:%M:%S %Z)(utc)} {h({l:<5})} {t} - {m}{n}",
+                )))
+                .append(false)
+                .build(debug_path)?;
+            let output_log_config = Config::builder()
+                .appender(Appender::builder().build("stdout", Box::new(stdout)))
+                .appender(Appender::builder().build("output_ap", Box::new(output_log_appender)))
+                .appender(Appender::builder().build("debug_ap", Box::new(debug_log_appender)))
+                .logger(
+                    Logger::builder()
+                        .appender("output_ap")
+                        .additive(true)
+                        .build("qsym2-output", LevelFilter::Info),
+                )
+                .build(
+                    Root::builder()
+                        .appender("debug_ap")
+                        .appender("stdout")
+                        .build(LevelFilter::Debug),
+                )?;
+            log4rs::init_config(output_log_config)?;
+        }
+    };
+
+    qsym2_output_heading();
+    qsym2_output_contributors();
+    qsym2_output_calculation_summary(config_path, &cli);
+
+    input_config.handle()
+}
+
+fn main() -> Result<(), anyhow::Error> {
+    let main_res = try_main();
+    if let Err(err) = main_res.as_ref() {
+        log::error!("{err:#}");
+    }
+    main_res
 }

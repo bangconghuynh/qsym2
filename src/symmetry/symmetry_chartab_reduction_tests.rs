@@ -39,9 +39,7 @@ fn test_chartab_reduction_vf6_oh() {
                     .map(|cc_symbol| {
                         (
                             cc_symbol,
-                            chartab
-                                .get_character(test_irrep, cc_symbol)
-                                .complex_value(),
+                            chartab.get_character(test_irrep, cc_symbol).complex_value(),
                         )
                     })
                     .collect::<Vec<_>>(),
@@ -315,10 +313,7 @@ fn test_chartab_reduction_vf6_oh_double() {
         ),
         ((&t2u, &ep1g), vec![(ep2u.clone(), 1), (gpu.clone(), 1)]),
         ((&t2u, &ep2g), vec![(ep1u.clone(), 1), (gpu.clone(), 1)]),
-        (
-            (&t2u, &gpg),
-            vec![(ep1u, 1), (ep2u, 1), (gpu, 2)],
-        ),
+        ((&t2u, &gpg), vec![(ep1u, 1), (ep2u, 1), (gpu, 2)]),
         ((&ep1g, &ep1g), vec![(a1g.clone(), 1), (t1g.clone(), 1)]),
         ((&ep1g, &ep2g), vec![(a2g.clone(), 1), (t2g.clone(), 1)]),
         (

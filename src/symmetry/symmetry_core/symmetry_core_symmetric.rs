@@ -368,12 +368,9 @@ impl Symmetry {
                                 2.0 * c_element.raw_proper_order().to_float(),
                                 f64::EPSILON,
                             );
-                            if let Some(improper_kind) = presym.check_improper(
-                                &double_order,
-                                c_element.raw_axis(),
-                                &SIG,
-                                tr,
-                            ) {
+                            if let Some(improper_kind) =
+                                presym.check_improper(&double_order, c_element.raw_axis(), &SIG, tr)
+                            {
                                 self.add_improper(
                                     double_order,
                                     c_element.raw_axis(),

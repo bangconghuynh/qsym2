@@ -6,7 +6,7 @@ use crate::chartab::chartab_symbols::{CollectionSymbol, MathematicalSymbol};
 use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
-use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, SIG, ROT};
+use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, ROT, SIG};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_symbols::{
     MullikenIrcorepSymbol, MullikenIrrepSymbol, SymmetryClassSymbol,

@@ -9,13 +9,13 @@ use crate::analysis::RepAnalysis;
 use crate::angmom::sh_conversion::sh_cart2rl_mat;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::aux::ao_basis::{
-    cart_tuple_to_str, BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder,
+    cart_tuple_to_str, BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
 use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::format::log_subtitle;
 use crate::aux::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
+use crate::io::format::{log_subtitle, qsym2_output};
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
@@ -82,9 +82,17 @@ where
     <<G as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition: Send + Sync,
 {
     let emap = ElementMap::new();
+    let thresh = group
+        .elements()
+        .clone()
+        .into_iter()
+        .next()
+        .expect("No symmetry operation found.")
+        .generating_element
+        .threshold();
     let mol = Molecule::from_atoms(
-        &[Atom::new_ordinary("H", Point3::origin(), &emap, 1e-13)],
-        1e-13,
+        &[Atom::new_ordinary("H", Point3::origin(), &emap, thresh)],
+        thresh,
     );
     let lmax = params.max_angular_momentum;
 
@@ -94,60 +102,64 @@ where
             Vec::with_capacity(usize::try_from(lmax)?),
         ),
         |mut acc, l| {
-            [ShellOrder::Pure(true), ShellOrder::Cart(CartOrder::lex(l))]
-                .iter()
-                .for_each(|shell_order| {
-                    let bao = BasisAngularOrder::new(&[BasisAtom::new(
-                        &mol.atoms[0],
-                        &[BasisShell::new(l, shell_order.clone())],
-                    )]);
-                    let n_spatial = bao.n_funcs();
-                    let cs = vec![Array2::<f64>::eye(n_spatial)];
-                    let occs = vec![Array1::<f64>::ones(n_spatial)];
-                    let sao = match shell_order {
-                        ShellOrder::Pure(_) => Array2::<f64>::eye(bao.n_funcs()),
-                        ShellOrder::Cart(cartorder) => {
-                            let cart2rl = sh_cart2rl_mat(l, l, cartorder, true, true);
-                            cart2rl.mapv(ComplexFloat::conj).t().dot(&cart2rl)
-                        }
-                    };
-
-                    let mo_symmetries = SlaterDeterminant::<f64>::builder()
-                        .spin_constraint(SpinConstraint::Restricted(1))
-                        .bao(&bao)
-                        .complex_symmetric(false)
-                        .mol(&mol)
-                        .coefficients(&cs)
-                        .occupations(&occs)
-                        .threshold(params.linear_independence_threshold)
-                        .build()
-                        .map_err(|err| format_err!(err))
-                        .and_then(|det| {
-                            let mos = det.to_orbitals();
-                            generate_det_mo_orbits(
-                                &det,
-                                &mos,
-                                group,
-                                &sao,
-                                params.integrality_threshold,
-                                params.linear_independence_threshold,
-                                SymmetryTransformationKind::Spatial,
-                            )
-                            .map(|(_, mut mo_orbitss)| {
-                                mo_orbitss[0]
-                                    .par_iter_mut()
-                                    .map(|mo_orbit| {
-                                        mo_orbit.calc_xmat(false);
-                                        mo_orbit.analyse_rep()
-                                    })
-                                    .collect::<Vec<_>>()
-                            })
-                        });
-                    match shell_order {
-                        ShellOrder::Pure(_) => acc.0.push(mo_symmetries),
-                        ShellOrder::Cart(_) => acc.1.push(mo_symmetries),
+            [
+                ShellOrder::Pure(PureOrder::increasingm(l)),
+                ShellOrder::Cart(CartOrder::lex(l)),
+            ]
+            .iter()
+            .for_each(|shell_order| {
+                let bao = BasisAngularOrder::new(&[BasisAtom::new(
+                    &mol.atoms[0],
+                    &[BasisShell::new(l, shell_order.clone())],
+                )]);
+                let n_spatial = bao.n_funcs();
+                let cs = vec![Array2::<f64>::eye(n_spatial)];
+                let occs = vec![Array1::<f64>::ones(n_spatial)];
+                let sao = match shell_order {
+                    ShellOrder::Pure(_) => Array2::<f64>::eye(bao.n_funcs()),
+                    ShellOrder::Cart(cartorder) => {
+                        let cart2rl =
+                            sh_cart2rl_mat(l, l, cartorder, true, &PureOrder::increasingm(l));
+                        cart2rl.mapv(ComplexFloat::conj).t().dot(&cart2rl)
                     }
-                });
+                };
+
+                let mo_symmetries = SlaterDeterminant::<f64>::builder()
+                    .spin_constraint(SpinConstraint::Restricted(1))
+                    .bao(&bao)
+                    .complex_symmetric(false)
+                    .mol(&mol)
+                    .coefficients(&cs)
+                    .occupations(&occs)
+                    .threshold(params.linear_independence_threshold)
+                    .build()
+                    .map_err(|err| format_err!(err))
+                    .and_then(|det| {
+                        let mos = det.to_orbitals();
+                        generate_det_mo_orbits(
+                            &det,
+                            &mos,
+                            group,
+                            &sao,
+                            params.integrality_threshold,
+                            params.linear_independence_threshold,
+                            SymmetryTransformationKind::Spatial,
+                        )
+                        .map(|(_, mut mo_orbitss)| {
+                            mo_orbitss[0]
+                                .par_iter_mut()
+                                .map(|mo_orbit| {
+                                    mo_orbit.calc_xmat(false);
+                                    mo_orbit.analyse_rep()
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                    });
+                match shell_order {
+                    ShellOrder::Pure(_) => acc.0.push(mo_symmetries),
+                    ShellOrder::Cart(_) => acc.1.push(mo_symmetries),
+                }
+            });
             acc
         },
     );
@@ -209,31 +221,28 @@ where
         "Space-fixed spatial angular function symmetries in {}",
         group.finite_subgroup_name().unwrap_or(&group.name())
     ));
-    log::info!(target: "qsym2-output", "");
-    log::info!(
-        target: "qsym2-output",
+    qsym2_output!("");
+    qsym2_output!(
         "{}",
-        "┈".repeat(
-            l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11
-        )
+        "┈".repeat(l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11)
     );
-    log::info!(
-        target: "qsym2-output",
+    qsym2_output!(
         " {:>l_width$}  {:>pure_width$}  {:<pure_sym_width$}   {:>cart_width$}  {:<}",
-        "l", "Pure", "Pure sym.", "Cart", "Cart sym."
+        "l",
+        "Pure",
+        "Pure sym.",
+        "Cart",
+        "Cart sym."
     );
-    log::info!(
-        target: "qsym2-output",
+    qsym2_output!(
         "{}",
-        "┈".repeat(
-            l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11
-        )
+        "┈".repeat(l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11)
     );
 
     let empty_str = String::new();
     (0..=usize::try_from(lmax)?).for_each(|l| {
         if l > 0 {
-            log::info!(target: "qsym2-output", "");
+            qsym2_output!("");
         }
         let n_pure = 2 * l + 1;
         let mut i_pure = 0;
@@ -278,17 +287,14 @@ where
                         .unwrap_or(&empty_str)
                 );
 
-                log::info!(target: "qsym2-output", " {l_str}  {pure_str}   {cart_str}");
+                qsym2_output!(" {l_str}  {pure_str}   {cart_str}");
             });
     });
-    log::info!(
-        target: "qsym2-output",
+    qsym2_output!(
         "{}",
-        "┈".repeat(
-            l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11
-        )
+        "┈".repeat(l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11)
     );
-    log::info!(target: "qsym2-output", "");
+    qsym2_output!("");
 
     Ok(())
 }

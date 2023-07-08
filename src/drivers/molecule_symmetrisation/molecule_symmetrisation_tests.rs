@@ -30,7 +30,7 @@ fn test_drivers_molecule_symmetrisation_vf6_magnetic_field() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&pd_params)
-        .xyz(Some(path))
+        .xyz(Some(path.into()))
         .build()
         .unwrap();
     assert!(pd_driver.run().is_ok());
@@ -101,7 +101,7 @@ fn test_drivers_molecule_symmetrisation_h4_magnetic_field() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&pd_params)
-        .xyz(Some(path))
+        .xyz(Some(path.into()))
         .build()
         .unwrap();
     assert!(pd_driver.run().is_ok());
@@ -172,7 +172,7 @@ fn test_drivers_molecule_symmetrisation_vf6_electric_field() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&pd_params)
-        .xyz(Some(path))
+        .xyz(Some(path.into()))
         .build()
         .unwrap();
     assert!(pd_driver.run().is_ok());
@@ -231,7 +231,7 @@ fn test_drivers_molecule_symmetrisation_c2h2() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&pd_params)
-        .xyz(Some(path))
+        .xyz(Some(path.into()))
         .build()
         .unwrap();
     assert!(pd_driver.run().is_ok());
@@ -301,7 +301,7 @@ fn test_drivers_molecule_symmetrisation_cp10() {
         .unwrap();
     let mut pd_driver = SymmetryGroupDetectionDriver::builder()
         .parameters(&params)
-        .xyz(Some(path))
+        .xyz(Some(path.into()))
         .build()
         .unwrap();
     assert!(pd_driver.run().is_ok());

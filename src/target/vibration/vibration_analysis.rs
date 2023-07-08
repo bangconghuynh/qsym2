@@ -1,8 +1,7 @@
-use log;
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, ensure};
+use anyhow::{self, ensure, format_err, Context};
 use approx;
 use derive_builder::Builder;
 use itertools::Itertools;
@@ -58,15 +57,13 @@ where
         );
 
         let ov = if let Some(s) = metric {
-            self
-                .coefficients
+            self.coefficients
                 .t()
                 .mapv(|x| x.conj())
                 .dot(s)
                 .dot(&other.coefficients)
         } else {
-            self
-                .coefficients
+            self.coefficients
                 .t()
                 .mapv(|x| x.conj())
                 .dot(&other.coefficients)
@@ -265,21 +262,24 @@ where
             self.origin,
             match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => |op, orb| {
-                    orb.sym_transform_spatial(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spatially on the origin orbital.")
+                    orb.sym_transform_spatial(op).with_context(|| {
+                        format_err!(
+                            "Unable to apply `{op}` spatially on the origin vibrational coordinate"
+                        )
                     })
                 },
                 SymmetryTransformationKind::Spin => |op, orb| {
-                    orb.sym_transform_spin(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spin-wise on the origin orbital.")
+                    orb.sym_transform_spin(op).with_context(|| {
+                        format_err!(
+                            "Unable to apply `{op}` spin-wise on the origin vibrational coordinate"
+                        )
                     })
                 },
                 SymmetryTransformationKind::SpinSpatial => |op, orb| {
-                    orb.sym_transform_spin_spatial(op).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to apply `{op}` spin-spatially on the origin orbital.",)
+                    orb.sym_transform_spin_spatial(op).with_context(|| {
+                        format_err!(
+                            "Unable to apply `{op}` spin-spatially on the origin vibrational coordinate"
+                        )
                     })
                 },
             },

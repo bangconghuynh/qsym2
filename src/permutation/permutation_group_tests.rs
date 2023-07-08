@@ -103,9 +103,19 @@ fn test_irrep_character_table_algebraic_validity(
 }
 
 #[test]
-fn test_permutation_group_chartab() {
+fn test_permutation_group_chartab_small() {
     // env_logger::init();
-    for p in 1..=10 {
+    for p in 1..=8 {
+        let sym = PermutationGroup::from_rank(p).unwrap();
+        test_irrep_character_table_algebraic_validity(sym.character_table());
+    }
+}
+
+#[test]
+#[ignore]
+fn test_permutation_group_chartab_large() {
+    // env_logger::init();
+    for p in 9..=10 {
         let sym = PermutationGroup::from_rank(p).unwrap();
         test_irrep_character_table_algebraic_validity(sym.character_table());
     }

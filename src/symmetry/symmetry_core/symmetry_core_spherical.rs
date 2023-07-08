@@ -592,10 +592,7 @@ impl Symmetry {
                         presym
                             .check_improper(&order_4, c2_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
-                                (
-                                    *c2_ele.raw_axis(),
-                                    improper_kind.contains_time_reversal(),
-                                )
+                                (*c2_ele.raw_axis(), improper_kind.contains_time_reversal())
                             })
                     })
                     .collect()
@@ -630,10 +627,7 @@ impl Symmetry {
                         presym
                             .check_improper(&ORDER_1, c2_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
-                                (
-                                    *c2_ele.raw_axis(),
-                                    improper_kind.contains_time_reversal(),
-                                )
+                                (*c2_ele.raw_axis(), improper_kind.contains_time_reversal())
                             })
                     })
                     .collect()
@@ -665,10 +659,7 @@ impl Symmetry {
                         presym
                             .check_improper(&order_6, c3_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
-                                (
-                                    *c3_ele.raw_axis(),
-                                    improper_kind.contains_time_reversal(),
-                                )
+                                (*c3_ele.raw_axis(), improper_kind.contains_time_reversal())
                             })
                     })
                     .collect()
@@ -704,10 +695,7 @@ impl Symmetry {
                         presym
                             .check_improper(&order_4, c2_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
-                                (
-                                    *c2_ele.raw_axis(),
-                                    improper_kind.contains_time_reversal(),
-                                )
+                                (*c2_ele.raw_axis(), improper_kind.contains_time_reversal())
                             })
                     })
                     .collect()
@@ -766,10 +754,7 @@ impl Symmetry {
                             presym
                                 .check_improper(&ORDER_1, c2_ele.raw_axis(), &SIG, tr)
                                 .map(|improper_kind| {
-                                    (
-                                        *c2_ele.raw_axis(),
-                                        improper_kind.contains_time_reversal(),
-                                    )
+                                    (*c2_ele.raw_axis(), improper_kind.contains_time_reversal())
                                 })
                         } else {
                             None
@@ -804,10 +789,7 @@ impl Symmetry {
                         presym
                             .check_improper(&order_6, c3_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
-                                (
-                                    *c3_ele.raw_axis(),
-                                    improper_kind.contains_time_reversal(),
-                                )
+                                (*c3_ele.raw_axis(), improper_kind.contains_time_reversal())
                             })
                     })
                     .collect()
@@ -844,10 +826,7 @@ impl Symmetry {
                         presym
                             .check_improper(&order_10, c5_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
-                                (
-                                    *c5_ele.raw_axis(),
-                                    improper_kind.contains_time_reversal(),
-                                )
+                                (*c5_ele.raw_axis(), improper_kind.contains_time_reversal())
                             })
                     })
                     .collect()
@@ -879,10 +858,7 @@ impl Symmetry {
                         presym
                             .check_improper(&order_6, c3_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
-                                (
-                                    *c3_ele.raw_axis(),
-                                    improper_kind.contains_time_reversal(),
-                                )
+                                (*c3_ele.raw_axis(), improper_kind.contains_time_reversal())
                             })
                     })
                     .collect()
@@ -910,10 +886,7 @@ impl Symmetry {
                         presym
                             .check_improper(&ORDER_1, c2_ele.raw_axis(), &SIG, tr)
                             .map(|improper_kind| {
-                                (
-                                    *c2_ele.raw_axis(),
-                                    improper_kind.contains_time_reversal(),
-                                )
+                                (*c2_ele.raw_axis(), improper_kind.contains_time_reversal())
                             })
                     })
                     .collect()

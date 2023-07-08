@@ -99,7 +99,9 @@ impl Symmetry {
                     Some("h".to_owned()),
                     presym.dist_threshold,
                     sigma_check
-                        .ok_or_else(|| format_err!("Expected mirror plane implied by C∞ and i not found."))?
+                        .ok_or_else(|| format_err!(
+                            "Expected mirror plane implied by C∞ and i not found."
+                        ))?
                         .contains_time_reversal(),
                 ),
                 "Expected σh implied by C∞ and i not added."

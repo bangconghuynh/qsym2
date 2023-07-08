@@ -507,23 +507,21 @@ impl SymmetryOperation {
             -self.generating_element.threshold <= scalar_part
                 && scalar_part <= 1.0 + self.generating_element.threshold
         );
-        debug_assert!(
-            if approx::relative_eq!(
-                scalar_part,
-                0.0,
-                max_relative = c_self.generating_element.threshold,
-                epsilon = c_self.generating_element.threshold
-            ) {
-                c_self
-                    .positive_hemisphere
-                    .as_ref()
-                    .cloned()
-                    .unwrap_or_default()
-                    .check_positive_pole(&vector_part, c_self.generating_element.threshold)
-            } else {
-                true
-            },
-        );
+        debug_assert!(if approx::relative_eq!(
+            scalar_part,
+            0.0,
+            max_relative = c_self.generating_element.threshold,
+            epsilon = c_self.generating_element.threshold
+        ) {
+            c_self
+                .positive_hemisphere
+                .as_ref()
+                .cloned()
+                .unwrap_or_default()
+                .check_positive_pole(&vector_part, c_self.generating_element.threshold)
+        } else {
+            true
+        },);
 
         if self.is_su2_class_1() {
             (-scalar_part, -vector_part)
@@ -1342,8 +1340,9 @@ impl PartialEq for SymmetryOperation {
         // At this stage, `self` and `other` must have the same spatial parity, unitarity, and
         // SO3/SU2 properties.
         if self.is_spatial_identity() && other.is_spatial_identity() {
-            assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
-            return true;
+            // assert_eq!(misc::calculate_hash(self), misc::calculate_hash(other));
+            // return true;
+            return misc::calculate_hash(self) == misc::calculate_hash(other);
         }
 
         // ======
@@ -1398,14 +1397,14 @@ impl PartialEq for SymmetryOperation {
                 )
         };
 
-        if result {
-            assert_eq!(
-                misc::calculate_hash(self),
-                misc::calculate_hash(other),
-                "`{self}` and `{other}` have unequal hashes.",
-            );
-        }
-        result
+        // if result {
+        //     assert_eq!(
+        //         misc::calculate_hash(self),
+        //         misc::calculate_hash(other),
+        //         "`{self}` and `{other}` have unequal hashes.",
+        //     );
+        // }
+        result && (misc::calculate_hash(self) == misc::calculate_hash(other))
     }
 }
 
@@ -1647,9 +1646,7 @@ pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
                 .expect("The denominator of the total proper fraction cannot be extracted."),
         )
         .unwrap_or_else(|_| {
-            panic!(
-                "Unable to convert the denominator of `{total_proper_fraction:?}` to `i64`."
-            )
+            panic!("Unable to convert the denominator of `{total_proper_fraction:?}` to `i64`.")
         });
         let numer = i64::try_from(
             *total_proper_fraction
@@ -1657,9 +1654,7 @@ pub(crate) fn sort_operations(operations: &mut [SymmetryOperation]) {
                 .expect("The numerator of the total proper fraction cannot be extracted."),
         )
         .unwrap_or_else(|_| {
-            panic!(
-                "Unable to convert the numerator of `{total_proper_fraction:?}` to `i64`."
-            )
+            panic!("Unable to convert the numerator of `{total_proper_fraction:?}` to `i64`.")
         });
 
         let negative_rotation = !c_op

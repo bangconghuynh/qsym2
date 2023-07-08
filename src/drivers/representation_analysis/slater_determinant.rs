@@ -2,25 +2,31 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::ops::Mul;
 
-use anyhow::{self, format_err};
+use anyhow::{self, bail, format_err};
 use derive_builder::Builder;
 use ndarray::{s, Array2};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
+use num_traits::Float;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::analysis::RepAnalysis;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::format::{log_subtitle, nice_bool, write_subtitle, write_title, QSym2Output};
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::{
     find_angular_function_representation, AngularFunctionRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::{log_bao, log_cc_transversal, CharacterTableDisplay};
+use crate::drivers::representation_analysis::{
+    log_bao, log_cc_transversal, CharacterTableDisplay, MagneticSymmetryAnalysisKind,
+};
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
+use crate::io::format::{
+    log_subtitle, nice_bool, qsym2_output, write_subtitle, write_title, QSym2Output,
+};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
@@ -41,52 +47,66 @@ mod slater_determinant_tests;
 // Parameters
 // ----------
 
+const fn default_true() -> bool {
+    true
+}
+const fn default_symbolic() -> Option<CharacterTableDisplay> {
+    Some(CharacterTableDisplay::Symbolic)
+}
+
 /// A structure containing control parameters for Slater determinant representation analysis.
-#[derive(Clone, Builder, Debug)]
-pub struct SlaterDeterminantRepAnalysisParams<T>
-where
-    T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
-{
+#[derive(Clone, Builder, Debug, Serialize, Deserialize)]
+pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     /// Threshold for checking if subspace multiplicities are integral.
-    pub integrality_threshold: <T as ComplexFloat>::Real,
+    pub integrality_threshold: T,
 
     /// Threshold for determining zero eigenvalues in the orbit overlap matrix.
-    pub linear_independence_threshold: <T as ComplexFloat>::Real,
+    pub linear_independence_threshold: T,
 
     /// Boolean indicating if molecular orbital symmetries are to be analysed alongside the overall
     /// determinantal symmetry.
+    #[builder(default = "true")]
+    #[serde(default = "default_true")]
     pub analyse_mo_symmetries: bool,
 
-    /// Boolean indicating if the magnetic group is to be used for symmetry analysis.
-    pub use_magnetic_group: bool,
+    /// Option indicating if the magnetic group is to be used for symmetry analysis, and if so,
+    /// whether unitary representations or unitary-antiunitary corepresentations should be used.
+    #[builder(default = "None")]
+    #[serde(default)]
+    pub use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
 
     /// Boolean indicating if the double group is to be used for symmetry analysis.
+    #[builder(default = "false")]
+    #[serde(default)]
     pub use_double_group: bool,
 
     /// The kind of symmetry transformation to be applied on the reference determinant to generate
     /// the orbit for symmetry analysis.
+    #[builder(default = "SymmetryTransformationKind::Spatial")]
+    #[serde(default)]
     pub symmetry_transformation_kind: SymmetryTransformationKind,
 
     /// Option indicating if the character table of the group used for symmetry analysis is to be
     /// printed out.
     #[builder(default = "Some(CharacterTableDisplay::Symbolic)")]
+    #[serde(default = "default_symbolic")]
     pub write_character_table: Option<CharacterTableDisplay>,
 
     /// Boolean indicating if the eigenvalues of the orbit overlap matrix are to be printed out.
     #[builder(default = "true")]
+    #[serde(default = "default_true")]
     pub write_overlap_eigenvalues: bool,
 
     /// The finite order to which any infinite-order symmetry element is reduced, so that a finite
     /// subgroup of an infinite group can be used for the symmetry analysis.
     #[builder(default = "None")]
+    #[serde(default)]
     pub infinite_order_to_finite: Option<u32>,
 }
 
 impl<T> SlaterDeterminantRepAnalysisParams<T>
 where
-    T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    T: Float + From<f64>,
 {
     /// Returns a builder to construct a [`SlaterDeterminantRepAnalysisParams`] structure.
     pub fn builder() -> SlaterDeterminantRepAnalysisParamsBuilder<T> {
@@ -94,10 +114,19 @@ where
     }
 }
 
+impl Default for SlaterDeterminantRepAnalysisParams<f64> {
+    fn default() -> Self {
+        Self::builder()
+            .integrality_threshold(1e-7)
+            .linear_independence_threshold(1e-7)
+            .build()
+            .expect("Unable to construct a default `SlaterDeterminantRepAnalysisParams<f64>`.")
+    }
+}
+
 impl<T> fmt::Display for SlaterDeterminantRepAnalysisParams<T>
 where
-    T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    T: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
@@ -125,7 +154,13 @@ where
         writeln!(
             f,
             "Use magnetic group for analysis: {}",
-            nice_bool(self.use_magnetic_group)
+            match self.use_magnetic_group {
+                None => "no",
+                Some(MagneticSymmetryAnalysisKind::Representation) =>
+                    "yes, using unitary representations",
+                Some(MagneticSymmetryAnalysisKind::Corepresentation) =>
+                    "yes, using magnetic corepresentations",
+            }
         )?;
         writeln!(
             f,
@@ -166,11 +201,11 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// The control parameters used to obtain this set of Slater determinant representation
     /// analysis results.
-    parameters: &'a SlaterDeterminantRepAnalysisParams<T>,
+    parameters: &'a SlaterDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The Slater determinant being analysed.
     determinant: &'a SlaterDeterminant<'a, T>,
@@ -190,7 +225,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a new [`SlaterDeterminantRepAnalysisResultBuilder`]
     /// structure.
@@ -204,7 +239,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug + fmt::Display,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_subtitle(f, "Orbit-based symmetry analysis results")?;
@@ -216,7 +251,6 @@ where
                 .finite_subgroup_name()
                 .map(|subgroup_name| format!("{} > {}", self.group.name(), subgroup_name))
                 .unwrap_or(self.group.name()),
-            // self.group.finite_subgroup_name().unwrap_or(&self.group.name()),
             self.group.group_type().to_string().to_lowercase()
         )?;
         writeln!(f)?;
@@ -339,10 +373,25 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug + fmt::Display,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
+    }
+}
+
+impl<'a, G, T> SlaterDeterminantRepAnalysisResult<'a, G, T>
+where
+    G: SymmetryGroupProperties + Clone,
+    G::CharTab: SubspaceDecomposable<T>,
+    T: ComplexFloat + Lapack,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
+{
+    /// Returns the determinant symmetry obtained from the analysis result.
+    pub fn determinant_symmetry(
+        &self,
+    ) -> &Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String> {
+        &self.determinant_symmetry
     }
 }
 
@@ -362,10 +411,10 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// The control parameters for Slater determinant representation analysis.
-    parameters: &'a SlaterDeterminantRepAnalysisParams<T>,
+    parameters: &'a SlaterDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
 
     /// The Slater determinant to be analysed.
     determinant: &'a SlaterDeterminant<'a, T>,
@@ -391,7 +440,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn validate(&self) -> Result<(), String> {
         let params = self
@@ -410,7 +459,7 @@ where
             .determinant
             .ok_or("No Slater determinant found.".to_string())?;
 
-        let sym = if params.use_magnetic_group {
+        let sym = if params.use_magnetic_group.is_some() {
             sym_res
                 .magnetic_symmetry
                 .as_ref()
@@ -449,7 +498,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a [`SlaterDeterminantRepAnalysisDriver`] structure.
     pub fn builder() -> SlaterDeterminantRepAnalysisDriverBuilder<'a, G, T> {
@@ -488,24 +537,24 @@ where
 impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T>
 where
     T: ComplexFloat + Lapack + Sync + Send,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug + Sync + Send,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + Sync + Send,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
     /// Constructs the unitary-represented group (which itself can be unitary or magnetic) ready
     /// for representation analysis.
     fn construct_unitary_group(&self) -> Result<UnitaryRepresentedSymmetryGroup, anyhow::Error> {
         let params = self.parameters;
-        let sym = if params.use_magnetic_group {
-            self.symmetry_group
+        let sym = match params.use_magnetic_group {
+            Some(MagneticSymmetryAnalysisKind::Representation) => self.symmetry_group
                 .magnetic_symmetry
                 .as_ref()
                 .ok_or_else(|| {
                     format_err!(
                         "Magnetic symmetry requested for analysis, but no magnetic symmetry found."
                     )
-                })?
-        } else {
-            &self.symmetry_group.unitary_symmetry
+                })?,
+            Some(MagneticSymmetryAnalysisKind::Corepresentation) => bail!("Magnetic corepresentations requested, but unitary-represented group is being constructed."),
+            None => &self.symmetry_group.unitary_symmetry
         };
         let group = if params.use_double_group {
             UnitaryRepresentedGroup::from_molecular_symmetry(sym, params.infinite_order_to_finite)?
@@ -514,42 +563,35 @@ where
             UnitaryRepresentedGroup::from_molecular_symmetry(sym, params.infinite_order_to_finite)?
         };
 
-        log::info!(
-            target: "qsym2-output",
+        qsym2_output!(
             "Unitary-represented group for representation analysis: {}",
             group.name()
         );
-        log::info!(target: "qsym2-output", "");
+        qsym2_output!("");
         if let Some(chartab_display) = params.write_character_table.as_ref() {
             log_subtitle("Character table of irreducible representations");
-            log::info!(target: "qsym2-output", "");
+            qsym2_output!("");
             match chartab_display {
                 CharacterTableDisplay::Symbolic => {
                     group.character_table().log_output_debug();
-                    log::info!(
-                        target: "qsym2-output",
-                        "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
-                        En = exp(2πi/n)"
-                    );
+                    "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
+                    En = exp(2πi/n)".log_output_display();
                 }
                 CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
             }
-            log::info!(target: "qsym2-output", "");
-            log::info!(
-                target: "qsym2-output",
-                "Note 1: `FS` contains the classification of the irreps using the Frobenius--Schur indicator:\n  \
-                `r` = real: the irrep and its complex-conjugate partner are real and identical,\n  \
-                `c` = complex: the irrep and its complex-conjugate partner are complex and inequivalent,\n  \
-                `q` = quaternion: the irrep and its complex-conjugate partner are complex and equivalent.\n\n\
-                Note 2: The conjugacy classes are sorted according to the following order:\n  \
-                E -> C_n (n descending) -> C2 -> i -> S_n (n decending) -> σ\n  \
-                Within each order and power, elements with axes close to Cartesian axes are put first.\n  \
-                Within each equi-inclination from Cartesian axes, z-inclined axes are put first, then y, then x.\n\n\
-                Note 3: The Mulliken labels generated for the irreps in the table above are internally consistent.\n  \
-                However, certain labels might differ from those tabulated elsewhere using other conventions.\n  \
-                If need be, please check with other literature to ensure external consistency."
-            );
-            log::info!(target: "qsym2-output", "");
+            qsym2_output!("");
+            "Note 1: `FS` contains the classification of the irreps using the Frobenius--Schur indicator:\n  \
+            `r` = real: the irrep and its complex-conjugate partner are real and identical,\n  \
+            `c` = complex: the irrep and its complex-conjugate partner are complex and inequivalent,\n  \
+            `q` = quaternion: the irrep and its complex-conjugate partner are complex and equivalent.\n\n\
+            Note 2: The conjugacy classes are sorted according to the following order:\n  \
+            E -> C_n (n descending) -> C2 -> i -> S_n (n decending) -> σ\n  \
+            Within each order and power, elements with axes close to Cartesian axes are put first.\n  \
+            Within each equi-inclination from Cartesian axes, z-inclined axes are put first, then y, then x.\n\n\
+            Note 3: The Mulliken labels generated for the irreps in the table above are internally consistent.\n  \
+            However, certain labels might differ from those tabulated elsewhere using other conventions.\n  \
+            If need be, please check with other literature to ensure external consistency.".log_output_display();
+            qsym2_output!("");
         }
         Ok(group)
     }
@@ -568,10 +610,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
         let sao = self.construct_sao()?;
         let group = self.construct_unitary_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(
-            &group,
-            self.angular_function_parameters,
-        );
+        let _ = find_angular_function_representation(&group, self.angular_function_parameters);
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
@@ -596,7 +635,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                         params.linear_independence_threshold,
                         |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                     );
-                    log::info!(target: "qsym2-output", "");
+                    qsym2_output!("");
                 }
             }
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
@@ -637,7 +676,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                                 params.linear_independence_threshold,
                                 |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                             );
-                            log::info!(target: "qsym2-output", "");
+                            qsym2_output!("");
                         }
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -672,10 +711,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
         let sao = self.construct_sao()?;
         let group = self.construct_unitary_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(
-            &group,
-            self.angular_function_parameters,
-        );
+        let _ = find_angular_function_representation(&group, self.angular_function_parameters);
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
@@ -700,7 +736,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                         params.linear_independence_threshold,
                         |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                     );
-                    log::info!(target: "qsym2-output", "");
+                    qsym2_output!("");
                 }
             }
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
@@ -741,7 +777,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
                                 params.linear_independence_threshold,
                                 |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                             );
-                            log::info!(target: "qsym2-output", "");
+                            qsym2_output!("");
                         }
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -768,24 +804,24 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup,
 impl<'a, T> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, T>
 where
     T: ComplexFloat + Lapack + Sync + Send,
-    <T as ComplexFloat>::Real: Sync + Send + fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + Sync + Send + fmt::LowerExp + fmt::Debug,
     for<'b> Complex<f64>: Mul<&'b T, Output = Complex<f64>>,
 {
     /// Constructs the magnetic-represented group (which itself can only be magnetic) ready for
     /// corepresentation analysis.
     fn construct_magnetic_group(&self) -> Result<MagneticRepresentedSymmetryGroup, anyhow::Error> {
         let params = self.parameters;
-        let sym = if params.use_magnetic_group {
-            self.symmetry_group
+        let sym = match params.use_magnetic_group {
+            Some(MagneticSymmetryAnalysisKind::Corepresentation) => self.symmetry_group
                 .magnetic_symmetry
                 .as_ref()
                 .ok_or_else(|| {
                     format_err!(
                         "Magnetic symmetry requested for analysis, but no magnetic symmetry found."
                     )
-                })?
-        } else {
-            &self.symmetry_group.unitary_symmetry
+                })?,
+            Some(MagneticSymmetryAnalysisKind::Representation) => bail!("Unitary representations requested, but magnetic-represented group is being constructed."),
+            None => &self.symmetry_group.unitary_symmetry
         };
         let group = if params.use_double_group {
             MagneticRepresentedGroup::from_molecular_symmetry(sym, params.infinite_order_to_finite)?
@@ -794,44 +830,37 @@ where
             MagneticRepresentedGroup::from_molecular_symmetry(sym, params.infinite_order_to_finite)?
         };
 
-        log::info!(
-            target: "qsym2-output",
+        qsym2_output!(
             "Magnetic-represented group for corepresentation analysis: {}",
             group.name()
         );
-        log::info!(target: "qsym2-output", "");
+        qsym2_output!("");
 
         if let Some(chartab_display) = params.write_character_table.as_ref() {
             log_subtitle("Character table of irreducible corepresentations");
-            log::info!(target: "qsym2-output", "");
+            qsym2_output!("");
             match chartab_display {
                 CharacterTableDisplay::Symbolic => {
                     group.character_table().log_output_debug();
-                    log::info!(
-                        target: "qsym2-output",
-                        "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
-                        En = exp(2πi/n)"
-                    );
+                    "Any `En` in a character value denotes the first primitive n-th root of unity:\n  \
+                    En = exp(2πi/n)".log_output_display();
                 }
                 CharacterTableDisplay::Numerical => group.character_table().log_output_display(),
             }
-            log::info!(target: "qsym2-output", "");
-            log::info!(
-                target: "qsym2-output",
-                "Note 1: The ircorep notation `D[Δ]` means that this ircorep is induced by the representation Δ\n  \
-                of the unitary halving subgroup. The exact nature of Δ determines the kind of D[Δ].\n\n\
-                Note 2: `IN` shows the intertwining numbers of the ircoreps which classify them into three kinds:\n  \
-                `1` = 1st kind: the ircorep is induced by a single irrep of the unitary halving subgroup once,\n  \
-                `4` = 2nd kind: the ircorep is induced by a single irrep of the unitary halving subgroup twice,\n  \
-                `2` = 3rd kind: the ircorep is induced by an irrep of the unitary halving subgroup and its Wigner conjugate.\n\n\
-                Note 3: Only unitary-represented elements are shown in the character table, as characters of\n  \
-                antiunitary-represented elements are not invariant under a change of basis.\n\n\
-                Refs:\n  \
-                Newmarch, J. D. & Golding, R. M. J. Math. Phys. 23, 695–704 (1982)\n  \
-                Bradley, C. J. & Davies, B. L. Rev. Mod. Phys. 40, 359–379 (1968)\n  \
-                Newmarch, J. D. J. Math. Phys. 24, 742–756 (1983)"
-            );
-            log::info!(target: "qsym2-output", "");
+            qsym2_output!("");
+            "Note 1: The ircorep notation `D[Δ]` means that this ircorep is induced by the representation Δ\n  \
+            of the unitary halving subgroup. The exact nature of Δ determines the kind of D[Δ].\n\n\
+            Note 2: `IN` shows the intertwining numbers of the ircoreps which classify them into three kinds:\n  \
+            `1` = 1st kind: the ircorep is induced by a single irrep of the unitary halving subgroup once,\n  \
+            `4` = 2nd kind: the ircorep is induced by a single irrep of the unitary halving subgroup twice,\n  \
+            `2` = 3rd kind: the ircorep is induced by an irrep of the unitary halving subgroup and its Wigner conjugate.\n\n\
+            Note 3: Only unitary-represented elements are shown in the character table, as characters of\n  \
+            antiunitary-represented elements are not invariant under a change of basis.\n\n\
+            Refs:\n  \
+            Newmarch, J. D. & Golding, R. M. J. Math. Phys. 23, 695–704 (1982)\n  \
+            Bradley, C. J. & Davies, B. L. Rev. Mod. Phys. 40, 359–379 (1968)\n  \
+            Newmarch, J. D. J. Math. Phys. 24, 742–756 (1983)".log_output_display();
+            qsym2_output!("");
         }
 
         Ok(group)
@@ -851,10 +880,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
         let sao = self.construct_sao()?;
         let group = self.construct_magnetic_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(
-            &group,
-            self.angular_function_parameters,
-        );
+        let _ = find_angular_function_representation(&group, self.angular_function_parameters);
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
@@ -879,7 +905,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                         params.linear_independence_threshold,
                         |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                     );
-                    log::info!(target: "qsym2-output", "");
+                    qsym2_output!("");
                 }
             }
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
@@ -920,7 +946,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                                 params.linear_independence_threshold,
                                 |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                             );
-                            log::info!(target: "qsym2-output", "");
+                            qsym2_output!("");
                         }
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -955,10 +981,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
         let sao = self.construct_sao()?;
         let group = self.construct_magnetic_group()?;
         log_cc_transversal(&group);
-        let _ = find_angular_function_representation(
-            &group,
-            self.angular_function_parameters,
-        );
+        let _ = find_angular_function_representation(&group, self.angular_function_parameters);
         log_bao(self.determinant.bao());
 
         let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
@@ -983,7 +1006,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                         params.linear_independence_threshold,
                         |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                     );
-                    log::info!(target: "qsym2-output", "");
+                    qsym2_output!("");
                 }
             }
             let det_symmetry = det_orbit.analyse_rep().map_err(|err| err.to_string());
@@ -1024,7 +1047,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup
                                 params.linear_independence_threshold,
                                 |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
                             );
-                            log::info!(target: "qsym2-output", "");
+                            qsym2_output!("");
                         }
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
@@ -1057,7 +1080,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write_title(f, "Slater Determinant Symmetry Analysis")?;
@@ -1072,7 +1095,7 @@ where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
-    <T as ComplexFloat>::Real: fmt::LowerExp + fmt::Debug,
+    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "{self}")
@@ -1193,46 +1216,29 @@ fn log_overlap_eigenvalues<T>(
         .map(|v| format!("{v:+.3e}"))
         .collect::<Vec<_>>();
     log_subtitle("Orbit overlap eigenvalues");
-    log::info!(target: "qsym2-output", "");
+    qsym2_output!("");
 
-    log::info!(
-        target: "qsym2-output", "{}",
-        "Eigenvalues are sorted in decreasing magnitude order."
-    );
+    qsym2_output!("Eigenvalues are sorted in decreasing magnitude order.");
     let count_length = usize::try_from(eigvals.len().ilog10() + 2).unwrap_or(2);
     let eigval_length = eigvals_str
         .iter()
         .map(|v| v.chars().count())
         .max()
         .unwrap_or(20);
-    log::info!(
-        target: "qsym2-output", "{}",
-        "┈".repeat(count_length + 3 + eigval_length)
-    );
-    log::info!(
-        target: "qsym2-output", "{:>count_length$}  Eigenvalue",
-        "#"
-    );
-    log::info!(
-        target: "qsym2-output", "{}",
-        "┈".repeat(count_length + 3 + eigval_length)
-    );
+    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
+    qsym2_output!("{:>count_length$}  Eigenvalue", "#");
+    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
     let mut write_thresh = false;
     for (i, eigval) in eigvals_str.iter().enumerate() {
         if thresh_cmp(eigvals[i], &thresh) == Ordering::Less && !write_thresh {
-            log::info!(
-                target: "qsym2-output", "{} <-- linear independence threshold (magnitude-based): {:+.3e}",
+            qsym2_output!(
+                "{} <-- linear independence threshold (magnitude-based): {:+.3e}",
                 "-".repeat(count_length + 3 + eigval_length),
                 thresh
             );
             write_thresh = true;
         }
-        log::info!(
-            target: "qsym2-output", "{i:>count_length$}  {eigval}",
-        );
+        qsym2_output!("{i:>count_length$}  {eigval}",);
     }
-    log::info!(
-        target: "qsym2-output", "{}",
-        "┈".repeat(count_length + 3 + eigval_length)
-    );
+    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
 }
