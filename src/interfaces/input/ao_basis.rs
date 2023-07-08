@@ -12,7 +12,7 @@ use crate::aux::molecule::Molecule;
 /// A serialisable/deserialisable enumerated type to indicate the type of the angular functions in
 /// a shell and how they are ordered.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub(crate) enum InputShellOrder {
+pub enum InputShellOrder {
     /// This variant indicates that the angular functions are real solid harmonics arranged in
     /// increasing $`m`$ order.
     PureIncreasingm,
@@ -62,7 +62,7 @@ impl InputShellOrder {
 
 /// A serialisable/deserialisable structure representing a shell in an atomic-orbital basis set.
 #[derive(Clone, Debug, Builder, Serialize, Deserialize)]
-pub(crate) struct InputBasisShell {
+pub struct InputBasisShell {
     /// A non-negative integer indicating the rank of the shell.
     l: u32,
 
@@ -104,7 +104,7 @@ impl InputBasisShell {
 /// is describing, but instead it only contains an index and an owned string giving the element
 /// name of the atom. This is only for serialisation/deserialisation purposes.
 #[derive(Clone, Debug, Builder, Serialize, Deserialize)]
-pub(crate) struct InputBasisAtom {
+pub struct InputBasisAtom {
     /// The index and name of an atom in the basis set.
     atom: (usize, String),
 

@@ -41,7 +41,7 @@ pub enum SymmetryGroupDetectionInputKind {
     Parameters(SymmetryGroupDetectionParams),
 
     /// Variant indicating that the symmetry-group detection results will be read in from a `QSym2`
-    /// [`QSym2FileType:Sym`] binary file. The associated string gives the name of the file without
+    /// [`QSym2FileType::Sym`] binary file. The associated string gives the name of the file without
     /// its `.qsym2.sym` extension.
     FromFile(PathBuf),
 }
@@ -61,7 +61,7 @@ impl Default for SymmetryGroupDetectionInputKind {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Input {
     /// Specification for symmetry-group detection. This either specifies the parameters for
-    /// symmetry-group detection, or the name of a [`QSym2FileType:Sym`] binary file containing the
+    /// symmetry-group detection, or the name of a [`QSym2FileType::Sym`] binary file containing the
     /// symmetry-group detection results (without the `.qsym2.sym` extension).
     pub symmetry_group_detection: SymmetryGroupDetectionInputKind,
 
