@@ -1,18 +1,32 @@
+use std::collections::HashMap;
+use std::fmt;
 use std::path::PathBuf;
 
+use anyhow::{self, format_err};
 use nalgebra::{Point3, Vector3};
+use numpy::{PyArray1, ToPyArray};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
 use crate::aux::atom::{Atom, ElementMap};
 use crate::aux::molecule::Molecule;
-
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
 #[allow(unused_imports)]
 use crate::io::QSym2FileType;
+use crate::symmetry::symmetry_core::Symmetry;
+use crate::symmetry::symmetry_element::{AntiunitaryKind, SymmetryElementKind};
+use crate::symmetry::symmetry_element_order::ElementOrder;
+
+// ===========================
+// Struct and enum definitions
+// ===========================
+
+// ----------
+// PyMolecule
+// ----------
 
 /// A Python-exposed structure to marshall molecular structure information between Rust and Python.
 ///
@@ -101,6 +115,212 @@ impl From<PyMolecule> for Molecule {
     }
 }
 
+// ---------------------
+// PySymmetryElementKind
+// ---------------------
+
+/// A Python-exposed structure to marshall symmetry element kind information one-way from Rust to
+/// Python.
+#[pyclass]
+#[derive(Clone, Hash, PartialEq, Eq)]
+pub enum PySymmetryElementKind {
+    /// Variant denoting proper symmetry elements.
+    Proper,
+
+    /// Variant denoting time-reversed proper symmetry elements.
+    ProperTR,
+
+    /// Variant denoting improper symmetry elements (mirror-plane convention).
+    ImproperMirrorPlane,
+
+    /// Variant denoting time-reversed improper symmetry elements (mirror-plane convention).
+    ImproperMirrorPlaneTR,
+}
+
+impl fmt::Display for PySymmetryElementKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PySymmetryElementKind::Proper => write!(f, "Proper"),
+            PySymmetryElementKind::ProperTR => write!(f, "Time-reversed proper"),
+            PySymmetryElementKind::ImproperMirrorPlane => {
+                write!(f, "Improper (mirror-plane convention)")
+            }
+            PySymmetryElementKind::ImproperMirrorPlaneTR => {
+                write!(f, "Time-reversed improper (mirror-plane convention)")
+            }
+        }
+    }
+}
+
+impl TryFrom<&SymmetryElementKind> for PySymmetryElementKind {
+    type Error = anyhow::Error;
+
+    fn try_from(symkind: &SymmetryElementKind) -> Result<Self, Self::Error> {
+        match symkind {
+            SymmetryElementKind::Proper(None) => Ok(Self::Proper),
+            SymmetryElementKind::Proper(Some(AntiunitaryKind::TimeReversal)) => Ok(Self::ProperTR),
+            SymmetryElementKind::ImproperMirrorPlane(None) => Ok(Self::ImproperMirrorPlane),
+            SymmetryElementKind::ImproperMirrorPlane(Some(AntiunitaryKind::TimeReversal)) => {
+                Ok(Self::ImproperMirrorPlaneTR)
+            }
+            _ => Err(format_err!(
+                "Symmetry element kind `{symkind}` is not yet supported in Python."
+            )),
+        }
+    }
+}
+
+// ----------
+// PySymmetry
+// ----------
+
+/// A Python-exposed structure to marshall symmetry information one-way from Rust to Python.
+#[pyclass]
+#[derive(Clone)]
+pub struct PySymmetry {
+    /// The symmetry elements.
+    ///
+    /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
+    pub elements: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+
+    /// The symmetry generators.
+    ///
+    /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
+    pub generators: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+}
+
+#[pymethods]
+impl PySymmetry {
+    /// Returns symmetry elements of all *finite* orders of a given kind.
+    ///
+    /// # Arguments
+    ///
+    /// * `kind` - The symmetry element kind. Python type: `PySymmetryElementKind`.
+    ///
+    /// # Returns
+    ///
+    /// A hashmap where the keys are integers indicating the orders of the elements and the values
+    /// are vectors of one-dimensional arrays, each of which gives the axis of a symmetry element.
+    /// If the order value is `-1`, then the associated elements have infinite order.
+    ///
+    /// Python type: `dict[int, list[numpy.1darray[float]]]`.
+    fn get_elements_of_kind(
+        &self,
+        kind: &PySymmetryElementKind,
+    ) -> PyResult<HashMap<i32, Vec<Py<PyArray1<f64>>>>> {
+        self.elements
+            .get(kind)
+            .cloned()
+            .ok_or(PyRuntimeError::new_err(format!(
+                "Elements of kind `{kind}` not found."
+            )))
+    }
+
+    /// Returns symmetry generators of *finite*  and *infinite* orders of a given kind.
+    ///
+    /// # Arguments
+    ///
+    /// * `kind` - The symmetry generator kind. Python type: `PySymmetryElementKind`.
+    ///
+    /// # Returns
+    ///
+    /// A hashmap where the keys are integers indicating the orders of the generators and the values
+    /// are vectors of one-dimensional arrays, each of which gives the axis of a symmetry generator.
+    /// If the order value is `-1`, then the associated generators have infinite order.
+    ///
+    /// Python type: `dict[int, list[numpy.1darray[float]]]`.
+    fn get_generators_of_kind(
+        &self,
+        kind: &PySymmetryElementKind,
+    ) -> PyResult<HashMap<i32, Vec<Py<PyArray1<f64>>>>> {
+        self.generators
+            .get(kind)
+            .cloned()
+            .ok_or(PyRuntimeError::new_err(format!(
+                "Elements of kind `{kind}` not found."
+            )))
+    }
+}
+
+impl TryFrom<&Symmetry> for PySymmetry {
+    type Error = anyhow::Error;
+
+    fn try_from(sym: &Symmetry) -> Result<Self, Self::Error> {
+        let elements = sym
+            .elements
+            .iter()
+            .map(|(symkind, kind_elements)| {
+                let pysymkind = PySymmetryElementKind::try_from(symkind)?;
+                let pykind_elements = kind_elements
+                    .iter()
+                    .map(|(order, order_elements)| {
+                        let order_i32 = match order {
+                            ElementOrder::Int(ord) => i32::try_from(*ord)?,
+                            ElementOrder::Inf => -1,
+                        };
+                        let pyorder_elements = order_elements
+                            .iter()
+                            .map(|ele| {
+                                Python::with_gil(|py| {
+                                    ele.raw_axis()
+                                        .iter()
+                                        .cloned()
+                                        .collect::<Vec<_>>()
+                                        .to_pyarray(py)
+                                        .to_owned()
+                                })
+                            })
+                            .collect::<Vec<_>>();
+                        Ok::<_, Self::Error>((order_i32, pyorder_elements))
+                    })
+                    .collect::<Result<HashMap<i32, Vec<_>>, _>>()?;
+                Ok::<_, Self::Error>((pysymkind, pykind_elements))
+            })
+            .collect::<Result<HashMap<_, _>, _>>()?;
+
+        let generators = sym
+            .generators
+            .iter()
+            .map(|(symkind, kind_generators)| {
+                let pysymkind = PySymmetryElementKind::try_from(symkind)?;
+                let pykind_generators = kind_generators
+                    .iter()
+                    .map(|(order, order_generators)| {
+                        let order_i32 = match order {
+                            ElementOrder::Int(ord) => i32::try_from(*ord)?,
+                            ElementOrder::Inf => -1,
+                        };
+                        let pyorder_generators = order_generators
+                            .iter()
+                            .map(|ele| {
+                                Python::with_gil(|py| {
+                                    ele.raw_axis()
+                                        .iter()
+                                        .cloned()
+                                        .collect::<Vec<_>>()
+                                        .to_pyarray(py)
+                                        .to_owned()
+                                })
+                            })
+                            .collect::<Vec<_>>();
+                        Ok::<_, Self::Error>((order_i32, pyorder_generators))
+                    })
+                    .collect::<Result<HashMap<i32, Vec<_>>, _>>()?;
+                Ok::<_, Self::Error>((pysymkind, pykind_generators))
+            })
+            .collect::<Result<HashMap<_, _>, _>>()?;
+
+        Ok(Self {
+            elements,
+            generators,
+        })
+    }
+}
+
+// =========
+// Functions
+// =========
+
 /// A Python-exposed function to perform symmetry-group detection and log the result via the
 /// `qsym2-output` logger at the `INFO` level.
 ///
@@ -138,7 +358,7 @@ pub fn detect_symmetry_group(
     write_symmetry_elements: bool,
     fictitious_magnetic_field: Option<[f64; 3]>,
     fictitious_electric_field: Option<[f64; 3]>,
-) -> PyResult<()> {
+) -> PyResult<(PySymmetry, Option<PySymmetry>)> {
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&distance_thresholds)
         .moi_thresholds(&moi_thresholds)
@@ -166,5 +386,22 @@ pub fn detect_symmetry_group(
     pd_driver
         .run()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    Ok(())
+    let pyunitary_symmetry: PySymmetry = (&pd_driver
+        .result()
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+        .unitary_symmetry)
+        .try_into()
+        .map_err(|err: anyhow::Error| PyRuntimeError::new_err(err.to_string()))?;
+    let pymagnetic_symmetry: Option<PySymmetry> = pd_driver
+        .result()
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+        .magnetic_symmetry
+        .as_ref()
+        .map(|magsym| {
+            magsym
+                .try_into()
+                .map_err(|err: anyhow::Error| PyRuntimeError::new_err(err.to_string()))
+        })
+        .transpose()?;
+    Ok((pyunitary_symmetry, pymagnetic_symmetry))
 }
