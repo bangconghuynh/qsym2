@@ -40,7 +40,7 @@ pub enum InputShellOrder {
 
 impl InputShellOrder {
     /// Converts the [`InputShellOrder`] to a corresponding [`ShellOrder`].
-    fn to_shell_order(&self, l: u32) -> ShellOrder {
+    pub fn to_shell_order(&self, l: u32) -> ShellOrder {
         match self {
             InputShellOrder::PureIncreasingm => ShellOrder::Pure(PureOrder::increasingm(l)),
             InputShellOrder::PureDecreasingm => ShellOrder::Pure(PureOrder::decreasingm(l)),
@@ -64,20 +64,20 @@ impl InputShellOrder {
 #[derive(Clone, Debug, Builder, Serialize, Deserialize)]
 pub struct InputBasisShell {
     /// A non-negative integer indicating the rank of the shell.
-    l: u32,
+    pub l: u32,
 
     /// An enum indicating the type of the angular functions in a shell and how they are ordered.
-    shell_order: InputShellOrder,
+    pub shell_order: InputShellOrder,
 }
 
 impl InputBasisShell {
     /// Returns a builder to construct [`InputBasisShell`].
-    pub(crate) fn builder() -> InputBasisShellBuilder {
+    pub fn builder() -> InputBasisShellBuilder {
         InputBasisShellBuilder::default()
     }
 
     /// Returns the number of basis functions in this shell.
-    fn n_funcs(&self) -> usize {
+    pub fn n_funcs(&self) -> usize {
         let lsize = self.l as usize;
         match self.shell_order {
             InputShellOrder::PureIncreasingm
@@ -90,7 +90,7 @@ impl InputBasisShell {
     }
 
     /// Converts the [`InputBasisShell`] to a corresponding [`BasisShell`].
-    fn to_basis_shell(&self) -> BasisShell {
+    pub fn to_basis_shell(&self) -> BasisShell {
         BasisShell::new(self.l, self.shell_order.to_shell_order(self.l))
     }
 }
@@ -106,20 +106,20 @@ impl InputBasisShell {
 #[derive(Clone, Debug, Builder, Serialize, Deserialize)]
 pub struct InputBasisAtom {
     /// The index and name of an atom in the basis set.
-    atom: (usize, String),
+    pub atom: (usize, String),
 
     /// The ordered shells associated with this atom.
-    basis_shells: Vec<InputBasisShell>,
+    pub basis_shells: Vec<InputBasisShell>,
 }
 
 impl InputBasisAtom {
     /// Returns a builder to construct [`InputBasisAtom`].
-    pub(crate) fn builder() -> InputBasisAtomBuilder {
+    pub fn builder() -> InputBasisAtomBuilder {
         InputBasisAtomBuilder::default()
     }
 
     /// Returns the number of basis functions localised on this atom.
-    fn n_funcs(&self) -> usize {
+    pub fn n_funcs(&self) -> usize {
         self.basis_shells.iter().map(InputBasisShell::n_funcs).sum()
     }
 
@@ -137,7 +137,7 @@ impl InputBasisAtom {
     ///
     /// Errors if the atom index and name in this [`InputBasisAtom`] do not match the
     /// corresponding atom in `mol`.
-    pub(crate) fn to_basis_atom<'a>(
+    pub fn to_basis_atom<'a>(
         &self,
         mol: &'a Molecule,
     ) -> Result<BasisAtom<'a>, anyhow::Error> {
@@ -176,11 +176,11 @@ impl InputBasisAtom {
 /// The associated anonymous field is an ordered sequence of [`InputBasisAtom`] in the order the
 /// atoms are defined in the molecule.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct InputBasisAngularOrder(pub(crate) Vec<InputBasisAtom>);
+pub struct InputBasisAngularOrder(pub Vec<InputBasisAtom>);
 
 impl InputBasisAngularOrder {
     /// Returns the number of basis functions in this basis set.
-    pub(crate) fn n_funcs(&self) -> usize {
+    pub fn n_funcs(&self) -> usize {
         self.0.iter().map(InputBasisAtom::n_funcs).sum()
     }
 
@@ -198,7 +198,7 @@ impl InputBasisAngularOrder {
     ///
     /// Errors if the atom indices and names in this [`InputBasisAngularOrder`] do not match
     /// those in `mol`.
-    pub(crate) fn to_basis_angular_order<'a>(
+    pub fn to_basis_angular_order<'a>(
         &self,
         mol: &'a Molecule,
     ) -> Result<BasisAngularOrder<'a>, anyhow::Error> {
