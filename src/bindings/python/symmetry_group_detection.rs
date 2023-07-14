@@ -9,8 +9,8 @@ use numpy::{PyArray1, ToPyArray};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::atom::{Atom, ElementMap};
+use crate::auxiliary::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };

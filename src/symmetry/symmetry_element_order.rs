@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 
 use serde::{Deserialize, Serialize};
 
-use crate::aux::misc::HashableFloat;
+use crate::auxiliary::misc::HashableFloat;
 
 /// An enumerated type to handle symmetry element orders.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]

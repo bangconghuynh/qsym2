@@ -3,9 +3,9 @@ use nalgebra::Vector3;
 use ndarray::array;
 
 use crate::analysis::RepAnalysis;
-use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::geometry::Transform;
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::atom::{Atom, ElementMap};
+use crate::auxiliary::geometry::Transform;
+use crate::auxiliary::molecule::Molecule;
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::UnitaryRepresentedGroup;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};

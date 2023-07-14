@@ -13,8 +13,8 @@ use ndarray_linalg::{Eigh, UPLO};
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
-use crate::aux::atom::{Atom, AtomKind, ElementMap};
-use crate::aux::geometry::{self, ImproperRotationKind, Transform};
+use crate::auxiliary::atom::{Atom, AtomKind, ElementMap};
+use crate::auxiliary::geometry::{self, ImproperRotationKind, Transform};
 use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
 
 #[cfg(test)]

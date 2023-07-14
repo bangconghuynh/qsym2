@@ -1,4 +1,4 @@
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::molecule::Molecule;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 

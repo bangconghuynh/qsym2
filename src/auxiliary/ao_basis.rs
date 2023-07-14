@@ -10,8 +10,8 @@ use derive_builder::Builder;
 use itertools::{izip, Itertools};
 
 use crate::angmom::ANGMOM_LABELS;
-use crate::aux::atom::Atom;
-use crate::aux::misc::ProductRepeat;
+use crate::auxiliary::atom::Atom;
+use crate::auxiliary::misc::ProductRepeat;
 use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
 
 #[cfg(test)]

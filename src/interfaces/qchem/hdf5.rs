@@ -16,10 +16,10 @@ use periodic_table::periodic_table;
 use regex::Regex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::ao_basis::BasisAngularOrder;
-use crate::aux::ao_basis::*;
-use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::ao_basis::BasisAngularOrder;
+use crate::auxiliary::ao_basis::*;
+use crate::auxiliary::atom::{Atom, ElementMap};
+use crate::auxiliary::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;

@@ -2,9 +2,9 @@ use nalgebra::{Rotation3, Vector3};
 use num_traits::ToPrimitive;
 
 use super::*;
-use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::molecule::Molecule;
-use crate::aux::template_molecules;
+use crate::auxiliary::atom::{Atom, AtomKind};
+use crate::auxiliary::molecule::Molecule;
+use crate::auxiliary::template_molecules;
 use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");

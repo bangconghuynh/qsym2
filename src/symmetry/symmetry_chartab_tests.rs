@@ -6,8 +6,8 @@ use nalgebra::Vector3;
 use num::Complex;
 use num_traits::{ToPrimitive, Zero};
 
-use crate::aux::molecule::Molecule;
-use crate::aux::template_molecules;
+use crate::auxiliary::molecule::Molecule;
+use crate::auxiliary::template_molecules;
 use crate::chartab::character::Character;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{CollectionSymbol, LinearSpaceSymbol, MathematicalSymbol};

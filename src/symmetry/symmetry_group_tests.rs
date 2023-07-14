@@ -6,8 +6,8 @@ use itertools::Itertools;
 use nalgebra::Vector3;
 use num_traits::Pow;
 
-use crate::aux::molecule::Molecule;
-use crate::aux::template_molecules;
+use crate::auxiliary::molecule::Molecule;
+use crate::auxiliary::template_molecules;
 use crate::group::class::ClassProperties;
 use crate::group::{
     EagerGroup, GroupProperties, GroupType, MagneticRepresentedGroup, UnitaryRepresentedGroup,

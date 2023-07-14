@@ -1,7 +1,7 @@
 use nalgebra::Vector3;
 use std::collections::HashSet;
 
-use crate::aux::misc;
+use crate::auxiliary::misc;
 use crate::symmetry::symmetry_element::{
     AntiunitaryKind, ElementOrder, RotationGroup, SymmetryElement, INV, ROT, SIG, TRINV, TRROT,
     TRSIG,

@@ -12,9 +12,9 @@ use nalgebra::{Point3, Vector3};
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::aux::atom::Atom;
-use crate::aux::geometry::{self, Transform};
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::atom::Atom;
+use crate::auxiliary::geometry::{self, Transform};
+use crate::auxiliary::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::{
     sort_operations, SpecialSymmetryTransformation, SymmetryOperation,

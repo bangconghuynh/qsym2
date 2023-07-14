@@ -1,5 +1,5 @@
-use crate::aux::atom::{Atom, AtomKind, ElementMap};
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::atom::{Atom, AtomKind, ElementMap};
+use crate::auxiliary::molecule::Molecule;
 use nalgebra::Point3;
 
 #[must_use]

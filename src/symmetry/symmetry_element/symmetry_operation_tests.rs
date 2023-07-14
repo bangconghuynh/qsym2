@@ -2,7 +2,7 @@ use nalgebra::{Point3, Vector3};
 use num_traits::{Inv, Pow, Zero};
 use std::collections::HashSet;
 
-use crate::aux::geometry;
+use crate::auxiliary::geometry;
 use crate::symmetry::symmetry_element::symmetry_operation::{
     FiniteOrder, SpecialSymmetryTransformation, SymmetryOperation,
 };

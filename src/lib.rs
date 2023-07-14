@@ -1,6 +1,6 @@
 pub mod analysis;
 pub mod angmom;
-pub mod aux;
+pub mod auxiliary;
 pub mod bindings;
 pub mod chartab;
 pub mod drivers;

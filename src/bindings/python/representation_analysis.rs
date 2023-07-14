@@ -10,10 +10,10 @@ use pyo3::prelude::*;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::angmom::ANGMOM_INDICES;
-use crate::aux::ao_basis::{
+use crate::auxiliary::ao_basis::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::molecule::Molecule;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,

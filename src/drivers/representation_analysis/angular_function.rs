@@ -8,11 +8,11 @@ use rayon::prelude::*;
 use crate::analysis::RepAnalysis;
 use crate::angmom::sh_conversion::sh_cart2rl_mat;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::ao_basis::{
+use crate::auxiliary::ao_basis::{
     cart_tuple_to_str, BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
-use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::atom::{Atom, ElementMap};
+use crate::auxiliary::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::io::format::{log_subtitle, qsym2_output};

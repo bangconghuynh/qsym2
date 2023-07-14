@@ -11,8 +11,8 @@ use num::integer::gcd;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 
-use crate::aux::geometry;
-use crate::aux::misc::{self, HashableFloat};
+use crate::auxiliary::geometry;
+use crate::auxiliary::misc::{self, HashableFloat};
 use crate::symmetry::symmetry_element_order::ElementOrder;
 
 type F = fraction::GenericFraction<u32>;

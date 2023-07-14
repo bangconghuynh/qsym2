@@ -2,8 +2,8 @@ use anyhow::{self, ensure, format_err};
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use crate::aux::ao_basis::*;
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::ao_basis::*;
+use crate::auxiliary::molecule::Molecule;
 
 // ---------------
 // InputShellOrder

@@ -8,8 +8,8 @@ use num_traits::ToPrimitive;
 use periodic_table;
 use serde::{Deserialize, Serialize};
 
-use crate::aux::geometry::{self, ImproperRotationKind, Transform};
-use crate::aux::misc::{self, HashableFloat};
+use crate::auxiliary::geometry::{self, ImproperRotationKind, Transform};
+use crate::auxiliary::misc::{self, HashableFloat};
 
 /// A structure storing a look-up of element symbols to give atomic numbers
 /// and atomic masses.

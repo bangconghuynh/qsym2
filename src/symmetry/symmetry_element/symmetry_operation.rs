@@ -11,10 +11,10 @@ use num_traits::{Inv, Pow, Zero};
 use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
 
-use crate::aux::geometry::{
+use crate::auxiliary::geometry::{
     self, improper_rotation_matrix, proper_rotation_matrix, PositiveHemisphere, Transform, IMINV,
 };
-use crate::aux::misc::{self, HashableFloat};
+use crate::auxiliary::misc::{self, HashableFloat};
 use crate::group::FiniteOrder;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::{

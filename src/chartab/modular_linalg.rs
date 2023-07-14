@@ -12,7 +12,7 @@ use num_modular::ModularInteger;
 use num_traits::{Inv, Pow, ToPrimitive, Zero};
 use rayon::prelude::*;
 
-use crate::aux::misc::GramSchmidtError;
+use crate::auxiliary::misc::GramSchmidtError;
 
 #[cfg(test)]
 #[path = "modular_linalg_tests.rs"]

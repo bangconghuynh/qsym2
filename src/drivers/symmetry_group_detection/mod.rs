@@ -8,8 +8,8 @@ use log;
 use nalgebra::{Point3, Vector3};
 use serde::{Deserialize, Serialize};
 
-use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::atom::{Atom, AtomKind};
+use crate::auxiliary::molecule::Molecule;
 use crate::drivers::QSym2Driver;
 use crate::io::format::{
     log_subtitle, log_title, nice_bool, qsym2_output, write_subtitle, QSym2Output,

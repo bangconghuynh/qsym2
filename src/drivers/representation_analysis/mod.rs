@@ -3,7 +3,7 @@ use std::fmt;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::aux::ao_basis::BasisAngularOrder;
+use crate::auxiliary::ao_basis::BasisAngularOrder;
 use crate::group::class::ClassPropertiesSummary;
 use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
 

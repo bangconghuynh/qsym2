@@ -1,4 +1,4 @@
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::molecule::Molecule;
 use crate::rotsym::{self, RotationalSymmetry};
 use nalgebra::Vector3;
 
