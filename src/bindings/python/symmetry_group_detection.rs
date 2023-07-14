@@ -178,6 +178,10 @@ impl TryFrom<&SymmetryElementKind> for PySymmetryElementKind {
 #[pyclass]
 #[derive(Clone)]
 pub struct PySymmetry {
+    /// The name of the symmetry group.
+    #[pyo3(get)]
+    pub group_name: String,
+
     /// The symmetry elements.
     ///
     /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
@@ -191,6 +195,17 @@ pub struct PySymmetry {
 
 #[pymethods]
 impl PySymmetry {
+    /// Returns a boolean indicating if the group is infinite.
+    pub fn is_infinite(&self) -> bool {
+        self.elements
+            .values()
+            .any(|kind_elements| kind_elements.contains_key(&-1))
+            || self
+                .generators
+                .values()
+                .any(|kind_generators| kind_generators.contains_key(&-1))
+    }
+
     /// Returns symmetry elements of all *finite* orders of a given kind.
     ///
     /// # Arguments
@@ -204,7 +219,7 @@ impl PySymmetry {
     /// If the order value is `-1`, then the associated elements have infinite order.
     ///
     /// Python type: `dict[int, list[numpy.1darray[float]]]`.
-    fn get_elements_of_kind(
+    pub fn get_elements_of_kind(
         &self,
         kind: &PySymmetryElementKind,
     ) -> PyResult<HashMap<i32, Vec<Py<PyArray1<f64>>>>> {
@@ -229,7 +244,7 @@ impl PySymmetry {
     /// If the order value is `-1`, then the associated generators have infinite order.
     ///
     /// Python type: `dict[int, list[numpy.1darray[float]]]`.
-    fn get_generators_of_kind(
+    pub fn get_generators_of_kind(
         &self,
         kind: &PySymmetryElementKind,
     ) -> PyResult<HashMap<i32, Vec<Py<PyArray1<f64>>>>> {
@@ -242,10 +257,15 @@ impl PySymmetry {
     }
 }
 
+
 impl TryFrom<&Symmetry> for PySymmetry {
     type Error = anyhow::Error;
 
     fn try_from(sym: &Symmetry) -> Result<Self, Self::Error> {
+        let group_name = sym
+            .group_name
+            .clone()
+            .ok_or(format_err!("Symmetry group name not found."))?;
         let elements = sym
             .elements
             .iter()
@@ -311,6 +331,7 @@ impl TryFrom<&Symmetry> for PySymmetry {
             .collect::<Result<HashMap<_, _>, _>>()?;
 
         Ok(Self {
+            group_name,
             elements,
             generators,
         })
