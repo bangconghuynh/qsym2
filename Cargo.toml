@@ -16,7 +16,6 @@ clap = { version = "4.3.10", features = ["cargo", "derive"] }
 counter = "0.5.7"
 derive_builder = "0.12.0"
 divisors = "0.2.1"
-env_logger = "0.10.0"
 factorial = "0.3.0"
 fraction = { version = "0.13.1", features = ["with-serde-support"] }
 hdf5 = { version = "0.8.1", optional = true }
@@ -37,7 +36,6 @@ num-modular = "0.5.1"
 num-ord = "0.1.0"
 num-traits = "0.2.15"
 numpy = "0.19.0"
-openssl = { version = "0.10.55", features = ["vendored"] }
 ordered-float = "3.7.0"
 periodic_table = "0.4.0"
 phf = { version = "0.11.2", features = ["macros"] }
@@ -50,6 +48,9 @@ regex = "1.8.4"
 rayon = "1.7.0"
 serde = { version = "1.0.164", features = ["derive"] }
 serde_yaml = "0.9.22"
+
+[dev-dependencies]
+env_logger = "0.10.0"
 
 [features]
 intel-mkl-static = ["ndarray-linalg/intel-mkl-static"]
