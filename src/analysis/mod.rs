@@ -214,37 +214,60 @@ where
     fn calc_smat(&mut self, metric: Option<&Array<T, D>>) -> Result<&mut Self, anyhow::Error> {
         let order = self.group().order();
         let mut smat = Array2::<T>::zeros((order, order));
-        for pair in self
-            .iter()
-            .map(|item_res| item_res.map_err(|err| err.to_string()))
-            .enumerate()
-            .combinations_with_replacement(2)
-        {
-            let (w, item_w_res) = &pair[0];
-            let (x, item_x_res) = &pair[1];
-            let item_w = item_w_res
-                .as_ref()
-                .map_err(|err| format_err!(err.clone()))
-                .with_context(|| "One of the items in the orbit is not available")?;
-            let item_x = item_x_res
-                .as_ref()
-                .map_err(|err| format_err!(err.clone()))
-                .with_context(|| "One of the items in the orbit is not available")?;
-            smat[(*w, *x)] = item_w.overlap(item_x, metric).map_err(|err| {
-                log::error!("{err}");
-                log::error!(
-                    "Unable to calculate the overlap between items `{w}` and `{x}` in the orbit."
-                );
-                err
-            })?;
-            if *w != *x {
-                smat[(*x, *w)] = item_x.overlap(item_w, metric).map_err(|err| {
-                        log::error!("{err}");
-                        log::error!(
-                            "Unable to calculate the overlap between items `{x}` and `{w}` in the orbit."
-                        );
-                        err
-                    })?;
+        let item_0 = self.origin();
+        let ctb_opt = self.group().cayley_table();
+        if let Some(ctb) = ctb_opt {
+            let ovs = self
+                .iter()
+                .map(|item_res| {
+                    let item = item_res?;
+                    item.overlap(item_0, metric)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            for (i, j) in (0..order).cartesian_product(0..order) {
+                let jinv = ctb
+                    .slice(s![.., j])
+                    .iter()
+                    .position(|&x| x == 0)
+                    .ok_or(format_err!(
+                        "Unable to find the inverse of group element `{j}`."
+                    ))?;
+                let jinv_i = ctb[(jinv, i)];
+                smat[(i, j)] = self.norm_preserving_scalar_map(jinv)(ovs[jinv_i]);
+            }
+        } else {
+            for pair in self
+                .iter()
+                .map(|item_res| item_res.map_err(|err| err.to_string()))
+                .enumerate()
+                .combinations_with_replacement(2)
+            {
+                let (w, item_w_res) = &pair[0];
+                let (x, item_x_res) = &pair[1];
+                let item_w = item_w_res
+                    .as_ref()
+                    .map_err(|err| format_err!(err.clone()))
+                    .with_context(|| "One of the items in the orbit is not available")?;
+                let item_x = item_x_res
+                    .as_ref()
+                    .map_err(|err| format_err!(err.clone()))
+                    .with_context(|| "One of the items in the orbit is not available")?;
+                smat[(*w, *x)] = item_w.overlap(item_x, metric).map_err(|err| {
+                    log::error!("{err}");
+                    log::error!(
+                        "Unable to calculate the overlap between items `{w}` and `{x}` in the orbit."
+                    );
+                    err
+                })?;
+                if *w != *x {
+                    smat[(*x, *w)] = item_x.overlap(item_w, metric).map_err(|err| {
+                            log::error!("{err}");
+                            log::error!(
+                                "Unable to calculate the overlap between items `{x}` and `{w}` in the orbit."
+                            );
+                            err
+                        })?;
+                }
             }
         }
         self.set_smat(smat);
