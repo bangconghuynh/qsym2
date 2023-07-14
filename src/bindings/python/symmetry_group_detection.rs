@@ -3,6 +3,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use anyhow::{self, format_err};
+use derive_builder::Builder;
 use nalgebra::{Point3, Vector3};
 use numpy::{PyArray1, ToPyArray};
 use pyo3::exceptions::PyRuntimeError;
@@ -176,21 +177,27 @@ impl TryFrom<&SymmetryElementKind> for PySymmetryElementKind {
 
 /// A Python-exposed structure to marshall symmetry information one-way from Rust to Python.
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Builder)]
 pub struct PySymmetry {
     /// The name of the symmetry group.
     #[pyo3(get)]
-    pub group_name: String,
+    group_name: String,
 
     /// The symmetry elements.
     ///
     /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
-    pub elements: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+    elements: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
 
     /// The symmetry generators.
     ///
     /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
-    pub generators: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+    generators: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+}
+
+impl PySymmetry {
+    fn builder() -> PySymmetryBuilder {
+        PySymmetryBuilder::default()
+    }
 }
 
 #[pymethods]
@@ -256,7 +263,6 @@ impl PySymmetry {
             )))
     }
 }
-
 
 impl TryFrom<&Symmetry> for PySymmetry {
     type Error = anyhow::Error;
@@ -330,11 +336,12 @@ impl TryFrom<&Symmetry> for PySymmetry {
             })
             .collect::<Result<HashMap<_, _>, _>>()?;
 
-        Ok(Self {
-            group_name,
-            elements,
-            generators,
-        })
+        PySymmetry::builder()
+            .group_name(group_name)
+            .elements(elements)
+            .generators(generators)
+            .build()
+            .map_err(|err| format_err!(err))
     }
 }
 
