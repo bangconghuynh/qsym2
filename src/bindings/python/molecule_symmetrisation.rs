@@ -4,7 +4,7 @@ use anyhow::format_err;
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
-use crate::aux::atom::AtomKind;
+use crate::auxiliary::atom::AtomKind;
 use crate::bindings::python::symmetry_group_detection::PyMolecule;
 use crate::drivers::molecule_symmetrisation::{
     MoleculeSymmetrisationDriver, MoleculeSymmetrisationParams,

@@ -8,7 +8,7 @@ use crate::angmom::sh_conversion::{
     complexc, complexcinv, norm_cart_gaussian, norm_sph_gaussian, sh_c2r_mat, sh_cart2cl_mat,
     sh_cart2r, sh_cart2rl_mat, sh_cl2cart_mat, sh_r2c_mat, sh_r2cart, sh_rl2cart_mat,
 };
-use crate::aux::ao_basis::{CartOrder, PureOrder};
+use crate::auxiliary::ao_basis::{CartOrder, PureOrder};
 
 type C128 = Complex<f64>;
 

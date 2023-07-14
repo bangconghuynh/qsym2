@@ -8,12 +8,12 @@ use num_traits::Pow;
 
 use crate::analysis::{Overlap, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::ao_basis::{
+use crate::auxiliary::ao_basis::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
-use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::geometry::Transform;
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::atom::{Atom, ElementMap};
+use crate::auxiliary::geometry::Transform;
+use crate::auxiliary::molecule::Molecule;
 use crate::chartab::chartab_symbols::DecomposedSymbol;
 use crate::group::{GroupProperties, MagneticRepresentedGroup, UnitaryRepresentedGroup};
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};

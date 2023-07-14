@@ -1,7 +1,7 @@
-use crate::aux::ao_basis::{
+use crate::auxiliary::ao_basis::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
-use crate::aux::atom::{Atom, ElementMap};
+use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::permutation::PermutableCollection;
 
 #[test]

@@ -17,7 +17,7 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, Zero};
 
 use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis};
-use crate::aux::misc::complex_modified_gram_schmidt;
+use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::SubspaceDecomposable;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;

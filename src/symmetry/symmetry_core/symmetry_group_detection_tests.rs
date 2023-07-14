@@ -1,5 +1,5 @@
-use crate::aux::molecule::Molecule;
-use crate::aux::template_molecules;
+use crate::auxiliary::molecule::Molecule;
+use crate::auxiliary::template_molecules;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::{ROT, SIG, TRROT, TRSIG};
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};

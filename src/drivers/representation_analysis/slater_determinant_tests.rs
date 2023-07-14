@@ -2,7 +2,7 @@ use ndarray::array;
 use num_complex::Complex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::ao_basis::{
+use crate::auxiliary::ao_basis::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
 use crate::chartab::chartab_symbols::DecomposedSymbol;

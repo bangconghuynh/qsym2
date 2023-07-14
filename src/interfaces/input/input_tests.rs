@@ -92,7 +92,7 @@ fn test_interfaces_input_symmetry_group_detection_fromfile() {
 #[test]
 fn test_interfaces_input_bao() {
     use super::analysis::SlaterDeterminantSource;
-    use crate::aux::molecule::Molecule;
+    use crate::auxiliary::molecule::Molecule;
 
     let name = format!("{ROOT}/tests/input/test_input_bao.yml");
     let xyz = format!("{ROOT}/tests/xyz/water.xyz");

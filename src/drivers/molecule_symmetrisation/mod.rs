@@ -8,7 +8,7 @@ use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams, SymmetryGroupDetectionResult,
 };

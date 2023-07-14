@@ -3,13 +3,14 @@ use std::fmt;
 use std::path::PathBuf;
 
 use anyhow::{self, format_err};
+use derive_builder::Builder;
 use nalgebra::{Point3, Vector3};
 use numpy::{PyArray1, ToPyArray};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
-use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::atom::{Atom, ElementMap};
+use crate::auxiliary::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
@@ -176,21 +177,42 @@ impl TryFrom<&SymmetryElementKind> for PySymmetryElementKind {
 
 /// A Python-exposed structure to marshall symmetry information one-way from Rust to Python.
 #[pyclass]
-#[derive(Clone)]
+#[derive(Clone, Builder)]
 pub struct PySymmetry {
+    /// The name of the symmetry group.
+    #[pyo3(get)]
+    group_name: String,
+
     /// The symmetry elements.
     ///
     /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
-    pub elements: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+    elements: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
 
     /// The symmetry generators.
     ///
     /// Python type: `dict[PySymmetryElementKind, dict[int, list[numpy.1darray[float]]]]`
-    pub generators: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+    generators: HashMap<PySymmetryElementKind, HashMap<i32, Vec<Py<PyArray1<f64>>>>>,
+}
+
+impl PySymmetry {
+    fn builder() -> PySymmetryBuilder {
+        PySymmetryBuilder::default()
+    }
 }
 
 #[pymethods]
 impl PySymmetry {
+    /// Returns a boolean indicating if the group is infinite.
+    pub fn is_infinite(&self) -> bool {
+        self.elements
+            .values()
+            .any(|kind_elements| kind_elements.contains_key(&-1))
+            || self
+                .generators
+                .values()
+                .any(|kind_generators| kind_generators.contains_key(&-1))
+    }
+
     /// Returns symmetry elements of all *finite* orders of a given kind.
     ///
     /// # Arguments
@@ -204,7 +226,7 @@ impl PySymmetry {
     /// If the order value is `-1`, then the associated elements have infinite order.
     ///
     /// Python type: `dict[int, list[numpy.1darray[float]]]`.
-    fn get_elements_of_kind(
+    pub fn get_elements_of_kind(
         &self,
         kind: &PySymmetryElementKind,
     ) -> PyResult<HashMap<i32, Vec<Py<PyArray1<f64>>>>> {
@@ -229,7 +251,7 @@ impl PySymmetry {
     /// If the order value is `-1`, then the associated generators have infinite order.
     ///
     /// Python type: `dict[int, list[numpy.1darray[float]]]`.
-    fn get_generators_of_kind(
+    pub fn get_generators_of_kind(
         &self,
         kind: &PySymmetryElementKind,
     ) -> PyResult<HashMap<i32, Vec<Py<PyArray1<f64>>>>> {
@@ -246,6 +268,10 @@ impl TryFrom<&Symmetry> for PySymmetry {
     type Error = anyhow::Error;
 
     fn try_from(sym: &Symmetry) -> Result<Self, Self::Error> {
+        let group_name = sym
+            .group_name
+            .clone()
+            .ok_or(format_err!("Symmetry group name not found."))?;
         let elements = sym
             .elements
             .iter()
@@ -310,10 +336,12 @@ impl TryFrom<&Symmetry> for PySymmetry {
             })
             .collect::<Result<HashMap<_, _>, _>>()?;
 
-        Ok(Self {
-            elements,
-            generators,
-        })
+        PySymmetry::builder()
+            .group_name(group_name)
+            .elements(elements)
+            .generators(generators)
+            .build()
+            .map_err(|err| format_err!(err))
     }
 }
 

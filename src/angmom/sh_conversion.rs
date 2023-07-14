@@ -5,7 +5,7 @@ use ndarray::{Array2, Axis};
 use num::{BigUint, Complex};
 use num_traits::{cast::ToPrimitive, Zero};
 
-use crate::aux::ao_basis::{CartOrder, PureOrder};
+use crate::auxiliary::ao_basis::{CartOrder, PureOrder};
 use crate::permutation::PermutableCollection;
 
 #[cfg(test)]

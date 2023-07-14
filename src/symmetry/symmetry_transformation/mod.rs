@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::angmom::sh_conversion::{sh_cart2r, sh_r2cart};
 use crate::angmom::sh_rotation_3d::rlmat;
 use crate::angmom::spinor_rotation_3d::dmat_angleaxis;
-use crate::aux::ao_basis::{BasisAngularOrder, CartOrder, PureOrder, ShellOrder};
+use crate::auxiliary::ao_basis::{BasisAngularOrder, CartOrder, PureOrder, ShellOrder};
 use crate::permutation::{PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,

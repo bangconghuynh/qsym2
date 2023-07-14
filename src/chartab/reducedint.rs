@@ -6,7 +6,7 @@ use num::{integer::gcd, Integer};
 use num_modular::{ModularInteger, Montgomery, ReducedInt, Reducer};
 use num_traits::{Inv, One, Pow, Zero};
 
-use crate::aux::misc;
+use crate::auxiliary::misc;
 
 #[cfg(test)]
 #[path = "reducedint_tests.rs"]

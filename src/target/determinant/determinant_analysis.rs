@@ -19,7 +19,7 @@ use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::aux::misc::complex_modified_gram_schmidt;
+use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::GroupType;

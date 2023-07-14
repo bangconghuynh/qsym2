@@ -10,7 +10,7 @@ use num::Complex;
 use num_traits::{ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
 
-use crate::aux::misc::HashableFloat;
+use crate::auxiliary::misc::HashableFloat;
 use crate::chartab::unityroot::UnityRoot;
 
 type F = fraction::GenericFraction<u32>;

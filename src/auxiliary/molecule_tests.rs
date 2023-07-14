@@ -3,9 +3,9 @@ use std::collections::HashSet;
 use approx;
 use nalgebra::{Point3, Vector3};
 
-use crate::aux::atom::{Atom, AtomKind, ElementMap};
-use crate::aux::geometry::{Transform, IMINV, IMSIG};
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::atom::{Atom, AtomKind, ElementMap};
+use crate::auxiliary::geometry::{Transform, IMINV, IMSIG};
+use crate::auxiliary::molecule::Molecule;
 use crate::permutation::{PermutableCollection, Permutation};
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");

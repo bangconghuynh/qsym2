@@ -7,7 +7,7 @@ use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
 
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::molecule::Molecule;
 
 #[cfg(test)]
 mod vibration_tests;

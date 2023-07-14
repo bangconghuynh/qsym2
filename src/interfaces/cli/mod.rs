@@ -6,7 +6,7 @@ use clap::Parser;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use crate::aux::contributors::CONTRIBUTORS;
+use crate::auxiliary::contributors::CONTRIBUTORS;
 use crate::io::format::{log_subtitle, log_title, qsym2_output, QSym2Output};
 
 const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");

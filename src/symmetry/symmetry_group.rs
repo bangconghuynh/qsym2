@@ -5,7 +5,7 @@ use itertools::Itertools;
 use nalgebra::Vector3;
 use ordered_float::OrderedFloat;
 
-use crate::aux::geometry::{self, PositiveHemisphere};
+use crate::auxiliary::geometry::{self, PositiveHemisphere};
 use crate::chartab::chartab_group::{
     CharacterProperties, IrcorepCharTabConstruction, IrrepCharTabConstruction,
 };

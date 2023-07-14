@@ -9,8 +9,8 @@ use nalgebra::{ClosedMul, Matrix3, Point3, Rotation3, Scalar, UnitVector3, Vecto
 use num_traits::{One, ToPrimitive};
 use serde::{Deserialize, Serialize};
 
-use crate::aux::atom::Atom;
-use crate::aux::misc::HashableFloat;
+use crate::auxiliary::atom::Atom;
+use crate::auxiliary::misc::HashableFloat;
 
 type F32 = fraction::GenericFraction<u32>;
 

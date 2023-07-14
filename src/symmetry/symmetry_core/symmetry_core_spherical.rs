@@ -5,7 +5,7 @@ use itertools::{self, Itertools};
 use log;
 use nalgebra::Vector3;
 
-use crate::aux::geometry;
+use crate::auxiliary::geometry;
 use crate::rotsym::RotationalSymmetry;
 use crate::symmetry::symmetry_element::SIG;
 use crate::symmetry::symmetry_element_order::{ElementOrder, ORDER_1, ORDER_2};

@@ -2,8 +2,8 @@ use itertools::Itertools;
 use nalgebra::{Rotation3, Vector3};
 use num_traits::ToPrimitive;
 
-use crate::aux::atom::{Atom, AtomKind};
-use crate::aux::molecule::Molecule;
+use crate::auxiliary::atom::{Atom, AtomKind};
+use crate::auxiliary::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{DecomposedSymbol, ReducibleLinearSpaceSymbol};
 use crate::chartab::{CharacterTable, SubspaceDecomposable};

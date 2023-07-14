@@ -1,7 +1,7 @@
 use nalgebra::Vector3;
 
-use crate::aux::atom::{Atom, ElementMap};
-use crate::aux::geometry;
+use crate::auxiliary::atom::{Atom, ElementMap};
+use crate::auxiliary::geometry;
 
 #[test]
 fn test_check_regular_polygon() {
