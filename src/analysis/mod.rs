@@ -215,8 +215,8 @@ where
         let order = self.group().order();
         let mut smat = Array2::<T>::zeros((order, order));
         let item_0 = self.origin();
-        let ctb_opt = self.group().cayley_table();
-        if let Some(ctb) = ctb_opt {
+        if let Some(ctb) = self.group().cayley_table() {
+            log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
             let ovs = self
                 .iter()
                 .map(|item_res| {
@@ -236,6 +236,7 @@ where
                 smat[(i, j)] = self.norm_preserving_scalar_map(jinv)(ovs[jinv_i]);
             }
         } else {
+            log::debug!("Cayley table not available. Overlap matrix will be constructed without group-closure speed-up.");
             for pair in self
                 .iter()
                 .map(|item_res| item_res.map_err(|err| err.to_string()))
@@ -270,7 +271,14 @@ where
                 }
             }
         }
-        self.set_smat(smat);
+        if self.origin().complex_symmetric() {
+            self.set_smat((smat.clone() + smat.t().to_owned()).mapv(|x| x / (T::one() + T::one())))
+        } else {
+            self.set_smat(
+                (smat.clone() + smat.t().to_owned().mapv(|x| x.conj()))
+                    .mapv(|x| x / (T::one() + T::one())),
+            )
+        }
         Ok(self)
     }
 

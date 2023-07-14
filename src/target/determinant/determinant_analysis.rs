@@ -5,6 +5,7 @@ use anyhow::{self, ensure, format_err, Context};
 use approx;
 use derive_builder::Builder;
 use itertools::{izip, Itertools};
+use log;
 use ndarray::{Array1, Array2, Axis, Ix2};
 use ndarray_linalg::{
     assert_close_l2,
@@ -238,6 +239,7 @@ where
     /// `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of full
     /// rank.
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) -> &mut Self {
+        log::debug!("Calculating X matrix for complex Slater determinant orbit...");
         // Complex S, symmetric or Hermitian
         // eigh cannot be used here because complex symmetric S does not necessarily yield all real
         // eigenvalues.
@@ -277,6 +279,7 @@ where
         };
         self.smat_eigvals = Some(s_eig);
         self.xmat = Some(xmat);
+        log::debug!("Calculating X matrix for complex Slater determinant orbit... Done.");
         self
     }
 }
@@ -398,6 +401,7 @@ where
         <<G as CharacterProperties>::CharTab as SubspaceDecomposable<T>>::Decomposition,
         DecompositionError,
     > {
+        log::debug!("Analysing representation symmetry for a Slater determinant...");
         let nelectrons_float = self.origin().nelectrons();
         if approx::relative_eq!(
             nelectrons_float.round(),
@@ -431,10 +435,13 @@ where
 
             if valid_symmetry {
                 let chis = self.calc_characters();
+                log::debug!("Characters calculated.");
                 let res = self.group().character_table().reduce_characters(
                     &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
                     self.integrality_threshold(),
                 );
+                log::debug!("Characters reduced.");
+                log::debug!("Analysing representation symmetry for a Slater determinant... Done.");
                 res
             } else {
                 Err(DecompositionError(err_str))

@@ -485,6 +485,7 @@ where
     SlaterDeterminant<'a, T>: SymmetryTransformable,
     MolecularOrbital<'a, T>: SymmetryTransformable,
 {
+    log::debug!("Constructing determinant and MO orbits in tandem...");
     let order = group.order();
     let mut det_orbit = SlaterDeterminantSymmetryOrbit::<G, T>::builder()
         .group(group)
@@ -516,6 +517,7 @@ where
     let thresh = det.threshold();
 
     if let Some(ctb) = group.cayley_table() {
+        log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
         let mut det_smatw0 = Array1::<T>::zeros(order);
         let mut mo_smatw0ss = mo_orbitss
             .iter()
@@ -571,31 +573,34 @@ where
                 SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => w0_ov,
             };
             det_smatw0[w] = w0_ov;
+        }
 
-            for (i, j) in (0..order).cartesian_product(0..order) {
-                let jinv = ctb
-                    .slice(s![.., j])
-                    .iter()
-                    .position(|&x| x == 0)
-                    .ok_or(format_err!(
-                        "Unable to find the inverse of group element `{j}`."
-                    ))?;
-                let jinv_i = ctb[(jinv, i)];
+        for (i, j) in (0..order).cartesian_product(0..order) {
+            let jinv = ctb
+                .slice(s![.., j])
+                .iter()
+                .position(|&x| x == 0)
+                .ok_or(format_err!(
+                    "Unable to find the inverse of group element `{j}`."
+                ))?;
+            let jinv_i = ctb[(jinv, i)];
 
-                mo_smatw0ss
-                    .iter()
-                    .enumerate()
-                    .for_each(|(ispin, mo_smatw0s)| {
-                        mo_smatw0s.iter().enumerate().for_each(|(imo, mo_smat_w0)| {
-                            mo_smatss[ispin][imo][(i, j)] =
-                                det_orbit.norm_preserving_scalar_map(jinv)(mo_smat_w0[jinv_i]);
-                        });
+            mo_smatw0ss
+                .iter()
+                .enumerate()
+                .for_each(|(ispin, mo_smatw0s)| {
+                    mo_smatw0s.iter().enumerate().for_each(|(imo, mo_smat_w0)| {
+                        mo_smatss[ispin][imo][(i, j)] = mo_orbitss[ispin][imo]
+                            .norm_preserving_scalar_map(jinv)(
+                            mo_smat_w0[jinv_i]
+                        );
                     });
+                });
 
-                det_smat[(i, j)] = det_orbit.norm_preserving_scalar_map(jinv)(det_smatw0[jinv_i]);
-            }
+            det_smat[(i, j)] = det_orbit.norm_preserving_scalar_map(jinv)(det_smatw0[jinv_i]);
         }
     } else {
+        log::debug!("Cayley table not available. Overlap matrix will be constructed without group-closure speed-up.");
         let indexed_dets = det_orbit
             .iter()
             .map(|det_res| det_res.map_err(|err| err.to_string()))
@@ -657,7 +662,18 @@ where
             det_smat[(*w, *x)] = wx_ov;
         }
     }
-    det_orbit.set_smat(det_smat);
+
+    if det_orbit.origin().complex_symmetric() {
+        det_orbit.set_smat(
+            (det_smat.clone() + det_smat.t().to_owned()).mapv(|x| x / (T::one() + T::one())),
+        );
+    } else {
+        det_orbit.set_smat(
+            (det_smat.clone() + det_smat.t().to_owned().mapv(|x| x.conj()))
+                .mapv(|x| x / (T::one() + T::one())),
+        );
+    };
+
     mo_orbitss
         .iter_mut()
         .enumerate()
@@ -665,8 +681,22 @@ where
             mo_orbits
                 .iter_mut()
                 .enumerate()
-                .for_each(|(imo, mo_orbit)| mo_orbit.set_smat(mo_smatss[ispin][imo].clone()))
+                .for_each(|(imo, mo_orbit)| {
+                    if mo_orbit.origin().complex_symmetric() {
+                        mo_orbit.set_smat(
+                            (mo_smatss[ispin][imo].clone() + mo_smatss[ispin][imo].t().to_owned())
+                                .mapv(|x| x / (T::one() + T::one())),
+                        )
+                    } else {
+                        mo_orbit.set_smat(
+                            (mo_smatss[ispin][imo].clone()
+                                + mo_smatss[ispin][imo].t().to_owned().mapv(|x| x.conj()))
+                            .mapv(|x| x / (T::one() + T::one())),
+                        )
+                    }
+                })
         });
 
+    log::debug!("Constructing determinant and MO orbits in tandem... Done.");
     Ok((det_orbit, mo_orbitss))
 }
