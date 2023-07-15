@@ -6,6 +6,7 @@ use derive_builder::Builder;
 use nalgebra::Point3;
 use ndarray::{Array2, Axis};
 use num_traits::ToPrimitive;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::auxiliary::molecule::Molecule;
@@ -30,9 +31,15 @@ mod molecule_symmetrisation_tests;
 // Parameters
 // ----------
 
-fn default_true() -> bool { true }
-fn default_max_iterations() -> usize { 5 }
-fn default_target_threshold() -> f64 { 1e-7 }
+fn default_true() -> bool {
+    true
+}
+fn default_max_iterations() -> usize {
+    5
+}
+fn default_target_threshold() -> f64 {
+    1e-7
+}
 
 /// A structure containing control parameters for molecule symmetrisation.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
@@ -402,7 +409,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
 
             // Generate transformation matrix and atom permutations for each operation
             let ts = high_ops
-                .into_iter()
+                .into_par_iter()
                 .flat_map(|op| {
                     let tmat = op
                         .get_3d_spatial_matrix()
@@ -429,7 +436,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 })
                 .collect::<Vec<_>>();
 
-            // Apply the totally-symmetric projection operator to the ordinary atoms
+            // Apply the totally-symmetric projection operator to the ordinary atoms in parallel
             let trial_ord_coords = Array2::from_shape_vec(
                 (trial_mol.atoms.len(), 3),
                 trial_mol
@@ -438,18 +445,25 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                     .flat_map(|atom| atom.coordinates.coords.iter().cloned())
                     .collect::<Vec<_>>(),
             )?;
-            let ave_ord_coords = ts.iter().fold(
-                Array2::<f64>::zeros(trial_ord_coords.raw_dim()),
-                |acc, (tmat, ord_perm, _, _)| {
-                    // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
-                    // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
-                    // go back to approximately where they were originally.
-                    acc + trial_ord_coords.dot(tmat).select(Axis(0), ord_perm.image())
-                },
-            ) / order_f64;
+            let ave_ord_coords = ts
+                .par_iter()
+                .fold(
+                    || Array2::<f64>::zeros(trial_ord_coords.raw_dim()),
+                    |acc, (tmat, ord_perm, _, _)| {
+                        // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
+                        // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
+                        // go back to approximately where they were originally.
+                        acc + trial_ord_coords.dot(tmat).select(Axis(0), ord_perm.image())
+                    },
+                )
+                .reduce(
+                    || Array2::<f64>::zeros(trial_ord_coords.raw_dim()),
+                    |acc, m| acc + m,
+                )
+                / order_f64;
             trial_mol
                 .atoms
-                .iter_mut()
+                .par_iter_mut()
                 .enumerate()
                 .for_each(|(i, atom)| {
                     atom.coordinates = Point3::<f64>::from_slice(
@@ -654,7 +668,10 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
             if let Some(xyz_name) = params.symmetrised_result_xyz.as_ref() {
                 let mut path = xyz_name.clone();
                 path.set_extension("xyz");
-                verifying_pd_res.pre_symmetry.recentred_molecule.to_xyz(&path)?;
+                verifying_pd_res
+                    .pre_symmetry
+                    .recentred_molecule
+                    .to_xyz(&path)?;
                 qsym2_output!("Symmetrised molecule written to: {}", path.display());
                 qsym2_output!("");
             }
