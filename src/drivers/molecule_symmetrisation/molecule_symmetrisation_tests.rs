@@ -1,3 +1,4 @@
+use log4rs;
 use nalgebra::{Point3, Vector3};
 
 use crate::drivers::molecule_symmetrisation::{
@@ -290,7 +291,8 @@ fn test_drivers_molecule_symmetrisation_c2h2() {
 
 #[test]
 fn test_drivers_molecule_symmetrisation_cp10() {
-    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cp10_flat.xyz");
     let params = SymmetryGroupDetectionParams::builder()
         .distance_thresholds(&[2e-1])

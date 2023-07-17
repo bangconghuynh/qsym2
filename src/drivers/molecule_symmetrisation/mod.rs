@@ -436,7 +436,7 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                 })
                 .collect::<Vec<_>>();
 
-            // Apply the totally-symmetric projection operator to the ordinary atoms in parallel
+            // Apply the totally-symmetric projection operator to the ordinary atoms
             let trial_ord_coords = Array2::from_shape_vec(
                 (trial_mol.atoms.len(), 3),
                 trial_mol
@@ -445,22 +445,17 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
                     .flat_map(|atom| atom.coordinates.coords.iter().cloned())
                     .collect::<Vec<_>>(),
             )?;
-            let ave_ord_coords = ts
-                .par_iter()
-                .fold(
-                    || Array2::<f64>::zeros(trial_ord_coords.raw_dim()),
-                    |acc, (tmat, ord_perm, _, _)| {
-                        // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
-                        // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
-                        // go back to approximately where they were originally.
-                        acc + trial_ord_coords.dot(tmat).select(Axis(0), ord_perm.image())
-                    },
-                )
-                .reduce(
-                    || Array2::<f64>::zeros(trial_ord_coords.raw_dim()),
-                    |acc, m| acc + m,
-                )
-                / order_f64;
+            let ave_ord_coords = ts.iter().fold(
+                // Parallelisation here does not improve performance, and even causes more
+                // numerical instability.
+                Array2::<f64>::zeros(trial_ord_coords.raw_dim()),
+                |acc, (tmat, ord_perm, _, _)| {
+                    // coords.dot(tmat) gives the atom positions transformed in R^3 by tmat.
+                    // .select(Axis(0), perm.image()) then permutes the rows so that the atom positions
+                    // go back to approximately where they were originally.
+                    acc + trial_ord_coords.dot(tmat).select(Axis(0), ord_perm.image())
+                },
+            ) / order_f64;
             trial_mol
                 .atoms
                 .par_iter_mut()
