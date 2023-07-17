@@ -8,7 +8,7 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::auxiliary::ao_basis::BasisAngularOrder;
+use crate::basis::ao::BasisAngularOrder;
 use crate::auxiliary::molecule::Molecule;
 
 #[cfg(test)]

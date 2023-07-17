@@ -15,8 +15,8 @@ use crate::auxiliary::misc::ProductRepeat;
 use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
 
 #[cfg(test)]
-#[path = "ao_basis_tests.rs"]
-mod ao_basis_tests;
+#[path = "ao_tests.rs"]
+mod ao_tests;
 
 // ---------
 // CartOrder

@@ -2,7 +2,7 @@ use ndarray::{concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
-use crate::auxiliary::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
+use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::auxiliary::molecule::Molecule;
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
