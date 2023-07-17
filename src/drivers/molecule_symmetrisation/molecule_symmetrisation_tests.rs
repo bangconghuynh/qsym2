@@ -1,3 +1,4 @@
+use log4rs;
 use nalgebra::{Point3, Vector3};
 
 use crate::drivers::molecule_symmetrisation::{
