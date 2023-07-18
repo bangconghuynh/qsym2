@@ -6,6 +6,7 @@ pub mod bindings;
 pub mod chartab;
 pub mod drivers;
 pub mod group;
+pub mod integrals;
 pub mod interfaces;
 pub mod io;
 pub mod permutation;

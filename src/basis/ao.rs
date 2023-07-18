@@ -633,7 +633,7 @@ impl BasisShell {
     }
 
     /// The number of basis functions in this shell.
-    fn n_funcs(&self) -> usize {
+    pub fn n_funcs(&self) -> usize {
         let lsize = self.l as usize;
         match self.shell_order {
             ShellOrder::Pure(_) => 2 * lsize + 1,
