@@ -5,19 +5,22 @@ mod shell_tuple_tests;
 macro_rules! define_shell_tuple {
     ( <$($shell_name:ident),+> ) => {
         use std::marker::PhantomData;
+        use std::collections::{HashSet, HashMap};
 
         use log;
+        use indexmap::IndexSet;
+        use itertools::{izip, Itertools};
         use nalgebra::{Point3, Vector3};
         use ndarray::{Array, Array1, Dim, Dimension};
 
         use crate::basis::ao_integrals::BasisShellContraction;
-        use crate::integrals::count_exprs;
+        use crate::integrals::{count_exprs, replace_expr};
 
         const RANK: usize = count_exprs!($($shell_name),+);
 
         /// A structure to handle pre-computed properties of a tuple of shells consisting of
         /// non-integration primitives.
-        #[derive(Clone, Debug)]
+        #[derive(Debug)]
         struct ShellTuple<'a, D: Dimension> {
             dim: PhantomData<D>,
 
@@ -152,6 +155,7 @@ macro_rules! define_shell_tuple {
                 self.shells.len()
             }
 
+            /// The maximum angular momentum across all shells.
             fn lmax(&self) -> u32 {
                 self.shells
                     .iter()
@@ -161,16 +165,118 @@ macro_rules! define_shell_tuple {
             }
         }
 
-        /// A structure to handle pre-computed properties of a tuple of shells consisting of
-        /// non-integration primitives.
-        #[derive(Clone, Debug)]
+        /// A structure to handle all possible shell tuples for a particular type of integral.
+        #[derive(Debug)]
         struct ShellTupleCollection<'a, D: Dimension> {
             dim: PhantomData<D>,
 
             shell_tuples: Array<ShellTuple<'a, D>, Dim<[usize; RANK]>>,
 
             lmax: u32,
+
+            ccs: [bool; RANK],
+
+            n_shells: [usize; RANK],
         }
+
+        impl<'a, D: Dimension> ShellTupleCollection<'a, D> {
+            /// The maximum angular momentum across all shell tuples.
+            fn lmax(&self) -> u32 {
+                self.lmax
+            }
+
+            /// The number of shells in each tuple in the collection.
+            fn rank(&self) -> usize {
+                self.shell_tuples.ndim()
+            }
+
+            /// Returns a vector of the shell tuples unique with respect to permutations of the
+            /// constituent shells, taking into account complex conjugation, symmetry
+            /// transformation, and derivative patterns.
+            ///
+            /// # Arguments
+            ///
+            /// * `ls` - The derivative pattern.
+            ///
+            /// # Returns
+            ///
+            /// A vector of the unique shell tuples.
+            fn get_unique_shell_tuples(&self, ls: [usize; RANK]) {
+                // Example:
+                //     ccs = [true, true, false, true, false]
+                //     ls  = [   1,    1,     0,    2,     0]
+                //     sym = [   1,    0,     0,    0,     0] -- not considered for now
+                //     nsh = [   2,    1,     2,    2,     2]
+                //           i.e. Each shell position has three possible shells.
+
+                // Each shell type is a tuple of its complex-conjugationness, its derivative
+                // order, and its length. The vector `shell_types` collects these tuples together.
+                // Example:
+                // shell_types = [
+                //     (true, 1, 3), (true, 1, 4), (false, 0, 3), (true, 2, 3), (false, 0, 3)
+                // ].
+                // We see that there are four types here, and only shell positions that
+                // have the same type have permutation equivalence, i.e. [0, 1], [2, 4], [3].
+                let shell_types: Vec<(bool, usize, usize)>
+                    = izip!(self.ccs, ls, self.n_shells).collect::<Vec<_>>();
+
+                // The map `shell_types_classified` keeps track of the unique shell types in this
+                // shell tuple and the associated shell positions as tuples.
+                // Example:
+                // shell_types_classified = {
+                //     (true , 1, 2): (0,),
+                //     (true , 1, 1): (1,),
+                //     (false, 0, 2): (2, 4),
+                //     (true , 2, 2): (3,)
+                // }.
+                let mut shell_types_classified: HashMap<(bool, usize, usize), IndexSet<usize>>
+                    = HashMap::new();
+                shell_types.into_iter().enumerate().for_each(|(shell_index, shell_type)| {
+                    shell_types_classified.entry(shell_type).or_default().insert(shell_index);
+                });
+
+                // The map `masks` is essentially equivalent to `shell_types_classified`.
+                // Example:
+                // masks = {
+                //     (true , 1, 2): [true , false, false, false, false],
+                //     (true , 1, 1): [false, true , false, false, false],
+                //     (false, 0, 2): [false, false, true , false, true ],
+                //     (true , 2, 2): [false, false, false, true , false]
+                // }.
+                let default_mask = [$(replace_expr!(($shell_name) false)),+];
+                let masks = shell_types_classified.iter().map(|(shell_type, shell_indices)| {
+                    let mut mask = default_mask.clone();
+                    (0..RANK).for_each(|i| mask[i] = shell_indices.contains(&i));
+                    (shell_type, mask)
+                }).collect::<HashMap<_, _>>();
+
+                // The map `shell_type_unique_combinations` stores the unique index combinations
+                // for each shell type.
+                // Example:
+                // shell_type_unique_combinations = {
+                //   (true , 1, 2): [(0,), (1,)],
+                //   (true , 1, 1): [(0,)],
+                //   (false, 0, 2): [(0, 0), (0, 1), (1, 1)],
+                //   (true , 2, 2): [(0,), (1,)],
+                // }
+                let shell_type_unique_combinations = shell_types_classified
+                    .iter()
+                    .map(|(shell_type, shell_indices)| {
+                        (
+                            shell_type,
+                            (0..shell_type.2)
+                                .combinations_with_replacement(shell_indices.len())
+                                .collect::<Vec<_>>()
+                        )
+                    }).collect::<HashMap<_, _>>();
+
+                println!("{:?}", shell_type_unique_combinations);
+            }
+        }
+
+        // struct UniqueShellTupleIterator<'a, D: Dimension> {
+        //     dim: PhantomData<D>,
+        // }
     }
 }
 
@@ -303,7 +409,7 @@ macro_rules! build_shell_tuple {
 }
 
 macro_rules! build_shell_tuple_collection {
-    ( <$($shell_name:ident),+>; $($shells:expr),+ ) => {
+    ( <$($shell_name:ident),+>; $($shell_cc:expr),+; $($shells:expr),+ ) => {
         {
             use itertools::iproduct;
 
@@ -313,7 +419,7 @@ macro_rules! build_shell_tuple_collection {
                 let arr_vec = iproduct!($($shells.iter()),+)
                     .map(|shell_tuple| {
                         let ($($shell_name),+) = shell_tuple;
-                        build_shell_tuple!($(*$shell_name),+)
+                        build_shell_tuple!($((*$shell_name, $shell_cc)),+)
                     })
                     .collect::<Vec<_>>();
                 let arr = Array::<ShellTuple<Dim<[usize; RANK]>>, Dim<[usize; RANK]>>::from_shape_vec(
@@ -325,18 +431,24 @@ macro_rules! build_shell_tuple_collection {
                 arr
             };
 
-            // let lmax = shell_tuples.iter().map(|shell_tuple| shell_tuple.lmax()).max().expect("Unable to determine the maximum angular momentum ");
             let lmax: u32 = *[$(
-                $shells.iter().map(|(shell, _)| shell.basis_shell.l).collect::<Vec<_>>()
+                $shells.iter().map(|shell| shell.basis_shell.l).collect::<Vec<_>>()
             ),+].iter()
                 .flatten()
                 .max()
                 .expect("Unable to determine the maximum angular momentum across all shells.");
 
+            log::debug!("Rank-{RANK} shell tuple collection construction:");
+            log::debug!(
+                "  Total number of tuples: {}",
+                shell_tuples.shape().iter().fold(1, |acc, s| acc * s)
+            );
             ShellTupleCollection::<Dim<[usize; RANK]>> {
                 dim: PhantomData,
                 shell_tuples,
                 lmax,
+                ccs: [$($shell_cc),+],
+                n_shells: [$($shells.len()),+]
             }
         }
     }

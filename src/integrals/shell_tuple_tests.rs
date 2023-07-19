@@ -73,9 +73,16 @@ fn test_integrals_shell_tuple_collection() {
         cart_origin: Point3::new(2.0, 1.0, 1.0),
         k: Some(Vector3::z()),
     };
-    let bscs = [(&bsc0, false), (&bsc1, false)];
-    let stc = build_shell_tuple_collection![<s1, s2>; bscs, bscs];
-    println!("{:#?}", stc.lmax);
+    let bscs_1 = [&bsc0];
+    let bscs_2 = [&bsc0, &bsc1];
+    let stc = build_shell_tuple_collection![
+        <s1, s2, s3, s4, s5>;
+        true, true, false, true, false;
+        bscs_2, bscs_1, bscs_2, bscs_2, bscs_2
+    ];
+    assert_eq!(stc.lmax(), 2);
+    assert_eq!(stc.ccs, [true, true, false, true, false]);
+    stc.get_unique_shell_tuples([1, 1, 0, 2, 0]);
 
     // let st2 = build_shell_tuple![(&bsc, true), (&bsc, false), (&bsc, false), (&bsc, true)];
     // println!("{}", st2.rank());

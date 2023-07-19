@@ -6,4 +6,8 @@ macro_rules! count_exprs {
     ($head:expr, $($tail:expr),*) => (1 + count_exprs!($($tail),*));
 }
 
-use count_exprs;
+macro_rules! replace_expr {
+    ($_t:tt $sub:expr) => {$sub};
+}
+
+use {count_exprs, replace_expr};
