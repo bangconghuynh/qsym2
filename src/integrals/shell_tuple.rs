@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "shell_tuple_tests.rs"]
+mod shell_tuple_tests;
+
 macro_rules! define_shell_tuple {
     ( <$($shell_name:ident),+> ) => {
         use std::marker::PhantomData;
@@ -77,7 +81,7 @@ macro_rules! define_shell_tuple {
             /// Chemical Physics* **94**, 3790–3804 (1991),
             /// [DOI](https://doi.org/10.1063/1.459751).
             ///
-            /// This is a [`Self::rank`]-dimensional array. The element `sg[i, j, k, ...]`
+            /// This is a [`Self::rank`]-dimensional array. The element `zg[i, j, k, ...]`
             /// gives the sum of the i-th primitive exponent on the first shell, the j-th
             /// primitive exponent on the second shell, the k-th primitive exponent on the
             /// third shell, and so on.
@@ -156,6 +160,17 @@ macro_rules! define_shell_tuple {
                     .expect("The maximum angular momentum across all shells cannot be found.")
             }
         }
+
+        /// A structure to handle pre-computed properties of a tuple of shells consisting of
+        /// non-integration primitives.
+        #[derive(Clone, Debug)]
+        struct ShellTupleCollection<'a, D: Dimension> {
+            dim: PhantomData<D>,
+
+            shell_tuples: Array<ShellTuple<'a, D>, Dim<[usize; RANK]>>,
+
+            lmax: u32,
+        }
     }
 }
 
@@ -227,7 +242,13 @@ macro_rules! build_shell_tuple {
                         }
                     ),+],
 
-                k: [$($shell.0.k()),+]
+                k: [$(
+                        if $shell.1 {
+                            $shell.0.k().copied().map(|k| -k)
+                        } else {
+                            $shell.0.k().copied()
+                        }
+                    ),+]
                     .into_iter()
                     .filter_map(|k| k)
                     .fold(Vector3::zeros(), |acc, k| acc + k),
@@ -288,107 +309,37 @@ macro_rules! build_shell_tuple_collection {
 
             define_shell_tuple![<$($shell_name),+>];
 
-            /// A structure to handle pre-computed properties of a tuple of shells consisting of
-            /// non-integration primitives.
-            #[derive(Clone, Debug)]
-            struct ShellTupleCollection<'a, D: Dimension> {
-                dim: PhantomData<D>,
+            let shell_tuples = {
+                let arr_vec = iproduct!($($shells.iter()),+)
+                    .map(|shell_tuple| {
+                        let ($($shell_name),+) = shell_tuple;
+                        build_shell_tuple!($(*$shell_name),+)
+                    })
+                    .collect::<Vec<_>>();
+                let arr = Array::<ShellTuple<Dim<[usize; RANK]>>, Dim<[usize; RANK]>>::from_shape_vec(
+                    ($($shells.len()),+), arr_vec
+                ).unwrap_or_else(|err| {
+                    log::error!("{err}");
+                    panic!("Unable to construct the {RANK}-dimensional array of shell tuples.")
+                });
+                arr
+            };
 
-                shell_tuples: Array<ShellTuple<'a, D>, Dim<[usize; RANK]>>,
-            }
+            // let lmax = shell_tuples.iter().map(|shell_tuple| shell_tuple.lmax()).max().expect("Unable to determine the maximum angular momentum ");
+            let lmax: u32 = *[$(
+                $shells.iter().map(|(shell, _)| shell.basis_shell.l).collect::<Vec<_>>()
+            ),+].iter()
+                .flatten()
+                .max()
+                .expect("Unable to determine the maximum angular momentum across all shells.");
 
             ShellTupleCollection::<Dim<[usize; RANK]>> {
                 dim: PhantomData,
-
-                shell_tuples: {
-                    let arr_vec = iproduct!($($shells.iter()),+)
-                        .map(|shell_tuple| {
-                            let ($($shell_name),+) = shell_tuple;
-                            build_shell_tuple!($(*$shell_name),+)
-                        })
-                        .collect::<Vec<_>>();
-                    let arr = Array::<ShellTuple<Dim<[usize; RANK]>>, Dim<[usize; RANK]>>::from_shape_vec(
-                        ($($shells.len()),+), arr_vec
-                    ).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        panic!("Unable to construct the {RANK}-dimensional array of coefficient products.")
-                    });
-                    arr
-                },
+                shell_tuples,
+                lmax,
             }
         }
     }
 }
 
-#[test]
-fn test_integrals_shell_tuple() {
-    use crate::basis::ao::*;
-    use crate::basis::ao_integrals::*;
-
-    define_shell_tuple![<s1, s2, s3>];
-
-    let bs0 = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
-    let gc0 = GaussianContraction::<f64, f64> {
-        primitives: vec![(0.1, 0.1), (0.2, 0.2)],
-    };
-    let bsc0 = BasisShellContraction::<f64, f64> {
-        basis_shell: bs0,
-        start_index: 0,
-        contraction: gc0,
-        cart_origin: Point3::new(1.0, 0.0, 0.0),
-        k: None,
-    };
-    let bs1 = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
-    let gc1 = GaussianContraction::<f64, f64> {
-        primitives: vec![(0.3, 0.3), (0.4, 0.4), (0.5, 0.5)],
-    };
-    let bsc1 = BasisShellContraction::<f64, f64> {
-        basis_shell: bs1,
-        start_index: 3,
-        contraction: gc1,
-        cart_origin: Point3::new(2.0, 1.0, 1.0),
-        k: Some(Vector3::z()),
-    };
-    let st = build_shell_tuple![(&bsc0, true), (&bsc1, false), (&bsc1, true)];
-    println!("{:#?}", st.shell_boundaries);
-    println!("{:#?}", st.ks);
-
-    // let st2 = build_shell_tuple![(&bsc, true), (&bsc, false), (&bsc, false), (&bsc, true)];
-    // println!("{}", st2.rank());
-}
-
-#[test]
-fn test_integrals_shell_tuple_collection() {
-    use crate::basis::ao::*;
-    use crate::basis::ao_integrals::*;
-    use nalgebra::{Point3, Vector3};
-
-    let bs0 = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
-    let gc0 = GaussianContraction::<f64, f64> {
-        primitives: vec![(0.1, 0.1), (0.2, 0.2)],
-    };
-    let bsc0 = BasisShellContraction::<f64, f64> {
-        basis_shell: bs0,
-        start_index: 0,
-        contraction: gc0,
-        cart_origin: Point3::new(1.0, 0.0, 0.0),
-        k: None,
-    };
-    let bs1 = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
-    let gc1 = GaussianContraction::<f64, f64> {
-        primitives: vec![(0.3, 0.3), (0.4, 0.4), (0.5, 0.5)],
-    };
-    let bsc1 = BasisShellContraction::<f64, f64> {
-        basis_shell: bs1,
-        start_index: 3,
-        contraction: gc1,
-        cart_origin: Point3::new(2.0, 1.0, 1.0),
-        k: Some(Vector3::z()),
-    };
-    let bscs = [(&bsc0, false), (&bsc1, false)];
-    let stc = build_shell_tuple_collection![<s1, s2>; bscs, bscs];
-    println!("{:#?}", stc.shell_tuples[(0, 1)]);
-
-    // let st2 = build_shell_tuple![(&bsc, true), (&bsc, false), (&bsc, false), (&bsc, true)];
-    // println!("{}", st2.rank());
-}
+use {build_shell_tuple, build_shell_tuple_collection, define_shell_tuple};
