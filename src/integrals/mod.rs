@@ -46,60 +46,121 @@ macro_rules! build_shell_tuple {
                 // ------------------------------------------------
                 /// A vector of arrays of primitive exponents.
                 ///
-                /// The i-th array in the vector is for the i-th shell. The j-th element in that array then
-                /// gives the exponent of the j-th primitive exponent of that shell.
+                /// The i-th array in the vector is for the i-th shell. The j-th element in that
+                /// array then gives the exponent of the j-th primitive exponent of that shell.
                 ss: [Array1<&'a f64>; RANK],
 
-                /// An array containing the sum of all possible combinations of primitive exponents across all
-                /// shells.
+                /// An array containing the sums of all possible combinations of primitive exponents
+                /// across all shells.
                 ///
-                /// This is a [`Self::rank`]-dimensional array. The element sg[i, j, k, ...]
-                /// gives the sum of the i-th primitive exponent on the first shell, the
-                /// j-th primitive exponent on the second shell, the k-th primitive
-                /// exponent on the third shell, and so on.
+                /// This is a [`Self::rank`]-dimensional array. The element `sg[i, j, k, ...]` gives
+                /// the sum of the i-th primitive exponent on the first shell, the j-th primitive
+                /// exponent on the second shell, the k-th primitive exponent on the third shell,
+                /// and so on.
                 sg: Array<f64, Dim<[usize; RANK]>>,
+
+                /// An array containing the products of all possible combinations of primitive
+                /// exponents across all shells.
+                ///
+                /// This is a [`Self::rank`]-dimensional array. The element `sd[i, j, k, ...]` gives
+                /// the product of the i-th primitive exponent on the first shell, the j-th
+                /// primitive exponent on the second shell, the k-th primitive exponent on the
+                /// third shell, and so on.
+                sd: Array<f64, Dim<[usize; RANK]>>,
+
+                /// A vector of arrays of contraction coefficients.
+                ///
+                /// The i-th array in the vector is for the i-th shell. The j-th element in that
+                /// array then gives the contraction coefficient of the j-th primitive exponent of
+                /// that shell.
+                ds: [Array1<&'a f64>; RANK],
+
+                /// An array containing the product of all possible combinations of primitives
+                /// across all shells.
+                ///
+                /// This is a [`Self::rank`]-dimensional array. The element `dd[i, j, k, ...]` gives
+                /// the product of the i-th primitive's coefficient on the first shell, the j-th
+                /// primitive's coefficient on the second shell, the k-th primitive's coefficient
+                /// on the third shell, and so on.
+                dd: Array<f64, Dim<[usize; RANK]>>,
+
+                /// An array containing the exponent-weighted Cartesian centres of all possible
+                /// combinations of primitives across all shells.
+                ///
+                /// This is a [`Self::rank`]-dimensional array. The element `rg[i, j, k, ...]` gives
+                /// the exponent-weighted Cartesian centre of the i-th primitive on the first shell,
+                /// the j-th primitive on the second shell, the k-th primitive on the third shell,
+                /// and so on.
+                rg: Array<Point3<f64>, Dim<[usize; RANK]>>,
+
+                qs: [Array<Vector3<f64>, Dim<[usize; RANK]>>; RANK]
             }
 
-            impl<'a> ShellTuple<'a> {
-                fn shells(&self) -> &[(&'a BasisShellContraction<f64, f64>, bool); RANK] {
-                    &self.shells
-                }
+            // impl<'a> ShellTuple<'a> {
+            //     fn shells(&self) -> &[(&'a BasisShellContraction<f64, f64>, bool); RANK] {
+            //         &self.shells
+            //     }
 
-                /// The number of shells in this tuple.
-                fn rank(&self) -> usize {
-                    self.shells.len()
-                }
+            //     /// The number of shells in this tuple.
+            //     fn rank(&self) -> usize {
+            //         self.shells.len()
+            //     }
 
-                fn lmax(&self) -> u32 {
-                    self.shells
-                        .iter()
-                        .map(|(bsc, _)| bsc.basis_shell().l)
-                        .max()
-                        .expect("The maximum angular momentum across all shells cannot be found.")
-                }
+            //     fn lmax(&self) -> u32 {
+            //         self.shells
+            //             .iter()
+            //             .map(|(bsc, _)| bsc.basis_shell().l)
+            //             .max()
+            //             .expect("The maximum angular momentum across all shells cannot be found.")
+            //     }
 
-                fn ks(&self) -> &[Option<&Vector3<f64>>; RANK] {
-                    &self.ks
-                }
+            //     fn ks(&self) -> &[Option<&Vector3<f64>>; RANK] {
+            //         &self.ks
+            //     }
 
-                fn k(&self) -> &Vector3<f64> {
-                    &self.k
-                }
-            }
+            //     fn k(&self) -> &Vector3<f64> {
+            //         &self.k
+            //     }
+            // }
+
+            let rg = {
+                let arr_vec = [$(
+                    $shell.0.contraction.primitives.iter().map(|(e, _)| *e * $shell.0.cart_origin).collect::<Vec<_>>()
+                ),+].into_iter()
+                    .multi_cartesian_product()
+                    .map(|s| {
+                        s.into_iter()
+                            .fold(Point3::origin(), |acc, r| acc + r.coords)
+                    })
+                    .collect::<Vec<_>>();
+                let arr = Array::<Point3<f64>, Dim<[usize; RANK]>>::from_shape_vec(
+                    ($($shell.0.contraction.primitives.len()),+), arr_vec
+                ).unwrap_or_else(|err| {
+                    log::error!("{err}");
+                    panic!("Unable to construct the {RANK}-dimensional array of exponent-weighted centres.")
+                });
+                arr
+            };
 
             ShellTuple {
                 shells: [$($shell),+],
+
                 rs: [$($shell.0.cart_origin()),+],
+
                 ks: [$($shell.0.k()),+],
+
                 k: [$($shell.0.k()),+]
                     .into_iter()
                     .filter_map(|k| k)
                     .fold(Vector3::zeros(), |acc, k| acc + k),
+
                 ns: [$(
                         usize::try_from($shell.0.basis_shell().l)
                             .expect("Unable to convert an angular momentum `l` value to `usize`.")
                     ),+],
+
                 shell_shape: [$($shell.0.basis_shell().n_funcs()),+],
+
                 ss: [$(Array1::from_iter($shell.0.contraction.primitives.iter().map(|(e, _)| e))),+],
                 sg: {
                     let arr_vec = [$(
@@ -115,6 +176,42 @@ macro_rules! build_shell_tuple {
                     });
                     arr
                 },
+
+                sd: {
+                    let arr_vec = [$(
+                        $shell.0.contraction.primitives.iter().map(|(e, _)| e).collect::<Vec<_>>()
+                    ),+].into_iter()
+                        .multi_cartesian_product()
+                        .map(|s| s.into_iter().fold(1.0, |acc, e| acc * e)).collect::<Vec<_>>();
+                    let arr = Array::<f64, Dim<[usize; RANK]>>::from_shape_vec(
+                        ($($shell.0.contraction.primitives.len()),+), arr_vec
+                    ).unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        panic!("Unable to construct the {RANK}-dimensional array of exponent products.")
+                    });
+                    arr
+                },
+
+                ds: [$(Array1::from_iter($shell.0.contraction.primitives.iter().map(|(_, c)| c))),+],
+
+                dd: {
+                    let arr_vec = [$(
+                        $shell.0.contraction.primitives.iter().map(|(_, c)| c).collect::<Vec<_>>()
+                    ),+].into_iter()
+                        .multi_cartesian_product()
+                        .map(|s| s.into_iter().fold(1.0, |acc, c| acc * c)).collect::<Vec<_>>();
+                    let arr = Array::<f64, Dim<[usize; RANK]>>::from_shape_vec(
+                        ($($shell.0.contraction.primitives.len()),+), arr_vec
+                    ).unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        panic!("Unable to construct the {RANK}-dimensional array of coefficient products.")
+                    });
+                    arr
+                },
+
+                rg,
+
+                qs
             }
         }
     }
@@ -133,7 +230,7 @@ fn test_macro() {
     let bsc0 = BasisShellContraction::<f64, f64> {
         basis_shell: bs0,
         contraction: gc0,
-        cart_origin: Point3::<f64>::origin(),
+        cart_origin: Point3::new(1.0, 0.0, 0.0),
         k: None,
     };
     let bs1 = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
@@ -143,11 +240,11 @@ fn test_macro() {
     let bsc1 = BasisShellContraction::<f64, f64> {
         basis_shell: bs1,
         contraction: gc1,
-        cart_origin: Point3::<f64>::origin(),
+        cart_origin: Point3::new(2.0, 1.0, 1.0),
         k: None,
     };
     let st = build_shell_tuple![(&bsc0, true), (&bsc1, false)];
-    println!("{}", st.sg);
+    println!("{}", st.dd);
 
     // let st2 = build_shell_tuple![(&bsc, true), (&bsc, false), (&bsc, false), (&bsc, true)];
     // println!("{}", st2.rank());
