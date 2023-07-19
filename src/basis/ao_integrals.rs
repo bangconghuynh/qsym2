@@ -26,6 +26,9 @@ pub(crate) struct BasisShellContraction<E, C> {
     /// Basis function ordering information.
     pub(crate) basis_shell: BasisShell,
 
+    /// The function starting index of this shell in the basis set.
+    pub(crate) start_index: usize,
+
     /// The Gaussian primitives in the contraction of this shell.
     pub(crate) contraction: GaussianContraction<E, C>,
 
