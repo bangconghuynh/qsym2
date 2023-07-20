@@ -5,16 +5,15 @@ mod shell_tuple_tests;
 macro_rules! define_shell_tuple {
     ( <$($shell_name:ident),+> ) => {
         use std::marker::PhantomData;
-        use std::collections::{HashSet, HashMap};
 
         use log;
-        use indexmap::IndexSet;
+        use indexmap::{IndexMap, IndexSet};
         use itertools::{izip, Itertools};
         use nalgebra::{Point3, Vector3};
         use ndarray::{Array, Array1, Dim, Dimension};
 
         use crate::basis::ao_integrals::BasisShellContraction;
-        use crate::integrals::{count_exprs, replace_expr};
+        use crate::integrals::count_exprs;
 
         const RANK: usize = count_exprs!($($shell_name),+);
 
@@ -187,10 +186,10 @@ macro_rules! define_shell_tuple {
 
             /// The number of shells in each tuple in the collection.
             fn rank(&self) -> usize {
-                self.shell_tuples.ndim()
+                RANK
             }
 
-            /// Returns a vector of the shell tuples unique with respect to permutations of the
+            /// Returns an iterator of the shell tuples unique with respect to permutations of the
             /// constituent shells, taking into account complex conjugation, symmetry
             /// transformation, and derivative patterns.
             ///
@@ -201,7 +200,11 @@ macro_rules! define_shell_tuple {
             /// # Returns
             ///
             /// A vector of the unique shell tuples.
-            fn get_unique_shell_tuples(&self, ls: [usize; RANK]) {
+            fn unique_shell_tuples_iter<'it>(
+                &'it self, ls: [usize; RANK]
+            ) -> UniqueShellTupleIterator<'it, 'a, D>
+                where 'a: 'it
+            {
                 // Example:
                 //     ccs = [true, true, false, true, false]
                 //     ls  = [   1,    1,     0,    2,     0]
@@ -224,59 +227,134 @@ macro_rules! define_shell_tuple {
                 // shell tuple and the associated shell positions as tuples.
                 // Example:
                 // shell_types_classified = {
-                //     (true , 1, 2): (0,),
-                //     (true , 1, 1): (1,),
-                //     (false, 0, 2): (2, 4),
-                //     (true , 2, 2): (3,)
+                //     (true , 1, 2): {0},
+                //     (true , 1, 1): {1},
+                //     (false, 0, 2): {2, 4},
+                //     (true , 2, 2): {3}
                 // }.
-                let mut shell_types_classified: HashMap<(bool, usize, usize), IndexSet<usize>>
-                    = HashMap::new();
+                let mut shell_types_classified: IndexMap<(bool, usize, usize), IndexSet<usize>>
+                    = IndexMap::new();
                 shell_types.into_iter().enumerate().for_each(|(shell_index, shell_type)| {
                     shell_types_classified.entry(shell_type).or_default().insert(shell_index);
                 });
 
-                // The map `masks` is essentially equivalent to `shell_types_classified`.
-                // Example:
-                // masks = {
-                //     (true , 1, 2): [true , false, false, false, false],
-                //     (true , 1, 1): [false, true , false, false, false],
-                //     (false, 0, 2): [false, false, true , false, true ],
-                //     (true , 2, 2): [false, false, false, true , false]
-                // }.
-                let default_mask = [$(replace_expr!(($shell_name) false)),+];
-                let masks = shell_types_classified.iter().map(|(shell_type, shell_indices)| {
-                    let mut mask = default_mask.clone();
-                    (0..RANK).for_each(|i| mask[i] = shell_indices.contains(&i));
-                    (shell_type, mask)
-                }).collect::<HashMap<_, _>>();
-
-                // The map `shell_type_unique_combinations` stores the unique index combinations
-                // for each shell type.
+                // The map `shell_indices_unique_combinations` maps, for each shell type, the
+                // corresponding indices of shells of that type to the unique index combinations.
                 // Example:
                 // shell_type_unique_combinations = {
-                //   (true , 1, 2): [(0,), (1,)],
-                //   (true , 1, 1): [(0,)],
-                //   (false, 0, 2): [(0, 0), (0, 1), (1, 1)],
-                //   (true , 2, 2): [(0,), (1,)],
+                //     [0]   : [[0], [1]],
+                //     [1]   : [[0]],
+                //     [2, 4]: [[0, 0], [0, 1], [1, 1]],
+                //     [3]   : [[0], [1]],
                 // }
-                let shell_type_unique_combinations = shell_types_classified
+                let shell_indices_unique_combinations = shell_types_classified
                     .iter()
                     .map(|(shell_type, shell_indices)| {
                         (
-                            shell_type,
+                            shell_indices.iter().collect::<Vec<_>>(),
                             (0..shell_type.2)
                                 .combinations_with_replacement(shell_indices.len())
                                 .collect::<Vec<_>>()
                         )
-                    }).collect::<HashMap<_, _>>();
+                    })
+                    .collect::<IndexMap<_, _>>();
 
-                println!("{:?}", shell_type_unique_combinations);
+                // Example:
+                // sis = [0, 1, 2, 4, 3]
+                // gg = [
+                //     [[0], [1]],
+                //     [[0]],
+                //     [[0, 0], [0, 1], [1, 1]],
+                //     [[0], [1]]
+                // ]
+                // order = [0, 1, 2, 4, 3]
+                let sis = shell_indices_unique_combinations.keys().flatten().collect::<Vec<_>>();
+                let mut order = (0..sis.len()).collect::<Vec<_>>();
+                order.sort_by_key(|&i| &sis[i]);
+                let gg = shell_indices_unique_combinations.into_values().collect::<Vec<_>>();
+
+                // `unordered_recombined_shell_indices` forms all possible combinations of
+                // shell indices across all different shell types.
+                // Example:
+                // unordered_recombined_shell_indices = [
+                //     [[0], [0], [0, 0], [0]],
+                //     [[0], [0], [0, 0], [1]],
+                //     [[0], [0], [0, 1], [0]],
+                //     [[0], [0], [0, 1], [1]],
+                //     [[0], [0], [1, 1], [0]],
+                //     [[0], [0], [1, 1], [1]],
+                //     ...
+                // ] (12 = 2 * 1 * 3 * 2 terms in total)
+                let unordered_recombined_shell_indices = gg
+                    .into_iter()
+                    .multi_cartesian_product()
+                    .into_iter()
+                    .collect::<Vec<_>>();
+
+                UniqueShellTupleIterator::<'it, 'a, D> {
+                    dim: PhantomData,
+                    index: 0,
+                    shell_order: order,
+                    unordered_recombined_shell_indices,
+                    shell_tuples: &self.shell_tuples
+                }
             }
         }
 
-        // struct UniqueShellTupleIterator<'a, D: Dimension> {
-        //     dim: PhantomData<D>,
-        // }
+        struct UniqueShellTupleIterator<'it, 'a: 'it, D: Dimension> {
+            dim: PhantomData<D>,
+            index: usize,
+            shell_order: Vec<usize>,
+            unordered_recombined_shell_indices: Vec<Vec<Vec<usize>>>,
+            shell_tuples: &'it Array<ShellTuple<'a, D>, Dim<[usize; RANK]>>,
+        }
+
+        impl<'it, 'a: 'it, D: Dimension> Iterator for UniqueShellTupleIterator<'it, 'a, D> {
+            type Item = (&'it ShellTuple<'a, D>, Vec<Vec<usize>>);
+
+            fn next(&mut self) -> Option<Self::Item> {
+                let unordered_shell_index = self.unordered_recombined_shell_indices.get(self.index)?;
+
+                // Now, for each term in `unordered_recombined_shell_indices`, we need to
+                // flatten and then reorder to put the shell indices at the correct positions. This
+                // gives `ordered_shell_index`.
+                let flattened_unordered_shell_index = unordered_shell_index
+                    .clone()
+                    .into_iter()
+                    .flatten()
+                    .collect::<Vec<_>>();
+                let ordered_shell_index = self.shell_order.iter().map(|i| {
+                    flattened_unordered_shell_index[*i]
+                }).collect::<Vec<_>>();
+                assert_eq!(ordered_shell_index.len(), RANK);
+                let mut ordered_shell_index_iter = ordered_shell_index.into_iter();
+                $(
+                    let $shell_name = ordered_shell_index_iter
+                        .next()
+                        .expect("Shell index out of range.");
+                )+
+
+                // For each term in `unordered_recombined_shell_indices`, all unique
+                // permutations of each sub-vector gives an equivalent permutation.
+                // Example: consider [[0], [0], [0, 1], [1]]. This gives the following
+                // equivalent permutations:
+                //   [[0], [0], [0, 1], [1]]
+                //   [[0], [0], [1, 0], [1]]
+                // There are two of them (1 * 1 * 2 * 1).
+                // Each equivalent permutation undergoes the same 'flattening' and
+                // 'reordering' process as for the unique term.
+                let equiv_terms = unordered_shell_index
+                    .iter()
+                    .map(|y| y.into_iter().permutations(y.len()).into_iter().unique())
+                    .multi_cartesian_product()
+                    .into_iter()
+                    .map(|x| x.into_iter().flatten().cloned().collect::<Vec<_>>())
+                    .collect::<Vec<_>>();
+
+                self.index += 1;
+                Some((&self.shell_tuples[[$($shell_name),+]], equiv_terms))
+            }
+        }
     }
 }
 

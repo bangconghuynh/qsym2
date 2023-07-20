@@ -82,8 +82,11 @@ fn test_integrals_shell_tuple_collection() {
     ];
     assert_eq!(stc.lmax(), 2);
     assert_eq!(stc.ccs, [true, true, false, true, false]);
-    stc.get_unique_shell_tuples([1, 1, 0, 2, 0]);
-
-    // let st2 = build_shell_tuple![(&bsc, true), (&bsc, false), (&bsc, false), (&bsc, true)];
-    // println!("{}", st2.rank());
+    assert_eq!(stc.unique_shell_tuples_iter([1, 1, 0, 2, 0]).count(), 12);
+    assert_eq!(
+        stc.unique_shell_tuples_iter([1, 1, 0, 2, 0])
+            .flat_map(|(_, equiv_terms)| equiv_terms)
+            .count(),
+        16
+    );
 }
