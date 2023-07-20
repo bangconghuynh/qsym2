@@ -11,12 +11,15 @@ macro_rules! define_shell_tuple {
         use itertools::{izip, Itertools};
         use nalgebra::{Point3, Vector3};
         use ndarray::{Array, Array1, Dim, Dimension};
-        use num_traits::Zero;
+        use num_complex::Complex;
+        use num_traits::ToPrimitive;
 
         use crate::basis::ao_integrals::BasisShellContraction;
         use crate::integrals::{count_exprs, replace_expr};
 
         const RANK: usize = count_exprs!($($shell_name),+);
+
+        type C128 = Complex<f64>;
 
         /// A structure to handle pre-computed properties of a tuple of shells consisting of
         /// non-integration primitives.
@@ -165,7 +168,7 @@ macro_rules! define_shell_tuple {
             }
 
             // fn overlap<T: Zero + Clone>(&self, ls: [usize; RANK]) -> Vec<Array<T, Dim<[usize; RANK]>>> {
-            fn overlap<F64>(&self, ls: [usize; RANK]) {
+            fn overlap_c(&self, ls: [usize; RANK]) {
                 // We require extra Cartesian degrees to calculate derivatives, because each
                 // derivative order increases a corresponding Cartesian rank by one.
                 let ns: [usize; RANK] = if ls.iter().any(|l| *l > 0) {
@@ -196,12 +199,9 @@ macro_rules! define_shell_tuple {
                     ns_mut.iter_mut().for_each(|n| *n += 1);
                     ns_mut
                 };
-                let primitive_shape = self.shell_shape;
                 let arr = Array::<_, Dim<[usize; RANK]>>::from_elem(
                     lrecursion_shape, Array::<_, Dim<[usize; RANK]>>::from_elem(
-                        nrecursion_shape, Array::<f64, Dim<[usize; RANK]>>::zeros(
-                            primitive_shape
-                        )
+                        nrecursion_shape, None::<Array::<C128, Dim<[usize; RANK]>>>
                     )
                 );
                 let mut ints_r = [arr.clone(), arr.clone(), arr];
@@ -234,14 +234,11 @@ macro_rules! define_shell_tuple {
                 let extra_tuples = remaining_tuples
                     .difference(&remaining_tuples_noextra)
                     .collect::<IndexSet<_>>();
-                println!("{extra_tuples:?}");
 
-                remaining_tuples.reverse();
-                let mut initial = true;
-                while let Some((l_tuple, n_tuple)) = remaining_tuples.pop() {
-                    if initial {
+                for (i, (l_tuple, n_tuple)) in remaining_tuples.clone().into_iter().enumerate() {
+                    if i == 0 {
                         // Initial term
-                        initial = false;
+                        remaining_tuples.remove(&(l_tuple, n_tuple));
                         let pre_zg = self.zg.mapv(|zg| (std::f64::consts::PI / zg).sqrt());
                         let exp_zgs = (0..3).map(|i| {
                             let mut exp_zg_i = self.zg.clone();
@@ -258,7 +255,249 @@ macro_rules! define_shell_tuple {
                             });
                             exp_zg_i
                         }).collect::<Vec<_>>();
+
+                        let (exp_ks_opt, exp_kqs_opt) = if self.ks.iter().any(|k| k.is_some()) {
+                            let exp_ks = (0..3).map(|i| {
+                                self.zg.mapv(|zg| {
+                                    (-self.k[i].abs().powi(2) / (4.0 * zg)).exp()
+                                })
+                            }).collect::<Vec<_>>();
+
+                            // Python code:
+                            // exp_kqs: Optional[List[np.ndarray]] = [
+                            //     np.exp(
+                            //         1.0j
+                            //         * sum(
+                            //             self.ks[j][i] * self.qs[j][i]
+                            //             for j in range(self.rank)
+                            //         )
+                            //     )
+                            //     for i in range(3)
+                            // ]
+                            let exp_kqs = (0..3).map(|i| {
+                                    (0..RANK).filter_map(|j| {
+                                    match (self.ks[j], self.qs[j].as_ref()) {
+                                        (Some(kj), Some(qj)) => {
+                                            Some(
+                                                qj.mapv(|qjj| {
+                                                    kj[i] * qjj[i] * Complex::<f64>::i()
+                                                })
+                                            )
+                                        }
+                                        _ => None
+                                    }
+                                })
+                                .fold(
+                                    Array::<Complex<f64>, Dim<[usize; RANK]>>::zeros(self.shell_shape),
+                                    |acc, arr| acc + arr
+                                )
+                            })
+                            .collect::<Vec<_>>();
+                            (Some(exp_ks), Some(exp_kqs))
+                        } else {
+                            (None, None)
+                        };
+
+                        (0..3).for_each(|i| {
+                            match (exp_ks_opt.as_ref(), exp_kqs_opt.as_ref()) {
+                                (Some(exp_ks), Some(exp_kqs)) => {
+                                    ints_r[i][l_tuple][n_tuple] = Some(
+                                        (&pre_zg * &exp_zgs[i] * exp_ks[i]).mapv(C128::from)
+                                            * exp_kqs[i]
+                                    );
+                                }
+                                _ => {
+                                    ints_r[i][l_tuple][n_tuple] = Some(
+                                        (&pre_zg * &exp_zgs[i]).mapv(C128::from)
+                                    );
+                                }
+                            }
+                        });
                     }
+
+                    // n-recurrent terms
+                    for r_index in 0..RANK {
+                        // r_index: recursion index (j in handwritten note)
+                        let next_n_tuple = {
+                            let mut new_n_tuple = n_tuple.clone();
+                            new_n_tuple.iter_mut().enumerate().for_each(|(t, n)| {
+                                if t == r_index { *n += 1 }
+                            });
+                            new_n_tuple
+                        };
+                        if !remaining_tuples.remove(&(l_tuple, next_n_tuple)) {
+                            continue
+                        }
+
+                        (0..3).for_each(|i| {
+                            ints_r[i][l_tuple][next_n_tuple] = Some(
+                                self.rg.map(|r| C128::from(r[i] - self.rs[r_index][i]))
+                                * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
+                                    panic!("({l_tuple:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
+                                })
+                            );
+                        });
+
+                        (0..RANK).for_each(|k| {
+                            if let Some(kk) = self.ks[k].as_ref() {
+                                (0..3).for_each(|i| {
+                                    let add_term = self.zg.mapv(|zg| {
+                                        C128::i() * kk[i] / (2.0 * zg)
+                                    }) * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
+                                        panic!("({l_tuple:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
+                                    });
+                                    if let Some(arr) = ints_r[i][l_tuple][next_n_tuple].as_mut() {
+                                        *arr = *arr + add_term;
+                                    } else {
+                                        ints_r[i][l_tuple][next_n_tuple] = Some(add_term);
+                                    }
+                                });
+                            };
+
+                            if n_tuple[k] > 0 {
+                                let mut prev_n_tuple_k = n_tuple.clone();
+                                prev_n_tuple_k.iter_mut().enumerate().for_each(|(t, n)| {
+                                    if t == k { *n -= 1 }
+                                });
+                                assert!(!remaining_tuples.contains(&(l_tuple, prev_n_tuple_k)));
+                                (0..3).for_each(|i| {
+                                    let add_term = self.zg.mapv(|zg| {
+                                        C128::from(1.0)
+                                        / (2.0 * zg)
+                                        * n_tuple[k]
+                                            .to_f64()
+                                            .unwrap_or_else(|| panic!("Unable to convert `n_tuple[k]` = {} to `f64`.", n_tuple[k]))
+                                    }) * ints_r[i][l_tuple][prev_n_tuple_k].as_ref().unwrap_or_else(|| {
+                                        panic!("({l_tuple:?}, {prev_n_tuple_k:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
+                                    });
+                                    if let Some(arr) = ints_r[i][l_tuple][next_n_tuple].as_mut() {
+                                        *arr = *arr + add_term;
+                                    } else {
+                                        ints_r[i][l_tuple][next_n_tuple] = Some(add_term);
+                                    }
+                                });
+                            };
+                        });
+
+                        if l_tuple[r_index] > 0 {
+                            let mut prev_l_tuple = l_tuple.clone();
+                            prev_l_tuple.iter_mut().enumerate().for_each(|(t, l)| {
+                                if t == r_index { *l -= 1 }
+                            });
+                            assert!(!remaining_tuples.contains(&(prev_l_tuple, n_tuple)));
+                            (0..3).for_each(|i| {
+                                let add_term = C128::from(l_tuple[r_index]
+                                    .to_f64()
+                                    .unwrap_or_else(|| panic!("Unable to convert `l_tuple[r_index]` = {} to `f64`.", l_tuple[r_index])))
+                                    * ints_r[i][prev_l_tuple][n_tuple]
+                                        .as_ref()
+                                        .unwrap_or_else(|| {
+                                            panic!("({prev_l_tuple:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
+                                        });
+                                if let Some(arr) = ints_r[i][l_tuple][next_n_tuple].as_mut() {
+                                    *arr = *arr - add_term;
+                                } else {
+                                    ints_r[i][l_tuple][next_n_tuple] = Some(-add_term);
+                                }
+                            });
+                        }
+
+                        (0..RANK).for_each(|k| {
+                            if l_tuple[k] > 0 {
+                                let mut prev_l_tuple_k = l_tuple.clone();
+                                prev_l_tuple_k.iter_mut().enumerate().for_each(|(t, l)| {
+                                    if t == k { *l -= 1 }
+                                });
+                                assert!(!remaining_tuples.contains(&(prev_l_tuple_k, n_tuple)));
+                                (0..3).for_each(|i| {
+                                    // Python code:
+                                    // add_term = 1.0
+                                    //    / (shell_tuple.sg)
+                                    //    * shell_tuple.ss[k]
+                                    //    * l_tuple[k]
+                                    //    * ints_r[(i,) + prev_l_tuple_k + n_tuple + (Ellipsis,)]
+
+                                    // let mut zk_zg_i = self.zg.clone();
+                                    // zk_zg_i.indexed_iter_mut().for_each(|(indices, zg)| {
+                                    //     let ($($shell_name),+) = indices;
+                                    //     let indices = [$($shell_name),+];
+                                    //     *zg = self.zs[k][indices[k]] / *zg;
+                                    // });
+                                    let add_term = C128::from(1.0)
+                                    * l_tuple[k]
+                                        .to_f64()
+                                        .unwrap_or_else(|| panic!("Unable to convert `l_tuple[k]` = {} to `f64`.", l_tuple[k]))
+                                    // * zk_zg_i.mapv(C128::from)
+                                    / self.zg.mapv(C128::from)
+                                    * ints_r[i][prev_l_tuple_k][n_tuple].as_ref().unwrap_or_else(|| {
+                                        panic!("({prev_l_tuple_k:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
+                                    })
+                                    * self.zs[k];
+                                    if let Some(arr) = ints_r[i][l_tuple][next_n_tuple].as_mut() {
+                                        *arr = *arr + add_term;
+                                    } else {
+                                        ints_r[i][l_tuple][next_n_tuple] = Some(add_term);
+                                    }
+                                });
+                            }
+                        })
+                    }
+
+                    // l-recurrent terms
+                    if extra_tuples.contains(&(l_tuple, n_tuple)) {
+                        continue
+                    }
+                    for r_index in 0..RANK {
+                        // r_index: recursion index (g in handwritten note)
+                        let next_l_tuple = {
+                            let mut new_l_tuple = l_tuple.clone();
+                            new_l_tuple.iter_mut().enumerate().for_each(|(t, l)| {
+                                if t == r_index { *l += 1 }
+                            });
+                            new_l_tuple
+                        };
+                        if !remaining_tuples.remove(&(next_l_tuple, n_tuple)) {
+                            continue
+                        }
+
+                        if let Some(kr) = self.ks[r_index].as_ref() {
+                            (0..3).for_each(|i| {
+                                let add_term = C128::i()
+                                * kr[i]
+                                * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
+                                    panic!("({l_tuple:?}, {n_tuple:?}) => ({next_l_tuple:?}, {n_tuple:?}) failed.")
+                                });
+                                if let Some(arr) = ints_r[i][next_l_tuple][n_tuple].as_mut() {
+                                    *arr = *arr - add_term;
+                                } else {
+                                    ints_r[i][next_l_tuple][n_tuple] = Some(-add_term);
+                                }
+                            });
+                        }
+
+                        let next_n_tuple = {
+                            let mut new_n_tuple = n_tuple.clone();
+                            new_n_tuple.iter_mut().enumerate().for_each(|(t, n)| {
+                                if t == r_index { *n += 1 }
+                            });
+                            new_n_tuple
+                        };
+                        assert!(next_n_tuple.iter().enumerate().all(|(t, n)| *n <= ns[t]));
+                        assert!(!remaining_tuples.contains(&(l_tuple, next_n_tuple)));
+
+                        (0..3).for_each(|i| {
+                            let add_term = C128::from(2.0)
+                            * ints_r[i][l_tuple][next_n_tuple].as_ref().unwrap_or_else(|| {
+                                panic!("({l_tuple:?}, {n_tuple:?}) => ({next_l_tuple:?}, {n_tuple:?}) failed.")
+                            })
+                            * self.zs[r_index]; // broadcasting!
+                            // if let Some(arr) = ints_r[i][next_l_tuple][n_tuple].as_mut() {
+                            //     *arr = *arr - add_term;
+                            // } else {
+                            //     ints_r[i][next_l_tuple][n_tuple] = Some(-add_term);
+                            // }
+                        });
+                    };
                 }
             }
         }
