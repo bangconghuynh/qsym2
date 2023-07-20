@@ -11,9 +11,10 @@ macro_rules! define_shell_tuple {
         use itertools::{izip, Itertools};
         use nalgebra::{Point3, Vector3};
         use ndarray::{Array, Array1, Dim, Dimension};
+        use num_traits::Zero;
 
         use crate::basis::ao_integrals::BasisShellContraction;
-        use crate::integrals::count_exprs;
+        use crate::integrals::{count_exprs, replace_expr};
 
         const RANK: usize = count_exprs!($($shell_name),+);
 
@@ -161,6 +162,104 @@ macro_rules! define_shell_tuple {
                     .map(|(bsc, _)| bsc.basis_shell().l)
                     .max()
                     .expect("The maximum angular momentum across all shells cannot be found.")
+            }
+
+            // fn overlap<T: Zero + Clone>(&self, ls: [usize; RANK]) -> Vec<Array<T, Dim<[usize; RANK]>>> {
+            fn overlap<F64>(&self, ls: [usize; RANK]) {
+                // We require extra Cartesian degrees to calculate derivatives, because each
+                // derivative order increases a corresponding Cartesian rank by one.
+                let ns: [usize; RANK] = if ls.iter().any(|l| *l > 0) {
+                    let mut ns = self.ns.clone();
+                    ns.iter_mut().for_each(|n| *n += 1);
+                    ns
+                } else {
+                    self.ns.clone()
+                };
+
+                // Generate all terms in recurrence series
+                // First index: Cartesian component
+                // Next stc.rank indices: l-recursion indices
+                // Next stc.rank indices: n-recursion indices
+                // Last stc.rank indices: primitive indices
+                // E.g.: rank 3,
+                //   ints_r[1][(0, 0, 1)][(0, 1, 2)][(3, 8, 7)]: y-component integral value with
+                //     0th y-derivative of 0th Cartesian y-power of 3rd primitive on first shell,
+                //     0th y-derivative of 1st Cartesian y-power of 8th primitive on second shell, and
+                //     1st y-derivative of 2nd Cartesian y-power of 7th primitive on third shell
+                let lrecursion_shape = {
+                    let mut ls_mut = ls.clone();
+                    ls_mut.iter_mut().for_each(|l| *l += 1);
+                    ls_mut
+                };
+                let nrecursion_shape = {
+                    let mut ns_mut = ns.clone();
+                    ns_mut.iter_mut().for_each(|n| *n += 1);
+                    ns_mut
+                };
+                let primitive_shape = self.shell_shape;
+                let arr = Array::<_, Dim<[usize; RANK]>>::from_elem(
+                    lrecursion_shape, Array::<_, Dim<[usize; RANK]>>::from_elem(
+                        nrecursion_shape, Array::<f64, Dim<[usize; RANK]>>::zeros(
+                            primitive_shape
+                        )
+                    )
+                );
+                let mut ints_r = [arr.clone(), arr.clone(), arr];
+
+                let default_tuple = [$(replace_expr!(($shell_name) 0)),+];
+                let mut remaining_tuples = ls.iter().map(|l| 0..=*l).multi_cartesian_product().map(|ltuple| {
+                    let mut ltuple_arr = default_tuple.clone();
+                    ltuple_arr.iter_mut().enumerate().for_each(|(i, l)| *l = ltuple[i]);
+                    ltuple_arr
+                }).cartesian_product(
+                    ns.iter().map(|n| 0..=*n).multi_cartesian_product().map(|ntuple| {
+                        let mut ntuple_arr = default_tuple.clone();
+                        ntuple_arr.iter_mut().enumerate().for_each(|(i, n)| *n = ntuple[i]);
+                        ntuple_arr
+                    })
+                ).into_iter().collect::<IndexSet<_>>();
+
+                let remaining_tuples_noextra = ls.iter().map(|l| 0..=*l).multi_cartesian_product().map(|ltuple| {
+                    let mut ltuple_arr = default_tuple.clone();
+                    ltuple_arr.iter_mut().enumerate().for_each(|(i, l)| *l = ltuple[i]);
+                    ltuple_arr
+                }).cartesian_product(
+                    ns.iter().map(|n| 0..=(*n - 1)).multi_cartesian_product().map(|ntuple| {
+                        let mut ntuple_arr = default_tuple.clone();
+                        ntuple_arr.iter_mut().enumerate().for_each(|(i, n)| *n = ntuple[i]);
+                        ntuple_arr
+                    })
+                ).into_iter().collect::<IndexSet<_>>();
+
+                let extra_tuples = remaining_tuples
+                    .difference(&remaining_tuples_noextra)
+                    .collect::<IndexSet<_>>();
+                println!("{extra_tuples:?}");
+
+                remaining_tuples.reverse();
+                let mut initial = true;
+                while let Some((l_tuple, n_tuple)) = remaining_tuples.pop() {
+                    if initial {
+                        // Initial term
+                        initial = false;
+                        let pre_zg = self.zg.mapv(|zg| (std::f64::consts::PI / zg).sqrt());
+                        let exp_zgs = (0..3).map(|i| {
+                            let mut exp_zg_i = self.zg.clone();
+                            exp_zg_i.indexed_iter_mut().for_each(|(indices, zg)| {
+                                let ($($shell_name),+) = indices;
+                                let indices = [$($shell_name),+];
+                                *zg = -1.0
+                                    / *zg
+                                    * (0..RANK).flat_map(|g| ((g + 1)..RANK).map(move |h| {
+                                        self.zs[g][indices[g]]
+                                            * self.zs[h][indices[h]]
+                                            * (self.rs[g][i] - self.rs[h][i]).powi(2)
+                                    })).sum::<f64>()
+                            });
+                            exp_zg_i
+                        }).collect::<Vec<_>>();
+                    }
+                }
             }
         }
 

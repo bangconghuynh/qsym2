@@ -90,3 +90,35 @@ fn test_integrals_shell_tuple_collection() {
         16
     );
 }
+
+#[test]
+fn test_integrals_shell_tuple_overlap() {
+    define_shell_tuple![<s1, s2, s3>];
+
+    let bs0 = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
+    let gc0 = GaussianContraction::<f64, f64> {
+        primitives: vec![(0.1, 0.3), (0.2, 0.5)],
+    };
+    let bsc0 = BasisShellContraction::<f64, f64> {
+        basis_shell: bs0,
+        start_index: 0,
+        contraction: gc0,
+        cart_origin: Point3::new(1.0, 0.0, 0.0),
+        k: None,
+    };
+
+    let bs1 = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
+    let gc1 = GaussianContraction::<f64, f64> {
+        primitives: vec![(0.3, 0.2), (0.4, 0.6), (0.5, 0.4)],
+    };
+    let bsc1 = BasisShellContraction::<f64, f64> {
+        basis_shell: bs1,
+        start_index: 3,
+        contraction: gc1,
+        cart_origin: Point3::new(2.0, 1.0, 1.0),
+        k: Some(Vector3::z()),
+    };
+
+    let st = build_shell_tuple![(&bsc0, true), (&bsc1, false), (&bsc1, true)];
+    st.overlap::<f64>([0, 0, 1]);
+}
