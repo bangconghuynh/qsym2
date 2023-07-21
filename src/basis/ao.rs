@@ -229,7 +229,7 @@ impl PermutableCollection for PureOrder {
 pub struct CartOrder {
     /// A sequence of $`(l_x, l_y, l_z)`$ tuples giving the ordering of the Cartesian Gaussians.
     #[builder(setter(custom))]
-    cart_tuples: Vec<(u32, u32, u32)>,
+    pub cart_tuples: Vec<(u32, u32, u32)>,
 
     /// The rank of the Cartesian Gaussians.
     pub lcart: u32,
