@@ -11,7 +11,8 @@ macro_rules! define_shell_tuple {
         use indexmap::{IndexMap, IndexSet};
         use itertools::{izip, Itertools};
         use nalgebra::{Point3, Vector3};
-        use ndarray::{Array, Array1, Dim, Dimension};
+        use ndarray::{Array, Array1, Dim, Dimension, Ix1};
+        use ndarray_einsum_beta::*;
         use num_complex::Complex;
         use num_traits::ToPrimitive;
 
@@ -169,8 +170,7 @@ macro_rules! define_shell_tuple {
                     .expect("The maximum angular momentum across all shells cannot be found.")
             }
 
-            // fn overlap<T: Zero + Clone>(&self, ls: [usize; RANK]) -> Vec<Array<T, Dim<[usize; RANK]>>> {
-            fn overlap_c(&self, ls: [usize; RANK]) {
+            fn overlap_c(&self, ls: [usize; RANK]) -> Vec<Array<C128, Dim<[usize; RANK]>>> {
                 // ~~~~~~~~~~~~~~~~~~~
                 // Preparation begins.
                 // ~~~~~~~~~~~~~~~~~~~
@@ -336,8 +336,8 @@ macro_rules! define_shell_tuple {
                                 // primitive combination.
                                 (Some(exp_ks), Some(exp_kqs)) => {
                                     ints_r[i][*l_tuple][*n_tuple] = Some(
-                                        (&pre_zg * &exp_zgs[i] * exp_ks[i]).mapv(C128::from)
-                                            * exp_kqs[i]
+                                        (&pre_zg * &exp_zgs[i] * &exp_ks[i]).mapv(C128::from)
+                                            * &exp_kqs[i]
                                     );
                                 }
                                 _ => {
@@ -470,7 +470,7 @@ macro_rules! define_shell_tuple {
                                             .unwrap_or_else(|| panic!("Unable to convert `l_tuple[k]` = {} to `f64`.", l_tuple[k])))
                                     // * zk_zg_i.mapv(C128::from)
                                     / self.zg.mapv(C128::from)
-                                    * self.zs[k] // broadcasting zs[k] to the shape of zg.
+                                    * &self.zs[k] // broadcasting zs[k] to the shape of zg.
                                     * ints_r[i][prev_l_tuple_k][*n_tuple].as_ref().unwrap_or_else(|| {
                                         panic!("({prev_l_tuple_k:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
                                     });
@@ -515,7 +515,8 @@ macro_rules! define_shell_tuple {
                                     panic!("({l_tuple:?}, {n_tuple:?}) => ({next_l_tuple:?}, {n_tuple:?}) failed.")
                                 });
                                 if let Some(arr) = ints_r[i][next_l_tuple][*n_tuple].as_mut() {
-                                    *arr = *arr - add_term;
+                                    let diff = *arr - add_term;
+                                    *arr = diff;
                                 } else {
                                     ints_r[i][next_l_tuple][*n_tuple] = Some(-add_term);
                                 }
@@ -643,150 +644,169 @@ macro_rules! define_shell_tuple {
                     )+
                     [$($shell_name),+]
                 };
-                for l_indices in ls.iter().map(|l| 0..((l + 1) * (l + 2).div_euclid(2))).multi_cartesian_product() {
-                    // ls = [m, n, p, ...]
-                    // l_indices = [a, b, c, ...]
-                    //   - a-th component of the m-th derivative of the first shell,
-                    //   - b-th component of the n-th derivative of the second shell,
-                    //   - etc.
-                    // The derivative components are arranged in lexicographic Cartersian order.
-                    // If ls = [0, 1, 2], then the a particular l_indices could take the value
-                    // [0, 2, 3] which represents
-                    //   - 0th derivative of the first shell
-                    //   - d/dz of the second shell (x, y, z)
-                    //   - d2/dyy of the third shell (xx, xy, xz, yy, yz, zz)
-                    assert_eq!(l_indices.len(), RANK);
-                    let mut l_indices_iter = l_indices.into_iter();
-                    $(
-                        let $shell_name = l_indices_iter
-                            .next()
-                            .expect("l index out of range.");
-                    )+
-                    let l_indices = [$($shell_name),+];
-
-                    // l_powers translates l_indices into tuples of component derivative orders
-                    // for each shell.
-                    // For example, with ls = [0, 1, 2] and l_indices = [0, 2, 3],
-                    // l_powers is given by [(0, 0, 0), (0, 0, 1), (0, 2, 0)].
-                    let l_powers = {
-                        let mut l_powers_mut = [$(
-                            replace_expr!(($shell_name) (0, 0, 0))
-                        ),+];
-                        l_powers_mut.iter_mut().enumerate().for_each(|(shell_index, l_power)| {
-                            *l_power = cart_orders[ls[shell_index]].cart_tuples[l_indices[shell_index]].clone();
-                        });
-                        l_powers_mut
-                    };
-
-                    // l_tuples_xyz gives l_tuple for each Cartesian component.
-                    // With l_powers [(0, 0, 0), (0, 0, 1), (0, 2, 0)],
-                    // l_tuples_xyz is given by
-                    // [(0, 0, 0), (0, 0, 2), (0, 1, 0)]
-                    //  ----x----  ----y----  ----z----
-                    // which means: take the product of the (0, 0, 0) x-derivative,
-                    // (0, 0, 2) y-derivative, and (0, 1, 0) z-derivative to give int_xyz.
-                    // Essentially, l_tuples_xyz is transposed l_powers.
-                    // l_tuples_xyz will be cloned inside the for loop below because it
-                    // is consumed after every iteration.
-                    let outer_l_tuples_xyz = {
-                        let mut l_tuples_xyz_mut = [[$(replace_expr!(($shell_name) 0usize)),+]; 3];
-                        l_tuples_xyz_mut[0].iter_mut().enumerate().for_each(|(shell_index, l)| {
-                            *l = usize::try_from(l_powers[shell_index].0)
-                                .expect("Unable to convert `l` to `usize`.");
-                        });
-                        l_tuples_xyz_mut[1].iter_mut().enumerate().for_each(|(shell_index, l)| {
-                            *l = usize::try_from(l_powers[shell_index].1)
-                                .expect("Unable to convert `l` to `usize`.");
-                        });
-                        l_tuples_xyz_mut[2].iter_mut().enumerate().for_each(|(shell_index, l)| {
-                            *l = usize::try_from(l_powers[shell_index].2)
-                                .expect("Unable to convert `l` to `usize`.");
-                        });
-                        l_tuples_xyz_mut
-                    };
-
-                    let mut cart_shell_block = Array::<C128, Dim<[usize; RANK]>>::zeros(
-                        cart_shell_shape
-                    );
-                    for cart_indices in cart_shell_shape.iter().map(|d| 0..*d).multi_cartesian_product() {
-                        // cart_indices = [i, j, k, l, ...]
-                        //   - i-th Cartesian component (lexicographic order) of the first shell,
-                        //   - j-th Cartesian component (lexicographic order) of the second shell,
+                let cart_shell_blocks = ls
+                    .iter()
+                    .map(|l| 0..((l + 1) * (l + 2).div_euclid(2)))
+                    .multi_cartesian_product()
+                    .map(|l_indices| {
+                        // ls = [m, n, p, ...]
+                        // l_indices = [a, b, c, ...]
+                        //   - a-th component of the m-th derivative of the first shell,
+                        //   - b-th component of the n-th derivative of the second shell,
                         //   - etc.
-                        // If shell_tuple.ns = [0, 2, 3, 1], then the a particular cart_indices could
-                        // take the value [0, 2, 10, 1] which represents
-                        //   - s function on the first shell
-                        //   - dxz function on the second shell
-                        //   - fzzz function on the third shell
-                        //   - py function on the fourth shell
-                        let mut cart_indices_iter = cart_indices.into_iter();
+                        // The derivative components are arranged in lexicographic Cartersian order.
+                        // If ls = [0, 1, 2], then the a particular l_indices could take the value
+                        // [0, 2, 3] which represents
+                        //   - 0th derivative of the first shell
+                        //   - d/dz of the second shell (x, y, z)
+                        //   - d2/dyy of the third shell (xx, xy, xz, yy, yz, zz)
+                        assert_eq!(l_indices.len(), RANK);
+                        let mut l_indices_iter = l_indices.into_iter();
                         $(
-                            let $shell_name = cart_indices_iter
+                            let $shell_name = l_indices_iter
                                 .next()
-                                .expect("cart_index out of range.");
+                                .expect("l index out of range.");
                         )+
-                        let cart_indices = [$($shell_name),+];
+                        let l_indices = [$($shell_name),+];
 
-                        // cart_powers translates cart_indices into tuples of Cartesian powers
+                        // l_powers translates l_indices into tuples of component derivative orders
                         // for each shell.
-                        // For example, with shell_tuple.ns = (0, 2, 3, 1) and
-                        // cart_indices = (0, 2, 10, 1), cart_powers is given by
-                        // [(0, 0, 0), (1, 0, 1), (0, 0, 3), (0, 1, 0)].
-                        let cart_powers = {
-                            let mut cart_powers_mut = [$(
+                        // For example, with ls = [0, 1, 2] and l_indices = [0, 2, 3],
+                        // l_powers is given by [(0, 0, 0), (0, 0, 1), (0, 2, 0)].
+                        let l_powers = {
+                            let mut l_powers_mut = [$(
                                 replace_expr!(($shell_name) (0, 0, 0))
                             ),+];
-                            cart_powers_mut.iter_mut().enumerate().for_each(|(shell_index, cart_power)| {
-                                *cart_power = cart_orders[self.ns[shell_index]]
-                                    .cart_tuples[cart_indices[shell_index]]
-                                    .clone();
+                            l_powers_mut.iter_mut().enumerate().for_each(|(shell_index, l_power)| {
+                                *l_power = cart_orders[ls[shell_index]].cart_tuples[l_indices[shell_index]].clone();
                             });
-                            cart_powers_mut
+                            l_powers_mut
                         };
 
-                        // n_tuples_xyz gives n_tuple for each Cartesian component.
-                        // With cart_powers = [(0, 0, 0), (1, 0, 1), (0, 0, 3), (0, 1, 0)],
-                        // n_tuples_xyz is given by
-                        // [(0, 1, 0, 0), (0, 0, 0, 1), (0, 1, 3, 0)]
-                        //  -----x------  -----y------  -----z------
-                        // which means: take the product of the (0, 1, 0, 0) x-integral,
-                        // (0, 0, 0, 1) y-integral, and (0, 1, 3, 0) z-integral to give int_xyz.
-                        // Essentially, n_tuples_xyz is transposed cart_powers.
-                        let l_tuples_xyz = outer_l_tuples_xyz.clone();
-                        let n_tuples_xyz = {
-                            let mut n_tuples_xyz_mut = [[$(replace_expr!(($shell_name) 0usize)),+]; 3];
-                            n_tuples_xyz_mut[0].iter_mut().enumerate().for_each(|(shell_index, n)| {
-                                *n = usize::try_from(cart_powers[shell_index].0)
-                                    .expect("Unable to convert `n` to `usize`.");
+                        // l_tuples_xyz gives l_tuple for each Cartesian component.
+                        // With l_powers [(0, 0, 0), (0, 0, 1), (0, 2, 0)],
+                        // l_tuples_xyz is given by
+                        // [(0, 0, 0), (0, 0, 2), (0, 1, 0)]
+                        //  ----x----  ----y----  ----z----
+                        // which means: take the product of the (0, 0, 0) x-derivative,
+                        // (0, 0, 2) y-derivative, and (0, 1, 0) z-derivative to give int_xyz.
+                        // Essentially, l_tuples_xyz is transposed l_powers.
+                        // l_tuples_xyz will be cloned inside the for loop below because it
+                        // is consumed after every iteration.
+                        let outer_l_tuples_xyz = {
+                            let mut l_tuples_xyz_mut = [[$(replace_expr!(($shell_name) 0usize)),+]; 3];
+                            l_tuples_xyz_mut[0].iter_mut().enumerate().for_each(|(shell_index, l)| {
+                                *l = usize::try_from(l_powers[shell_index].0)
+                                    .expect("Unable to convert `l` to `usize`.");
                             });
-                            n_tuples_xyz_mut[1].iter_mut().enumerate().for_each(|(shell_index, n)| {
-                                *n = usize::try_from(cart_powers[shell_index].1)
-                                    .expect("Unable to convert `n` to `usize`.");
+                            l_tuples_xyz_mut[1].iter_mut().enumerate().for_each(|(shell_index, l)| {
+                                *l = usize::try_from(l_powers[shell_index].1)
+                                    .expect("Unable to convert `l` to `usize`.");
                             });
-                            n_tuples_xyz_mut[2].iter_mut().enumerate().for_each(|(shell_index, n)| {
-                                *n = usize::try_from(cart_powers[shell_index].2)
-                                    .expect("Unable to convert `n` to `usize`.");
+                            l_tuples_xyz_mut[2].iter_mut().enumerate().for_each(|(shell_index, l)| {
+                                *l = usize::try_from(l_powers[shell_index].2)
+                                    .expect("Unable to convert `l` to `usize`.");
                             });
-                            n_tuples_xyz_mut
+                            l_tuples_xyz_mut
                         };
-                        let int_xyz = izip!(l_tuples_xyz.iter(), n_tuples_xyz.iter())
-                            .enumerate()
-                            .map(|(i, (l_tuple, n_tuple))| {
-                                ints_r[i][*l_tuple][*n_tuple].as_ref()
-                            })
-                            .collect::<Option<Vec<_>>>()
-                            .map(|arrs| arrs.into_iter().fold(
-                                Array::<C128, Dim<[usize; RANK]>>::ones(self.shell_shape),
-                                |acc, arr| acc * arr
-                            ))
-                            .unwrap_or_else(|| Array::<C128, Dim<[usize; RANK]>>::zeros(self.shell_shape));
 
-                        let contraction_str = (0..RANK)
-                            .map(|i| (i.to_u8().expect("Unable to convert a shell index to `u8`.") + 97) as char)
-                            .collect::<String>();
-                    }
+                        let mut cart_shell_block = Array::<C128, Dim<[usize; RANK]>>::zeros(
+                            cart_shell_shape
+                        );
+                        for cart_indices in cart_shell_shape.iter().map(|d| 0..*d).multi_cartesian_product() {
+                            // cart_indices = [i, j, k, l, ...]
+                            //   - i-th Cartesian component (lexicographic order) of the first shell,
+                            //   - j-th Cartesian component (lexicographic order) of the second shell,
+                            //   - etc.
+                            // If shell_tuple.ns = [0, 2, 3, 1], then the a particular cart_indices could
+                            // take the value [0, 2, 10, 1] which represents
+                            //   - s function on the first shell
+                            //   - dxz function on the second shell
+                            //   - fzzz function on the third shell
+                            //   - py function on the fourth shell
+                            let mut cart_indices_iter = cart_indices.into_iter();
+                            $(
+                                let $shell_name = cart_indices_iter
+                                    .next()
+                                    .expect("cart_index out of range.");
+                            )+
+                            let cart_indices = [$($shell_name),+];
 
-                }
+                            // cart_powers translates cart_indices into tuples of Cartesian powers
+                            // for each shell.
+                            // For example, with shell_tuple.ns = (0, 2, 3, 1) and
+                            // cart_indices = (0, 2, 10, 1), cart_powers is given by
+                            // [(0, 0, 0), (1, 0, 1), (0, 0, 3), (0, 1, 0)].
+                            let cart_powers = {
+                                let mut cart_powers_mut = [$(
+                                    replace_expr!(($shell_name) (0, 0, 0))
+                                ),+];
+                                cart_powers_mut.iter_mut().enumerate().for_each(|(shell_index, cart_power)| {
+                                    *cart_power = cart_orders[self.ns[shell_index]]
+                                        .cart_tuples[cart_indices[shell_index]]
+                                        .clone();
+                                });
+                                cart_powers_mut
+                            };
+
+                            // n_tuples_xyz gives n_tuple for each Cartesian component.
+                            // With cart_powers = [(0, 0, 0), (1, 0, 1), (0, 0, 3), (0, 1, 0)],
+                            // n_tuples_xyz is given by
+                            // [(0, 1, 0, 0), (0, 0, 0, 1), (0, 1, 3, 0)]
+                            //  -----x------  -----y------  -----z------
+                            // which means: take the product of the (0, 1, 0, 0) x-integral,
+                            // (0, 0, 0, 1) y-integral, and (0, 1, 3, 0) z-integral to give int_xyz.
+                            // Essentially, n_tuples_xyz is transposed cart_powers.
+                            let l_tuples_xyz = outer_l_tuples_xyz.clone();
+                            let n_tuples_xyz = {
+                                let mut n_tuples_xyz_mut = [[$(replace_expr!(($shell_name) 0usize)),+]; 3];
+                                n_tuples_xyz_mut[0].iter_mut().enumerate().for_each(|(shell_index, n)| {
+                                    *n = usize::try_from(cart_powers[shell_index].0)
+                                        .expect("Unable to convert `n` to `usize`.");
+                                });
+                                n_tuples_xyz_mut[1].iter_mut().enumerate().for_each(|(shell_index, n)| {
+                                    *n = usize::try_from(cart_powers[shell_index].1)
+                                        .expect("Unable to convert `n` to `usize`.");
+                                });
+                                n_tuples_xyz_mut[2].iter_mut().enumerate().for_each(|(shell_index, n)| {
+                                    *n = usize::try_from(cart_powers[shell_index].2)
+                                        .expect("Unable to convert `n` to `usize`.");
+                                });
+                                n_tuples_xyz_mut
+                            };
+                            let int_xyz = izip!(l_tuples_xyz.iter(), n_tuples_xyz.iter())
+                                .enumerate()
+                                .map(|(i, (l_tuple, n_tuple))| {
+                                    ints_r[i][*l_tuple][*n_tuple].as_ref()
+                                })
+                                .collect::<Option<Vec<_>>>()
+                                .map(|arrs| arrs.into_iter().fold(
+                                    Array::<C128, Dim<[usize; RANK]>>::ones(self.shell_shape),
+                                    |acc, arr| acc * arr
+                                ))
+                                .unwrap_or_else(|| Array::<C128, Dim<[usize; RANK]>>::zeros(self.shell_shape));
+
+                            let contraction_str = (0..RANK)
+                                .map(|i| (i.to_u8().expect("Unable to convert a shell index to `u8`.") + 97) as char)
+                                .collect::<String>();
+                            cart_shell_block[cart_indices] = einsum(
+                                &format!("{contraction_str},{contraction_str}->"),
+                                &[&int_xyz, &self.dd.map(C128::from)]
+                            )
+                                .expect("Unable to contract `int_xyz` with `dd`.")
+                                .into_dimensionality::<Ix1>()
+                                .expect("Unable to convert the contraction between `int_xyz` and `dd` to one dimension.")
+                                .into_iter()
+                                .next()
+                                .expect("Unable to retrieve the result of the contraction between `int_xyz` and `dd`.");
+                        }
+                        cart_shell_block
+                    }).collect::<Vec<_>>();
+                // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                // Population of Cartesian integrals for each derivative component ends.
+                // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+                cart_shell_blocks
             }
         }
 

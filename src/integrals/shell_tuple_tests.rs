@@ -93,32 +93,35 @@ fn test_integrals_shell_tuple_collection() {
 
 #[test]
 fn test_integrals_shell_tuple_overlap() {
-    define_shell_tuple![<s1, s2, s3>];
+    define_shell_tuple![<s1, s2>];
 
-    let bs0 = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
-    let gc0 = GaussianContraction::<f64, f64> {
-        primitives: vec![(0.1, 0.3), (0.2, 0.5)],
+    let bs = BasisShell::new(0, ShellOrder::Cart(CartOrder::lex(0)));
+    let gc = GaussianContraction::<f64, f64> {
+        primitives: vec![
+            (3.4252509140, 0.1543289673),
+            (0.6239137298, 0.5353281423),
+            (0.1688554040, 0.4446345422),
+        ],
     };
     let bsc0 = BasisShellContraction::<f64, f64> {
-        basis_shell: bs0,
+        basis_shell: bs.clone(),
         start_index: 0,
-        contraction: gc0,
-        cart_origin: Point3::new(1.0, 0.0, 0.0),
+        contraction: gc.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
         k: None,
     };
 
-    let bs1 = BasisShell::new(2, ShellOrder::Cart(CartOrder::lex(2)));
-    let gc1 = GaussianContraction::<f64, f64> {
-        primitives: vec![(0.3, 0.2), (0.4, 0.6), (0.5, 0.4)],
-    };
     let bsc1 = BasisShellContraction::<f64, f64> {
-        basis_shell: bs1,
-        start_index: 3,
-        contraction: gc1,
-        cart_origin: Point3::new(2.0, 1.0, 1.0),
-        k: Some(Vector3::z()),
+        basis_shell: bs.clone(),
+        start_index: 1,
+        contraction: gc,
+        cart_origin: Point3::new(1.0, 0.0, 1.0),
+        k: None,
     };
 
-    let st = build_shell_tuple![(&bsc0, true), (&bsc1, false), (&bsc1, true)];
-    st.overlap::<f64>([0, 0, 1]);
+    let st = build_shell_tuple![(&bsc0, true), (&bsc1, false)];
+    let ovs = st.overlap_c([0, 0]);
+    for ov in ovs.iter() {
+        println!("{ov}");
+    }
 }
