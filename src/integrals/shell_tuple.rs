@@ -17,7 +17,7 @@ macro_rules! define_shell_tuple {
         use num_complex::Complex;
         use num_traits::ToPrimitive;
 
-        use crate::basis::ao::CartOrder;
+        use crate::basis::ao::{CartOrder, ShellOrder};
         use crate::basis::ao_integrals::BasisShellContraction;
         use crate::integrals::{count_exprs, replace_expr};
 
@@ -791,7 +791,9 @@ macro_rules! define_shell_tuple {
                 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 // Population of Cartesian integrals for each derivative component begins.
                 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                let cart_orders = (0..=self.lmax()).map(|l| CartOrder::lex(l)).collect::<Vec<_>>();
+                let lex_cart_orders = (0..=*ls.iter().max().expect("Unable to determine the maximum derivative order."))
+                    .map(|l| CartOrder::lex(u32::try_from(l).expect("Unable to convert a derivative order to `u32`.")))
+                    .collect::<Vec<_>>();
                 let cart_shell_shape = {
                     let mut cart_shell_shape_iter = self
                         .ns
@@ -811,8 +813,8 @@ macro_rules! define_shell_tuple {
                     .map(|l_indices| {
                         // ls = [m, n, p, ...]
                         // l_indices = [a, b, c, ...]
-                        //   - a-th component of the m-th derivative of the first shell,
-                        //   - b-th component of the n-th derivative of the second shell,
+                        //   - a-th component (lexicographic order) of the m-th derivative of the first shell,
+                        //   - b-th component (lexicographic order) of the n-th derivative of the second shell,
                         //   - etc.
                         // The derivative components are arranged in lexicographic Cartersian order.
                         // If ls = [0, 1, 2], then the a particular l_indices could take the value
@@ -838,7 +840,7 @@ macro_rules! define_shell_tuple {
                                 replace_expr!(($shell_name) (0, 0, 0))
                             ),+];
                             l_powers_mut.iter_mut().enumerate().for_each(|(shell_index, l_power)| {
-                                *l_power = cart_orders[ls[shell_index]].cart_tuples[l_indices[shell_index]].clone();
+                                *l_power = lex_cart_orders[ls[shell_index]].cart_tuples[l_indices[shell_index]].clone();
                             });
                             l_powers_mut
                         };
@@ -875,9 +877,12 @@ macro_rules! define_shell_tuple {
                         );
                         for cart_indices in cart_shell_shape.iter().map(|d| 0..*d).multi_cartesian_product() {
                             // cart_indices = [i, j, k, l, ...]
-                            //   - i-th Cartesian component (lexicographic order) of the first shell,
-                            //   - j-th Cartesian component (lexicographic order) of the second shell,
+                            //   - i-th Cartesian component (shell's specified order) of the first shell,
+                            //   - j-th Cartesian component (shell's specified order) of the second shell,
                             //   - etc.
+                            // If a shell has pure ordering, a lexicographic Cartesian order will
+                            // be used. Integrals involving this shell will be converted back to
+                            // pure form later.
                             // If shell_tuple.ns = [0, 2, 3, 1], then the a particular cart_indices could
                             // take the value [0, 2, 10, 1] which represents
                             //   - s function on the first shell
@@ -896,13 +901,21 @@ macro_rules! define_shell_tuple {
                             // for each shell.
                             // For example, with shell_tuple.ns = (0, 2, 3, 1) and
                             // cart_indices = (0, 2, 10, 1), cart_powers is given by
-                            // [(0, 0, 0), (1, 0, 1), (0, 0, 3), (0, 1, 0)].
+                            // [(0, 0, 0), (1, 0, 1), (0, 0, 3), (0, 1, 0)] (assuming
+                            // lexicographic ordering).
                             let cart_powers = {
                                 let mut cart_powers_mut = [$(
                                     replace_expr!(($shell_name) (0, 0, 0))
                                 ),+];
                                 cart_powers_mut.iter_mut().enumerate().for_each(|(shell_index, cart_power)| {
-                                    *cart_power = cart_orders[self.ns[shell_index]]
+                                    let cart_order = match &self
+                                        .shells[shell_index].0
+                                        .basis_shell()
+                                        .shell_order {
+                                            ShellOrder::Pure(po) => CartOrder::lex(po.lpure),
+                                            ShellOrder::Cart(co) => co.clone()
+                                        };
+                                    *cart_power = cart_order
                                         .cart_tuples[cart_indices[shell_index]]
                                         .clone();
                                 });
