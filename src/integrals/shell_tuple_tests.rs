@@ -115,7 +115,7 @@ fn test_integrals_shell_tuple_overlap() {
         basis_shell: bs.clone(),
         start_index: 1,
         contraction: gc,
-        cart_origin: Point3::new(1.0, 0.0, 1.0),
+        cart_origin: Point3::new(0.0, 0.0, 1.0),
         k: None,
     };
 

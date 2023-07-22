@@ -11,7 +11,7 @@ macro_rules! define_shell_tuple {
         use indexmap::{IndexMap, IndexSet};
         use itertools::{izip, Itertools};
         use nalgebra::{Point3, Vector3};
-        use ndarray::{Array, Array1, Dim, Dimension, Ix1};
+        use ndarray::{Array, Array1, Dim, Dimension, Zip};
         use ndarray_einsum_beta::*;
         use num_complex::Complex;
         use num_traits::ToPrimitive;
@@ -244,17 +244,18 @@ macro_rules! define_shell_tuple {
                     })
                     .collect::<Vec<_>>();
 
-                let all_tuples = l_tuples.iter().cartesian_product(
-                    n_tuples.iter()
+                let all_tuples = l_tuples.iter().cloned().cartesian_product(
+                    n_tuples.iter().cloned()
                 ).into_iter().collect::<IndexSet<_>>();
                 let mut remaining_tuples = all_tuples.clone();
 
-                let remaining_tuples_noextra = l_tuples.iter().cartesian_product(
-                    n_tuples_noextra.iter()
+                let remaining_tuples_noextra = l_tuples.iter().cloned().cartesian_product(
+                    n_tuples_noextra.iter().cloned()
                 ).into_iter().collect::<IndexSet<_>>();
 
-                let extra_tuples = remaining_tuples
+                let extra_tuples = all_tuples
                     .difference(&remaining_tuples_noextra)
+                    .cloned()
                     .collect::<IndexSet<_>>();
                 // ~~~~~~~~~~~~~~~~~
                 // Preparation ends.
@@ -282,13 +283,15 @@ macro_rules! define_shell_tuple {
                             exp_zg_i.indexed_iter_mut().for_each(|(indices, zg)| {
                                 let ($($shell_name),+) = indices;
                                 let indices = [$($shell_name),+];
-                                *zg = -1.0
+                                *zg = (
+                                    -1.0
                                     / *zg
                                     * (0..RANK).flat_map(|g| ((g + 1)..RANK).map(move |h| {
                                         self.zs[g][indices[g]]
                                             * self.zs[h][indices[h]]
                                             * (self.rs[g][i] - self.rs[h][i]).powi(2)
                                     })).sum::<f64>()
+                                ).exp();
                             });
                             exp_zg_i
                         }).collect::<Vec<_>>();
@@ -335,13 +338,13 @@ macro_rules! define_shell_tuple {
                                 // Element-wise multiplication. Each element is for a specific
                                 // primitive combination.
                                 (Some(exp_ks), Some(exp_kqs)) => {
-                                    ints_r[i][*l_tuple][*n_tuple] = Some(
+                                    ints_r[i][l_tuple][n_tuple] = Some(
                                         (&pre_zg * &exp_zgs[i] * &exp_ks[i]).mapv(C128::from)
                                             * &exp_kqs[i]
                                     );
                                 }
                                 _ => {
-                                    ints_r[i][*l_tuple][*n_tuple] = Some(
+                                    ints_r[i][l_tuple][n_tuple] = Some(
                                         (&pre_zg * &exp_zgs[i]).mapv(C128::from)
                                     );
                                 }
@@ -364,16 +367,16 @@ macro_rules! define_shell_tuple {
                             });
                             new_n_tuple
                         };
-                        if !remaining_tuples.remove(&(l_tuple, &next_n_tuple)) {
+                        if !remaining_tuples.remove(&(l_tuple, next_n_tuple)) {
                             continue
                         }
 
                         (0..3).for_each(|i| {
                             // (rg - r_j) * [[:|:]]
                             // rg is primitive-combination-specific.
-                            ints_r[i][*l_tuple][next_n_tuple] = Some(
+                            ints_r[i][l_tuple][next_n_tuple] = Some(
                                 self.rg.map(|r| C128::from(r[i] - self.rs[r_index][i]))
-                                * ints_r[i][*l_tuple][*n_tuple].as_ref().unwrap_or_else(|| {
+                                * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
                                     panic!("({l_tuple:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
                                 })
                             );
@@ -386,13 +389,13 @@ macro_rules! define_shell_tuple {
                                 (0..3).for_each(|i| {
                                     let add_term = self.zg.mapv(|zg| {
                                         C128::i() * kk[i] / (2.0 * zg)
-                                    }) * ints_r[i][*l_tuple][*n_tuple].as_ref().unwrap_or_else(|| {
+                                    }) * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
                                         panic!("({l_tuple:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
                                     });
-                                    if let Some(arr) = ints_r[i][*l_tuple][next_n_tuple].as_mut() {
-                                        *arr = *arr + add_term;
+                                    if let Some(arr) = ints_r[i][l_tuple][next_n_tuple].as_mut() {
+                                        Zip::from(arr).and(&add_term).for_each(|a, &t| *a += t);
                                     } else {
-                                        ints_r[i][*l_tuple][next_n_tuple] = Some(add_term);
+                                        ints_r[i][l_tuple][next_n_tuple] = Some(add_term);
                                     }
                                 });
                             };
@@ -402,7 +405,7 @@ macro_rules! define_shell_tuple {
                                 prev_n_tuple_k.iter_mut().enumerate().for_each(|(t, n)| {
                                     if t == k { *n -= 1 }
                                 });
-                                assert!(!remaining_tuples.contains(&(l_tuple, &prev_n_tuple_k)));
+                                assert!(!remaining_tuples.contains(&(l_tuple, prev_n_tuple_k)));
                                 // 1 / (2 * zg) * sum(i) Nα(n_i) * [[n_i - 1_α:|:]]
                                 (0..3).for_each(|i| {
                                     let add_term = self.zg.mapv(|zg| {
@@ -411,13 +414,13 @@ macro_rules! define_shell_tuple {
                                         * n_tuple[k]
                                             .to_f64()
                                             .unwrap_or_else(|| panic!("Unable to convert `n_tuple[k]` = {} to `f64`.", n_tuple[k]))
-                                    }) * ints_r[i][*l_tuple][prev_n_tuple_k].as_ref().unwrap_or_else(|| {
+                                    }) * ints_r[i][l_tuple][prev_n_tuple_k].as_ref().unwrap_or_else(|| {
                                         panic!("({l_tuple:?}, {prev_n_tuple_k:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
                                     });
-                                    if let Some(arr) = ints_r[i][*l_tuple][next_n_tuple].as_mut() {
-                                        *arr = *arr + add_term;
+                                    if let Some(arr) = ints_r[i][l_tuple][next_n_tuple].as_mut() {
+                                        Zip::from(arr).and(&add_term).for_each(|a, &t| *a += t);
                                     } else {
-                                        ints_r[i][*l_tuple][next_n_tuple] = Some(add_term);
+                                        ints_r[i][l_tuple][next_n_tuple] = Some(add_term);
                                     }
                                 });
                             };
@@ -428,7 +431,7 @@ macro_rules! define_shell_tuple {
                             prev_l_tuple.iter_mut().enumerate().for_each(|(t, l)| {
                                 if t == r_index { *l -= 1 }
                             });
-                            assert!(!remaining_tuples.contains(&(&prev_l_tuple, n_tuple)));
+                            assert!(!remaining_tuples.contains(&(prev_l_tuple, n_tuple)));
                             // -Nα(l_j) * [[:l_j - 1_α|:]]
                             // Note that Nα(l_j) = (l_j)_α.
                             (0..3).for_each(|i| {
@@ -436,15 +439,15 @@ macro_rules! define_shell_tuple {
                                     .to_f64()
                                     .unwrap_or_else(|| panic!("Unable to convert `l_tuple[r_index]` = {} to `f64`.", l_tuple[r_index]))
                                 )
-                                * ints_r[i][prev_l_tuple][*n_tuple]
+                                * ints_r[i][prev_l_tuple][n_tuple]
                                     .as_ref()
                                     .unwrap_or_else(|| {
                                         panic!("({prev_l_tuple:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
                                     });
-                                if let Some(arr) = ints_r[i][*l_tuple][next_n_tuple].as_mut() {
-                                    *arr = *arr - add_term;
+                                if let Some(arr) = ints_r[i][l_tuple][next_n_tuple].as_mut() {
+                                    Zip::from(arr).and(&add_term).for_each(|a, &t| *a -= t);
                                 } else {
-                                    ints_r[i][*l_tuple][next_n_tuple] = Some(-add_term);
+                                    ints_r[i][l_tuple][next_n_tuple] = Some(-add_term);
                                 }
                             });
                         }
@@ -455,7 +458,7 @@ macro_rules! define_shell_tuple {
                                 prev_l_tuple_k.iter_mut().enumerate().for_each(|(t, l)| {
                                     if t == k { *l -= 1 }
                                 });
-                                assert!(!remaining_tuples.contains(&(&prev_l_tuple_k, n_tuple)));
+                                assert!(!remaining_tuples.contains(&(prev_l_tuple_k, n_tuple)));
                                 // (1 / zg) * sum(g) z_g * Nα(l_g) * [[:l_g - 1_α|:]]
                                 (0..3).for_each(|i| {
                                     // let mut zk_zg_i = self.zg.clone();
@@ -471,13 +474,13 @@ macro_rules! define_shell_tuple {
                                     // * zk_zg_i.mapv(C128::from)
                                     / self.zg.mapv(C128::from)
                                     * &self.zs[k] // broadcasting zs[k] to the shape of zg.
-                                    * ints_r[i][prev_l_tuple_k][*n_tuple].as_ref().unwrap_or_else(|| {
+                                    * ints_r[i][prev_l_tuple_k][n_tuple].as_ref().unwrap_or_else(|| {
                                         panic!("({prev_l_tuple_k:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
                                     });
-                                    if let Some(arr) = ints_r[i][*l_tuple][next_n_tuple].as_mut() {
-                                        *arr = *arr + add_term;
+                                    if let Some(arr) = ints_r[i][l_tuple][next_n_tuple].as_mut() {
+                                        Zip::from(arr).and(&add_term).for_each(|a, &t| *a += t);
                                     } else {
-                                        ints_r[i][*l_tuple][next_n_tuple] = Some(add_term);
+                                        ints_r[i][l_tuple][next_n_tuple] = Some(add_term);
                                     }
                                 });
                             }
@@ -502,7 +505,7 @@ macro_rules! define_shell_tuple {
                             });
                             new_l_tuple
                         };
-                        if !remaining_tuples.remove(&(&next_l_tuple, n_tuple)) {
+                        if !remaining_tuples.remove(&(next_l_tuple, n_tuple)) {
                             continue
                         }
 
@@ -511,14 +514,13 @@ macro_rules! define_shell_tuple {
                             (0..3).for_each(|i| {
                                 let add_term = C128::i()
                                 * kr[i]
-                                * ints_r[i][*l_tuple][*n_tuple].as_ref().unwrap_or_else(|| {
+                                * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
                                     panic!("({l_tuple:?}, {n_tuple:?}) => ({next_l_tuple:?}, {n_tuple:?}) failed.")
                                 });
-                                if let Some(arr) = ints_r[i][next_l_tuple][*n_tuple].as_mut() {
-                                    let diff = *arr - add_term;
-                                    *arr = diff;
+                                if let Some(arr) = ints_r[i][next_l_tuple][n_tuple].as_mut() {
+                                    Zip::from(arr).and(&add_term).for_each(|a, &t| *a -= t);
                                 } else {
-                                    ints_r[i][next_l_tuple][*n_tuple] = Some(-add_term);
+                                    ints_r[i][next_l_tuple][n_tuple] = Some(-add_term);
                                 }
                             });
                         }
@@ -531,20 +533,20 @@ macro_rules! define_shell_tuple {
                             new_n_tuple
                         };
                         assert!(next_n_tuple.iter().enumerate().all(|(t, n)| *n <= ns[t]));
-                        assert!(!remaining_tuples.contains(&(l_tuple, &next_n_tuple)));
+                        assert!(!remaining_tuples.contains(&(l_tuple, next_n_tuple)));
 
                         // 2 * z_g * [[n_g + 1_α:|:]]
                         (0..3).for_each(|i| {
                             let add_term = C128::from(2.0)
-                            * ints_r[i][*l_tuple][next_n_tuple].as_ref().unwrap_or_else(|| {
+                            * ints_r[i][l_tuple][next_n_tuple].as_ref().unwrap_or_else(|| {
                                 panic!("({l_tuple:?}, {next_n_tuple:?}) => ({next_l_tuple:?}, {n_tuple:?}) failed.")
                             })
-                            * self.zs[r_index]; // broadcasting zs[r_index] to the shape of
-                                                // ints_r[i][l_tuple][next_n_tuple].
-                            if let Some(arr) = ints_r[i][next_l_tuple][*n_tuple].as_mut() {
-                                *arr = *arr + add_term;
+                            * &self.zs[r_index]; // broadcasting zs[r_index] to the shape of
+                                                 // ints_r[i][l_tuple][next_n_tuple].
+                            if let Some(arr) = ints_r[i][next_l_tuple][n_tuple].as_mut() {
+                                Zip::from(arr).and(&add_term).for_each(|a, &t| *a += t);
                             } else {
-                                ints_r[i][next_l_tuple][*n_tuple] = Some(add_term);
+                                ints_r[i][next_l_tuple][n_tuple] = Some(add_term);
                             }
                         });
 
@@ -553,7 +555,7 @@ macro_rules! define_shell_tuple {
                             prev_n_tuple.iter_mut().enumerate().for_each(|(t, n)| {
                                 if t == r_index { *n -= 1 }
                             });
-                            assert!(!remaining_tuples.contains(&(l_tuple, &prev_n_tuple)));
+                            assert!(!remaining_tuples.contains(&(l_tuple, prev_n_tuple)));
 
                             // -Nα(n_g) * [[n_g - 1_α:|:]]
                             (0..3).for_each(|i| {
@@ -562,13 +564,13 @@ macro_rules! define_shell_tuple {
                                         .to_f64()
                                         .unwrap_or_else(|| panic!("Unable to convert `n_tuple[r_index]` = {} to `f64`.", n_tuple[r_index]))
                                 )
-                                * ints_r[i][*l_tuple][prev_n_tuple].as_ref().unwrap_or_else(|| {
+                                * ints_r[i][l_tuple][prev_n_tuple].as_ref().unwrap_or_else(|| {
                                     panic!("({l_tuple:?}, {prev_n_tuple:?}) => ({next_l_tuple:?}, {n_tuple:?}) failed.")
                                 });
-                                if let Some(arr) = ints_r[i][next_l_tuple][*n_tuple].as_mut() {
-                                    *arr = *arr - add_term;
+                                if let Some(arr) = ints_r[i][next_l_tuple][n_tuple].as_mut() {
+                                    Zip::from(arr).and(&add_term).for_each(|a, &t| *a -= t);
                                 } else {
-                                    ints_r[i][next_l_tuple][*n_tuple] = Some(-add_term);
+                                    ints_r[i][next_l_tuple][n_tuple] = Some(-add_term);
                                 }
                             });
                         }
@@ -591,12 +593,16 @@ macro_rules! define_shell_tuple {
                     let mut norm_arr =
                         (2.0 / std::f64::consts::PI).sqrt().sqrt().powi(rank_i32)
                         * n_tuple.iter().map(|n| {
-                            1.0 / ((2 * n) - 1)
-                                .checked_double_factorial()
-                                .unwrap_or_else(|| panic!("Unable to obtain the double factorial of `{}`.", 2 * n - 1))
-                                .to_f64()
-                                .unwrap_or_else(|| panic!("Unable to convert the double factorial of `{}` to `f64.", 2 * n - 1))
-                                .sqrt()
+                            let doufac = if *n == 0 {
+                                1
+                            } else {
+                                ((2 * n) - 1)
+                                    .checked_double_factorial()
+                                    .unwrap_or_else(|| panic!("Unable to obtain the double factorial of `{}`.", 2 * n - 1))
+                            }
+                            .to_f64()
+                            .unwrap_or_else(|| panic!("Unable to convert the double factorial of `{}` to `f64.", 2 * n - 1));
+                            1.0 / doufac.sqrt()
                         }).product::<f64>()
                         * self.zd.map(|zd| zd.sqrt().sqrt());
                     for (z, n) in self.zs.iter().zip(n_tuple.iter()) {
@@ -619,7 +625,7 @@ macro_rules! define_shell_tuple {
                     for l_tuple in l_tuples.iter() {
                         (0..3).for_each(|i| {
                             if let Some(arr) = ints_r[i][*l_tuple][*n_tuple].as_mut() {
-                                *arr = *arr * norm_arr.mapv(C128::from);
+                                Zip::from(arr).and(&norm_arr).for_each(|a, &n| *a *= C128::from(n));
                             }
                         });
                     }
@@ -631,7 +637,7 @@ macro_rules! define_shell_tuple {
                 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 // Population of Cartesian integrals for each derivative component begins.
                 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                let cart_orders = (0..self.lmax()).map(|l| CartOrder::lex(l)).collect::<Vec<_>>();
+                let cart_orders = (0..=self.lmax()).map(|l| CartOrder::lex(l)).collect::<Vec<_>>();
                 let cart_shell_shape = {
                     let mut cart_shell_shape_iter = self
                         .ns
@@ -794,8 +800,6 @@ macro_rules! define_shell_tuple {
                                 &[&int_xyz, &self.dd.map(C128::from)]
                             )
                                 .expect("Unable to contract `int_xyz` with `dd`.")
-                                .into_dimensionality::<Ix1>()
-                                .expect("Unable to convert the contraction between `int_xyz` and `dd` to one dimension.")
                                 .into_iter()
                                 .next()
                                 .expect("Unable to retrieve the result of the contraction between `int_xyz` and `dd`.");
