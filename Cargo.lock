@@ -662,6 +662,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "duplicate"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de78e66ac9061e030587b2a2e75cc88f22304913c907b11307bca737141230cb"
+dependencies = [
+ "heck",
+ "proc-macro-error",
+]
+
+[[package]]
 name = "either"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2002,6 +2012,7 @@ dependencies = [
  "counter",
  "derive_builder 0.12.0",
  "divisors",
+ "duplicate",
  "env_logger",
  "factorial",
  "fraction",

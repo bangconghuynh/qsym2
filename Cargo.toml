@@ -16,6 +16,7 @@ clap = { version = "4.3.10", features = ["cargo", "derive"] }
 counter = "0.5.7"
 derive_builder = "0.12.0"
 divisors = "0.2.1"
+duplicate = "1.0.0"
 factorial = "0.3.0"
 fraction = { version = "0.13.1", features = ["with-serde-support"] }
 hdf5 = { version = "0.8.1", optional = true }

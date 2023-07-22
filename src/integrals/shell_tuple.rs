@@ -6,6 +6,7 @@ macro_rules! define_shell_tuple {
     ( <$($shell_name:ident),+> ) => {
         use std::marker::PhantomData;
 
+        use duplicate::duplicate_item;
         use factorial::DoubleFactorial;
         use log;
         use indexmap::{IndexMap, IndexSet};
@@ -26,9 +27,10 @@ macro_rules! define_shell_tuple {
 
         /// A structure to handle pre-computed properties of a tuple of shells consisting of
         /// non-integration primitives.
-        #[derive(Debug)]
-        struct ShellTuple<'a, D: Dimension> {
+        struct ShellTuple<'a, D: Dimension, T> {
             dim: PhantomData<D>,
+
+            typ: PhantomData<T>,
 
             /// The non-integration shells in this shell tuple. Each shell has an associated
             /// boolean indicating if it is to be complex-conjugated in the integral
@@ -37,8 +39,14 @@ macro_rules! define_shell_tuple {
 
             /// A fixed-size array indicating the shape of this shell tuple.
             ///
-            /// Each element in the array gives the length of the corresponding shell.
-            shell_shape: [usize; RANK],
+            /// Each element in the array gives the number of functions of the corresponding shell.
+            function_shell_shape: [usize; RANK],
+
+            /// A fixed-size array indicating the shape of this shell tuple.
+            ///
+            /// Each element in the array gives the number of Gaussian primitives of the
+            /// corresponding shell.
+            primitive_shell_shape: [usize; RANK],
 
             /// A fixed-size array containing the boundaries of the shells in the shell tuple.
             ///
@@ -155,7 +163,7 @@ macro_rules! define_shell_tuple {
             qs: [Option<Array<Vector3<f64>, Dim<[usize; RANK]>>>; RANK]
         }
 
-        impl<'a, D: Dimension> ShellTuple<'a, D> {
+        impl<'a, D: Dimension, T> ShellTuple<'a, D, T> {
             /// The number of shells in this tuple.
             fn rank(&self) -> usize {
                 self.shells.len()
@@ -169,8 +177,137 @@ macro_rules! define_shell_tuple {
                     .max()
                     .expect("The maximum angular momentum across all shells cannot be found.")
             }
+        }
 
-            fn overlap_c(&self, ls: [usize; RANK]) -> Vec<Array<C128, Dim<[usize; RANK]>>> {
+        #[duplicate_item(
+            [
+                dtype [ f64 ]
+                arr_map_closure [ |x| x ]
+                exp_kqs_func [
+                    if self.ks.iter().any(|k| k.is_some()) {
+                        panic!("Real-valued overlaps cannot handle plane-wave vectors.")
+                    } else {
+                        (
+                            None::<Vec<Array<f64, Dim<[usize; RANK]>>>>,
+                            None::<Vec<Array<f64, Dim<[usize; RANK]>>>>,
+                        )
+                    }
+                ]
+                exp_ks_kqs_to_int_func [
+                    (0..3).for_each(|i| {
+                        match (exp_ks_opt.as_ref(), exp_kqs_opt.as_ref()) {
+                            (Some(_), _) | (_, Some(_)) => {
+                                panic!("Real-valued overlaps cannot handle plane-wave vectors.")
+                            }
+                            (None, None) => {
+                                ints_r[i][l_tuple][n_tuple] = Some(
+                                    &pre_zg * &exp_zgs[i]
+                                );
+                            }
+                        }
+                    })
+                ]
+                n_recur_k_term_func [
+                    panic!("Real-valued overlaps cannot handle plane-wave vectors.")
+                ]
+                l_recur_k_term_func [
+                    panic!("Real-valued overlaps cannot handle plane-wave vectors.")
+                ]
+            ]
+            [
+                dtype [ C128 ]
+                arr_map_closure [ |x| C128::from(x) ]
+                exp_kqs_func [
+                    if self.ks.iter().any(|k| k.is_some()) {
+                        // exp_ks = exp(-|k|^2 / 4 zg)
+                        // exp_ks[i] is the contribution from the ith Cartesian component.
+                        // zg is primitive-combination-specific.
+                        let exp_ks = (0..3).map(|i| {
+                            self.zg.mapv(|zg| {
+                                (-self.k[i].abs().powi(2) / (4.0 * zg)).exp()
+                            })
+                        }).collect::<Vec<_>>();
+
+                        // exp_kqs = exp(ii * sum(j) k_j · q_j)
+                        // exp_kqs[i] is the contribution from the ith Cartesian component.
+                        // q_j is primitive-combination-specific.
+                        let exp_kqs = (0..3).map(|i| {
+                            (0..RANK).filter_map(|j| {
+                                match (self.ks[j], self.qs[j].as_ref()) {
+                                    (Some(kj), Some(qj)) => {
+                                        Some(
+                                            qj.mapv(|qjj| kj[i] * qjj[i])
+                                        )
+                                    }
+                                    _ => None
+                                }
+                            })
+                            .fold(
+                                Array::<C128, Dim<[usize; RANK]>>::zeros(self.zg.raw_dim()),
+                                |acc, arr| acc + arr
+                            )
+                            .mapv(|x| (x * C128::i()).exp())
+                        })
+                        .collect::<Vec<_>>();
+                        (Some(exp_ks), Some(exp_kqs))
+                    } else {
+                        (None, None)
+                    }
+                ]
+                exp_ks_kqs_to_int_func [
+                    (0..3).for_each(|i| {
+                        match (exp_ks_opt.as_ref(), exp_kqs_opt.as_ref()) {
+                            // Element-wise multiplication. Each element is for a specific
+                            // primitive combination.
+                            (Some(exp_ks), Some(exp_kqs)) => {
+                                ints_r[i][l_tuple][n_tuple] = Some(
+                                    (&pre_zg * &exp_zgs[i] * &exp_ks[i]).mapv(C128::from)
+                                        * &exp_kqs[i]
+                                );
+                            }
+                            _ => {
+                                ints_r[i][l_tuple][n_tuple] = Some(
+                                    (&pre_zg * &exp_zgs[i]).mapv(C128::from)
+                                );
+                            }
+                        }
+                    })
+                ]
+                n_recur_k_term_func [
+                    // 1 / (2 * zg) * sum(i) ii * k_iα * [[:|:]]
+                    // zg is primitive-combination-specific.
+                    (0..3).for_each(|i| {
+                        let add_term = self.zg.mapv(|zg| {
+                            C128::i() * kk[i] / (2.0 * zg)
+                        }) * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
+                            panic!("({l_tuple:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
+                        });
+                        if let Some(arr) = ints_r[i][l_tuple][next_n_tuple].as_mut() {
+                            Zip::from(arr).and(&add_term).for_each(|a, &t| *a += t);
+                        } else {
+                            ints_r[i][l_tuple][next_n_tuple] = Some(add_term);
+                        }
+                    });
+                ]
+                l_recur_k_term_func [
+                    // -ii * k_gα * [[:|:]]
+                    (0..3).for_each(|i| {
+                        let add_term = C128::i()
+                        * kr[i]
+                        * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
+                            panic!("({l_tuple:?}, {n_tuple:?}) => ({next_l_tuple:?}, {n_tuple:?}) failed.")
+                        });
+                        if let Some(arr) = ints_r[i][next_l_tuple][n_tuple].as_mut() {
+                            Zip::from(arr).and(&add_term).for_each(|a, &t| *a -= t);
+                        } else {
+                            ints_r[i][next_l_tuple][n_tuple] = Some(-add_term);
+                        }
+                    });
+                ]
+            ]
+        )]
+        impl<'a, D: Dimension> ShellTuple<'a, D, dtype> {
+            fn overlap(&self, ls: [usize; RANK]) -> Vec<Array<dtype, Dim<[usize; RANK]>>> {
                 // ~~~~~~~~~~~~~~~~~~~
                 // Preparation begins.
                 // ~~~~~~~~~~~~~~~~~~~
@@ -207,7 +344,7 @@ macro_rules! define_shell_tuple {
                 };
                 let arr = Array::<_, Dim<[usize; RANK]>>::from_elem(
                     lrecursion_shape, Array::<_, Dim<[usize; RANK]>>::from_elem(
-                        nrecursion_shape, None::<Array::<C128, Dim<[usize; RANK]>>>
+                        nrecursion_shape, None::<Array::<dtype, Dim<[usize; RANK]>>>
                     )
                 );
                 let mut ints_r = [arr.clone(), arr.clone(), arr];
@@ -296,60 +433,61 @@ macro_rules! define_shell_tuple {
                             exp_zg_i
                         }).collect::<Vec<_>>();
 
-                        let (exp_ks_opt, exp_kqs_opt) = if self.ks.iter().any(|k| k.is_some()) {
-                            // exp_ks = exp(-|k|^2 / 4 zg)
-                            // exp_ks[i] is the contribution from the ith Cartesian component.
-                            // zg is primitive-combination-specific.
-                            let exp_ks = (0..3).map(|i| {
-                                self.zg.mapv(|zg| {
-                                    (-self.k[i].abs().powi(2) / (4.0 * zg)).exp()
-                                })
-                            }).collect::<Vec<_>>();
+                        // let (exp_ks_opt, exp_kqs_opt) = if self.ks.iter().any(|k| k.is_some()) {
+                        //     // exp_ks = exp(-|k|^2 / 4 zg)
+                        //     // exp_ks[i] is the contribution from the ith Cartesian component.
+                        //     // zg is primitive-combination-specific.
+                        //     let exp_ks = (0..3).map(|i| {
+                        //         self.zg.mapv(|zg| {
+                        //             (-self.k[i].abs().powi(2) / (4.0 * zg)).exp()
+                        //         })
+                        //     }).collect::<Vec<_>>();
 
-                            // exp_kqs = exp(ii * sum(j) k_j · q_j)
-                            // exp_kqs[i] is the contribution from the ith Cartesian component.
-                            // q_j is primitive-combination-specific.
-                            let exp_kqs = (0..3).map(|i| {
-                                    (0..RANK).filter_map(|j| {
-                                    match (self.ks[j], self.qs[j].as_ref()) {
-                                        (Some(kj), Some(qj)) => {
-                                            Some(
-                                                qj.mapv(|qjj| {
-                                                    kj[i] * qjj[i] * Complex::<f64>::i()
-                                                })
-                                            )
-                                        }
-                                        _ => None
-                                    }
-                                })
-                                .fold(
-                                    Array::<Complex<f64>, Dim<[usize; RANK]>>::zeros(self.zg.raw_dim()),
-                                    |acc, arr| acc + arr
-                                )
-                            })
-                            .collect::<Vec<_>>();
-                            (Some(exp_ks), Some(exp_kqs))
-                        } else {
-                            (None, None)
-                        };
+                        //     // exp_kqs = exp(ii * sum(j) k_j · q_j)
+                        //     // exp_kqs[i] is the contribution from the ith Cartesian component.
+                        //     // q_j is primitive-combination-specific.
+                        //     let exp_kqs = (0..3).map(|i| {
+                        //         (0..RANK).filter_map(|j| {
+                        //             match (self.ks[j], self.qs[j].as_ref()) {
+                        //                 (Some(kj), Some(qj)) => {
+                        //                     Some(
+                        //                         qj.mapv(|qjj| kj[i] * qjj[i])
+                        //                     )
+                        //                 }
+                        //                 _ => None
+                        //             }
+                        //         })
+                        //         .fold(
+                        //             Array::<C128, Dim<[usize; RANK]>>::zeros(self.zg.raw_dim()),
+                        //             |acc, arr| acc + arr
+                        //         )
+                        //         .mapv(|x| (x * C128::i()).exp())
+                        //     })
+                        //     .collect::<Vec<_>>();
+                        //     (Some(exp_ks), Some(exp_kqs))
+                        // } else {
+                        //     (None, None)
+                        // };
+                        let (exp_ks_opt, exp_kqs_opt) = exp_kqs_func;
 
-                        (0..3).for_each(|i| {
-                            match (exp_ks_opt.as_ref(), exp_kqs_opt.as_ref()) {
-                                // Element-wise multiplication. Each element is for a specific
-                                // primitive combination.
-                                (Some(exp_ks), Some(exp_kqs)) => {
-                                    ints_r[i][l_tuple][n_tuple] = Some(
-                                        (&pre_zg * &exp_zgs[i] * &exp_ks[i]).mapv(C128::from)
-                                            * &exp_kqs[i]
-                                    );
-                                }
-                                _ => {
-                                    ints_r[i][l_tuple][n_tuple] = Some(
-                                        (&pre_zg * &exp_zgs[i]).mapv(C128::from)
-                                    );
-                                }
-                            }
-                        });
+                        // (0..3).for_each(|i| {
+                        //     match (exp_ks_opt.as_ref(), exp_kqs_opt.as_ref()) {
+                        //         // Element-wise multiplication. Each element is for a specific
+                        //         // primitive combination.
+                        //         (Some(exp_ks), Some(exp_kqs)) => {
+                        //             ints_r[i][l_tuple][n_tuple] = Some(
+                        //                 (&pre_zg * &exp_zgs[i] * &exp_ks[i]).mapv(C128::from)
+                        //                     * &exp_kqs[i]
+                        //             );
+                        //         }
+                        //         _ => {
+                        //             ints_r[i][l_tuple][n_tuple] = Some(
+                        //                 (&pre_zg * &exp_zgs[i]).mapv(C128::from)
+                        //             );
+                        //         }
+                        //     }
+                        // });
+                        exp_ks_kqs_to_int_func
                     }
                     // ~~~~~~~~~~~~~~~~~~
                     // Initial term ends.
@@ -375,7 +513,7 @@ macro_rules! define_shell_tuple {
                             // (rg - r_j) * [[:|:]]
                             // rg is primitive-combination-specific.
                             ints_r[i][l_tuple][next_n_tuple] = Some(
-                                self.rg.map(|r| C128::from(r[i] - self.rs[r_index][i]))
+                                self.rg.map(|r| dtype::from(r[i] - self.rs[r_index][i]))
                                 * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
                                     panic!("({l_tuple:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
                                 })
@@ -383,22 +521,25 @@ macro_rules! define_shell_tuple {
                         });
 
                         (0..RANK).for_each(|k| {
+                            // if let Some(kk) = self.ks[k].as_ref() {
+                            //     // 1 / (2 * zg) * sum(i) ii * k_iα * [[:|:]]
+                            //     // zg is primitive-combination-specific.
+                            //     (0..3).for_each(|i| {
+                            //         let add_term = self.zg.mapv(|zg| {
+                            //             C128::i() * kk[i] / (2.0 * zg)
+                            //         }) * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
+                            //             panic!("({l_tuple:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
+                            //         });
+                            //         if let Some(arr) = ints_r[i][l_tuple][next_n_tuple].as_mut() {
+                            //             Zip::from(arr).and(&add_term).for_each(|a, &t| *a += t);
+                            //         } else {
+                            //             ints_r[i][l_tuple][next_n_tuple] = Some(add_term);
+                            //         }
+                            //     });
+                            // };
                             if let Some(kk) = self.ks[k].as_ref() {
-                                // 1 / (2 * zg) * sum(i) ii * k_iα * [[:|:]]
-                                // zg is primitive-combination-specific.
-                                (0..3).for_each(|i| {
-                                    let add_term = self.zg.mapv(|zg| {
-                                        C128::i() * kk[i] / (2.0 * zg)
-                                    }) * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
-                                        panic!("({l_tuple:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
-                                    });
-                                    if let Some(arr) = ints_r[i][l_tuple][next_n_tuple].as_mut() {
-                                        Zip::from(arr).and(&add_term).for_each(|a, &t| *a += t);
-                                    } else {
-                                        ints_r[i][l_tuple][next_n_tuple] = Some(add_term);
-                                    }
-                                });
-                            };
+                                n_recur_k_term_func
+                            }
 
                             if n_tuple[k] > 0 {
                                 let mut prev_n_tuple_k = n_tuple.clone();
@@ -409,7 +550,7 @@ macro_rules! define_shell_tuple {
                                 // 1 / (2 * zg) * sum(i) Nα(n_i) * [[n_i - 1_α:|:]]
                                 (0..3).for_each(|i| {
                                     let add_term = self.zg.mapv(|zg| {
-                                        C128::from(1.0)
+                                        dtype::from(1.0)
                                         / (2.0 * zg)
                                         * n_tuple[k]
                                             .to_f64()
@@ -435,7 +576,7 @@ macro_rules! define_shell_tuple {
                             // -Nα(l_j) * [[:l_j - 1_α|:]]
                             // Note that Nα(l_j) = (l_j)_α.
                             (0..3).for_each(|i| {
-                                let add_term = C128::from(l_tuple[r_index]
+                                let add_term = dtype::from(l_tuple[r_index]
                                     .to_f64()
                                     .unwrap_or_else(|| panic!("Unable to convert `l_tuple[r_index]` = {} to `f64`.", l_tuple[r_index]))
                                 )
@@ -467,12 +608,12 @@ macro_rules! define_shell_tuple {
                                     //     let indices = [$($shell_name),+];
                                     //     *zg = self.zs[k][indices[k]] / *zg;
                                     // });
-                                    let add_term = C128::from(
+                                    let add_term = dtype::from(
                                         l_tuple[k]
                                             .to_f64()
                                             .unwrap_or_else(|| panic!("Unable to convert `l_tuple[k]` = {} to `f64`.", l_tuple[k])))
-                                    // * zk_zg_i.mapv(C128::from)
-                                    / self.zg.mapv(C128::from)
+                                    // * zk_zg_i.mapv(arr_map_closure)
+                                    / self.zg.mapv(arr_map_closure)
                                     * &self.zs[k] // broadcasting zs[k] to the shape of zg.
                                     * ints_r[i][prev_l_tuple_k][n_tuple].as_ref().unwrap_or_else(|| {
                                         panic!("({prev_l_tuple_k:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
@@ -510,19 +651,20 @@ macro_rules! define_shell_tuple {
                         }
 
                         if let Some(kr) = self.ks[r_index].as_ref() {
-                            // -ii * k_gα * [[:|:]]
-                            (0..3).for_each(|i| {
-                                let add_term = C128::i()
-                                * kr[i]
-                                * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
-                                    panic!("({l_tuple:?}, {n_tuple:?}) => ({next_l_tuple:?}, {n_tuple:?}) failed.")
-                                });
-                                if let Some(arr) = ints_r[i][next_l_tuple][n_tuple].as_mut() {
-                                    Zip::from(arr).and(&add_term).for_each(|a, &t| *a -= t);
-                                } else {
-                                    ints_r[i][next_l_tuple][n_tuple] = Some(-add_term);
-                                }
-                            });
+                            // // -ii * k_gα * [[:|:]]
+                            // (0..3).for_each(|i| {
+                            //     let add_term = C128::i()
+                            //     * kr[i]
+                            //     * ints_r[i][l_tuple][n_tuple].as_ref().unwrap_or_else(|| {
+                            //         panic!("({l_tuple:?}, {n_tuple:?}) => ({next_l_tuple:?}, {n_tuple:?}) failed.")
+                            //     });
+                            //     if let Some(arr) = ints_r[i][next_l_tuple][n_tuple].as_mut() {
+                            //         Zip::from(arr).and(&add_term).for_each(|a, &t| *a -= t);
+                            //     } else {
+                            //         ints_r[i][next_l_tuple][n_tuple] = Some(-add_term);
+                            //     }
+                            // });
+                            l_recur_k_term_func
                         }
 
                         let next_n_tuple = {
@@ -537,7 +679,7 @@ macro_rules! define_shell_tuple {
 
                         // 2 * z_g * [[n_g + 1_α:|:]]
                         (0..3).for_each(|i| {
-                            let add_term = C128::from(2.0)
+                            let add_term = dtype::from(2.0)
                             * ints_r[i][l_tuple][next_n_tuple].as_ref().unwrap_or_else(|| {
                                 panic!("({l_tuple:?}, {next_n_tuple:?}) => ({next_l_tuple:?}, {n_tuple:?}) failed.")
                             })
@@ -559,7 +701,7 @@ macro_rules! define_shell_tuple {
 
                             // -Nα(n_g) * [[n_g - 1_α:|:]]
                             (0..3).for_each(|i| {
-                                let add_term = C128::from(
+                                let add_term = dtype::from(
                                     n_tuple[r_index]
                                         .to_f64()
                                         .unwrap_or_else(|| panic!("Unable to convert `n_tuple[r_index]` = {} to `f64`.", n_tuple[r_index]))
@@ -590,7 +732,7 @@ macro_rules! define_shell_tuple {
                     let rank_i32 = RANK
                         .to_i32()
                         .expect("Unable to convert the tuple rank to `i32`.");
-                    let mut norm_arr =
+                    let norm_arr =
                         (2.0 / std::f64::consts::PI).sqrt().sqrt().powi(rank_i32)
                         * n_tuple.iter().map(|n| {
                             let doufac = if *n == 0 {
@@ -605,27 +747,39 @@ macro_rules! define_shell_tuple {
                             1.0 / doufac.sqrt()
                         }).product::<f64>()
                         * self.zd.map(|zd| zd.sqrt().sqrt());
-                    for (z, n) in self.zs.iter().zip(n_tuple.iter()) {
-                        norm_arr = norm_arr * z.mapv(|z_val| {
-                            if n.rem_euclid(2) == 0 {
-                                (4.0 * z_val).powi(
-                                    (n.div_euclid(2))
-                                        .to_i32()
-                                        .expect("Unable to convert `n` to `i32`.")
-                                )
-                            } else {
-                                (4.0 * z_val).powf(
-                                    n.to_f64().expect("Unable to convert `n` to `f64`.")
-                                    / 2.0
-                                )
-                            }
-                        }); // broadcasting z.mapv(...) to the shape of norm_arr.
-                    }
+                    let norm_arr = self
+                        .zs
+                        .iter()
+                        .zip(n_tuple.iter())
+                        .enumerate()
+                        .fold(norm_arr, |acc, (j, (z, n))| {
+                            let mut shape = [$(replace_expr!(($shell_name) 1)),+];
+                            shape[j] = z.len();
+                            let z_transformed = z.mapv(|z_val| {
+                                if n.rem_euclid(2) == 0 {
+                                    (4.0 * z_val).powi(
+                                        (n.div_euclid(2))
+                                            .to_i32()
+                                            .expect("Unable to convert `n` to `i32`.")
+                                    )
+                                } else {
+                                    (4.0 * z_val).powf(
+                                        n.to_f64().expect("Unable to convert `n` to `f64`.")
+                                        / 2.0
+                                    )
+                                }
+                            })
+                            .into_shape(shape)
+                            .expect("Unable to convert transformed `z` to {RANK} dimensions.");
+                            acc * z_transformed
+                        });
 
                     for l_tuple in l_tuples.iter() {
                         (0..3).for_each(|i| {
                             if let Some(arr) = ints_r[i][*l_tuple][*n_tuple].as_mut() {
-                                Zip::from(arr).and(&norm_arr).for_each(|a, &n| *a *= C128::from(n));
+                                Zip::from(arr)
+                                    .and(&norm_arr)
+                                    .for_each(|a, &n| *a *= dtype::from(n));
                             }
                         });
                     }
@@ -716,7 +870,7 @@ macro_rules! define_shell_tuple {
                             l_tuples_xyz_mut
                         };
 
-                        let mut cart_shell_block = Array::<C128, Dim<[usize; RANK]>>::zeros(
+                        let mut cart_shell_block = Array::<dtype, Dim<[usize; RANK]>>::zeros(
                             cart_shell_shape
                         );
                         for cart_indices in cart_shell_shape.iter().map(|d| 0..*d).multi_cartesian_product() {
@@ -787,17 +941,23 @@ macro_rules! define_shell_tuple {
                                 })
                                 .collect::<Option<Vec<_>>>()
                                 .map(|arrs| arrs.into_iter().fold(
-                                    Array::<C128, Dim<[usize; RANK]>>::ones(self.shell_shape),
+                                    Array::<dtype, Dim<[usize; RANK]>>::ones(
+                                        self.primitive_shell_shape
+                                    ),
                                     |acc, arr| acc * arr
                                 ))
-                                .unwrap_or_else(|| Array::<C128, Dim<[usize; RANK]>>::zeros(self.shell_shape));
+                                .unwrap_or_else(
+                                    || Array::<dtype, Dim<[usize; RANK]>>::zeros(
+                                        self.primitive_shell_shape
+                                    )
+                                );
 
                             let contraction_str = (0..RANK)
                                 .map(|i| (i.to_u8().expect("Unable to convert a shell index to `u8`.") + 97) as char)
                                 .collect::<String>();
                             cart_shell_block[cart_indices] = einsum(
                                 &format!("{contraction_str},{contraction_str}->"),
-                                &[&int_xyz, &self.dd.map(C128::from)]
+                                &[&int_xyz, &self.dd.mapv(arr_map_closure)]
                             )
                                 .expect("Unable to contract `int_xyz` with `dd`.")
                                 .into_iter()
@@ -815,11 +975,8 @@ macro_rules! define_shell_tuple {
         }
 
         /// A structure to handle all possible shell tuples for a particular type of integral.
-        #[derive(Debug)]
-        struct ShellTupleCollection<'a, D: Dimension> {
-            dim: PhantomData<D>,
-
-            shell_tuples: Array<ShellTuple<'a, D>, Dim<[usize; RANK]>>,
+        struct ShellTupleCollection<'a, D: Dimension, T> {
+            shell_tuples: Array<ShellTuple<'a, D, T>, Dim<[usize; RANK]>>,
 
             lmax: u32,
 
@@ -828,7 +985,7 @@ macro_rules! define_shell_tuple {
             n_shells: [usize; RANK],
         }
 
-        impl<'a, D: Dimension> ShellTupleCollection<'a, D> {
+        impl<'a, D: Dimension, T> ShellTupleCollection<'a, D, T> {
             /// The maximum angular momentum across all shell tuples.
             fn lmax(&self) -> u32 {
                 self.lmax
@@ -852,7 +1009,7 @@ macro_rules! define_shell_tuple {
             /// A vector of the unique shell tuples.
             fn unique_shell_tuples_iter<'it>(
                 &'it self, ls: [usize; RANK]
-            ) -> UniqueShellTupleIterator<'it, 'a, D>
+            ) -> UniqueShellTupleIterator<'it, 'a, D, T>
                 where 'a: 'it
             {
                 // Example:
@@ -941,8 +1098,7 @@ macro_rules! define_shell_tuple {
                     .into_iter()
                     .collect::<Vec<_>>();
 
-                UniqueShellTupleIterator::<'it, 'a, D> {
-                    dim: PhantomData,
+                UniqueShellTupleIterator::<'it, 'a, D, T> {
                     index: 0,
                     shell_order: order,
                     unordered_recombined_shell_indices,
@@ -951,16 +1107,15 @@ macro_rules! define_shell_tuple {
             }
         }
 
-        struct UniqueShellTupleIterator<'it, 'a: 'it, D: Dimension> {
-            dim: PhantomData<D>,
+        struct UniqueShellTupleIterator<'it, 'a: 'it, D: Dimension, T> {
             index: usize,
             shell_order: Vec<usize>,
             unordered_recombined_shell_indices: Vec<Vec<Vec<usize>>>,
-            shell_tuples: &'it Array<ShellTuple<'a, D>, Dim<[usize; RANK]>>,
+            shell_tuples: &'it Array<ShellTuple<'a, D, T>, Dim<[usize; RANK]>>,
         }
 
-        impl<'it, 'a: 'it, D: Dimension> Iterator for UniqueShellTupleIterator<'it, 'a, D> {
-            type Item = (&'it ShellTuple<'a, D>, Vec<Vec<usize>>);
+        impl<'it, 'a: 'it, D: Dimension, T> Iterator for UniqueShellTupleIterator<'it, 'a, D, T> {
+            type Item = (&'it ShellTuple<'a, D, T>, Vec<Vec<usize>>);
 
             fn next(&mut self) -> Option<Self::Item> {
                 let unordered_shell_index = self.unordered_recombined_shell_indices.get(self.index)?;
@@ -1009,7 +1164,7 @@ macro_rules! define_shell_tuple {
 }
 
 macro_rules! build_shell_tuple {
-    ( $($shell:expr),+ ) => {
+    ( $($shell:expr),+; $ty:ty ) => {
         {
             use itertools::Itertools;
 
@@ -1055,12 +1210,16 @@ macro_rules! build_shell_tuple {
                 $shell.0.k().map(|_| rg.map(|r| (r - $shell.0.cart_origin().coords).coords))
             ),+];
 
-            ShellTuple::<Dim<[usize; RANK]>> {
+            ShellTuple::<Dim<[usize; RANK]>, $ty> {
                 dim: PhantomData,
+
+                typ: PhantomData,
 
                 shells: [$($shell),+],
 
-                shell_shape: [$($shell.0.basis_shell().n_funcs()),+],
+                function_shell_shape: [$($shell.0.basis_shell().n_funcs()),+],
+
+                primitive_shell_shape: [$($shell.0.contraction_length()),+],
 
                 shell_boundaries: [$(
                     ($shell.0.start_index, $shell.0.start_index + $shell.0.basis_shell().n_funcs())
@@ -1137,7 +1296,7 @@ macro_rules! build_shell_tuple {
 }
 
 macro_rules! build_shell_tuple_collection {
-    ( <$($shell_name:ident),+>; $($shell_cc:expr),+; $($shells:expr),+ ) => {
+    ( <$($shell_name:ident),+>; $($shell_cc:expr),+; $($shells:expr),+; $ty:ty ) => {
         {
             use itertools::iproduct;
 
@@ -1147,10 +1306,10 @@ macro_rules! build_shell_tuple_collection {
                 let arr_vec = iproduct!($($shells.iter()),+)
                     .map(|shell_tuple| {
                         let ($($shell_name),+) = shell_tuple;
-                        build_shell_tuple!($((*$shell_name, $shell_cc)),+)
+                        build_shell_tuple!($((*$shell_name, $shell_cc)),+; $ty)
                     })
                     .collect::<Vec<_>>();
-                let arr = Array::<ShellTuple<Dim<[usize; RANK]>>, Dim<[usize; RANK]>>::from_shape_vec(
+                let arr = Array::<ShellTuple<Dim<[usize; RANK]>, $ty>, Dim<[usize; RANK]>>::from_shape_vec(
                     ($($shells.len()),+), arr_vec
                 ).unwrap_or_else(|err| {
                     log::error!("{err}");
@@ -1171,8 +1330,7 @@ macro_rules! build_shell_tuple_collection {
                 "  Total number of tuples: {}",
                 shell_tuples.shape().iter().fold(1, |acc, s| acc * s)
             );
-            ShellTupleCollection::<Dim<[usize; RANK]>> {
-                dim: PhantomData,
+            ShellTupleCollection::<Dim<[usize; RANK]>, $ty> {
                 shell_tuples,
                 lmax,
                 ccs: [$($shell_cc),+],

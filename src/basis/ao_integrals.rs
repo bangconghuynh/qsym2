@@ -16,6 +16,12 @@ pub(crate) struct GaussianContraction<E, C> {
     pub(crate) primitives: Vec<(E, C)>,
 }
 
+impl<E, C> GaussianContraction<E, C> {
+    pub(crate) fn contraction_length(&self) -> usize {
+        self.primitives.len()
+    }
+}
+
 // ---------------------
 // BasisShellContraction
 // ---------------------
@@ -52,5 +58,9 @@ impl<E, C> BasisShellContraction<E, C> {
 
     pub(crate) fn cart_origin(&self) -> &Point3<f64> {
         &self.cart_origin
+    }
+
+    pub(crate) fn contraction_length(&self) -> usize {
+        self.contraction.contraction_length()
     }
 }
