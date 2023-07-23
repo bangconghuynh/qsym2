@@ -5,7 +5,6 @@ use ndarray_linalg::assert_close_l2;
 
 use crate::basis::ao::*;
 use crate::basis::ao_integrals::*;
-use crate::integrals::shell_tuple::*;
 
 #[test]
 fn test_integrals_shell_tuple() {
