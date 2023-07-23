@@ -805,7 +805,9 @@ macro_rules! impl_shell_tuple_overlap {
 
                         // Transform some shells to spherical if necessary
                         if (0..RANK).any(|i| matches!(self.shells[i].0.basis_shell().shell_order, ShellOrder::Pure(_))) {
-                            assert!(RANK <= 13);
+                            // We need an extra letter for the contraction axis.
+                            assert!(RANK < 26);
+                            let rank_u8 = RANK.to_u8().expect("Unable to convert the shell tuple rank to `u8`.");
                             let transformed_shell_block = (0..RANK)
                                 .fold(cart_shell_block, |acc, i| {
                                     if let ShellOrder::Pure(_) = self.shells[i].0.basis_shell().shell_order {
@@ -817,12 +819,21 @@ macro_rules! impl_shell_tuple_overlap {
                                         let cart_to_pure_contraction_str = format!(
                                             "{}{}",
                                             (i_u8 + 97) as char,
-                                            (i_u8 + 110) as char,
+                                            (i_u8 + 97 + rank_u8) as char,
                                         );
+                                        let result_str = (0..RANK).map(|j| {
+                                            if j == i {
+                                                (i_u8 + 97 + rank_u8) as char
+                                            } else {
+                                                let j_u8 = j.to_u8().expect("Unable to convert a shell index to `u8`.");
+                                                (j_u8 + 97) as char
+                                            }
+                                        }).collect::<String>();
                                         einsum(
                                             &format!(
                                                 "{all_shells_contraction_str},\
-                                                {cart_to_pure_contraction_str}"
+                                                {cart_to_pure_contraction_str}->\
+                                                {result_str}"
                                             ),
                                             &[&acc, &rl2cart]
                                         )

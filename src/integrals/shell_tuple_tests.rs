@@ -1,6 +1,6 @@
 use approx;
 use nalgebra::{Point3, Vector3};
-use ndarray::array;
+use ndarray::{array, Array2};
 use ndarray_linalg::assert_close_l2;
 
 use crate::basis::ao::*;
@@ -636,6 +636,386 @@ fn test_integrals_shell_tuple_overlap_2c_li2() {
             [ 0.0000000,  0.0000000,  0.0000000,  0.1213061, -0.2426123, 0.0000000],
             [ 0.0000000,  0.0000000,  0.0000000, -0.2426123,  0.4852245, 0.0000000],
             [ 0.3639184,  0.1400723,  0.2426123,  0.0000000,  0.0000000, 0.6065307],
+        ],
+        1e-6
+    );
+}
+
+#[test]
+fn test_integrals_shell_tuple_overlap_2c_cr2() {
+    define_shell_tuple![<s1, s2>];
+
+    // ~~~~~~~~~~~~~~~~~
+    // Cr2, 6-31G*
+    // Reference: Q-Chem
+    // ~~~~~~~~~~~~~~~~~
+    let bs_cs = BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)));
+    let bs_cp = BasisShell::new(1, ShellOrder::Cart(CartOrder::qchem(1)));
+    let bs_cd = BasisShell::new(2, ShellOrder::Cart(CartOrder::qchem(2)));
+    let bs_pf = BasisShell::new(3, ShellOrder::Pure(PureOrder::increasingm(3)));
+
+    let gc_cr_631gs_1s = GaussianContraction::<f64, f64> {
+        primitives: vec![
+            (0.5178981000e+05, 0.1776181956e-02),
+            (0.7776849000e+04, 0.1360475966e-01),
+            (0.1771385000e+04, 0.6706924832e-01),
+            (0.4991588000e+03, 0.2323103942e+00),
+            (0.1597982000e+03, 0.4802409880e+00),
+            (0.5447021000e+02, 0.3487652913e+00),
+        ],
+    };
+    let gc_cr_631gs_2s = GaussianContraction::<f64, f64> {
+        primitives: vec![
+            (0.1064328000e+04,  0.2399669027e-02),
+            (0.2532138000e+03,  0.3194886035e-01),
+            (0.8160924000e+02,  0.1250868014e+00),
+            (0.3048193000e+02, -0.3221866036e-01),
+            (0.1229439000e+02, -0.6172284069e+00),
+            (0.5037722000e+01, -0.4525936050e+00),
+        ],
+    };
+    let gc_cr_631gs_2p = GaussianContraction::<f64, f64> {
+        primitives: vec![
+            (0.1064328000e+04, 0.3986996969e-02),
+            (0.2532138000e+03, 0.3104661976e-01),
+            (0.8160924000e+02, 0.1350517989e+00),
+            (0.3048193000e+02, 0.3448864973e+00),
+            (0.1229439000e+02, 0.4628570964e+00),
+            (0.5037722000e+01, 0.2110425984e+00),
+        ],
+    };
+    let gc_cr_631gs_3s = GaussianContraction::<f64, f64> {
+        primitives: vec![
+            (0.4156291000e+02, -0.3454215978e-02),
+            (0.1367627000e+02,  0.7218427953e-01),
+            (0.5844390000e+01,  0.2544819984e+00),
+            (0.2471609000e+01, -0.2934533981e+00),
+            (0.1028308000e+01, -0.7385454952e+00),
+            (0.4072500000e+00, -0.1947156987e+00),
+        ],
+    };
+    let gc_cr_631gs_3p = GaussianContraction::<f64, f64> {
+        primitives: vec![
+            (0.4156291000e+02, -0.6722497017e-02),
+            (0.1367627000e+02, -0.2806471007e-01),
+            (0.5844390000e+01,  0.5820028015e-01),
+            (0.2471609000e+01,  0.3916988010e+00),
+            (0.1028308000e+01,  0.5047823013e+00),
+            (0.4072500000e+00,  0.1790290005e+00),
+        ],
+    };
+    let gc_cr_631gs_4s = GaussianContraction::<f64, f64> {
+        primitives: vec![
+            (0.1571464000e+01,  0.5892221460e-01),
+            (0.6055800000e+00,  0.2976056242e+00),
+            (0.9856100000e-01, -0.1147506479e+01),
+        ],
+    };
+    let gc_cr_631gs_4p = GaussianContraction::<f64, f64> {
+        primitives: vec![
+            (0.1571464000e+01, -0.1930100080e+00),
+            (0.6055800000e+00,  0.9605620398e-01),
+            (0.9856100000e-01,  0.9817609407e+00),
+        ],
+    };
+    let gc_cr_631gs_5s = GaussianContraction::<f64, f64> {
+        primitives: vec![(0.3645900000e-01, 0.1000000000e+01)],
+    };
+    let gc_cr_631gs_5p = GaussianContraction::<f64, f64> {
+        primitives: vec![(0.3645900000e-01, 0.1000000000e+01)],
+    };
+    let gc_cr_631gs_3d = GaussianContraction::<f64, f64> {
+        primitives: vec![
+            (0.1841930000e+02, 0.8650816335e-01),
+            (0.4812661000e+01, 0.3826699148e+00),
+            (0.1446447000e+01, 0.7093772274e+00),
+        ],
+    };
+    let gc_cr_631gs_4d = GaussianContraction::<f64, f64> {
+        primitives: vec![(0.4004130000e+00, 1.0)],
+    };
+    let gc_cr_631gs_4f = GaussianContraction::<f64, f64> {
+        primitives: vec![(0.8000000000e+00, 1.0)],
+    };
+
+    let bsc0_1s = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 0,
+        contraction: gc_cr_631gs_1s.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc0_2s = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 1,
+        contraction: gc_cr_631gs_2s.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc0_2p = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cp.clone(),
+        start_index: 2,
+        contraction: gc_cr_631gs_2p.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc0_3s = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 5,
+        contraction: gc_cr_631gs_3s.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc0_3p = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cp.clone(),
+        start_index: 6,
+        contraction: gc_cr_631gs_3p.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc0_4s = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 9,
+        contraction: gc_cr_631gs_4s.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc0_4p = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cp.clone(),
+        start_index: 10,
+        contraction: gc_cr_631gs_4p.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc0_5s = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 13,
+        contraction: gc_cr_631gs_5s.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc0_5p = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cp.clone(),
+        start_index: 14,
+        contraction: gc_cr_631gs_5p.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc0_3d = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cd.clone(),
+        start_index: 17,
+        contraction: gc_cr_631gs_3d.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc0_4d = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cd.clone(),
+        start_index: 23,
+        contraction: gc_cr_631gs_4d.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc0_4f = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_pf.clone(),
+        start_index: 29,
+        contraction: gc_cr_631gs_4f.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    let bsc1_1s = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 36,
+        contraction: gc_cr_631gs_1s.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+    let bsc1_2s = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 37,
+        contraction: gc_cr_631gs_2s.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+    let bsc1_2p = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cp.clone(),
+        start_index: 38,
+        contraction: gc_cr_631gs_2p.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+    let bsc1_3s = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 41,
+        contraction: gc_cr_631gs_3s.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+    let bsc1_3p = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cp.clone(),
+        start_index: 42,
+        contraction: gc_cr_631gs_3p.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+    let bsc1_4s = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 45,
+        contraction: gc_cr_631gs_4s.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+    let bsc1_4p = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cp.clone(),
+        start_index: 46,
+        contraction: gc_cr_631gs_4p.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+    let bsc1_5s = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 49,
+        contraction: gc_cr_631gs_5s.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+    let bsc1_5p = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cp.clone(),
+        start_index: 50,
+        contraction: gc_cr_631gs_5p.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+    let bsc1_3d = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cd.clone(),
+        start_index: 53,
+        contraction: gc_cr_631gs_3d.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+    let bsc1_4d = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cd.clone(),
+        start_index: 59,
+        contraction: gc_cr_631gs_4d.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+    let bsc1_4f = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_pf.clone(),
+        start_index: 65,
+        contraction: gc_cr_631gs_4f.clone(),
+        cart_origin: Point3::new(1.0, 1.0, 0.0),
+        k: None,
+    };
+
+
+    // <04f|:>
+    let st_04f03d = build_shell_tuple![(&bsc0_4f, true), (&bsc0_3d, false); f64];
+    let ovs_04f03d = st_04f03d.overlap([0, 0]);
+    #[rustfmt::skip]
+    assert_close_l2!(
+        &ovs_04f03d[0],
+        &array![
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ],
+        1e-6
+    );
+
+    let st_04f04d = build_shell_tuple![(&bsc0_4f, true), (&bsc0_4d, false); f64];
+    let ovs_04f04d = st_04f04d.overlap([0, 0]);
+    #[rustfmt::skip]
+    assert_close_l2!(
+        &ovs_04f04d[0],
+        &array![
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ],
+        1e-6
+    );
+
+    let st_04f04f = build_shell_tuple![(&bsc0_4f, true), (&bsc0_4f, false); f64];
+    let ovs_04f04f = st_04f04f.overlap([0, 0]);
+    #[rustfmt::skip]
+    assert_close_l2!(
+        &ovs_04f04f[0],
+        &Array2::<f64>::eye(7),
+        1e-6
+    );
+
+    let st_04f15p = build_shell_tuple![(&bsc0_4f, true), (&bsc1_5p, false); f64];
+    let ovs_04f15p = st_04f15p.overlap([0, 0]);
+    #[rustfmt::skip]
+    assert_close_l2!(
+        &ovs_04f15p[0],
+        &array![
+            [ 0.00072276, -0.00001720,  0.00000000],
+            [ 0.00000000,  0.00000000,  0.00060418],
+            [-0.00017773, -0.00036879,  0.00000000],
+            [ 0.00000000,  0.00000000, -0.00046799],
+            [-0.00036879, -0.00017773,  0.00000000],
+            [ 0.00000000,  0.00000000,  0.00000000],
+            [ 0.00001720, -0.00072276,  0.00000000],
+        ],
+        1e-5
+    );
+
+    let st_04f13d = build_shell_tuple![(&bsc0_4f, true), (&bsc1_3d, false); f64];
+    let ovs_04f13d = st_04f13d.overlap([0, 0]);
+    #[rustfmt::skip]
+    assert_close_l2!(
+        &ovs_04f13d[0],
+        &array![
+            [ 0.0435394,  0.1130559,  0.0776040,  0.0000000,  0.0000000,  0.2035663],
+            [ 0.0000000,  0.0000000,  0.0000000, -0.0240873, -0.0240873,  0.0000000],
+            [-0.1588652,  0.0987073, -0.1500698,  0.0000000,  0.0000000,  0.0574159],
+            [ 0.0000000,  0.0000000,  0.0000000,  0.0186579,  0.0186579,  0.0000000],
+            [-0.1500698,  0.0987073, -0.1588652,  0.0000000,  0.0000000,  0.0574159],
+            [ 0.0000000,  0.0000000,  0.0000000,  0.2945346, -0.2945346,  0.0000000],
+            [-0.0776040, -0.1130559, -0.0435394,  0.0000000,  0.0000000, -0.2035663],
+        ],
+        1e-6
+    );
+
+    let st_04f14d = build_shell_tuple![(&bsc0_4f, true), (&bsc1_4d, false); f64];
+    let ovs_04f14d = st_04f14d.overlap([0, 0]);
+    #[rustfmt::skip]
+    assert_close_l2!(
+        &ovs_04f14d[0],
+        &array![
+            [ 0.0234881,  0.1958447, -0.1643977,  0.0000000,  0.0000000,  0.0179388],
+            [ 0.0000000,  0.0000000,  0.0000000,  0.1328553,  0.1328553,  0.0000000],
+            [-0.0252059,  0.0284947, -0.0737178,  0.0000000,  0.0000000,  0.1941764],
+            [ 0.0000000,  0.0000000,  0.0000000, -0.1029093, -0.1029093,  0.0000000],
+            [-0.0737178,  0.0284947, -0.0252059,  0.0000000,  0.0000000,  0.1941764],
+            [ 0.0000000,  0.0000000,  0.0000000,  0.2849139, -0.2849139,  0.0000000],
+            [ 0.1643977, -0.1958447, -0.0234881,  0.0000000,  0.0000000, -0.0179388],
+        ],
+        1e-6
+    );
+
+    let st_04f14f = build_shell_tuple![(&bsc0_4f, true), (&bsc1_4f, false); f64];
+    let ovs_04f14f = st_04f14f.overlap([0, 0]);
+    #[rustfmt::skip]
+    assert_close_l2!(
+        &ovs_04f14f[0],
+        &array![
+            [-0.2360475, 0.0000000, -0.0816754,  0.0000000,  0.0853880,  0.0000000,  0.0383427],
+            [ 0.0000000, 0.0179732,  0.0000000,  0.3341268,  0.0000000, -0.0000000,  0.0000000],
+            [-0.0816754, 0.0000000,  0.0668601,  0.0000000, -0.3393332,  0.0000000, -0.0853880],
+            [ 0.0000000, 0.3341268,  0.0000000,  0.1905155,  0.0000000, -0.0000000,  0.0000000],
+            [ 0.0853880, 0.0000000, -0.3393332,  0.0000000,  0.0668601,  0.0000000,  0.0816754],
+            [ 0.0000000, 0.0000000,  0.0000000, -0.0000000,  0.0000000, -0.2695974,  0.0000000],
+            [ 0.0383427, 0.0000000, -0.0853880,  0.0000000,  0.0816754,  0.0000000, -0.2360475],
         ],
         1e-6
     );
