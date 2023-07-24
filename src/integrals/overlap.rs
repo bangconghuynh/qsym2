@@ -1,5 +1,5 @@
 macro_rules! impl_shell_tuple_overlap {
-    ( <$($shell_name:ident),+> ) => {
+    ( $RANK:ident, <$($shell_name:ident),+> ) => {
         #[duplicate_item(
             [
                 dtype [ f64 ]
@@ -9,8 +9,8 @@ macro_rules! impl_shell_tuple_overlap {
                         panic!("Real-valued overlaps cannot handle plane-wave vectors.")
                     } else {
                         (
-                            None::<Vec<Array<f64, Dim<[usize; RANK]>>>>,
-                            None::<Vec<Array<f64, Dim<[usize; RANK]>>>>,
+                            None::<Vec<Array<f64, Dim<[usize; $RANK]>>>>,
+                            None::<Vec<Array<f64, Dim<[usize; $RANK]>>>>,
                         )
                     }
                 ]
@@ -55,7 +55,7 @@ macro_rules! impl_shell_tuple_overlap {
                         // exp_kqs[i] is the contribution from the ith Cartesian component.
                         // q_j is primitive-combination-specific.
                         let exp_kqs = (0..3).map(|i| {
-                            (0..RANK).filter_map(|j| {
+                            (0..$RANK).filter_map(|j| {
                                 match (self.ks[j], self.qs[j].as_ref()) {
                                     (Some(kj), Some(qj)) => {
                                         Some(
@@ -66,7 +66,7 @@ macro_rules! impl_shell_tuple_overlap {
                                 }
                             })
                             .fold(
-                                Array::<C128, Dim<[usize; RANK]>>::zeros(self.zg.raw_dim()),
+                                Array::<C128, Dim<[usize; $RANK]>>::zeros(self.zg.raw_dim()),
                                 |acc, arr| acc + arr
                             )
                             .mapv(|x| (x * C128::i()).exp())
@@ -131,15 +131,17 @@ macro_rules! impl_shell_tuple_overlap {
                 ]
             ]
         )]
-        impl<'a, D: Dimension> ShellTuple<'a, D, dtype> {
-            fn overlap(&self, ls: [usize; RANK]) -> Vec<Array<dtype, Dim<[usize; RANK]>>> {
+        impl<'a> ShellTuple<'a, $RANK, dtype> {
+            pub(crate) fn overlap(
+                &self, ls: [usize; $RANK]
+            ) -> Vec<Array<dtype, Dim<[usize; $RANK]>>> {
                 // ~~~~~~~~~~~~~~~~~~~
                 // Preparation begins.
                 // ~~~~~~~~~~~~~~~~~~~
 
                 // We require extra Cartesian degrees to calculate derivatives, because each
                 // derivative order increases a corresponding Cartesian rank by one.
-                let ns: [usize; RANK] = if ls.iter().any(|l| *l > 0) {
+                let ns: [usize; $RANK] = if ls.iter().any(|l| *l > 0) {
                     let mut ns = self.ns.clone();
                     ns.iter_mut().for_each(|n| *n += 1);
                     ns
@@ -167,9 +169,9 @@ macro_rules! impl_shell_tuple_overlap {
                     ns_mut.iter_mut().for_each(|n| *n += 1);
                     ns_mut
                 };
-                let arr = Array::<_, Dim<[usize; RANK]>>::from_elem(
-                    lrecursion_shape, Array::<_, Dim<[usize; RANK]>>::from_elem(
-                        nrecursion_shape, None::<Array::<dtype, Dim<[usize; RANK]>>>
+                let arr = Array::<_, Dim<[usize; $RANK]>>::from_elem(
+                    lrecursion_shape, Array::<_, Dim<[usize; $RANK]>>::from_elem(
+                        nrecursion_shape, None::<Array::<dtype, Dim<[usize; $RANK]>>>
                     )
                 );
                 let mut ints_r = [arr.clone(), arr.clone(), arr];
@@ -248,7 +250,7 @@ macro_rules! impl_shell_tuple_overlap {
                                 *zg = (
                                     -1.0
                                     / *zg
-                                    * (0..RANK).flat_map(|g| ((g + 1)..RANK).map(move |h| {
+                                    * (0..$RANK).flat_map(|g| ((g + 1)..$RANK).map(move |h| {
                                         self.zs[g][indices[g]]
                                             * self.zs[h][indices[h]]
                                             * (self.rs[g][i] - self.rs[h][i]).powi(2)
@@ -272,7 +274,7 @@ macro_rules! impl_shell_tuple_overlap {
                         //     // exp_kqs[i] is the contribution from the ith Cartesian component.
                         //     // q_j is primitive-combination-specific.
                         //     let exp_kqs = (0..3).map(|i| {
-                        //         (0..RANK).filter_map(|j| {
+                        //         (0..$RANK).filter_map(|j| {
                         //             match (self.ks[j], self.qs[j].as_ref()) {
                         //                 (Some(kj), Some(qj)) => {
                         //                     Some(
@@ -283,7 +285,7 @@ macro_rules! impl_shell_tuple_overlap {
                         //             }
                         //         })
                         //         .fold(
-                        //             Array::<C128, Dim<[usize; RANK]>>::zeros(self.zg.raw_dim()),
+                        //             Array::<C128, Dim<[usize; $RANK]>>::zeros(self.zg.raw_dim()),
                         //             |acc, arr| acc + arr
                         //         )
                         //         .mapv(|x| (x * C128::i()).exp())
@@ -321,7 +323,7 @@ macro_rules! impl_shell_tuple_overlap {
                     // ~~~~~~~~~~~~~~~~~~~~~~~~
                     // n-recurrent terms begin.
                     // ~~~~~~~~~~~~~~~~~~~~~~~~
-                    for r_index in 0..RANK {
+                    for r_index in 0..$RANK {
                         // r_index: recursion index (j in handwritten note)
                         let next_n_tuple = {
                             let mut new_n_tuple = n_tuple.clone();
@@ -345,7 +347,7 @@ macro_rules! impl_shell_tuple_overlap {
                             );
                         });
 
-                        (0..RANK).for_each(|k| {
+                        (0..$RANK).for_each(|k| {
                             // if let Some(kk) = self.ks[k].as_ref() {
                             //     // 1 / (2 * zg) * sum(i) ii * k_iα * [[:|:]]
                             //     // zg is primitive-combination-specific.
@@ -418,7 +420,7 @@ macro_rules! impl_shell_tuple_overlap {
                             });
                         }
 
-                        (0..RANK).for_each(|k| {
+                        (0..$RANK).for_each(|k| {
                             if l_tuple[k] > 0 {
                                 let mut prev_l_tuple_k = l_tuple.clone();
                                 prev_l_tuple_k.iter_mut().enumerate().for_each(|(t, l)| {
@@ -462,7 +464,7 @@ macro_rules! impl_shell_tuple_overlap {
                     if extra_tuples.contains(&(l_tuple, n_tuple)) {
                         continue
                     }
-                    for r_index in 0..RANK {
+                    for r_index in 0..$RANK {
                         // r_index: recursion index (g in handwritten note)
                         let next_l_tuple = {
                             let mut new_l_tuple = l_tuple.clone();
@@ -562,7 +564,7 @@ macro_rules! impl_shell_tuple_overlap {
                 // contraction coefficients, because `g0` is taken to have a coefficient of 1.
                 // Contraction coefficients are introduced later.
                 for n_tuple in n_tuples.iter() {
-                    let rank_i32 = RANK
+                    let rank_i32 = $RANK
                         .to_i32()
                         .expect("Unable to convert the tuple rank to `i32`.");
                     let norm_arr =
@@ -603,7 +605,7 @@ macro_rules! impl_shell_tuple_overlap {
                                 }
                             })
                             .into_shape(shape)
-                            .expect("Unable to convert transformed `z` to {RANK} dimensions.");
+                            .expect("Unable to convert transformed `z` to {$RANK} dimensions.");
                             acc * z_transformed
                         });
 
@@ -639,7 +641,7 @@ macro_rules! impl_shell_tuple_overlap {
                     )+
                     [$($shell_name),+]
                 };
-                let all_shells_contraction_str = (0..RANK)
+                let all_shells_contraction_str = (0..$RANK)
                     .map(|i| (i.to_u8().expect("Unable to convert a shell index to `u8`.") + 97) as char)
                     .collect::<String>();
                 let cart_shell_blocks = ls
@@ -658,7 +660,7 @@ macro_rules! impl_shell_tuple_overlap {
                         //   - 0th derivative of the first shell
                         //   - d/dz of the second shell (x, y, z)
                         //   - d2/dyy of the third shell (xx, xy, xz, yy, yz, zz)
-                        assert_eq!(l_indices.len(), RANK);
+                        assert_eq!(l_indices.len(), $RANK);
                         let mut l_indices_iter = l_indices.into_iter();
                         $(
                             let $shell_name = l_indices_iter
@@ -708,7 +710,7 @@ macro_rules! impl_shell_tuple_overlap {
                             l_tuples_xyz_mut
                         };
 
-                        let mut cart_shell_block = Array::<dtype, Dim<[usize; RANK]>>::zeros(
+                        let mut cart_shell_block = Array::<dtype, Dim<[usize; $RANK]>>::zeros(
                             cart_shell_shape
                         );
                         for cart_indices in cart_shell_shape.iter().map(|d| 0..*d).multi_cartesian_product() {
@@ -790,13 +792,13 @@ macro_rules! impl_shell_tuple_overlap {
                                 })
                                 .collect::<Option<Vec<_>>>()
                                 .map(|arrs| arrs.into_iter().fold(
-                                    Array::<dtype, Dim<[usize; RANK]>>::ones(
+                                    Array::<dtype, Dim<[usize; $RANK]>>::ones(
                                         self.primitive_shell_shape
                                     ),
                                     |acc, arr| acc * arr
                                 ))
                                 .unwrap_or_else(
-                                    || Array::<dtype, Dim<[usize; RANK]>>::zeros(
+                                    || Array::<dtype, Dim<[usize; $RANK]>>::zeros(
                                         self.primitive_shell_shape
                                     )
                                 );
@@ -813,11 +815,11 @@ macro_rules! impl_shell_tuple_overlap {
                         }
 
                         // Transform some shells to spherical if necessary
-                        if (0..RANK).any(|i| matches!(self.shells[i].0.basis_shell().shell_order, ShellOrder::Pure(_))) {
+                        if (0..$RANK).any(|i| matches!(self.shells[i].0.basis_shell().shell_order, ShellOrder::Pure(_))) {
                             // We need an extra letter for the contraction axis.
-                            assert!(RANK < 26);
-                            let rank_u8 = RANK.to_u8().expect("Unable to convert the shell tuple rank to `u8`.");
-                            let transformed_shell_block = (0..RANK)
+                            assert!($RANK < 26);
+                            let rank_u8 = $RANK.to_u8().expect("Unable to convert the shell tuple rank to `u8`.");
+                            let transformed_shell_block = (0..$RANK)
                                 .fold(cart_shell_block, |acc, i| {
                                     if let ShellOrder::Pure(_) = self.shells[i].0.basis_shell().shell_order {
                                         let i_u8 = i.to_u8().expect("Unable to convert a shell index to `u8`.");
@@ -830,7 +832,7 @@ macro_rules! impl_shell_tuple_overlap {
                                             (i_u8 + 97) as char,
                                             (i_u8 + 97 + rank_u8) as char,
                                         );
-                                        let result_str = (0..RANK).map(|j| {
+                                        let result_str = (0..$RANK).map(|j| {
                                             if j == i {
                                                 (i_u8 + 97 + rank_u8) as char
                                             } else {
@@ -847,7 +849,7 @@ macro_rules! impl_shell_tuple_overlap {
                                             &[&acc, &rl2cart]
                                         )
                                         .unwrap_or_else(|_| panic!("Unable to convert shell {i} to spherical order."))
-                                        .into_dimensionality::<Dim<[usize; RANK]>>()
+                                        .into_dimensionality::<Dim<[usize; $RANK]>>()
                                         .unwrap_or_else(|_| panic!("Unable to convert the transformed shell block into the correct shape."))
                                     } else {
                                         acc
@@ -865,12 +867,7 @@ macro_rules! impl_shell_tuple_overlap {
                 cart_shell_blocks
             }
         }
-    }
-}
 
-
-macro_rules! impl_shell_tuple_collection_overlap {
-    ( <$($shell_name:ident),+> ) => {
         #[duplicate_item(
             [
                 dtype [ f64 ]
@@ -879,8 +876,10 @@ macro_rules! impl_shell_tuple_collection_overlap {
                 dtype [ C128 ]
             ]
         )]
-        impl<'a, D: Dimension> ShellTupleCollection<'a, D, dtype> {
-            fn overlap(&self, ls: [usize; RANK]) -> Vec<Array<dtype, Dim<[usize; RANK]>>> {
+        impl<'a> ShellTupleCollection<'a, $RANK, dtype> {
+            pub(crate) fn overlap(
+                &self, ls: [usize; $RANK]
+            ) -> Vec<Array<dtype, Dim<[usize; $RANK]>>> {
                 let lex_cart_orders = (0..=*ls.iter().max().expect("Unable to determine the maximum derivative order."))
                     .map(|l| CartOrder::lex(u32::try_from(l).expect("Unable to convert a derivative order to `u32`.")))
                     .collect::<Vec<_>>();
@@ -926,7 +925,7 @@ macro_rules! impl_shell_tuple_collection_overlap {
                             l_powers_mut
                         };
                         log::debug!("Component {l_component_index} is for derivative {l_powers:?}.");
-                        let mut ints = Array::<dtype, Dim<[usize; RANK]>>::zeros(
+                        let mut ints = Array::<dtype, Dim<[usize; $RANK]>>::zeros(
                             self.function_all_shell_shape
                         );
 
@@ -980,4 +979,4 @@ macro_rules! impl_shell_tuple_collection_overlap {
     }
 }
 
-pub(crate) use {impl_shell_tuple_overlap, impl_shell_tuple_collection_overlap};
+pub(crate) use impl_shell_tuple_overlap;

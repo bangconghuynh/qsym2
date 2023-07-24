@@ -1,8 +1,8 @@
-use approx;
 use byteorder::LittleEndian;
 use nalgebra::{Point3, Vector3};
-use ndarray::{array, s, Array2};
+use ndarray::{array, Array2};
 use ndarray_linalg::assert_close_l2;
+use num_complex::Complex;
 
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::*;
@@ -10,6 +10,8 @@ use crate::basis::ao_integrals::*;
 use crate::io::numeric::NumericReader;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
+
+type C128 = Complex<f64>;
 
 #[test]
 fn test_integrals_shell_tuple_collection() {
@@ -554,11 +556,6 @@ fn test_integrals_shell_tuple_collection_overlap_2c_benzene_rest_api() {
 
     let bscs =
         BasisShellContraction::<f64, f64>::from_bse(&mol, "cc-pVQZ", true, true, 0, false).unwrap();
-    for (i, bsc) in bscs.iter().enumerate() {
-        println!("Shell {i}");
-        println!("  {bsc:?}");
-        println!("");
-    }
     let bscs_ref = bscs.iter().collect::<Vec<_>>();
     use std::time::Instant;
     let now = Instant::now();

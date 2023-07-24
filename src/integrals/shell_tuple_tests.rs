@@ -1,16 +1,18 @@
 use approx;
-use ndarray::array;
+use nalgebra::{Point3, Vector3};
+use ndarray::{array, Array2};
 use ndarray_linalg::assert_close_l2;
+use num_complex::Complex;
 
 use crate::basis::ao::*;
 use crate::basis::ao_integrals::*;
 
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
+type C128 = Complex<f64>;
+
 #[test]
 fn test_integrals_shell_tuple() {
-    define_shell_tuple![<s1, s2, s3>];
-
     let bs0 = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
     let gc0 = GaussianContraction::<f64, f64> {
         primitives: vec![(0.1, 0.3), (0.2, 0.5)],
@@ -50,8 +52,6 @@ fn test_integrals_shell_tuple() {
         Vector3::new(2.0, 0.9, 0.9) / 1.1 - Vector3::new(2.0, 1.0, 1.0)
     );
 }
-
-define_shell_tuple![<s1, s2>];
 
 #[test]
 fn test_integrals_shell_tuple_overlap_2c_h2() {

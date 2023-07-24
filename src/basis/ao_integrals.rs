@@ -161,7 +161,6 @@ impl<E, C> BasisShellContraction<E, C> {
             .par_iter()
             .map(|atom| {
                 let element = &atom.atomic_symbol;
-                println!("=============> Atom: {atom}");
                 let api_url = format!(
                     "{BSE_BASE_API}/basis/\
                 {basis_name}/format/json/\
@@ -281,9 +280,10 @@ impl BasisShellContraction<f64, f64> {
         //         )
         //     }).sum::<f64>()
         // }).sum::<f64>();
-        crate::integrals::shell_tuple::define_shell_tuple![<s1, s2>];
         let c_self = self.clone();
-        let st = crate::integrals::shell_tuple::build_shell_tuple![(&c_self, true), (&c_self, false); f64];
+        let st = crate::integrals::shell_tuple::build_shell_tuple![
+            (&c_self, true), (&c_self, false); f64
+        ];
         let ovs = st.overlap([0, 0]);
         let norm = ovs[0].iter().next().unwrap();
         let scale = 1.0 / norm.sqrt();
