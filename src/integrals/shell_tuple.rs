@@ -177,7 +177,7 @@ macro_rules! define_shell_tuple {
             }
         }
 
-        impl_shell_tuple_overlap!(<$($shell_name),+>);
+        crate::integrals::overlap::impl_shell_tuple_overlap!(<$($shell_name),+>);
 
         /// A structure to handle all possible shell tuples for a particular type of integral.
         struct ShellTupleCollection<'a, D: Dimension, T> {
@@ -314,7 +314,7 @@ macro_rules! define_shell_tuple {
             }
         }
 
-        impl_shell_tuple_collection_overlap!(<$($shell_name),+>);
+        crate::integrals::overlap::impl_shell_tuple_collection_overlap!(<$($shell_name),+>);
 
         struct UniqueShellTupleIterator<'it, 'a: 'it, D: Dimension, T> {
             index: usize,
@@ -577,6 +577,16 @@ macro_rules! build_shell_tuple_collection {
     }
 }
 
+pub(crate) use {define_shell_tuple, build_shell_tuple, build_shell_tuple_collection};
+
+mod shell_tuple_2c {
+    define_shell_tuple![<s1, s2>];
+}
+
 #[cfg(test)]
 #[path = "shell_tuple_tests.rs"]
 mod shell_tuple_tests;
+
+#[cfg(test)]
+#[path = "shell_tuple_collection_tests.rs"]
+mod shell_tuple_collection_tests;

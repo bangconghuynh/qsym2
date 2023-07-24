@@ -1,4 +1,2 @@
-#[macro_use]
-mod overlap;
-#[macro_use]
-mod shell_tuple;
+pub(crate) mod overlap;
+pub(crate) mod shell_tuple;

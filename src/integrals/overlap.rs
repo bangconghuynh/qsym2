@@ -553,6 +553,14 @@ macro_rules! impl_shell_tuple_overlap {
                 // ~~~~~~~~~~~~~~~~~~~~~
                 // Normalisation begins.
                 // ~~~~~~~~~~~~~~~~~~~~~
+                // Each element of `norm_arr` gives the scaling factor to be multiplied by an
+                // integral involving a specific combination of primitives (i.e. in the integral,
+                // each centre comprises a single Gaussian function) over one of the three
+                // Cartesian directions, such that each primitive is normalised and that the
+                // two-centre integrals〈g0|g0〉is precisely one.
+                // The elements of `norm_arr` are only dependent on the exponents, not the
+                // contraction coefficients, because `g0` is taken to have a coefficient of 1.
+                // Contraction coefficients are introduced later.
                 for n_tuple in n_tuples.iter() {
                     let rank_i32 = RANK
                         .to_i32()
@@ -565,10 +573,10 @@ macro_rules! impl_shell_tuple_overlap {
                             } else {
                                 ((2 * n) - 1)
                                     .checked_double_factorial()
-                                    .unwrap_or_else(|| panic!("Unable to obtain the double factorial of `{}`.", 2 * n - 1))
+                                    .unwrap_or_else(|| panic!("Unable to obtain `{}!!`.", 2 * n - 1))
                             }
                             .to_f64()
-                            .unwrap_or_else(|| panic!("Unable to convert the double factorial of `{}` to `f64.", 2 * n - 1));
+                            .unwrap_or_else(|| panic!("Unable to convert `{}!!` to `f64.", 2 * n - 1));
                             1.0 / doufac.sqrt()
                         }).product::<f64>()
                         * self.zd.map(|zd| zd.sqrt().sqrt());
@@ -793,6 +801,7 @@ macro_rules! impl_shell_tuple_overlap {
                                     )
                                 );
 
+                            // Contraction coefficients are introduced here.
                             cart_shell_block[cart_indices] = einsum(
                                 &format!("{all_shells_contraction_str},{all_shells_contraction_str}->"),
                                 &[&int_xyz, &self.dd.mapv(arr_map_closure)]
@@ -970,3 +979,5 @@ macro_rules! impl_shell_tuple_collection_overlap {
         }
     }
 }
+
+pub(crate) use {impl_shell_tuple_overlap, impl_shell_tuple_collection_overlap};

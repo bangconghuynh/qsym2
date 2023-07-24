@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use anyhow::{self, format_err};
 use derive_builder::Builder;
+use factorial::DoubleFactorial;
 use nalgebra::{Point3, Vector3};
+use num_traits::ToPrimitive;
 use rayon::prelude::*;
 use reqwest;
 use serde::{Deserialize, Serialize};
@@ -38,7 +40,73 @@ impl<E, C> GaussianContraction<E, C> {
 // BasisShellContraction
 // ---------------------
 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Deserialisable structs for BSE data retrieval
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 const BSE_BASE_API: &str = "https://www.basissetexchange.org/api";
+
+#[derive(Serialize, Deserialize, Debug)]
+struct BSEResponse {
+    name: String,
+    version: String,
+    elements: HashMap<u32, BSEElement>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct BSEElement {
+    electron_shells: Vec<BSEElectronShell>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(try_from = "BSEElectronShellRaw")]
+struct BSEElectronShell {
+    function_type: String,
+    region: String,
+    angular_momentum: Vec<u32>,
+    exponents: Vec<f64>,
+    coefficients: Vec<Vec<f64>>,
+}
+
+#[derive(Deserialize)]
+struct BSEElectronShellRaw {
+    function_type: String,
+    region: String,
+    angular_momentum: Vec<u32>,
+    exponents: Vec<String>,
+    coefficients: Vec<Vec<String>>,
+}
+
+impl TryFrom<BSEElectronShellRaw> for BSEElectronShell {
+    type Error = std::num::ParseFloatError;
+
+    fn try_from(other: BSEElectronShellRaw) -> Result<Self, Self::Error> {
+        let converted = Self {
+            function_type: other.function_type,
+            region: other.region,
+            angular_momentum: other.angular_momentum,
+            exponents: other
+                .exponents
+                .iter()
+                .map(|s| s.parse::<f64>())
+                .collect::<Result<Vec<_>, _>>()?,
+            coefficients: other
+                .coefficients
+                .iter()
+                .map(|d| {
+                    d.iter()
+                        .map(|s| s.parse::<f64>())
+                        .collect::<Result<Vec<_>, _>>()
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        };
+        Ok(converted)
+    }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// BasisShellContraction definition
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 /// A structure to handle all shell information for integrals.
 #[derive(Clone, Builder, Debug)]
@@ -77,6 +145,7 @@ impl<E, C> BasisShellContraction<E, C> {
     pub(crate) fn contraction_length(&self) -> usize {
         self.contraction.contraction_length()
     }
+
 
     pub(crate) fn from_bse(
         mol: &Molecule,
@@ -165,65 +234,63 @@ impl<E, C> BasisShellContraction<E, C> {
         bscs.iter_mut().for_each(|bsc| {
             bsc.start_index = start_index;
             start_index += bsc.basis_shell.n_funcs();
+            if optimised_contraction {
+                bsc.renormalise();
+            }
         });
         Ok(bscs)
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct BSEResponse {
-    name: String,
-    version: String,
-    elements: HashMap<u32, BSEElement>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct BSEElement {
-    electron_shells: Vec<BSEElectronShell>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(try_from = "BSEElectronShellRaw")]
-struct BSEElectronShell {
-    function_type: String,
-    region: String,
-    angular_momentum: Vec<u32>,
-    exponents: Vec<f64>,
-    coefficients: Vec<Vec<f64>>,
-}
-
-#[derive(Deserialize)]
-struct BSEElectronShellRaw {
-    function_type: String,
-    region: String,
-    angular_momentum: Vec<u32>,
-    exponents: Vec<String>,
-    coefficients: Vec<Vec<String>>,
-}
-
-impl TryFrom<BSEElectronShellRaw> for BSEElectronShell {
-    type Error = std::num::ParseFloatError;
-
-    fn try_from(other: BSEElectronShellRaw) -> Result<Self, Self::Error> {
-        let converted = Self {
-            function_type: other.function_type,
-            region: other.region,
-            angular_momentum: other.angular_momentum,
-            exponents: other
-                .exponents
-                .iter()
-                .map(|s| s.parse::<f64>())
-                .collect::<Result<Vec<_>, _>>()?,
-            coefficients: other
-                .coefficients
-                .iter()
-                .map(|d| {
-                    d.iter()
-                        .map(|s| s.parse::<f64>())
-                        .collect::<Result<Vec<_>, _>>()
-                })
-                .collect::<Result<Vec<_>, _>>()?,
-        };
-        Ok(converted)
+impl BasisShellContraction<f64, f64> {
+    pub(crate) fn renormalise(&mut self) -> &mut Self {
+        // let contraction_length = self.contraction.contraction_length();
+        // let doufac = if self.basis_shell.l > 0 {
+        //     (2 * self.basis_shell.l - 1)
+        //         .checked_double_factorial()
+        //         .unwrap_or_else(|| panic!("Unable to obtain `{}!!`.", 2 * self.basis_shell.l - 1))
+        //         .to_f64()
+        //         .unwrap_or_else(|| panic!("Unable to convert `{}!!` to `f64.", 2 * self.basis_shell.l - 1))
+        // } else {
+        //     1.0
+        // };
+        // let pi_pow_3_2 = std::f64::consts::PI.powi(3).sqrt();
+        // let norm = (0..contraction_length).map(|i| {
+        //     let (ei, di) = self.contraction.primitives[i];
+        //     (0..=i).map(|j| {
+        //         let (ej, dj) = self.contraction.primitives[j];
+        //         let gamma = ei + ej;
+        //         let fac = if i == j {
+        //             1.0f64
+        //         } else {
+        //             2.0f64
+        //         };
+        //         let l_i32 = self
+        //             .basis_shell
+        //             .l
+        //             .to_i32()
+        //             .unwrap_or_else(|| panic!("Unable to convert `{}` to `i32`.", self.basis_shell.l));
+        //         fac * di * dj
+        //         / (
+        //             2u32
+        //                 .pow(self.basis_shell.l)
+        //                 .to_f64()
+        //                 .unwrap_or_else(|| panic!("Unable to convert `2^{}` to `f64`.", self.basis_shell.l))
+        //             * gamma.powi(l_i32 + 1)
+        //             * gamma.sqrt()
+        //         )
+        //     }).sum::<f64>()
+        // }).sum::<f64>();
+        crate::integrals::shell_tuple::define_shell_tuple![<s1, s2>];
+        let c_self = self.clone();
+        let st = crate::integrals::shell_tuple::build_shell_tuple![(&c_self, true), (&c_self, false); f64];
+        let ovs = st.overlap([0, 0]);
+        let norm = ovs[0].iter().next().unwrap();
+        let scale = 1.0 / norm.sqrt();
+        self.contraction.primitives.iter_mut().for_each(|(_, d)| {
+            *d *= scale;
+        });
+        self
     }
 }
+
