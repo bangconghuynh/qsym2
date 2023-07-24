@@ -16,6 +16,7 @@ pub mod bindings;
 pub mod chartab;
 pub mod drivers;
 pub mod group;
+#[cfg(feature = "integrals")]
 pub mod integrals;
 pub mod interfaces;
 pub mod io;

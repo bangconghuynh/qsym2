@@ -1,7 +1,19 @@
+use std::collections::HashMap;
+
+use anyhow::{self, format_err};
 use derive_builder::Builder;
 use nalgebra::{Point3, Vector3};
+use rayon::prelude::*;
+use reqwest;
+use serde::{Deserialize, Serialize};
 
-use crate::basis::ao::BasisShell;
+use crate::auxiliary::atom::{ElementMap, ANGSTROM_TO_BOHR};
+use crate::auxiliary::molecule::Molecule;
+use crate::basis::ao::{BasisShell, CartOrder, PureOrder, ShellOrder};
+
+#[cfg(test)]
+#[path = "ao_integrals_tests.rs"]
+mod ao_integrals_tests;
 
 // -------------------
 // GaussianContraction
@@ -25,6 +37,8 @@ impl<E, C> GaussianContraction<E, C> {
 // ---------------------
 // BasisShellContraction
 // ---------------------
+
+const BSE_BASE_API: &str = "https://www.basissetexchange.org/api";
 
 /// A structure to handle all shell information for integrals.
 #[derive(Clone, Builder, Debug)]
@@ -62,5 +76,154 @@ impl<E, C> BasisShellContraction<E, C> {
 
     pub(crate) fn contraction_length(&self) -> usize {
         self.contraction.contraction_length()
+    }
+
+    pub(crate) fn from_bse(
+        mol: &Molecule,
+        basis_name: &str,
+        cart: bool,
+        optimised_contraction: bool,
+        version: usize,
+        mol_bohr: bool,
+    ) -> Result<Vec<BasisShellContraction<f64, f64>>, anyhow::Error> {
+        let emap = ElementMap::new();
+        let mut bscs = mol
+            .atoms
+            .par_iter()
+            .map(|atom| {
+                let element = &atom.atomic_symbol;
+                println!("=============> Atom: {atom}");
+                let api_url = format!(
+                    "{BSE_BASE_API}/basis/\
+                {basis_name}/format/json/\
+                ?elements={element}\
+                &optimize_general={optimised_contraction}\
+                &version={version}"
+                );
+                let rjson: BSEResponse = reqwest::blocking::get(&api_url)?.json()?;
+                let atomic_number = emap
+                    .get(element)
+                    .ok_or(format_err!("Element {element} not found."))?
+                    .0;
+                rjson
+                    .elements
+                    .get(&atomic_number)
+                    .ok_or(format_err!(
+                        "Basis information for element {element} not found."
+                    ))
+                    .map(|element| {
+                        element
+                            .electron_shells
+                            .iter()
+                            .flat_map(|shell| {
+                                shell
+                                    .angular_momentum
+                                    .iter()
+                                    .cycle()
+                                    .zip(shell.coefficients.iter())
+                                    .map(|(&l, d)| {
+                                        let shell_order = if cart {
+                                            ShellOrder::Cart(CartOrder::lex(l))
+                                        } else {
+                                            ShellOrder::Pure(PureOrder::increasingm(l))
+                                        };
+                                        let basis_shell = BasisShell::new(l, shell_order);
+
+                                        let contraction = GaussianContraction::<f64, f64> {
+                                            primitives: shell
+                                                .exponents
+                                                .iter()
+                                                .copied()
+                                                .zip(d.iter().copied())
+                                                .filter(|(_, d)| d.abs() > 1e-13)
+                                                .collect::<Vec<(f64, f64)>>(),
+                                        };
+
+                                        let cart_origin = if mol_bohr {
+                                            atom.coordinates.clone()
+                                        } else {
+                                            atom.coordinates.clone() * ANGSTROM_TO_BOHR
+                                        };
+
+                                        BasisShellContraction {
+                                            basis_shell,
+                                            start_index: 0,
+                                            contraction,
+                                            cart_origin,
+                                            k: None,
+                                        }
+                                    })
+                            })
+                            .collect::<Vec<_>>()
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        let mut start_index = 0;
+        bscs.iter_mut().for_each(|bsc| {
+            bsc.start_index = start_index;
+            start_index += bsc.basis_shell.n_funcs();
+        });
+        Ok(bscs)
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct BSEResponse {
+    name: String,
+    version: String,
+    elements: HashMap<u32, BSEElement>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct BSEElement {
+    electron_shells: Vec<BSEElectronShell>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(try_from = "BSEElectronShellRaw")]
+struct BSEElectronShell {
+    function_type: String,
+    region: String,
+    angular_momentum: Vec<u32>,
+    exponents: Vec<f64>,
+    coefficients: Vec<Vec<f64>>,
+}
+
+#[derive(Deserialize)]
+struct BSEElectronShellRaw {
+    function_type: String,
+    region: String,
+    angular_momentum: Vec<u32>,
+    exponents: Vec<String>,
+    coefficients: Vec<Vec<String>>,
+}
+
+impl TryFrom<BSEElectronShellRaw> for BSEElectronShell {
+    type Error = std::num::ParseFloatError;
+
+    fn try_from(other: BSEElectronShellRaw) -> Result<Self, Self::Error> {
+        let converted = Self {
+            function_type: other.function_type,
+            region: other.region,
+            angular_momentum: other.angular_momentum,
+            exponents: other
+                .exponents
+                .iter()
+                .map(|s| s.parse::<f64>())
+                .collect::<Result<Vec<_>, _>>()?,
+            coefficients: other
+                .coefficients
+                .iter()
+                .map(|d| {
+                    d.iter()
+                        .map(|s| s.parse::<f64>())
+                        .collect::<Result<Vec<_>, _>>()
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        };
+        Ok(converted)
     }
 }
