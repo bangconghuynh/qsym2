@@ -636,7 +636,7 @@ macro_rules! impl_shell_tuple_overlap {
                     .collect::<String>();
                 let cart_shell_blocks = ls
                     .iter()
-                    .map(|l| 0..((l + 1) * (l + 2).div_euclid(2)))
+                    .map(|l| 0..((l + 1) * (l + 2)).div_euclid(2))
                     .multi_cartesian_product()
                     .map(|l_indices| {
                         // ls = [m, n, p, ...]
@@ -854,6 +854,118 @@ macro_rules! impl_shell_tuple_overlap {
                 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
                 cart_shell_blocks
+            }
+        }
+    }
+}
+
+
+macro_rules! impl_shell_tuple_collection_overlap {
+    ( <$($shell_name:ident),+> ) => {
+        #[duplicate_item(
+            [
+                dtype [ f64 ]
+            ]
+            [
+                dtype [ C128 ]
+            ]
+        )]
+        impl<'a, D: Dimension> ShellTupleCollection<'a, D, dtype> {
+            fn overlap(&self, ls: [usize; RANK]) -> Vec<Array<dtype, Dim<[usize; RANK]>>> {
+                let lex_cart_orders = (0..=*ls.iter().max().expect("Unable to determine the maximum derivative order."))
+                    .map(|l| CartOrder::lex(u32::try_from(l).expect("Unable to convert a derivative order to `u32`.")))
+                    .collect::<Vec<_>>();
+
+                // shell_blockss = [shell_blocks0, shell_blocks1, ...]
+                //   shell_blocks0: all derivative components for shell tuple 0
+                //   shell_blocks0 = [shell_block00, shell_block11, ...]
+                //     shell_block01: first derivative component for shell tuple 0
+                let shell_blockss = self
+                    .unique_shell_tuples_iter(ls)
+                    .par_bridge()
+                    .map(|(shell_tuple, unique_perm, equiv_perms)| {
+                        (shell_tuple.overlap(ls), unique_perm, equiv_perms)
+                    })
+                    .collect::<Vec<_>>();
+
+                // Pack integrals
+                let intss = ls
+                    .iter()
+                    .map(|l| 0..(((l + 1) * (l + 2)).div_euclid(2)))
+                    .multi_cartesian_product()
+                    .enumerate()
+                    .map(|(l_component_index, l_indices)| {
+                        let mut l_indices_iter = l_indices.into_iter();
+                        $(
+                            let $shell_name = l_indices_iter
+                                .next()
+                                .expect("l index out of range.");
+                        )+
+                        let l_indices = [$($shell_name),+];
+
+                        // l_powers translates l_indices into tuples of component derivative orders
+                        // for each shell.
+                        // For example, with ls = [0, 1, 2] and l_indices = [0, 2, 3],
+                        // l_powers is given by [(0, 0, 0), (0, 0, 1), (0, 2, 0)].
+                        let l_powers = {
+                            let mut l_powers_mut = [$(
+                                replace_expr!(($shell_name) (0, 0, 0))
+                            ),+];
+                            l_powers_mut.iter_mut().enumerate().for_each(|(shell_index, l_power)| {
+                                *l_power = lex_cart_orders[ls[shell_index]].cart_tuples[l_indices[shell_index]].clone();
+                            });
+                            l_powers_mut
+                        };
+                        log::debug!("Component {l_component_index} is for derivative {l_powers:?}.");
+                        let mut ints = Array::<dtype, Dim<[usize; RANK]>>::zeros(
+                            self.function_all_shell_shape
+                        );
+
+                        shell_blockss.iter().for_each(|(shell_blocks, unique_perm, equiv_perms)| {
+                            equiv_perms.iter().for_each(|&equiv_perm| {
+                                let shell_tuple = &self.shell_tuples[equiv_perm];
+                                let mut unique_perm_vec = unique_perm
+                                    .iter()
+                                    .map(|i| Some(*i))
+                                    .collect::<Vec<_>>();
+                                let mut transpose_indices_iter = equiv_perm.iter().map(|i| {
+                                    let index = unique_perm_vec
+                                        .iter()
+                                        .position(|&j| j == Some(*i))
+                                        .unwrap_or_else(|| {
+                                            panic!("Unable to find a permutation that maps {unique_perm:?} to {equiv_perm:?}.");
+                                        });
+                                    unique_perm_vec[index] = None;
+                                    index
+                                });
+                                // let mut transpose_indices_iter = transpose_indices.into_iter();
+                                $(
+                                    let $shell_name = transpose_indices_iter
+                                        .next()
+                                        .expect("Shell index out of range.");
+                                )+
+                                let transpose_indices = [$($shell_name),+];
+
+                                let mut shell_boundaries_iter = shell_tuple.shell_boundaries.iter();
+                                $(
+                                    let $shell_name = shell_boundaries_iter
+                                        .next()
+                                        .expect("Shell index out of range.");
+                                )+
+                                let shell_slices = s![$(
+                                    $shell_name.0..$shell_name.1
+                                ),+];
+                                ints.slice_mut(shell_slices).assign(
+                                    &shell_blocks[l_component_index]
+                                        .clone()
+                                        .permuted_axes(transpose_indices)
+                                );
+                            })
+                        });
+                        ints
+                    }).collect::<Vec<_>>();
+
+                intss
             }
         }
     }
