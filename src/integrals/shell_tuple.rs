@@ -170,7 +170,11 @@ impl<'a, const RANK: usize, T: Clone> ShellTuple<'a, RANK, T> {
 
 /// A structure to handle all possible shell tuples for a particular type of integral.
 pub(crate) struct ShellTupleCollection<'a, const RANK: usize, T: Clone> {
-    shell_tuples: Array<ShellTuple<'a, RANK, T>, Dim<[usize; RANK]>>,
+    typ: PhantomData<T>,
+
+    shells: [&'a Vec<&'a BasisShellContraction<f64, f64>>; RANK],
+
+    // shell_tuples: Array<ShellTuple<'a, RANK, T>, Dim<[usize; RANK]>>,
 
     lmax: u32,
 
@@ -311,7 +315,9 @@ impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
             index: 0,
             shell_order: order,
             unordered_recombined_shell_indices,
-            shell_tuples: &self.shell_tuples,
+            stc: &self,
+            // shells: &self.shells,
+            // shell_tuples: &self.shell_tuples,
         }
     }
 }
@@ -320,7 +326,9 @@ struct UniqueShellTupleIterator<'it, 'a: 'it, const RANK: usize, T: Clone> {
     index: usize,
     shell_order: Vec<usize>,
     unordered_recombined_shell_indices: Vec<Vec<Vec<usize>>>,
-    shell_tuples: &'it Array<ShellTuple<'a, RANK, T>, Dim<[usize; RANK]>>,
+    stc: &'it ShellTupleCollection<'a, RANK, T>,
+    // shells: &'it [Vec<&'a BasisShellContraction<f64, f64>>; RANK],
+    // shell_tuples: &'it Array<ShellTuple<'a, RANK, T>, Dim<[usize; RANK]>>,
 }
 
 macro_rules! impl_shell_tuple {
@@ -328,7 +336,7 @@ macro_rules! impl_shell_tuple {
         const $RANK: usize = count_exprs!($($shell_name),+);
 
         impl<'it, 'a: 'it, T: Clone> Iterator for UniqueShellTupleIterator<'it, 'a, $RANK, T> {
-            type Item = (&'it ShellTuple<'a, $RANK, T>, [usize; $RANK], Vec<[usize; $RANK]>);
+            type Item = (ShellTuple<'a, $RANK, T>, [usize; $RANK], Vec<[usize; $RANK]>);
 
             fn next(&mut self) -> Option<Self::Item> {
                 let unordered_shell_index = self.unordered_recombined_shell_indices.get(self.index)?;
@@ -350,6 +358,17 @@ macro_rules! impl_shell_tuple {
                         .expect("Shell index out of range.");
                 )+
                 let ordered_shell_index = [$($shell_name),+];
+
+                let mut ordered_shell_index_iter = ordered_shell_index.iter().enumerate();
+                $(
+                    let $shell_name = ordered_shell_index_iter
+                        .next()
+                        .map(|(shell_index, &i)| {
+                            (self.stc.shells[shell_index][i], self.stc.ccs[shell_index])
+                        })
+                        .expect("Shell index out of range.");
+                )+
+                let shell_tuple = build_shell_tuple!($($shell_name),+; T);
 
                 // For each term in `unordered_recombined_shell_indices`, all unique
                 // permutations of each sub-vector gives an equivalent permutation.
@@ -377,7 +396,8 @@ macro_rules! impl_shell_tuple {
                     .collect::<Vec<_>>();
 
                 self.index += 1;
-                Some((&self.shell_tuples[[$($shell_name),+]], ordered_shell_index, equiv_perms))
+                // Some((&self.shell_tuples[ordered_shell_index], ordered_shell_index, equiv_perms))
+                Some((shell_tuple, ordered_shell_index, equiv_perms))
             }
         }
 
@@ -530,28 +550,27 @@ macro_rules! build_shell_tuple {
 macro_rules! build_shell_tuple_collection {
     ( <$($shell_name:ident),+>; $($shell_cc:expr),+; $($shells:expr),+; $ty:ty ) => {
         {
-            use itertools::iproduct;
-            use ndarray::{Array, Dim};
+            use std::marker::PhantomData;
 
-            use crate::integrals::shell_tuple::{ShellTuple, ShellTupleCollection};
+            use crate::integrals::shell_tuple::ShellTupleCollection;
 
             const RANK: usize = count_exprs!($($shell_name),+);
 
-            let shell_tuples = {
-                let arr_vec = iproduct!($($shells.iter()),+)
-                    .map(|shell_tuple| {
-                        let ($($shell_name),+) = shell_tuple;
-                        build_shell_tuple!($((*$shell_name, $shell_cc)),+; $ty)
-                    })
-                    .collect::<Vec<_>>();
-                let arr = Array::<ShellTuple<RANK, $ty>, Dim<[usize; RANK]>>::from_shape_vec(
-                    ($($shells.len()),+), arr_vec
-                ).unwrap_or_else(|err| {
-                    log::error!("{err}");
-                    panic!("Unable to construct the {RANK}-dimensional array of shell tuples.")
-                });
-                arr
-            };
+            // let shell_tuples = {
+            //     let arr_vec = iproduct!($($shells.iter()),+)
+            //         .map(|shell_tuple| {
+            //             let ($($shell_name),+) = shell_tuple;
+            //             build_shell_tuple!($((*$shell_name, $shell_cc)),+; $ty)
+            //         })
+            //         .collect::<Vec<_>>();
+            //     let arr = Array::<ShellTuple<RANK, $ty>, Dim<[usize; RANK]>>::from_shape_vec(
+            //         ($($shells.len()),+), arr_vec
+            //     ).unwrap_or_else(|err| {
+            //         log::error!("{err}");
+            //         panic!("Unable to construct the {RANK}-dimensional array of shell tuples.")
+            //     });
+            //     arr
+            // };
 
             let lmax: u32 = *[$(
                 $shells.iter().map(|shell| shell.basis_shell.l).collect::<Vec<_>>()
@@ -560,16 +579,19 @@ macro_rules! build_shell_tuple_collection {
                 .max()
                 .expect("Unable to determine the maximum angular momentum across all shells.");
 
+            let n_shells = [$($shells.len()),+];
             log::debug!("Rank-{RANK} shell tuple collection construction:");
             log::debug!(
                 "  Total number of tuples: {}",
-                shell_tuples.shape().iter().fold(1, |acc, s| acc * s)
+                n_shells.iter().fold(1, |acc, s| acc * s)
             );
             ShellTupleCollection::<RANK, $ty> {
-                shell_tuples,
+                typ: PhantomData,
+                shells: [$($shells),+],
+                // shell_tuples,
                 lmax,
                 ccs: [$($shell_cc),+],
-                n_shells: [$($shells.len()),+],
+                n_shells,
                 function_all_shell_shape: [$(
                     $shells.iter().map(|shell| shell.basis_shell().n_funcs()).sum::<usize>()
                 ),+],

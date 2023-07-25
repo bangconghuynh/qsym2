@@ -39,12 +39,12 @@ fn test_integrals_shell_tuple_collection() {
         cart_origin: Point3::new(2.0, 1.0, 1.0),
         k: Some(Vector3::z()),
     };
-    let bscs_1 = [&bsc0];
-    let bscs_2 = [&bsc0, &bsc1];
+    let bscs_1 = vec![&bsc0];
+    let bscs_2 = vec![&bsc0, &bsc1];
     let stc = build_shell_tuple_collection![
         <s1, s2, s3, s4, s5>;
         true, true, false, true, false;
-        bscs_2, bscs_1, bscs_2, bscs_2, bscs_2;
+        &bscs_2, &bscs_1, &bscs_2, &bscs_2, &bscs_2;
         C128
     ];
     assert_eq!(stc.lmax(), 2);
@@ -89,11 +89,11 @@ fn test_integrals_shell_tuple_collection_overlap_2c_h2() {
         k: None,
     };
 
-    let bscs = [&bsc0, &bsc1];
+    let bscs = vec![&bsc0, &bsc1];
     let stc = build_shell_tuple_collection![
         <s1, s2>;
         true, false;
-        bscs, bscs;
+        &bscs, &bscs;
         f64
     ];
     let ovs = stc.overlap([0, 0]);
@@ -529,7 +529,7 @@ fn test_integrals_shell_tuple_collection_overlap_2c_bf3() {
     let stc = build_shell_tuple_collection![
         <s1, s2>;
         true, false;
-        bscs_ref, bscs_ref;
+        &bscs_ref, &bscs_ref;
         f64
     ];
     let ovs = stc.overlap([0, 0]);
@@ -566,7 +566,7 @@ fn test_integrals_shell_tuple_collection_overlap_2c_benzene_rest_api() {
     let stc = build_shell_tuple_collection![
         <s1, s2>;
         false, false;
-        bscs_ref, bscs_ref;
+        &bscs_ref, &bscs_ref;
         f64
     ];
     let ovs = stc.overlap([0, 0]);
@@ -594,7 +594,7 @@ fn test_integrals_shell_tuple_collection_overlap_4c_h2o_rest_api() {
     // Water, cc-pVQZ
     // Reference: libint
     // ~~~~~~~~~~~~~~~~~
-    let mol = Molecule::from_xyz(&format!("{ROOT}/tests/xyz/h3.xyz"), 1e-7);
+    let mol = Molecule::from_xyz(&format!("{ROOT}/tests/xyz/water.xyz"), 1e-7);
 
     let bscs =
         BasisShellContraction::<f64, f64>::from_bse(
@@ -606,7 +606,7 @@ fn test_integrals_shell_tuple_collection_overlap_4c_h2o_rest_api() {
     let stc = build_shell_tuple_collection![
         <s1, s2, s3, s4>;
         false, false, false, false;
-        bscs_ref, bscs_ref, bscs_ref, bscs_ref;
+        &bscs_ref, &bscs_ref, &bscs_ref, &bscs_ref;
         f64
     ];
     let ovs = stc.overlap([0, 0, 0, 0]);
