@@ -3,7 +3,13 @@ macro_rules! impl_shell_tuple_overlap {
         #[duplicate_item(
             [
                 dtype [ f64 ]
-                arr_map_closure [ |x| x ]
+                zg_type [ &self.zg ]
+                dd_type [ &self.dd ]
+                rl2cart_type [
+                    self.rl2carts[i]
+                        .as_ref()
+                        .unwrap_or_else(|| panic!("Transformation matrix to convert shell {i} to spherical order not found."))
+                ]
                 exp_kqs_func [
                     if self.ks.iter().any(|k| k.is_some()) {
                         panic!("Real-valued overlaps cannot handle plane-wave vectors.")
@@ -39,7 +45,14 @@ macro_rules! impl_shell_tuple_overlap {
             ]
             [
                 dtype [ C128 ]
-                arr_map_closure [ |x| C128::from(x) ]
+                zg_type [ self.zg.mapv(C128::from) ]
+                dd_type [ &self.dd.mapv(C128::from) ]
+                rl2cart_type [
+                    &self.rl2carts[i]
+                        .as_ref()
+                        .unwrap_or_else(|| panic!("Transformation matrix to convert shell {i} to spherical order not found."))
+                        .mapv(C128::from)
+                ]
                 exp_kqs_func [
                     if self.ks.iter().any(|k| k.is_some()) {
                         // exp_ks = exp(-|k|^2 / 4 zg)
@@ -233,7 +246,7 @@ macro_rules! impl_shell_tuple_overlap {
                     // Initial term begins.
                     // ~~~~~~~~~~~~~~~~~~~~
                     if tuple_index == 0 {
-                        assert!(remaining_tuples.remove(&(l_tuple, n_tuple)));
+                        debug_assert!(remaining_tuples.remove(&(l_tuple, n_tuple)));
 
                         // pre_zg = sqrt(pi / zg)
                         // zg is primitive-combination-specific.
@@ -373,7 +386,7 @@ macro_rules! impl_shell_tuple_overlap {
                                 prev_n_tuple_k.iter_mut().enumerate().for_each(|(t, n)| {
                                     if t == k { *n -= 1 }
                                 });
-                                assert!(!remaining_tuples.contains(&(l_tuple, prev_n_tuple_k)));
+                                debug_assert!(!remaining_tuples.contains(&(l_tuple, prev_n_tuple_k)));
                                 // 1 / (2 * zg) * sum(i) Nα(n_i) * [[n_i - 1_α:|:]]
                                 (0..3).for_each(|i| {
                                     let add_term = self.zg.mapv(|zg| {
@@ -399,7 +412,7 @@ macro_rules! impl_shell_tuple_overlap {
                             prev_l_tuple.iter_mut().enumerate().for_each(|(t, l)| {
                                 if t == r_index { *l -= 1 }
                             });
-                            assert!(!remaining_tuples.contains(&(prev_l_tuple, n_tuple)));
+                            debug_assert!(!remaining_tuples.contains(&(prev_l_tuple, n_tuple)));
                             // -Nα(l_j) * [[:l_j - 1_α|:]]
                             // Note that Nα(l_j) = (l_j)_α.
                             (0..3).for_each(|i| {
@@ -426,21 +439,14 @@ macro_rules! impl_shell_tuple_overlap {
                                 prev_l_tuple_k.iter_mut().enumerate().for_each(|(t, l)| {
                                     if t == k { *l -= 1 }
                                 });
-                                assert!(!remaining_tuples.contains(&(prev_l_tuple_k, n_tuple)));
+                                debug_assert!(!remaining_tuples.contains(&(prev_l_tuple_k, n_tuple)));
                                 // (1 / zg) * sum(g) z_g * Nα(l_g) * [[:l_g - 1_α|:]]
                                 (0..3).for_each(|i| {
-                                    // let mut zk_zg_i = self.zg.clone();
-                                    // zk_zg_i.indexed_iter_mut().for_each(|(indices, zg)| {
-                                    //     let ($($shell_name),+) = indices;
-                                    //     let indices = [$($shell_name),+];
-                                    //     *zg = self.zs[k][indices[k]] / *zg;
-                                    // });
                                     let add_term = dtype::from(
                                         l_tuple[k]
                                             .to_f64()
                                             .unwrap_or_else(|| panic!("Unable to convert `l_tuple[k]` = {} to `f64`.", l_tuple[k])))
-                                    // * zk_zg_i.mapv(arr_map_closure)
-                                    / self.zg.mapv(arr_map_closure)
+                                    / zg_type
                                     * &self.zs[k] // broadcasting zs[k] to the shape of zg.
                                     * ints_r[i][prev_l_tuple_k][n_tuple].as_ref().unwrap_or_else(|| {
                                         panic!("({prev_l_tuple_k:?}, {n_tuple:?}) => ({l_tuple:?}, {next_n_tuple:?}) failed.")
@@ -501,8 +507,8 @@ macro_rules! impl_shell_tuple_overlap {
                             });
                             new_n_tuple
                         };
-                        assert!(next_n_tuple.iter().enumerate().all(|(t, n)| *n <= ns[t]));
-                        assert!(!remaining_tuples.contains(&(l_tuple, next_n_tuple)));
+                        debug_assert!(next_n_tuple.iter().enumerate().all(|(t, n)| *n <= ns[t]));
+                        debug_assert!(!remaining_tuples.contains(&(l_tuple, next_n_tuple)));
 
                         // 2 * z_g * [[n_g + 1_α:|:]]
                         (0..3).for_each(|i| {
@@ -524,7 +530,7 @@ macro_rules! impl_shell_tuple_overlap {
                             prev_n_tuple.iter_mut().enumerate().for_each(|(t, n)| {
                                 if t == r_index { *n -= 1 }
                             });
-                            assert!(!remaining_tuples.contains(&(l_tuple, prev_n_tuple)));
+                            debug_assert!(!remaining_tuples.contains(&(l_tuple, prev_n_tuple)));
 
                             // -Nα(n_g) * [[n_g - 1_α:|:]]
                             (0..3).for_each(|i| {
@@ -644,7 +650,7 @@ macro_rules! impl_shell_tuple_overlap {
                 let all_shells_contraction_str = (0..$RANK)
                     .map(|i| (i.to_u8().expect("Unable to convert a shell index to `u8`.") + 97) as char)
                     .collect::<String>();
-                let cart_shell_blocks = ls
+                let shell_blocks = ls
                     .iter()
                     .map(|l| 0..((l + 1) * (l + 2)).div_euclid(2))
                     .multi_cartesian_product()
@@ -660,7 +666,7 @@ macro_rules! impl_shell_tuple_overlap {
                         //   - 0th derivative of the first shell
                         //   - d/dz of the second shell (x, y, z)
                         //   - d2/dyy of the third shell (xx, xy, xz, yy, yz, zz)
-                        assert_eq!(l_indices.len(), $RANK);
+                        debug_assert_eq!(l_indices.len(), $RANK);
                         let mut l_indices_iter = l_indices.into_iter();
                         $(
                             let $shell_name = l_indices_iter
@@ -694,7 +700,9 @@ macro_rules! impl_shell_tuple_overlap {
                         // l_tuples_xyz will be cloned inside the for loop below because it
                         // is consumed after every iteration.
                         let outer_l_tuples_xyz = {
-                            let mut l_tuples_xyz_mut = [[$(replace_expr!(($shell_name) 0usize)),+]; 3];
+                            let mut l_tuples_xyz_mut = [
+                                [$(replace_expr!(($shell_name) 0usize)),+]; 3
+                            ];
                             l_tuples_xyz_mut[0].iter_mut().enumerate().for_each(|(shell_index, l)| {
                                 *l = usize::try_from(l_powers[shell_index].0)
                                     .expect("Unable to convert `l` to `usize`.");
@@ -803,10 +811,10 @@ macro_rules! impl_shell_tuple_overlap {
                                     )
                                 );
 
-                            // Contraction coefficients are introduced here.
+                            // Contraction coefficients are involved here.
                             cart_shell_block[cart_indices] = einsum(
                                 &format!("{all_shells_contraction_str},{all_shells_contraction_str}->"),
-                                &[&int_xyz, &self.dd.mapv(arr_map_closure)]
+                                &[&int_xyz, dd_type]
                             )
                                 .expect("Unable to contract `int_xyz` with `dd`.")
                                 .into_iter()
@@ -823,10 +831,7 @@ macro_rules! impl_shell_tuple_overlap {
                                 .fold(cart_shell_block, |acc, i| {
                                     if let ShellOrder::Pure(_) = self.shells[i].0.basis_shell().shell_order {
                                         let i_u8 = i.to_u8().expect("Unable to convert a shell index to `u8`.");
-                                        let rl2cart = self.rl2carts[i]
-                                            .as_ref()
-                                            .unwrap_or_else(|| panic!("Transformation matrix to convert shell {i} to spherical order not found."))
-                                            .mapv(arr_map_closure);
+                                        let rl2cart = rl2cart_type;
                                         let cart_to_pure_contraction_str = format!(
                                             "{}{}",
                                             (i_u8 + 97) as char,
@@ -846,7 +851,7 @@ macro_rules! impl_shell_tuple_overlap {
                                                 {cart_to_pure_contraction_str}->\
                                                 {result_str}"
                                             ),
-                                            &[&acc, &rl2cart]
+                                            &[&acc, rl2cart]
                                         )
                                         .unwrap_or_else(|_| panic!("Unable to convert shell {i} to spherical order."))
                                         .into_dimensionality::<Dim<[usize; $RANK]>>()
@@ -864,7 +869,7 @@ macro_rules! impl_shell_tuple_overlap {
                 // Population of Cartesian integrals for each derivative component ends.
                 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-                cart_shell_blocks
+                shell_blocks
             }
         }
 
@@ -892,6 +897,7 @@ macro_rules! impl_shell_tuple_overlap {
                     .unique_shell_tuples_iter(ls)
                     .par_bridge()
                     .map(|(shell_tuple, unique_perm, equiv_perms)| {
+                        log::debug!("Working on unique permutation: {unique_perm:?}");
                         (shell_tuple.overlap(ls), unique_perm, equiv_perms)
                     })
                     .collect::<Vec<_>>();

@@ -154,6 +154,7 @@ impl<E, C> BasisShellContraction<E, C> {
         optimised_contraction: bool,
         version: usize,
         mol_bohr: bool,
+        force_renormalisation: bool,
     ) -> Result<Vec<BasisShellContraction<f64, f64>>, anyhow::Error> {
         let emap = ElementMap::new();
         let mut bscs = mol
@@ -233,7 +234,7 @@ impl<E, C> BasisShellContraction<E, C> {
         bscs.iter_mut().for_each(|bsc| {
             bsc.start_index = start_index;
             start_index += bsc.basis_shell.n_funcs();
-            if optimised_contraction {
+            if force_renormalisation {
                 bsc.renormalise();
             }
         });
@@ -243,43 +244,6 @@ impl<E, C> BasisShellContraction<E, C> {
 
 impl BasisShellContraction<f64, f64> {
     pub(crate) fn renormalise(&mut self) -> &mut Self {
-        // let contraction_length = self.contraction.contraction_length();
-        // let doufac = if self.basis_shell.l > 0 {
-        //     (2 * self.basis_shell.l - 1)
-        //         .checked_double_factorial()
-        //         .unwrap_or_else(|| panic!("Unable to obtain `{}!!`.", 2 * self.basis_shell.l - 1))
-        //         .to_f64()
-        //         .unwrap_or_else(|| panic!("Unable to convert `{}!!` to `f64.", 2 * self.basis_shell.l - 1))
-        // } else {
-        //     1.0
-        // };
-        // let pi_pow_3_2 = std::f64::consts::PI.powi(3).sqrt();
-        // let norm = (0..contraction_length).map(|i| {
-        //     let (ei, di) = self.contraction.primitives[i];
-        //     (0..=i).map(|j| {
-        //         let (ej, dj) = self.contraction.primitives[j];
-        //         let gamma = ei + ej;
-        //         let fac = if i == j {
-        //             1.0f64
-        //         } else {
-        //             2.0f64
-        //         };
-        //         let l_i32 = self
-        //             .basis_shell
-        //             .l
-        //             .to_i32()
-        //             .unwrap_or_else(|| panic!("Unable to convert `{}` to `i32`.", self.basis_shell.l));
-        //         fac * di * dj
-        //         / (
-        //             2u32
-        //                 .pow(self.basis_shell.l)
-        //                 .to_f64()
-        //                 .unwrap_or_else(|| panic!("Unable to convert `2^{}` to `f64`.", self.basis_shell.l))
-        //             * gamma.powi(l_i32 + 1)
-        //             * gamma.sqrt()
-        //         )
-        //     }).sum::<f64>()
-        // }).sum::<f64>();
         let c_self = self.clone();
         let st = crate::integrals::shell_tuple::build_shell_tuple![
             (&c_self, true), (&c_self, false); f64

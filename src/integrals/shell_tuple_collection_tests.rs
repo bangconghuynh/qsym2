@@ -1,3 +1,5 @@
+use env_logger;
+
 use byteorder::LittleEndian;
 use nalgebra::{Point3, Vector3};
 use ndarray::{array, Array2};
@@ -555,13 +557,15 @@ fn test_integrals_shell_tuple_collection_overlap_2c_benzene_rest_api() {
     let mol = Molecule::from_xyz(&format!("{ROOT}/tests/xyz/benzene.xyz"), 1e-7);
 
     let bscs =
-        BasisShellContraction::<f64, f64>::from_bse(&mol, "cc-pVQZ", true, true, 0, false).unwrap();
+        BasisShellContraction::<f64, f64>::from_bse(
+            &mol, "cc-pVQZ", true, true, 0, false, true
+        ).unwrap();
     let bscs_ref = bscs.iter().collect::<Vec<_>>();
     use std::time::Instant;
     let now = Instant::now();
     let stc = build_shell_tuple_collection![
         <s1, s2>;
-        true, false;
+        false, false;
         bscs_ref, bscs_ref;
         f64
     ];
@@ -580,4 +584,32 @@ fn test_integrals_shell_tuple_collection_overlap_2c_benzene_rest_api() {
         &sao,
         1e-5
     );
+}
+
+#[test]
+fn test_integrals_shell_tuple_collection_overlap_4c_h2o_rest_api() {
+    env_logger::init();
+
+    // ~~~~~~~~~~~~~~~~~
+    // Water, cc-pVQZ
+    // Reference: libint
+    // ~~~~~~~~~~~~~~~~~
+    let mol = Molecule::from_xyz(&format!("{ROOT}/tests/xyz/h3.xyz"), 1e-7);
+
+    let bscs =
+        BasisShellContraction::<f64, f64>::from_bse(
+            &mol, "cc-pVQZ", true, true, 0, false, true
+        ).unwrap();
+    let bscs_ref = bscs.iter().collect::<Vec<_>>();
+    use std::time::Instant;
+    let now = Instant::now();
+    let stc = build_shell_tuple_collection![
+        <s1, s2, s3, s4>;
+        false, false, false, false;
+        bscs_ref, bscs_ref, bscs_ref, bscs_ref;
+        f64
+    ];
+    let ovs = stc.overlap([0, 0, 0, 0]);
+    let elapsed_time = now.elapsed();
+    println!("Took: {}", elapsed_time.as_nanos());
 }

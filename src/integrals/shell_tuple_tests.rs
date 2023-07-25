@@ -7,10 +7,6 @@ use num_complex::Complex;
 use crate::basis::ao::*;
 use crate::basis::ao_integrals::*;
 
-const ROOT: &str = env!("CARGO_MANIFEST_DIR");
-
-type C128 = Complex<f64>;
-
 #[test]
 fn test_integrals_shell_tuple() {
     let bs0 = BasisShell::new(1, ShellOrder::Cart(CartOrder::lex(1)));
@@ -37,7 +33,7 @@ fn test_integrals_shell_tuple() {
         k: Some(Vector3::z()),
     };
 
-    let st = build_shell_tuple![(&bsc0, true), (&bsc1, false), (&bsc1, true); C128];
+    let st = build_shell_tuple![(&bsc0, true), (&bsc1, false), (&bsc1, true); f64];
     assert_eq!(st.function_shell_shape, [3, 6, 6]);
     assert_eq!(st.shell_boundaries, [(0, 3), (3, 9), (3, 9)]);
     assert_eq!(st.ks, [None, Some(Vector3::z()), Some(-Vector3::z())]);
@@ -1001,4 +997,62 @@ fn test_integrals_shell_tuple_overlap_2c_optimised_contraction() {
     let st_00 = build_shell_tuple![(&bsc0, true), (&bsc0, false); f64];
     let ovs_00 = st_00.overlap([0, 0]);
     assert_close_l2!(&ovs_00[0], &array![[1.0]], 1e-7);
+}
+
+#[test]
+fn test_integrals_shell_tuple_overlap_2c_b_qchem() {
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // B, cc-pVTZ
+    // Reference: Q-Chem
+    // Note: Q-Chem's definitions of these shells are not normalised. Without normalisation, the
+    // overlap elements are incorrect.
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let bs_cs = BasisShell::new(0, ShellOrder::Cart(CartOrder::lex(0)));
+    let gc_b_ccpvtz_1s = GaussianContraction::<f64, f64> {
+        primitives: vec![
+            (5.47300000e+03, 5.60470000e-04),
+            (8.20900000e+02, 4.33323000e-03),
+            (1.86800000e+02, 2.21642700e-02),
+            (5.28300000e+01, 8.52621600e-02),
+            (1.70800000e+01, 2.40817150e-01),
+            (5.99900000e+00, 4.38850320e-01),
+            (2.20800000e+00, 3.43751710e-01),
+        ],
+    };
+    let gc_b_ccpvtz_2s = GaussianContraction::<f64, f64> {
+        primitives: vec![
+            (5.47300000e+03,  1.83000000e-06),
+            (8.20900000e+02,  1.14100000e-05),
+            (5.28300000e+01, -5.72750000e-04),
+            (1.70800000e+01, -6.49550000e-03),
+            (5.99900000e+00, -3.99012300e-02),
+            (2.20800000e+00, -1.27115170e-01),
+            (2.41500000e-01,  7.86849720e-01),
+        ],
+    };
+
+    let mut bsc0 = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 0,
+        contraction: gc_b_ccpvtz_1s.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    bsc0.renormalise();
+    let mut bsc1 = BasisShellContraction::<f64, f64> {
+        basis_shell: bs_cs.clone(),
+        start_index: 1,
+        contraction: gc_b_ccpvtz_2s.clone(),
+        cart_origin: Point3::new(0.0, 0.0, 0.0),
+        k: None,
+    };
+    bsc1.renormalise();
+
+    let st_00 = build_shell_tuple![(&bsc0, true), (&bsc0, false); f64];
+    let ovs_00 = st_00.overlap([0, 0]);
+    assert_close_l2!(&ovs_00[0], &array![[1.0]], 1e-7);
+
+    let st_01 = build_shell_tuple![(&bsc0, true), (&bsc1, false); f64];
+    let ovs_01 = st_01.overlap([0, 0]);
+    assert_close_l2!(&ovs_01[0], &array![[0.1087534]], 1e-6);
 }
