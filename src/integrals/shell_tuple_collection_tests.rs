@@ -306,3 +306,103 @@ fn test_integrals_shell_tuple_collection_overlap_3c_li2() {
         }
     }
 }
+
+#[test]
+fn test_integrals_shell_tuple_collection_overlap_3c_bf3_offcentre() {
+    // ~~~~~~~~~~~~~~~~
+    // BF3 (off-centre)
+    // Reference: QUEST
+    // ~~~~~~~~~~~~~~~~
+    let mol = Molecule::from_xyz(&format!("{ROOT}/tests/xyz/bf3_offcentre.xyz"), 1e-7);
+
+    for cart in [true, false] {
+        for (bas_name, bas_sym) in [("STO-3G", "sto3g"), ("6-31G*", "631gs")] {
+            let mut bscs = BasisSet::<f64, f64>::from_bse(
+                &mol, bas_name, cart,  // cart
+                false, // optimised contraction
+                0,     // version
+                true,  // mol_bohr
+                true,  // force renormalisation
+            )
+            .unwrap();
+
+            // QUEST-specific: shells are grouped by angular momentum on each atom.
+            bscs.sort_by_angular_momentum();
+
+            // QUEST-specific: P functions are always in Cartesian order.
+            if !cart {
+                bscs.all_shells_mut().for_each(|bsc| {
+                    if bsc.basis_shell.l == 1 {
+                        bsc.basis_shell.shell_order = ShellOrder::Cart(CartOrder::lex(1))
+                    }
+                });
+            }
+
+            let stc = build_shell_tuple_collection![
+                <s1, s2, s3>;
+                false, false, false;
+                &bscs, &bscs, &bscs;
+                f64
+            ];
+            let ovs = stc.overlap([0, 0, 0]);
+            let sao_v = NumericReader::<_, LittleEndian, f64>::from_file(format!(
+                "{ROOT}/tests/binaries/integrals/bf3_3c/{}_gao_BF3_{bas_sym}_contracted",
+                if cart { "cartesian" } else { "spherical" }
+            ))
+            .unwrap()
+            .collect::<Vec<_>>();
+            let sao_3c = Array3::from_shape_vec(ovs[0].raw_dim(), sao_v).unwrap();
+            assert_close_l2!(&ovs[0], &sao_3c, 1e-7);
+        }
+    }
+}
+
+#[test]
+fn test_integrals_shell_tuple_collection_overlap_3c_cr() {
+    // ~~~~~~~~~~~~~~~~
+    // Cr
+    // Reference: QUEST
+    // ~~~~~~~~~~~~~~~~
+    let mol = Molecule::from_xyz(&format!("{ROOT}/tests/xyz/cr.xyz"), 1e-7);
+
+    for cart in [true, false] {
+        for (bas_name, bas_sym) in [("STO-3G", "sto3g"), ("6-31G*", "631gs")] {
+            let mut bscs = BasisSet::<f64, f64>::from_bse(
+                &mol, bas_name, cart,  // cart
+                false, // optimised contraction
+                0,     // version
+                true,  // mol_bohr
+                true,  // force renormalisation
+            )
+            .unwrap();
+
+            // QUEST-specific: shells are grouped by angular momentum on each atom.
+            bscs.sort_by_angular_momentum();
+
+            // QUEST-specific: P functions are always in Cartesian order.
+            if !cart {
+                bscs.all_shells_mut().for_each(|bsc| {
+                    if bsc.basis_shell.l == 1 {
+                        bsc.basis_shell.shell_order = ShellOrder::Cart(CartOrder::lex(1))
+                    }
+                });
+            }
+
+            let stc = build_shell_tuple_collection![
+                <s1, s2, s3>;
+                false, false, false;
+                &bscs, &bscs, &bscs;
+                f64
+            ];
+            let ovs = stc.overlap([0, 0, 0]);
+            let sao_v = NumericReader::<_, LittleEndian, f64>::from_file(format!(
+                "{ROOT}/tests/binaries/integrals/cr_3c/{}_gao_Cr_{bas_sym}_contracted",
+                if cart { "cartesian" } else { "spherical" }
+            ))
+            .unwrap()
+            .collect::<Vec<_>>();
+            let sao_3c = Array3::from_shape_vec(ovs[0].raw_dim(), sao_v).unwrap();
+            assert_close_l2!(&ovs[0], &sao_3c, 1e-7);
+        }
+    }
+}
