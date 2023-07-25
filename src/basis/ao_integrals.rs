@@ -30,6 +30,7 @@ pub(crate) struct GaussianContraction<E, C> {
 }
 
 impl<E, C> GaussianContraction<E, C> {
+    /// The number of primitive Gaussians in this contraction.
     pub(crate) fn contraction_length(&self) -> usize {
         self.primitives.len()
     }
@@ -45,34 +46,66 @@ impl<E, C> GaussianContraction<E, C> {
 
 const BSE_BASE_API: &str = "https://www.basissetexchange.org/api";
 
+/// A structure to represent the REST API result fro, BasisSetExchange.
 #[derive(Serialize, Deserialize, Debug)]
 struct BSEResponse {
+    /// Name of the basis set.
     name: String,
+
+    /// Version of the basis set.
     version: String,
+
+    /// A hashmap between atomic numbers and element basis information.
     elements: HashMap<u32, BSEElement>,
 }
 
+/// A structure to handle basis set information for an element.
 #[derive(Serialize, Deserialize, Debug)]
 struct BSEElement {
+    /// A vector of basis set information for the shells in this element.
     electron_shells: Vec<BSEElectronShell>,
 }
 
+/// A structure to handle basis set information for a shell.
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(try_from = "BSEElectronShellRaw")]
 struct BSEElectronShell {
+    /// The type of basis functions in this shell.
     function_type: String,
+
+    /// The chemical region described by this shell.
     region: String,
+
+    /// the angular momentum of this shell.
     angular_momentum: Vec<u32>,
+
+    /// A vector of primitive exponents.
     exponents: Vec<f64>,
+
+    /// A vector of vectors of primitive coefficients. Each inner vector is to be interpreted as a
+    /// separate shell with the same primitive exponents and angular momentum, but different
+    /// contraction coefficients.
     coefficients: Vec<Vec<f64>>,
 }
 
+/// A structure to handle basis set information for a shell, as obtained raw from BasisSetExchange.
 #[derive(Deserialize)]
 struct BSEElectronShellRaw {
+    /// The type of basis functions in this shell.
     function_type: String,
+
+    /// The chemical region described by this shell.
     region: String,
+
+    /// the angular momentum of this shell.
     angular_momentum: Vec<u32>,
+
+    /// A vector of primitive exponents.
     exponents: Vec<String>,
+
+    /// A vector of vectors of primitive coefficients. Each inner vector is to be interpreted as a
+    /// separate shell with the same primitive exponents and angular momentum, but different
+    /// contraction coefficients.
     coefficients: Vec<Vec<String>>,
 }
 
@@ -122,28 +155,36 @@ pub(crate) struct BasisShellContraction<E, C> {
     /// The optional plane-wave $`\mathbf{k}`$ vector in the exponent
     /// $`\exp\left[i\mathbf{k}\cdot(\mathbf{r} - \mathbf{R})\right]`$ associated with this shell.
     /// If this is `None`, then this exponent is set to unity.
+    #[builder(default = "None")]
     pub(crate) k: Option<Vector3<f64>>,
 }
 
 impl<E, C> BasisShellContraction<E, C> {
+    /// The basis function ordering information of this shell.
     pub(crate) fn basis_shell(&self) -> &BasisShell {
         &self.basis_shell
     }
 
+    /// The plane-wave $`\mathbf{k}`$ vector in the exponent.
     pub(crate) fn k(&self) -> Option<&Vector3<f64>> {
         self.k.as_ref()
     }
 
+    /// The Cartesian origin $`\mathbf{R}`$ of this shell.
     pub(crate) fn cart_origin(&self) -> &Point3<f64> {
         &self.cart_origin
     }
 
+    /// The number of primitive Gaussians in this shell.
     pub(crate) fn contraction_length(&self) -> usize {
         self.contraction.contraction_length()
     }
 }
 
 impl BasisShellContraction<f64, f64> {
+    /// Computes the self-overlap ($`\mathcal{l}_2`$-norm) of this shell and divides in-place the
+    /// contraction coefficients by ther square root of this, so that the functions in the shell
+    /// are always normalised.
     pub(crate) fn renormalise(&mut self) -> &mut Self {
         let c_self = self.clone();
         let st = crate::integrals::shell_tuple::build_shell_tuple![
@@ -158,6 +199,26 @@ impl BasisShellContraction<f64, f64> {
         self
     }
 
+    /// Retrieves basis information from BasisSetExchange and constructs a vector of vectors of
+    /// [`Self`] for a specified molecule. Each inner vector is for one atom in the molecule.
+    ///
+    /// # Arguments
+    ///
+    /// * `mol` - A molecule.
+    /// * `basis_name` - The name of the basis set to be retrieved.
+    /// * `cart` - A boolean indicating if the shell functions should have lexicographic Cartesian
+    /// ordering. If `false`, the shell functions shall have increasing-$`m`$ pure ordering
+    /// instead.
+    /// * `optimised_contraction` - A boolean indicating if the optimised contraction version of
+    /// shells should be requested.
+    /// * `version` - The requested version of the basis set information.
+    /// * `mol_bohr` - A boolean indicating of the coordinates of the atoms in `mol` are to be
+    /// interpreted in units of Bohr. If `false`, they are assumed to be in units of Ångström and
+    /// will be converted to Bohr.
+    ///
+    /// # Returns
+    ///
+    /// A vector of vectors of [`Self`].
     pub(crate) fn from_bse(
         mol: &Molecule,
         basis_name: &str,
