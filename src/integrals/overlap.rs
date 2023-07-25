@@ -937,7 +937,6 @@ macro_rules! impl_shell_tuple_overlap {
 
                         shell_blockss.iter().for_each(|(shell_blocks, unique_perm, equiv_perms)| {
                             equiv_perms.iter().for_each(|&equiv_perm| {
-                                // let shell_tuple = &self.shell_tuples[equiv_perm];
                                 let mut unique_perm_vec = unique_perm
                                     .iter()
                                     .map(|i| Some(*i))
@@ -952,7 +951,6 @@ macro_rules! impl_shell_tuple_overlap {
                                     unique_perm_vec[index] = None;
                                     index
                                 });
-                                // let mut transpose_indices_iter = transpose_indices.into_iter();
                                 $(
                                     let $shell_name = transpose_indices_iter
                                         .next()
@@ -960,16 +958,11 @@ macro_rules! impl_shell_tuple_overlap {
                                 )+
                                 let transpose_indices = [$($shell_name),+];
 
-                                // let mut shell_boundaries_iter = shell_tuple.shell_boundaries.iter();
                                 let mut shell_boundaries_iter = equiv_perm
                                     .iter()
                                     .enumerate()
                                     .map(|(shell_index, &i)| {
-                                        let shell = self.shells[shell_index][i];
-                                        (
-                                            shell.start_index,
-                                            shell.start_index + shell.basis_shell.n_funcs()
-                                        )
+                                        self.basis_sets[shell_index].shell_boundaries()[i]
                                     });
                                 $(
                                     let $shell_name = shell_boundaries_iter

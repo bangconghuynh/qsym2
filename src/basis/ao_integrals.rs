@@ -1,10 +1,9 @@
 use std::collections::HashMap;
+use std::ops::Index;
 
 use anyhow::{self, format_err};
 use derive_builder::Builder;
-use factorial::DoubleFactorial;
 use nalgebra::{Point3, Vector3};
-use num_traits::ToPrimitive;
 use rayon::prelude::*;
 use reqwest;
 use serde::{Deserialize, Serialize};
@@ -114,9 +113,6 @@ pub(crate) struct BasisShellContraction<E, C> {
     /// Basis function ordering information.
     pub(crate) basis_shell: BasisShell,
 
-    /// The function starting index of this shell in the basis set.
-    pub(crate) start_index: usize,
-
     /// The Gaussian primitives in the contraction of this shell.
     pub(crate) contraction: GaussianContraction<E, C>,
 
@@ -145,7 +141,22 @@ impl<E, C> BasisShellContraction<E, C> {
     pub(crate) fn contraction_length(&self) -> usize {
         self.contraction.contraction_length()
     }
+}
 
+impl BasisShellContraction<f64, f64> {
+    pub(crate) fn renormalise(&mut self) -> &mut Self {
+        let c_self = self.clone();
+        let st = crate::integrals::shell_tuple::build_shell_tuple![
+            (&c_self, true), (&c_self, false); f64
+        ];
+        let ovs = st.overlap([0, 0]);
+        let norm = ovs[0].iter().next().unwrap();
+        let scale = 1.0 / norm.sqrt();
+        self.contraction.primitives.iter_mut().for_each(|(_, d)| {
+            *d *= scale;
+        });
+        self
+    }
 
     pub(crate) fn from_bse(
         mol: &Molecule,
@@ -155,7 +166,7 @@ impl<E, C> BasisShellContraction<E, C> {
         version: usize,
         mol_bohr: bool,
         force_renormalisation: bool,
-    ) -> Result<Vec<BasisShellContraction<f64, f64>>, anyhow::Error> {
+    ) -> Result<Vec<Vec<Self>>, anyhow::Error> {
         let emap = ElementMap::new();
         let mut bscs = mol
             .atoms
@@ -214,47 +225,144 @@ impl<E, C> BasisShellContraction<E, C> {
                                             atom.coordinates.clone() * ANGSTROM_TO_BOHR
                                         };
 
-                                        BasisShellContraction {
-                                            basis_shell,
-                                            start_index: 0,
-                                            contraction,
-                                            cart_origin,
-                                            k: None,
+                                        if force_renormalisation {
+                                            let mut bsc = BasisShellContraction {
+                                                basis_shell,
+                                                contraction,
+                                                cart_origin,
+                                                k: None,
+                                            };
+                                            bsc.renormalise();
+                                            bsc
+                                        } else {
+                                            BasisShellContraction {
+                                                basis_shell,
+                                                contraction,
+                                                cart_origin,
+                                                k: None,
+                                            }
                                         }
                                     })
                             })
                             .collect::<Vec<_>>()
                     })
             })
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
-        let mut start_index = 0;
-        bscs.iter_mut().for_each(|bsc| {
-            bsc.start_index = start_index;
-            start_index += bsc.basis_shell.n_funcs();
-            if force_renormalisation {
-                bsc.renormalise();
-            }
-        });
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(bscs)
     }
 }
 
-impl BasisShellContraction<f64, f64> {
-    pub(crate) fn renormalise(&mut self) -> &mut Self {
-        let c_self = self.clone();
-        let st = crate::integrals::shell_tuple::build_shell_tuple![
-            (&c_self, true), (&c_self, false); f64
-        ];
-        let ovs = st.overlap([0, 0]);
-        let norm = ovs[0].iter().next().unwrap();
-        let scale = 1.0 / norm.sqrt();
-        self.contraction.primitives.iter_mut().for_each(|(_, d)| {
-            *d *= scale;
-        });
+// --------
+// BasisSet
+// --------
+pub(crate) struct BasisSet<E, C> {
+    basis_atoms: Vec<Vec<BasisShellContraction<E, C>>>,
+    atom_boundaries: Vec<(usize, usize)>,
+    shell_boundaries: Vec<(usize, usize)>,
+}
+
+impl<E, C> BasisSet<E, C> {
+    pub(crate) fn new(batms: Vec<Vec<BasisShellContraction<E, C>>>) -> Self {
+        let atom_boundaries = batms
+            .iter()
+            .scan(0, |acc, batm| {
+                let atom_length = batm
+                    .iter()
+                    .map(|bs| bs.basis_shell.n_funcs())
+                    .sum::<usize>();
+                let boundary = (*acc, *acc + atom_length);
+                *acc += atom_length;
+                Some(boundary)
+            })
+            .collect::<Vec<_>>();
+        let shell_boundaries = batms
+            .iter()
+            .flatten()
+            .scan(0, |acc, bsc| {
+                let shell_length = bsc.basis_shell.n_funcs();
+                let boundary = (*acc, *acc + shell_length);
+                *acc += shell_length;
+                Some(boundary)
+            })
+            .collect::<Vec<_>>();
+        Self {
+            basis_atoms: batms,
+            atom_boundaries,
+            shell_boundaries,
+        }
+    }
+
+    fn update_shell_boundaries(&mut self) -> &mut Self {
+        self.shell_boundaries = self
+            .basis_atoms
+            .iter()
+            .flatten()
+            .scan(0, |acc, bsc| {
+                let shell_length = bsc.basis_shell.n_funcs();
+                let boundary = (*acc, *acc + shell_length);
+                *acc += shell_length;
+                Some(boundary)
+            })
+            .collect::<Vec<_>>();
         self
+    }
+
+    pub(crate) fn n_shells(&self) -> usize {
+        self.basis_atoms.iter().map(|batm| batm.len()).sum::<usize>()
+    }
+
+    pub(crate) fn sort_by_angular_momentum(&mut self) -> &mut Self {
+        self.basis_atoms
+            .iter_mut()
+            .for_each(|batm| batm.sort_by_key(|bsc| bsc.basis_shell.l));
+        self.update_shell_boundaries()
+    }
+
+    pub(crate) fn shell_boundaries(&self) -> &Vec<(usize, usize)> {
+        &self.shell_boundaries
+    }
+
+    pub(crate) fn all_shells(&self) -> impl Iterator<Item = &BasisShellContraction<E, C>> {
+        self.basis_atoms.iter().flatten()
+    }
+
+    pub(crate) fn all_shells_mut(
+        &mut self,
+    ) -> impl Iterator<Item = &mut BasisShellContraction<E, C>> {
+        self.basis_atoms.iter_mut().flatten()
     }
 }
 
+impl BasisSet<f64, f64> {
+    pub(crate) fn from_bse(
+        mol: &Molecule,
+        basis_name: &str,
+        cart: bool,
+        optimised_contraction: bool,
+        version: usize,
+        mol_bohr: bool,
+        force_renormalisation: bool,
+    ) -> Result<Self, anyhow::Error> {
+        Ok(Self::new(BasisShellContraction::<f64, f64>::from_bse(
+            mol,
+            basis_name,
+            cart,
+            optimised_contraction,
+            version,
+            mol_bohr,
+            force_renormalisation,
+        )?))
+    }
+}
+
+impl<E, C> Index<usize> for BasisSet<E, C> {
+    type Output = BasisShellContraction<E, C>;
+
+    fn index(&self, i: usize) -> &Self::Output {
+        self.basis_atoms
+            .iter()
+            .flatten()
+            .nth(i)
+            .unwrap_or_else(|| panic!("Unable to obtain the basis shell with index {i}."))
+    }
+}
