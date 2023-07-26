@@ -202,6 +202,9 @@ impl BasisShellContraction<f64, f64> {
     /// Retrieves basis information from BasisSetExchange and constructs a vector of vectors of
     /// [`Self`] for a specified molecule. Each inner vector is for one atom in the molecule.
     ///
+    /// This method produces basis name and function ordering that are uniform across all atoms and
+    /// shells. The result from this method can be mutated for finer control of this.
+    ///
     /// # Arguments
     ///
     /// * `mol` - A molecule.
@@ -215,6 +218,9 @@ impl BasisShellContraction<f64, f64> {
     /// * `mol_bohr` - A boolean indicating of the coordinates of the atoms in `mol` are to be
     /// interpreted in units of Bohr. If `false`, they are assumed to be in units of Ångström and
     /// will be converted to Bohr.
+    /// * `force_renormalisation` - A boolean indicating if each shell is renormalised by scaling
+    /// its primitive contraction coefficients by the inverse square root of its
+    /// $\mathcal{l}_2$-norm.
     ///
     /// # Returns
     ///
@@ -316,13 +322,30 @@ impl BasisShellContraction<f64, f64> {
 // --------
 // BasisSet
 // --------
+/// A structure to manage basis information for a molecule.
+#[derive(Clone, Debug)]
 pub(crate) struct BasisSet<E, C> {
+    /// A vector of vectors containing basis information for the atoms in this molecule. Each inner
+    /// vector is for one atom.
     basis_atoms: Vec<Vec<BasisShellContraction<E, C>>>,
+
+    /// The function boundaries for the atoms in the molecule.
     atom_boundaries: Vec<(usize, usize)>,
+
+    /// The function boundaries for the shells in the molecule.
     shell_boundaries: Vec<(usize, usize)>,
 }
 
 impl<E, C> BasisSet<E, C> {
+    /// Creates a new [`BasisSet`] structure from a vector of vectors of basis shells.
+    ///
+    /// # Arguments
+    ///
+    /// * `batms` - A vector of vectors of basis shells. Each inner vector is for one atom.
+    ///
+    /// # Returns
+    ///
+    /// A new [`BasisSet`] structure.
     pub(crate) fn new(batms: Vec<Vec<BasisShellContraction<E, C>>>) -> Self {
         let atom_boundaries = batms
             .iter()
@@ -353,6 +376,8 @@ impl<E, C> BasisSet<E, C> {
         }
     }
 
+    /// Updates the cached shell boundaries. This is required when the shells or atoms have been
+    /// reordered.
     fn update_shell_boundaries(&mut self) -> &mut Self {
         self.shell_boundaries = self
             .basis_atoms
@@ -368,10 +393,12 @@ impl<E, C> BasisSet<E, C> {
         self
     }
 
+    /// The number of shells in the basis set.
     pub(crate) fn n_shells(&self) -> usize {
         self.basis_atoms.iter().map(|batm| batm.len()).sum::<usize>()
     }
 
+    /// Sorts the shells in each atom by their angular momenta.
     pub(crate) fn sort_by_angular_momentum(&mut self) -> &mut Self {
         self.basis_atoms
             .iter_mut()
@@ -379,14 +406,17 @@ impl<E, C> BasisSet<E, C> {
         self.update_shell_boundaries()
     }
 
+    /// Returns the function shell boundaries.
     pub(crate) fn shell_boundaries(&self) -> &Vec<(usize, usize)> {
         &self.shell_boundaries
     }
 
+    /// Returns an iterator over all shells in the basis set.
     pub(crate) fn all_shells(&self) -> impl Iterator<Item = &BasisShellContraction<E, C>> {
         self.basis_atoms.iter().flatten()
     }
 
+    /// Returns a mutable iterator over all shells in the basis set.
     pub(crate) fn all_shells_mut(
         &mut self,
     ) -> impl Iterator<Item = &mut BasisShellContraction<E, C>> {
@@ -395,6 +425,32 @@ impl<E, C> BasisSet<E, C> {
 }
 
 impl BasisSet<f64, f64> {
+    /// Retrieves basis information from BasisSetExchange and constructs [`Self`] for a specified
+    /// molecule.
+    ///
+    /// This method produces basis name and function ordering that are uniform across all atoms and
+    /// shells. The result from this method can be mutated for finer control of this.
+    ///
+    /// # Arguments
+    ///
+    /// * `mol` - A molecule.
+    /// * `basis_name` - The name of the basis set to be retrieved.
+    /// * `cart` - A boolean indicating if the shell functions should have lexicographic Cartesian
+    /// ordering. If `false`, the shell functions shall have increasing-$`m`$ pure ordering
+    /// instead.
+    /// * `optimised_contraction` - A boolean indicating if the optimised contraction version of
+    /// shells should be requested.
+    /// * `version` - The requested version of the basis set information.
+    /// * `mol_bohr` - A boolean indicating of the coordinates of the atoms in `mol` are to be
+    /// interpreted in units of Bohr. If `false`, they are assumed to be in units of Ångström and
+    /// will be converted to Bohr.
+    /// * `force_renormalisation` - A boolean indicating if each shell is renormalised by scaling
+    /// its primitive contraction coefficients by the inverse square root of its
+    /// $\mathcal{l}_2$-norm.
+    ///
+    /// # Returns
+    ///
+    /// A [`BasisSet`] structure.
     pub(crate) fn from_bse(
         mol: &Molecule,
         basis_name: &str,
