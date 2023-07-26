@@ -179,6 +179,28 @@ impl<E, C> BasisShellContraction<E, C> {
     pub(crate) fn contraction_length(&self) -> usize {
         self.contraction.contraction_length()
     }
+
+    /// Applies a uniform magnetic field to the shell and sets its plane-wave $`k`$ vector
+    /// according to
+    ///
+    /// ```math
+    ///     \mathbf{k} = \frac{1}{2} \mathbf{B} \times (\mathbf{R} - \mathbf{G}),
+    /// ```
+    ///
+    /// where $`\mathbf{B}`$ is the uniform magnetic field vector, $`\mathbf{R}`$ is the Cartesian
+    /// origin of this shell, and $`\mathbf{G}`$ the gauge origin with respect to which the
+    /// magnetic field is defined. Both $`\mathbf{R}`$ and $`\mathbf{G}`$ are points in a
+    /// space-fixed coordinate system.
+    ///
+    /// # Arguments
+    ///
+    /// * `b` - The magnetic field vector $`\mathbf{B}`$.
+    /// * `g` - The gauge origin.
+    pub(crate) fn apply_magnetic_field(&mut self, b: &Vector3<f64>, g: &Point3<f64>) -> &mut Self {
+        let k = 0.5 * b.cross(&(self.cart_origin.coords - g.coords));
+        self.k = Some(k);
+        self
+    }
 }
 
 impl BasisShellContraction<f64, f64> {
@@ -235,7 +257,7 @@ impl BasisShellContraction<f64, f64> {
         force_renormalisation: bool,
     ) -> Result<Vec<Vec<Self>>, anyhow::Error> {
         let emap = ElementMap::new();
-        let mut bscs = mol
+        let bscs = mol
             .atoms
             .par_iter()
             .map(|atom| {
@@ -393,9 +415,32 @@ impl<E, C> BasisSet<E, C> {
         self
     }
 
+    /// Applies a uniform magnetic field to all shells and sets their plane-wave $`k`$ vectors.
+    /// See the documentation of [`BasisShellContraction::apply_magnetic_field`] for more
+    /// information.
+    ///
+    /// # Arguments
+    ///
+    /// * `b` - The magnetic field vector $`\mathbf{B}`$.
+    /// * `g` - The gauge origin.
+    pub(crate) fn apply_magnetic_field(&mut self, b: &Vector3<f64>, g: &Point3<f64>) -> &mut Self {
+        self.all_shells_mut().for_each(|shell| {
+            shell.apply_magnetic_field(b, g);
+        });
+        self
+    }
+
     /// The number of shells in the basis set.
     pub(crate) fn n_shells(&self) -> usize {
-        self.basis_atoms.iter().map(|batm| batm.len()).sum::<usize>()
+        self.basis_atoms
+            .iter()
+            .map(|batm| batm.len())
+            .sum::<usize>()
+    }
+
+    /// The number of basis functions in the basis set.
+    pub(crate) fn n_funcs(&self) -> usize {
+        self.all_shells().map(|shell| shell.basis_shell.n_funcs()).sum::<usize>()
     }
 
     /// Sorts the shells in each atom by their angular momenta.
