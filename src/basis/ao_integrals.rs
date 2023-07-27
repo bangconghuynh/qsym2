@@ -196,7 +196,7 @@ impl<E, C> BasisShellContraction<E, C> {
     /// # Arguments
     ///
     /// * `b` - The magnetic field vector $`\mathbf{B}`$.
-    /// * `g` - The gauge origin.
+    /// * `g` - The gauge origin $`\mathbf{G}`$.
     pub(crate) fn apply_magnetic_field(&mut self, b: &Vector3<f64>, g: &Point3<f64>) -> &mut Self {
         let k = 0.5 * b.cross(&(self.cart_origin.coords - g.coords));
         self.k = Some(k);
@@ -423,7 +423,7 @@ impl<E, C> BasisSet<E, C> {
     /// # Arguments
     ///
     /// * `b` - The magnetic field vector $`\mathbf{B}`$.
-    /// * `g` - The gauge origin.
+    /// * `g` - The gauge origin $`\mathbf{G}`$.
     pub(crate) fn apply_magnetic_field(&mut self, b: &Vector3<f64>, g: &Point3<f64>) -> &mut Self {
         self.all_shells_mut().for_each(|shell| {
             shell.apply_magnetic_field(b, g);

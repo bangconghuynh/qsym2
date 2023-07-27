@@ -44,6 +44,10 @@ fn test_integrals_shell_tuple() {
         st.qs[1].as_ref().unwrap()[(1, 1, 2)],
         Vector3::new(2.0, 0.9, 0.9) / 1.1 - Vector3::new(2.0, 1.0, 1.0)
     );
+
+    let st2 = build_shell_tuple![(&bsc0, true), (&bsc1, false); f64];
+    assert_eq!(st.angular_shell_shape, [3, 6]);
+    assert_eq!(st.primitive_shell_shape, [2, 3]);
 }
 
 #[test]

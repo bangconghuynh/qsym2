@@ -1,3 +1,5 @@
+/// Implements the `overlap` method for [`crate::integrals::shell_tuple::ShellTuple`] and
+/// [`crate::integrals::shell_tuple::ShellTupleCollection`] of a specified pattern.
 macro_rules! impl_shell_tuple_overlap {
     ( $RANK:ident, <$($shell_name:ident),+> ) => {
         #[duplicate_item(

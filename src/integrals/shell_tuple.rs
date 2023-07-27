@@ -82,7 +82,7 @@ pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
     /// Chemical Physics* **94**, 3790–3804 (1991),
     /// [DOI](https://doi.org/10.1063/1.459751).
     ///
-    /// This is a [`Self::rank`]-dimensional array. The element `zg[i, j, k, ...]`
+    /// This is a `RANK`-dimensional array. The element `zg[i, j, k, ...]`
     /// gives the sum of the i-th primitive exponent on the first shell, the j-th
     /// primitive exponent on the second shell, the k-th primitive exponent on the
     /// third shell, and so on.
@@ -91,7 +91,7 @@ pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
     /// An array containing the products of all possible combinations of
     /// non-integration primitive exponents across all shells.
     ///
-    /// This is a [`Self::rank`]-dimensional array. The element `sd[i, j, k, ...]`
+    /// This is a `RANK`-dimensional array. The element `sd[i, j, k, ...]`
     /// gives the product of the i-th primitive exponent on the first shell, the j-th
     /// primitive exponent on the second shell, the k-th primitive exponent on the
     /// third shell, and so on.
@@ -108,7 +108,7 @@ pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
     /// An array containing the product of all possible combinations of non-integration
     /// primitive coefficients across all shells.
     ///
-    /// This is a [`Self::rank`]-dimensional array. The element `dd[i, j, k, ...]` gives
+    /// This is a `RANK`-dimensional array. The element `dd[i, j, k, ...]` gives
     /// the product of the i-th primitive's coefficient on the first shell, the j-th
     /// primitive's coefficient on the second shell, the k-th primitive's coefficient
     /// on the third shell, and so on.
@@ -117,7 +117,7 @@ pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
     /// An array containing the exponent-weighted Cartesian centres of all possible
     /// combinations of primitives across all shells.
     ///
-    /// This is a [`Self::rank`]-dimensional array. The element `rg[i, j, k, ...]` gives
+    /// This is a `RANK`-dimensional array. The element `rg[i, j, k, ...]` gives
     /// the exponent-weighted Cartesian centre of the i-th primitive on the first shell,
     /// the j-th primitive on the second shell, the k-th primitive on the third shell,
     /// and so on.
@@ -135,8 +135,8 @@ pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
     /// summation over $`v`$ in Equation 122 is not included. See also Equation 171 in
     /// the reference.
     ///
-    /// The j-th array is for the j-th shell. Each array is a [`Self::rank`]-dimensional
-    /// array. The element `qs[j][i, m, k, ...]` gives the :math:`\mathbf{Q}_j` vector
+    /// The j-th array is for the j-th shell. Each array is a `RANK`-dimensional
+    /// array. The element `qs[j][i, m, k, ...]` gives the $`\mathbf{Q}_j`$ vector
     /// defined using the i-th primitive exponent on the first shell, the m-th
     /// primitive exponent on the second shell, the k-th primitive exponent on the
     /// third shell, and so on. The exponent-combination dependence comes from the
