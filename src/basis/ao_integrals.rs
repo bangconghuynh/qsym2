@@ -45,6 +45,7 @@ impl<E, C> GaussianContraction<E, C> {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 const BSE_BASE_API: &str = "https://www.basissetexchange.org/api";
+const CONTRACTION_COEFF_THRESH: f64 = 1e-16;
 
 /// A structure to represent the REST API result fro, BasisSetExchange.
 #[derive(Serialize, Deserialize, Debug)]
@@ -304,7 +305,7 @@ impl BasisShellContraction<f64, f64> {
                                                 .iter()
                                                 .copied()
                                                 .zip(d.iter().copied())
-                                                .filter(|(_, d)| d.abs() > 1e-13)
+                                                .filter(|(_, d)| d.abs() > CONTRACTION_COEFF_THRESH)
                                                 .collect::<Vec<(f64, f64)>>(),
                                         };
 

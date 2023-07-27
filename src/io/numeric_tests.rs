@@ -52,6 +52,7 @@ fn test_io_numeric_reader_c128() {
         .unwrap()
         .collect::<Vec<_>>();
     let a = Array2::from_shape_vec((4, 4), v).unwrap();
+    #[rustfmt::skip]
     let a_ref = array![
         [C128::new( 0.0, 16.0), C128::new( 1.0, 15.0), C128::new(2.0, 14.0), C128::new( 3.0, 13.0)],
         [C128::new( 4.0, 12.0), C128::new( 5.0, 11.0), C128::new(6.0, 10.0), C128::new( 7.0,  9.0)],

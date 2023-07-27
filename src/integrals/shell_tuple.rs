@@ -457,16 +457,20 @@ macro_rules! build_shell_tuple {
                 .rs([$($shell.0.cart_origin()),+])
                 .ks([$(
                     if $shell.1 {
-                        $shell.0.k().copied().map(|k| -k)
-                    } else {
+                        // true, hence -(-) = +
                         $shell.0.k().copied()
+                    } else {
+                        // false, hence -
+                        $shell.0.k().copied().map(|k| -k)
                     }
                 ),+])
                 .k([$(
                     if $shell.1 {
-                        $shell.0.k().copied().map(|k| -k)
-                    } else {
+                        // true, hence -(-) = +
                         $shell.0.k().copied()
+                    } else {
+                        // false, hence -
+                        $shell.0.k().copied().map(|k| -k)
                     }
                 ),+]
                     .into_iter()
