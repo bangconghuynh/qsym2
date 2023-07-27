@@ -13,6 +13,7 @@ use crate::basis::ao_integrals::{BasisSet, BasisShellContraction};
 /// non-integration primitives.
 #[derive(Builder)]
 pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
+    /// The data type of the overlap values from this shell tuple.
     typ: PhantomData<T>,
 
     /// The non-integration shells in this shell tuple. Each shell has an associated
@@ -20,12 +21,12 @@ pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
     /// evalulation.
     shells: [(&'a BasisShellContraction<f64, f64>, bool); RANK],
 
-    /// A fixed-size array indicating the shape of this shell tuple.
+    /// A fixed-size array indicating the angular-shape of this shell tuple.
     ///
-    /// Each element in the array gives the number of functions of the corresponding shell.
-    function_shell_shape: [usize; RANK],
+    /// Each element in the array gives the number of angular functions of the corresponding shell.
+    angular_shell_shape: [usize; RANK],
 
-    /// A fixed-size array indicating the shape of this shell tuple.
+    /// A fixed-size array indicating the primitive-shape of this shell tuple.
     ///
     /// Each element in the array gives the number of Gaussian primitives of the
     /// corresponding shell.
@@ -39,6 +40,7 @@ pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
     /// account the complex conjugation pattern of the shell tuple.
     ks: [Option<Vector3<f64>>; RANK],
 
+    /// The sum of all signed $`\mathbf{k}`$ vectors across all shells.
     k: Vector3<f64>,
 
     /// A fixed-size array containing the Cartesian origins of the shells in this shell
@@ -49,11 +51,14 @@ pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
     /// shell tuple.
     ns: [usize; RANK],
 
+    /// A fixed-size array containing conversion matrices to convert overlap values involving
+    /// shells that have specified pure orders from internally computed Cartesian orders to the
+    /// specified pure ones.
     rl2carts: [Option<Array2<f64>>; RANK],
 
-    // ------------------------------------------------
-    // Quantities unique for each primitive combination
-    // ------------------------------------------------
+    // -----------------------------------------------
+    // Quantities unique to each primitive combination
+    // -----------------------------------------------
     /// A fixed-size array of arrays of non-integration primitive exponents.
     ///
     /// This quantity is $`\zeta_g^{(k)}`$ appearing in Equations 81 and 83 of Honda, M.,
@@ -149,7 +154,7 @@ impl<'a, const RANK: usize, T: Clone> ShellTuple<'a, RANK, T> {
 
     /// The number of shells in this tuple.
     fn rank(&self) -> usize {
-        self.shells.len()
+        RANK
     }
 
     /// The maximum angular momentum across all shells.
@@ -164,17 +169,27 @@ impl<'a, const RANK: usize, T: Clone> ShellTuple<'a, RANK, T> {
 
 /// A structure to handle all possible shell tuples for a particular type of integral.
 pub(crate) struct ShellTupleCollection<'a, const RANK: usize, T: Clone> {
+    /// The data type of the overlap values from shell tuples in this collection.
     typ: PhantomData<T>,
 
+    /// A fixed-size array containing basis sets, where each basis set at a certain shell position
+    /// contains all shells to be considered for that position.
     basis_sets: [&'a BasisSet<f64, f64>; RANK],
 
+    /// The maximum angular momentum across all shells in this collection.
     lmax: u32,
 
+    /// The complex-conjugation pattern across all shell positions in this collection.
     ccs: [bool; RANK],
 
+    /// The numbers of shells across all shell positions in this collection.
     n_shells: [usize; RANK],
 
-    function_all_shell_shape: [usize; RANK],
+    /// The total numbers of angular functions across all shell positions in this collection. Each
+    /// value in the fixed-size array gives the total number of angular functions from all shells
+    /// at that position. In other words, this is the number of basis functions in the basis set at
+    /// that position.
+    angular_all_shell_shape: [usize; RANK],
 }
 
 impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
@@ -195,10 +210,6 @@ impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
     /// # Arguments
     ///
     /// * `ls` - The derivative pattern.
-    ///
-    /// # Returns
-    ///
-    /// A vector of the unique shell tuples.
     fn unique_shell_tuples_iter<'it>(
         &'it self,
         ls: [usize; RANK],
@@ -274,6 +285,7 @@ impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
         //     [[0, 0], [0, 1], [1, 1]],
         //     [[0], [1]]
         // ]
+        // `order` gives the indices to sort `sis`.
         // order = [0, 1, 2, 4, 3]
         let sis = shell_indices_unique_combinations
             .keys()
@@ -303,6 +315,12 @@ impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
             .into_iter()
             .collect::<Vec<_>>();
 
+        log::debug!("Rank-{RANK} shell tuple collection information:");
+        log::debug!(
+            "  Total number of unique tuples: {}",
+            unordered_recombined_shell_indices.len()
+        );
+
         UniqueShellTupleIterator::<'it, 'a, RANK, T> {
             index: 0,
             shell_order: order,
@@ -312,13 +330,25 @@ impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
     }
 }
 
+/// An iterator over unique shell tuples in a collection.
 struct UniqueShellTupleIterator<'it, 'a: 'it, const RANK: usize, T: Clone> {
+    /// The current index of iteration.
     index: usize,
+
+    /// Indices to reorder shell positions in each flattened `Vec<Vec<usize>>` of
+    /// [`Self::unordered_recombined_shell_indices`] to put them in the right place.
     shell_order: Vec<usize>,
+
+    /// All possible combinations of shell indices across all different shell types. Each
+    /// `Vec<Vec<usize>>` gives one unique shell tuple combination. Each `Vec<usize>` gives the
+    /// indices of shells within a shell type.
     unordered_recombined_shell_indices: Vec<Vec<Vec<usize>>>,
+
+    /// The shell tuple collection with respect to which this iterator is defined.
     stc: &'it ShellTupleCollection<'a, RANK, T>,
 }
 
+/// Implements methods for shell tuples of a specified pattern.
 macro_rules! impl_shell_tuple {
     ( $RANK:ident, <$($shell_name:ident),+> ) => {
         const $RANK: usize = count_exprs!($($shell_name),+);
@@ -331,7 +361,7 @@ macro_rules! impl_shell_tuple {
 
                 // Now, for each term in `unordered_recombined_shell_indices`, we need to
                 // flatten and then reorder to put the shell indices at the correct positions. This
-                // gives `ordered_shell_index`.
+                // gives `ordered_shell_index` which gives a unique shell tuple permutation.
                 let flattened_unordered_shell_index = unordered_shell_index
                     .clone()
                     .into_iter()
@@ -392,6 +422,13 @@ macro_rules! impl_shell_tuple {
     }
 }
 
+/// Constructs a shell tuple given a pattern and a matching sequence of shells.
+///
+/// # Patterns
+///
+/// * `$shell` - A tuple `(shell, cc)` where `shell` is a [`BasisShellContraction`] and `cc` a
+/// boolean indicating if the shell is complex-conjugated.
+/// * `$ty` - The data type for the overlap values from this shell tuple.
 macro_rules! build_shell_tuple {
     ( $($shell:expr),+; $ty:ty ) => {
         {
@@ -452,7 +489,7 @@ macro_rules! build_shell_tuple {
             ShellTuple::<RANK, $ty>::builder()
                 .typ(PhantomData)
                 .shells([$($shell),+])
-                .function_shell_shape([$($shell.0.basis_shell().n_funcs()),+])
+                .angular_shell_shape([$($shell.0.basis_shell().n_funcs()),+])
                 .primitive_shell_shape([$($shell.0.contraction_length()),+])
                 .rs([$($shell.0.cart_origin()),+])
                 .ks([$(
@@ -535,6 +572,14 @@ macro_rules! build_shell_tuple {
     }
 }
 
+/// Constructs a shell tuple collection given a pattern and a matching sequence of basis sets.
+///
+/// # Patterns
+///
+/// * `$shell_name` - An identifier for a shell position.
+/// * `$shell_cc` - A boolean indicating if the shell position is complex-conjugated.
+/// * `$basisset` - A [`BasisSet`] giving all shells at the corresponding shell position.
+/// * `$ty` - The data type for the overlap values from this shell tuple collection.
 macro_rules! build_shell_tuple_collection {
     ( <$($shell_name:ident),+>; $($shell_cc:expr),+; $($basisset:expr),+; $ty:ty ) => {
         {
@@ -555,7 +600,7 @@ macro_rules! build_shell_tuple_collection {
             log::debug!("Rank-{RANK} shell tuple collection construction:");
             log::debug!(
                 "  Total number of tuples: {}",
-                n_shells.iter().fold(1, |acc, s| acc * s)
+                n_shells.iter().product::<usize>()
             );
             ShellTupleCollection::<RANK, $ty> {
                 typ: PhantomData,
@@ -563,7 +608,7 @@ macro_rules! build_shell_tuple_collection {
                 lmax,
                 ccs: [$($shell_cc),+],
                 n_shells,
-                function_all_shell_shape: [$(
+                angular_all_shell_shape: [$(
                     $basisset
                         .all_shells()
                         .map(|shell| shell.basis_shell().n_funcs())

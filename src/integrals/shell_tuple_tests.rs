@@ -2,7 +2,6 @@ use approx;
 use nalgebra::{Point3, Vector3};
 use ndarray::{array, Array2};
 use ndarray_linalg::assert_close_l2;
-use num_complex::Complex;
 
 use crate::basis::ao::*;
 use crate::basis::ao_integrals::*;
@@ -32,7 +31,8 @@ fn test_integrals_shell_tuple() {
     };
 
     let st = build_shell_tuple![(&bsc0, true), (&bsc1, false), (&bsc1, true); f64];
-    assert_eq!(st.function_shell_shape, [3, 6, 6]);
+    assert_eq!(st.angular_shell_shape, [3, 6, 6]);
+    assert_eq!(st.primitive_shell_shape, [2, 3, 3]);
     assert_eq!(st.ks, [None, Some(Vector3::z()), Some(-Vector3::z())]);
     assert_eq!(st.k.norm(), 0.0);
     assert_eq!(st.ns, [1, 2, 2]);

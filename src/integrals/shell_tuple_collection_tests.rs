@@ -1,7 +1,7 @@
 use byteorder::LittleEndian;
 use duplicate::duplicate_item;
 use nalgebra::{Point3, Vector3};
-use ndarray::{s, array, Array2, Array3};
+use ndarray::{array, Array2, Array3};
 use ndarray_linalg::assert_close_l2;
 use num_complex::Complex;
 
@@ -137,6 +137,7 @@ fn test_integrals_shell_tuple_collection_overlap_gao_2c_benzene() {
     // Benzene, cc-pVQZ (optimised contraction)
     // Reference: libint
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     let mol = Molecule::from_xyz(&format!("{ROOT}/tests/xyz/benzene.xyz"), 1e-7);
 
     let bscs = BasisSet::<f64, f64>::from_bse(&mol, "cc-pVQZ", true, true, 0, false, true).unwrap();
@@ -316,7 +317,8 @@ fn gao_3c_test_name() {
             ("STO-3G", "sto3g"),
             ("6-31G*", "631gs"),
             ("cc-pVTZ", "ccpvtz"),
-            ("cc-pVTZ", "ccpvtz"), // QUEST swaps the two D shells. These have been manually swapped back in the creation of QUEST reference data.
+            ("cc-pVTZ", "ccpvtz"), // QUEST swaps the two D shells. These have been manually
+                                   // swapped back in the creation of QUEST reference data.
         ]
     ]
     [
@@ -327,7 +329,8 @@ fn gao_3c_test_name() {
         bases [
             ("STO-3G", "sto3g"),
             ("6-31G*", "631gs"),
-            ("cc-pVTZ", "ccpvtz"), // QUEST swaps the two D shells. These have been manually swapped back in the creation of QUEST reference data.
+            ("cc-pVTZ", "ccpvtz"), // QUEST swaps the two D shells. These have been manually
+                                   // swapped back in the creation of QUEST reference data.
         ]
     ]
 )]

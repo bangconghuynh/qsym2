@@ -145,6 +145,15 @@ macro_rules! impl_shell_tuple_overlap {
             ]
         )]
         impl<'a> ShellTuple<'a, $RANK, dtype> {
+            /// Calculates the overlap arrays for this shell tuple.
+            ///
+            /// # Arguments
+            ///
+            /// * `ls` - The derivative pattern.
+            ///
+            /// # Returns
+            ///
+            /// A vector of overlap arrays, each of which is for one derivative component.
             pub(crate) fn overlap(
                 &self, ls: [usize; $RANK]
             ) -> Vec<Array<dtype, Dim<[usize; $RANK]>>> {
@@ -882,6 +891,15 @@ macro_rules! impl_shell_tuple_overlap {
             ]
         )]
         impl<'a> ShellTupleCollection<'a, $RANK, dtype> {
+            /// Calculates the overlap arrays for this shell tuple collection.
+            ///
+            /// # Arguments
+            ///
+            /// * `ls` - The derivative pattern.
+            ///
+            /// # Returns
+            ///
+            /// A vector of overlap arrays, each of which is for one derivative component.
             pub(crate) fn overlap(
                 &self, ls: [usize; $RANK]
             ) -> Vec<Array<dtype, Dim<[usize; $RANK]>>> {
@@ -932,7 +950,7 @@ macro_rules! impl_shell_tuple_overlap {
                         };
                         log::debug!("Component {l_component_index} is for derivative {l_powers:?}.");
                         let mut ints = Array::<dtype, Dim<[usize; $RANK]>>::zeros(
-                            self.function_all_shell_shape
+                            self.angular_all_shell_shape
                         );
 
                         shell_blockss.iter().for_each(|(shell_blocks, unique_perm, equiv_perms)| {
