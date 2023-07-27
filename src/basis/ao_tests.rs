@@ -1,4 +1,4 @@
-use crate::auxiliary::ao_basis::{
+use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
 use crate::auxiliary::atom::{Atom, ElementMap};

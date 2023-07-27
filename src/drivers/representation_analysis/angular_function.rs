@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use crate::analysis::RepAnalysis;
 use crate::angmom::sh_conversion::sh_cart2rl_mat;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::auxiliary::ao_basis::{
+use crate::basis::ao::{
     cart_tuple_to_str, BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
 use crate::auxiliary::atom::{Atom, ElementMap};

@@ -16,6 +16,7 @@ clap = { version = "4.3.10", features = ["cargo", "derive"] }
 counter = "0.5.7"
 derive_builder = "0.12.0"
 divisors = "0.2.1"
+duplicate = "1.0.0"
 factorial = "0.3.0"
 fraction = { version = "0.13.1", features = ["with-serde-support"] }
 hdf5 = { version = "0.8.1", optional = true }
@@ -44,8 +45,9 @@ primes = "0.3.0"
 pyo3 = { version = "0.19.0", features = ["extension-module", "num-complex", "hashbrown"] }
 pyo3-log = "0.8.2"
 rand = "0.8.5"
-regex = "1.8.4"
 rayon = "1.7.0"
+regex = "1.8.4"
+reqwest = { version = "0.11.18", features = ["blocking", "json"], optional = true }
 serde = { version = "1.0.164", features = ["derive"] }
 serde_yaml = "0.9.22"
 
@@ -60,8 +62,10 @@ netlib-system = ["ndarray-linalg/netlib-system"]
 openblas-static = ["ndarray-linalg/openblas-static"]
 openblas-system = ["ndarray-linalg/openblas-system"]
 qchem = ["dep:hdf5", "dep:hdf5-sys"]
+integrals = ["dep:reqwest"]
 
 standard = ["openblas-static", "qchem"]
+full = ["standard", "integrals"]
 
 [package.metadata.docs.rs]
 rustdoc-args = [

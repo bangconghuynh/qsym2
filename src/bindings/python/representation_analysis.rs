@@ -10,7 +10,7 @@ use pyo3::prelude::*;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::angmom::ANGMOM_INDICES;
-use crate::auxiliary::ao_basis::{
+use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
 use crate::auxiliary::molecule::Molecule;

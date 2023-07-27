@@ -11,6 +11,10 @@ use serde::{Deserialize, Serialize};
 use crate::auxiliary::geometry::{self, ImproperRotationKind, Transform};
 use crate::auxiliary::misc::{self, HashableFloat};
 
+// https://physics.nist.gov/cgi-bin/cuu/Value?bohrrada0
+pub(crate) const BOHR_TO_ANGSTROM: f64 = 0.529177210903;
+pub(crate) const ANGSTROM_TO_BOHR: f64 = 1.889726124626;
+
 /// A structure storing a look-up of element symbols to give atomic numbers
 /// and atomic masses.
 pub struct ElementMap<'a> {
@@ -28,12 +32,12 @@ impl ElementMap<'static> {
     /// Creates a new [`ElementMap`] for all elements in the periodic table.
     #[must_use]
     pub fn new() -> ElementMap<'static> {
-        let mut map = HashMap::new();
         let elements = periodic_table::periodic_table();
-        for element in elements {
+        let map = elements.iter().map(|element| {
             let mass = parse_atomic_mass(element.atomic_mass);
-            map.insert(element.symbol, (element.atomic_number, mass));
-        }
+            (element.symbol, (element.atomic_number, mass))
+        })
+        .collect::<HashMap<_, _>>();
         ElementMap { map }
     }
 

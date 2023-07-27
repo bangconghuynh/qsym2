@@ -5,6 +5,7 @@ use std::path::Path;
 
 use anyhow;
 use byteorder::{BigEndian, ByteOrder, LittleEndian};
+use num_complex::Complex;
 
 #[cfg(test)]
 #[path = "numeric_tests.rs"]
@@ -74,6 +75,40 @@ macro_rules! impl_iterator_numeric_reader {
     )+}
 }
 
+macro_rules! impl_iterator_numeric_reader_complex {
+    ($($t:ty),+) => {$(
+        impl<R: BufRead> Iterator for NumericReader<R, LittleEndian, Complex<$t>> {
+            type Item = Complex<$t>;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                let mut buff: [u8; std::mem::size_of::<$t>()] = [0_u8; std::mem::size_of::<$t>()];
+                self.inner.read_exact(&mut buff).ok()?;
+                let re = <$t>::from_le_bytes(buff);
+                self.inner.read_exact(&mut buff).ok()?;
+                let im = <$t>::from_le_bytes(buff);
+                Some(Complex::<$t> { re, im })
+            }
+        }
+
+        impl<R: BufRead> Iterator for NumericReader<R, BigEndian, Complex<$t>> {
+            type Item = Complex<$t>;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                let mut buff: [u8; std::mem::size_of::<$t>()] = [0_u8; std::mem::size_of::<$t>()];
+                self.inner.read_exact(&mut buff).ok()?;
+                let re = <$t>::from_be_bytes(buff);
+                self.inner.read_exact(&mut buff).ok()?;
+                let im = <$t>::from_be_bytes(buff);
+                Some(Complex::<$t> { re, im })
+            }
+        }
+    )+}
+}
+
 impl_iterator_numeric_reader!(
+    u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64
+);
+
+impl_iterator_numeric_reader_complex!(
     u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize, f32, f64
 );

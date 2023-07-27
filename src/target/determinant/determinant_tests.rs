@@ -8,7 +8,7 @@ use num_traits::Pow;
 
 use crate::analysis::{Overlap, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::auxiliary::ao_basis::{
+use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
 use crate::auxiliary::atom::{Atom, ElementMap};
