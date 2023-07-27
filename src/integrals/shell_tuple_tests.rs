@@ -33,7 +33,7 @@ fn test_integrals_shell_tuple() {
     let st = build_shell_tuple![(&bsc0, true), (&bsc1, false), (&bsc1, true); f64];
     assert_eq!(st.angular_shell_shape, [3, 6, 6]);
     assert_eq!(st.primitive_shell_shape, [2, 3, 3]);
-    assert_eq!(st.ks, [None, Some(Vector3::z()), Some(-Vector3::z())]);
+    assert_eq!(st.ks, [None, Some(-Vector3::z()), Some(Vector3::z())]);
     assert_eq!(st.k.norm(), 0.0);
     assert_eq!(st.ns, [1, 2, 2]);
     assert_eq!(st.zg[(1, 2, 0)], 1.0);
@@ -46,8 +46,8 @@ fn test_integrals_shell_tuple() {
     );
 
     let st2 = build_shell_tuple![(&bsc0, true), (&bsc1, false); f64];
-    assert_eq!(st.angular_shell_shape, [3, 6]);
-    assert_eq!(st.primitive_shell_shape, [2, 3]);
+    assert_eq!(st2.angular_shell_shape, [3, 6]);
+    assert_eq!(st2.primitive_shell_shape, [2, 3]);
 }
 
 #[test]
@@ -669,60 +669,60 @@ fn test_integrals_shell_tuple_overlap_2c_cr2() {
         primitives: vec![(0.8000000000e+00, 1.0)],
     };
 
-    let bsc0_1s = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cs.clone(),
-        contraction: gc_cr_631gs_1s.clone(),
-        cart_origin: Point3::new(0.0, 0.0, 0.0),
-        k: None,
-    };
-    let bsc0_2s = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cs.clone(),
-        contraction: gc_cr_631gs_2s.clone(),
-        cart_origin: Point3::new(0.0, 0.0, 0.0),
-        k: None,
-    };
-    let bsc0_2p = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cp.clone(),
-        contraction: gc_cr_631gs_2p.clone(),
-        cart_origin: Point3::new(0.0, 0.0, 0.0),
-        k: None,
-    };
-    let bsc0_3s = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cs.clone(),
-        contraction: gc_cr_631gs_3s.clone(),
-        cart_origin: Point3::new(0.0, 0.0, 0.0),
-        k: None,
-    };
-    let bsc0_3p = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cp.clone(),
-        contraction: gc_cr_631gs_3p.clone(),
-        cart_origin: Point3::new(0.0, 0.0, 0.0),
-        k: None,
-    };
-    let bsc0_4s = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cs.clone(),
-        contraction: gc_cr_631gs_4s.clone(),
-        cart_origin: Point3::new(0.0, 0.0, 0.0),
-        k: None,
-    };
-    let bsc0_4p = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cp.clone(),
-        contraction: gc_cr_631gs_4p.clone(),
-        cart_origin: Point3::new(0.0, 0.0, 0.0),
-        k: None,
-    };
-    let bsc0_5s = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cs.clone(),
-        contraction: gc_cr_631gs_5s.clone(),
-        cart_origin: Point3::new(0.0, 0.0, 0.0),
-        k: None,
-    };
-    let bsc0_5p = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cp.clone(),
-        contraction: gc_cr_631gs_5p.clone(),
-        cart_origin: Point3::new(0.0, 0.0, 0.0),
-        k: None,
-    };
+    // let bsc0_1s = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cs.clone(),
+    //     contraction: gc_cr_631gs_1s.clone(),
+    //     cart_origin: Point3::new(0.0, 0.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc0_2s = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cs.clone(),
+    //     contraction: gc_cr_631gs_2s.clone(),
+    //     cart_origin: Point3::new(0.0, 0.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc0_2p = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cp.clone(),
+    //     contraction: gc_cr_631gs_2p.clone(),
+    //     cart_origin: Point3::new(0.0, 0.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc0_3s = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cs.clone(),
+    //     contraction: gc_cr_631gs_3s.clone(),
+    //     cart_origin: Point3::new(0.0, 0.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc0_3p = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cp.clone(),
+    //     contraction: gc_cr_631gs_3p.clone(),
+    //     cart_origin: Point3::new(0.0, 0.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc0_4s = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cs.clone(),
+    //     contraction: gc_cr_631gs_4s.clone(),
+    //     cart_origin: Point3::new(0.0, 0.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc0_4p = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cp.clone(),
+    //     contraction: gc_cr_631gs_4p.clone(),
+    //     cart_origin: Point3::new(0.0, 0.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc0_5s = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cs.clone(),
+    //     contraction: gc_cr_631gs_5s.clone(),
+    //     cart_origin: Point3::new(0.0, 0.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc0_5p = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cp.clone(),
+    //     contraction: gc_cr_631gs_5p.clone(),
+    //     cart_origin: Point3::new(0.0, 0.0, 0.0),
+    //     k: None,
+    // };
     let bsc0_3d = BasisShellContraction::<f64, f64> {
         basis_shell: bs_cd.clone(),
         contraction: gc_cr_631gs_3d.clone(),
@@ -741,42 +741,42 @@ fn test_integrals_shell_tuple_overlap_2c_cr2() {
         cart_origin: Point3::new(0.0, 0.0, 0.0),
         k: None,
     };
-    let bsc1_1s = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cs.clone(),
-        contraction: gc_cr_631gs_1s.clone(),
-        cart_origin: Point3::new(1.0, 1.0, 0.0),
-        k: None,
-    };
-    let bsc1_2s = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cs.clone(),
-        contraction: gc_cr_631gs_2s.clone(),
-        cart_origin: Point3::new(1.0, 1.0, 0.0),
-        k: None,
-    };
-    let bsc1_2p = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cp.clone(),
-        contraction: gc_cr_631gs_2p.clone(),
-        cart_origin: Point3::new(1.0, 1.0, 0.0),
-        k: None,
-    };
-    let bsc1_3s = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cs.clone(),
-        contraction: gc_cr_631gs_3s.clone(),
-        cart_origin: Point3::new(1.0, 1.0, 0.0),
-        k: None,
-    };
-    let bsc1_3p = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cp.clone(),
-        contraction: gc_cr_631gs_3p.clone(),
-        cart_origin: Point3::new(1.0, 1.0, 0.0),
-        k: None,
-    };
-    let bsc1_4s = BasisShellContraction::<f64, f64> {
-        basis_shell: bs_cs.clone(),
-        contraction: gc_cr_631gs_4s.clone(),
-        cart_origin: Point3::new(1.0, 1.0, 0.0),
-        k: None,
-    };
+    // let bsc1_1s = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cs.clone(),
+    //     contraction: gc_cr_631gs_1s.clone(),
+    //     cart_origin: Point3::new(1.0, 1.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc1_2s = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cs.clone(),
+    //     contraction: gc_cr_631gs_2s.clone(),
+    //     cart_origin: Point3::new(1.0, 1.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc1_2p = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cp.clone(),
+    //     contraction: gc_cr_631gs_2p.clone(),
+    //     cart_origin: Point3::new(1.0, 1.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc1_3s = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cs.clone(),
+    //     contraction: gc_cr_631gs_3s.clone(),
+    //     cart_origin: Point3::new(1.0, 1.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc1_3p = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cp.clone(),
+    //     contraction: gc_cr_631gs_3p.clone(),
+    //     cart_origin: Point3::new(1.0, 1.0, 0.0),
+    //     k: None,
+    // };
+    // let bsc1_4s = BasisShellContraction::<f64, f64> {
+    //     basis_shell: bs_cs.clone(),
+    //     contraction: gc_cr_631gs_4s.clone(),
+    //     cart_origin: Point3::new(1.0, 1.0, 0.0),
+    //     k: None,
+    // };
     let bsc1_4p = BasisShellContraction::<f64, f64> {
         basis_shell: bs_cp.clone(),
         contraction: gc_cr_631gs_4p.clone(),

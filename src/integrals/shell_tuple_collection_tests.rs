@@ -53,7 +53,7 @@ fn test_integrals_shell_tuple_collection() {
             .count(),
         16
     );
-    assert_eq!(stc.function_all_shell_shape, [9, 3, 9, 9, 9]);
+    assert_eq!(stc.angular_all_shell_shape, [9, 3, 9, 9, 9]);
 }
 
 #[test]
