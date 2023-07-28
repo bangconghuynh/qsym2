@@ -16,7 +16,7 @@ use crate::basis::ao::BasisAngularOrder;
 #[cfg(test)]
 mod density_tests;
 
-// pub mod determinant_analysis;
+pub mod density_analysis;
 mod density_transformation;
 
 // ==================
