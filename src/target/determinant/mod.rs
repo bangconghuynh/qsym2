@@ -4,7 +4,8 @@ use std::iter::Sum;
 use approx;
 use derive_builder::Builder;
 use log;
-use ndarray::{s, Array1, Array2};
+use ndarray::{s, Array1, Array2, Ix2};
+use ndarray_einsum_beta::*;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::float::{Float, FloatConst};
@@ -12,6 +13,7 @@ use num_traits::float::{Float, FloatConst};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::basis::ao::BasisAngularOrder;
 use crate::auxiliary::molecule::Molecule;
+use crate::target::density::{Density, DensityBuilderError};
 use crate::target::orbital::MolecularOrbital;
 
 #[cfg(test)]
@@ -173,6 +175,11 @@ where
     /// expressed.
     pub fn bao(&self) -> &BasisAngularOrder {
         self.bao
+    }
+
+    /// Returns the molecule associated with this Slater determinant.
+    pub fn mol(&self) -> &Molecule {
+        self.mol
     }
 
     /// Returns the determinantal energy.
@@ -357,6 +364,78 @@ where
                     .collect::<Vec<_>>()
             })
             .collect::<Vec<_>>()
+    }
+}
+
+impl<'a> SlaterDeterminant<'a, f64> {
+    /// Constructs a vector of real densities, one from each coefficient matrix in a Slater
+    /// determinant.
+    ///
+    /// Occupation numbers are also incorporated in the formation of density matrices.
+    ///
+    /// # Arguments
+    ///
+    /// * `sd` - A Slater determinant.
+    ///
+    /// # Returns
+    ///
+    /// A vector of real densities, one for each spin space.
+    pub fn to_densities(&'a self) -> Result<Vec<Density<'a, f64>>, DensityBuilderError> {
+        self.coefficients().iter().zip(self.occupations().iter()).map(|(c, o)| {
+            let denmat = einsum(
+                "i,mi,ni->mn",
+                &[&o.view(), &c.view(), &c.view()]
+            )
+            .expect("Unable to construct a density matrix from a determinant coefficient matrix.")
+            .into_dimensionality::<Ix2>()
+            .expect("Unable to convert the resultant density matrix to two dimensions.");
+            Density::<f64>::builder()
+                .density_matrix(denmat)
+                .bao(self.bao())
+                .mol(self.mol())
+                .spin_constraint(self.spin_constraint().clone())
+                .complex_symmetric(self.complex_symmetric())
+                .threshold(self.threshold())
+                .build()
+        }).collect::<Result<Vec<_>, _>>()
+    }
+}
+
+impl<'a, T> SlaterDeterminant<'a, Complex<T>>
+where
+    T: Float + FloatConst + Lapack,
+    Complex<T>: Lapack,
+{
+    /// Constructs a vector of complex densities, one from each coefficient matrix in a Slater
+    /// determinant.
+    ///
+    /// Occupation numbers are also incorporated in the formation of density matrices.
+    ///
+    /// # Arguments
+    ///
+    /// * `sd` - A Slater determinant.
+    ///
+    /// # Returns
+    ///
+    /// A vector of complex densities, one for each spin space.
+    pub fn to_densities(&'a self) -> Result<Vec<Density<'a, Complex<T>>>, DensityBuilderError> {
+        self.coefficients().iter().zip(self.occupations().iter()).map(|(c, o)| {
+            let denmat = einsum(
+                "i,mi,ni->mn",
+                &[&o.map(Complex::<T>::from).view(), &c.view(), &c.map(Complex::conj).view()]
+            )
+            .expect("Unable to construct a density matrix from a determinant coefficient matrix.")
+            .into_dimensionality::<Ix2>()
+            .expect("Unable to convert the resultant density matrix to two dimensions.");
+            Density::<Complex<T>>::builder()
+                .density_matrix(denmat)
+                .bao(self.bao())
+                .mol(self.mol())
+                .spin_constraint(self.spin_constraint().clone())
+                .complex_symmetric(self.complex_symmetric())
+                .threshold(self.threshold())
+                .build()
+        }).collect::<Result<Vec<_>, _>>()
     }
 }
 
