@@ -64,6 +64,10 @@ where
             self.coefficients.len() == other.coefficients.len(),
             "Inconsistent numbers of coefficient matrices between `self` and `other`."
         );
+        ensure!(
+            self.bao == other.bao,
+            "Inconsistent basis angular order between `self` and `other`."
+        );
 
         let thresh = Float::sqrt(self.threshold * other.threshold);
         ensure!(self

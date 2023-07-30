@@ -168,6 +168,7 @@ impl<'a, const RANK: usize, T: Clone> ShellTuple<'a, RANK, T> {
 }
 
 /// A structure to handle all possible shell tuples for a particular type of integral.
+#[derive(Builder)]
 pub(crate) struct ShellTupleCollection<'a, const RANK: usize, T: Clone> {
     /// The data type of the overlap values from shell tuples in this collection.
     typ: PhantomData<T>,
@@ -193,6 +194,10 @@ pub(crate) struct ShellTupleCollection<'a, const RANK: usize, T: Clone> {
 }
 
 impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
+    pub(crate) fn builder() -> ShellTupleCollectionBuilder<'a, RANK, T> {
+        ShellTupleCollectionBuilder::<RANK, T>::default()
+    }
+
     /// The maximum angular momentum across all shell tuples.
     fn lmax(&self) -> u32 {
         self.lmax
@@ -602,19 +607,20 @@ macro_rules! build_shell_tuple_collection {
                 "  Total number of tuples: {}",
                 n_shells.iter().product::<usize>()
             );
-            ShellTupleCollection::<RANK, $ty> {
-                typ: PhantomData,
-                basis_sets: [$($basisset),+],
-                lmax,
-                ccs: [$($shell_cc),+],
-                n_shells,
-                angular_all_shell_shape: [$(
+            ShellTupleCollection::<RANK, $ty>::builder()
+                .typ(PhantomData)
+                .basis_sets([$($basisset),+])
+                .lmax(lmax)
+                .ccs([$($shell_cc),+])
+                .n_shells(n_shells)
+                .angular_all_shell_shape([$(
                     $basisset
                         .all_shells()
                         .map(|shell| shell.basis_shell().n_funcs())
                         .sum::<usize>()
-                ),+],
-            }
+                ),+])
+                .build()
+                .unwrap_or_else(|_| panic!("Unable to construct a shell tuple collection of rank {RANK}."))
         }
     }
 }

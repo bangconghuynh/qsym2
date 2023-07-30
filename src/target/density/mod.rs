@@ -1,5 +1,6 @@
 use std::fmt;
 use std::iter::Sum;
+use std::ops::{Add, Sub};
 
 use approx;
 use derive_builder::Builder;
@@ -232,5 +233,139 @@ where
                 .join("×")
         )?;
         Ok(())
+    }
+}
+
+// ---
+// Add
+// ---
+impl<'a, T> Add<&'_ Density<'a, T>> for &Density<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    type Output = Density<'a, T>;
+
+    fn add(self, rhs: &Density<'a, T>) -> Self::Output {
+        assert_eq!(
+            self.spin_constraint, rhs.spin_constraint,
+            "Inconsistent spin constraints between `self` and `rhs`."
+        );
+        assert_eq!(
+            self.density_matrix.shape(), rhs.density_matrix.shape(),
+            "Inconsistent shapes of density matrices between `self` and `rhs`."
+        );
+        assert_eq!(
+            self.bao, rhs.bao,
+            "Inconsistent basis angular order between `self` and `rhs`."
+        );
+        Density::<T>::builder()
+            .density_matrix(&self.density_matrix + &rhs.density_matrix)
+            .bao(self.bao)
+            .mol(self.mol)
+            .spin_constraint(self.spin_constraint.clone())
+            .complex_symmetric(self.complex_symmetric)
+            .threshold(self.threshold)
+            .build()
+            .expect("Unable to add two densities together.")
+    }
+}
+
+impl<'a, T> Add<&'_ Density<'a, T>> for Density<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    type Output = Density<'a, T>;
+
+    fn add(self, rhs: &Self) -> Self::Output {
+        &self + rhs
+    }
+}
+
+impl<'a, T> Add<Density<'a, T>> for Density<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    type Output = Density<'a, T>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        &self + &rhs
+    }
+}
+
+impl<'a, T> Add<Density<'a, T>> for &Density<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    type Output = Density<'a, T>;
+
+    fn add(self, rhs: Density<'a, T>) -> Self::Output {
+        self + &rhs
+    }
+}
+
+// ---
+// Sub
+// ---
+impl<'a, T> Sub<&'_ Density<'a, T>> for &Density<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    type Output = Density<'a, T>;
+
+    fn sub(self, rhs: &Density<'a, T>) -> Self::Output {
+        assert_eq!(
+            self.spin_constraint, rhs.spin_constraint,
+            "Inconsistent spin constraints between `self` and `rhs`."
+        );
+        assert_eq!(
+            self.density_matrix.shape(), rhs.density_matrix.shape(),
+            "Inconsistent shapes of density matrices between `self` and `rhs`."
+        );
+        assert_eq!(
+            self.bao, rhs.bao,
+            "Inconsistent basis angular order between `self` and `rhs`."
+        );
+        Density::<T>::builder()
+            .density_matrix(&self.density_matrix - &rhs.density_matrix)
+            .bao(self.bao)
+            .mol(self.mol)
+            .spin_constraint(self.spin_constraint.clone())
+            .complex_symmetric(self.complex_symmetric)
+            .threshold(self.threshold)
+            .build()
+            .expect("Unable to subtract two densities.")
+    }
+}
+
+impl<'a, T> Sub<&'_ Density<'a, T>> for Density<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    type Output = Density<'a, T>;
+
+    fn sub(self, rhs: &Self) -> Self::Output {
+        &self - rhs
+    }
+}
+
+impl<'a, T> Sub<Density<'a, T>> for Density<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    type Output = Density<'a, T>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        &self - &rhs
+    }
+}
+
+impl<'a, T> Sub<Density<'a, T>> for &Density<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    type Output = Density<'a, T>;
+
+    fn sub(self, rhs: Density<'a, T>) -> Self::Output {
+        self - &rhs
     }
 }

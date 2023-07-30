@@ -59,6 +59,10 @@ where
             self.density_matrix.shape() == other.density_matrix.shape(),
             "Inconsistent shapes of density matrices between `self` and `other`."
         );
+        ensure!(
+            self.bao == other.bao,
+            "Inconsistent basis angular order between `self` and `other`."
+        );
 
         let sao_4c = metric
             .ok_or_else(|| format_err!("No atomic-orbital four-centre overlap tensor found."))?;
