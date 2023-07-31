@@ -244,7 +244,7 @@ where
         DensityBuilder::default()
     }
 
-    /// Returns the complex-symmetric flag of the density.
+    /// Returns the complex-symmetric boolean of the density.
     pub fn complex_symmetric(&self) -> bool {
         self.complex_symmetric
     }

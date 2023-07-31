@@ -108,7 +108,6 @@ impl<'a, T> ComplexConjugationTransformable for Density<'a, T>
 where
     T: ComplexFloat + Lapack,
 {
-    /// Performs a complex conjugation in-place.
     fn transform_cc_mut(&mut self) -> &mut Self {
         self.density_matrix.mapv_inplace(|x| x.conj());
         self
