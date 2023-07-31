@@ -1339,31 +1339,6 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
     sym.analyse(&presym, false).unwrap();
     let group_u_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
 
-    let mut sym_tr = Symmetry::new();
-    sym_tr.analyse(&presym, true).unwrap();
-    let group_u_grey_d4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym_tr, None).unwrap();
-    let group_m_grey_d4h =
-        MagneticRepresentedGroup::from_molecular_symmetry(&sym_tr, None).unwrap();
-
-    let mut mol_s4_bz = mol_s4.clone();
-    mol_s4_bz.set_magnetic_field(Some(0.1 * Vector3::z()));
-    let presym_bz = PreSymmetry::builder()
-        .moi_threshold(1e-7)
-        .molecule(&mol_s4_bz)
-        .build()
-        .unwrap();
-
-    let mut sym_bz = Symmetry::new();
-    sym_bz.analyse(&presym_bz, false).unwrap();
-    let group_u_c4h = UnitaryRepresentedGroup::from_molecular_symmetry(&sym_bz, None).unwrap();
-
-    let mut sym_bz_tr = Symmetry::new();
-    sym_bz_tr.analyse(&presym_bz, true).unwrap();
-    let group_u_bw_d4h_c4h =
-        UnitaryRepresentedGroup::from_molecular_symmetry(&sym_bz_tr, None).unwrap();
-    let group_m_bw_d4h_c4h =
-        MagneticRepresentedGroup::from_molecular_symmetry(&sym_bz_tr, None).unwrap();
-
     // -----------------
     // Orbital densities
     // -----------------
