@@ -1,6 +1,6 @@
 use std::fmt;
 use std::iter::Sum;
-use std::ops::{Add, Sub};
+use std::ops::{Add, Sub, Index};
 
 use approx;
 use derive_builder::Builder;
@@ -24,16 +24,163 @@ mod density_transformation;
 // Struct definitions
 // ==================
 
-/// A structure to manage particle densities.
+/// A wrapper structure to manage references to multiple densities of a single state.
+#[derive(Builder, Clone)]
+#[builder(build_fn(validate = "Self::validate"))]
+pub struct Densities<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    /// The spin constraint associated with the multiple densities.
+    spin_constraint: SpinConstraint,
+
+    /// A vector containing references to the multiple densities, one for each spin space.
+    densities: Vec<&'a Density<'a, T>>,
+}
+
+impl<'a, T> Densities<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    /// Returns a builder to construct a new `Densities`.
+    pub fn builder() -> DensitiesBuilder<'a, T> {
+        DensitiesBuilder::default()
+    }
+}
+
+impl<'a, T> DensitiesBuilder<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    fn validate(&self) -> Result<(), String> {
+        let densities = self
+            .densities
+            .as_ref()
+            .ok_or("No `densities` found.".to_string())?;
+        let spin_constraint = self
+            .spin_constraint
+            .as_ref()
+            .ok_or("No spin constraint found.".to_string())?;
+        match spin_constraint {
+            SpinConstraint::Restricted(_) => {
+                if densities.len() != 1 {
+                    Err(
+                        "Exactly one density is expected in restricted spin constraint."
+                            .to_string(),
+                    )
+                } else {
+                    Ok(())
+                }
+            }
+            SpinConstraint::Unrestricted(nspins, _) | SpinConstraint::Generalised(nspins, _) => {
+                if densities.len() != usize::from(*nspins) {
+                    Err(format!(
+                        "{} {} expected in unrestricted or generalised spin constraint, but {} found.",
+                        nspins,
+                        if *nspins == 1 { "density" } else { "densities" },
+                        densities.len()
+                    ))
+                } else {
+                    Ok(())
+                }
+            }
+        }
+    }
+}
+
+impl<'a, T> Index<usize> for Densities<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    type Output = Density<'a, T>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.densities[index]
+    }
+}
+
+/// A wrapper structure to manage multiple owned densities of a single state.
+#[derive(Builder, Clone)]
+#[builder(build_fn(validate = "Self::validate"))]
+pub struct DensitiesOwned<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    /// The spin constraint associated with the multiple densities.
+    spin_constraint: SpinConstraint,
+
+    /// A vector containing the multiple densities, one for each spin space.
+    densities: Vec<Density<'a, T>>,
+}
+
+impl<'a, T> DensitiesOwned<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    /// Returns a builder to construct a new `DensitiesOwned`.
+    pub fn builder() -> DensitiesOwnedBuilder<'a, T> {
+        DensitiesOwnedBuilder::default()
+    }
+}
+
+impl<'a, T> DensitiesOwnedBuilder<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    fn validate(&self) -> Result<(), String> {
+        let densities = self
+            .densities
+            .as_ref()
+            .ok_or("No `densities` found.".to_string())?;
+        let spin_constraint = self
+            .spin_constraint
+            .as_ref()
+            .ok_or("No spin constraint found.".to_string())?;
+        match spin_constraint {
+            SpinConstraint::Restricted(_) => {
+                if densities.len() != 1 {
+                    Err(
+                        "Exactly one density is expected in restricted spin constraint."
+                            .to_string(),
+                    )
+                } else {
+                    Ok(())
+                }
+            }
+            SpinConstraint::Unrestricted(nspins, _) | SpinConstraint::Generalised(nspins, _) => {
+                if densities.len() != usize::from(*nspins) {
+                    Err(format!(
+                        "{} {} expected in unrestricted or generalised spin constraint, but {} found.",
+                        nspins,
+                        if *nspins == 1 { "density" } else { "densities" },
+                        densities.len()
+                    ))
+                } else {
+                    Ok(())
+                }
+            }
+        }
+    }
+}
+
+impl<'a, T> Index<usize> for DensitiesOwned<'a, T>
+where
+    T: ComplexFloat + Lapack,
+{
+    type Output = Density<'a, T>;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.densities[index]
+    }
+}
+
+/// A structure to manage particle spatial densities.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct Density<'a, T>
 where
     T: ComplexFloat + Lapack,
 {
-    /// The spin constraint associated with the density matrix describing this density.
-    spin_constraint: SpinConstraint,
-
     /// The angular order of the basis functions with respect to which the density matrix is
     /// expressed.
     bao: &'a BasisAngularOrder<'a>,
@@ -65,23 +212,14 @@ where
             .density_matrix
             .as_ref()
             .ok_or("No density matrices found.".to_string())?;
-        let spincons = match self
-            .spin_constraint
-            .as_ref()
-            .ok_or("No spin constraint found.".to_string())?
-        {
-            SpinConstraint::Restricted(_) | SpinConstraint::Unrestricted(_, _) => {
-                density_matrix.shape() == [nbas, nbas]
-            }
-            SpinConstraint::Generalised(nspins, _) => {
-                (0..2).all(|i| {
-                    density_matrix.shape()[i].rem_euclid(nbas) == 0
-                        && density_matrix.shape()[i].div_euclid(nbas) == usize::from(*nspins)
-                }) && density_matrix.shape()[0] == density_matrix.shape()[1]
-            }
-        };
-        if !spincons {
-            log::error!("The density matrix fails to satisfy the specified spin constraint.");
+
+        let denmat_shape = density_matrix.shape() == [nbas, nbas];
+        if !denmat_shape {
+            log::error!(
+                "The density matrix dimensions ({:?}) are incompatible with the basis ({nbas} {}).",
+                density_matrix.shape(),
+                if nbas != 1 { "functions" } else { "function" }
+            );
         }
 
         let mol = self.mol.ok_or("No molecule found.".to_string())?;
@@ -89,7 +227,7 @@ where
         if !natoms {
             log::error!("The number of atoms in the molecule does not match the number of local sites in the basis.");
         }
-        if spincons && natoms {
+        if denmat_shape && natoms {
             Ok(())
         } else {
             Err("Density validation failed.".to_string())
@@ -109,11 +247,6 @@ where
     /// Returns the complex-symmetric flag of the density.
     pub fn complex_symmetric(&self) -> bool {
         self.complex_symmetric
-    }
-
-    /// Returns the spin constraint imposed on the density matrix.
-    pub fn spin_constraint(&self) -> &SpinConstraint {
-        &self.spin_constraint
     }
 
     /// Returns the basis angular order information of the basis set in which the density matrix is
@@ -147,12 +280,9 @@ where
 {
     fn from(value: Density<'a, T>) -> Self {
         Density::<'a, Complex<T>>::builder()
-            .density_matrix(
-                value.density_matrix.map(Complex::from)
-            )
+            .density_matrix(value.density_matrix.map(Complex::from))
             .bao(value.bao)
             .mol(value.mol)
-            .spin_constraint(value.spin_constraint)
             .complex_symmetric(value.complex_symmetric)
             .threshold(value.threshold)
             .build()
@@ -178,10 +308,7 @@ where
             epsilon = thresh,
             max_relative = thresh,
         );
-        self.spin_constraint == other.spin_constraint
-            && self.bao == other.bao
-            && self.mol == other.mol
-            && density_matrix_eq
+        self.bao == other.bao && self.mol == other.mol && density_matrix_eq
     }
 }
 
@@ -201,9 +328,9 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Density[{:?}: density matrix of dimensions {}]",
-            self.spin_constraint,
-            self.density_matrix.shape()
+            "Density[density matrix of dimensions {}]",
+            self.density_matrix
+                .shape()
                 .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<_>>()
@@ -224,9 +351,9 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "Density[{:?}: density matrix of dimensions {}]",
-            self.spin_constraint,
-            self.density_matrix.shape()
+            "Density[density matrix of dimensions {}]",
+            self.density_matrix
+                .shape()
                 .iter()
                 .map(|x| x.to_string())
                 .collect::<Vec<_>>()
@@ -247,11 +374,8 @@ where
 
     fn add(self, rhs: &Density<'a, T>) -> Self::Output {
         assert_eq!(
-            self.spin_constraint, rhs.spin_constraint,
-            "Inconsistent spin constraints between `self` and `rhs`."
-        );
-        assert_eq!(
-            self.density_matrix.shape(), rhs.density_matrix.shape(),
+            self.density_matrix.shape(),
+            rhs.density_matrix.shape(),
             "Inconsistent shapes of density matrices between `self` and `rhs`."
         );
         assert_eq!(
@@ -262,7 +386,6 @@ where
             .density_matrix(&self.density_matrix + &rhs.density_matrix)
             .bao(self.bao)
             .mol(self.mol)
-            .spin_constraint(self.spin_constraint.clone())
             .complex_symmetric(self.complex_symmetric)
             .threshold(self.threshold)
             .build()
@@ -314,11 +437,8 @@ where
 
     fn sub(self, rhs: &Density<'a, T>) -> Self::Output {
         assert_eq!(
-            self.spin_constraint, rhs.spin_constraint,
-            "Inconsistent spin constraints between `self` and `rhs`."
-        );
-        assert_eq!(
-            self.density_matrix.shape(), rhs.density_matrix.shape(),
+            self.density_matrix.shape(),
+            rhs.density_matrix.shape(),
             "Inconsistent shapes of density matrices between `self` and `rhs`."
         );
         assert_eq!(
@@ -329,7 +449,6 @@ where
             .density_matrix(&self.density_matrix - &rhs.density_matrix)
             .bao(self.bao)
             .mol(self.mol)
-            .spin_constraint(self.spin_constraint.clone())
             .complex_symmetric(self.complex_symmetric)
             .threshold(self.threshold)
             .build()

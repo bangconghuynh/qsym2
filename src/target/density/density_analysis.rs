@@ -52,10 +52,6 @@ where
     /// Panics if `self` and `other` have mismatched spin constraints.
     fn overlap(&self, other: &Self, metric: Option<&Array4<T>>) -> Result<T, anyhow::Error> {
         ensure!(
-            self.spin_constraint == other.spin_constraint,
-            "Inconsistent spin constraints between `self` and `other`."
-        );
-        ensure!(
             self.density_matrix.shape() == other.density_matrix.shape(),
             "Inconsistent shapes of density matrices between `self` and `other`."
         );

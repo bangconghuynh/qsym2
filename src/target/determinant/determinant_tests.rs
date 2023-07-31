@@ -300,7 +300,7 @@ fn test_determinant_transformation_s4_sqpl() {
     assert_eq!(tdetgen_s1yp1, tdetgen_s1yp1_ref);
 
     // S1(+1.000, +0.000, +0.000)
-    let s1xp1 = group.get_index(12).unwrap();
+    let s1xp1 = group.get_index(13).unwrap();
     let tdetgen_s1xp1_ref = SlaterDeterminant::<f64>::builder()
         .coefficients(&[cgen.clone()])
         .occupations(&[ogen.clone()])
