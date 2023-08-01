@@ -61,7 +61,7 @@ where
         );
 
         let sao_4c = metric
-            .ok_or_else(|| format_err!("No atomic-orbital four-centre overlap tensor found."))?;
+            .ok_or_else(|| format_err!("No atomic-orbital four-centre overlap tensor found for density overlap calculation."))?;
 
         einsum(
             "ijkl,ji,lk->",

@@ -1377,13 +1377,6 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
     let dentot_ru = dena_ru + denb_ru;
     let denspin_ru = dena_ru - denb_ru;
 
-    let det_cu: SlaterDeterminant<C128> = det_ru.clone().into();
-    let dens_cu = det_cu.to_densities().unwrap();
-    let dena_cu = &dens_cu[0];
-    let denb_cu = &dens_cu[1];
-    let dentot_cu = dena_cu + denb_cu;
-    let denspin_cu = dena_cu - denb_cu;
-
     // ------
     // Metric
     // ------
@@ -1424,17 +1417,6 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
     ];
     let ovs = stc.overlap([0, 0, 0, 0]);
     let sao_ru = &ovs[0];
-
-    let mut bscs_bz = bscs.clone();
-    bscs_bz.apply_magnetic_field(&(0.1 * Vector3::z()), &Point3::origin());
-    let stc_bz = build_shell_tuple_collection![
-        <s1, s2, s3, s4>;
-        false, false, false, false;
-        &bscs, &bscs, &bscs, &bscs;
-        C128
-    ];
-    let ovs_bz = stc_bz.overlap([0, 0, 0, 0]);
-    let sao_cu_bz = &ovs_bz[0];
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
     // u D4h (ordinary, unitary)

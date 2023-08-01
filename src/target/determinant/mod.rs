@@ -377,10 +377,6 @@ impl<'a> SlaterDeterminant<'a, f64> {
     ///
     /// Occupation numbers are also incorporated in the formation of density matrices.
     ///
-    /// # Arguments
-    ///
-    /// * `sd` - A Slater determinant.
-    ///
     /// # Returns
     ///
     /// A vector of real densities, one for each spin space.

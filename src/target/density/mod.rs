@@ -46,6 +46,10 @@ where
     pub fn builder() -> DensitiesBuilder<'a, T> {
         DensitiesBuilder::default()
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Density<'a, T>> {
+        self.densities.iter().cloned()
+    }
 }
 
 impl<'a, T> DensitiesBuilder<'a, T>
@@ -120,6 +124,10 @@ where
     /// Returns a builder to construct a new `DensitiesOwned`.
     pub fn builder() -> DensitiesOwnedBuilder<'a, T> {
         DensitiesOwnedBuilder::default()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Density<'a, T>> {
+        self.densities.iter()
     }
 }
 
