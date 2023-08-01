@@ -11,7 +11,7 @@ classifiers = [
 ]
 
 [tool.maturin]
-features = ["openblas-static"]
+features = ["openblas-static", "integrals"]
 
 [tool.cibuildwheel]
 build = "*"
