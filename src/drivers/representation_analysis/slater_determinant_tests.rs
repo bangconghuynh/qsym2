@@ -935,4 +935,95 @@ fn test_drivers_slater_determinant_density_analysis_vf6() {
             .unwrap(),
         DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ 2||E|_(g)|").unwrap()
     );
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // m (Oh + θ·Oh)* (grey double, magnetic) - spin spatial
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
+        .integrality_threshold(1e-10)
+        .linear_independence_threshold(1e-10)
+        .analyse_mo_symmetries(true)
+        .analyse_density_symmetries(true)
+        .use_magnetic_group(Some(MagneticSymmetryAnalysisKind::Corepresentation))
+        .use_double_group(true)
+        .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .write_overlap_eigenvalues(true)
+        .write_character_table(None)
+        .build()
+        .unwrap();
+
+    let mut sda_driver =
+        SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, C128>::builder()
+            .parameters(&sda_params)
+            .angular_function_parameters(&afa_params)
+            .determinant(&det_d3_cg)
+            .sao_spatial(&sao_spatial)
+            .sao_spatial_4c(Some(&sao_spatial_4c))
+            .symmetry_group(pd_res)
+            .build()
+            .unwrap();
+    assert!(sda_driver.run().is_ok());
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_symmetry
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||E~|_(1g)| ⊕ ||E~|_(2g)| ⊕ 2||G~|_(g)|")
+            .unwrap()
+    );
+
+    // Spin-0 density symmetry
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_density_symmetries
+            .as_ref()
+            .unwrap()[0]
+            .1
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ 2||E|_(g)|").unwrap()
+    );
+    // Spin-1 density symmetry
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_density_symmetries
+            .as_ref()
+            .unwrap()[1]
+            .1
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ ||E|_(g)|").unwrap()
+    );
+    // Total density symmetry
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_density_symmetries
+            .as_ref()
+            .unwrap()[2]
+            .1
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ 2||E|_(g)|").unwrap()
+    );
+    // Spin-polarised density 0 - 1 symmetry
+    assert_eq!(
+        *sda_driver
+            .result()
+            .unwrap()
+            .determinant_density_symmetries
+            .as_ref()
+            .unwrap()[3]
+            .1
+            .as_ref()
+            .unwrap(),
+        DecomposedSymbol::<MullikenIrcorepSymbol>::new("||A|_(g)| ⊕ 2||E|_(g)|").unwrap()
+    );
 }
