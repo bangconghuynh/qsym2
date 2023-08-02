@@ -146,6 +146,263 @@ impl PyBasisAngularOrder {
     }
 }
 
+/// A Python-exposed enumerated type to marshall basis spin constraint information between Rust and
+/// Python.
+#[pyclass]
+#[derive(Clone)]
+pub enum PySpinConstraint {
+    /// Variant for restricted spin constraint. Only two spin spaces are exposed.
+    Restricted,
+
+    /// Variant for unrestricted spin constraint. Only two spin spaces arranged in decreasing-$`m`$
+    /// order (*i.e.* $`(\alpha, \beta)`$) are exposed.
+    Unrestricted,
+
+    /// Variant for generalised spin constraint. Only two spin spaces arranged in decreasing-$`m`$
+    /// order (*i.e.* $`(\alpha, \beta)`$) are exposed.
+    Generalised,
+}
+
+impl From<PySpinConstraint> for SpinConstraint {
+    fn from(pysc: PySpinConstraint) -> Self {
+        match pysc {
+            PySpinConstraint::Restricted => SpinConstraint::Restricted(2),
+            PySpinConstraint::Unrestricted => SpinConstraint::Unrestricted(2, false),
+            PySpinConstraint::Generalised => SpinConstraint::Generalised(2, false),
+        }
+    }
+}
+
+#[cfg(feature = "integrals")]
+#[pyclass]
+#[derive(Clone)]
+/// A Python-exposed structure to marshall basis shell contraction information between Rust and
+/// Python.
+///
+/// # Constructor arguments
+///
+/// * `basis_shell` - A triplet of the form `(angmom, cart, order)` where:
+///     * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
+///     * `cart` is a boolean indicating if the functions in the shell are Cartesian (`true`)
+///     or pure / solid harmonics (`false`), and
+///     * `order` specifies how the functions in the shell are ordered:
+///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
+///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
+///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
+///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
+///       decreasing-$`m`$ order.
+///
+///     Python type: `tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]`.
+/// * `primitives` - A list of tuples, each of which contains the exponent and the contraction
+/// coefficient of a Gaussian primitive in this shell. Python type: `list[tuple[float, float]]`.
+/// * `cart_origin` - A fixed-size list of length 3 containing the Cartesian coordinates of the
+/// origin of this shell. Python type: `list[float]`.
+/// * `k` - An optional fixed-size list of length 3 containing the Cartesian components of the
+/// $`\mathbf{k}`$ vector of this shell. Python type: `Optional[list[float]]`.
+pub struct PyBasisShellContraction {
+    /// A triplet of the form `(angmom, cart, order)` where:
+    ///     * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
+    ///     * `cart` is a boolean indicating if the functions in the shell are Cartesian (`true`)
+    ///     or pure / solid harmonics (`false`), and
+    ///     * `order` specifies how the functions in the shell are ordered:
+    ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
+    ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
+    ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
+    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
+    ///       decreasing-$`m`$ order.
+    ///
+    /// Python type: `tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]`.
+    pub basis_shell: (String, bool, PyShellOrder),
+
+    /// A list of tuples, each of which contains the exponent and the contraction coefficient of a
+    /// Gaussian primitive in this shell.
+    ///
+    /// Python type: `list[tuple[float, float]]`.
+    pub primitives: Vec<(f64, f64)>,
+
+    /// A fixed-size list of length 3 containing the Cartesian coordinates of the origin of this
+    /// shell.
+    ///
+    /// Python type: `list[float]`.
+    pub cart_origin: [f64; 3],
+
+    /// An optional fixed-size list of length 3 containing the Cartesian components of the
+    /// $`\mathbf{k}`$ vector of this shell.
+    ///
+    /// Python type: `Optional[list[float]]`.
+    pub k: Option<[f64; 3]>,
+}
+
+#[pymethods]
+impl PyBasisShellContraction {
+    /// Creates a new `PyBasisShellContraction` structure.
+    ///
+    /// # Arguments
+    ///
+    /// * `basis_shell` - A triplet of the form `(angmom, cart, order)` where:
+    ///     * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
+    ///     * `cart` is a boolean indicating if the functions in the shell are Cartesian (`true`)
+    ///     or pure / solid harmonics (`false`), and
+    ///     * `order` specifies how the functions in the shell are ordered:
+    ///       * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
+    ///       tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
+    ///       `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
+    ///       * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
+    ///       decreasing-$`m`$ order.
+    ///
+    ///     Python type: `tuple[str, bool, bool | Optional[list[tuple[int, int, int]]]]`.
+    /// * `primitives` - A list of tuples, each of which contains the exponent and the contraction
+    /// coefficient of a Gaussian primitive in this shell. Python type: `list[tuple[float, float]]`.
+    /// * `cart_origin` - A fixed-size list of length 3 containing the Cartesian coordinates of the
+    /// origin of this shell. Python type: `list[float]`.
+    /// * `k` - An optional fixed-size list of length 3 containing the Cartesian components of the
+    /// $`\mathbf{k}`$ vector of this shell. Python type: `Optional[list[float]]`.
+    #[new]
+    pub fn new(
+        basis_shell: (String, bool, PyShellOrder),
+        primitives: Vec<(f64, f64)>,
+        cart_origin: [f64; 3],
+        k: Option<[f64; 3]>,
+    ) -> Self {
+        Self {
+            basis_shell,
+            primitives,
+            cart_origin,
+            k
+        }
+    }
+}
+
+#[cfg(feature = "integrals")]
+impl TryFrom<PyBasisShellContraction> for BasisShellContraction<f64, f64> {
+    type Error = anyhow::Error;
+
+    fn try_from(pybsc: PyBasisShellContraction) -> Result<Self, Self::Error> {
+        let (angmom, cart, shell_order) = pybsc.basis_shell;
+        let basis_shell = create_basis_shell(&angmom, cart, &shell_order)?;
+        let contraction = GaussianContraction::<f64, f64> {
+            primitives: pybsc.primitives,
+        };
+        let cart_origin = Point3::from_slice(&pybsc.cart_origin);
+        let k = pybsc.k.map(|k| Vector3::from_row_slice(&k));
+        Ok(Self {
+            basis_shell,
+            contraction,
+            cart_origin,
+            k,
+        })
+    }
+}
+
+#[cfg(feature = "integrals")]
+#[pyfunction]
+/// Calculates the real-valued four-centre overlap tensor for a basis set.
+///
+/// # Arguments
+///
+/// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
+/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+///
+/// # Panics
+///
+/// Panics if any shell contains a finite $`\mathbf{k}`$ vector.
+pub fn calc_overlap_4c_real<'py>(
+    py: Python<'py>,
+    basis_set: Vec<Vec<PyBasisShellContraction>>,
+) -> PyResult<&'py PyArray4<f64>> {
+    let bscs = BasisSet::new(
+        basis_set
+            .into_iter()
+            .map(|basis_atom| {
+                basis_atom
+                    .into_iter()
+                    .map(|pybsc| {
+                        BasisShellContraction::<f64, f64>::try_from(pybsc)
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|err| PyValueError::new_err(err.to_string()))?
+    );
+    let stc = build_shell_tuple_collection![
+        <s1, s2, s3, s4>;
+        false, false, false, false;
+        &bscs, &bscs, &bscs, &bscs;
+        f64
+    ];
+    let sao_4c = stc
+        .overlap([0, 0, 0, 0])
+        .pop()
+        .expect("Unable to retrieve the four-centre overlap tensor.");
+    let pysao_4c = sao_4c.into_pyarray(py);
+    Ok(pysao_4c)
+}
+
+#[cfg(feature = "integrals")]
+#[pyfunction]
+/// Calculates the complex-valued four-centre overlap tensor for a basis set.
+///
+/// # Arguments
+///
+/// * `basis_set` - A list of lists of [`PyBasisShellContraction`]. Each inner list contains shells
+/// on one atom. Python type: `list[list[PyBasisShellContraction]]`.
+pub fn calc_overlap_4c_complex<'py>(
+    py: Python<'py>,
+    basis_set: Vec<Vec<PyBasisShellContraction>>,
+) -> PyResult<&'py PyArray4<Complex<f64>>> {
+    let bscs = BasisSet::new(
+        basis_set
+            .into_iter()
+            .map(|basis_atom| {
+                basis_atom
+                    .into_iter()
+                    .map(|pybsc| {
+                        BasisShellContraction::<f64, f64>::try_from(pybsc)
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|err| PyValueError::new_err(err.to_string()))?
+    );
+    let stc = build_shell_tuple_collection![
+        <s1, s2, s3, s4>;
+        true, true, false, false;
+        &bscs, &bscs, &bscs, &bscs;
+        Complex<f64>
+    ];
+    let sao_4c = stc
+        .overlap([0, 0, 0, 0])
+        .pop()
+        .expect("Unable to retrieve the four-centre overlap tensor.");
+    let pysao_4c = sao_4c.into_pyarray(py);
+    Ok(pysao_4c)
+}
+
+// =========
+// Functions
+// =========
+
+/// Creates a [`BasisShell`] structure from the `(angmom, cart, shell_order)` triplet.
+///
+/// # Arguments
+/// * `angmom` is a symbol such as `"S"` or `"P"` for the angular momentum of the shell,
+/// * `cart` is a boolean indicating if the functions in the shell are Cartesian (`true`)
+/// or pure / solid harmonics (`false`), and
+/// * `shell_order` specifies how the functions in the shell are ordered:
+///   * if `cart` is `true`, `order` can be `None` for lexicographic order, or a list of
+///   tuples `(lx, ly, lz)` specifying a custom order for the Cartesian functions where
+///   `lx`, `ly`, and `lz` are the $`x`$-, $`y`$-, and $`z`$-exponents;
+///   * if `cart` is `false`, `order` can be `true` for increasing-$`m`$ or `false` for
+///   decreasing-$`m`$ order.
+///
+/// # Returns
+///
+/// A [`BasisShell`] structure.
+///
+/// # Errors
+///
+/// Errors if `angmom` is not a valid angular momentum, or if there is a mismatch between `cart`
+/// and `shell_order`.
 fn create_basis_shell(
     angmom: &str,
     cart: bool,
@@ -193,162 +450,4 @@ fn create_basis_shell(
         }
     };
     Ok::<_, anyhow::Error>(BasisShell::new(*l, shl_ord))
-}
-
-/// A Python-exposed enumerated type to marshall basis spin constraint information between Rust and
-/// Python.
-#[pyclass]
-#[derive(Clone)]
-pub enum PySpinConstraint {
-    /// Variant for restricted spin constraint. Only two spin spaces are exposed.
-    Restricted,
-
-    /// Variant for unrestricted spin constraint. Only two spin spaces arranged in decreasing-$`m`$
-    /// order (*i.e.* $`(\alpha, \beta)`$) are exposed.
-    Unrestricted,
-
-    /// Variant for generalised spin constraint. Only two spin spaces arranged in decreasing-$`m`$
-    /// order (*i.e.* $`(\alpha, \beta)`$) are exposed.
-    Generalised,
-}
-
-impl From<PySpinConstraint> for SpinConstraint {
-    fn from(pysc: PySpinConstraint) -> Self {
-        match pysc {
-            PySpinConstraint::Restricted => SpinConstraint::Restricted(2),
-            PySpinConstraint::Unrestricted => SpinConstraint::Unrestricted(2, false),
-            PySpinConstraint::Generalised => SpinConstraint::Generalised(2, false),
-        }
-    }
-}
-
-#[cfg(feature = "integrals")]
-#[pyclass]
-#[derive(Clone)]
-pub struct PyBasisShellContraction {
-    pub basis_shell: (String, bool, PyShellOrder),
-
-    pub primitives: Vec<(f64, f64)>,
-
-    pub cart_origin: [f64; 3],
-
-    pub k: Option<[f64; 3]>,
-}
-
-#[pymethods]
-impl PyBasisShellContraction {
-    /// Creates a new `PyMolecule` structure.
-    ///
-    /// # Arguments
-    ///
-    /// * `atoms` - The ordinary atoms in the molecule. Python type: `list[tuple[str, tuple[float,
-    /// float, float]]]`.
-    /// * `threshold` - Threshold for comparing molecules. Python type: `float`.
-    /// * `magnetic_field` - An optional uniform external magnetic field. Python type:
-    /// `Optional[tuple[float, float, float]]`.
-    /// * `electric_field` - An optional uniform external electric field. Python type:
-    /// `Optional[tuple[float, float, float]]`.
-    #[new]
-    pub fn new(
-        basis_shell: (String, bool, PyShellOrder),
-        primitives: Vec<(f64, f64)>,
-        cart_origin: [f64; 3],
-        k: Option<[f64; 3]>,
-    ) -> Self {
-        Self {
-            basis_shell,
-            primitives,
-            cart_origin,
-            k
-        }
-    }
-}
-
-#[cfg(feature = "integrals")]
-impl TryFrom<PyBasisShellContraction> for BasisShellContraction<f64, f64> {
-    type Error = anyhow::Error;
-
-    fn try_from(pybsc: PyBasisShellContraction) -> Result<Self, Self::Error> {
-        let (angmom, cart, shell_order) = pybsc.basis_shell;
-        let basis_shell = create_basis_shell(&angmom, cart, &shell_order)?;
-        let contraction = GaussianContraction::<f64, f64> {
-            primitives: pybsc.primitives,
-        };
-        let cart_origin = Point3::from_slice(&pybsc.cart_origin);
-        let k = pybsc.k.map(|k| Vector3::from_row_slice(&k));
-        Ok(Self {
-            basis_shell,
-            contraction,
-            cart_origin,
-            k,
-        })
-    }
-}
-
-#[cfg(feature = "integrals")]
-#[pyfunction]
-pub fn calc_overlap_4c_real<'py>(
-    py: Python<'py>,
-    basis_set: Vec<Vec<PyBasisShellContraction>>,
-) -> PyResult<&'py PyArray4<f64>> {
-    let bscs = BasisSet::new(
-        basis_set
-            .into_iter()
-            .map(|basis_atom| {
-                basis_atom
-                    .into_iter()
-                    .map(|pybsc| {
-                        BasisShellContraction::<f64, f64>::try_from(pybsc)
-                    })
-                    .collect::<Result<Vec<_>, _>>()
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|err| PyValueError::new_err(err.to_string()))?
-    );
-    let stc = build_shell_tuple_collection![
-        <s1, s2, s3, s4>;
-        false, false, false, false;
-        &bscs, &bscs, &bscs, &bscs;
-        f64
-    ];
-    let sao_4c = stc
-        .overlap([0, 0, 0, 0])
-        .pop()
-        .expect("Unable to retrieve the four-centre overlap tensor.");
-    let pysao_4c = sao_4c.into_pyarray(py);
-    Ok(pysao_4c)
-}
-
-#[cfg(feature = "integrals")]
-#[pyfunction]
-pub fn calc_overlap_4c_complex<'py>(
-    py: Python<'py>,
-    basis_set: Vec<Vec<PyBasisShellContraction>>,
-) -> PyResult<&'py PyArray4<Complex<f64>>> {
-    let bscs = BasisSet::new(
-        basis_set
-            .into_iter()
-            .map(|basis_atom| {
-                basis_atom
-                    .into_iter()
-                    .map(|pybsc| {
-                        BasisShellContraction::<f64, f64>::try_from(pybsc)
-                    })
-                    .collect::<Result<Vec<_>, _>>()
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|err| PyValueError::new_err(err.to_string()))?
-    );
-    let stc = build_shell_tuple_collection![
-        <s1, s2, s3, s4>;
-        true, true, false, false;
-        &bscs, &bscs, &bscs, &bscs;
-        Complex<f64>
-    ];
-    let sao_4c = stc
-        .overlap([0, 0, 0, 0])
-        .pop()
-        .expect("Unable to retrieve the four-centre overlap tensor.");
-    let pysao_4c = sao_4c.into_pyarray(py);
-    Ok(pysao_4c)
 }

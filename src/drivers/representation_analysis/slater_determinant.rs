@@ -237,7 +237,8 @@ where
     mo_symmetries: Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>>,
 
     /// The deduced symmetries of the various densities constructible from the determinant, if
-    /// required.
+    /// required. In each tuple, the first element gives a description of the density corresponding
+    /// to the symmetry result.
     determinant_density_symmetries: Option<
         Vec<(
             String,
@@ -888,6 +889,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                     smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
                     smat_eigvals_sorted.reverse();
                     log_overlap_eigenvalues(
+                        "Determinant orbit overlap eigenvalues",
                         &smat_eigvals_sorted,
                         params.linear_independence_threshold,
                         |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
@@ -930,6 +932,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 .sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
                             smat_eigvals_sorted.reverse();
                             log_overlap_eigenvalues(
+                                "Determinant orbit overlap eigenvalues",
                                 &smat_eigvals_sorted,
                                 params.linear_independence_threshold,
                                 |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
@@ -1252,6 +1255,7 @@ impl<'a> QSym2Driver
 /// * `thresh_cmp` - The function for comparing with threshold. The threshold is marked out when
 /// the function first evaluates to [`Ordering::Less`].
 fn log_overlap_eigenvalues<T>(
+    title: &str,
     eigvals: &[&T],
     thresh: <T as ComplexFloat>::Real,
     thresh_cmp: fn(&T, &<T as ComplexFloat>::Real) -> Ordering,
@@ -1263,7 +1267,7 @@ fn log_overlap_eigenvalues<T>(
         .iter()
         .map(|v| format!("{v:+.3e}"))
         .collect::<Vec<_>>();
-    log_subtitle("Orbit overlap eigenvalues");
+    log_subtitle(title);
     qsym2_output!("");
 
     qsym2_output!("Eigenvalues are sorted in decreasing magnitude order.");
