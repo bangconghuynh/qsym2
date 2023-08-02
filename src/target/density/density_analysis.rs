@@ -63,19 +63,33 @@ where
         let sao_4c = metric
             .ok_or_else(|| format_err!("No atomic-orbital four-centre overlap tensor found for density overlap calculation."))?;
 
-        let ov = einsum(
-            "ijkl,ji,lk->",
-            &[
-                &sao_4c.view(),
-                &self.density_matrix().mapv(|x| x.conj()).view(),
-                &other.density_matrix().view(),
-            ],
-        )
-        .map_err(|err| format_err!(err))?
-        .into_iter()
-        .next()
-        .ok_or(format_err!("Unable to extract the density overlap scalar."));
-        ov
+        if self.complex_symmetric() {
+            einsum(
+                "ijkl,ji,lk->",
+                &[
+                    &sao_4c.view(),
+                    &self.density_matrix().view(),
+                    &other.density_matrix().view(),
+                ],
+            )
+            .map_err(|err| format_err!(err))?
+            .into_iter()
+            .next()
+            .ok_or(format_err!("Unable to extract the density overlap scalar."))
+        } else {
+            einsum(
+                "ijkl,ji,lk->",
+                &[
+                    &sao_4c.view(),
+                    &self.density_matrix().mapv(|x| x.conj()).view(),
+                    &other.density_matrix().view(),
+                ],
+            )
+            .map_err(|err| format_err!(err))?
+            .into_iter()
+            .next()
+            .ok_or(format_err!("Unable to extract the density overlap scalar."))
+        }
     }
 }
 
