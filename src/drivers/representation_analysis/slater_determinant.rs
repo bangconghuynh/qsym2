@@ -3,10 +3,12 @@ use std::fmt;
 use std::ops::Mul;
 
 use anyhow::{self, bail, format_err};
+use approx;
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use itertools::Itertools;
 use ndarray::{s, Array2, Array4};
+use ndarray_linalg::norm::Norm;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
@@ -917,6 +919,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 .build()?;
             let det_symmetry = det_orbit
                 .calc_smat(Some(&sao))
+                .and_then(|det_orb| det_orb.normalise_smat())
                 .map_err(|err| err.to_string())
                 .and_then(|det_orb| {
                     det_orb.calc_xmat(false);
@@ -958,6 +961,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 .build()?;
                             den_orbit
                                 .calc_smat(self.sao_spatial_4c)
+                                .unwrap()
+                                .normalise_smat()
                                 .unwrap()
                                 .calc_xmat(false);
                             den_orbit.analyse_rep().map_err(|err| format_err!(err))
@@ -1012,28 +1017,39 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 let i = indices[0];
                                 let j = indices[1];
                                 let den_ij = &densities[i] - &densities[j];
-                                let den_ij_sym_res = || {
-                                    let mut den_ij_orbit = DensitySymmetryOrbit::builder()
-                                        .group(&group)
-                                        .origin(&den_ij)
-                                        .integrality_threshold(params.integrality_threshold)
-                                        .linear_independence_threshold(
-                                            params.linear_independence_threshold,
-                                        )
-                                        .symmetry_transformation_kind(
-                                            params.symmetry_transformation_kind.clone(),
-                                        )
-                                        .build()?;
-                                    den_ij_orbit
-                                        .calc_smat(self.sao_spatial_4c)
-                                        .unwrap()
-                                        .calc_xmat(false);
-                                    den_ij_orbit.analyse_rep().map_err(|err| format_err!(err))
-                                };
-                                (
-                                    format!("Spin-polarised density {i} - {j}"),
-                                    den_ij_sym_res().map_err(|err| err.to_string()),
-                                )
+                                if approx::abs_diff_eq!(
+                                    den_ij.density_matrix().norm_l2(),
+                                    0.0,
+                                    epsilon = 1e-13
+                                ) {
+                                    (
+                                        format!("Spin-polarised density {i} - {j}"),
+                                        Err("Zero density.".to_string())
+                                    )
+                                } else {
+                                    let den_ij_sym_res = || {
+                                        let mut den_ij_orbit = DensitySymmetryOrbit::builder()
+                                            .group(&group)
+                                            .origin(&den_ij)
+                                            .integrality_threshold(params.integrality_threshold)
+                                            .linear_independence_threshold(
+                                                params.linear_independence_threshold,
+                                            )
+                                            .symmetry_transformation_kind(
+                                                params.symmetry_transformation_kind.clone(),
+                                            )
+                                            .build()?;
+                                        den_ij_orbit
+                                            .calc_smat(self.sao_spatial_4c)
+                                            .unwrap()
+                                            .calc_xmat(false);
+                                        den_ij_orbit.analyse_rep().map_err(|err| format_err!(err))
+                                    };
+                                    (
+                                        format!("Spin-polarised density {i} - {j}"),
+                                        den_ij_sym_res().map_err(|err| err.to_string()),
+                                    )
+                                }
                             },
                         ));
                         extra_syms
@@ -1066,6 +1082,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     .ok()?;
                                 mo_den_orbit
                                     .calc_smat(self.sao_spatial_4c)
+                                    .ok()?
+                                    .normalise_smat()
                                     .ok()?
                                     .calc_xmat(false);
                                 mo_den_orbit.analyse_rep().ok()

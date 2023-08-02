@@ -1,5 +1,6 @@
 use ndarray::array;
 use num_complex::Complex;
+use serial_test::serial;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::basis::ao::{
@@ -18,6 +19,7 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
+#[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
@@ -330,7 +332,9 @@ fn test_drivers_slater_determinant_analysis_vf6() {
     );
 }
 
+#[cfg(feature = "integrals")]
 #[test]
+#[serial]
 fn test_drivers_slater_determinant_density_analysis_vf6() {
     // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");

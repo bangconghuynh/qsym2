@@ -310,8 +310,8 @@ where
         self.smat = Some(smat)
     }
 
-    fn smat(&self) -> &Array2<T> {
-        self.smat.as_ref().expect("Orbit overlap matrix not found.")
+    fn smat(&self) -> Option<&Array2<T>> {
+        self.smat.as_ref()
     }
 
     fn xmat(&self) -> &Array2<T> {

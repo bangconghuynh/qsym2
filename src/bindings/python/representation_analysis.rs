@@ -501,6 +501,7 @@ pub fn rep_analyse_slater_determinant(
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_r)
                     .sao_spatial(&sao_spatial)
+                    .sao_spatial_4c(sao_spatial_4c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -572,6 +573,7 @@ pub fn rep_analyse_slater_determinant(
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_c)
                     .sao_spatial(&sao_spatial_c)
+                    .sao_spatial_4c(sao_spatial_4c_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
@@ -628,6 +630,7 @@ pub fn rep_analyse_slater_determinant(
                     .angular_function_parameters(&afa_params)
                     .determinant(&det_c)
                     .sao_spatial(&sao_spatial_c)
+                    .sao_spatial_4c(sao_spatial_4c_c.as_ref())
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;

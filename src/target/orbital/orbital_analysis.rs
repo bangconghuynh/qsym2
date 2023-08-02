@@ -356,8 +356,8 @@ where
         self.smat = Some(smat)
     }
 
-    fn smat(&self) -> &Array2<T> {
-        self.smat.as_ref().expect("Orbit overlap matrix not found.")
+    fn smat(&self) -> Option<&Array2<T>> {
+        self.smat.as_ref()
     }
 
     fn xmat(&self) -> &Array2<T> {
@@ -413,7 +413,7 @@ where
                 }
         };
         if valid_symmetry {
-            let chis = self.calc_characters();
+            let chis = self.calc_characters().map_err(|err| DecompositionError(err.to_string()))?;
             let res = self.group().character_table().reduce_characters(
                 &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
                 self.integrality_threshold(),

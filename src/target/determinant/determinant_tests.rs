@@ -1212,7 +1212,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
 
     let sao = Array2::<f64>::eye(4);
     orbit.calc_smat(Some(&sao)).unwrap().calc_xmat(false);
-    let smat = orbit.smat().clone();
+    let smat = orbit.smat().unwrap().clone();
     let xmat = orbit.xmat();
 
     let os = xmat.t().dot(&smat).dot(xmat);
@@ -1230,7 +1230,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
         .build()
         .unwrap();
     orbit_c.calc_smat(Some(&sao_c)).unwrap().calc_xmat(false);
-    let smat_c = orbit_c.smat().clone();
+    let smat_c = orbit_c.smat().unwrap().clone();
     let xmat_c = orbit_c.xmat();
 
     let os_c = xmat_c.t().mapv(|x| x.conj()).dot(&smat_c).dot(xmat_c);

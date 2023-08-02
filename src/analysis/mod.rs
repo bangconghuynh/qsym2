@@ -159,7 +159,7 @@ where
 
     /// Returns the overlap matrix between the items in the orbit.
     #[must_use]
-    fn smat(&self) -> &Array2<T>;
+    fn smat(&self) -> Option<&Array2<T>>;
 
     /// Returns the transformation matrix $`\mathbf{X}`$ for the overlap matrix $`\mathbf{S}`$
     /// between the items in the orbit.
@@ -282,6 +282,31 @@ where
         Ok(self)
     }
 
+    /// Calculates and stores the overlap matrix between items in the orbit, with respect to a
+    /// metric of the basis in which these items are expressed.
+    ///
+    /// # Arguments
+    ///
+    /// * `metric` - The metric of the basis in which the orbit items are expressed.
+    fn normalise_smat(&mut self) -> Result<&mut Self, anyhow::Error> {
+        let smat = self
+            .smat()
+            .ok_or(format_err!("No orbit overlap matrix to normalise."))?;
+        let norm = smat.diag().mapv(|x| <T as ComplexFloat>::sqrt(x));
+        let nspatial = norm.len();
+        let norm_col = norm
+            .clone()
+            .into_shape([nspatial, 1])
+            .map_err(|err| format_err!(err))?;
+        let norm_row = norm
+            .into_shape([1, nspatial])
+            .map_err(|err| format_err!(err))?;
+        let norm_mat = norm_col.dot(&norm_row);
+        let normalised_smat = smat / norm_mat;
+        self.set_smat(normalised_smat);
+        Ok(self)
+    }
+
     /// Computes the $`\mathbf{T}(g)`$ matrix for a particular element $`g`$ of the generating
     /// group.
     ///
@@ -304,7 +329,7 @@ where
     ///
     /// The matrix $`\mathbf{T}(g)`$.
     #[must_use]
-    fn calc_tmat(&self, op: &G::GroupElement) -> Array2<T> {
+    fn calc_tmat(&self, op: &G::GroupElement) -> Result<Array2<T>, anyhow::Error> {
         let ctb = self
             .group()
             .cayley_table()
@@ -313,8 +338,11 @@ where
             panic!("Unable to retrieve the index of element `{op}` in the group.")
         });
         let ix = ctb.slice(s![i, ..]).iter().cloned().collect::<Vec<_>>();
-        let twx = self.smat().select(Axis(1), &ix);
-        twx
+        let twx = self
+            .smat()
+            .ok_or(format_err!("No orbit overlap matrix found."))?
+            .select(Axis(1), &ix);
+        Ok(twx)
     }
 
     /// Computes the representation or corepresentation matrix $`\mathbf{D}(g)`$ for a particular
@@ -337,24 +365,33 @@ where
     ///
     /// The matrix $`\mathbf{D}(g)`$.
     #[must_use]
-    fn calc_dmat(&self, op: &G::GroupElement) -> Array2<T> {
+    fn calc_dmat(&self, op: &G::GroupElement) -> Result<Array2<T>, anyhow::Error> {
         let complex_symmetric = self.origin().complex_symmetric();
         let xmath = if complex_symmetric {
             self.xmat().t().to_owned()
         } else {
             self.xmat().t().mapv(|x| x.conj())
         };
-        let smattilde = xmath.dot(self.smat()).dot(self.xmat());
+        let smattilde = xmath
+            .dot(
+                self.smat()
+                    .ok_or(format_err!("No orbit overlap matrix found."))?,
+            )
+            .dot(self.xmat());
         let smattilde_inv = smattilde
             .inv()
             .expect("The inverse of S~ could not be found.");
         let dmat = einsum(
             "ij,jk,kl,lm->im",
-            &[&smattilde_inv, &xmath, &self.calc_tmat(op), self.xmat()],
+            &[&smattilde_inv, &xmath, &self.calc_tmat(op)?, self.xmat()],
         )
-        .expect("Unable to compute the matrix product [(S~)^(-1) X† T X].")
+        .map_err(|err| format_err!(err))
+        .with_context(|| "Unable to compute the matrix product [(S~)^(-1) X† T X].")?
         .into_dimensionality::<Ix2>()
-        .expect("Unable to convert the matrix product [(S~)^(-1) X† T X] to two dimensions.");
+        .map_err(|err| format_err!(err))
+        .with_context(|| {
+            "Unable to convert the matrix product [(S~)^(-1) X† T X] to two dimensions."
+        });
         dmat
     }
 
@@ -371,27 +408,34 @@ where
     ///
     /// The character $`\chi(g)`$.
     #[must_use]
-    fn calc_character(&self, op: &G::GroupElement) -> T {
+    fn calc_character(&self, op: &G::GroupElement) -> Result<T, anyhow::Error> {
         let complex_symmetric = self.origin().complex_symmetric();
         let xmath = if complex_symmetric {
             self.xmat().t().to_owned()
         } else {
             self.xmat().t().mapv(|x| x.conj())
         };
-        let smattilde = xmath.dot(self.smat()).dot(self.xmat());
+        let smattilde = xmath
+            .dot(
+                self.smat()
+                    .ok_or(format_err!("No orbit overlap matrix found."))?,
+            )
+            .dot(self.xmat());
         let smattilde_inv = smattilde
             .inv()
             .expect("The inverse of S~ could not be found.");
         let chi = einsum(
             "ij,jk,kl,li",
-            &[&smattilde_inv, &xmath, &self.calc_tmat(op), self.xmat()],
+            &[&smattilde_inv, &xmath, &self.calc_tmat(op)?, self.xmat()],
         )
-        .expect("Unable to compute the trace of the matrix product [(S~)^(-1) X† T X].")
+        .map_err(|err| format_err!(err))
+        .with_context(|| "Unable to compute the trace of the matrix product [(S~)^(-1) X† T X].")?
         .into_dimensionality::<Ix0>()
-        .expect("Unable to convert the trace of the matrix product [(S~)^(-1) X† T X] to zero dimensions.");
-        *chi.iter()
-            .next()
-            .expect("Unable to extract the character from the representation matrix.")
+        .map_err(|err| format_err!(err))
+        .with_context(|| "Unable to convert the trace of the matrix product [(S~)^(-1) X† T X] to zero dimensions.")?;
+        chi.into_iter().next().ok_or(format_err!(
+            "Unable to extract the character from the representation matrix."
+        ))
     }
 
     /// Computes the characters of the elements in a conjugacy-class transversal of the generating
@@ -403,14 +447,21 @@ where
     ///
     /// The conjugacy class symbols and the corresponding characters.
     #[must_use]
-    fn calc_characters(&self) -> Vec<(<G as ClassProperties>::ClassSymbol, T)> {
+    fn calc_characters(
+        &self,
+    ) -> Result<Vec<(<G as ClassProperties>::ClassSymbol, T)>, anyhow::Error> {
         let complex_symmetric = self.origin().complex_symmetric();
         let xmath = if complex_symmetric {
             self.xmat().t().to_owned()
         } else {
             self.xmat().t().mapv(|x| x.conj())
         };
-        let smattilde = xmath.dot(self.smat()).dot(self.xmat());
+        let smattilde = xmath
+            .dot(
+                self.smat()
+                    .ok_or(format_err!("No orbit overlap matrix found."))?,
+            )
+            .dot(self.xmat());
         let smattilde_inv = smattilde
             .inv()
             .expect("The inverse of S~ could not be found.");
@@ -419,16 +470,18 @@ where
             let op = self.group().get_cc_transversal(cc_i).unwrap();
             let chi = einsum(
                 "ij,jk,kl,li",
-                &[&smattilde_inv, &xmath, &self.calc_tmat(&op), self.xmat()],
+                &[&smattilde_inv, &xmath, &self.calc_tmat(&op)?, self.xmat()],
             )
-            .expect("Unable to compute the trace of the matrix product (S~)^(-1) X† T X.")
+            .map_err(|err| format_err!(err))
+            .with_context(|| "Unable to compute the trace of the matrix product [(S~)^(-1) X† T X].")?
             .into_dimensionality::<Ix0>()
-            .expect("Unable to convert the trace of the matrix product (S~)^(-1) X† T X to zero dimensions.");
-            (cc, *chi
-                .iter()
-                .next()
-                .expect("Unable to extract the character from the representation matrix."))
-        }).collect::<Vec<_>>();
+            .map_err(|err| format_err!(err))
+            .with_context(|| "Unable to convert the trace of the matrix product [(S~)^(-1) X† T X] to zero dimensions.")?;
+            let chi_val = chi.into_iter().next().ok_or(format_err!(
+                "Unable to extract the character from the representation matrix."
+            ))?;
+            Ok((cc, chi_val))
+        }).collect::<Result<Vec<_>, _>>();
         chis
     }
 
@@ -449,7 +502,9 @@ where
         <<G as CharacterProperties>::CharTab as SubspaceDecomposable<T>>::Decomposition,
         DecompositionError,
     > {
-        let chis = self.calc_characters();
+        let chis = self
+            .calc_characters()
+            .map_err(|err| DecompositionError(err.to_string()))?;
         let res = self.group().character_table().reduce_characters(
             &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
             self.integrality_threshold(),

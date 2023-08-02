@@ -63,18 +63,19 @@ where
         let sao_4c = metric
             .ok_or_else(|| format_err!("No atomic-orbital four-centre overlap tensor found for density overlap calculation."))?;
 
-        einsum(
+        let ov = einsum(
             "ijkl,ji,lk->",
             &[
                 &sao_4c.view(),
-                &self.density_matrix().view(),
+                &self.density_matrix().mapv(|x| x.conj()).view(),
                 &other.density_matrix().view(),
             ],
         )
         .map_err(|err| format_err!(err))?
         .into_iter()
         .next()
-        .ok_or(format_err!("Unable to extract the density overlap scalar."))
+        .ok_or(format_err!("Unable to extract the density overlap scalar."));
+        ov
     }
 }
 
@@ -321,8 +322,8 @@ where
         self.smat = Some(smat)
     }
 
-    fn smat(&self) -> &Array2<T> {
-        self.smat.as_ref().expect("Orbit overlap matrix not found.")
+    fn smat(&self) -> Option<&Array2<T>> {
+        self.smat.as_ref()
     }
 
     fn xmat(&self) -> &Array2<T> {
@@ -362,7 +363,7 @@ where
         DecompositionError,
     > {
         log::debug!("Analysing representation symmetry for a density...");
-        let chis = self.calc_characters();
+        let chis = self.calc_characters().map_err(|err| DecompositionError(err.to_string()))?;
         log::debug!("Characters calculated.");
         let res = self.group().character_table().reduce_characters(
             &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
