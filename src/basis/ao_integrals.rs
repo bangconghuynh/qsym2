@@ -22,7 +22,7 @@ mod ao_integrals_tests;
 
 /// A structure to handle primitives in a Gaussian contraction.
 #[derive(Clone, Builder, Debug)]
-pub(crate) struct GaussianContraction<E, C> {
+pub struct GaussianContraction<E, C> {
     /// Constituent primitives in the contraction. Each primitive has the form
     /// $`c\exp\left[-\alpha\lvert \mathbf{r} - \mathbf{R} \rvert^2\right]`$ is characterised by a
     /// tuple of its exponent $`\alpha`$ and coefficient $`c`$, respectively.
@@ -143,7 +143,7 @@ impl TryFrom<BSEElectronShellRaw> for BSEElectronShell {
 
 /// A structure to handle all shell information for integrals.
 #[derive(Clone, Builder, Debug)]
-pub(crate) struct BasisShellContraction<E, C> {
+pub struct BasisShellContraction<E, C> {
     /// Basis function ordering information.
     pub(crate) basis_shell: BasisShell,
 
@@ -347,7 +347,7 @@ impl BasisShellContraction<f64, f64> {
 // --------
 /// A structure to manage basis information for a molecule.
 #[derive(Clone, Debug)]
-pub(crate) struct BasisSet<E, C> {
+pub struct BasisSet<E, C> {
     /// A vector of vectors containing basis information for the atoms in this molecule. Each inner
     /// vector is for one atom.
     basis_atoms: Vec<Vec<BasisShellContraction<E, C>>>,

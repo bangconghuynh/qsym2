@@ -1,5 +1,6 @@
 use log4rs;
 use nalgebra::{Point3, Vector3};
+use serial_test::serial;
 
 use crate::drivers::molecule_symmetrisation::{
     MoleculeSymmetrisationDriver, MoleculeSymmetrisationParams,
@@ -291,6 +292,7 @@ fn test_drivers_molecule_symmetrisation_c2h2() {
 
 #[test]
 #[ignore]
+#[serial]
 fn test_drivers_molecule_symmetrisation_cp10() {
     // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cp10_flat.xyz");

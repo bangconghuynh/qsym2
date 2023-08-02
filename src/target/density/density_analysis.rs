@@ -4,14 +4,14 @@ use std::ops::Mul;
 use anyhow::{self, ensure, format_err, Context};
 use approx;
 use derive_builder::Builder;
-use itertools::{izip, Itertools};
+use itertools::Itertools;
 use log;
-use ndarray::{Array1, Array2, Axis, Ix2};
+use ndarray::{Array1, Array2, Array4, Axis, Ix4};
+use ndarray_einsum_beta::*;
 use ndarray_linalg::{
     assert_close_l2,
     eig::Eig,
     eigh::Eigh,
-    solve::Determinant,
     types::{Lapack, Scalar},
     UPLO,
 };
@@ -19,21 +19,19 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis};
-use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
-use crate::group::GroupType;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::{SymmetryTransformable, SymmetryTransformationKind};
-use crate::target::determinant::SlaterDeterminant;
+use crate::target::density::Density;
 
 // =======
 // Overlap
 // =======
 
-impl<'a, T> Overlap<T, Ix2> for SlaterDeterminant<'a, T>
+impl<'a, T> Overlap<T, Ix4> for Density<'a, T>
 where
     T: Lapack
         + ComplexFloat<Real = <T as Scalar>::Real>
@@ -47,98 +45,76 @@ where
         self.complex_symmetric
     }
 
-    /// Computes the overlap between two Slater determinants.
-    ///
-    /// Determinants with fractional electrons are currently not supported.
+    /// Computes the overlap between two densities.
     ///
     /// # Panics
     ///
-    /// Panics if `self` and `other` have mismatched spin constraints or numbers of coefficient
-    /// matrices, or if fractional occupation numbers are detected.
-    fn overlap(&self, other: &Self, metric: Option<&Array2<T>>) -> Result<T, anyhow::Error> {
+    /// Panics if `self` and `other` have mismatched spin constraints.
+    fn overlap(&self, other: &Self, metric: Option<&Array4<T>>) -> Result<T, anyhow::Error> {
         ensure!(
-            self.spin_constraint == other.spin_constraint,
-            "Inconsistent spin constraints between `self` and `other`."
-        );
-        ensure!(
-            self.coefficients.len() == other.coefficients.len(),
-            "Inconsistent numbers of coefficient matrices between `self` and `other`."
+            self.density_matrix.shape() == other.density_matrix.shape(),
+            "Inconsistent shapes of density matrices between `self` and `other`."
         );
         ensure!(
             self.bao == other.bao,
             "Inconsistent basis angular order between `self` and `other`."
         );
 
-        let thresh = Float::sqrt(self.threshold * other.threshold);
-        ensure!(self
-            .occupations
-            .iter()
-            .chain(other.occupations.iter())
-            .all(|occs| occs.iter().all(|&occ| approx::relative_eq!(
-                occ,
-                occ.round(),
-                epsilon = thresh,
-                max_relative = thresh
-            ))),
-            "Overlaps between determinants with fractional occupation numbers are currently not supported."
-        );
+        let sao_4c = metric
+            .ok_or_else(|| format_err!("No atomic-orbital four-centre overlap tensor found for density overlap calculation."))?;
 
-        let sao = metric.ok_or_else(|| format_err!("No atomic-orbital metric found."))?;
-
-        let ov = izip!(
-            &self.coefficients,
-            &self.occupations,
-            &other.coefficients,
-            &other.occupations
-        )
-        .map(|(cw, occw, cx, occx)| {
-            let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
-            let cw_o = cw.select(Axis(1), &nonzero_occ_w);
-            let nonzero_occ_x = occx.iter().positions(|&occ| occ > thresh).collect_vec();
-            let cx_o = cx.select(Axis(1), &nonzero_occ_x);
-
-            let mo_ov_mat = if self.complex_symmetric() {
-                cw_o.t().dot(sao).dot(&cx_o)
-            } else {
-                cw_o.t().mapv(|x| x.conj()).dot(sao).dot(&cx_o)
-            };
-            mo_ov_mat
-                .det()
-                .expect("The determinant of the MO overlap matrix could not be found.")
-        })
-        .fold(T::one(), |acc, x| acc * x);
-
-        match self.spin_constraint {
-            SpinConstraint::Restricted(n_spin_spaces) => {
-                Ok(ComplexFloat::powi(ov, n_spin_spaces.into()))
-            }
-            SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => Ok(ov),
+        if self.complex_symmetric() {
+            einsum(
+                "ijkl,ji,lk->",
+                &[
+                    &sao_4c.view(),
+                    &self.density_matrix().view(),
+                    &other.density_matrix().view(),
+                ],
+            )
+            .map_err(|err| format_err!(err))?
+            .into_iter()
+            .next()
+            .ok_or(format_err!("Unable to extract the density overlap scalar."))
+        } else {
+            einsum(
+                "ijkl,ji,lk->",
+                &[
+                    &sao_4c.view(),
+                    &self.density_matrix().mapv(|x| x.conj()).view(),
+                    &other.density_matrix().view(),
+                ],
+            )
+            .map_err(|err| format_err!(err))?
+            .into_iter()
+            .next()
+            .ok_or(format_err!("Unable to extract the density overlap scalar."))
         }
     }
 }
 
-// ==============================
-// SlaterDeterminantSymmetryOrbit
-// ==============================
+// ====================
+// DensitySymmetryOrbit
+// ====================
 
 // -----------------
 // Struct definition
 // -----------------
 
-/// A structure to manage symmetry orbits (*i.e.* orbits generated by symmetry groups) of Slater
-/// determinants.
+/// A structure to manage symmetry orbits (*i.e.* orbits generated by symmetry groups) of
+/// densities.
 #[derive(Builder, Clone)]
-pub struct SlaterDeterminantSymmetryOrbit<'a, G, T>
+pub struct DensitySymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    Density<'a, T>: SymmetryTransformable,
 {
     /// The generating symmetry group.
     group: &'a G,
 
-    /// The origin Slater determinant of the orbit.
-    origin: &'a SlaterDeterminant<'a, T>,
+    /// The origin density of the orbit.
+    origin: &'a Density<'a, T>,
 
     /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
     linear_independence_threshold: <T as ComplexFloat>::Real,
@@ -151,17 +127,17 @@ where
     /// [`Self::origin`].
     symmetry_transformation_kind: SymmetryTransformationKind,
 
-    /// The overlap matrix between the symmetry-equivalent Slater determinants in the orbit.
+    /// The overlap matrix between the symmetry-equivalent densities in the orbit.
     #[builder(setter(skip), default = "None")]
     smat: Option<Array2<T>>,
 
-    /// The eigenvalues of the overlap matrix between the symmetry-equivalent Slater determinants in
+    /// The eigenvalues of the overlap matrix between the symmetry-equivalent densities in
     /// the orbit.
     #[builder(setter(skip), default = "None")]
     pub(crate) smat_eigvals: Option<Array1<T>>,
 
-    /// The $`\mathbf{X}`$ matrix for the overlap matrix between the symmetry-equivalent Slater
-    /// determinants in the orbit.
+    /// The $`\mathbf{X}`$ matrix for the overlap matrix between the symmetry-equivalent densities
+    /// in the orbit.
     ///
     /// See [`RepAnalysis::xmat`] for further information.
     #[builder(setter(skip), default = "None")]
@@ -172,31 +148,31 @@ where
 // Struct method implementation
 // ----------------------------
 
-impl<'a, G, T> SlaterDeterminantSymmetryOrbit<'a, G, T>
+impl<'a, G, T> DensitySymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties + Clone,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    Density<'a, T>: SymmetryTransformable,
 {
-    /// Returns a builder for constructing a new Slater determinant symmetry orbit.
-    pub fn builder() -> SlaterDeterminantSymmetryOrbitBuilder<'a, G, T> {
-        SlaterDeterminantSymmetryOrbitBuilder::default()
+    /// Returns a builder for constructing a new density symmetry orbit.
+    pub fn builder() -> DensitySymmetryOrbitBuilder<'a, G, T> {
+        DensitySymmetryOrbitBuilder::default()
     }
 }
 
-impl<'a, G> SlaterDeterminantSymmetryOrbit<'a, G, f64>
+impl<'a, G> DensitySymmetryOrbit<'a, G, f64>
 where
     G: SymmetryGroupProperties,
 {
     /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix $`\mathbf{S}`$
-    /// between the symmetry-equivalent Slater determinants in the orbit.
+    /// between the symmetry-equivalent densities in the orbit.
     ///
     /// The resulting $`\mathbf{X}`$ is stored in the orbit.
     ///
     /// # Arguments
     ///
     /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
-    /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants. If
+    /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit densities. If
     /// `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of full
     /// rank.
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) -> &mut Self {
@@ -224,26 +200,25 @@ where
     }
 }
 
-impl<'a, G, T> SlaterDeterminantSymmetryOrbit<'a, G, Complex<T>>
+impl<'a, G, T> DensitySymmetryOrbit<'a, G, Complex<T>>
 where
     G: SymmetryGroupProperties,
     T: Float + Scalar<Complex = Complex<T>>,
     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
-    SlaterDeterminant<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
+    Density<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>, Ix4>,
 {
     /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap matrix
-    /// $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
+    /// $`\mathbf{S}`$ between the symmetry-equivalent densities in the orbit.
     ///
     /// The resulting $`\mathbf{X}`$ is stored in the orbit.
     ///
     /// # Arguments
     ///
     /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
-    /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants. If
+    /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit densities. If
     /// `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of full
     /// rank.
     pub fn calc_xmat(&mut self, preserves_full_rank: bool) -> &mut Self {
-        log::debug!("Calculating X matrix for complex Slater determinant orbit...");
         // Complex S, symmetric or Hermitian
         // eigh cannot be used here because complex symmetric S does not necessarily yield all real
         // eigenvalues.
@@ -283,7 +258,7 @@ where
         };
         self.smat_eigvals = Some(s_eig);
         self.xmat = Some(xmat);
-        log::debug!("Calculating X matrix for complex Slater determinant orbit... Done.");
+        log::debug!("Calculating X matrix for complex density orbit... Done.");
         self
     }
 }
@@ -296,19 +271,19 @@ where
 // Orbit
 // ~~~~~
 
-impl<'a, G, T> Orbit<G, SlaterDeterminant<'a, T>> for SlaterDeterminantSymmetryOrbit<'a, G, T>
+impl<'a, G, T> Orbit<G, Density<'a, T>> for DensitySymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
     T: ComplexFloat + fmt::Debug + Lapack,
-    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    Density<'a, T>: SymmetryTransformable,
 {
-    type OrbitIter = OrbitIterator<'a, G, SlaterDeterminant<'a, T>>;
+    type OrbitIter = OrbitIterator<'a, G, Density<'a, T>>;
 
     fn group(&self) -> &G {
         self.group
     }
 
-    fn origin(&self) -> &SlaterDeterminant<'a, T> {
+    fn origin(&self) -> &Density<'a, T> {
         self.origin
     }
 
@@ -319,17 +294,17 @@ where
             match self.symmetry_transformation_kind {
                 SymmetryTransformationKind::Spatial => |op, det| {
                     det.sym_transform_spatial(op).with_context(|| {
-                        format!("Unable to apply `{op}` spatially on the origin determinant")
+                        format!("Unable to apply `{op}` spatially on the origin density")
                     })
                 },
                 SymmetryTransformationKind::Spin => |op, det| {
                     det.sym_transform_spin(op).with_context(|| {
-                        format!("Unable to apply `{op}` spin-wise on the origin determinant")
+                        format!("Unable to apply `{op}` spin-wise on the origin density")
                     })
                 },
                 SymmetryTransformationKind::SpinSpatial => |op, det| {
                     det.sym_transform_spin_spatial(op).with_context(|| {
-                        format!("Unable to apply `{op}` spin-spatially on the origin determinant")
+                        format!("Unable to apply `{op}` spin-spatially on the origin density")
                     })
                 },
             },
@@ -341,8 +316,7 @@ where
 // RepAnalysis
 // ~~~~~~~~~~~
 
-impl<'a, G, T> RepAnalysis<G, SlaterDeterminant<'a, T>, T, Ix2>
-    for SlaterDeterminantSymmetryOrbit<'a, G, T>
+impl<'a, G, T> RepAnalysis<G, Density<'a, T>, T, Ix4> for DensitySymmetryOrbit<'a, G, T>
 where
     G: SymmetryGroupProperties,
     G::CharTab: SubspaceDecomposable<T>,
@@ -356,7 +330,7 @@ where
         + ToPrimitive
         + approx::RelativeEq<<T as ComplexFloat>::Real>
         + approx::AbsDiffEq<Epsilon = <T as Scalar>::Real>,
-    SlaterDeterminant<'a, T>: SymmetryTransformable,
+    Density<'a, T>: SymmetryTransformable,
 {
     fn set_smat(&mut self, smat: Array2<T>) {
         self.smat = Some(smat)
@@ -384,7 +358,7 @@ where
         self.integrality_threshold
     }
 
-    /// Reduces the representation or corepresentation spanned by the determinants in the orbit to
+    /// Reduces the representation or corepresentation spanned by the densities in the orbit to
     /// a direct sum of the irreducible representations or corepresentations of the generating
     /// symmetry group.
     ///
@@ -395,68 +369,22 @@ where
     /// # Errors
     ///
     /// Errors if the decomposition fails, *e.g.* because one or more calculated multiplicities
-    /// are non-integral, or also because the combination of group type, transformation type, and
-    /// oddity of the number of electrons would not give sensible symmetry results. In particular,
-    /// spin or spin-spatial symmetry analysis of odd-electron systems in unitary-represented
-    /// magnetic groups is not valid.
+    /// are non-integral.
     fn analyse_rep(
         &self,
     ) -> Result<
         <<G as CharacterProperties>::CharTab as SubspaceDecomposable<T>>::Decomposition,
         DecompositionError,
     > {
-        log::debug!("Analysing representation symmetry for a Slater determinant...");
-        let nelectrons_float = self.origin().nelectrons();
-        if approx::relative_eq!(
-            nelectrons_float.round(),
-            nelectrons_float,
-            epsilon = self.integrality_threshold,
-            max_relative = self.integrality_threshold
-        ) {
-            let nelectrons_usize = nelectrons_float.round().to_usize().unwrap_or_else(|| {
-                panic!(
-                    "Unable to convert the number of electrons `{nelectrons_float:.7}` to `usize`."
-                );
-            });
-            let (valid_symmetry, err_str) = if nelectrons_usize.rem_euclid(2) == 0 {
-                // Even number of electrons; always valid
-                (true, String::new())
-            } else {
-                // Odd number of electrons; validity depends on group and orbit type
-                match self.symmetry_transformation_kind {
-                    SymmetryTransformationKind::Spatial => (true, String::new()),
-                    SymmetryTransformationKind::Spin | SymmetryTransformationKind::SpinSpatial => {
-                        match self.group().group_type() {
-                            GroupType::Ordinary(_) => (true, String::new()),
-                            GroupType::MagneticGrey(_) | GroupType::MagneticBlackWhite(_) => {
-                                (!self.group().unitary_represented(),
-                                "Unitary-represented magnetic groups cannot be used for symmetry analysis of odd-electron systems.".to_string())
-                            }
-                        }
-                    }
-                }
-            };
-
-            if valid_symmetry {
-                let chis = self
-                    .calc_characters()
-                    .map_err(|err| DecompositionError(err.to_string()))?;
-                log::debug!("Characters calculated.");
-                let res = self.group().character_table().reduce_characters(
-                    &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
-                    self.integrality_threshold(),
-                );
-                log::debug!("Characters reduced.");
-                log::debug!("Analysing representation symmetry for a Slater determinant... Done.");
-                res
-            } else {
-                Err(DecompositionError(err_str))
-            }
-        } else {
-            Err(DecompositionError(format!(
-                "Symmetry analysis for determinant with non-integer number of electrons `{nelectrons_float:.7}` (threshold = {:.3e}) not supported.",
-                self.integrality_threshold
-            )))
-        }
+        log::debug!("Analysing representation symmetry for a density...");
+        let chis = self.calc_characters().map_err(|err| DecompositionError(err.to_string()))?;
+        log::debug!("Characters calculated.");
+        let res = self.group().character_table().reduce_characters(
+            &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
+            self.integrality_threshold(),
+        );
+        log::debug!("Characters reduced.");
+        log::debug!("Analysing representation symmetry for a density... Done.");
+        res
     }
 }
