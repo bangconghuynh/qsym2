@@ -282,12 +282,13 @@ where
         Ok(self)
     }
 
-    /// Calculates and stores the overlap matrix between items in the orbit, with respect to a
-    /// metric of the basis in which these items are expressed.
+    /// Normalises overlap matrix between items in the orbit such that its diagonal entries are
+    /// unity.
     ///
-    /// # Arguments
+    /// # Errors
     ///
-    /// * `metric` - The metric of the basis in which the orbit items are expressed.
+    /// Errors if no orbit overlap matrix can be found, of if linear-algebraic errors are
+    /// encountered.
     fn normalise_smat(&mut self) -> Result<&mut Self, anyhow::Error> {
         let smat = self
             .smat()
