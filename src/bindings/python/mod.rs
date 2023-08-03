@@ -31,6 +31,7 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
 
     m.add_class::<integrals::PyBasisAngularOrder>()?;
     m.add_class::<integrals::PySpinConstraint>()?;
+    #[cfg(feature = "integrals")]
     m.add_class::<integrals::PyBasisShellContraction>()?;
     m.add_class::<symmetry_group_detection::PyMolecule>()?;
     m.add_class::<symmetry_group_detection::PySymmetry>()?;

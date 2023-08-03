@@ -1,7 +1,11 @@
 use anyhow::{self, bail, ensure};
+#[cfg(feature = "integrals")]
 use nalgebra::{Vector3, Point3};
+#[cfg(feature = "integrals")]
 use num_complex::Complex;
+#[cfg(feature = "integrals")]
 use numpy::{IntoPyArray, PyArray4};
+#[cfg(feature = "integrals")]
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
@@ -11,6 +15,7 @@ use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
+#[cfg(feature = "integrals")]
 use crate::basis::ao_integrals::{BasisShellContraction, GaussianContraction, BasisSet};
 #[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
@@ -233,6 +238,7 @@ pub struct PyBasisShellContraction {
     pub k: Option<[f64; 3]>,
 }
 
+#[cfg(feature = "integrals")]
 #[pymethods]
 impl PyBasisShellContraction {
     /// Creates a new `PyBasisShellContraction` structure.
