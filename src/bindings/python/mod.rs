@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 
+pub mod integrals;
 pub mod molecule_symmetrisation;
 pub mod representation_analysis;
 pub mod symmetry_group_detection;
@@ -23,11 +24,18 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         representation_analysis::rep_analyse_slater_determinant,
         m
     )?)?;
+    #[cfg(feature = "integrals")]
+    m.add_function(wrap_pyfunction!(integrals::calc_overlap_4c_real, m)?)?;
+    #[cfg(feature = "integrals")]
+    m.add_function(wrap_pyfunction!(integrals::calc_overlap_4c_complex, m)?)?;
+
+    m.add_class::<integrals::PyBasisAngularOrder>()?;
+    m.add_class::<integrals::PySpinConstraint>()?;
+    #[cfg(feature = "integrals")]
+    m.add_class::<integrals::PyBasisShellContraction>()?;
     m.add_class::<symmetry_group_detection::PyMolecule>()?;
     m.add_class::<symmetry_group_detection::PySymmetry>()?;
     m.add_class::<symmetry_group_detection::PySymmetryElementKind>()?;
-    m.add_class::<representation_analysis::PyBasisAngularOrder>()?;
-    m.add_class::<representation_analysis::PySpinConstraint>()?;
     m.add_class::<representation_analysis::PySlaterDeterminantReal>()?;
     m.add_class::<representation_analysis::PySlaterDeterminantComplex>()?;
     m.add_class::<MagneticSymmetryAnalysisKind>()?;

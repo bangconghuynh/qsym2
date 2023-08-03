@@ -16,8 +16,8 @@ use periodic_table::periodic_table;
 use regex::Regex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::auxiliary::ao_basis::BasisAngularOrder;
-use crate::auxiliary::ao_basis::*;
+use crate::basis::ao::BasisAngularOrder;
+use crate::basis::ao::*;
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;

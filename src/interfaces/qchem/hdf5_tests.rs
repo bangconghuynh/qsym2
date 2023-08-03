@@ -1,3 +1,4 @@
+// use env_logger;
 use hdf5;
 use nalgebra::{Point3, Vector3};
 
@@ -41,6 +42,7 @@ fn test_interfaces_qchem_hdf5_sp_vf63m_ms1() {
 #[test]
 fn test_interfaces_qchem_hdf5_sp_vf63m_sym() {
     // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // env_logger::init();
     let name = format!("{ROOT}/tests/qchem/vf63m_sym.qarchive.h5");
     let f = hdf5::File::open(&name).unwrap();
     let sp = f.group("job/1/sp").unwrap();

@@ -15,8 +15,8 @@ use crate::auxiliary::misc::ProductRepeat;
 use crate::permutation::{permute_inplace, PermutableCollection, Permutation};
 
 #[cfg(test)]
-#[path = "ao_basis_tests.rs"]
-mod ao_basis_tests;
+#[path = "ao_tests.rs"]
+mod ao_tests;
 
 // ---------
 // CartOrder
@@ -229,7 +229,7 @@ impl PermutableCollection for PureOrder {
 pub struct CartOrder {
     /// A sequence of $`(l_x, l_y, l_z)`$ tuples giving the ordering of the Cartesian Gaussians.
     #[builder(setter(custom))]
-    cart_tuples: Vec<(u32, u32, u32)>,
+    pub cart_tuples: Vec<(u32, u32, u32)>,
 
     /// The rank of the Cartesian Gaussians.
     pub lcart: u32,
@@ -633,7 +633,7 @@ impl BasisShell {
     }
 
     /// The number of basis functions in this shell.
-    fn n_funcs(&self) -> usize {
+    pub fn n_funcs(&self) -> usize {
         let lsize = self.l as usize;
         match self.shell_order {
             ShellOrder::Pure(_) => 2 * lsize + 1,

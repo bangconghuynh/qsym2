@@ -1,6 +1,6 @@
 use ndarray::{array, Axis};
 
-use crate::auxiliary::ao_basis::{BasisAngularOrder, BasisAtom, BasisShell, PureOrder, ShellOrder};
+use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, PureOrder, ShellOrder};
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::permutation::Permutation;
 use crate::symmetry::symmetry_transformation::permute_array_by_atoms;

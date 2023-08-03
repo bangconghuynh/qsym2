@@ -3,11 +3,12 @@ use std::fmt;
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::auxiliary::ao_basis::BasisAngularOrder;
+use crate::basis::ao::BasisAngularOrder;
 use crate::group::class::ClassPropertiesSummary;
 use crate::io::format::{log_subtitle, qsym2_output, QSym2Output};
 
 pub mod angular_function;
+// pub mod density;
 pub mod slater_determinant;
 
 /// An enumerated type indicating the format of character table print-out.

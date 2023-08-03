@@ -24,7 +24,7 @@ check:
     - apt-get update
     - apt-get install gfortran build-essential cmake -y
   script:
-    - cargo check --release --verbose --features standard --color always
+    - cargo check --release --verbose --features full --color always
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -37,7 +37,7 @@ unit_tests:
     - apt-get update
     - apt-get install gfortran build-essential cmake -y
   script:
-    - cargo test -r --features standard -- --include-ignored
+    - cargo test -r --features full -- --include-ignored
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -53,7 +53,7 @@ tarpaulin:
     - apt-get install gfortran build-essential cmake -y
   script:
     - cargo install cargo-tarpaulin
-    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --skip-clean --no-dead-code --features standard --color always
+    - cargo tarpaulin -t 1800 --release --workspace --engine llvm --skip-clean --no-dead-code --features full --color always
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"

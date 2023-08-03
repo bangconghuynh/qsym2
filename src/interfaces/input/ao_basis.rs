@@ -2,7 +2,7 @@ use anyhow::{self, ensure, format_err};
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 
-use crate::auxiliary::ao_basis::*;
+use crate::basis::ao::*;
 use crate::auxiliary::molecule::Molecule;
 
 // ---------------

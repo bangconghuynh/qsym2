@@ -5,7 +5,7 @@ use anyhow::{self, ensure, format_err, Context};
 use approx;
 use derive_builder::Builder;
 use itertools::{izip, Itertools};
-use ndarray::{Array1, Array2, Axis, Ix2};
+use ndarray::{s, Array1, Array2, Axis, Ix2};
 use ndarray_linalg::{
     assert_close_l2,
     eig::Eig,
@@ -356,8 +356,8 @@ where
         self.smat = Some(smat)
     }
 
-    fn smat(&self) -> &Array2<T> {
-        self.smat.as_ref().expect("Orbit overlap matrix not found.")
+    fn smat(&self) -> Option<&Array2<T>> {
+        self.smat.as_ref()
     }
 
     fn xmat(&self) -> &Array2<T> {
@@ -413,7 +413,7 @@ where
                 }
         };
         if valid_symmetry {
-            let chis = self.calc_characters();
+            let chis = self.calc_characters().map_err(|err| DecompositionError(err.to_string()))?;
             let res = self.group().character_table().reduce_characters(
                 &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
                 self.integrality_threshold(),
@@ -485,6 +485,7 @@ where
     SlaterDeterminant<'a, T>: SymmetryTransformable,
     MolecularOrbital<'a, T>: SymmetryTransformable,
 {
+    log::debug!("Constructing determinant and MO orbits in tandem...");
     let order = group.order();
     let mut det_orbit = SlaterDeterminantSymmetryOrbit::<G, T>::builder()
         .group(group)
@@ -514,67 +515,165 @@ where
         .collect::<Vec<_>>();
 
     let thresh = det.threshold();
-    let indexed_dets = det_orbit
-        .iter()
-        .map(|det_res| det_res.map_err(|err| err.to_string()))
-        .enumerate()
-        .collect::<Vec<_>>();
-    for det_pair in indexed_dets.iter().product_repeat(2) {
-        let (w, det_w_res) = &det_pair[0];
-        let (x, det_x_res) = &det_pair[1];
-        let det_w = det_w_res
-            .as_ref()
-            .map_err(|err| format_err!(err.to_owned()))
-            .with_context(|| "One of the determinants in the orbit is not available")?;
-        let det_x = det_x_res
-            .as_ref()
-            .map_err(|err| format_err!(err.to_owned()))
-            .with_context(|| "One of the determinants in the orbit is not available")?;
 
-        let wx_ov = izip!(
-            det_w.coefficients(),
-            det_w.occupations(),
-            det_x.coefficients(),
-            det_x.occupations(),
-        )
-        .enumerate()
-        .map(|(ispin, (cw, occw, cx, occx))| {
-            let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
-            let nonzero_occ_x = occx.iter().positions(|&occ| occ > thresh).collect_vec();
+    if let Some(ctb) = group.cayley_table() {
+        log::debug!("Cayley table available. Group closure will be used to speed up overlap matrix computation.");
+        let mut det_smatw0 = Array1::<T>::zeros(order);
+        let mut mo_smatw0ss = mo_orbitss
+            .iter()
+            .map(|mo_orbits| {
+                mo_orbits
+                    .iter()
+                    .map(|_| Array1::<T>::zeros(order))
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+        let det_0 = det_orbit.origin();
+        for (w, det_w_res) in det_orbit.iter().enumerate() {
+            let det_w = det_w_res?;
+            let w0_ov = izip!(
+                det_w.coefficients(),
+                det_w.occupations(),
+                det_0.coefficients(),
+                det_0.occupations(),
+            )
+            .enumerate()
+            .map(|(ispin, (cw, occw, c0, occ0))| {
+                let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
+                let nonzero_occ_0 = occ0.iter().positions(|&occ| occ > thresh).collect_vec();
 
-            let all_mo_wx_ov_mat = if det.complex_symmetric() {
-                cw.t().dot(metric).dot(cx)
-            } else {
-                cw.t().mapv(|x| x.conj()).dot(metric).dot(cx)
+                let all_mo_w0_ov_mat = if det.complex_symmetric() {
+                    cw.t().dot(metric).dot(c0)
+                } else {
+                    cw.t().mapv(|x| x.conj()).dot(metric).dot(c0)
+                };
+
+                all_mo_w0_ov_mat
+                    .diag()
+                    .iter()
+                    .enumerate()
+                    .for_each(|(imo, mo_w0_ov)| {
+                        mo_smatw0ss[ispin][imo][w] = *mo_w0_ov;
+                    });
+
+                let occ_mo_w0_ov_mat = all_mo_w0_ov_mat
+                    .select(Axis(0), &nonzero_occ_w)
+                    .select(Axis(1), &nonzero_occ_0);
+
+                occ_mo_w0_ov_mat
+                    .det()
+                    .expect("The determinant of the MO overlap matrix `w0` could not be found.")
+            })
+            .fold(T::one(), |acc, x| acc * x);
+
+            let w0_ov = match det.spin_constraint() {
+                SpinConstraint::Restricted(n_spin_spaces) => {
+                    ComplexFloat::powi(w0_ov, (*n_spin_spaces).into())
+                }
+                SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => w0_ov,
             };
+            det_smatw0[w] = w0_ov;
+        }
 
-            all_mo_wx_ov_mat
-                .diag()
+        for (i, j) in (0..order).cartesian_product(0..order) {
+            let jinv = ctb
+                .slice(s![.., j])
+                .iter()
+                .position(|&x| x == 0)
+                .ok_or(format_err!(
+                    "Unable to find the inverse of group element `{j}`."
+                ))?;
+            let jinv_i = ctb[(jinv, i)];
+
+            mo_smatw0ss
                 .iter()
                 .enumerate()
-                .for_each(|(imo, mo_wx_ov)| {
-                    mo_smatss[ispin][imo][(*w, *x)] = *mo_wx_ov;
+                .for_each(|(ispin, mo_smatw0s)| {
+                    mo_smatw0s.iter().enumerate().for_each(|(imo, mo_smat_w0)| {
+                        mo_smatss[ispin][imo][(i, j)] = mo_orbitss[ispin][imo]
+                            .norm_preserving_scalar_map(jinv)(
+                            mo_smat_w0[jinv_i]
+                        );
+                    });
                 });
 
-            let occ_mo_wx_ov_mat = all_mo_wx_ov_mat
-                .select(Axis(0), &nonzero_occ_w)
-                .select(Axis(1), &nonzero_occ_x);
+            det_smat[(i, j)] = det_orbit.norm_preserving_scalar_map(jinv)(det_smatw0[jinv_i]);
+        }
+    } else {
+        log::debug!("Cayley table not available. Overlap matrix will be constructed without group-closure speed-up.");
+        let indexed_dets = det_orbit
+            .iter()
+            .map(|det_res| det_res.map_err(|err| err.to_string()))
+            .enumerate()
+            .collect::<Vec<_>>();
+        for det_pair in indexed_dets.iter().product_repeat(2) {
+            let (w, det_w_res) = &det_pair[0];
+            let (x, det_x_res) = &det_pair[1];
+            let det_w = det_w_res
+                .as_ref()
+                .map_err(|err| format_err!(err.to_owned()))
+                .with_context(|| "One of the determinants in the orbit is not available")?;
+            let det_x = det_x_res
+                .as_ref()
+                .map_err(|err| format_err!(err.to_owned()))
+                .with_context(|| "One of the determinants in the orbit is not available")?;
 
-            occ_mo_wx_ov_mat
-                .det()
-                .expect("The determinant of the MO overlap matrix could not be found.")
-        })
-        .fold(T::one(), |acc, x| acc * x);
+            let wx_ov = izip!(
+                det_w.coefficients(),
+                det_w.occupations(),
+                det_x.coefficients(),
+                det_x.occupations(),
+            )
+            .enumerate()
+            .map(|(ispin, (cw, occw, cx, occx))| {
+                let nonzero_occ_w = occw.iter().positions(|&occ| occ > thresh).collect_vec();
+                let nonzero_occ_x = occx.iter().positions(|&occ| occ > thresh).collect_vec();
 
-        let wx_ov = match det.spin_constraint() {
-            SpinConstraint::Restricted(n_spin_spaces) => {
-                ComplexFloat::powi(wx_ov, (*n_spin_spaces).into())
-            }
-            SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => wx_ov,
-        };
-        det_smat[(*w, *x)] = wx_ov;
+                let all_mo_wx_ov_mat = if det.complex_symmetric() {
+                    cw.t().dot(metric).dot(cx)
+                } else {
+                    cw.t().mapv(|x| x.conj()).dot(metric).dot(cx)
+                };
+
+                all_mo_wx_ov_mat
+                    .diag()
+                    .iter()
+                    .enumerate()
+                    .for_each(|(imo, mo_wx_ov)| {
+                        mo_smatss[ispin][imo][(*w, *x)] = *mo_wx_ov;
+                    });
+
+                let occ_mo_wx_ov_mat = all_mo_wx_ov_mat
+                    .select(Axis(0), &nonzero_occ_w)
+                    .select(Axis(1), &nonzero_occ_x);
+
+                occ_mo_wx_ov_mat
+                    .det()
+                    .expect("The determinant of the MO overlap matrix could not be found.")
+            })
+            .fold(T::one(), |acc, x| acc * x);
+
+            let wx_ov = match det.spin_constraint() {
+                SpinConstraint::Restricted(n_spin_spaces) => {
+                    ComplexFloat::powi(wx_ov, (*n_spin_spaces).into())
+                }
+                SpinConstraint::Unrestricted(_, _) | SpinConstraint::Generalised(_, _) => wx_ov,
+            };
+            det_smat[(*w, *x)] = wx_ov;
+        }
     }
-    det_orbit.set_smat(det_smat);
+
+    if det_orbit.origin().complex_symmetric() {
+        det_orbit.set_smat(
+            (det_smat.clone() + det_smat.t().to_owned()).mapv(|x| x / (T::one() + T::one())),
+        );
+    } else {
+        det_orbit.set_smat(
+            (det_smat.clone() + det_smat.t().to_owned().mapv(|x| x.conj()))
+                .mapv(|x| x / (T::one() + T::one())),
+        );
+    };
+
     mo_orbitss
         .iter_mut()
         .enumerate()
@@ -582,8 +681,22 @@ where
             mo_orbits
                 .iter_mut()
                 .enumerate()
-                .for_each(|(imo, mo_orbit)| mo_orbit.set_smat(mo_smatss[ispin][imo].clone()))
+                .for_each(|(imo, mo_orbit)| {
+                    if mo_orbit.origin().complex_symmetric() {
+                        mo_orbit.set_smat(
+                            (mo_smatss[ispin][imo].clone() + mo_smatss[ispin][imo].t().to_owned())
+                                .mapv(|x| x / (T::one() + T::one())),
+                        )
+                    } else {
+                        mo_orbit.set_smat(
+                            (mo_smatss[ispin][imo].clone()
+                                + mo_smatss[ispin][imo].t().to_owned().mapv(|x| x.conj()))
+                            .mapv(|x| x / (T::one() + T::one())),
+                        )
+                    }
+                })
         });
 
+    log::debug!("Constructing determinant and MO orbits in tandem... Done.");
     Ok((det_orbit, mo_orbitss))
 }
