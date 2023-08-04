@@ -963,10 +963,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 )
                                 .build()?;
                             den_orbit
-                                .calc_smat(self.sao_spatial_4c)
-                                .unwrap()
-                                .normalise_smat()
-                                .unwrap()
+                                .calc_smat(self.sao_spatial_4c)?
+                                .normalise_smat()?
                                 .calc_xmat(false);
                             den_orbit.analyse_rep().map_err(|err| format_err!(err))
                         };
@@ -990,8 +988,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 .mol(self.determinant.mol())
                                 .complex_symmetric(self.determinant.complex_symmetric())
                                 .threshold(self.determinant.threshold())
-                                .build()
-                                .unwrap();
+                                .build()?;
                             let total_den =
                                 densities.iter().fold(zero_den, |acc, denmat| acc + denmat);
                             let mut total_den_orbit = DensitySymmetryOrbit::builder()
@@ -1004,8 +1001,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 )
                                 .build()?;
                             total_den_orbit
-                                .calc_smat(self.sao_spatial_4c)
-                                .unwrap()
+                                .calc_smat(self.sao_spatial_4c)?
                                 .calc_xmat(false);
                             total_den_orbit
                                 .analyse_rep()
@@ -1020,39 +1016,27 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 let i = indices[0];
                                 let j = indices[1];
                                 let den_ij = &densities[i] - &densities[j];
-                                if approx::abs_diff_eq!(
-                                    den_ij.density_matrix().norm_l2(),
-                                    0.0,
-                                    epsilon = 1e-13
-                                ) {
-                                    (
-                                        format!("Spin-polarised density {i} - {j}"),
-                                        Err("Zero density.".to_string())
-                                    )
-                                } else {
-                                    let den_ij_sym_res = || {
-                                        let mut den_ij_orbit = DensitySymmetryOrbit::builder()
-                                            .group(&group)
-                                            .origin(&den_ij)
-                                            .integrality_threshold(params.integrality_threshold)
-                                            .linear_independence_threshold(
-                                                params.linear_independence_threshold,
-                                            )
-                                            .symmetry_transformation_kind(
-                                                params.symmetry_transformation_kind.clone(),
-                                            )
-                                            .build()?;
-                                        den_ij_orbit
-                                            .calc_smat(self.sao_spatial_4c)
-                                            .unwrap()
-                                            .calc_xmat(false);
-                                        den_ij_orbit.analyse_rep().map_err(|err| format_err!(err))
-                                    };
-                                    (
-                                        format!("Spin-polarised density {i} - {j}"),
-                                        den_ij_sym_res().map_err(|err| err.to_string()),
-                                    )
-                                }
+                                let den_ij_sym_res = || {
+                                    let mut den_ij_orbit = DensitySymmetryOrbit::builder()
+                                        .group(&group)
+                                        .origin(&den_ij)
+                                        .integrality_threshold(params.integrality_threshold)
+                                        .linear_independence_threshold(
+                                            params.linear_independence_threshold,
+                                        )
+                                        .symmetry_transformation_kind(
+                                            params.symmetry_transformation_kind.clone(),
+                                        )
+                                        .build()?;
+                                    den_ij_orbit
+                                        .calc_smat(self.sao_spatial_4c)?
+                                        .calc_xmat(false);
+                                    den_ij_orbit.analyse_rep().map_err(|err| format_err!(err))
+                                };
+                                (
+                                    format!("Spin-polarised density {i} - {j}"),
+                                    den_ij_sym_res().map_err(|err| err.to_string()),
+                                )
                             },
                         ));
                         extra_syms
