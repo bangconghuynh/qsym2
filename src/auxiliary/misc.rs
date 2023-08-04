@@ -206,14 +206,13 @@ where
     });
 
     if ortho_check {
-        let umat =
-            stack(Axis(1), &us.iter().map(|u| u.view()).collect_vec()).unwrap_or_else(|err| {
-                log::error!("{}", err);
-                panic!(
-                    "Unable to concatenate the orthogonal vectors into a matrix with error: {err}."
-                )
-            });
-        Ok(umat)
+        stack(Axis(1), &us.iter().map(|u| u.view()).collect_vec()).map_err(|err| {
+            log::error!("{}", err);
+            GramSchmidtError {
+                mat: Some(vmat),
+                vecs: None
+            }
+        })
     } else {
         log::error!("Post-Gram--Schmidt orthogonality check failed.");
         Err(GramSchmidtError {

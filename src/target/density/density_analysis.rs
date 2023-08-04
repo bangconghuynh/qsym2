@@ -14,6 +14,7 @@ use ndarray_linalg::{
     eigh::Eigh,
     types::{Lapack, Scalar},
     UPLO,
+    norm::Norm,
 };
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
@@ -58,6 +59,15 @@ where
         ensure!(
             self.bao == other.bao,
             "Inconsistent basis angular order between `self` and `other`."
+        );
+        let dennorm = self.density_matrix().norm_l2();
+        ensure!(
+            approx::abs_diff_ne!(
+                dennorm,
+                <T as ndarray_linalg::Scalar>::Real::zero(),
+                epsilon = self.threshold()
+            ),
+            "Zero density (density matrix has Frobenius norm {dennorm:.3e})"
         );
 
         let sao_4c = metric
