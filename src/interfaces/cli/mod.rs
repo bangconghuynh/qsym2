@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use lazy_static::lazy_static;
+use pyo3::prelude::*;
 use regex::Regex;
 
 use crate::auxiliary::contributors::CONTRIBUTORS;
@@ -57,6 +58,7 @@ impl fmt::Display for Cli {
 // =========
 
 /// Outputs a nicely formatted QSym2 heading to the `qsym2-output` logger.
+#[pyfunction]
 pub fn qsym2_output_heading() {
     let version = if let Some(ver) = VERSION {
         format!("v{ver}")
@@ -101,6 +103,7 @@ lazy_static! {
 }
 
 /// Outputs a nicely formatted list of contributors.
+#[pyfunction]
 pub fn qsym2_output_contributors() {
     qsym2_output!("    Contributors (in alphabetical order):");
     CONTRIBUTORS.iter().for_each(|contrib| {

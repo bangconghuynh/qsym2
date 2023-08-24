@@ -1,9 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs;
+use std::io::{BufWriter, Write};
 use std::path::Path;
 use std::process;
-use std::io::{Write, BufWriter};
 
 use anyhow;
 use log;
@@ -345,7 +345,7 @@ impl Molecule {
         });
         let (sorted_eigenvalues, sorted_eigenvectors): (Vec<f64>, Vec<_>) =
             eigen_tuple.into_iter().unzip();
-        (
+        let result = (
             [
                 sorted_eigenvalues[0],
                 sorted_eigenvalues[1],
@@ -377,7 +377,12 @@ impl Molecule {
                     self.threshold,
                 ),
             ],
-        )
+        );
+        result.0.iter().zip(result.1.iter()).for_each(|(moi, axis)| {
+            log::debug!("Principal moment of inertia: {moi:.14}");
+            log::debug!("  -- Principal axis:\n{axis}");
+        });
+        result
     }
 
     /// Determines the sets of symmetry-equivalent atoms.

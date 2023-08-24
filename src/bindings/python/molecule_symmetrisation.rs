@@ -123,16 +123,16 @@ pub fn symmetrise_molecule(
         .electric_atoms
         .as_ref()
         .map(|elec_atoms| {
-            if elec_atoms.len() != 2 {
+            if elec_atoms.len() != 1 {
                 Err(format_err!("Only a uniform electric field is supported."))
             } else {
-                match (&elec_atoms[0].kind, &elec_atoms[1].kind) {
-                    (AtomKind::Magnetic(true), AtomKind::Magnetic(false)) => {
-                        let evec = elec_atoms[0].coordinates - elec_atoms[1].coordinates;
-                        Ok([evec[0], evec[1], evec[2]])
-                    }
-                    (AtomKind::Magnetic(false), AtomKind::Magnetic(true)) => {
-                        let evec = elec_atoms[1].coordinates - elec_atoms[0].coordinates;
+                match &elec_atoms[0].kind {
+                    AtomKind::Electric(pos) => {
+                        let evec = if *pos {
+                            elec_atoms[0].coordinates
+                        } else {
+                            -elec_atoms[0].coordinates
+                        };
                         Ok([evec[0], evec[1], evec[2]])
                     }
                     _ => Err(format_err!("Invalid fictitious electric atoms detected.")),
