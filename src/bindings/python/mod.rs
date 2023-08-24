@@ -6,12 +6,25 @@ pub mod representation_analysis;
 pub mod symmetry_group_detection;
 
 use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
+use crate::interfaces::cli::{qsym2_output_heading, qsym2_output_contributors};
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
 /// A Python module for `QSym2` implemented in Rust.
 #[pymodule]
 pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
+
+    // ---------
+    // Functions
+    // ---------
+    m.add_function(wrap_pyfunction!(
+        qsym2_output_heading,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        qsym2_output_contributors,
+        m
+    )?)?;
     m.add_function(wrap_pyfunction!(
         symmetry_group_detection::detect_symmetry_group,
         m
@@ -29,6 +42,9 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     #[cfg(feature = "integrals")]
     m.add_function(wrap_pyfunction!(integrals::calc_overlap_4c_complex, m)?)?;
 
+    // -------
+    // Classes
+    // -------
     m.add_class::<integrals::PyBasisAngularOrder>()?;
     m.add_class::<integrals::PySpinConstraint>()?;
     #[cfg(feature = "integrals")]
