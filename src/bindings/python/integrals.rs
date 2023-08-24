@@ -20,15 +20,28 @@ use crate::basis::ao_integrals::{BasisShellContraction, GaussianContraction, Bas
 #[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
 
+/// A Python-exposed enumerated type to handle the union type `bool | list[int]` in Python.
+#[derive(Clone, FromPyObject)]
+pub enum PyPureOrder {
+    /// Variant for standard pure shell order. The associated boolean indicates if the functions
+    /// are arranged in increasing-$`m`$ order.
+    Standard(bool),
+
+    /// Variant for custom pure shell order. The associated vector contains a sequence of integers
+    /// specifying the order of $`m`$ values in the shell.
+    Custom(Vec<i32>),
+}
+
 /// A Python-exposed enumerated type to handle the `ShellOrder` union type `bool |
 /// Optional[list[tuple[int, int, int]]]` in Python.
 #[derive(Clone, FromPyObject)]
 pub enum PyShellOrder {
-    /// Variant for pure shell order. The associated boolean indicates if the functions are
-    /// arranged in increasing-$`m`$ order.
+    /// Variant for pure shell order. The associated value is either a boolean indicating if the
+    /// functions are arranged in increasing-$`m`$ order, or a sequence of integers specifying a
+    /// custom $`m`$-order.
     ///
-    /// Python type: `bool`.
-    PureOrder(bool),
+    /// Python type: `bool | list[int]`.
+    PureOrder(PyPureOrder),
 
     /// Variant for Cartesian shell order. If the associated `Option` is `None`, the order will be
     /// taken to be lexicographic. Otherwise, the order will be as specified by the $`(x, y, z)`$
@@ -438,11 +451,16 @@ fn create_basis_shell(
         ShellOrder::Cart(cart_order)
     } else {
         match shell_order {
-            PyShellOrder::PureOrder(increasingm) => {
-                if *increasingm {
-                    ShellOrder::Pure(PureOrder::increasingm(*l))
-                } else {
-                    ShellOrder::Pure(PureOrder::decreasingm(*l))
+            PyShellOrder::PureOrder(pypureorder) => {
+                match pypureorder {
+                    PyPureOrder::Standard(increasingm) => {
+                        if *increasingm {
+                            ShellOrder::Pure(PureOrder::increasingm(*l))
+                        } else {
+                            ShellOrder::Pure(PureOrder::decreasingm(*l))
+                        }
+                    }
+                    PyPureOrder::Custom(mls) => ShellOrder::Pure(PureOrder::new(mls)?),
                 }
             }
             PyShellOrder::CartOrder(_) => {
