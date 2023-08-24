@@ -5842,6 +5842,34 @@ fn verify_grey_cs(presym: &PreSymmetry) {
     assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
 }
 
+/// Verifies the validity of the deduced $`\mathcal{C}_{s}(\mathcal{C}_1)`$ group.
+///
+/// # Arguments
+///
+/// * `presym` - A reference to a [`PreSymmetry`] structure.
+///
+/// # Panics
+///
+/// Panics when any expected condition is not fulfilled.
+fn verify_bw_cs_c1(presym: &PreSymmetry) {
+    let mut magsym = Symmetry::new();
+    magsym.analyse(presym, true).unwrap();
+    assert_eq!(magsym.group_name, Some("Cs".to_owned()));
+    assert_eq!(
+        magsym.get_elements(&TRSIG).expect("No time-reversed improper elements found.")[&ORDER_1].len(),
+        1
+    );
+    assert_eq!(magsym.get_sigma_elements("h").unwrap().len(), 1);
+
+    assert_eq!(
+        magsym.get_generators(&TRSIG)
+            .expect("No time-reversed improper generators found.")[&ORDER_1]
+            .len(),
+        1
+    );
+    assert_eq!(magsym.get_sigma_generators("h").unwrap().len(), 1);
+}
+
 /// Verifies the validity of the deduced $`\mathcal{C}_{2v}(\mathcal{C}_{s})`$ black-white
 /// magnetic group.
 ///
@@ -5859,7 +5887,7 @@ fn verify_bw_c2v_cs(presym: &PreSymmetry) {
     assert_eq!(
         magsym
             .get_elements(&TRROT)
-            .expect("No proper elements found.")[&ORDER_2]
+            .expect("No time-reversed proper elements found.")[&ORDER_2]
             .len(),
         1
     );
@@ -6608,6 +6636,58 @@ fn test_symmetry_group_detection_symmetric_ch4_magnetic_field_ordinary_c1() {
         .build()
         .unwrap();
     verify_ordinary_c1(&presym);
+}
+
+#[test]
+fn test_symmetry_group_detection_asymmetric_hf_electric_field_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/hf.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_electric_field(Some(Vector3::new(1.0, -1.0, 3.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol)
+        .build()
+        .unwrap();
+    verify_cs(&presym);
+}
+
+#[test]
+fn test_symmetry_group_detection_asymmetric_hf_electric_field_grey_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/hf.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_electric_field(Some(Vector3::new(1.0, -1.0, 3.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol)
+        .build()
+        .unwrap();
+    verify_grey_cs(&presym);
+}
+
+#[test]
+fn test_symmetry_group_detection_asymmetric_hf_magnetic_field_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/hf.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 3.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol)
+        .build()
+        .unwrap();
+    verify_c1(&presym);
+}
+
+#[test]
+fn test_symmetry_group_detection_asymmetric_hf_magnetic_field_grey_c1() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/hf.xyz");
+    let mut mol = Molecule::from_xyz(&path, 1e-6);
+    mol.set_magnetic_field(Some(Vector3::new(1.0, -1.0, 3.0)));
+    let presym = PreSymmetry::builder()
+        .moi_threshold(1e-6)
+        .molecule(&mol)
+        .build()
+        .unwrap();
+    verify_bw_cs_c1(&presym);
 }
 
 /// This is a special case: C1 via symmetric top.

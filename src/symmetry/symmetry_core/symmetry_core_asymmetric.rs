@@ -458,28 +458,34 @@ impl Symmetry {
                     log::debug!("Planar molecule based on MoIs but no σ found from SEA groups.");
                     log::debug!("Locating the planar mirror plane based on MoIs...");
                     let sigma_check = presym.check_improper(&ORDER_1, &principal_axes[2], &SIG, tr);
-                    ensure!(
-                        sigma_check.is_some(),
-                        "Failed to check reflection symmetry perpendicular to the highest-MoI principal axis."
-                    );
-                    ensure!(
-                        self.add_improper(
-                            ORDER_1,
-                            &principal_axes[2],
-                            false,
-                            SIG,
-                            None,
-                            presym.dist_threshold,
-                            sigma_check
-                                .ok_or_else(|| format_err!(
-                                    "Expected mirror plane perpendicular to the highest-MoI principal axis not found.",
-                                ))?
-                                .contains_time_reversal(),
-                        ),
-                        "Failed to add mirror plane perpendicular to the highest-MoI principal axis."
-                    );
-                    log::debug!("Located one planar mirror plane based on MoIs.");
-                    count_sigma += 1;
+                    if sigma_check.is_some() {
+                        ensure!(
+                            self.add_improper(
+                                ORDER_1,
+                                &principal_axes[2],
+                                false,
+                                SIG,
+                                None,
+                                presym.dist_threshold,
+                                sigma_check
+                                    .ok_or_else(|| format_err!(
+                                        "Expected {}mirror plane perpendicular to the highest-MoI principal axis not found.",
+                                        if tr { "time-reversed " } else { "" }
+                                    ))?
+                                    .contains_time_reversal(),
+                            ),
+                            "Failed to add {}mirror plane perpendicular to the highest-MoI principal axis.",
+                            if tr { "time-reversed " } else { "" }
+                        );
+                        log::debug!(
+                            "Located one planar {}mirror plane based on MoIs.",
+                            if tr { "time-reversed " } else { "" }
+                        );
+                        count_sigma += 1;
+                    } else {
+                        assert!(!tr, "The only way for a planar molecule to not have a planar mirror plane is when a magnetic field is present but time reversal is not considered.");
+                        log::debug!("No additional planar mirror planes found.");
+                    }
 
                     // Old algorithm
                     // for atom3s in presym.recentred_molecule.atoms.iter().combinations(3) {
