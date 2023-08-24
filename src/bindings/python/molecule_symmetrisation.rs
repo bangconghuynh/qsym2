@@ -123,7 +123,7 @@ pub fn symmetrise_molecule(
         .electric_atoms
         .as_ref()
         .map(|elec_atoms| {
-            if elec_atoms.len() != 2 {
+            if elec_atoms.len() != 1 {
                 Err(format_err!("Only a uniform electric field is supported."))
             } else {
                 match (&elec_atoms[0].kind, &elec_atoms[1].kind) {
