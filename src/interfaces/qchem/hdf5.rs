@@ -495,8 +495,6 @@ where
         bao: &'a BasisAngularOrder,
         threshold: <T as ComplexFloat>::Real,
     ) -> Result<SlaterDeterminant<'a, T>, anyhow::Error> {
-        let n_spatial = bao.n_funcs();
-
         let energy = self
             .sp_group
             .dataset(&format!(
@@ -509,6 +507,13 @@ where
             .sp_group
             .dataset(&format!(
                 "energy_function/{}/method/scf/molecular_orbitals/nsets",
+                self.energy_function_index
+            ))?
+            .read_scalar::<usize>()?;
+        let nmo = self
+            .sp_group
+            .dataset(&format!(
+                "energy_function/{}/method/scf/molecular_orbitals/norb",
                 self.energy_function_index
             ))?
             .read_scalar::<usize>()?;
@@ -526,7 +531,7 @@ where
                     .dataset("structure/nalpha")?
                     .read_scalar::<usize>()?;
                 let occ_a = Array1::from_vec(
-                    (0..n_spatial)
+                    (0..nmo)
                         .map(|i| {
                             if i < nalpha {
                                 <T as ComplexFloat>::Real::one()
@@ -548,7 +553,7 @@ where
                     .dataset("structure/nbeta")?
                     .read_scalar::<usize>()?;
                 let occ_a = Array1::from_vec(
-                    (0..n_spatial)
+                    (0..nmo)
                         .map(|i| {
                             if i < nalpha {
                                 <T as ComplexFloat>::Real::one()
@@ -559,7 +564,7 @@ where
                         .collect::<Vec<_>>(),
                 );
                 let occ_b = Array1::from_vec(
-                    (0..n_spatial)
+                    (0..nmo)
                         .map(|i| {
                             if i < nbeta {
                                 <T as ComplexFloat>::Real::one()
