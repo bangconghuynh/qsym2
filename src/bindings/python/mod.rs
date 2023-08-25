@@ -13,6 +13,10 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 #[pymodule]
 pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     pyo3_log::init();
+    // -------
+    // Version
+    // -------
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
 
     // ---------
     // Functions
