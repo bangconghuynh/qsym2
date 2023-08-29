@@ -105,7 +105,7 @@ where
     integrality_threshold: <T as ComplexFloat>::Real,
 
     /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
-    linear_independence_threshold: <T as ComplexFloat>::Real,
+    pub(crate) linear_independence_threshold: <T as ComplexFloat>::Real,
 
     /// The kind of transformation determining the way the symmetry operations in `group` act on
     /// [`Self::origin`].
@@ -118,7 +118,7 @@ where
     /// The eigenvalues of the overlap matrix between the symmetry-equivalent Slater determinants in
     /// the orbit.
     #[builder(setter(skip), default = "None")]
-    smat_eigvals: Option<Array1<T>>,
+    pub(crate) smat_eigvals: Option<Array1<T>>,
 
     /// The $`\mathbf{X}`$ matrix for the overlap matrix between the symmetry-equivalent molecular
     /// orbitals in the orbit.
