@@ -129,6 +129,16 @@ where
 // Analysis
 // ========
 
+// ---------------
+// Enum definition
+// ---------------
+
+#[derive(Clone, Debug)]
+pub enum EigenvalueFilterMode {
+    TryUnaltered,
+    ForceAbsolute,
+}
+
 // ----------------
 // Trait definition
 // ----------------
@@ -200,6 +210,11 @@ where
     /// corepresentation multiplicities.
     #[must_use]
     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real;
+
+    /// Returns the enumerated type specifying the comparison mode for filtering out orbit overlap
+    /// eigenvalues.
+    #[must_use]
+    fn eigenvalue_filter_mode(&self) -> &EigenvalueFilterMode;
 
     // ----------------
     // Provided methods
@@ -513,3 +528,108 @@ where
         res
     }
 }
+
+macro_rules! fn_calc_xmat_real {
+    ( $(#[$meta:meta])* $vis:vis $func:ident ) => {
+        $(#[$meta])*
+        $vis fn $func(&mut self, preserves_full_rank: bool) -> &mut Self {
+            // Real, symmetric S
+            let thresh = self.linear_independence_threshold;
+            let smat = self
+                .smat
+                .as_ref()
+                .expect("No overlap matrix found for this orbit.");
+            assert_close_l2!(smat, &smat.t(), thresh);
+            let (s_eig, umat) = smat.eigh(UPLO::Lower).unwrap();
+            let nonzero_s_indices = match self.eigenvalue_fiter_mode {
+                EigenvalueFilterMode::ForceAbsolute => {
+                    s_eig.iter().positions(|x| x.abs() > thresh).collect_vec()
+                }
+                EigenvalueFilterMode::TryUnaltered => {
+                    s_eig.iter().positions(|x| *x > thresh).collect_vec()
+                }
+            };
+            let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
+            let nonzero_umat = umat.select(Axis(1), &nonzero_s_indices);
+            let nullity = smat.shape()[0] - nonzero_s_indices.len();
+            let xmat = if nullity == 0 && preserves_full_rank {
+                Array2::eye(smat.shape()[0])
+            } else {
+                let s_s = Array2::<f64>::from_diag(&nonzero_s_eig.mapv(|x| 1.0 / x.sqrt()));
+                nonzero_umat.dot(&s_s)
+            };
+            self.smat_eigvals = Some(s_eig);
+            self.xmat = Some(xmat);
+            self
+        }
+    }
+}
+
+macro_rules! fn_calc_xmat_complex {
+    ( $(#[$meta:meta])* $vis:vis $func:ident ) => {
+        $(#[$meta])*
+        $vis fn $func(&mut self, preserves_full_rank: bool) -> &mut Self {
+            // Complex S, symmetric or Hermitian
+            let thresh = self.linear_independence_threshold;
+            let smat = self
+                .smat
+                .as_ref()
+                .expect("No overlap matrix found for this orbit.");
+            let (s_eig, umat_nonortho) = smat.eig().unwrap();
+
+            let nonzero_s_indices = match self.eigenvalue_fiter_mode {
+                EigenvalueFilterMode::ForceAbsolute => s_eig
+                    .iter()
+                    .positions(|x| ComplexFloat::abs(*x) > thresh)
+                    .collect_vec(),
+                EigenvalueFilterMode::TryUnaltered => {
+                    if s_eig
+                        .iter()
+                        .all(|x| Float::abs(ComplexFloat::arg(*x)) < thresh)
+                    {
+                        // Eigenvalues are all real. The real parts can be compared.
+                        s_eig
+                            .iter()
+                            .positions(|x| ComplexFloat::re(*x) > thresh)
+                            .collect_vec()
+                    } else {
+                        // Eigenvalues are not all real. Absolute value comparison is unavoidable.
+                        s_eig
+                            .iter()
+                            .positions(|x| ComplexFloat::abs(*x) > thresh)
+                            .collect_vec()
+                    }
+                }
+            };
+            let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
+            let nonzero_umat_nonortho = umat_nonortho.select(Axis(1), &nonzero_s_indices);
+
+            // `eig` does not guarantee orthogonality of `nonzero_umat_nonortho`.
+            // Gram--Schmidt is therefore required.
+            let nonzero_umat = complex_modified_gram_schmidt(
+                &nonzero_umat_nonortho,
+                self.origin.complex_symmetric(),
+                thresh,
+            )
+            .expect(
+                "Unable to orthonormalise the linearly-independent eigenvectors of the overlap matrix.",
+            );
+
+            let nullity = smat.shape()[0] - nonzero_s_indices.len();
+            let xmat = if nullity == 0 && preserves_full_rank {
+                Array2::<Complex<T>>::eye(smat.shape()[0])
+            } else {
+                let s_s = Array2::<Complex<T>>::from_diag(
+                    &nonzero_s_eig.mapv(|x| Complex::<T>::from(T::one()) / x.sqrt()),
+                );
+                nonzero_umat.dot(&s_s)
+            };
+            self.smat_eigvals = Some(s_eig);
+            self.xmat = Some(xmat);
+            self
+        }
+    }
+}
+
+pub(crate) use fn_calc_xmat_real;
+pub(crate) use fn_calc_xmat_complex;
