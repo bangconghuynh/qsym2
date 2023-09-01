@@ -1,21 +1,18 @@
-use std::cmp::Ordering;
 use std::fmt;
 use std::ops::Mul;
 
 use anyhow::{self, bail, format_err};
-use approx;
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use itertools::Itertools;
 use ndarray::{s, Array2, Array4};
-use ndarray_linalg::norm::Norm;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::RepAnalysis;
+use crate::analysis::{log_overlap_eigenvalues, EigenvalueComparisonMode, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -109,6 +106,11 @@ pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     #[serde(default = "default_true")]
     pub write_overlap_eigenvalues: bool,
 
+    /// The comparison mode for filtering out orbit overlap eigenvalues.
+    #[builder(default = "EigenvalueComparisonMode::Modulus")]
+    #[serde(default)]
+    pub eigenvalue_comparison_mode: EigenvalueComparisonMode,
+
     /// The finite order to which any infinite-order symmetry element is reduced, so that a finite
     /// subgroup of an infinite group can be used for the symmetry analysis.
     #[builder(default = "None")]
@@ -150,6 +152,11 @@ where
             f,
             "Linear independence threshold: {:.3e}",
             self.linear_independence_threshold
+        )?;
+        writeln!(
+            f,
+            "Orbit eigenvalue comparison mode: {}",
+            self.eigenvalue_comparison_mode
         )?;
         writeln!(
             f,
@@ -235,6 +242,10 @@ where
 
     /// The deduced symmetries of the molecular orbitals constituting the determinant, if required.
     mo_symmetries: Option<Vec<Vec<Option<<G::CharTab as SubspaceDecomposable<T>>::Decomposition>>>>,
+
+    /// The overlap eigenvalues above and below the linear independence threshold for each
+    /// molecular orbital symmetry deduction.
+    mo_symmetries_thresholds: Option<Vec<Vec<(Option<T>, Option<T>)>>>,
 
     /// The deduced symmetries of the various densities constructible from the determinant, if
     /// required. In each tuple, the first element gives a description of the density corresponding
@@ -362,6 +373,49 @@ where
                 .and_then(|max_mo_length| usize::try_from(max_mo_length.ilog10() + 2).ok())
                 .unwrap_or(4);
 
+            let mo_eig_above_length: usize = self
+                .mo_symmetries_thresholds
+                .as_ref()
+                .map(|mo_symmetries_thresholds| {
+                    mo_symmetries_thresholds
+                        .iter()
+                        .flat_map(|spin_mo_symmetries_thresholds| {
+                            spin_mo_symmetries_thresholds.iter().map(|(above, _)| {
+                                above
+                                    .as_ref()
+                                    .map(|eig| format!("{eig:+.3e}"))
+                                    .unwrap_or("--".to_string())
+                                    .chars()
+                                    .count()
+                            })
+                        })
+                        .max()
+                        .unwrap_or(10)
+                        .max(10)
+                })
+                .unwrap_or(10);
+            let mo_eig_below_length: usize = self
+                .mo_symmetries_thresholds
+                .as_ref()
+                .map(|mo_symmetries_thresholds| {
+                    mo_symmetries_thresholds
+                        .iter()
+                        .flat_map(|spin_mo_symmetries_thresholds| {
+                            spin_mo_symmetries_thresholds.iter().map(|(_, below)| {
+                                below
+                                    .as_ref()
+                                    .map(|eig| format!("{eig:+.3e}"))
+                                    .unwrap_or("--".to_string())
+                                    .chars()
+                                    .count()
+                            })
+                        })
+                        .max()
+                        .unwrap_or(10)
+                        .max(10)
+                })
+                .unwrap_or(10);
+
             let mo_den_symss_str_opt = self.mo_density_symmetries.as_ref().map(|mo_den_symss| {
                 mo_den_symss
                     .iter()
@@ -406,24 +460,28 @@ where
                     f,
                     "{}",
                     "┈".repeat(
-                        21 + mo_index_length
+                        25 + mo_index_length
                             + mo_energy_length
                             + mo_symmetry_length
+                            + mo_eig_above_length
+                            + mo_eig_below_length
                             + mo_density_length
                     )
                 )?;
                 writeln!(
                     f,
-                    "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {:<mo_symmetry_length$}  Den. symmetry",
-                    "Spin", "MO", "Occ.", "Energy", "Symmetry"
+                    "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {:<mo_symmetry_length$}  {:<mo_eig_above_length$}  {:<mo_eig_below_length$}  Den. symmetry",
+                    "Spin", "MO", "Occ.", "Energy", "Symmetry", "Eig. above", "Eig. below"
                 )?;
                 writeln!(
                     f,
                     "{}",
                     "┈".repeat(
-                        21 + mo_index_length
+                        25 + mo_index_length
                             + mo_energy_length
                             + mo_symmetry_length
+                            + mo_eig_above_length
+                            + mo_eig_below_length
                             + mo_density_length
                     )
                 )?;
@@ -442,6 +500,13 @@ where
                         .zip(spin_mo_den_symmetries.iter())
                         .enumerate()
                     {
+                        let occ_str = self
+                            .determinant
+                            .occupations()
+                            .get(spini)
+                            .and_then(|spin_occs| spin_occs.get(moi))
+                            .map(|occ| format!("{occ:>.3}"))
+                            .unwrap_or("--".to_string());
                         let mo_energy_str = mo_energies_opt
                             .and_then(|mo_energies| mo_energies.get(spini))
                             .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
@@ -451,16 +516,38 @@ where
                             .as_ref()
                             .map(|sym| sym.to_string())
                             .unwrap_or("--".to_string());
-                        let occ_str = self
-                            .determinant
-                            .occupations()
-                            .get(spini)
-                            .and_then(|spin_occs| spin_occs.get(moi))
-                            .map(|occ| format!("{occ:>.3}"))
-                            .unwrap_or("--".to_string());
+                        let (eig_above_str, eig_below_str) = self
+                            .mo_symmetries_thresholds
+                            .as_ref()
+                            .map(|mo_symmetries_thresholds| {
+                                mo_symmetries_thresholds
+                                    .get(spini)
+                                    .and_then(|spin_mo_symmetries_thresholds| {
+                                        spin_mo_symmetries_thresholds.get(moi)
+                                    })
+                                    .map(|(eig_above_opt, eig_below_opt)| {
+                                        (
+                                            eig_above_opt
+                                                .map(|eig_above| format!("{eig_above:>+.3e}"))
+                                                .unwrap_or("--".to_string()),
+                                            eig_below_opt
+                                                .map(|eig_below| format!("{eig_below:>+.3e}"))
+                                                .unwrap_or("--".to_string()),
+                                        )
+                                    })
+                                    .unwrap_or(("--".to_string(), "--".to_string()))
+                            })
+                            .unwrap_or(("--".to_string(), "--".to_string()));
                         writeln!(
                             f,
-                            "{spini:>5}  {moi:>mo_index_length$}  {occ_str:<5}  {mo_energy_str:<mo_energy_length$}  {mo_sym_str:<mo_symmetry_length$}  {mo_den_sym_str}"
+                            "{spini:>5}  \
+                            {moi:>mo_index_length$}  \
+                            {occ_str:<5}  \
+                            {mo_energy_str:<mo_energy_length$}  \
+                            {mo_sym_str:<mo_symmetry_length$}  \
+                            {eig_above_str:<mo_eig_above_length$}  \
+                            {eig_below_str:<mo_eig_below_length$}  \
+                            {mo_den_sym_str}"
                         )?;
                     }
                 }
@@ -468,9 +555,11 @@ where
                     f,
                     "{}",
                     "┈".repeat(
-                        21 + mo_index_length
+                        25 + mo_index_length
                             + mo_energy_length
                             + mo_symmetry_length
+                            + mo_eig_above_length
+                            + mo_eig_below_length
                             + mo_density_length
                     )
                 )?;
@@ -479,21 +568,40 @@ where
                 writeln!(
                     f,
                     "{}",
-                    "┈".repeat(19 + mo_index_length + mo_energy_length + mo_symmetry_length)
+                    "┈".repeat(
+                        23 + mo_index_length
+                            + mo_energy_length
+                            + mo_symmetry_length
+                            + mo_eig_above_length
+                            + mo_eig_below_length
+                    )
                 )?;
                 writeln!(
                     f,
-                    "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  Symmetry",
-                    "Spin", "MO", "Occ.", "Energy"
+                    "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {:<mo_symmetry_length$}  {:<mo_eig_above_length$}  Eig. below",
+                    "Spin", "MO", "Occ.", "Energy", "Symmetry", "Eig. above"
                 )?;
                 writeln!(
                     f,
                     "{}",
-                    "┈".repeat(19 + mo_index_length + mo_energy_length + mo_symmetry_length)
+                    "┈".repeat(
+                        23 + mo_index_length
+                            + mo_energy_length
+                            + mo_symmetry_length
+                            + mo_eig_above_length
+                            + mo_eig_below_length
+                    )
                 )?;
                 for (spini, spin_mo_symmetries) in mo_symmetries.iter().enumerate() {
                     writeln!(f, " Spin {spini}")?;
                     for (moi, mo_sym) in spin_mo_symmetries.iter().enumerate() {
+                        let occ_str = self
+                            .determinant
+                            .occupations()
+                            .get(spini)
+                            .and_then(|spin_occs| spin_occs.get(moi))
+                            .map(|occ| format!("{occ:>.3}"))
+                            .unwrap_or("--".to_string());
                         let mo_energy_str = mo_energies_opt
                             .and_then(|mo_energies| mo_energies.get(spini))
                             .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
@@ -503,23 +611,50 @@ where
                             .as_ref()
                             .map(|sym| sym.to_string())
                             .unwrap_or("--".to_string());
-                        let occ_str = self
-                            .determinant
-                            .occupations()
-                            .get(spini)
-                            .and_then(|spin_occs| spin_occs.get(moi))
-                            .map(|occ| format!("{occ:>.3}"))
-                            .unwrap_or("--".to_string());
+                        let (eig_above_str, eig_below_str) = self
+                            .mo_symmetries_thresholds
+                            .as_ref()
+                            .map(|mo_symmetries_thresholds| {
+                                mo_symmetries_thresholds
+                                    .get(spini)
+                                    .and_then(|spin_mo_symmetries_thresholds| {
+                                        spin_mo_symmetries_thresholds.get(moi)
+                                    })
+                                    .map(|(eig_above_opt, eig_below_opt)| {
+                                        (
+                                            eig_above_opt
+                                                .map(|eig_above| format!("{eig_above:>+.3e}"))
+                                                .unwrap_or("--".to_string()),
+                                            eig_below_opt
+                                                .map(|eig_below| format!("{eig_below:>+.3e}"))
+                                                .unwrap_or("--".to_string()),
+                                        )
+                                    })
+                                    .unwrap_or(("--".to_string(), "--".to_string()))
+                            })
+                            .unwrap_or(("--".to_string(), "--".to_string()));
                         writeln!(
                             f,
-                            "{spini:>5}  {moi:>mo_index_length$}  {occ_str:<5}  {mo_energy_str:<mo_energy_length$}  {mo_sym_str}"
+                            "{spini:>5}  \
+                            {moi:>mo_index_length$}  \
+                            {occ_str:<5}  \
+                            {mo_energy_str:<mo_energy_length$}  \
+                            {mo_sym_str:<mo_symmetry_length$}  \
+                            {eig_above_str:<mo_eig_above_length$}  \
+                            {eig_below_str}"
                         )?;
                     }
                 }
                 writeln!(
                     f,
                     "{}",
-                    "┈".repeat(19 + mo_index_length + mo_energy_length + mo_symmetry_length)
+                    "┈".repeat(
+                        23 + mo_index_length
+                            + mo_energy_length
+                            + mo_symmetry_length
+                            + mo_eig_above_length
+                            + mo_eig_below_length
+                    )
                 )?;
             }
         }
@@ -871,7 +1006,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
         log_bao(self.determinant.bao());
 
         // Determinant and orbital symmetries
-        let (det_symmetry, mo_symmetries) = if params.analyse_mo_symmetries {
+        let (det_symmetry, mo_symmetries, mo_symmetries_thresholds) = if params
+            .analyse_mo_symmetries
+        {
             let mos = self.determinant.to_orbitals();
             let (mut det_orbit, mut mo_orbitss) = generate_det_mo_orbits(
                 self.determinant,
@@ -881,18 +1018,16 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 params.integrality_threshold,
                 params.linear_independence_threshold,
                 params.symmetry_transformation_kind.clone(),
+                params.eigenvalue_comparison_mode.clone(),
             )?;
             det_orbit.calc_xmat(false);
             if params.write_overlap_eigenvalues {
                 if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
-                    let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                    smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
-                    smat_eigvals_sorted.reverse();
                     log_overlap_eigenvalues(
                         "Determinant orbit overlap eigenvalues",
-                        &smat_eigvals_sorted,
+                        smat_eigvals,
                         params.linear_independence_threshold,
-                        |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
+                        &params.eigenvalue_comparison_mode,
                     );
                     qsym2_output!("");
                 }
@@ -910,7 +1045,74 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                         .collect::<Vec<_>>()
                 })
                 .collect::<Vec<_>>();
-            (det_symmetry, Some(mo_symmetries))
+            let mo_symmetries_thresholds = mo_orbitss
+                .iter_mut()
+                .map(|mo_orbits| {
+                    mo_orbits
+                        .par_iter_mut()
+                        .map(|mo_orbit| {
+                            mo_orbit
+                                .smat_eigvals
+                                .as_ref()
+                                .map(|eigvals| {
+                                    let mut eigvals_vec = eigvals.iter().collect::<Vec<_>>();
+                                    match mo_orbit.eigenvalue_comparison_mode {
+                                        EigenvalueComparisonMode::Modulus => {
+                                            eigvals_vec.sort_by(|a, b| {
+                                                a.abs().partial_cmp(&b.abs()).expect("Unable to compare two eigenvalues based on their moduli.")
+                                            });
+                                        }
+                                        EigenvalueComparisonMode::Real => {
+                                            eigvals_vec.sort_by(|a, b| {
+                                                a.re().partial_cmp(&b.re()).expect("Unable to compare two eigenvalues based on their real parts.")
+                                            });
+                                        }
+                                    }
+                                    let eigval_above = match mo_orbit.eigenvalue_comparison_mode {
+                                        EigenvalueComparisonMode::Modulus => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.abs() >= mo_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                        EigenvalueComparisonMode::Real => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.re() >= mo_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                    };
+                                    eigvals_vec.reverse();
+                                    let eigval_below = match mo_orbit.eigenvalue_comparison_mode {
+                                        EigenvalueComparisonMode::Modulus => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.abs() < mo_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                        EigenvalueComparisonMode::Real => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.re() < mo_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                    };
+                                    (eigval_above, eigval_below)
+                                })
+                                .unwrap_or((None, None))
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>();
+            (
+                det_symmetry,
+                Some(mo_symmetries),
+                Some(mo_symmetries_thresholds),
+            )
         } else {
             let mut det_orbit = SlaterDeterminantSymmetryOrbit::builder()
                 .group(&group)
@@ -918,6 +1120,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 .integrality_threshold(params.integrality_threshold)
                 .linear_independence_threshold(params.linear_independence_threshold)
                 .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
+                .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
                 .build()?;
             let det_symmetry = det_orbit
                 .calc_smat(Some(&sao))
@@ -927,22 +1130,18 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                     det_orb.calc_xmat(false);
                     if params.write_overlap_eigenvalues {
                         if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
-                            let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                            smat_eigvals_sorted
-                                .sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
-                            smat_eigvals_sorted.reverse();
                             log_overlap_eigenvalues(
                                 "Determinant orbit overlap eigenvalues",
-                                &smat_eigvals_sorted,
+                                smat_eigvals,
                                 params.linear_independence_threshold,
-                                |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
+                                &params.eigenvalue_comparison_mode,
                             );
                             qsym2_output!("");
                         }
                     }
                     det_orb.analyse_rep().map_err(|err| err.to_string())
                 });
-            (det_symmetry, None)
+            (det_symmetry, None, None)
         };
 
         // Density and orbital density symmetries
@@ -960,6 +1159,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 .linear_independence_threshold(params.linear_independence_threshold)
                                 .symmetry_transformation_kind(
                                     params.symmetry_transformation_kind.clone(),
+                                )
+                                .eigenvalue_comparison_mode(
+                                    params.eigenvalue_comparison_mode.clone(),
                                 )
                                 .build()?;
                             den_orbit
@@ -999,6 +1201,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 .symmetry_transformation_kind(
                                     params.symmetry_transformation_kind.clone(),
                                 )
+                                .eigenvalue_comparison_mode(
+                                    params.eigenvalue_comparison_mode.clone(),
+                                )
                                 .build()?;
                             total_den_orbit
                                 .calc_smat(self.sao_spatial_4c)?
@@ -1026,6 +1231,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                         )
                                         .symmetry_transformation_kind(
                                             params.symmetry_transformation_kind.clone(),
+                                        )
+                                        .eigenvalue_comparison_mode(
+                                            params.eigenvalue_comparison_mode.clone(),
                                         )
                                         .build()?;
                                     den_ij_orbit
@@ -1065,6 +1273,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     .symmetry_transformation_kind(
                                         params.symmetry_transformation_kind.clone(),
                                     )
+                                    .eigenvalue_comparison_mode(
+                                        params.eigenvalue_comparison_mode.clone(),
+                                    )
                                     .build()
                                     .ok()?;
                                 mo_den_orbit
@@ -1095,6 +1306,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
             .determinant_symmetry(det_symmetry)
             .determinant_density_symmetries(den_symmetries)
             .mo_symmetries(mo_symmetries)
+            .mo_symmetries_thresholds(mo_symmetries_thresholds)
             .mo_density_symmetries(mo_den_symmetries)
             .build()?;
         self.result = Some(result);
@@ -1225,56 +1437,4 @@ impl<'a> QSym2Driver
         self.result()?.log_output_display();
         Ok(())
     }
-}
-
-// =========
-// Functions
-// =========
-/// Logs overlap eigenvalues nicely and indicates where the threshold has been crossed.
-///
-/// # Arguments
-///
-/// * `eigvals` - The eigenvalues sorted in descending magnitude order.
-/// * `thresh` - The cut-off threshold to be marked out.
-/// * `thresh_cmp` - The function for comparing with threshold. The threshold is marked out when
-/// the function first evaluates to [`Ordering::Less`].
-fn log_overlap_eigenvalues<T>(
-    title: &str,
-    eigvals: &[&T],
-    thresh: <T as ComplexFloat>::Real,
-    thresh_cmp: fn(&T, &<T as ComplexFloat>::Real) -> Ordering,
-) where
-    T: std::fmt::LowerExp + ComplexFloat,
-    <T as ComplexFloat>::Real: std::fmt::LowerExp,
-{
-    let eigvals_str = eigvals
-        .iter()
-        .map(|v| format!("{v:+.3e}"))
-        .collect::<Vec<_>>();
-    log_subtitle(title);
-    qsym2_output!("");
-
-    qsym2_output!("Eigenvalues are sorted in decreasing magnitude order.");
-    let count_length = usize::try_from(eigvals.len().ilog10() + 2).unwrap_or(2);
-    let eigval_length = eigvals_str
-        .iter()
-        .map(|v| v.chars().count())
-        .max()
-        .unwrap_or(20);
-    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
-    qsym2_output!("{:>count_length$}  Eigenvalue", "#");
-    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
-    let mut write_thresh = false;
-    for (i, eigval) in eigvals_str.iter().enumerate() {
-        if thresh_cmp(eigvals[i], &thresh) == Ordering::Less && !write_thresh {
-            qsym2_output!(
-                "{} <-- linear independence threshold (magnitude-based): {:+.3e}",
-                "-".repeat(count_length + 3 + eigval_length),
-                thresh
-            );
-            write_thresh = true;
-        }
-        qsym2_output!("{i:>count_length$}  {eigval}",);
-    }
-    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
 }

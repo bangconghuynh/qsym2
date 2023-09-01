@@ -18,7 +18,10 @@ use ndarray_linalg::{
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
-use crate::analysis::{Orbit, OrbitIterator, Overlap, RepAnalysis};
+use crate::analysis::{
+    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap,
+    RepAnalysis,
+};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
@@ -166,6 +169,10 @@ where
     /// See [`RepAnalysis::xmat`] for further information.
     #[builder(setter(skip), default = "None")]
     xmat: Option<Array2<T>>,
+
+    /// An enumerated type specifying the comparison mode for filtering out orbit overlap
+    /// eigenvalues.
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
 }
 
 // ----------------------------
@@ -188,40 +195,20 @@ impl<'a, G> SlaterDeterminantSymmetryOrbit<'a, G, f64>
 where
     G: SymmetryGroupProperties,
 {
-    /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix $`\mathbf{S}`$
-    /// between the symmetry-equivalent Slater determinants in the orbit.
-    ///
-    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
-    ///
-    /// # Arguments
-    ///
-    /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
-    /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants. If
-    /// `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of full
-    /// rank.
-    pub fn calc_xmat(&mut self, preserves_full_rank: bool) -> &mut Self {
-        // Real, symmetric S
-        let thresh = self.linear_independence_threshold;
-        let smat = self
-            .smat
-            .as_ref()
-            .expect("No overlap matrix found for this orbit.");
-        assert_close_l2!(smat, &smat.t(), thresh);
-        let (s_eig, umat) = smat.eigh(UPLO::Lower).unwrap();
-        let nonzero_s_indices = s_eig.iter().positions(|x| x.abs() > thresh).collect_vec();
-        let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
-        let nonzero_umat = umat.select(Axis(1), &nonzero_s_indices);
-        let nullity = smat.shape()[0] - nonzero_s_indices.len();
-        let xmat = if nullity == 0 && preserves_full_rank {
-            Array2::eye(smat.shape()[0])
-        } else {
-            let s_s = Array2::<f64>::from_diag(&nonzero_s_eig.mapv(|x| 1.0 / x.sqrt()));
-            nonzero_umat.dot(&s_s)
-        };
-        self.smat_eigvals = Some(s_eig);
-        self.xmat = Some(xmat);
-        self
-    }
+    fn_calc_xmat_real!(
+        /// Calculates the $`\mathbf{X}`$ matrix for real and symmetric overlap matrix
+        /// $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
+        ///
+        /// The resulting $`\mathbf{X}`$ is stored in the orbit.
+        ///
+        /// # Arguments
+        ///
+        /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
+        /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants.
+        /// If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of
+        /// full rank.
+        pub calc_xmat
+    );
 }
 
 impl<'a, G, T> SlaterDeterminantSymmetryOrbit<'a, G, Complex<T>>
@@ -231,61 +218,20 @@ where
     Complex<T>: ComplexFloat<Real = T> + Scalar<Real = T, Complex = Complex<T>> + Lapack,
     SlaterDeterminant<'a, Complex<T>>: SymmetryTransformable + Overlap<Complex<T>, Ix2>,
 {
-    /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap matrix
-    /// $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
-    ///
-    /// The resulting $`\mathbf{X}`$ is stored in the orbit.
-    ///
-    /// # Arguments
-    ///
-    /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
-    /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants. If
-    /// `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of full
-    /// rank.
-    pub fn calc_xmat(&mut self, preserves_full_rank: bool) -> &mut Self {
-        log::debug!("Calculating X matrix for complex Slater determinant orbit...");
-        // Complex S, symmetric or Hermitian
-        // eigh cannot be used here because complex symmetric S does not necessarily yield all real
-        // eigenvalues.
-        let thresh = self.linear_independence_threshold;
-        let smat = self
-            .smat
-            .as_ref()
-            .expect("No overlap matrix found for this orbit.");
-        let (s_eig, umat_nonortho) = smat.eig().unwrap();
-
-        let nonzero_s_indices = s_eig
-            .iter()
-            .positions(|x| ComplexFloat::abs(*x) > thresh)
-            .collect_vec();
-        let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
-        let nonzero_umat_nonortho = umat_nonortho.select(Axis(1), &nonzero_s_indices);
-
-        // `eig` does not guarantee orthogonality of `nonzero_umat_nonortho`.
-        // Gram--Schmidt is therefore required.
-        let nonzero_umat = complex_modified_gram_schmidt(
-            &nonzero_umat_nonortho,
-            self.origin.complex_symmetric(),
-            thresh,
-        )
-        .expect(
-            "Unable to orthonormalise the linearly-independent eigenvectors of the overlap matrix.",
-        );
-
-        let nullity = smat.shape()[0] - nonzero_s_indices.len();
-        let xmat = if nullity == 0 && preserves_full_rank {
-            Array2::<Complex<T>>::eye(smat.shape()[0])
-        } else {
-            let s_s = Array2::<Complex<T>>::from_diag(
-                &nonzero_s_eig.mapv(|x| Complex::<T>::from(T::one()) / x.sqrt()),
-            );
-            nonzero_umat.dot(&s_s)
-        };
-        self.smat_eigvals = Some(s_eig);
-        self.xmat = Some(xmat);
-        log::debug!("Calculating X matrix for complex Slater determinant orbit... Done.");
-        self
-    }
+    fn_calc_xmat_complex!(
+        /// Calculates the $`\mathbf{X}`$ matrix for complex and symmetric or Hermitian overlap
+        /// matrix $`\mathbf{S}`$ between the symmetry-equivalent Slater determinants in the orbit.
+        ///
+        /// The resulting $`\mathbf{X}`$ is stored in the orbit.
+        ///
+        /// # Arguments
+        ///
+        /// * `preserves_full_rank` - If `true`, when $`\mathbf{S}`$ is already of full rank, then
+        /// $`\mathbf{X}`$ is set to be the identity matrix to avoid mixing the orbit determinants. 
+        /// If `false`, $`\mathbf{X}`$ also orthogonalises $`\mathbf{S}`$ even when it is already of
+        /// full rank.
+        pub calc_xmat
+    );
 }
 
 // ---------------------
@@ -382,6 +328,10 @@ where
 
     fn integrality_threshold(&self) -> <T as ComplexFloat>::Real {
         self.integrality_threshold
+    }
+
+    fn eigenvalue_comparison_mode(&self) -> &EigenvalueComparisonMode {
+        &self.eigenvalue_comparison_mode
     }
 
     /// Reduces the representation or corepresentation spanned by the determinants in the orbit to

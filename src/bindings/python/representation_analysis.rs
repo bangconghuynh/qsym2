@@ -8,7 +8,9 @@ use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
 use crate::auxiliary::molecule::Molecule;
+use crate::analysis::EigenvalueComparisonMode;
 use crate::basis::ao::BasisAngularOrder;
+use crate::bindings::python::integrals::{PyBasisAngularOrder, PySpinConstraint};
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
@@ -19,7 +21,6 @@ use crate::drivers::representation_analysis::{
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::io::{read_qsym2_binary, QSym2FileType};
-use crate::bindings::python::integrals::{PyBasisAngularOrder, PySpinConstraint};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
@@ -382,6 +383,9 @@ pub enum PySAO4c<'a> {
 /// transformations to be performed on the origin determinant to generate the orbit. If this
 /// contains spin transformation, the determinant will be augmented to generalised spin constraint
 /// automatically. Python type: `SymmetryTransformationKind`.
+/// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
+/// overlap eigenvalues with the specified `linear_independence_threshold`. Python type:
+/// `EigenvalueComparisonMode`.
 /// * `analyse_mo_symmetries` - A boolean indicating if the symmetries of individual molecular
 /// orbitals are to be analysed. Python type: `bool`.
 /// * `analyse_density_symmetries` - A boolean indicating if the symmetries of densities are to be
@@ -402,7 +406,27 @@ pub enum PySAO4c<'a> {
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
 /// angular function symmetry analysis. Python type: `int`.
 #[pyfunction]
-#[pyo3(signature = (inp_sym, pydet, pybao, integrality_threshold, linear_independence_threshold, use_magnetic_group, use_double_group, symmetry_transformation_kind, sao_spatial, sao_spatial_4c=None, analyse_mo_symmetries=true, analyse_density_symmetries=false, write_overlap_eigenvalues=true, write_character_table=true, infinite_order_to_finite=None, angular_function_integrality_threshold=1e-7, angular_function_linear_independence_threshold=1e-7, angular_function_max_angular_momentum=2))]
+#[pyo3(signature = (
+    inp_sym,
+    pydet,
+    pybao,
+    integrality_threshold,
+    linear_independence_threshold,
+    use_magnetic_group,
+    use_double_group,
+    symmetry_transformation_kind,
+    eigenvalue_comparison_mode,
+    sao_spatial,
+    sao_spatial_4c=None,
+    analyse_mo_symmetries=true,
+    analyse_density_symmetries=false,
+    write_overlap_eigenvalues=true,
+    write_character_table=true,
+    infinite_order_to_finite=None,
+    angular_function_integrality_threshold=1e-7,
+    angular_function_linear_independence_threshold=1e-7,
+    angular_function_max_angular_momentum=2
+))]
 pub fn rep_analyse_slater_determinant(
     inp_sym: PathBuf,
     pydet: PySlaterDeterminant,
@@ -412,6 +436,7 @@ pub fn rep_analyse_slater_determinant(
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
     use_double_group: bool,
     symmetry_transformation_kind: SymmetryTransformationKind,
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
     sao_spatial: PySAO,
     sao_spatial_4c: Option<PySAO4c>,
     analyse_mo_symmetries: bool,
@@ -463,6 +488,7 @@ pub fn rep_analyse_slater_determinant(
                 .use_magnetic_group(use_magnetic_group.clone())
                 .use_double_group(use_double_group)
                 .symmetry_transformation_kind(symmetry_transformation_kind)
+                .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
                 .analyse_mo_symmetries(analyse_mo_symmetries)
                 .analyse_density_symmetries(analyse_density_symmetries)
                 .write_overlap_eigenvalues(write_overlap_eigenvalues)
@@ -535,6 +561,7 @@ pub fn rep_analyse_slater_determinant(
                 .use_magnetic_group(use_magnetic_group.clone())
                 .use_double_group(use_double_group)
                 .symmetry_transformation_kind(symmetry_transformation_kind)
+                .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
                 .analyse_mo_symmetries(analyse_mo_symmetries)
                 .analyse_density_symmetries(analyse_density_symmetries)
                 .write_overlap_eigenvalues(write_overlap_eigenvalues)
@@ -609,6 +636,7 @@ pub fn rep_analyse_slater_determinant(
                 .use_magnetic_group(use_magnetic_group.clone())
                 .use_double_group(use_double_group)
                 .symmetry_transformation_kind(symmetry_transformation_kind)
+                .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
                 .analyse_mo_symmetries(analyse_mo_symmetries)
                 .analyse_density_symmetries(analyse_density_symmetries)
                 .write_overlap_eigenvalues(write_overlap_eigenvalues)

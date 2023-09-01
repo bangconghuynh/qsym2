@@ -2,7 +2,7 @@
 use ndarray::{array, s, Array2};
 use num_complex::Complex;
 
-use crate::analysis::RepAnalysis;
+use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
@@ -151,6 +151,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cg_u_oh_spatial_d3
@@ -166,6 +167,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         &group_u_oh,
         &orbs_d3_cg,
         SymmetryTransformationKind::Spatial,
+        EigenvalueComparisonMode::Modulus,
         1e-14,
         1e-14,
     )
@@ -197,6 +199,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cg_u_oh_double_spin_spatial_d3
@@ -213,6 +216,7 @@ fn test_orbital_orbit_rep_analysis_vf6_oct_lex_order() {
         &group_u_oh_double,
         &orbs_d3_cg,
         SymmetryTransformationKind::SpinSpatial,
+        EigenvalueComparisonMode::Modulus,
         1e-13,
         1e-13,
     )
