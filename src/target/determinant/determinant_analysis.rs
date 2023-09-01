@@ -19,7 +19,7 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueFilterMode, Orbit, OrbitIterator, Overlap,
+    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap,
     RepAnalysis,
 };
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
@@ -172,8 +172,7 @@ where
 
     /// An enumerated type specifying the comparison mode for filtering out orbit overlap
     /// eigenvalues.
-    #[builder(default = "EigenvalueFilterMode::ForceAbsolute")]
-    eigenvalue_fiter_mode: EigenvalueFilterMode,
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
 }
 
 // ----------------------------
@@ -331,8 +330,8 @@ where
         self.integrality_threshold
     }
 
-    fn eigenvalue_filter_mode(&self) -> &EigenvalueFilterMode {
-        &self.eigenvalue_fiter_mode
+    fn eigenvalue_comparison_mode(&self) -> &EigenvalueComparisonMode {
+        &self.eigenvalue_comparison_mode
     }
 
     /// Reduces the representation or corepresentation spanned by the determinants in the orbit to

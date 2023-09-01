@@ -1,16 +1,21 @@
+use std::cmp::Ordering;
 use std::fmt;
 
 use anyhow::{self, format_err, Context};
 use itertools::Itertools;
-use ndarray::{s, Array, Array2, Axis, Dimension, Ix0, Ix2};
+use log;
+use ndarray::{s, Array, Array1, Array2, Axis, Dimension, Ix0, Ix2};
 use ndarray_einsum_beta::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
 use num_complex::ComplexFloat;
 use num_traits::ToPrimitive;
+use pyo3::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::{DecompositionError, SubspaceDecomposable};
 use crate::group::{class::ClassProperties, GroupProperties};
+use crate::io::format::{log_subtitle, qsym2_output};
 
 // =======
 // Overlap
@@ -133,10 +138,30 @@ where
 // Enum definition
 // ---------------
 
-#[derive(Clone, Debug)]
-pub enum EigenvalueFilterMode {
-    TryUnaltered,
-    ForceAbsolute,
+/// An enumerated type specifying the comparison mode for filtering out orbit overlap
+/// eigenvalues.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[pyclass]
+pub enum EigenvalueComparisonMode {
+    /// Attempt to compare the eigenvalues with a threshold as-is, and fall back on
+    /// [`EigenvalueComparisonMode::ForceAbsolute`] when some eigenvalues are non-real.
+    Real,
+    Modulus,
+}
+
+impl Default for EigenvalueComparisonMode {
+    fn default() -> Self {
+        Self::Modulus
+    }
+}
+
+impl fmt::Display for EigenvalueComparisonMode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EigenvalueComparisonMode::Real => write!(f, "Real part"),
+            EigenvalueComparisonMode::Modulus => write!(f, "Modulus"),
+        }
+    }
 }
 
 // ----------------
@@ -214,7 +239,7 @@ where
     /// Returns the enumerated type specifying the comparison mode for filtering out orbit overlap
     /// eigenvalues.
     #[must_use]
-    fn eigenvalue_filter_mode(&self) -> &EigenvalueFilterMode;
+    fn eigenvalue_comparison_mode(&self) -> &EigenvalueComparisonMode;
 
     // ----------------
     // Provided methods
@@ -529,6 +554,10 @@ where
     }
 }
 
+// -----------------
+// Macro definitions
+// -----------------
+
 macro_rules! fn_calc_xmat_real {
     ( $(#[$meta:meta])* $vis:vis $func:ident ) => {
         $(#[$meta])*
@@ -541,11 +570,11 @@ macro_rules! fn_calc_xmat_real {
                 .expect("No overlap matrix found for this orbit.");
             assert_close_l2!(smat, &smat.t(), thresh);
             let (s_eig, umat) = smat.eigh(UPLO::Lower).unwrap();
-            let nonzero_s_indices = match self.eigenvalue_fiter_mode {
-                EigenvalueFilterMode::ForceAbsolute => {
+            let nonzero_s_indices = match self.eigenvalue_comparison_mode {
+                EigenvalueComparisonMode::Modulus => {
                     s_eig.iter().positions(|x| x.abs() > thresh).collect_vec()
                 }
-                EigenvalueFilterMode::TryUnaltered => {
+                EigenvalueComparisonMode::Real => {
                     s_eig.iter().positions(|x| *x > thresh).collect_vec()
                 }
             };
@@ -577,28 +606,22 @@ macro_rules! fn_calc_xmat_complex {
                 .expect("No overlap matrix found for this orbit.");
             let (s_eig, umat_nonortho) = smat.eig().unwrap();
 
-            let nonzero_s_indices = match self.eigenvalue_fiter_mode {
-                EigenvalueFilterMode::ForceAbsolute => s_eig
+            let nonzero_s_indices = match self.eigenvalue_comparison_mode {
+                EigenvalueComparisonMode::Modulus => s_eig
                     .iter()
                     .positions(|x| ComplexFloat::abs(*x) > thresh)
                     .collect_vec(),
-                EigenvalueFilterMode::TryUnaltered => {
+                EigenvalueComparisonMode::Real => {
                     if s_eig
                         .iter()
-                        .all(|x| Float::abs(ComplexFloat::arg(*x)) < thresh)
+                        .any(|x| Float::abs(ComplexFloat::im(*x)) > thresh)
                     {
-                        // Eigenvalues are all real. The real parts can be compared.
-                        s_eig
-                            .iter()
-                            .positions(|x| ComplexFloat::re(*x) > thresh)
-                            .collect_vec()
-                    } else {
-                        // Eigenvalues are not all real. Absolute value comparison is unavoidable.
-                        s_eig
-                            .iter()
-                            .positions(|x| ComplexFloat::abs(*x) > thresh)
-                            .collect_vec()
+                        log::warn!("Comparing eigenvalues using the real parts, but not all eigenvalues are real.");
                     }
+                    s_eig
+                        .iter()
+                        .positions(|x| ComplexFloat::re(*x) > thresh)
+                        .collect_vec()
                 }
             };
             let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
@@ -631,5 +654,90 @@ macro_rules! fn_calc_xmat_complex {
     }
 }
 
-pub(crate) use fn_calc_xmat_real;
 pub(crate) use fn_calc_xmat_complex;
+pub(crate) use fn_calc_xmat_real;
+
+// -----------------
+// Utility functions
+// -----------------
+
+/// Logs overlap eigenvalues nicely and indicates where the threshold has been crossed.
+///
+/// # Arguments
+///
+/// * `eigvals` - The eigenvalues.
+/// * `thresh` - The cut-off threshold to be marked out.
+/// * `thresh_cmp` - The function for comparing with threshold. The threshold is marked out when
+/// the function first evaluates to [`Ordering::Less`].
+pub(crate) fn log_overlap_eigenvalues<T>(
+    title: &str,
+    eigvals: &Array1<T>,
+    thresh: <T as ComplexFloat>::Real,
+    eigenvalue_comparison_mode: &EigenvalueComparisonMode,
+    // thresh_cmp: fn(&T, &<T as ComplexFloat>::Real) -> Ordering,
+) where
+    T: std::fmt::LowerExp + ComplexFloat,
+    <T as ComplexFloat>::Real: std::fmt::LowerExp,
+{
+    let mut eigvals_sorted = eigvals.iter().collect::<Vec<_>>();
+    match eigenvalue_comparison_mode {
+        EigenvalueComparisonMode::Modulus => {
+            eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
+        }
+        EigenvalueComparisonMode::Real => {
+            eigvals_sorted.sort_by(|a, b| a.re().partial_cmp(&b.re()).unwrap());
+        }
+    }
+    eigvals_sorted.reverse();
+    let eigvals_str = eigvals_sorted
+        .iter()
+        .map(|v| format!("{v:+.3e}"))
+        .collect::<Vec<_>>();
+    log_subtitle(title);
+    qsym2_output!("");
+
+    match eigenvalue_comparison_mode {
+        EigenvalueComparisonMode::Modulus => {
+            qsym2_output!("Eigenvalues are sorted in decreasing order of their moduli.");
+        }
+        EigenvalueComparisonMode::Real => {
+            qsym2_output!("Eigenvalues are sorted in decreasing order of their real parts.");
+        }
+    }
+    let count_length = usize::try_from(eigvals.len().ilog10() + 2).unwrap_or(2);
+    let eigval_length = eigvals_str
+        .iter()
+        .map(|v| v.chars().count())
+        .max()
+        .unwrap_or(20);
+    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
+    qsym2_output!("{:>count_length$}  Eigenvalue", "#");
+    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
+    let mut write_thresh = false;
+    for (i, eigval) in eigvals_str.iter().enumerate() {
+        let cmp = match eigenvalue_comparison_mode {
+            EigenvalueComparisonMode::Modulus => {
+                eigvals_sorted[i].abs().partial_cmp(&thresh).expect(
+                    "Unable to compare the modulus of an eigenvalue with the specified threshold.",
+                )
+            }
+            EigenvalueComparisonMode::Real => eigvals_sorted[i].re().partial_cmp(&thresh).expect(
+                "Unable to compare the real part of an eigenvalue with the specified threshold.",
+            ),
+        };
+        if cmp == Ordering::Less && !write_thresh {
+            let comparison_mode_str = match eigenvalue_comparison_mode {
+                EigenvalueComparisonMode::Modulus => "modulus-based",
+                EigenvalueComparisonMode::Real => "real-part-based",
+            };
+            qsym2_output!(
+                "{} <-- linear independence threshold ({comparison_mode_str}): {:+.3e}",
+                "-".repeat(count_length + 3 + eigval_length),
+                thresh
+            );
+            write_thresh = true;
+        }
+        qsym2_output!("{i:>count_length$}  {eigval}",);
+    }
+    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
+}

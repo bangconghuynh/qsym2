@@ -19,7 +19,7 @@ use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueFilterMode, Orbit, OrbitIterator, Overlap,
+    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator, Overlap,
     RepAnalysis,
 };
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
@@ -133,8 +133,7 @@ where
 
     /// An enumerated type specifying the comparison mode for filtering out orbit overlap
     /// eigenvalues.
-    #[builder(default = "EigenvalueFilterMode::ForceAbsolute")]
-    eigenvalue_fiter_mode: EigenvalueFilterMode,
+    pub(crate) eigenvalue_comparison_mode: EigenvalueComparisonMode,
 }
 
 // ----------------------------
@@ -170,6 +169,7 @@ where
         group: &'a G,
         orbitals: &'a [Vec<MolecularOrbital<'a, T>>],
         sym_kind: SymmetryTransformationKind,
+        eig_comp_mode: EigenvalueComparisonMode,
         integrality_thresh: <T as ComplexFloat>::Real,
         linear_independence_thresh: <T as ComplexFloat>::Real,
     ) -> Vec<Vec<Self>> {
@@ -185,6 +185,7 @@ where
                             .integrality_threshold(integrality_thresh)
                             .linear_independence_threshold(linear_independence_thresh)
                             .symmetry_transformation_kind(sym_kind.clone())
+                            .eigenvalue_comparison_mode(eig_comp_mode.clone())
                             .build()
                             .expect("Unable to construct a molecular orbital symmetry orbit.")
                     })
@@ -331,8 +332,8 @@ where
         self.integrality_threshold
     }
 
-    fn eigenvalue_filter_mode(&self) -> &EigenvalueFilterMode {
-        &self.eigenvalue_fiter_mode
+    fn eigenvalue_comparison_mode(&self) -> &EigenvalueComparisonMode {
+        &self.eigenvalue_comparison_mode
     }
 
     /// Reduces the representation or corepresentation spanned by the molecular orbitals in the
@@ -429,6 +430,7 @@ pub fn generate_det_mo_orbits<'a, G, T>(
     integrality_threshold: <T as ComplexFloat>::Real,
     linear_independence_threshold: <T as ComplexFloat>::Real,
     symmetry_transformation_kind: SymmetryTransformationKind,
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
 ) -> Result<
     (
         SlaterDeterminantSymmetryOrbit<'a, G, T>,
@@ -460,12 +462,14 @@ where
         .integrality_threshold(integrality_threshold)
         .linear_independence_threshold(linear_independence_threshold)
         .symmetry_transformation_kind(symmetry_transformation_kind.clone())
+        .eigenvalue_comparison_mode(eigenvalue_comparison_mode.clone())
         .build()
         .map_err(|err| format_err!(err))?;
     let mut mo_orbitss = MolecularOrbitalSymmetryOrbit::from_orbitals(
         group,
         mos,
         symmetry_transformation_kind,
+        eigenvalue_comparison_mode,
         integrality_threshold,
         linear_independence_threshold,
     );

@@ -6,7 +6,7 @@ use ndarray_linalg::assert_close_l2;
 use num_complex::Complex;
 use serial_test::serial;
 
-use crate::analysis::RepAnalysis;
+use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::geometry::Transform;
@@ -720,6 +720,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_d4h_spatial_orbital_density_a
@@ -742,6 +743,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_d4h_spatial_orbital_density_b
@@ -764,6 +766,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_d4h_spatial_orbital_density_total
@@ -786,6 +789,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_d4h_spatial_orbital_density_spin
@@ -977,6 +981,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_d4h_spatial_orbital_density_a
@@ -997,6 +1002,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_d4h_spatial_orbital_density_b
@@ -1019,6 +1025,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_d4h_spatial_orbital_density_total
@@ -1041,6 +1048,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_d4h_spatial_orbital_density_spin
@@ -1067,6 +1075,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_grey_d4h_spatial_orbital_density_a
@@ -1089,6 +1098,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_grey_d4h_spatial_orbital_density_b
@@ -1111,6 +1121,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_grey_d4h_spatial_orbital_density_total
@@ -1133,6 +1144,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_u_grey_d4h_spatial_orbital_density_spin
@@ -1159,6 +1171,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_m_grey_d4h_spatial_orbital_density_a
@@ -1179,6 +1192,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_m_grey_d4h_spatial_orbital_density_b
@@ -1201,6 +1215,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_m_grey_d4h_spatial_orbital_density_total
@@ -1223,6 +1238,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_ru_m_grey_d4h_spatial_orbital_density_spin
@@ -1249,6 +1265,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_u_c4h_spatial_orbital_density_a
@@ -1271,6 +1288,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_u_c4h_spatial_orbital_density_b
@@ -1293,6 +1311,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_u_c4h_spatial_orbital_density_total
@@ -1315,6 +1334,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_u_c4h_spatial_orbital_density_spin
@@ -1341,6 +1361,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_a
@@ -1361,6 +1382,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_b
@@ -1383,6 +1405,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_total
@@ -1405,6 +1428,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_spin
@@ -1431,6 +1455,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_a
@@ -1453,6 +1478,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_b
@@ -1475,6 +1501,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_total
@@ -1497,6 +1524,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .integrality_threshold(1e-14)
         .linear_independence_threshold(1e-14)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_spin

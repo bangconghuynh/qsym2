@@ -12,16 +12,16 @@ use ndarray_linalg::{
     assert_close_l2,
     eig::Eig,
     eigh::Eigh,
+    norm::Norm,
     types::{Lapack, Scalar},
     UPLO,
-    norm::Norm,
 };
 use num_complex::{Complex, ComplexFloat};
 use num_traits::{Float, ToPrimitive, Zero};
 
 use crate::analysis::{
-    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueFilterMode, Orbit, OrbitIterator, Overlap,
-    RepAnalysis,
+    fn_calc_xmat_complex, fn_calc_xmat_real, EigenvalueComparisonMode, Orbit, OrbitIterator,
+    Overlap, RepAnalysis,
 };
 use crate::auxiliary::misc::complex_modified_gram_schmidt;
 use crate::chartab::chartab_group::CharacterProperties;
@@ -158,8 +158,7 @@ where
 
     /// An enumerated type specifying the comparison mode for filtering out orbit overlap
     /// eigenvalues.
-    #[builder(default = "EigenvalueFilterMode::ForceAbsolute")]
-    eigenvalue_fiter_mode: EigenvalueFilterMode,
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
 }
 
 // ----------------------------
@@ -316,8 +315,8 @@ where
         self.integrality_threshold
     }
 
-    fn eigenvalue_filter_mode(&self) -> &EigenvalueFilterMode {
-        &self.eigenvalue_fiter_mode
+    fn eigenvalue_comparison_mode(&self) -> &EigenvalueComparisonMode {
+        &self.eigenvalue_comparison_mode
     }
 
     /// Reduces the representation or corepresentation spanned by the molecular orbitals in the
@@ -341,7 +340,9 @@ where
         DecompositionError,
     > {
         log::debug!("Analysing representation symmetry for a density...");
-        let chis = self.calc_characters().map_err(|err| DecompositionError(err.to_string()))?;
+        let chis = self
+            .calc_characters()
+            .map_err(|err| DecompositionError(err.to_string()))?;
         log::debug!("Characters calculated.");
         let res = self.group().character_table().reduce_characters(
             &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),

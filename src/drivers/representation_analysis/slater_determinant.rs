@@ -1,21 +1,18 @@
-use std::cmp::Ordering;
 use std::fmt;
 use std::ops::Mul;
 
 use anyhow::{self, bail, format_err};
-use approx;
 use derive_builder::Builder;
 use duplicate::duplicate_item;
 use itertools::Itertools;
 use ndarray::{s, Array2, Array4};
-use ndarray_linalg::norm::Norm;
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 use num_traits::Float;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::RepAnalysis;
+use crate::analysis::{log_overlap_eigenvalues, EigenvalueComparisonMode, RepAnalysis};
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
@@ -109,6 +106,11 @@ pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     #[serde(default = "default_true")]
     pub write_overlap_eigenvalues: bool,
 
+    /// The comparison mode for filtering out orbit overlap eigenvalues.
+    #[builder(default = "EigenvalueComparisonMode::Modulus")]
+    #[serde(default)]
+    pub eigenvalue_comparison_mode: EigenvalueComparisonMode,
+
     /// The finite order to which any infinite-order symmetry element is reduced, so that a finite
     /// subgroup of an infinite group can be used for the symmetry analysis.
     #[builder(default = "None")]
@@ -150,6 +152,11 @@ where
             f,
             "Linear independence threshold: {:.3e}",
             self.linear_independence_threshold
+        )?;
+        writeln!(
+            f,
+            "Orbit eigenvalue comparison mode: {}",
+            self.eigenvalue_comparison_mode
         )?;
         writeln!(
             f,
@@ -1011,18 +1018,16 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 params.integrality_threshold,
                 params.linear_independence_threshold,
                 params.symmetry_transformation_kind.clone(),
+                params.eigenvalue_comparison_mode.clone(),
             )?;
             det_orbit.calc_xmat(false);
             if params.write_overlap_eigenvalues {
                 if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
-                    let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                    smat_eigvals_sorted.sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
-                    smat_eigvals_sorted.reverse();
                     log_overlap_eigenvalues(
                         "Determinant orbit overlap eigenvalues",
-                        &smat_eigvals_sorted,
+                        smat_eigvals,
                         params.linear_independence_threshold,
-                        |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
+                        &params.eigenvalue_comparison_mode,
                     );
                     qsym2_output!("");
                 }
@@ -1051,23 +1056,51 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 .as_ref()
                                 .map(|eigvals| {
                                     let mut eigvals_vec = eigvals.iter().collect::<Vec<_>>();
-                                    eigvals_vec
-                                        .sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
-                                    let eigval_above = eigvals_vec
-                                        .iter()
-                                        .find(|val| {
-                                            val.abs() >= mo_orbit.linear_independence_threshold
-                                        })
-                                        .copied()
-                                        .copied();
+                                    match mo_orbit.eigenvalue_comparison_mode {
+                                        EigenvalueComparisonMode::Modulus => {
+                                            eigvals_vec.sort_by(|a, b| {
+                                                a.abs().partial_cmp(&b.abs()).expect("Unable to compare two eigenvalues based on their moduli.")
+                                            });
+                                        }
+                                        EigenvalueComparisonMode::Real => {
+                                            eigvals_vec.sort_by(|a, b| {
+                                                a.re().partial_cmp(&b.re()).expect("Unable to compare two eigenvalues based on their real parts.")
+                                            });
+                                        }
+                                    }
+                                    let eigval_above = match mo_orbit.eigenvalue_comparison_mode {
+                                        EigenvalueComparisonMode::Modulus => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.abs() >= mo_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                        EigenvalueComparisonMode::Real => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.re() >= mo_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                    };
                                     eigvals_vec.reverse();
-                                    let eigval_below = eigvals_vec
-                                        .iter()
-                                        .find(|val| {
-                                            val.abs() < mo_orbit.linear_independence_threshold
-                                        })
-                                        .copied()
-                                        .copied();
+                                    let eigval_below = match mo_orbit.eigenvalue_comparison_mode {
+                                        EigenvalueComparisonMode::Modulus => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.abs() < mo_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                        EigenvalueComparisonMode::Real => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.re() < mo_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                    };
                                     (eigval_above, eigval_below)
                                 })
                                 .unwrap_or((None, None))
@@ -1087,6 +1120,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 .integrality_threshold(params.integrality_threshold)
                 .linear_independence_threshold(params.linear_independence_threshold)
                 .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
+                .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
                 .build()?;
             let det_symmetry = det_orbit
                 .calc_smat(Some(&sao))
@@ -1096,15 +1130,11 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                     det_orb.calc_xmat(false);
                     if params.write_overlap_eigenvalues {
                         if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
-                            let mut smat_eigvals_sorted = smat_eigvals.iter().collect::<Vec<_>>();
-                            smat_eigvals_sorted
-                                .sort_by(|a, b| a.abs().partial_cmp(&b.abs()).unwrap());
-                            smat_eigvals_sorted.reverse();
                             log_overlap_eigenvalues(
                                 "Determinant orbit overlap eigenvalues",
-                                &smat_eigvals_sorted,
+                                smat_eigvals,
                                 params.linear_independence_threshold,
-                                |eigval, thresh| eigval.abs().partial_cmp(thresh).unwrap(),
+                                &params.eigenvalue_comparison_mode,
                             );
                             qsym2_output!("");
                         }
@@ -1129,6 +1159,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 .linear_independence_threshold(params.linear_independence_threshold)
                                 .symmetry_transformation_kind(
                                     params.symmetry_transformation_kind.clone(),
+                                )
+                                .eigenvalue_comparison_mode(
+                                    params.eigenvalue_comparison_mode.clone(),
                                 )
                                 .build()?;
                             den_orbit
@@ -1168,6 +1201,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 .symmetry_transformation_kind(
                                     params.symmetry_transformation_kind.clone(),
                                 )
+                                .eigenvalue_comparison_mode(
+                                    params.eigenvalue_comparison_mode.clone(),
+                                )
                                 .build()?;
                             total_den_orbit
                                 .calc_smat(self.sao_spatial_4c)?
@@ -1195,6 +1231,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                         )
                                         .symmetry_transformation_kind(
                                             params.symmetry_transformation_kind.clone(),
+                                        )
+                                        .eigenvalue_comparison_mode(
+                                            params.eigenvalue_comparison_mode.clone(),
                                         )
                                         .build()?;
                                     den_ij_orbit
@@ -1233,6 +1272,9 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     )
                                     .symmetry_transformation_kind(
                                         params.symmetry_transformation_kind.clone(),
+                                    )
+                                    .eigenvalue_comparison_mode(
+                                        params.eigenvalue_comparison_mode.clone(),
                                     )
                                     .build()
                                     .ok()?;
@@ -1395,56 +1437,4 @@ impl<'a> QSym2Driver
         self.result()?.log_output_display();
         Ok(())
     }
-}
-
-// =========
-// Functions
-// =========
-/// Logs overlap eigenvalues nicely and indicates where the threshold has been crossed.
-///
-/// # Arguments
-///
-/// * `eigvals` - The eigenvalues sorted in descending magnitude order.
-/// * `thresh` - The cut-off threshold to be marked out.
-/// * `thresh_cmp` - The function for comparing with threshold. The threshold is marked out when
-/// the function first evaluates to [`Ordering::Less`].
-fn log_overlap_eigenvalues<T>(
-    title: &str,
-    eigvals: &[&T],
-    thresh: <T as ComplexFloat>::Real,
-    thresh_cmp: fn(&T, &<T as ComplexFloat>::Real) -> Ordering,
-) where
-    T: std::fmt::LowerExp + ComplexFloat,
-    <T as ComplexFloat>::Real: std::fmt::LowerExp,
-{
-    let eigvals_str = eigvals
-        .iter()
-        .map(|v| format!("{v:+.3e}"))
-        .collect::<Vec<_>>();
-    log_subtitle(title);
-    qsym2_output!("");
-
-    qsym2_output!("Eigenvalues are sorted in decreasing magnitude order.");
-    let count_length = usize::try_from(eigvals.len().ilog10() + 2).unwrap_or(2);
-    let eigval_length = eigvals_str
-        .iter()
-        .map(|v| v.chars().count())
-        .max()
-        .unwrap_or(20);
-    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
-    qsym2_output!("{:>count_length$}  Eigenvalue", "#");
-    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
-    let mut write_thresh = false;
-    for (i, eigval) in eigvals_str.iter().enumerate() {
-        if thresh_cmp(eigvals[i], &thresh) == Ordering::Less && !write_thresh {
-            qsym2_output!(
-                "{} <-- linear independence threshold (magnitude-based): {:+.3e}",
-                "-".repeat(count_length + 3 + eigval_length),
-                thresh
-            );
-            write_thresh = true;
-        }
-        qsym2_output!("{i:>count_length$}  {eigval}",);
-    }
-    qsym2_output!("{}", "┈".repeat(count_length + 3 + eigval_length));
 }
