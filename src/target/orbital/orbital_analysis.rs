@@ -119,7 +119,7 @@ where
     #[builder(setter(skip), default = "None")]
     smat: Option<Array2<T>>,
 
-    /// The eigenvalues of the overlap matrix between the symmetry-equivalent Slater determinants in
+    /// The eigenvalues of the overlap matrix between the symmetry-equivalent molecular orbitals in
     /// the orbit.
     #[builder(setter(skip), default = "None")]
     pub(crate) smat_eigvals: Option<Array1<T>>,
