@@ -378,14 +378,6 @@ where
                 &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
                 self.integrality_threshold(),
             );
-            log::debug!(
-                "Coeff: {}\n{}\n{}",
-                res.as_ref()
-                    .map(|r| r.to_string())
-                    .unwrap_or("???".to_string()),
-                self.smat_eigvals.as_ref().unwrap(),
-                self.origin.coefficients
-            );
             res
         } else {
             Err(DecompositionError(err_str))
