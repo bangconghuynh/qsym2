@@ -1,4 +1,3 @@
-use log4rs;
 use nalgebra::{Point3, Vector3};
 use ndarray::array;
 use num_complex::Complex;
@@ -28,7 +27,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_drivers_vibrational_coordinate_analysis_xef4() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
 
     let afa_params = AngularFunctionRepAnalysisParams::default();
@@ -186,7 +185,7 @@ fn test_drivers_vibrational_coordinate_analysis_xef4() {
 
 #[test]
 fn test_drivers_vibrational_coordinate_analysis_xef4_magnetic_field() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
 
     let afa_params = AngularFunctionRepAnalysisParams::default();
