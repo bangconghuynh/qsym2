@@ -119,7 +119,7 @@ where
     #[builder(setter(skip), default = "None")]
     smat: Option<Array2<T>>,
 
-    /// The eigenvalues of the overlap matrix between the symmetry-equivalent Slater determinants in
+    /// The eigenvalues of the overlap matrix between the symmetry-equivalent molecular orbitals in
     /// the orbit.
     #[builder(setter(skip), default = "None")]
     pub(crate) smat_eigvals: Option<Array1<T>>,
@@ -377,14 +377,6 @@ where
             let res = self.group().character_table().reduce_characters(
                 &chis.iter().map(|(cc, chi)| (cc, *chi)).collect::<Vec<_>>(),
                 self.integrality_threshold(),
-            );
-            log::debug!(
-                "Coeff: {}\n{}\n{}",
-                res.as_ref()
-                    .map(|r| r.to_string())
-                    .unwrap_or("???".to_string()),
-                self.smat_eigvals.as_ref().unwrap(),
-                self.origin.coefficients
             );
             res
         } else {

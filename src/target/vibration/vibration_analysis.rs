@@ -103,7 +103,7 @@ where
     integrality_threshold: <T as ComplexFloat>::Real,
 
     /// The threshold for determining zero eigenvalues in the orbit overlap matrix.
-    linear_independence_threshold: <T as ComplexFloat>::Real,
+    pub(crate) linear_independence_threshold: <T as ComplexFloat>::Real,
 
     /// The kind of transformation determining the way the symmetry operations in `group` act on
     /// [`Self::origin`].
@@ -127,7 +127,7 @@ where
 
     /// An enumerated type specifying the comparison mode for filtering out orbit overlap
     /// eigenvalues.
-    eigenvalue_comparison_mode: EigenvalueComparisonMode,
+    pub(crate) eigenvalue_comparison_mode: EigenvalueComparisonMode,
 }
 
 // ----------------------------

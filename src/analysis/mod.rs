@@ -554,9 +554,9 @@ where
     }
 }
 
-// -----------------
+// =================
 // Macro definitions
-// -----------------
+// =================
 
 macro_rules! fn_calc_xmat_real {
     ( $(#[$meta:meta])* $vis:vis $func:ident ) => {
