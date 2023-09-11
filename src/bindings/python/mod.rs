@@ -5,8 +5,9 @@ pub mod molecule_symmetrisation;
 pub mod representation_analysis;
 pub mod symmetry_group_detection;
 
+use crate::analysis::EigenvalueComparisonMode;
 use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
-use crate::interfaces::cli::{qsym2_output_heading, qsym2_output_contributors};
+use crate::interfaces::cli::{qsym2_output_contributors, qsym2_output_heading};
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
 /// A Python module for `QSym2` implemented in Rust.
@@ -21,14 +22,8 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     // ---------
     // Functions
     // ---------
-    m.add_function(wrap_pyfunction!(
-        qsym2_output_heading,
-        m
-    )?)?;
-    m.add_function(wrap_pyfunction!(
-        qsym2_output_contributors,
-        m
-    )?)?;
+    m.add_function(wrap_pyfunction!(qsym2_output_heading, m)?)?;
+    m.add_function(wrap_pyfunction!(qsym2_output_contributors, m)?)?;
     m.add_function(wrap_pyfunction!(
         symmetry_group_detection::detect_symmetry_group,
         m
@@ -38,7 +33,11 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         m
     )?)?;
     m.add_function(wrap_pyfunction!(
-        representation_analysis::rep_analyse_slater_determinant,
+        representation_analysis::slater_determinant::rep_analyse_slater_determinant,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        representation_analysis::vibrational_coordinate::rep_analyse_vibrational_coordinate_collection,
         m
     )?)?;
     #[cfg(feature = "integrals")]
@@ -56,8 +55,11 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<symmetry_group_detection::PyMolecule>()?;
     m.add_class::<symmetry_group_detection::PySymmetry>()?;
     m.add_class::<symmetry_group_detection::PySymmetryElementKind>()?;
-    m.add_class::<representation_analysis::PySlaterDeterminantReal>()?;
-    m.add_class::<representation_analysis::PySlaterDeterminantComplex>()?;
+    m.add_class::<representation_analysis::slater_determinant::PySlaterDeterminantReal>()?;
+    m.add_class::<representation_analysis::slater_determinant::PySlaterDeterminantComplex>()?;
+    m.add_class::<representation_analysis::vibrational_coordinate::PyVibrationalCoordinateCollectionReal>()?;
+    m.add_class::<representation_analysis::vibrational_coordinate::PyVibrationalCoordinateCollectionComplex>()?;
+    m.add_class::<EigenvalueComparisonMode>()?;
     m.add_class::<MagneticSymmetryAnalysisKind>()?;
     m.add_class::<SymmetryTransformationKind>()?;
     Ok(())

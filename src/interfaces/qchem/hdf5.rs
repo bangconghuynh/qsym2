@@ -16,10 +16,10 @@ use periodic_table::periodic_table;
 use regex::Regex;
 
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
-use crate::basis::ao::BasisAngularOrder;
-use crate::basis::ao::*;
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::molecule::Molecule;
+use crate::basis::ao::BasisAngularOrder;
+use crate::basis::ao::*;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
@@ -302,6 +302,19 @@ impl<'a> QSym2Driver for QChemH5Driver<'a, f64> {
 // SinglePoint Driver
 // ------------------
 
+// ~~~~~~~~~~~~~~~
+// Enum definition
+// ~~~~~~~~~~~~~~~
+
+/// An enumerated type to distinguish different kinds of molecular orbitals.
+enum OrbitalType {
+    /// Canonical molecular orbitals as obtained by diagonalising Fock matrices.
+    Canonical,
+
+    /// Localised molecular orbitals as obtained by a localisation method.
+    Localised,
+}
+
 // ~~~~~~~~~~~~~~~~~
 // Struct definition
 // ~~~~~~~~~~~~~~~~~
@@ -489,11 +502,22 @@ where
     }
 
     /// Extracts the Slater determinant from the single-point H5 group.
+    ///
+    /// # Arguments
+    ///
+    /// * `mol` - The molecule to be associated with the extracted determinant.
+    /// * `bao` - The basis angular order information to be associated with the extracted determinant.
+    /// * `threshold` - The comparison threshold to be associated with the extracted determinant.
+    ///
+    /// # Returns
+    ///
+    /// The extracted Slater determinant.
     fn extract_determinant(
         &self,
         mol: &'a Molecule,
         bao: &'a BasisAngularOrder,
         threshold: <T as ComplexFloat>::Real,
+        orbital_type: OrbitalType,
     ) -> Result<SlaterDeterminant<'a, T>, anyhow::Error> {
         let energy = self
             .sp_group
@@ -503,19 +527,23 @@ where
             ))?
             .read_scalar::<T>()
             .map_err(|err| err.to_string());
+        let orbital_path = match orbital_type {
+            OrbitalType::Canonical => format!(
+                "energy_function/{}/method/scf/molecular_orbitals",
+                self.energy_function_index
+            ),
+            OrbitalType::Localised => format!(
+                "energy_function/{}/analysis/localized_orbitals/{}/molecular_orbitals",
+                self.energy_function_index, self.energy_function_index
+            ),
+        };
         let nspins = self
             .sp_group
-            .dataset(&format!(
-                "energy_function/{}/method/scf/molecular_orbitals/nsets",
-                self.energy_function_index
-            ))?
+            .dataset(&format!("{orbital_path}/nsets"))?
             .read_scalar::<usize>()?;
         let nmo = self
             .sp_group
-            .dataset(&format!(
-                "energy_function/{}/method/scf/molecular_orbitals/norb",
-                self.energy_function_index
-            ))?
+            .dataset(&format!("{orbital_path}/norb",))?
             .read_scalar::<usize>()?;
         let (spincons, occs) = match nspins {
             1 => {
@@ -582,20 +610,14 @@ where
         };
         let cs = self
             .sp_group
-            .dataset(&format!(
-                "energy_function/{}/method/scf/molecular_orbitals/mo_coefficients",
-                self.energy_function_index
-            ))?
+            .dataset(&format!("{orbital_path}/mo_coefficients"))?
             .read::<T, Ix3>()?
             .axis_iter(Axis(0))
             .map(|c| c.to_owned())
             .collect::<Vec<_>>();
         let mo_energies = self
             .sp_group
-            .dataset(&format!(
-                "energy_function/{}/method/scf/molecular_orbitals/mo_energies",
-                self.energy_function_index
-            ))
+            .dataset(&format!("{orbital_path}/mo_energies"))
             .and_then(|mo_energies_dataset| {
                 mo_energies_dataset.read_2d::<T>().map(|mo_energies_arr| {
                     mo_energies_arr
@@ -673,18 +695,19 @@ impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
                 .with_context(|| "Unable to extract the basis angular order information from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
                 .map_err(|err| err.to_string())?;
             log::debug!("Extracting AO basis information for representation analysis... Done.");
-            log::debug!("Extracting determinant information for representation analysis...");
+            log::debug!("Extracting canonical determinant information for representation analysis...");
             let det = self.extract_determinant(
                 recentred_mol,
                 &bao,
                 self.slater_det_rep_analysis_parameters
                     .linear_independence_threshold,
+                OrbitalType::Canonical,
             )
             .with_context(|| "Unable to extract the determinant from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
             .map_err(|err| err.to_string())?;
-            log::debug!("Extracting determinant information for representation analysis... Done.");
+            log::debug!("Extracting canonical determinant information for representation analysis... Done.");
 
-            log::debug!("Running representation analysis...");
+            log::debug!("Running representation analysis on canonical determinant...");
             let mut sda_driver =
                 SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
                     .parameters(self.slater_det_rep_analysis_parameters)
@@ -696,12 +719,33 @@ impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
                     .with_context(|| "Unable to extract a Slater determinant representation analysis driver while performing symmetry analysis for a single-point Q-Chem calculation")
                     .map_err(|err| err.to_string())?;
             let sda_run = sda_driver.run();
-            log::debug!("Running representation analysis... Done.");
-
+            log::debug!("Running representation analysis on canonical determinant... Done.");
             if let Err(err) = sda_run {
                 qsym2_error!("Representation analysis has failed with error:");
                 qsym2_error!("  {err:#}");
             }
+
+            // let _ = self.extract_determinant(
+            //     recentred_mol,
+            //     &bao,
+            //     self.slater_det_rep_analysis_parameters
+            //         .linear_independence_threshold,
+            //     OrbitalType::Localised,
+            // ).and_then(|loc_det| {
+            //     log::debug!("Running representation analysis on localised determinant...");
+            //     let mut loc_sda_driver =
+            //         SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
+            //             .parameters(self.slater_det_rep_analysis_parameters)
+            //             .angular_function_parameters(self.angular_function_analysis_parameters)
+            //             .determinant(&loc_det)
+            //             .sao_spatial(&sao)
+            //             .symmetry_group(&pd_res)
+            //             .build()?;
+            //     let res = loc_sda_driver.run();
+            //     log::debug!("Running representation analysis on localised determinant... Done.");
+            //     res
+            // });
+
             sda_driver
                 .result()
                 .map_err(|err| err.to_string())
@@ -755,26 +799,29 @@ impl<'a> QChemH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
         log::debug!("Performing symmetry-group detection... Done.");
 
         let rep = || {
-            log::debug!("Extracting AO basis information for representation analysis...");
+            log::debug!("Extracting AO basis information for corepresentation analysis...");
             let sao = self.extract_sao()
                 .with_context(|| "Unable to extract the SAO matrix from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
                 .map_err(|err| err.to_string())?;
             let bao = self.extract_bao(recentred_mol)
                 .with_context(|| "Unable to extract the basis angular order information from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
                 .map_err(|err| err.to_string())?;
-            log::debug!("Extracting AO basis information for representation analysis... Done.");
-            log::debug!("Extracting determinant information for representation analysis...");
+            log::debug!("Extracting AO basis information for corepresentation analysis... Done.");
+            log::debug!("Extracting determinant information for corepresentation analysis...");
             let det = self.extract_determinant(
                 recentred_mol,
                 &bao,
                 self.slater_det_rep_analysis_parameters
                     .linear_independence_threshold,
+                OrbitalType::Canonical,
             )
             .with_context(|| "Unable to extract the determinant from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
             .map_err(|err| err.to_string())?;
-            log::debug!("Extracting determinant information for representation analysis... Done.");
+            log::debug!(
+                "Extracting determinant information for corepresentation analysis... Done."
+            );
 
-            log::debug!("Running representation analysis...");
+            log::debug!("Running corepresentation analysis...");
             let mut sda_driver =
                 SlaterDeterminantRepAnalysisDriver::<MagneticRepresentedSymmetryGroup, f64>::builder()
                     .parameters(self.slater_det_rep_analysis_parameters)
@@ -786,10 +833,10 @@ impl<'a> QChemH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
                     .with_context(|| "Unable to extract a Slater determinant representation analysis driver while performing symmetry analysis for a single-point Q-Chem calculation")
                     .map_err(|err| err.to_string())?;
             let sda_run = sda_driver.run();
-            log::debug!("Running representation analysis... Done.");
+            log::debug!("Running corepresentation analysis... Done.");
 
             if let Err(err) = sda_run {
-                qsym2_error!("Representation analysis has failed with error:");
+                qsym2_error!("Corepresentation analysis has failed with error:");
                 qsym2_error!("  {err:#}");
             }
             sda_driver

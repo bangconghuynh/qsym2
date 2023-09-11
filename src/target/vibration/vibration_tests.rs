@@ -2,7 +2,7 @@
 use nalgebra::Vector3;
 use ndarray::array;
 
-use crate::analysis::RepAnalysis;
+use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::auxiliary::atom::{Atom, ElementMap};
 use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::molecule::Molecule;
@@ -49,6 +49,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
     ];
     let vib1 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c1)
+        .frequency(1149.58)
         .mol(&mol_nh3)
         .threshold(1e-3)
         .build()
@@ -60,6 +61,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib1
@@ -83,6 +85,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
     ];
     let vib2 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c2)
+        .frequency(1867.67)
         .mol(&mol_nh3)
         .threshold(1e-4)
         .build()
@@ -94,6 +97,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib2
@@ -118,6 +122,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
     let vib3 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c3)
         .mol(&mol_nh3)
+        .frequency(1867.67)
         .threshold(1e-4)
         .build()
         .unwrap();
@@ -128,6 +133,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib3
@@ -152,6 +158,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
     let vib4 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c4)
         .mol(&mol_nh3)
+        .frequency(3376.47)
         .threshold(1e-4)
         .build()
         .unwrap();
@@ -162,6 +169,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib4
@@ -185,6 +193,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
     ];
     let vib5 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c5)
+        .frequency(3517.10)
         .mol(&mol_nh3)
         .threshold(1e-4)
         .build()
@@ -196,6 +205,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib5
@@ -220,6 +230,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
     let vib6 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c6)
         .mol(&mol_nh3)
+        .frequency(3517.10)
         .threshold(1e-4)
         .build()
         .unwrap();
@@ -230,6 +241,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_nh3_spatial_vib6
@@ -271,6 +283,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
     ];
     let vib1 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c1)
+        .frequency(1530.98)
         .mol(&mol_ch4)
         .threshold(1e-3)
         .build()
@@ -282,6 +295,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib1
@@ -306,6 +320,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
     ];
     let vib2 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c2)
+        .frequency(1530.98)
         .mol(&mol_ch4)
         .threshold(1e-3)
         .build()
@@ -317,6 +332,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib2
@@ -341,6 +357,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
     ];
     let vib3 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c3)
+        .frequency(1530.98)
         .mol(&mol_ch4)
         .threshold(1e-3)
         .build()
@@ -352,6 +369,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib3
@@ -376,6 +394,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
     ];
     let vib4 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c4)
+        .frequency(1714.14)
         .mol(&mol_ch4)
         .threshold(1e-3)
         .build()
@@ -387,6 +406,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib4
@@ -412,6 +432,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
     let vib5 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c5)
         .mol(&mol_ch4)
+        .frequency(1714.14)
         .threshold(1e-3)
         .build()
         .unwrap();
@@ -422,6 +443,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib5
@@ -446,6 +468,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
     ];
     let vib6 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c6)
+        .frequency(2984.48)
         .mol(&mol_ch4)
         .threshold(1e-3)
         .build()
@@ -457,6 +480,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib6
@@ -481,6 +505,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
     ];
     let vib7 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c7)
+        .frequency(3064.80)
         .mol(&mol_ch4)
         .threshold(1e-3)
         .build()
@@ -492,6 +517,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib7
@@ -516,6 +542,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
     ];
     let vib8 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c8)
+        .frequency(3064.80)
         .mol(&mol_ch4)
         .threshold(1e-3)
         .build()
@@ -527,6 +554,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib8
@@ -551,6 +579,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
     ];
     let vib9 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c9)
+        .frequency(3064.80)
         .mol(&mol_ch4)
         .threshold(1e-3)
         .build()
@@ -562,6 +591,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_ch4_spatial_vib9
@@ -610,6 +640,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
     ];
     let vib1 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c1)
+        .frequency(-41.66)
         .mol(&mol_xef4)
         .threshold(1e-3)
         .build()
@@ -621,6 +652,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib1
@@ -638,6 +670,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib1
@@ -662,6 +695,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
     ];
     let vib2 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c2)
+        .frequency(-41.66)
         .mol(&mol_xef4)
         .threshold(1e-3)
         .build()
@@ -673,6 +707,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib2
@@ -690,6 +725,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib2
@@ -714,6 +750,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
     ];
     let vib3 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c3)
+        .frequency(164.83)
         .mol(&mol_xef4)
         .threshold(1e-3)
         .build()
@@ -725,6 +762,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib3
@@ -742,6 +780,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib3
@@ -766,6 +805,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
     ];
     let vib4 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c4)
+        .frequency(164.83)
         .mol(&mol_xef4)
         .threshold(1e-3)
         .build()
@@ -777,6 +817,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib4
@@ -794,6 +835,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib4
@@ -818,6 +860,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
     ];
     let vib5 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c5)
+        .frequency(312.65)
         .mol(&mol_xef4)
         .threshold(1e-3)
         .build()
@@ -829,6 +872,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib5
@@ -846,6 +890,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib5
@@ -870,6 +915,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
     ];
     let vib6 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c6)
+        .frequency(634.51)
         .mol(&mol_xef4)
         .threshold(1e-3)
         .build()
@@ -881,6 +927,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib6
@@ -898,6 +945,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib6
@@ -922,6 +970,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
     ];
     let vib7 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c7)
+        .frequency(665.02)
         .mol(&mol_xef4)
         .threshold(1e-3)
         .build()
@@ -933,6 +982,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib7
@@ -950,6 +1000,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib7
@@ -974,6 +1025,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
     ];
     let vib8 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c8)
+        .frequency(695.61)
         .mol(&mol_xef4)
         .threshold(1e-3)
         .build()
@@ -985,6 +1037,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib8
@@ -1002,6 +1055,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib8
@@ -1026,6 +1080,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
     ];
     let vib9 = VibrationalCoordinate::<f64>::builder()
         .coefficients(c9)
+        .frequency(695.61)
         .mol(&mol_xef4)
         .threshold(1e-3)
         .build()
@@ -1037,6 +1092,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_d4h_ch4_spatial_vib9
@@ -1054,6 +1110,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .integrality_threshold(1e-7)
         .linear_independence_threshold(1e-4)
         .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+        .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
     orbit_u_c4h_ch4_spatial_vib9

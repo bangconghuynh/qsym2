@@ -3,12 +3,15 @@ use std::path::PathBuf;
 use anyhow::format_err;
 use ndarray::{Array1, Array2};
 use num_complex::Complex;
-use numpy::{PyArray1, PyArray2, PyArray4};
+use numpy::{PyArray1, PyArray2};
 use pyo3::exceptions::{PyIOError, PyRuntimeError};
 use pyo3::prelude::*;
 
+use crate::analysis::EigenvalueComparisonMode;
 use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::BasisAngularOrder;
+use crate::bindings::python::integrals::{PyBasisAngularOrder, PySpinConstraint};
+use crate::bindings::python::representation_analysis::{PyArray2RC, PyArray4RC};
 use crate::drivers::representation_analysis::angular_function::AngularFunctionRepAnalysisParams;
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
@@ -18,8 +21,8 @@ use crate::drivers::representation_analysis::{
 };
 use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
+use crate::io::format::qsym2_output;
 use crate::io::{read_qsym2_binary, QSym2FileType};
-use crate::bindings::python::integrals::{PyBasisAngularOrder, PySpinConstraint};
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, UnitaryRepresentedSymmetryGroup,
 };
@@ -27,6 +30,10 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
 
 type C128 = Complex<f64>;
+
+// ==================
+// Struct definitions
+// ==================
 
 /// A Python-exposed structure to marshall real Slater determinant information between Rust and
 /// Python.
@@ -326,6 +333,10 @@ impl PySlaterDeterminantComplex {
     }
 }
 
+// ================
+// Enum definitions
+// ================
+
 /// A Python-exposed enumerated type to handle the union type
 /// `PySlaterDeterminantReal | PySlaterDeterminantComplex` in Python.
 #[derive(FromPyObject)]
@@ -337,21 +348,9 @@ pub enum PySlaterDeterminant {
     Complex(PySlaterDeterminantComplex),
 }
 
-/// A Python-exposed enumerated type to handle the union type of numpy float arrays and numpy
-/// complex arrays in Python.
-#[derive(FromPyObject)]
-pub enum PySAO<'a> {
-    Real(&'a PyArray2<f64>),
-    Complex(&'a PyArray2<C128>),
-}
-
-/// A Python-exposed enumerated type to handle the union type of numpy float 4d-arrays and numpy
-/// complex 4d-arrays in Python.
-#[derive(FromPyObject)]
-pub enum PySAO4c<'a> {
-    Real(&'a PyArray4<f64>),
-    Complex(&'a PyArray4<C128>),
-}
+// =====================
+// Functions definitions
+// =====================
 
 /// A Python-exposed function to perform representation symmetry analysis for real and complex
 /// Slater determinants and log the result via the `qsym2-output` logger at the `INFO` level.
@@ -382,6 +381,9 @@ pub enum PySAO4c<'a> {
 /// transformations to be performed on the origin determinant to generate the orbit. If this
 /// contains spin transformation, the determinant will be augmented to generalised spin constraint
 /// automatically. Python type: `SymmetryTransformationKind`.
+/// * `eigenvalue_comparison_mode` - An enumerated type indicating the mode of comparison of orbit
+/// overlap eigenvalues with the specified `linear_independence_threshold`.
+/// Python type: `EigenvalueComparisonMode`.
 /// * `analyse_mo_symmetries` - A boolean indicating if the symmetries of individual molecular
 /// orbitals are to be analysed. Python type: `bool`.
 /// * `analyse_density_symmetries` - A boolean indicating if the symmetries of densities are to be
@@ -402,7 +404,27 @@ pub enum PySAO4c<'a> {
 /// * `angular_function_max_angular_momentum` - The maximum angular momentum order to be used in
 /// angular function symmetry analysis. Python type: `int`.
 #[pyfunction]
-#[pyo3(signature = (inp_sym, pydet, pybao, integrality_threshold, linear_independence_threshold, use_magnetic_group, use_double_group, symmetry_transformation_kind, sao_spatial, sao_spatial_4c=None, analyse_mo_symmetries=true, analyse_density_symmetries=false, write_overlap_eigenvalues=true, write_character_table=true, infinite_order_to_finite=None, angular_function_integrality_threshold=1e-7, angular_function_linear_independence_threshold=1e-7, angular_function_max_angular_momentum=2))]
+#[pyo3(signature = (
+    inp_sym,
+    pydet,
+    pybao,
+    integrality_threshold,
+    linear_independence_threshold,
+    use_magnetic_group,
+    use_double_group,
+    symmetry_transformation_kind,
+    eigenvalue_comparison_mode,
+    sao_spatial,
+    sao_spatial_4c=None,
+    analyse_mo_symmetries=true,
+    analyse_density_symmetries=false,
+    write_overlap_eigenvalues=true,
+    write_character_table=true,
+    infinite_order_to_finite=None,
+    angular_function_integrality_threshold=1e-7,
+    angular_function_linear_independence_threshold=1e-7,
+    angular_function_max_angular_momentum=2
+))]
 pub fn rep_analyse_slater_determinant(
     inp_sym: PathBuf,
     pydet: PySlaterDeterminant,
@@ -412,8 +434,9 @@ pub fn rep_analyse_slater_determinant(
     use_magnetic_group: Option<MagneticSymmetryAnalysisKind>,
     use_double_group: bool,
     symmetry_transformation_kind: SymmetryTransformationKind,
-    sao_spatial: PySAO,
-    sao_spatial_4c: Option<PySAO4c>,
+    eigenvalue_comparison_mode: EigenvalueComparisonMode,
+    sao_spatial: PyArray2RC,
+    sao_spatial_4c: Option<PyArray4RC>,
     analyse_mo_symmetries: bool,
     analyse_density_symmetries: bool,
     write_overlap_eigenvalues: bool,
@@ -423,8 +446,18 @@ pub fn rep_analyse_slater_determinant(
     angular_function_linear_independence_threshold: f64,
     angular_function_max_angular_momentum: u32,
 ) -> PyResult<()> {
-    let pd_res: SymmetryGroupDetectionResult = read_qsym2_binary(inp_sym, QSym2FileType::Sym)
-        .map_err(|err| PyIOError::new_err(err.to_string()))?;
+    let pd_res: SymmetryGroupDetectionResult =
+        read_qsym2_binary(inp_sym.clone(), QSym2FileType::Sym)
+            .map_err(|err| PyIOError::new_err(err.to_string()))?;
+
+    let mut file_name = inp_sym.to_path_buf();
+    file_name.set_extension(QSym2FileType::Sym.ext());
+    qsym2_output!(
+        "Symmetry-group detection results read in from {}.",
+        file_name.display(),
+    );
+    qsym2_output!("");
+
     let mol = &pd_res.pre_symmetry.recentred_molecule;
     let bao = pybao
         .to_qsym2(mol)
@@ -440,12 +473,12 @@ pub fn rep_analyse_slater_determinant(
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
     match (&pydet, &sao_spatial) {
-        (PySlaterDeterminant::Real(pydet_r), PySAO::Real(pysao_r)) => {
+        (PySlaterDeterminant::Real(pydet_r), PyArray2RC::Real(pysao_r)) => {
             let sao_spatial = pysao_r.to_owned_array();
             let sao_spatial_4c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
                 // sao_spatial_4c must have the same reality as sao_spatial.
-                PySAO4c::Real(pysao4c_r) => Some(pysao4c_r.to_owned_array()),
-                PySAO4c::Complex(_) => None,
+                PyArray4RC::Real(pysao4c_r) => Some(pysao4c_r.to_owned_array()),
+                PyArray4RC::Complex(_) => None,
             });
             let det_r = if augment_to_generalised {
                 pydet_r
@@ -463,6 +496,7 @@ pub fn rep_analyse_slater_determinant(
                 .use_magnetic_group(use_magnetic_group.clone())
                 .use_double_group(use_double_group)
                 .symmetry_transformation_kind(symmetry_transformation_kind)
+                .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
                 .analyse_mo_symmetries(analyse_mo_symmetries)
                 .analyse_density_symmetries(analyse_density_symmetries)
                 .write_overlap_eigenvalues(write_overlap_eigenvalues)
@@ -511,7 +545,7 @@ pub fn rep_analyse_slater_determinant(
                 }
             };
         }
-        (PySlaterDeterminant::Real(pydet_r), PySAO::Complex(pysao_c)) => {
+        (PySlaterDeterminant::Real(pydet_r), PyArray2RC::Complex(pysao_c)) => {
             let det_r = if augment_to_generalised {
                 pydet_r
                     .to_qsym2(&bao, mol)
@@ -526,8 +560,8 @@ pub fn rep_analyse_slater_determinant(
             let sao_spatial_c = pysao_c.to_owned_array();
             let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
                 // sao_spatial_4c must have the same reality as sao_spatial.
-                PySAO4c::Real(_) => None,
-                PySAO4c::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
+                PyArray4RC::Real(_) => None,
+                PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
             });
             let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
                 .integrality_threshold(integrality_threshold)
@@ -535,6 +569,7 @@ pub fn rep_analyse_slater_determinant(
                 .use_magnetic_group(use_magnetic_group.clone())
                 .use_double_group(use_double_group)
                 .symmetry_transformation_kind(symmetry_transformation_kind)
+                .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
                 .analyse_mo_symmetries(analyse_mo_symmetries)
                 .analyse_density_symmetries(analyse_density_symmetries)
                 .write_overlap_eigenvalues(write_overlap_eigenvalues)
@@ -595,13 +630,13 @@ pub fn rep_analyse_slater_determinant(
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
             let sao_spatial_c = match sao_spatial {
-                PySAO::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
-                PySAO::Complex(pysao_c) => pysao_c.to_owned_array(),
+                PyArray2RC::Real(pysao_r) => pysao_r.to_owned_array().mapv(Complex::from),
+                PyArray2RC::Complex(pysao_c) => pysao_c.to_owned_array(),
             };
             let sao_spatial_4c_c = sao_spatial_4c.and_then(|pysao4c| match pysao4c {
                 // sao_spatial_4c must have the same reality as sao_spatial.
-                PySAO4c::Real(pysao4c_r) => Some(pysao4c_r.to_owned_array().mapv(Complex::from)),
-                PySAO4c::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
+                PyArray4RC::Real(pysao4c_r) => Some(pysao4c_r.to_owned_array().mapv(Complex::from)),
+                PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
             });
             let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
                 .integrality_threshold(integrality_threshold)
@@ -609,6 +644,7 @@ pub fn rep_analyse_slater_determinant(
                 .use_magnetic_group(use_magnetic_group.clone())
                 .use_double_group(use_double_group)
                 .symmetry_transformation_kind(symmetry_transformation_kind)
+                .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
                 .analyse_mo_symmetries(analyse_mo_symmetries)
                 .analyse_density_symmetries(analyse_density_symmetries)
                 .write_overlap_eigenvalues(write_overlap_eigenvalues)

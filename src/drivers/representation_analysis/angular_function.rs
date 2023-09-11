@@ -5,14 +5,14 @@ use ndarray::{Array1, Array2};
 use num_complex::ComplexFloat;
 use rayon::prelude::*;
 
-use crate::analysis::RepAnalysis;
+use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::angmom::sh_conversion::sh_cart2rl_mat;
 use crate::angmom::spinor_rotation_3d::SpinConstraint;
+use crate::auxiliary::atom::{Atom, ElementMap};
+use crate::auxiliary::molecule::Molecule;
 use crate::basis::ao::{
     cart_tuple_to_str, BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
-use crate::auxiliary::atom::{Atom, ElementMap};
-use crate::auxiliary::molecule::Molecule;
 use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::SubspaceDecomposable;
 use crate::io::format::{log_subtitle, qsym2_output};
@@ -144,6 +144,7 @@ where
                             params.integrality_threshold,
                             params.linear_independence_threshold,
                             SymmetryTransformationKind::Spatial,
+                            EigenvalueComparisonMode::Real,
                         )
                         .map(|(_, mut mo_orbitss)| {
                             mo_orbitss[0]
