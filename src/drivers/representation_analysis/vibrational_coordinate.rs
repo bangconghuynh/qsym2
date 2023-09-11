@@ -49,7 +49,7 @@ const fn default_symbolic() -> Option<CharacterTableDisplay> {
     Some(CharacterTableDisplay::Symbolic)
 }
 
-/// A structure containing control parameters for Slater determinant representation analysis.
+/// A structure containing control parameters for vibrational coordinate representation analysis.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct VibrationalCoordinateRepAnalysisParams<T: From<f64>> {
     /// Threshold for checking if subspace multiplicities are integral.
