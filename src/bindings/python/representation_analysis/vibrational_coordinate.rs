@@ -269,6 +269,7 @@ pub enum PyVibrationalCoordinateCollection {
     angular_function_max_angular_momentum=2
 ))]
 pub fn rep_analyse_vibrational_coordinate_collection(
+    py: Python<'_>,
     inp_sym: PathBuf,
     pyvibs: PyVibrationalCoordinateCollection,
     integrality_threshold: f64,
@@ -283,131 +284,133 @@ pub fn rep_analyse_vibrational_coordinate_collection(
     angular_function_linear_independence_threshold: f64,
     angular_function_max_angular_momentum: u32,
 ) -> PyResult<()> {
-    let pd_res: SymmetryGroupDetectionResult =
-        read_qsym2_binary(inp_sym.clone(), QSym2FileType::Sym)
-            .map_err(|err| PyIOError::new_err(err.to_string()))?;
+    py.allow_threads(|| {
+        let pd_res: SymmetryGroupDetectionResult =
+            read_qsym2_binary(inp_sym.clone(), QSym2FileType::Sym)
+                .map_err(|err| PyIOError::new_err(err.to_string()))?;
 
-    let mut file_name = inp_sym.to_path_buf();
-    file_name.set_extension(QSym2FileType::Sym.ext());
-    qsym2_output!(
-        "Symmetry-group detection results read in from {}.",
-        file_name.display(),
-    );
-    qsym2_output!("");
+        let mut file_name = inp_sym.to_path_buf();
+        file_name.set_extension(QSym2FileType::Sym.ext());
+        qsym2_output!(
+            "Symmetry-group detection results read in from {}.",
+            file_name.display(),
+        );
+        qsym2_output!("");
 
-    let mol = &pd_res.pre_symmetry.recentred_molecule;
+        let mol = &pd_res.pre_symmetry.recentred_molecule;
 
-    let afa_params = AngularFunctionRepAnalysisParams::builder()
-        .integrality_threshold(angular_function_integrality_threshold)
-        .linear_independence_threshold(angular_function_linear_independence_threshold)
-        .max_angular_momentum(angular_function_max_angular_momentum)
-        .build()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    match &pyvibs {
-        PyVibrationalCoordinateCollection::Real(pyvibs_r) => {
-            let vibs_r = pyvibs_r
-                .to_qsym2(mol)
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-            let vca_params = VibrationalCoordinateRepAnalysisParams::<f64>::builder()
-                .integrality_threshold(integrality_threshold)
-                .linear_independence_threshold(linear_independence_threshold)
-                .use_magnetic_group(use_magnetic_group.clone())
-                .use_double_group(use_double_group)
-                .symmetry_transformation_kind(symmetry_transformation_kind)
-                .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
-                .write_character_table(if write_character_table {
-                    Some(CharacterTableDisplay::Symbolic)
-                } else {
-                    None
-                })
-                .infinite_order_to_finite(infinite_order_to_finite)
-                .build()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-            match &use_magnetic_group {
-                Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
-                    let mut vca_driver = VibrationalCoordinateRepAnalysisDriver::<
-                        MagneticRepresentedSymmetryGroup,
-                        f64,
-                    >::builder()
-                    .parameters(&vca_params)
-                    .angular_function_parameters(&afa_params)
-                    .vibrational_coordinate_collection(&vibs_r)
-                    .symmetry_group(&pd_res)
+        let afa_params = AngularFunctionRepAnalysisParams::builder()
+            .integrality_threshold(angular_function_integrality_threshold)
+            .linear_independence_threshold(angular_function_linear_independence_threshold)
+            .max_angular_momentum(angular_function_max_angular_momentum)
+            .build()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+        match &pyvibs {
+            PyVibrationalCoordinateCollection::Real(pyvibs_r) => {
+                let vibs_r = pyvibs_r
+                    .to_qsym2(mol)
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                let vca_params = VibrationalCoordinateRepAnalysisParams::<f64>::builder()
+                    .integrality_threshold(integrality_threshold)
+                    .linear_independence_threshold(linear_independence_threshold)
+                    .use_magnetic_group(use_magnetic_group.clone())
+                    .use_double_group(use_double_group)
+                    .symmetry_transformation_kind(symmetry_transformation_kind)
+                    .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
+                    .write_character_table(if write_character_table {
+                        Some(CharacterTableDisplay::Symbolic)
+                    } else {
+                        None
+                    })
+                    .infinite_order_to_finite(infinite_order_to_finite)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    vca_driver
-                        .run()
-                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-                }
-                Some(MagneticSymmetryAnalysisKind::Representation) | None => {
-                    let mut vca_driver = VibrationalCoordinateRepAnalysisDriver::<
-                        UnitaryRepresentedSymmetryGroup,
-                        f64,
-                    >::builder()
-                    .parameters(&vca_params)
-                    .angular_function_parameters(&afa_params)
-                    .vibrational_coordinate_collection(&vibs_r)
-                    .symmetry_group(&pd_res)
+                match &use_magnetic_group {
+                    Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
+                        let mut vca_driver = VibrationalCoordinateRepAnalysisDriver::<
+                            MagneticRepresentedSymmetryGroup,
+                            f64,
+                        >::builder()
+                        .parameters(&vca_params)
+                        .angular_function_parameters(&afa_params)
+                        .vibrational_coordinate_collection(&vibs_r)
+                        .symmetry_group(&pd_res)
+                        .build()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        vca_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    }
+                    Some(MagneticSymmetryAnalysisKind::Representation) | None => {
+                        let mut vca_driver = VibrationalCoordinateRepAnalysisDriver::<
+                            UnitaryRepresentedSymmetryGroup,
+                            f64,
+                        >::builder()
+                        .parameters(&vca_params)
+                        .angular_function_parameters(&afa_params)
+                        .vibrational_coordinate_collection(&vibs_r)
+                        .symmetry_group(&pd_res)
+                        .build()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        vca_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    }
+                };
+            }
+            PyVibrationalCoordinateCollection::Complex(pyvibs_c) => {
+                let vibs_c = pyvibs_c
+                    .to_qsym2(mol)
+                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                let vca_params = VibrationalCoordinateRepAnalysisParams::<f64>::builder()
+                    .integrality_threshold(integrality_threshold)
+                    .linear_independence_threshold(linear_independence_threshold)
+                    .use_magnetic_group(use_magnetic_group.clone())
+                    .use_double_group(use_double_group)
+                    .symmetry_transformation_kind(symmetry_transformation_kind)
+                    .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
+                    .write_character_table(if write_character_table {
+                        Some(CharacterTableDisplay::Symbolic)
+                    } else {
+                        None
+                    })
+                    .infinite_order_to_finite(infinite_order_to_finite)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    vca_driver
-                        .run()
-                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-                }
-            };
+                match &use_magnetic_group {
+                    Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
+                        let mut vca_driver = VibrationalCoordinateRepAnalysisDriver::<
+                            MagneticRepresentedSymmetryGroup,
+                            C128,
+                        >::builder()
+                        .parameters(&vca_params)
+                        .angular_function_parameters(&afa_params)
+                        .vibrational_coordinate_collection(&vibs_c)
+                        .symmetry_group(&pd_res)
+                        .build()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        vca_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    }
+                    Some(MagneticSymmetryAnalysisKind::Representation) | None => {
+                        let mut vca_driver = VibrationalCoordinateRepAnalysisDriver::<
+                            UnitaryRepresentedSymmetryGroup,
+                            C128,
+                        >::builder()
+                        .parameters(&vca_params)
+                        .angular_function_parameters(&afa_params)
+                        .vibrational_coordinate_collection(&vibs_c)
+                        .symmetry_group(&pd_res)
+                        .build()
+                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+                        vca_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    }
+                };
+            }
         }
-        PyVibrationalCoordinateCollection::Complex(pyvibs_c) => {
-            let vibs_c = pyvibs_c
-                .to_qsym2(mol)
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-            let vca_params = VibrationalCoordinateRepAnalysisParams::<f64>::builder()
-                .integrality_threshold(integrality_threshold)
-                .linear_independence_threshold(linear_independence_threshold)
-                .use_magnetic_group(use_magnetic_group.clone())
-                .use_double_group(use_double_group)
-                .symmetry_transformation_kind(symmetry_transformation_kind)
-                .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
-                .write_character_table(if write_character_table {
-                    Some(CharacterTableDisplay::Symbolic)
-                } else {
-                    None
-                })
-                .infinite_order_to_finite(infinite_order_to_finite)
-                .build()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-            match &use_magnetic_group {
-                Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
-                    let mut vca_driver = VibrationalCoordinateRepAnalysisDriver::<
-                        MagneticRepresentedSymmetryGroup,
-                        C128,
-                    >::builder()
-                    .parameters(&vca_params)
-                    .angular_function_parameters(&afa_params)
-                    .vibrational_coordinate_collection(&vibs_c)
-                    .symmetry_group(&pd_res)
-                    .build()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    vca_driver
-                        .run()
-                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-                }
-                Some(MagneticSymmetryAnalysisKind::Representation) | None => {
-                    let mut vca_driver = VibrationalCoordinateRepAnalysisDriver::<
-                        UnitaryRepresentedSymmetryGroup,
-                        C128,
-                    >::builder()
-                    .parameters(&vca_params)
-                    .angular_function_parameters(&afa_params)
-                    .vibrational_coordinate_collection(&vibs_c)
-                    .symmetry_group(&pd_res)
-                    .build()
-                    .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    vca_driver
-                        .run()
-                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-                }
-            };
-        }
-    }
-    Ok(())
+        Ok(())
+    })
 }

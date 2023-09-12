@@ -586,25 +586,21 @@ impl<'a> VibrationalCoordinateRepAnalysisDriver<'a, gtype_, dtype_> {
             let vibs = self
                 .vibrational_coordinate_collection
                 .to_vibrational_coordinates();
-            let vib_orbits = vibs
-                .iter()
-                .map(|vib| {
-                    let mut vib_orbit = VibrationalCoordinateSymmetryOrbit::builder()
-                        .group(&group)
-                        .origin(vib)
-                        .integrality_threshold(params.integrality_threshold)
-                        .linear_independence_threshold(params.linear_independence_threshold)
-                        .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
-                        .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
-                        .build()?;
-                    vib_orbit
-                        .calc_smat(None)
-                        .and_then(|orbit| orbit.calc_xmat(false))?;
-                    Ok::<_, anyhow::Error>(vib_orbit)
-                })
-                .collect::<Vec<_>>();
+            let vib_orbits = vibs.par_iter().map(|vib| {
+                let mut vib_orbit = VibrationalCoordinateSymmetryOrbit::builder()
+                    .group(&group)
+                    .origin(vib)
+                    .integrality_threshold(params.integrality_threshold)
+                    .linear_independence_threshold(params.linear_independence_threshold)
+                    .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
+                    .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
+                    .build()?;
+                vib_orbit
+                    .calc_smat(None)
+                    .and_then(|orbit| orbit.calc_xmat(false))?;
+                Ok::<_, anyhow::Error>(vib_orbit)
+            });
             let (vib_symmetries, vib_symmetries_thresholds): (Vec<_>, Vec<_>) = vib_orbits
-                .par_iter()
                 .map(|vib_orbit_res| {
                     vib_orbit_res
                         .as_ref()
