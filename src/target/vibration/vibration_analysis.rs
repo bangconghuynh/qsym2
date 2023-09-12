@@ -7,7 +7,6 @@ use derive_builder::Builder;
 use itertools::Itertools;
 use ndarray::{Array1, Array2, Axis, Ix2};
 use ndarray_linalg::{
-    assert_close_l2,
     eig::Eig,
     eigh::Eigh,
     types::{Lapack, Scalar},

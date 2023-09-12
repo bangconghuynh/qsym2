@@ -587,7 +587,7 @@ impl<'a> VibrationalCoordinateRepAnalysisDriver<'a, gtype_, dtype_> {
                 .vibrational_coordinate_collection
                 .to_vibrational_coordinates();
             let vib_orbits = vibs
-                .par_iter()
+                .iter()
                 .map(|vib| {
                     let mut vib_orbit = VibrationalCoordinateSymmetryOrbit::builder()
                         .group(&group)
@@ -596,77 +596,78 @@ impl<'a> VibrationalCoordinateRepAnalysisDriver<'a, gtype_, dtype_> {
                         .linear_independence_threshold(params.linear_independence_threshold)
                         .symmetry_transformation_kind(params.symmetry_transformation_kind.clone())
                         .eigenvalue_comparison_mode(params.eigenvalue_comparison_mode.clone())
-                        .build()
-                        .expect("Unable to construct a vibrational coordinate orbit.");
+                        .build()?;
                     vib_orbit
                         .calc_smat(None)
-                        .expect("Unable to construct the orbit overlap matrix.");
-                    vib_orbit.calc_xmat(false);
-                    vib_orbit
+                        .and_then(|orbit| orbit.calc_xmat(false))?;
+                    Ok::<_, anyhow::Error>(vib_orbit)
                 })
                 .collect::<Vec<_>>();
-            let vib_symmetries = vib_orbits
+            let (vib_symmetries, vib_symmetries_thresholds): (Vec<_>, Vec<_>) = vib_orbits
                 .par_iter()
-                .map(|vib_orbit| vib_orbit.analyse_rep().map_err(|err| err.to_string()))
-                .collect::<Vec<_>>();
-            let vib_symmetries_thresholds = vib_orbits
-                .par_iter()
-                .map(|vib_orbit| {
-                    vib_orbit
-                        .smat_eigvals
+                .map(|vib_orbit_res| {
+                    vib_orbit_res
                         .as_ref()
-                        .map(|eigvals| {
-                            let mut eigvals_vec = eigvals.iter().collect::<Vec<_>>();
-                            match vib_orbit.eigenvalue_comparison_mode {
-                                EigenvalueComparisonMode::Modulus => {
-                                    eigvals_vec.sort_by(|a, b| {
-                                        a.abs().partial_cmp(&b.abs()).expect("Unable to compare two eigenvalues based on their moduli.")
-                                    });
-                                }
-                                EigenvalueComparisonMode::Real => {
-                                    eigvals_vec.sort_by(|a, b| {
-                                        a.re().partial_cmp(&b.re()).expect("Unable to compare two eigenvalues based on their real parts.")
-                                    });
-                                }
-                            }
-                            let eigval_above = match vib_orbit.eigenvalue_comparison_mode {
-                                EigenvalueComparisonMode::Modulus => eigvals_vec
-                                    .iter()
-                                    .find(|val| {
-                                        val.abs() >= vib_orbit.linear_independence_threshold
-                                    })
-                                    .copied()
-                                    .copied(),
-                                EigenvalueComparisonMode::Real => eigvals_vec
-                                    .iter()
-                                    .find(|val| {
-                                        val.re() >= vib_orbit.linear_independence_threshold
-                                    })
-                                    .copied()
-                                    .copied(),
-                            };
-                            eigvals_vec.reverse();
-                            let eigval_below = match vib_orbit.eigenvalue_comparison_mode {
-                                EigenvalueComparisonMode::Modulus => eigvals_vec
-                                    .iter()
-                                    .find(|val| {
-                                        val.abs() < vib_orbit.linear_independence_threshold
-                                    })
-                                    .copied()
-                                    .copied(),
-                                EigenvalueComparisonMode::Real => eigvals_vec
-                                    .iter()
-                                    .find(|val| {
-                                        val.re() < vib_orbit.linear_independence_threshold
-                                    })
-                                    .copied()
-                                    .copied(),
-                            };
-                            (eigval_above, eigval_below)
+                        .map(|vib_orbit| {
+                            let sym_res = vib_orbit.analyse_rep().map_err(|err| err.to_string());
+                            let eigs = vib_orbit
+                                .smat_eigvals
+                                .as_ref()
+                                .map(|eigvals| {
+                                    let mut eigvals_vec = eigvals.iter().collect::<Vec<_>>();
+                                    match vib_orbit.eigenvalue_comparison_mode {
+                                        EigenvalueComparisonMode::Modulus => {
+                                            eigvals_vec.sort_by(|a, b| {
+                                                a.abs().partial_cmp(&b.abs()).expect("Unable to compare two eigenvalues based on their moduli.")
+                                            });
+                                        }
+                                        EigenvalueComparisonMode::Real => {
+                                            eigvals_vec.sort_by(|a, b| {
+                                                a.re().partial_cmp(&b.re()).expect("Unable to compare two eigenvalues based on their real parts.")
+                                            });
+                                        }
+                                    }
+                                    let eigval_above = match vib_orbit.eigenvalue_comparison_mode {
+                                        EigenvalueComparisonMode::Modulus => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.abs() >= vib_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                        EigenvalueComparisonMode::Real => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.re() >= vib_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                    };
+                                    eigvals_vec.reverse();
+                                    let eigval_below = match vib_orbit.eigenvalue_comparison_mode {
+                                        EigenvalueComparisonMode::Modulus => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.abs() < vib_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                        EigenvalueComparisonMode::Real => eigvals_vec
+                                            .iter()
+                                            .find(|val| {
+                                                val.re() < vib_orbit.linear_independence_threshold
+                                            })
+                                            .copied()
+                                            .copied(),
+                                    };
+                                    (eigval_above, eigval_below)
+                                })
+                                .unwrap_or_else(|| (None, None));
+                            (sym_res, eigs)
                         })
-                        .unwrap_or((None, None))
+                        .unwrap_or((Err("--".to_string()), (None, None)))
                 })
-                .collect::<Vec<_>>();
+                .unzip();
             (vib_symmetries, vib_symmetries_thresholds)
         };
 

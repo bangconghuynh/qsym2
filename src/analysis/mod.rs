@@ -561,35 +561,39 @@ where
 macro_rules! fn_calc_xmat_real {
     ( $(#[$meta:meta])* $vis:vis $func:ident ) => {
         $(#[$meta])*
-        $vis fn $func(&mut self, preserves_full_rank: bool) -> &mut Self {
+        $vis fn $func(&mut self, preserves_full_rank: bool) -> Result<&mut Self, anyhow::Error> {
             // Real, symmetric S
             let thresh = self.linear_independence_threshold;
             let smat = self
                 .smat
                 .as_ref()
-                .expect("No overlap matrix found for this orbit.");
-            assert_close_l2!(smat, &smat.t(), thresh);
-            let (s_eig, umat) = smat.eigh(UPLO::Lower).unwrap();
-            let nonzero_s_indices = match self.eigenvalue_comparison_mode {
-                EigenvalueComparisonMode::Modulus => {
-                    s_eig.iter().positions(|x| x.abs() > thresh).collect_vec()
-                }
-                EigenvalueComparisonMode::Real => {
-                    s_eig.iter().positions(|x| *x > thresh).collect_vec()
-                }
-            };
-            let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
-            let nonzero_umat = umat.select(Axis(1), &nonzero_s_indices);
-            let nullity = smat.shape()[0] - nonzero_s_indices.len();
-            let xmat = if nullity == 0 && preserves_full_rank {
-                Array2::eye(smat.shape()[0])
+                .ok_or(format_err!("No overlap matrix found for this orbit."))?;
+            use ndarray_linalg::norm::Norm;
+            if (smat.to_owned() - smat.t()).norm_l2() > thresh {
+                Err(format_err!("Overlap matrix is not symmetric."))
             } else {
-                let s_s = Array2::<f64>::from_diag(&nonzero_s_eig.mapv(|x| 1.0 / x.sqrt()));
-                nonzero_umat.dot(&s_s)
-            };
-            self.smat_eigvals = Some(s_eig);
-            self.xmat = Some(xmat);
-            self
+                let (s_eig, umat) = smat.eigh(UPLO::Lower).map_err(|err| format_err!(err))?;
+                let nonzero_s_indices = match self.eigenvalue_comparison_mode {
+                    EigenvalueComparisonMode::Modulus => {
+                        s_eig.iter().positions(|x| x.abs() > thresh).collect_vec()
+                    }
+                    EigenvalueComparisonMode::Real => {
+                        s_eig.iter().positions(|x| *x > thresh).collect_vec()
+                    }
+                };
+                let nonzero_s_eig = s_eig.select(Axis(0), &nonzero_s_indices);
+                let nonzero_umat = umat.select(Axis(1), &nonzero_s_indices);
+                let nullity = smat.shape()[0] - nonzero_s_indices.len();
+                let xmat = if nullity == 0 && preserves_full_rank {
+                    Array2::eye(smat.shape()[0])
+                } else {
+                    let s_s = Array2::<f64>::from_diag(&nonzero_s_eig.mapv(|x| 1.0 / x.sqrt()));
+                    nonzero_umat.dot(&s_s)
+                };
+                self.smat_eigvals = Some(s_eig);
+                self.xmat = Some(xmat);
+                Ok(self)
+            }
         }
     }
 }
@@ -597,14 +601,14 @@ macro_rules! fn_calc_xmat_real {
 macro_rules! fn_calc_xmat_complex {
     ( $(#[$meta:meta])* $vis:vis $func:ident ) => {
         $(#[$meta])*
-        $vis fn $func(&mut self, preserves_full_rank: bool) -> &mut Self {
+        $vis fn $func(&mut self, preserves_full_rank: bool) -> Result<&mut Self, anyhow::Error> {
             // Complex S, symmetric or Hermitian
             let thresh = self.linear_independence_threshold;
             let smat = self
                 .smat
                 .as_ref()
-                .expect("No overlap matrix found for this orbit.");
-            let (s_eig, umat_nonortho) = smat.eig().unwrap();
+                .ok_or(format_err!("No overlap matrix found for this orbit."))?;
+            let (s_eig, umat_nonortho) = smat.eig().map_err(|err| format_err!(err))?;
 
             let nonzero_s_indices = match self.eigenvalue_comparison_mode {
                 EigenvalueComparisonMode::Modulus => s_eig
@@ -634,9 +638,9 @@ macro_rules! fn_calc_xmat_complex {
                 self.origin.complex_symmetric(),
                 thresh,
             )
-            .expect(
-                "Unable to orthonormalise the linearly-independent eigenvectors of the overlap matrix.",
-            );
+            .map_err(
+                |_| format_err!("Unable to orthonormalise the linearly-independent eigenvectors of the overlap matrix.")
+            )?;
 
             let nullity = smat.shape()[0] - nonzero_s_indices.len();
             let xmat = if nullity == 0 && preserves_full_rank {
@@ -649,7 +653,7 @@ macro_rules! fn_calc_xmat_complex {
             };
             self.smat_eigvals = Some(s_eig);
             self.xmat = Some(xmat);
-            self
+            Ok(self)
         }
     }
 }

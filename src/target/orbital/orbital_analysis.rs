@@ -8,7 +8,6 @@ use itertools::{izip, Itertools};
 use log;
 use ndarray::{s, Array1, Array2, Axis, Ix2};
 use ndarray_linalg::{
-    assert_close_l2,
     eig::Eig,
     eigh::Eigh,
     solve::Determinant,

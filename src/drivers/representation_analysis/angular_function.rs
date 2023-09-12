@@ -150,8 +150,8 @@ where
                             mo_orbitss[0]
                                 .par_iter_mut()
                                 .map(|mo_orbit| {
-                                    mo_orbit.calc_xmat(false);
-                                    mo_orbit.analyse_rep()
+                                    mo_orbit.calc_xmat(false)?;
+                                    mo_orbit.analyse_rep().map_err(|err| format_err!(err))
                                 })
                                 .collect::<Vec<_>>()
                         })

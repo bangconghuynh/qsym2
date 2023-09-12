@@ -918,7 +918,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 params.symmetry_transformation_kind.clone(),
                 params.eigenvalue_comparison_mode.clone(),
             )?;
-            det_orbit.calc_xmat(false);
+            det_orbit.calc_xmat(false)?;
             if params.write_overlap_eigenvalues {
                 if let Some(smat_eigvals) = det_orbit.smat_eigvals.as_ref() {
                     log_overlap_eigenvalues(
@@ -937,7 +937,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                     mo_orbits
                         .par_iter_mut()
                         .map(|mo_orbit| {
-                            mo_orbit.calc_xmat(false);
+                            mo_orbit.calc_xmat(false).ok()?;
                             mo_orbit.analyse_rep().ok()
                         })
                         .collect::<Vec<_>>()
@@ -1025,7 +1025,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                 .and_then(|det_orb| det_orb.normalise_smat())
                 .map_err(|err| err.to_string())
                 .and_then(|det_orb| {
-                    det_orb.calc_xmat(false);
+                    det_orb.calc_xmat(false).map_err(|err| err.to_string())?;
                     if params.write_overlap_eigenvalues {
                         if let Some(smat_eigvals) = det_orb.smat_eigvals.as_ref() {
                             log_overlap_eigenvalues(
@@ -1065,7 +1065,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                             den_orbit
                                 .calc_smat(self.sao_spatial_4c)?
                                 .normalise_smat()?
-                                .calc_xmat(false);
+                                .calc_xmat(false)?;
                             den_orbit.analyse_rep().map_err(|err| format_err!(err))
                         };
                         (
@@ -1105,7 +1105,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                 .build()?;
                             total_den_orbit
                                 .calc_smat(self.sao_spatial_4c)?
-                                .calc_xmat(false);
+                                .calc_xmat(false)?;
                             total_den_orbit
                                 .analyse_rep()
                                 .map_err(|err| format_err!(err))
@@ -1136,7 +1136,7 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                         .build()?;
                                     den_ij_orbit
                                         .calc_smat(self.sao_spatial_4c)?
-                                        .calc_xmat(false);
+                                        .calc_xmat(false)?;
                                     den_ij_orbit.analyse_rep().map_err(|err| format_err!(err))
                                 };
                                 (
@@ -1181,7 +1181,8 @@ impl<'a> SlaterDeterminantRepAnalysisDriver<'a, gtype_, dtype_> {
                                     .ok()?
                                     .normalise_smat()
                                     .ok()?
-                                    .calc_xmat(false);
+                                    .calc_xmat(false)
+                                    .ok()?;
                                 mo_den_orbit.analyse_rep().ok()
                             })
                             .collect::<Vec<_>>()
