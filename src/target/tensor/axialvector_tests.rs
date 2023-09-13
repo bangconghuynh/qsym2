@@ -1,13 +1,11 @@
-use env_logger;
 use nalgebra::Vector3;
 use num_complex::Complex;
 
 use crate::analysis::{EigenvalueComparisonMode, RepAnalysis};
 use crate::auxiliary::molecule::Molecule;
 use crate::chartab::chartab_symbols::DecomposedSymbol;
-use crate::group::{UnitaryRepresentedGroup, GroupProperties};
+use crate::group::UnitaryRepresentedGroup;
 use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
-use crate::symmetry::symmetry_element_order::ElementOrder;
 use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_symbols::MullikenIrrepSymbol;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;

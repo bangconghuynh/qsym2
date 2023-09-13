@@ -185,7 +185,7 @@ fn test_drivers_vibrational_coordinate_analysis_xef4() {
 
 #[test]
 fn test_drivers_vibrational_coordinate_analysis_xef4_magnetic_field() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/xef4.xyz");
 
     let afa_params = AngularFunctionRepAnalysisParams::default();
