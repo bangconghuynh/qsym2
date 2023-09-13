@@ -207,8 +207,13 @@ pub trait TimeReversalTransformable:
 // Blanket implementation
 // ----------------------
 
+/// A marker trait indicating that the implementing type should get the blanket implementation for
+/// [`TimeReversalTransformable`].
+pub trait DefaultTimeReversalTransformable:
+{}
+
 impl<T> TimeReversalTransformable for T where
-    T: SpinUnitaryTransformable + ComplexConjugationTransformable
+    T: DefaultTimeReversalTransformable + SpinUnitaryTransformable + ComplexConjugationTransformable
 {
 }
 

@@ -2,14 +2,14 @@ use ndarray::{concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};
 
-use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::auxiliary::molecule::Molecule;
+use crate::basis::ao::{BasisAngularOrder, BasisAtom, BasisShell, CartOrder, ShellOrder};
 use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
     assemble_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
-    SpatialUnitaryTransformable, SpinUnitaryTransformable, SymmetryTransformable,
-    TimeReversalTransformable, TransformationError,
+    DefaultTimeReversalTransformable, SpatialUnitaryTransformable, SpinUnitaryTransformable,
+    SymmetryTransformable, TimeReversalTransformable, TransformationError,
 };
 use crate::target::vibration::VibrationalCoordinate;
 
@@ -94,6 +94,14 @@ where
         self.coefficients.mapv_inplace(|x| x.conj());
         self
     }
+}
+
+// --------------------------------
+// DefaultTimeReversalTransformable
+// --------------------------------
+impl<'a, T> DefaultTimeReversalTransformable for VibrationalCoordinate<'a, T> where
+    T: ComplexFloat + Lapack
+{
 }
 
 // ---------------------
