@@ -375,8 +375,19 @@ impl TryFrom<&Symmetry> for PySymmetry {
 ///
 /// Returns an error if any intermediate step in the symmetry-group detection procedure fails.
 #[pyfunction]
-#[pyo3(signature = (inp_xyz, inp_mol, out_sym, moi_thresholds, distance_thresholds, time_reversal, write_symmetry_elements=true, fictitious_magnetic_field=None, fictitious_electric_field=None))]
+#[pyo3(signature = (
+    inp_xyz,
+    inp_mol,
+    out_sym,
+    moi_thresholds,
+    distance_thresholds,
+    time_reversal,
+    write_symmetry_elements=true,
+    fictitious_magnetic_field=None,
+    fictitious_electric_field=None
+))]
 pub fn detect_symmetry_group(
+    py: Python<'_>,
     inp_xyz: Option<PathBuf>,
     inp_mol: Option<PyMolecule>,
     out_sym: Option<PathBuf>,
@@ -387,49 +398,51 @@ pub fn detect_symmetry_group(
     fictitious_magnetic_field: Option<[f64; 3]>,
     fictitious_electric_field: Option<[f64; 3]>,
 ) -> PyResult<(PySymmetry, Option<PySymmetry>)> {
-    let params = SymmetryGroupDetectionParams::builder()
-        .distance_thresholds(&distance_thresholds)
-        .moi_thresholds(&moi_thresholds)
-        .time_reversal(time_reversal)
-        .fictitious_magnetic_fields(
-            fictitious_magnetic_field
-                .map(|bs| vec![(Point3::<f64>::origin(), Vector3::new(bs[0], bs[1], bs[2]))]),
-        )
-        .fictitious_electric_fields(
-            fictitious_electric_field
-                .map(|es| vec![(Point3::<f64>::origin(), Vector3::new(es[0], es[1], es[2]))]),
-        )
-        .field_origin_com(true)
-        .write_symmetry_elements(write_symmetry_elements)
-        .result_save_name(out_sym)
-        .build()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    let inp_mol = inp_mol.map(Molecule::from);
-    let mut pd_driver = SymmetryGroupDetectionDriver::builder()
-        .parameters(&params)
-        .xyz(inp_xyz)
-        .molecule(inp_mol.as_ref())
-        .build()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    pd_driver
-        .run()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    let pyunitary_symmetry: PySymmetry = (&pd_driver
-        .result()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-        .unitary_symmetry)
-        .try_into()
-        .map_err(|err: anyhow::Error| PyRuntimeError::new_err(err.to_string()))?;
-    let pymagnetic_symmetry: Option<PySymmetry> = pd_driver
-        .result()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-        .magnetic_symmetry
-        .as_ref()
-        .map(|magsym| {
-            magsym
-                .try_into()
-                .map_err(|err: anyhow::Error| PyRuntimeError::new_err(err.to_string()))
-        })
-        .transpose()?;
-    Ok((pyunitary_symmetry, pymagnetic_symmetry))
+    py.allow_threads(|| {
+        let params = SymmetryGroupDetectionParams::builder()
+            .distance_thresholds(&distance_thresholds)
+            .moi_thresholds(&moi_thresholds)
+            .time_reversal(time_reversal)
+            .fictitious_magnetic_fields(
+                fictitious_magnetic_field
+                    .map(|bs| vec![(Point3::<f64>::origin(), Vector3::new(bs[0], bs[1], bs[2]))]),
+            )
+            .fictitious_electric_fields(
+                fictitious_electric_field
+                    .map(|es| vec![(Point3::<f64>::origin(), Vector3::new(es[0], es[1], es[2]))]),
+            )
+            .field_origin_com(true)
+            .write_symmetry_elements(write_symmetry_elements)
+            .result_save_name(out_sym)
+            .build()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+        let inp_mol = inp_mol.map(Molecule::from);
+        let mut pd_driver = SymmetryGroupDetectionDriver::builder()
+            .parameters(&params)
+            .xyz(inp_xyz)
+            .molecule(inp_mol.as_ref())
+            .build()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+        pd_driver
+            .run()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+        let pyunitary_symmetry: PySymmetry = (&pd_driver
+            .result()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+            .unitary_symmetry)
+            .try_into()
+            .map_err(|err: anyhow::Error| PyRuntimeError::new_err(err.to_string()))?;
+        let pymagnetic_symmetry: Option<PySymmetry> = pd_driver
+            .result()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+            .magnetic_symmetry
+            .as_ref()
+            .map(|magsym| {
+                magsym
+                    .try_into()
+                    .map_err(|err: anyhow::Error| PyRuntimeError::new_err(err.to_string()))
+            })
+            .transpose()?;
+        Ok((pyunitary_symmetry, pymagnetic_symmetry))
+    })
 }

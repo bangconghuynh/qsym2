@@ -1,6 +1,6 @@
 use anyhow::{self, bail, ensure};
 #[cfg(feature = "integrals")]
-use nalgebra::{Vector3, Point3};
+use nalgebra::{Point3, Vector3};
 #[cfg(feature = "integrals")]
 use num_complex::Complex;
 #[cfg(feature = "integrals")]
@@ -16,7 +16,7 @@ use crate::basis::ao::{
     BasisAngularOrder, BasisAtom, BasisShell, CartOrder, PureOrder, ShellOrder,
 };
 #[cfg(feature = "integrals")]
-use crate::basis::ao_integrals::{BasisShellContraction, GaussianContraction, BasisSet};
+use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContraction};
 #[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
 
@@ -287,7 +287,7 @@ impl PyBasisShellContraction {
             basis_shell,
             primitives,
             cart_origin,
-            k
+            k,
         }
     }
 }
@@ -335,24 +335,23 @@ pub fn calc_overlap_4c_real<'py>(
             .map(|basis_atom| {
                 basis_atom
                     .into_iter()
-                    .map(|pybsc| {
-                        BasisShellContraction::<f64, f64>::try_from(pybsc)
-                    })
+                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
                     .collect::<Result<Vec<_>, _>>()
             })
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|err| PyValueError::new_err(err.to_string()))?
+            .map_err(|err| PyValueError::new_err(err.to_string()))?,
     );
-    let stc = build_shell_tuple_collection![
-        <s1, s2, s3, s4>;
-        false, false, false, false;
-        &bscs, &bscs, &bscs, &bscs;
-        f64
-    ];
-    let sao_4c = stc
-        .overlap([0, 0, 0, 0])
-        .pop()
-        .expect("Unable to retrieve the four-centre overlap tensor.");
+    let sao_4c = py.allow_threads(|| {
+        let stc = build_shell_tuple_collection![
+            <s1, s2, s3, s4>;
+            false, false, false, false;
+            &bscs, &bscs, &bscs, &bscs;
+            f64
+        ];
+        stc.overlap([0, 0, 0, 0])
+            .pop()
+            .expect("Unable to retrieve the four-centre overlap tensor.")
+    });
     let pysao_4c = sao_4c.into_pyarray(py);
     Ok(pysao_4c)
 }
@@ -375,24 +374,23 @@ pub fn calc_overlap_4c_complex<'py>(
             .map(|basis_atom| {
                 basis_atom
                     .into_iter()
-                    .map(|pybsc| {
-                        BasisShellContraction::<f64, f64>::try_from(pybsc)
-                    })
+                    .map(|pybsc| BasisShellContraction::<f64, f64>::try_from(pybsc))
                     .collect::<Result<Vec<_>, _>>()
             })
             .collect::<Result<Vec<_>, _>>()
-            .map_err(|err| PyValueError::new_err(err.to_string()))?
+            .map_err(|err| PyValueError::new_err(err.to_string()))?,
     );
-    let stc = build_shell_tuple_collection![
-        <s1, s2, s3, s4>;
-        true, true, false, false;
-        &bscs, &bscs, &bscs, &bscs;
-        Complex<f64>
-    ];
-    let sao_4c = stc
-        .overlap([0, 0, 0, 0])
-        .pop()
-        .expect("Unable to retrieve the four-centre overlap tensor.");
+    let sao_4c = py.allow_threads(|| {
+        let stc = build_shell_tuple_collection![
+            <s1, s2, s3, s4>;
+            true, true, false, false;
+            &bscs, &bscs, &bscs, &bscs;
+            Complex<f64>
+        ];
+        stc.overlap([0, 0, 0, 0])
+            .pop()
+            .expect("Unable to retrieve the four-centre overlap tensor.")
+    });
     let pysao_4c = sao_4c.into_pyarray(py);
     Ok(pysao_4c)
 }
@@ -451,18 +449,16 @@ fn create_basis_shell(
         ShellOrder::Cart(cart_order)
     } else {
         match shell_order {
-            PyShellOrder::PureOrder(pypureorder) => {
-                match pypureorder {
-                    PyPureOrder::Standard(increasingm) => {
-                        if *increasingm {
-                            ShellOrder::Pure(PureOrder::increasingm(*l))
-                        } else {
-                            ShellOrder::Pure(PureOrder::decreasingm(*l))
-                        }
+            PyShellOrder::PureOrder(pypureorder) => match pypureorder {
+                PyPureOrder::Standard(increasingm) => {
+                    if *increasingm {
+                        ShellOrder::Pure(PureOrder::increasingm(*l))
+                    } else {
+                        ShellOrder::Pure(PureOrder::decreasingm(*l))
                     }
-                    PyPureOrder::Custom(mls) => ShellOrder::Pure(PureOrder::new(mls)?),
                 }
-            }
+                PyPureOrder::Custom(mls) => ShellOrder::Pure(PureOrder::new(mls)?),
+            },
             PyShellOrder::CartOrder(_) => {
                 log::error!(
                     "Pure shell order expected, but specification for Cartesian shell order found."
