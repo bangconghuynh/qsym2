@@ -64,7 +64,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_nh3_spatial_vib1
+    let _ = orbit_u_nh3_spatial_vib1
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -100,7 +100,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_nh3_spatial_vib2
+    let _ = orbit_u_nh3_spatial_vib2
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -136,7 +136,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_nh3_spatial_vib3
+    let _ = orbit_u_nh3_spatial_vib3
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -172,7 +172,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_nh3_spatial_vib4
+    let _ = orbit_u_nh3_spatial_vib4
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -208,7 +208,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_nh3_spatial_vib5
+    let _ = orbit_u_nh3_spatial_vib5
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -244,7 +244,7 @@ fn test_vibration_orbit_rep_analysis_nh3() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_nh3_spatial_vib6
+    let _ = orbit_u_nh3_spatial_vib6
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -298,7 +298,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_ch4_spatial_vib1
+    let _ = orbit_u_ch4_spatial_vib1
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -335,7 +335,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_ch4_spatial_vib2
+    let _ = orbit_u_ch4_spatial_vib2
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -372,7 +372,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_ch4_spatial_vib3
+    let _ = orbit_u_ch4_spatial_vib3
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -409,7 +409,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_ch4_spatial_vib4
+    let _ = orbit_u_ch4_spatial_vib4
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -446,7 +446,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_ch4_spatial_vib5
+    let _ = orbit_u_ch4_spatial_vib5
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -483,7 +483,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_ch4_spatial_vib6
+    let _ = orbit_u_ch4_spatial_vib6
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -520,7 +520,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_ch4_spatial_vib7
+    let _ = orbit_u_ch4_spatial_vib7
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -557,7 +557,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_ch4_spatial_vib8
+    let _ = orbit_u_ch4_spatial_vib8
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -594,7 +594,7 @@ fn test_vibration_orbit_rep_analysis_ch4() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_ch4_spatial_vib9
+    let _ = orbit_u_ch4_spatial_vib9
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -655,7 +655,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_d4h_ch4_spatial_vib1
+    let _ = orbit_u_d4h_ch4_spatial_vib1
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -673,7 +673,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_c4h_ch4_spatial_vib1
+    let _ = orbit_u_c4h_ch4_spatial_vib1
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -710,7 +710,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_d4h_ch4_spatial_vib2
+    let _ = orbit_u_d4h_ch4_spatial_vib2
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -728,7 +728,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_c4h_ch4_spatial_vib2
+    let _ = orbit_u_c4h_ch4_spatial_vib2
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -765,7 +765,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_d4h_ch4_spatial_vib3
+    let _ = orbit_u_d4h_ch4_spatial_vib3
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -783,7 +783,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_c4h_ch4_spatial_vib3
+    let _ = orbit_u_c4h_ch4_spatial_vib3
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -820,7 +820,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_d4h_ch4_spatial_vib4
+    let _ = orbit_u_d4h_ch4_spatial_vib4
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -838,7 +838,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_c4h_ch4_spatial_vib4
+    let _ = orbit_u_c4h_ch4_spatial_vib4
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -875,7 +875,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_d4h_ch4_spatial_vib5
+    let _ = orbit_u_d4h_ch4_spatial_vib5
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -893,7 +893,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_c4h_ch4_spatial_vib5
+    let _ = orbit_u_c4h_ch4_spatial_vib5
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -930,7 +930,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_d4h_ch4_spatial_vib6
+    let _ = orbit_u_d4h_ch4_spatial_vib6
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -948,7 +948,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_c4h_ch4_spatial_vib6
+    let _ = orbit_u_c4h_ch4_spatial_vib6
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -985,7 +985,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_d4h_ch4_spatial_vib7
+    let _ = orbit_u_d4h_ch4_spatial_vib7
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -1003,7 +1003,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_c4h_ch4_spatial_vib7
+    let _ = orbit_u_c4h_ch4_spatial_vib7
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -1040,7 +1040,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_d4h_ch4_spatial_vib8
+    let _ = orbit_u_d4h_ch4_spatial_vib8
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -1058,7 +1058,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_c4h_ch4_spatial_vib8
+    let _ = orbit_u_c4h_ch4_spatial_vib8
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -1095,7 +1095,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_d4h_ch4_spatial_vib9
+    let _ = orbit_u_d4h_ch4_spatial_vib9
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);
@@ -1113,7 +1113,7 @@ fn test_vibration_orbit_rep_analysis_xef4_magnetic_field() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_u_c4h_ch4_spatial_vib9
+    let _ = orbit_u_c4h_ch4_spatial_vib9
         .calc_smat(None)
         .unwrap()
         .calc_xmat(false);

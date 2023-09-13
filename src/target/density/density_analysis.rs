@@ -9,7 +9,6 @@ use log;
 use ndarray::{Array1, Array2, Array4, Axis, Ix4};
 use ndarray_einsum_beta::*;
 use ndarray_linalg::{
-    assert_close_l2,
     eig::Eig,
     eigh::Eigh,
     norm::Norm,

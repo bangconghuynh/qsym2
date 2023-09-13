@@ -1212,7 +1212,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
         .unwrap();
 
     let sao = Array2::<f64>::eye(4);
-    orbit.calc_smat(Some(&sao)).unwrap().calc_xmat(false);
+    let _ = orbit.calc_smat(Some(&sao)).unwrap().calc_xmat(false);
     let smat = orbit.smat().unwrap().clone();
     let xmat = orbit.xmat();
 
@@ -1231,7 +1231,7 @@ fn test_determinant_orbit_mat_s4_sqpl_s() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_c.calc_smat(Some(&sao_c)).unwrap().calc_xmat(false);
+    let _ = orbit_c.calc_smat(Some(&sao_c)).unwrap().calc_xmat(false);
     let smat_c = orbit_c.smat().unwrap().clone();
     let xmat_c = orbit_c.xmat();
 
@@ -1371,7 +1371,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_spatial_1e
+    let _ = orbit_cg_u_d4h_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1390,7 +1390,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_spatial_2e
+    let _ = orbit_cg_u_d4h_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1411,7 +1411,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_spin_1e
+    let _ = orbit_cg_u_d4h_spin_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1429,7 +1429,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_spin_2e
+    let _ = orbit_cg_u_d4h_spin_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1447,7 +1447,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_spin_spatial_1e
+    let _ = orbit_cg_u_d4h_spin_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1466,7 +1466,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_spin_spatial_2e
+    let _ = orbit_cg_u_d4h_spin_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1491,7 +1491,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_spatial_1e
+    let _ = orbit_cg_u_grey_d4h_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1512,7 +1512,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_spatial_2e
+    let _ = orbit_cg_u_grey_d4h_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1533,7 +1533,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_spin_1e
+    let _ = orbit_cg_u_grey_d4h_spin_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1550,7 +1550,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_spin_2e
+    let _ = orbit_cg_u_grey_d4h_spin_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1568,7 +1568,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_spin_spatial_1e
+    let _ = orbit_cg_u_grey_d4h_spin_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1583,7 +1583,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_spin_spatial_2e
+    let _ = orbit_cg_u_grey_d4h_spin_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1609,7 +1609,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_spatial_1e
+    let _ = orbit_cg_m_grey_d4h_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1628,7 +1628,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_spatial_2e
+    let _ = orbit_cg_m_grey_d4h_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1649,7 +1649,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_spin_1e
+    let _ = orbit_cg_m_grey_d4h_spin_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1667,7 +1667,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_spin_2e
+    let _ = orbit_cg_m_grey_d4h_spin_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1685,7 +1685,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_spin_spatial_1e
+    let _ = orbit_cg_m_grey_d4h_spin_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1704,7 +1704,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_spin_spatial_2e
+    let _ = orbit_cg_m_grey_d4h_spin_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1729,7 +1729,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_bw_d4h_c4h_spatial_1e
+    let _ = orbit_cg_u_bw_d4h_c4h_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1748,7 +1748,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_bw_d4h_c4h_spatial_2e
+    let _ = orbit_cg_u_bw_d4h_c4h_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1769,7 +1769,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_bw_d4h_c4h_spin_1e
+    let _ = orbit_cg_u_bw_d4h_c4h_spin_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1786,7 +1786,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_bw_d4h_c4h_spin_2e
+    let _ = orbit_cg_u_bw_d4h_c4h_spin_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1804,7 +1804,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_bw_d4h_c4h_spin_spatial_1e
+    let _ = orbit_cg_u_bw_d4h_c4h_spin_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1819,7 +1819,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_bw_d4h_c4h_spin_spatial_2e
+    let _ = orbit_cg_u_bw_d4h_c4h_spin_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1847,7 +1847,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_bw_d4h_c4h_spatial_1e
+    let _ = orbit_cg_m_bw_d4h_c4h_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1868,7 +1868,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_bw_d4h_c4h_spatial_2e
+    let _ = orbit_cg_m_bw_d4h_c4h_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1889,7 +1889,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_bw_d4h_c4h_spin_1e
+    let _ = orbit_cg_m_bw_d4h_c4h_spin_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1907,7 +1907,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_bw_d4h_c4h_spin_2e
+    let _ = orbit_cg_m_bw_d4h_c4h_spin_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1925,7 +1925,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_bw_d4h_c4h_spin_spatial_1e
+    let _ = orbit_cg_m_bw_d4h_c4h_spin_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1946,7 +1946,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_bw_d4h_c4h_spin_spatial_2e
+    let _ = orbit_cg_m_bw_d4h_c4h_spin_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1974,7 +1974,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_double_spatial_1e
+    let _ = orbit_cg_u_d4h_double_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -1992,7 +1992,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_double_spatial_2e
+    let _ = orbit_cg_u_d4h_double_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2010,7 +2010,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_double_spin_1e
+    let _ = orbit_cg_u_d4h_double_spin_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2028,7 +2028,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_double_spin_2e
+    let _ = orbit_cg_u_d4h_double_spin_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2046,7 +2046,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_double_spin_spatial_1e
+    let _ = orbit_cg_u_d4h_double_spin_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2067,7 +2067,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_d4h_double_spin_spatial_2e
+    let _ = orbit_cg_u_d4h_double_spin_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2095,7 +2095,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_double_spatial_1e
+    let _ = orbit_cg_u_grey_d4h_double_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2113,7 +2113,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_double_spatial_2e
+    let _ = orbit_cg_u_grey_d4h_double_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2131,7 +2131,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_double_spin_1e
+    let _ = orbit_cg_u_grey_d4h_double_spin_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2146,7 +2146,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_double_spin_2e
+    let _ = orbit_cg_u_grey_d4h_double_spin_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2164,7 +2164,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_double_spin_spatial_1e
+    let _ = orbit_cg_u_grey_d4h_double_spin_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2181,7 +2181,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_grey_d4h_double_spin_spatial_2e
+    let _ = orbit_cg_u_grey_d4h_double_spin_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2209,7 +2209,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_double_spatial_1e
+    let _ = orbit_cg_m_grey_d4h_double_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2227,7 +2227,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_double_spatial_2e
+    let _ = orbit_cg_m_grey_d4h_double_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2245,7 +2245,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_double_spin_1e
+    let _ = orbit_cg_m_grey_d4h_double_spin_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2263,7 +2263,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_double_spin_2e
+    let _ = orbit_cg_m_grey_d4h_double_spin_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2281,7 +2281,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_double_spin_spatial_1e
+    let _ = orbit_cg_m_grey_d4h_double_spin_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2304,7 +2304,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_grey_d4h_double_spin_spatial_2e
+    let _ = orbit_cg_m_grey_d4h_double_spin_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2334,7 +2334,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_bw_d4h_c4h_double_spatial_1e
+    let _ = orbit_cg_u_bw_d4h_c4h_double_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2354,7 +2354,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_bw_d4h_c4h_double_spatial_2e
+    let _ = orbit_cg_u_bw_d4h_c4h_double_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2374,7 +2374,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_bw_d4h_c4h_double_spin_1e
+    let _ = orbit_cg_u_bw_d4h_c4h_double_spin_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2389,7 +2389,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_bw_d4h_c4h_double_spin_2e
+    let _ = orbit_cg_u_bw_d4h_c4h_double_spin_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2408,7 +2408,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
             .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
             .build()
             .unwrap();
-    orbit_cg_u_bw_d4h_c4h_double_spin_spatial_1e
+    let _ = orbit_cg_u_bw_d4h_c4h_double_spin_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2426,7 +2426,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
             .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
             .build()
             .unwrap();
-    orbit_cg_u_bw_d4h_c4h_double_spin_spatial_2e
+    let _ = orbit_cg_u_bw_d4h_c4h_double_spin_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2453,7 +2453,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_bw_d4h_c4h_double_spatial_1e
+    let _ = orbit_cg_m_bw_d4h_c4h_double_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2476,7 +2476,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_bw_d4h_c4h_double_spatial_2e
+    let _ = orbit_cg_m_bw_d4h_c4h_double_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2499,7 +2499,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_bw_d4h_c4h_double_spin_1e
+    let _ = orbit_cg_m_bw_d4h_c4h_double_spin_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2517,7 +2517,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_bw_d4h_c4h_double_spin_2e
+    let _ = orbit_cg_m_bw_d4h_c4h_double_spin_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2536,7 +2536,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
             .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
             .build()
             .unwrap();
-    orbit_cg_m_bw_d4h_c4h_double_spin_spatial_1e
+    let _ = orbit_cg_m_bw_d4h_c4h_double_spin_spatial_1e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2559,7 +2559,7 @@ fn test_determinant_orbit_rep_analysis_s4_sqpl_pz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_m_bw_d4h_c4h_spin_spatial_2e
+    let _ = orbit_cg_m_bw_d4h_c4h_spin_spatial_2e
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2710,7 +2710,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_oh_spatial_dyy
+    let _ = orbit_cg_u_oh_spatial_dyy
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2728,7 +2728,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_oh_spatial_dxz
+    let _ = orbit_cg_u_oh_spatial_dxz
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2750,7 +2750,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_oh_double_spin_spatial_dyy
+    let _ = orbit_cg_u_oh_double_spin_spatial_dyy
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);
@@ -2768,7 +2768,7 @@ fn test_determinant_orbit_rep_analysis_vf6_oct_qchem_order() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cg_u_oh_double_spin_spatial_dxz
+    let _ = orbit_cg_u_oh_double_spin_spatial_dxz
         .calc_smat(Some(&sao_cg))
         .unwrap()
         .calc_xmat(false);

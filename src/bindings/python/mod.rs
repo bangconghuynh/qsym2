@@ -13,7 +13,11 @@ use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 /// A Python module for `QSym2` implemented in Rust.
 #[pymodule]
 pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
+    // --------------
+    // Python logging
+    // --------------
     pyo3_log::init();
+
     // -------
     // Version
     // -------
