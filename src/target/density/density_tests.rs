@@ -723,7 +723,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_d4h_spatial_orbital_density_a
+    let _ = orbit_ru_u_d4h_spatial_orbital_density_a
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -746,7 +746,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_d4h_spatial_orbital_density_b
+    let _ = orbit_ru_u_d4h_spatial_orbital_density_b
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -769,7 +769,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_d4h_spatial_orbital_density_total
+    let _ = orbit_ru_u_d4h_spatial_orbital_density_total
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -792,7 +792,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pxpy() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_d4h_spatial_orbital_density_spin
+    let _ = orbit_ru_u_d4h_spatial_orbital_density_spin
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -984,7 +984,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_d4h_spatial_orbital_density_a
+    let _ = orbit_ru_u_d4h_spatial_orbital_density_a
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1005,7 +1005,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_d4h_spatial_orbital_density_b
+    let _ = orbit_ru_u_d4h_spatial_orbital_density_b
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1028,7 +1028,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_d4h_spatial_orbital_density_total
+    let _ = orbit_ru_u_d4h_spatial_orbital_density_total
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1051,7 +1051,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_d4h_spatial_orbital_density_spin
+    let _ = orbit_ru_u_d4h_spatial_orbital_density_spin
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1078,7 +1078,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_grey_d4h_spatial_orbital_density_a
+    let _ = orbit_ru_u_grey_d4h_spatial_orbital_density_a
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1101,7 +1101,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_grey_d4h_spatial_orbital_density_b
+    let _ = orbit_ru_u_grey_d4h_spatial_orbital_density_b
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1124,7 +1124,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_grey_d4h_spatial_orbital_density_total
+    let _ = orbit_ru_u_grey_d4h_spatial_orbital_density_total
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1147,7 +1147,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_u_grey_d4h_spatial_orbital_density_spin
+    let _ = orbit_ru_u_grey_d4h_spatial_orbital_density_spin
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1174,7 +1174,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_m_grey_d4h_spatial_orbital_density_a
+    let _ = orbit_ru_m_grey_d4h_spatial_orbital_density_a
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1195,7 +1195,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_m_grey_d4h_spatial_orbital_density_b
+    let _ = orbit_ru_m_grey_d4h_spatial_orbital_density_b
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1218,7 +1218,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_m_grey_d4h_spatial_orbital_density_total
+    let _ = orbit_ru_m_grey_d4h_spatial_orbital_density_total
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1241,7 +1241,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_ru_m_grey_d4h_spatial_orbital_density_spin
+    let _ = orbit_ru_m_grey_d4h_spatial_orbital_density_spin
         .calc_smat(Some(sao_ru))
         .unwrap()
         .calc_xmat(false);
@@ -1268,7 +1268,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_u_c4h_spatial_orbital_density_a
+    let _ = orbit_cu_u_c4h_spatial_orbital_density_a
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);
@@ -1291,7 +1291,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_u_c4h_spatial_orbital_density_b
+    let _ = orbit_cu_u_c4h_spatial_orbital_density_b
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);
@@ -1314,7 +1314,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_u_c4h_spatial_orbital_density_total
+    let _ = orbit_cu_u_c4h_spatial_orbital_density_total
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);
@@ -1337,7 +1337,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_u_c4h_spatial_orbital_density_spin
+    let _ = orbit_cu_u_c4h_spatial_orbital_density_spin
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);
@@ -1364,7 +1364,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_a
+    let _ = orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_a
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);
@@ -1385,7 +1385,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_b
+    let _ = orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_b
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);
@@ -1408,7 +1408,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_total
+    let _ = orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_total
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);
@@ -1431,7 +1431,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_spin
+    let _ = orbit_cu_u_bw_d4h_c4h_spatial_orbital_density_spin
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);
@@ -1458,7 +1458,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_a
+    let _ = orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_a
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);
@@ -1481,7 +1481,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_b
+    let _ = orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_b
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);
@@ -1504,7 +1504,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_total
+    let _ = orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_total
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);
@@ -1527,7 +1527,7 @@ fn test_density_orbit_rep_analysis_s4_sqpl_pypz() {
         .eigenvalue_comparison_mode(EigenvalueComparisonMode::Modulus)
         .build()
         .unwrap();
-    orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_spin
+    let _ = orbit_cu_m_bw_d4h_c4h_spatial_orbital_density_spin
         .calc_smat(Some(sao_cu_bz))
         .unwrap()
         .calc_xmat(false);

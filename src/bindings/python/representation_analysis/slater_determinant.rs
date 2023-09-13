@@ -426,6 +426,7 @@ pub enum PySlaterDeterminant {
     angular_function_max_angular_momentum=2
 ))]
 pub fn rep_analyse_slater_determinant(
+    py: Python<'_>,
     inp_sym: PathBuf,
     pydet: PySlaterDeterminant,
     pybao: &PyBasisAngularOrder,
@@ -522,9 +523,11 @@ pub fn rep_analyse_slater_determinant(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    sda_driver
-                        .run()
-                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    py.allow_threads(|| {
+                        sda_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                    })?
                 }
                 Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -539,9 +542,11 @@ pub fn rep_analyse_slater_determinant(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    sda_driver
-                        .run()
-                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    py.allow_threads(|| {
+                        sda_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                    })?
                 }
             };
         }
@@ -595,9 +600,11 @@ pub fn rep_analyse_slater_determinant(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    sda_driver
-                        .run()
-                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    py.allow_threads(|| {
+                        sda_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                    })?
                 }
                 Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -612,9 +619,11 @@ pub fn rep_analyse_slater_determinant(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    sda_driver
-                        .run()
-                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    py.allow_threads(|| {
+                        sda_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                    })?
                 }
             };
         }
@@ -670,9 +679,11 @@ pub fn rep_analyse_slater_determinant(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    sda_driver
-                        .run()
-                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    py.allow_threads(|| {
+                        sda_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                    })?
                 }
                 Some(MagneticSymmetryAnalysisKind::Representation) | None => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -687,9 +698,11 @@ pub fn rep_analyse_slater_determinant(
                     .symmetry_group(&pd_res)
                     .build()
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-                    sda_driver
-                        .run()
-                        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+                    py.allow_threads(|| {
+                        sda_driver
+                            .run()
+                            .map_err(|err| PyRuntimeError::new_err(err.to_string()))
+                    })?
                 }
             };
         }

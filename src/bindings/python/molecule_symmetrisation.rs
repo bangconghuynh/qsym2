@@ -48,8 +48,19 @@ use crate::io::{read_qsym2_binary, QSym2FileType};
 ///
 /// Errors if any intermediate step in the symmetrisation procedure fails.
 #[pyfunction]
-#[pyo3(signature = (inp_loose_sym, out_tight_sym, target_moi_threshold, target_distance_threshold, use_magnetic_group, reorientate_molecule=true, max_iterations=10, verbose=0, infinite_order_to_finite=None))]
+#[pyo3(signature = (
+    inp_loose_sym,
+    out_tight_sym,
+    target_moi_threshold,
+    target_distance_threshold,
+    use_magnetic_group,
+    reorientate_molecule=true,
+    max_iterations=10,
+    verbose=0,
+    infinite_order_to_finite=None
+))]
 pub fn symmetrise_molecule(
+    py: Python<'_>,
     inp_loose_sym: PathBuf,
     out_tight_sym: Option<PathBuf>,
     target_moi_threshold: f64,
@@ -60,106 +71,108 @@ pub fn symmetrise_molecule(
     verbose: u8,
     infinite_order_to_finite: Option<u32>,
 ) -> PyResult<PyMolecule> {
-    let loose_pd_res: SymmetryGroupDetectionResult =
-        read_qsym2_binary(inp_loose_sym, QSym2FileType::Sym)
-            .map_err(|err| PyIOError::new_err(err.to_string()))?;
+    py.allow_threads(|| {
+        let loose_pd_res: SymmetryGroupDetectionResult =
+            read_qsym2_binary(inp_loose_sym, QSym2FileType::Sym)
+                .map_err(|err| PyIOError::new_err(err.to_string()))?;
 
-    let ms_params = MoleculeSymmetrisationParams::builder()
-        .use_magnetic_group(use_magnetic_group)
-        .target_moi_threshold(target_moi_threshold)
-        .target_distance_threshold(target_distance_threshold)
-        .reorientate_molecule(reorientate_molecule)
-        .max_iterations(max_iterations)
-        .verbose(verbose)
-        .infinite_order_to_finite(infinite_order_to_finite)
-        .symmetrised_result_save_name(out_tight_sym)
-        .build()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+        let ms_params = MoleculeSymmetrisationParams::builder()
+            .use_magnetic_group(use_magnetic_group)
+            .target_moi_threshold(target_moi_threshold)
+            .target_distance_threshold(target_distance_threshold)
+            .reorientate_molecule(reorientate_molecule)
+            .max_iterations(max_iterations)
+            .verbose(verbose)
+            .infinite_order_to_finite(infinite_order_to_finite)
+            .symmetrised_result_save_name(out_tight_sym)
+            .build()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
-    let mut ms_driver = MoleculeSymmetrisationDriver::builder()
-        .parameters(&ms_params)
-        .target_symmetry_result(&loose_pd_res)
-        .build()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-    ms_driver
-        .run()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+        let mut ms_driver = MoleculeSymmetrisationDriver::builder()
+            .parameters(&ms_params)
+            .target_symmetry_result(&loose_pd_res)
+            .build()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+        ms_driver
+            .run()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
 
-    let symmol = &ms_driver
-        .result()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
-        .symmetrised_molecule;
+        let symmol = &ms_driver
+            .result()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
+            .symmetrised_molecule;
 
-    // Note that the magnetic field here will not have the original magnitude as it is back-deduded
-    // from the magnetic atoms which have been added using the normalised version of the original
-    // magnetic field.
-    let magnetic_field = symmol
-        .magnetic_atoms
-        .as_ref()
-        .map(|mag_atoms| {
-            if mag_atoms.len() != 2 {
-                Err(format_err!("Only a uniform magnetic field is supported."))
-            } else {
-                match (&mag_atoms[0].kind, &mag_atoms[1].kind) {
-                    (AtomKind::Magnetic(true), AtomKind::Magnetic(false)) => {
-                        let bvec = mag_atoms[0].coordinates - mag_atoms[1].coordinates;
-                        Ok([bvec[0], bvec[1], bvec[2]])
+        // Note that the magnetic field here will not have the original magnitude as it is back-deduded
+        // from the magnetic atoms which have been added using the normalised version of the original
+        // magnetic field.
+        let magnetic_field = symmol
+            .magnetic_atoms
+            .as_ref()
+            .map(|mag_atoms| {
+                if mag_atoms.len() != 2 {
+                    Err(format_err!("Only a uniform magnetic field is supported."))
+                } else {
+                    match (&mag_atoms[0].kind, &mag_atoms[1].kind) {
+                        (AtomKind::Magnetic(true), AtomKind::Magnetic(false)) => {
+                            let bvec = mag_atoms[0].coordinates - mag_atoms[1].coordinates;
+                            Ok([bvec[0], bvec[1], bvec[2]])
+                        }
+                        (AtomKind::Magnetic(false), AtomKind::Magnetic(true)) => {
+                            let bvec = mag_atoms[1].coordinates - mag_atoms[0].coordinates;
+                            Ok([bvec[0], bvec[1], bvec[2]])
+                        }
+                        _ => Err(format_err!("Invalid fictitious magnetic atoms detected.")),
                     }
-                    (AtomKind::Magnetic(false), AtomKind::Magnetic(true)) => {
-                        let bvec = mag_atoms[1].coordinates - mag_atoms[0].coordinates;
-                        Ok([bvec[0], bvec[1], bvec[2]])
-                    }
-                    _ => Err(format_err!("Invalid fictitious magnetic atoms detected.")),
                 }
-            }
-        })
-        .transpose()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-
-    // Note that the electric field here will not have the original magnitude as it is back-deduded
-    // from the electric atoms which have been added using the normalised version of the original
-    // electric field.
-    let electric_field = symmol
-        .electric_atoms
-        .as_ref()
-        .map(|elec_atoms| {
-            if elec_atoms.len() != 1 {
-                Err(format_err!("Only a uniform electric field is supported."))
-            } else {
-                match &elec_atoms[0].kind {
-                    AtomKind::Electric(pos) => {
-                        let evec = if *pos {
-                            elec_atoms[0].coordinates
-                        } else {
-                            -elec_atoms[0].coordinates
-                        };
-                        Ok([evec[0], evec[1], evec[2]])
-                    }
-                    _ => Err(format_err!("Invalid fictitious electric atoms detected.")),
-                }
-            }
-        })
-        .transpose()
-        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
-
-    let pymol = PyMolecule::new(
-        symmol
-            .atoms
-            .iter()
-            .map(|atom| {
-                (
-                    atom.atomic_symbol.clone(),
-                    [
-                        atom.coordinates[0],
-                        atom.coordinates[1],
-                        atom.coordinates[2],
-                    ],
-                )
             })
-            .collect::<Vec<_>>(),
-        symmol.threshold,
-        magnetic_field,
-        electric_field,
-    );
-    Ok(pymol)
+            .transpose()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+        // Note that the electric field here will not have the original magnitude as it is back-deduded
+        // from the electric atoms which have been added using the normalised version of the original
+        // electric field.
+        let electric_field = symmol
+            .electric_atoms
+            .as_ref()
+            .map(|elec_atoms| {
+                if elec_atoms.len() != 1 {
+                    Err(format_err!("Only a uniform electric field is supported."))
+                } else {
+                    match &elec_atoms[0].kind {
+                        AtomKind::Electric(pos) => {
+                            let evec = if *pos {
+                                elec_atoms[0].coordinates
+                            } else {
+                                -elec_atoms[0].coordinates
+                            };
+                            Ok([evec[0], evec[1], evec[2]])
+                        }
+                        _ => Err(format_err!("Invalid fictitious electric atoms detected.")),
+                    }
+                }
+            })
+            .transpose()
+            .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+
+        let pymol = PyMolecule::new(
+            symmol
+                .atoms
+                .iter()
+                .map(|atom| {
+                    (
+                        atom.atomic_symbol.clone(),
+                        [
+                            atom.coordinates[0],
+                            atom.coordinates[1],
+                            atom.coordinates[2],
+                        ],
+                    )
+                })
+                .collect::<Vec<_>>(),
+            symmol.threshold,
+            magnetic_field,
+            electric_field,
+        );
+        Ok(pymol)
+    })
 }

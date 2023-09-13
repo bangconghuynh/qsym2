@@ -10,8 +10,8 @@ use crate::permutation::{IntoPermutation, PermutableCollection, Permutation};
 use crate::symmetry::symmetry_element::SymmetryOperation;
 use crate::symmetry::symmetry_transformation::{
     assemble_sh_rotation_3d_matrices, permute_array_by_atoms, ComplexConjugationTransformable,
-    SpatialUnitaryTransformable, SpinUnitaryTransformable, SymmetryTransformable,
-    TimeReversalTransformable, TransformationError,
+    DefaultTimeReversalTransformable, SpatialUnitaryTransformable, SpinUnitaryTransformable,
+    SymmetryTransformable, TimeReversalTransformable, TransformationError,
 };
 use crate::target::orbital::MolecularOrbital;
 
@@ -481,6 +481,14 @@ where
         self.coefficients.mapv_inplace(|x| x.conj());
         self
     }
+}
+
+// --------------------------------
+// DefaultTimeReversalTransformable
+// --------------------------------
+impl<'a, T> DefaultTimeReversalTransformable for MolecularOrbital<'a, T> where
+    T: ComplexFloat + Lapack
+{
 }
 
 // ---------------------

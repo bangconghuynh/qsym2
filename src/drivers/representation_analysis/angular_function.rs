@@ -1,6 +1,6 @@
 use anyhow::{self, format_err};
 use derive_builder::Builder;
-use nalgebra::Point3;
+use nalgebra::{Point3, Vector3};
 use ndarray::{Array1, Array2};
 use num_complex::ComplexFloat;
 use rayon::prelude::*;
@@ -20,6 +20,8 @@ use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::determinant::SlaterDeterminant;
 use crate::target::orbital::orbital_analysis::generate_det_mo_orbits;
+use crate::target::tensor::axialvector::axialvector_analysis::AxialVector3SymmetryOrbit;
+use crate::target::tensor::axialvector::{AxialVector3, TimeParity};
 
 // ==================
 // Struct definitions
@@ -150,8 +152,8 @@ where
                             mo_orbitss[0]
                                 .par_iter_mut()
                                 .map(|mo_orbit| {
-                                    mo_orbit.calc_xmat(false);
-                                    mo_orbit.analyse_rep()
+                                    mo_orbit.calc_xmat(false)?;
+                                    mo_orbit.analyse_rep().map_err(|err| format_err!(err))
                                 })
                                 .collect::<Vec<_>>()
                         })
@@ -199,6 +201,32 @@ where
                 .unwrap_or_else(|err| vec![err.to_string()])
         })
         .collect::<Vec<_>>();
+    let rot_sym_strs = [Vector3::x(), Vector3::y(), Vector3::z()]
+        .into_iter()
+        .map(|v| {
+            let rv = AxialVector3::<f64>::builder()
+                .components(v)
+                .time_parity(TimeParity::Even)
+                .threshold(params.linear_independence_threshold)
+                .build()
+                .map_err(|err| format_err!(err))?;
+            let mut orbit_rv = AxialVector3SymmetryOrbit::builder()
+                .group(group)
+                .origin(&rv)
+                .integrality_threshold(params.integrality_threshold)
+                .linear_independence_threshold(params.linear_independence_threshold)
+                .symmetry_transformation_kind(SymmetryTransformationKind::Spatial)
+                .eigenvalue_comparison_mode(EigenvalueComparisonMode::Real)
+                .build()
+                .map_err(|err| format_err!(err))?;
+            let _ = orbit_rv.calc_smat(None).unwrap().calc_xmat(false);
+            orbit_rv
+                .analyse_rep()
+                .map(|sym| sym.to_string())
+                .map_err(|err| format_err!(err))
+        })
+        .map(|sym| sym.unwrap_or_else(|err| err.to_string()))
+        .collect::<Vec<_>>();
 
     let pure_sym_width = pure_sym_strss
         .iter()
@@ -212,33 +240,78 @@ where
         .max()
         .unwrap_or(9)
         .max(9);
+    let rot_sym_width = rot_sym_strs
+        .iter()
+        .map(|sym| sym.chars().count())
+        .max()
+        .unwrap_or(8)
+        .max(8);
 
     let l_width = lmax.to_string().chars().count();
     let pure_width = (l_width + 1).max(4);
-    let _pure_width_m1 = pure_width - 1;
     let cart_width = usize::try_from(lmax)?.max(4);
+    let rot_width = 3;
 
     log_subtitle(&format!(
         "Space-fixed spatial angular function symmetries in {}",
         group.finite_subgroup_name().unwrap_or(&group.name())
     ));
     qsym2_output!("");
-    qsym2_output!(
-        "{}",
-        "┈".repeat(l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11)
-    );
-    qsym2_output!(
-        " {:>l_width$}  {:>pure_width$}  {:<pure_sym_width$}   {:>cart_width$}  {:<}",
-        "l",
-        "Pure",
-        "Pure sym.",
-        "Cart",
-        "Cart sym."
-    );
-    qsym2_output!(
-        "{}",
-        "┈".repeat(l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11)
-    );
+    if lmax < 1 {
+        qsym2_output!(
+            "{}",
+            "┈".repeat(l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11)
+        );
+        qsym2_output!(
+            " {:>l_width$}  {:>pure_width$}  {:<pure_sym_width$}   {:>cart_width$}  {:<}",
+            "l",
+            "Pure",
+            "Pure sym.",
+            "Cart",
+            "Cart sym."
+        );
+        qsym2_output!(
+            "{}",
+            "┈".repeat(l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11)
+        );
+    } else {
+        qsym2_output!(
+            "{}",
+            "┈".repeat(
+                l_width
+                    + pure_width
+                    + pure_sym_width
+                    + cart_width
+                    + cart_sym_width
+                    + rot_width
+                    + rot_sym_width
+                    + 15
+            )
+        );
+        qsym2_output!(
+            " {:>l_width$}  {:>pure_width$}  {:<pure_sym_width$}   {:>cart_width$}  {:<cart_sym_width$}  {:>rot_width$}  {:<}",
+            "l",
+            "Pure",
+            "Pure sym.",
+            "Cart",
+            "Cart sym.",
+            "Rot",
+            "Rot sym."
+        );
+        qsym2_output!(
+            "{}",
+            "┈".repeat(
+                l_width
+                    + pure_width
+                    + pure_sym_width
+                    + cart_width
+                    + cart_sym_width
+                    + rot_width
+                    + rot_sym_width
+                    + 15
+            )
+        );
+    }
 
     let empty_str = String::new();
     (0..=usize::try_from(lmax)?).for_each(|l| {
@@ -247,6 +320,7 @@ where
         }
         let n_pure = 2 * l + 1;
         let mut i_pure = 0;
+        let mut i_rot = 0;
 
         let l_u32 = u32::try_from(l).unwrap_or_else(|err| panic!("{err}"));
         let cartorder = CartOrder::lex(l_u32);
@@ -280,21 +354,64 @@ where
                 };
 
                 let cart_symbol = cart_tuple_to_str(cart_tuple, true);
-                let cart_str = format!(
-                    "{cart_symbol:>cart_width$}  {:<}",
-                    cart_sym_strss
-                        .get(l)
-                        .and_then(|l_cart_sym_strs| l_cart_sym_strs.get(i_cart))
-                        .unwrap_or(&empty_str)
-                );
+                let cart_str = if l == 1 {
+                    // Rot sym to follow.
+                    format!(
+                        "{cart_symbol:>cart_width$}  {:<cart_sym_width$}",
+                        cart_sym_strss
+                            .get(l)
+                            .and_then(|l_cart_sym_strs| l_cart_sym_strs.get(i_cart))
+                            .unwrap_or(&empty_str)
+                    )
+                } else {
+                    // No rot sym to follow.
+                    format!(
+                        "{cart_symbol:>cart_width$}  {:<}",
+                        cart_sym_strss
+                            .get(l)
+                            .and_then(|l_cart_sym_strs| l_cart_sym_strs.get(i_cart))
+                            .unwrap_or(&empty_str)
+                    )
+                };
 
-                qsym2_output!(" {l_str}  {pure_str}   {cart_str}");
+                if l == 1 && i_rot < 3 {
+                    let rot_str = format!(
+                        "{:>rot_width$}  {:<}",
+                        match i_rot {
+                            0 => "Rx",
+                            1 => "Ry",
+                            2 => "Rz",
+                            _ => "--",
+                        },
+                        rot_sym_strs.get(i_rot).unwrap_or(&"--".to_string())
+                    );
+                    i_rot += 1;
+                    qsym2_output!(" {l_str}  {pure_str}   {cart_str}  {rot_str}");
+                } else {
+                    qsym2_output!(" {l_str}  {pure_str}   {cart_str}");
+                }
             });
     });
-    qsym2_output!(
-        "{}",
-        "┈".repeat(l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11)
-    );
+    if lmax < 1 {
+        qsym2_output!(
+            "{}",
+            "┈".repeat(l_width + pure_width + pure_sym_width + cart_width + cart_sym_width + 11)
+        );
+    } else {
+        qsym2_output!(
+            "{}",
+            "┈".repeat(
+                l_width
+                    + pure_width
+                    + pure_sym_width
+                    + cart_width
+                    + cart_sym_width
+                    + rot_width
+                    + rot_sym_width
+                    + 15
+            )
+        );
+    }
     qsym2_output!("");
 
     Ok(())
