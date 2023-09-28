@@ -32,7 +32,9 @@ use crate::drivers::symmetry_group_detection::{
 };
 use crate::drivers::QSym2Driver;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
-use crate::io::format::{log_macsec_begin, log_macsec_end, qsym2_error, qsym2_output};
+use crate::io::format::{
+    log_macsec_begin, log_macsec_end, log_micsec_begin, log_micsec_end, qsym2_error, qsym2_output,
+};
 use crate::io::{read_qsym2_binary, QSym2FileType};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_group::{
@@ -695,7 +697,9 @@ impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
                 .with_context(|| "Unable to extract the basis angular order information from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
                 .map_err(|err| err.to_string())?;
             log::debug!("Extracting AO basis information for representation analysis... Done.");
-            log::debug!("Extracting canonical determinant information for representation analysis...");
+            log::debug!(
+                "Extracting canonical determinant information for representation analysis..."
+            );
             let det = self.extract_determinant(
                 recentred_mol,
                 &bao,
@@ -705,7 +709,9 @@ impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
             )
             .with_context(|| "Unable to extract the determinant from the HDF5 file while performing symmetry analysis for a single-point Q-Chem calculation")
             .map_err(|err| err.to_string())?;
-            log::debug!("Extracting canonical determinant information for representation analysis... Done.");
+            log::debug!(
+                "Extracting canonical determinant information for representation analysis... Done."
+            );
 
             log::debug!("Running representation analysis on canonical determinant...");
             let mut sda_driver =
@@ -718,33 +724,45 @@ impl<'a> QChemH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
                     .build()
                     .with_context(|| "Unable to extract a Slater determinant representation analysis driver while performing symmetry analysis for a single-point Q-Chem calculation")
                     .map_err(|err| err.to_string())?;
+            log_micsec_begin("Canonical orbital representation analysis");
             let sda_run = sda_driver.run();
+            log_micsec_end("Canonical orbital representation analysis");
+            qsym2_output!("");
             log::debug!("Running representation analysis on canonical determinant... Done.");
             if let Err(err) = sda_run {
                 qsym2_error!("Representation analysis has failed with error:");
                 qsym2_error!("  {err:#}");
             }
 
-            // let _ = self.extract_determinant(
-            //     recentred_mol,
-            //     &bao,
-            //     self.slater_det_rep_analysis_parameters
-            //         .linear_independence_threshold,
-            //     OrbitalType::Localised,
-            // ).and_then(|loc_det| {
-            //     log::debug!("Running representation analysis on localised determinant...");
-            //     let mut loc_sda_driver =
-            //         SlaterDeterminantRepAnalysisDriver::<UnitaryRepresentedSymmetryGroup, f64>::builder()
-            //             .parameters(self.slater_det_rep_analysis_parameters)
-            //             .angular_function_parameters(self.angular_function_analysis_parameters)
-            //             .determinant(&loc_det)
-            //             .sao_spatial(&sao)
-            //             .symmetry_group(&pd_res)
-            //             .build()?;
-            //     let res = loc_sda_driver.run();
-            //     log::debug!("Running representation analysis on localised determinant... Done.");
-            //     res
-            // });
+            let _ = self
+                .extract_determinant(
+                    recentred_mol,
+                    &bao,
+                    self.slater_det_rep_analysis_parameters
+                        .linear_independence_threshold,
+                    OrbitalType::Localised,
+                )
+                .and_then(|loc_det| {
+                    log::debug!("Running representation analysis on localised determinant...");
+                    let mut loc_sda_driver = SlaterDeterminantRepAnalysisDriver::<
+                        UnitaryRepresentedSymmetryGroup,
+                        f64,
+                    >::builder()
+                    .parameters(self.slater_det_rep_analysis_parameters)
+                    .angular_function_parameters(self.angular_function_analysis_parameters)
+                    .determinant(&loc_det)
+                    .sao_spatial(&sao)
+                    .symmetry_group(&pd_res)
+                    .build()?;
+                    log_micsec_begin("Localised orbital representation analysis");
+                    let res = loc_sda_driver.run();
+                    log_micsec_end("Localised orbital representation analysis");
+                    qsym2_output!("");
+                    log::debug!(
+                        "Running representation analysis on localised determinant... Done."
+                    );
+                    res
+                });
 
             sda_driver
                 .result()
