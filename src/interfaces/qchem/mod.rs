@@ -8,7 +8,7 @@ use crate::drivers::representation_analysis::slater_determinant::SlaterDetermina
 use crate::drivers::QSym2Driver;
 use crate::interfaces::input::analysis::SlaterDeterminantSourceHandle;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
-use crate::interfaces::qchem::hdf5::QChemH5Driver;
+use crate::interfaces::qchem::hdf5::slater_determinant::QChemH5Driver;
 
 pub(crate) mod hdf5;
 

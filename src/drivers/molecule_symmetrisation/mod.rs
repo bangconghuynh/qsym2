@@ -700,6 +700,8 @@ impl<'a> MoleculeSymmetrisationDriver<'a> {
 }
 
 impl<'a> QSym2Driver for MoleculeSymmetrisationDriver<'a> {
+    type Params = MoleculeSymmetrisationParams;
+
     type Outcome = MoleculeSymmetrisationResult<'a>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {

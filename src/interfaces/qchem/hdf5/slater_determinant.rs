@@ -26,9 +26,6 @@ use crate::drivers::representation_analysis::angular_function::AngularFunctionRe
 use crate::drivers::representation_analysis::slater_determinant::{
     SlaterDeterminantRepAnalysisDriver, SlaterDeterminantRepAnalysisParams,
 };
-use crate::drivers::representation_analysis::vibrational_coordinate::{
-    VibrationalCoordinateRepAnalysisDriver, VibrationalCoordinateRepAnalysisParams,
-};
 use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionResult,
@@ -47,8 +44,8 @@ use crate::target::determinant::SlaterDeterminant;
 use crate::target::vibration::VibrationalCoordinateCollection;
 
 #[cfg(test)]
-#[path = "hdf5_tests.rs"]
-mod hdf5_test;
+#[path = "slater_determinant_tests.rs"]
+mod slater_determinant_test;
 
 // =====================
 // Full Q-Chem H5 Driver
@@ -68,7 +65,7 @@ lazy_static! {
 /// target in each single-point calculation that will be symmetry-analysed depends on the type `A`
 /// of the controlling parameters.
 #[derive(Clone, Builder)]
-pub(crate) struct QChemH5Driver<'a, A> {
+pub(crate) struct QChemSlaterDeterminantH5Driver<'a> {
     /// The `qarchive.h5` file name.
     filename: PathBuf,
 
@@ -79,7 +76,7 @@ pub(crate) struct QChemH5Driver<'a, A> {
     angular_function_analysis_parameters: &'a AngularFunctionRepAnalysisParams,
 
     /// The parameters controlling representation analysis.
-    rep_analysis_parameters: &'a A,
+    rep_analysis_parameters: &'a SlaterDeterminantRepAnalysisParams<f64>,
 
     /// The simplified result of the analysis. Each element in the vector is a tuple containing the
     /// group name and the representation symmetry of the Slater determinant for one single-point
@@ -92,10 +89,10 @@ pub(crate) struct QChemH5Driver<'a, A> {
 // Struct implementations
 // ----------------------
 
-impl<'a, A: Clone> QChemH5Driver<'a, A> {
+impl<'a> QChemSlaterDeterminantH5Driver<'a> {
     /// Returns a builder to construct a [`QChemH5Driver`].
-    pub(crate) fn builder() -> QChemH5DriverBuilder<'a, A> {
-        QChemH5DriverBuilder::default()
+    pub(crate) fn builder() -> QChemSlaterDeterminantH5DriverBuilder<'a> {
+        QChemSlaterDeterminantH5DriverBuilder::default()
     }
 }
 
@@ -105,7 +102,7 @@ impl<'a, A: Clone> QChemH5Driver<'a, A> {
 
 // Specific for Slater determinant numeric type f64
 // ''''''''''''''''''''''''''''''''''''''''''''''''
-impl<'a> QChemH5Driver<'a, SlaterDeterminantRepAnalysisParams<f64>> {
+impl<'a> QChemSlaterDeterminantH5Driver<'a> {
     /// Performs analysis for all real-valued single-point determinants.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
         let f = hdf5::File::open(&self.filename)?;
@@ -285,7 +282,9 @@ impl<'a> QChemH5Driver<'a, SlaterDeterminantRepAnalysisParams<f64>> {
     }
 }
 
-impl<'a> QSym2Driver for QChemH5Driver<'a, SlaterDeterminantRepAnalysisParams<f64>> {
+impl<'a> QSym2Driver for QChemSlaterDeterminantH5Driver<'a> {
+    type Params = SlaterDeterminantRepAnalysisParams<f64>;
+
     type Outcome = Vec<(String, String)>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
@@ -323,13 +322,12 @@ enum OrbitalType {
 /// A driver to perform symmetry-group detection and representation analysis for a single-point
 /// calculation result in a Q-Chem's `qarchive.h5` file.
 #[derive(Clone, Builder)]
-struct QChemH5SinglePointDriver<'a, G, T, A>
+struct QChemSlaterDeterminantH5SinglePointDriver<'a, G, T>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    A: Clone,
 {
     /// A H5 group containing data from a single-point calculation.
     sp_group: &'a hdf5::Group,
@@ -346,7 +344,7 @@ where
     angular_function_analysis_parameters: &'a AngularFunctionRepAnalysisParams,
 
     /// The parameters controlling representation analysis of Slater determinants.
-    rep_analysis_parameters: &'a A,
+    rep_analysis_parameters: &'a SlaterDeterminantRepAnalysisParams<f64>,
 
     /// The symmetry of the system and the representation of the Slater determinant.
     #[builder(default = "None")]
@@ -360,13 +358,12 @@ where
 // Struct implementations
 // ----------------------
 
-impl<'a, G, T, A> QChemH5SinglePointDriverBuilder<'a, G, T, A>
+impl<'a, G, T> QChemSlaterDeterminantH5SinglePointDriverBuilder<'a, G, T>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    A: Clone,
 {
     fn energy_function_index(&mut self, idx: &str) -> &mut Self {
         self.energy_function_index = Some(idx.to_string());
@@ -374,17 +371,16 @@ where
     }
 }
 
-impl<'a, G, T, A> QChemH5SinglePointDriver<'a, G, T, A>
+impl<'a, G, T> QChemSlaterDeterminantH5SinglePointDriver<'a, G, T>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
     T: ComplexFloat + Lapack + H5Type,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-    A: Clone,
 {
     /// Returns a builder to construct a [`QChemH5SinglePointDriver`].
-    fn builder() -> QChemH5SinglePointDriverBuilder<'a, G, T, A> {
-        QChemH5SinglePointDriverBuilder::default()
+    fn builder() -> QChemSlaterDeterminantH5SinglePointDriverBuilder<'a, G, T> {
+        QChemSlaterDeterminantH5SinglePointDriverBuilder::default()
     }
 
     /// Extracts the molecular structure from the single-point H5 group.
@@ -508,13 +504,7 @@ where
 
 // Generic for all symmetry groups G and determinant numeric type T
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-impl<'a, G, T>
-    QChemH5SinglePointDriver<
-        'a,
-        G,
-        T,
-        SlaterDeterminantRepAnalysisParams<<T as ComplexFloat>::Real>,
-    >
+impl<'a, G, T> QChemSlaterDeterminantH5SinglePointDriver<'a, G, T>
 where
     G: SymmetryGroupProperties + Clone,
     G::CharTab: SubspaceDecomposable<T>,
@@ -666,14 +656,7 @@ where
 
 // Specific for unitary-represented symmetry groups and determinant numeric type f64
 // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-impl<'a>
-    QChemH5SinglePointDriver<
-        'a,
-        UnitaryRepresentedSymmetryGroup,
-        f64,
-        SlaterDeterminantRepAnalysisParams<f64>,
-    >
-{
+impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
     /// Performs symmetry-group detection and unitary-represented representation analysis.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
         let mol = self.extract_molecule()
@@ -795,14 +778,7 @@ impl<'a>
 
 // Specific for magnetic-represented symmetry groups and determinant numeric type f64
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-impl<'a>
-    QChemH5SinglePointDriver<
-        'a,
-        MagneticRepresentedSymmetryGroup,
-        f64,
-        SlaterDeterminantRepAnalysisParams<f64>,
-    >
-{
+impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
     /// Performs symmetry-group detection and magnetic-represented corepresentation analysis.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
         let mol = self.extract_molecule()
@@ -888,90 +864,89 @@ impl<'a>
     }
 }
 
-// ~~~~~~~~~~~~~~~~~~~~~~~
-// Vibrational coordinates
-// ~~~~~~~~~~~~~~~~~~~~~~~
-
-// Generic for all symmetry groups G and vibrational coordinates numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-impl<'a, G, T>
-    QChemH5SinglePointDriver<
-        'a,
-        G,
-        T,
-        VibrationalCoordinateRepAnalysisParams<<T as ComplexFloat>::Real>,
-    >
-where
-    G: SymmetryGroupProperties + Clone,
-    G::CharTab: SubspaceDecomposable<T>,
-    T: ComplexFloat + Lapack + H5Type,
-    <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
-{
-    /// Extracts the vibrational coordinate collection from the single-point H5 group.
-    ///
-    /// # Arguments
-    ///
-    /// * `mol` - The molecule to be associated with the extracted vibrational coordinate
-    /// collection.
-    /// * `threshold` - The comparison threshold to be associated with the extracted vibrational
-    /// coordinate collection.
-    ///
-    /// # Returns
-    ///
-    /// The extracted vibrational coordinate collection.
-    fn extract_vibrational_coordinate_collection(
-        &self,
-        mol: &'a Molecule,
-        threshold: <T as ComplexFloat>::Real,
-    ) -> Result<VibrationalCoordinateCollection<'a, T>, anyhow::Error> {
-        let frequencies = self
-            .sp_group
-            .dataset(&format!(
-                "energy_function/{}/analysis/vibrational/1/frequencies",
-                self.energy_function_index
-            ))?
-            .read_1d::<T>()
-            .map_err(|err| format_err!(err))?;
-        let natoms = self
-            .sp_group
-            .dataset(&format!(
-                "energy_function/{}/analysis/vibrational/1/natoms",
-                self.energy_function_index
-            ))?
-            .read_scalar::<usize>()
-            .map_err(|err| format_err!(err))?;
-        let nmodes = self
-            .sp_group
-            .dataset(&format!(
-                "energy_function/{}/analysis/vibrational/1/nmodes",
-                self.energy_function_index
-            ))?
-            .read_scalar::<usize>()
-            .map_err(|err| format_err!(err))?;
-        let coefficients = Array2::from_shape_vec(
-            (3 * natoms, nmodes).f(),
-            self
-                .sp_group
-                .dataset(&format!(
-                    "energy_function/{}/analysis/vibrational/1/modes",
-                    self.energy_function_index
-                ))?
-                .read::<T, Ix3>()?
-                .axis_iter(Axis(0))
-                .flatten()
-                .cloned()
-                .collect::<Vec<_>>()
-        ).map_err(|err| format_err!(err))?;
-
-        VibrationalCoordinateCollection::builder()
-            .mol(mol)
-            .frequencies(frequencies)
-            .coefficients(coefficients)
-            .threshold(threshold)
-            .build()
-            .map_err(|err| err.into())
-    }
-}
+// // ~~~~~~~~~~~~~~~~~~~~~~~
+// // Vibrational coordinates
+// // ~~~~~~~~~~~~~~~~~~~~~~~
+//
+// // Generic for all symmetry groups G and vibrational coordinates numeric type T
+// // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// impl<'a, G, T>
+//     QChemSlaterDeterminantH5SinglePointDriver<
+//         'a,
+//         G,
+//         T,
+//     >
+// where
+//     G: SymmetryGroupProperties + Clone,
+//     G::CharTab: SubspaceDecomposable<T>,
+//     T: ComplexFloat + Lapack + H5Type,
+//     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
+// {
+//     /// Extracts the vibrational coordinate collection from the single-point H5 group.
+//     ///
+//     /// # Arguments
+//     ///
+//     /// * `mol` - The molecule to be associated with the extracted vibrational coordinate
+//     /// collection.
+//     /// * `threshold` - The comparison threshold to be associated with the extracted vibrational
+//     /// coordinate collection.
+//     ///
+//     /// # Returns
+//     ///
+//     /// The extracted vibrational coordinate collection.
+//     fn extract_vibrational_coordinate_collection(
+//         &self,
+//         mol: &'a Molecule,
+//         threshold: <T as ComplexFloat>::Real,
+//     ) -> Result<VibrationalCoordinateCollection<'a, T>, anyhow::Error> {
+//         let frequencies = self
+//             .sp_group
+//             .dataset(&format!(
+//                 "energy_function/{}/analysis/vibrational/1/frequencies",
+//                 self.energy_function_index
+//             ))?
+//             .read_1d::<T>()
+//             .map_err(|err| format_err!(err))?;
+//         let natoms = self
+//             .sp_group
+//             .dataset(&format!(
+//                 "energy_function/{}/analysis/vibrational/1/natoms",
+//                 self.energy_function_index
+//             ))?
+//             .read_scalar::<usize>()
+//             .map_err(|err| format_err!(err))?;
+//         let nmodes = self
+//             .sp_group
+//             .dataset(&format!(
+//                 "energy_function/{}/analysis/vibrational/1/nmodes",
+//                 self.energy_function_index
+//             ))?
+//             .read_scalar::<usize>()
+//             .map_err(|err| format_err!(err))?;
+//         let coefficients = Array2::from_shape_vec(
+//             (3 * natoms, nmodes).f(),
+//             self.sp_group
+//                 .dataset(&format!(
+//                     "energy_function/{}/analysis/vibrational/1/modes",
+//                     self.energy_function_index
+//                 ))?
+//                 .read::<T, Ix3>()?
+//                 .axis_iter(Axis(0))
+//                 .flatten()
+//                 .cloned()
+//                 .collect::<Vec<_>>(),
+//         )
+//         .map_err(|err| format_err!(err))?;
+//
+//         VibrationalCoordinateCollection::builder()
+//             .mol(mol)
+//             .frequencies(frequencies)
+//             .coefficients(coefficients)
+//             .threshold(threshold)
+//             .build()
+//             .map_err(|err| err.into())
+//     }
+// }
 
 // Specific for unitary-represented symmetry groups and vibrational coordinates numeric type f64
 // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -1113,13 +1088,10 @@ where
 // Specific for unitary-represented symmetry groups and determinant numeric type f64
 // '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 impl<'a> QSym2Driver
-    for QChemH5SinglePointDriver<
-        'a,
-        UnitaryRepresentedSymmetryGroup,
-        f64,
-        SlaterDeterminantRepAnalysisParams<f64>,
-    >
+    for QChemSlaterDeterminantH5SinglePointDriver<'a, UnitaryRepresentedSymmetryGroup, f64>
 {
+    type Params = SlaterDeterminantRepAnalysisParams<f64>;
+
     type Outcome = (
         Symmetry,
         Result<<<UnitaryRepresentedSymmetryGroup as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition, String>,
@@ -1139,13 +1111,10 @@ impl<'a> QSym2Driver
 // Specific for magnetic-represented symmetry groups and determinant numeric type f64
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 impl<'a> QSym2Driver
-    for QChemH5SinglePointDriver<
-        'a,
-        MagneticRepresentedSymmetryGroup,
-        f64,
-        SlaterDeterminantRepAnalysisParams<f64>,
-    >
+    for QChemSlaterDeterminantH5SinglePointDriver<'a, MagneticRepresentedSymmetryGroup, f64>
 {
+    type Params = SlaterDeterminantRepAnalysisParams<f64>;
+
     type Outcome = (
         Symmetry,
         Result<<<MagneticRepresentedSymmetryGroup as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition, String>,
