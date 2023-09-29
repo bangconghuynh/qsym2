@@ -42,11 +42,11 @@ impl SlaterDeterminantSourceHandle for QChemArchiveSlaterDeterminantSource {
         sda_params: &SlaterDeterminantRepAnalysisParams<f64>,
     ) -> Result<Self::Outcome, anyhow::Error> {
         let qchemarchive_path = &self.path;
-        let mut qchem_h5_driver = QChemH5Driver::<f64>::builder()
+        let mut qchem_h5_driver = QChemH5Driver::<SlaterDeterminantRepAnalysisParams<f64>>::builder()
             .filename(qchemarchive_path.into())
             .symmetry_group_detection_input(&pd_params_inp)
             .angular_function_analysis_parameters(&afa_params)
-            .slater_det_rep_analysis_parameters(&sda_params)
+            .rep_analysis_parameters(&sda_params)
             .build()
             .with_context(|| "Unable to construct a Q-Chem HDF5 driver when handling Q-Chem archive Slater determinant source")?;
         qchem_h5_driver.run().with_context(|| "Unable to execute the Q-Chem HDF5 driver successfully when handling Q-Chem archive Slater determinant source")?;
