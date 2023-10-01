@@ -2,7 +2,6 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::ops::Mul;
 use std::str::FromStr;
 
 use approx;
@@ -12,9 +11,7 @@ use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
 use ndarray::{Array2, ArrayView2, Axis};
-use ndarray_linalg::types::{Lapack, Scalar};
-use num_complex::ComplexFloat;
-use num_traits::{ToPrimitive, Zero};
+use num_traits::ToPrimitive;
 use phf::{phf_map, phf_set};
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +23,7 @@ use crate::chartab::chartab_symbols::{
     MathematicalSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::unityroot::UnityRoot;
-use crate::chartab::{CharacterTable, SubspaceDecomposable};
+use crate::chartab::CharacterTable;
 use crate::group::FiniteOrder;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::SymmetryElement;
@@ -1384,52 +1381,54 @@ pub(super) fn deduce_sigma_symbol(
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
-enum MirrorParity {
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub enum MirrorParity {
     Even,
     Odd,
     Neither,
 }
 
-fn deduce_mirror_parity<G, R>(group: &G, rep: &R) -> Vec<MirrorParity>
+pub(crate) fn deduce_mirror_parity<G, R>(
+    group: &G,
+    rep: &R,
+) -> IndexMap<<<G as CharacterProperties>::CharTab as CharacterTable>::ColSymbol, MirrorParity>
 where
     G: SymmetryGroupProperties,
     R: ReducibleLinearSpaceSymbol<
         Subspace = <<G as CharacterProperties>::CharTab as CharacterTable>::RowSymbol,
     >,
 {
+    let id_cc = group
+        .get_cc_symbol_of_index(0)
+        .expect("Unable to obtain the conjugacy class symbol of the identity.");
     let mirrors = group.filter_cc_symbols(|cc| cc.is_spatial_reflection());
-    mirrors.iter().map(|sigma_cc| {
-        let sigma_cc_chars = rep.subspaces()
-            .iter()
-            .map(|(irrep, _)| {
-                let char = group.character_table().get_character(irrep, sigma_cc);
-                let char_complex = char.complex_value();
-                if approx::relative_eq!(
-                    char_complex.im,
-                    0.0,
-                    epsilon = char.threshold(),
-                    max_relative = char.threshold()
-                ) && approx::relative_eq!(
-                    char_complex.re,
-                    char_complex.re.round(),
-                    epsilon = char.threshold(),
-                    max_relative = char.threshold()
-                ) {
-                    if char_complex.re > 0.0 {
+    mirrors
+        .iter()
+        .map(|sigma_cc| {
+            let sigma_cc_chars = rep
+                .subspaces()
+                .iter()
+                .map(|(irrep, _)| {
+                    let id_char = group.character_table().get_character(irrep, &id_cc);
+                    let char = group.character_table().get_character(irrep, sigma_cc);
+                    if *char == *id_char {
                         MirrorParity::Even
-                    } else {
+                    } else if *char == -id_char {
                         MirrorParity::Odd
+                    } else {
+                        MirrorParity::Neither
                     }
-                } else {
-                    MirrorParity::Neither
-                }
-            })
-            .collect::<HashSet<_>>();
-        if sigma_cc_chars.len() == 1 {
-            sigma_cc_chars.into_iter().next().expect("Unable to extract the mirror parity.")
-        } else {
-            MirrorParity::Neither
-        }
-    }).collect::<Vec<_>>()
+                })
+                .collect::<HashSet<_>>();
+            let sigma_cc_parity = if sigma_cc_chars.len() == 1 {
+                sigma_cc_chars
+                    .into_iter()
+                    .next()
+                    .expect("Unable to extract the mirror parity.")
+            } else {
+                MirrorParity::Neither
+            };
+            (sigma_cc.clone(), sigma_cc_parity)
+        })
+        .collect::<IndexMap<_, _>>()
 }

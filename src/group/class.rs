@@ -718,7 +718,8 @@ where
             .as_ref()
             .expect("No class structure found.")
             .conjugacy_class_symbols
-            .into_keys()
+            .keys()
+            .cloned()
             .filter(predicate)
             .collect::<Vec<_>>()
     }
@@ -920,7 +921,8 @@ where
             .as_ref()
             .expect("No class structure found.")
             .conjugacy_class_symbols
-            .into_keys()
+            .keys()
+            .cloned()
             .filter(predicate)
             .collect::<Vec<_>>()
     }

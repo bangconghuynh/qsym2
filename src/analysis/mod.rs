@@ -661,9 +661,9 @@ macro_rules! fn_calc_xmat_complex {
 pub(crate) use fn_calc_xmat_complex;
 pub(crate) use fn_calc_xmat_real;
 
-// -----------------
+// =================
 // Utility functions
-// -----------------
+// =================
 
 /// Logs overlap eigenvalues nicely and indicates where the threshold has been crossed.
 ///
