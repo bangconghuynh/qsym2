@@ -29,9 +29,7 @@ use crate::drivers::symmetry_group_detection::{
 };
 use crate::drivers::QSym2Driver;
 use crate::interfaces::input::SymmetryGroupDetectionInputKind;
-use crate::io::format::{
-    log_macsec_begin, log_macsec_end, log_micsec_begin, log_micsec_end, qsym2_error, qsym2_output,
-};
+use crate::io::format::{log_macsec_begin, log_macsec_end, qsym2_error, qsym2_output};
 use crate::io::{read_qsym2_binary, QSym2FileType};
 use crate::symmetry::symmetry_core::Symmetry;
 use crate::symmetry::symmetry_group::{
@@ -40,8 +38,8 @@ use crate::symmetry::symmetry_group::{
 use crate::target::vibration::VibrationalCoordinateCollection;
 
 #[cfg(test)]
-#[path = "slater_determinant_tests.rs"]
-mod slater_determinant_test;
+#[path = "vibrational_coordinate_tests.rs"]
+mod vibrational_coordinate_tests;
 
 // =====================
 // Full Q-Chem H5 Driver
@@ -61,7 +59,10 @@ lazy_static! {
 /// A driver to perform symmetry-group detection and vibration representation symmetry analysis for
 /// all discoverable single-point calculation data stored in a Q-Chem's `qarchive.h5` file.
 #[derive(Clone, Builder)]
-pub(crate) struct QChemVibrationH5Driver<'a> {
+pub(crate) struct QChemVibrationH5Driver<'a, T>
+where
+    T: Clone,
+{
     /// The `qarchive.h5` file name.
     filename: PathBuf,
 
@@ -75,25 +76,32 @@ pub(crate) struct QChemVibrationH5Driver<'a> {
     rep_analysis_parameters: &'a VibrationalCoordinateRepAnalysisParams<f64>,
 
     /// The simplified result of the analysis. Each element in the vector is a tuple containing the
-    /// group name and the vibrational analysis result.
+    /// group name and a message indicating if the analysis has been successful.
     #[builder(default = "None")]
     result: Option<Vec<(String, String)>>,
+
+    /// The numerical type of the vibrational coordinates.
+    #[builder(setter(skip), default = "PhantomData")]
+    numerical_type: PhantomData<T>,
 }
 
 // ----------------------
 // Struct implementations
 // ----------------------
 
-impl<'a> QChemVibrationH5Driver<'a> {
+impl<'a, T> QChemVibrationH5Driver<'a, T>
+where
+    T: Clone
+{
     /// Returns a builder to construct a [`QChemVibrationH5Driver`].
-    pub(crate) fn builder() -> QChemVibrationH5DriverBuilder<'a> {
+    pub(crate) fn builder() -> QChemVibrationH5DriverBuilder<'a, T> {
         QChemVibrationH5DriverBuilder::default()
     }
 }
 
 // Specific for vibrational coordinates numeric type f64
 // '''''''''''''''''''''''''''''''''''''''''''''''''''''
-impl<'a> QChemVibrationH5Driver<'a> {
+impl<'a> QChemVibrationH5Driver<'a, f64> {
     /// Performs analysis for all real-valued single-point vibrational coordinates.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
         let f = hdf5::File::open(&self.filename)?;
@@ -186,81 +194,74 @@ impl<'a> QChemVibrationH5Driver<'a> {
                 sp_driver_result
             })
             .map(|res| {
-                res.unwrap_or((
-                    "Unidentified symmetry group".to_string(),
-                    "Unidentified (co)representation".to_string(),
-                ))
+                res.unwrap_or_else(|err| {
+                    (
+                        "Unidentified symmetry group".to_string(),
+                        format!("Unidentified (co)representations: {err}"),
+                    )
+                })
             })
             .collect::<Vec<_>>();
 
-        // log_macsec_begin("Q-Chem HDF5 Archive Summary");
-        // qsym2_output!("");
-        // let path_length = sp_paths
-        //     .iter()
-        //     .map(|(path, _)| path.chars().count())
-        //     .max()
-        //     .unwrap_or(18)
-        //     .max(18);
-        // let energy_function_length = sp_paths
-        //     .iter()
-        //     .map(|(_, energy_function_index)| {
-        //         energy_function_index
-        //             .chars()
-        //             .count()
-        //             .max(1)
-        //     })
-        //     .max()
-        //     .unwrap_or(7)
-        //     .max(7);
-        // let group_length = result
-        //     .iter()
-        //     .map(|(group, _)| group.chars().count())
-        //     .max()
-        //     .unwrap_or(5)
-        //     .max(5);
-        // let sym_length = result
-        //     .iter()
-        //     .map(|(_, sym)| sym.chars().count())
-        //     .max()
-        //     .unwrap_or(13)
-        //     .max(13);
-        // let table_width = path_length + energy_function_length + group_length + sym_length + 8;
-        // qsym2_output!("{}", "┈".repeat(table_width));
-        // qsym2_output!(
-        //     " {:<path_length$}  {:<energy_function_length$}  {:<group_length$}  {:<}",
-        //     "Single-point calc.",
-        //     "E func.",
-        //     "Group",
-        //     "Det. symmetry"
-        // );
-        // qsym2_output!("{}", "┈".repeat(table_width));
-        // sp_paths
-        //     .iter()
-        //     .flat_map(|(sp_path, energy_function_indices)| {
-        //         energy_function_indices
-        //             .iter()
-        //             .map(|index| (sp_path.clone(), index))
-        //     })
-        //     .zip(result.iter())
-        //     .for_each(|((path, index), (group, sym))| {
-        //         qsym2_output!(
-        //             " {:<path_length$}  {:<energy_function_length$}  {:<group_length$}  {:<#}",
-        //             path,
-        //             index,
-        //             group,
-        //             sym
-        //         );
-        //     });
-        // qsym2_output!("{}", "┈".repeat(table_width));
-        // qsym2_output!("");
-        // log_macsec_end("Q-Chem HDF5 Archive Summary");
+        log_macsec_begin("Q-Chem HDF5 Archive Summary");
+        qsym2_output!("");
+        let path_length = sp_paths
+            .iter()
+            .map(|(path, _)| path.chars().count())
+            .max()
+            .unwrap_or(18)
+            .max(18);
+        let energy_function_length = sp_paths
+            .iter()
+            .map(|(_, energy_function_index)| energy_function_index.chars().count().max(1))
+            .max()
+            .unwrap_or(7)
+            .max(7);
+        let group_length = result
+            .iter()
+            .map(|(group, _)| group.chars().count())
+            .max()
+            .unwrap_or(5)
+            .max(5);
+        let sym_length = result
+            .iter()
+            .map(|(_, sym)| sym.chars().count())
+            .max()
+            .unwrap_or(20)
+            .max(20);
+        let table_width = path_length + energy_function_length + group_length + sym_length + 8;
+        qsym2_output!("{}", "┈".repeat(table_width));
+        qsym2_output!(
+            " {:<path_length$}  {:<energy_function_length$}  {:<group_length$}  {:<}",
+            "Single-point calc.",
+            "E func.",
+            "Group",
+            "Vib. symmetry status"
+        );
+        qsym2_output!("{}", "┈".repeat(table_width));
+        sp_paths
+            .iter()
+            .map(|(sp_path, energy_function_index)| (sp_path.clone(), energy_function_index))
+            .zip(result.iter())
+            .for_each(|((path, index), (group, sym))| {
+                qsym2_output!(
+                    " {:<path_length$}  {:<energy_function_length$}  {:<group_length$}  {:<#}",
+                    path,
+                    index,
+                    group,
+                    sym
+                );
+            });
+        qsym2_output!("{}", "┈".repeat(table_width));
+        qsym2_output!("");
+        log_macsec_end("Q-Chem HDF5 Archive Summary");
 
         self.result = Some(result);
         Ok(())
     }
 }
 
-impl<'a> QSym2Driver for QChemVibrationH5Driver<'a> {
+impl<'a> QSym2Driver for QChemVibrationH5Driver<'a, f64> {
     type Params = VibrationalCoordinateRepAnalysisParams<f64>;
 
     type Outcome = Vec<(String, String)>;
@@ -319,7 +320,7 @@ where
 
     /// The symmetry of the system.
     #[builder(default = "None")]
-    result: Option<(Symmetry, Result<(), String>)>,
+    result: Option<(Symmetry, Result<Vec<String>, String>)>,
 }
 
 // ----------------------
@@ -543,7 +544,18 @@ impl<'a> QChemVibrationH5SinglePointDriver<'a, gtype_, f64> {
 
             vca_driver
                 .result()
-                .map(|_| ())
+                .map(|vca_res| {
+                    vca_res
+                        .vibrational_coordinate_symmetries()
+                        .iter()
+                        .map(|vc_res| {
+                            vc_res
+                                .as_ref()
+                                .map(|vc_sym| vc_sym.to_string())
+                                .unwrap_or_else(|err| err.clone())
+                        })
+                        .collect::<Vec<_>>()
+                })
                 .map_err(|err| err.to_string())
         };
         self.result = Some((sym, rep()));
@@ -574,7 +586,7 @@ impl<'a> QChemVibrationH5SinglePointDriver<'a, gtype_, f64> {
 impl<'a> QSym2Driver for QChemVibrationH5SinglePointDriver<'a, gtype_, f64> {
     type Params = VibrationalCoordinateRepAnalysisParams<f64>;
 
-    type Outcome = (Symmetry, Result<(), String>);
+    type Outcome = (Symmetry, Result<Vec<String>, String>);
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result.as_ref().ok_or(format_err!(err_))

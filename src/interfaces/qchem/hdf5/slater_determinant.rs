@@ -1,4 +1,5 @@
 use std::fmt;
+use std::marker::PhantomData;
 use std::path::PathBuf;
 
 use anyhow::{self, bail, format_err, Context};
@@ -45,7 +46,7 @@ use crate::target::determinant::SlaterDeterminant;
 
 #[cfg(test)]
 #[path = "slater_determinant_tests.rs"]
-mod slater_determinant_test;
+mod slater_determinant_tests;
 
 // =====================
 // Full Q-Chem H5 Driver
@@ -64,7 +65,10 @@ lazy_static! {
 /// analysis for all discoverable single-point calculation data stored in a Q-Chem's `qarchive.h5`
 /// file.
 #[derive(Clone, Builder)]
-pub(crate) struct QChemSlaterDeterminantH5Driver<'a> {
+pub(crate) struct QChemSlaterDeterminantH5Driver<'a, T>
+where
+    T: Clone,
+{
     /// The `qarchive.h5` file name.
     filename: PathBuf,
 
@@ -82,15 +86,22 @@ pub(crate) struct QChemSlaterDeterminantH5Driver<'a> {
     /// calculation.
     #[builder(default = "None")]
     result: Option<Vec<(String, String)>>,
+
+    /// The numerical type of the Slater determinant.
+    #[builder(setter(skip), default = "PhantomData")]
+    numerical_type: PhantomData<T>,
 }
 
 // ----------------------
 // Struct implementations
 // ----------------------
 
-impl<'a> QChemSlaterDeterminantH5Driver<'a> {
+impl<'a, T> QChemSlaterDeterminantH5Driver<'a, T>
+where
+    T: Clone,
+{
     /// Returns a builder to construct a [`QChemSlaterDeterminantH5Driver`].
-    pub(crate) fn builder() -> QChemSlaterDeterminantH5DriverBuilder<'a> {
+    pub(crate) fn builder() -> QChemSlaterDeterminantH5DriverBuilder<'a, T> {
         QChemSlaterDeterminantH5DriverBuilder::default()
     }
 }
@@ -101,7 +112,7 @@ impl<'a> QChemSlaterDeterminantH5Driver<'a> {
 
 // Specific for Slater determinant numeric type f64
 // ''''''''''''''''''''''''''''''''''''''''''''''''
-impl<'a> QChemSlaterDeterminantH5Driver<'a> {
+impl<'a> QChemSlaterDeterminantH5Driver<'a, f64> {
     /// Performs analysis for all real-valued single-point determinants.
     fn analyse(&mut self) -> Result<(), anyhow::Error> {
         let f = hdf5::File::open(&self.filename)?;
@@ -203,10 +214,12 @@ impl<'a> QChemSlaterDeterminantH5Driver<'a> {
                 })
             })
             .map(|res| {
-                res.unwrap_or((
-                    "Unidentified symmetry group".to_string(),
-                    "Unidentified (co)representation".to_string(),
-                ))
+                res.unwrap_or_else(|err| {
+                    (
+                        "Unidentified symmetry group".to_string(),
+                        format!("Unidentified (co)representation: {err}"),
+                    )
+                })
             })
             .collect::<Vec<_>>();
 
@@ -279,7 +292,7 @@ impl<'a> QChemSlaterDeterminantH5Driver<'a> {
     }
 }
 
-impl<'a> QSym2Driver for QChemSlaterDeterminantH5Driver<'a> {
+impl<'a> QSym2Driver for QChemSlaterDeterminantH5Driver<'a, f64> {
     type Params = SlaterDeterminantRepAnalysisParams<f64>;
 
     type Outcome = Vec<(String, String)>;
@@ -376,7 +389,7 @@ where
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug,
 {
     /// Returns a builder to construct a [`QChemSlaterDeterminantH5SinglePointDriver`].
-    fn builder() -> QChemSlaterDeterminantH5SinglePointDriverBuilder<'a, G, T> {
+    pub(crate) fn builder() -> QChemSlaterDeterminantH5SinglePointDriverBuilder<'a, G, T> {
         QChemSlaterDeterminantH5SinglePointDriverBuilder::default()
     }
 
@@ -803,20 +816,19 @@ impl<'a> QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
         err_ [ "No Q-Chem single-point analysis results (magnetic-represented group, real determinant) found." ]
     ]
 )]
-impl<'a> QSym2Driver
-    for QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64>
-{
+impl<'a> QSym2Driver for QChemSlaterDeterminantH5SinglePointDriver<'a, gtype_, f64> {
     type Params = SlaterDeterminantRepAnalysisParams<f64>;
 
     type Outcome = (
         Symmetry,
-        Result<<<gtype_ as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition, String>,
+        Result<
+            <<gtype_ as CharacterProperties>::CharTab as SubspaceDecomposable<f64>>::Decomposition,
+            String,
+        >,
     );
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
-        self.result
-            .as_ref()
-            .ok_or(format_err!(err_))
+        self.result.as_ref().ok_or(format_err!(err_))
     }
 
     fn run(&mut self) -> Result<(), anyhow::Error> {
