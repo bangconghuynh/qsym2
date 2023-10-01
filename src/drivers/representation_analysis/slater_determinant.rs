@@ -1254,6 +1254,8 @@ where
 impl<'a> QSym2Driver
     for SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, f64>
 {
+    type Params = SlaterDeterminantRepAnalysisParams<f64>;
+
     type Outcome = SlaterDeterminantRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, f64>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
@@ -1276,6 +1278,8 @@ impl<'a> QSym2Driver
 impl<'a> QSym2Driver
     for SlaterDeterminantRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>
 {
+    type Params = SlaterDeterminantRepAnalysisParams<f64>;
+
     type Outcome =
         SlaterDeterminantRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>;
 
@@ -1299,6 +1303,8 @@ impl<'a> QSym2Driver
 impl<'a> QSym2Driver
     for SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, f64>
 {
+    type Params = SlaterDeterminantRepAnalysisParams<f64>;
+
     type Outcome = SlaterDeterminantRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, f64>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
@@ -1321,6 +1327,8 @@ impl<'a> QSym2Driver
 impl<'a> QSym2Driver
     for SlaterDeterminantRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>
 {
+    type Params = SlaterDeterminantRepAnalysisParams<f64>;
+
     type Outcome =
         SlaterDeterminantRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>;
 

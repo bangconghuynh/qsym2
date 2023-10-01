@@ -10,6 +10,9 @@ pub mod symmetry_group_detection;
 
 /// A trait for `QSym2` drivers.
 pub trait QSym2Driver {
+    /// The type of the parameter structure controlling the driver.
+    type Params;
+
     /// The type of the successful outcome when executing the driver.
     type Outcome;
 

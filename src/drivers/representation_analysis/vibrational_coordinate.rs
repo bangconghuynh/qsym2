@@ -720,6 +720,8 @@ where
 impl<'a> QSym2Driver
     for VibrationalCoordinateRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, f64>
 {
+    type Params = VibrationalCoordinateRepAnalysisParams<f64>;
+
     type Outcome = VibrationalCoordinateRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, f64>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
@@ -742,6 +744,8 @@ impl<'a> QSym2Driver
 impl<'a> QSym2Driver
     for VibrationalCoordinateRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>
 {
+    type Params = VibrationalCoordinateRepAnalysisParams<f64>;
+
     type Outcome =
         VibrationalCoordinateRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>;
 
@@ -765,6 +769,8 @@ impl<'a> QSym2Driver
 impl<'a> QSym2Driver
     for VibrationalCoordinateRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, f64>
 {
+    type Params = VibrationalCoordinateRepAnalysisParams<f64>;
+
     type Outcome =
         VibrationalCoordinateRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, f64>;
 
@@ -788,6 +794,8 @@ impl<'a> QSym2Driver
 impl<'a> QSym2Driver
     for VibrationalCoordinateRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>
 {
+    type Params = VibrationalCoordinateRepAnalysisParams<f64>;
+
     type Outcome =
         VibrationalCoordinateRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>;
 

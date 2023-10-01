@@ -650,6 +650,8 @@ impl<'a> SymmetryGroupDetectionDriver<'a> {
 }
 
 impl QSym2Driver for SymmetryGroupDetectionDriver<'_> {
+    type Params = SymmetryGroupDetectionParams;
+
     type Outcome = SymmetryGroupDetectionResult;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
