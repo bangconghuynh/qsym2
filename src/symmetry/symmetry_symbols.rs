@@ -2,29 +2,36 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::ops::Mul;
 use std::str::FromStr;
 
+use approx;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use log;
 use nalgebra::Vector3;
 use ndarray::{Array2, ArrayView2, Axis};
-use num_traits::ToPrimitive;
+use ndarray_linalg::types::{Lapack, Scalar};
+use num_complex::ComplexFloat;
+use num_traits::{ToPrimitive, Zero};
 use phf::{phf_map, phf_set};
 use serde::{Deserialize, Serialize};
 
 use crate::chartab::character::Character;
+use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
     disambiguate_linspace_symbols, CollectionSymbol, DecomposedSymbol,
     DecomposedSymbolBuilderError, GenericSymbol, GenericSymbolParsingError, LinearSpaceSymbol,
     MathematicalSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::unityroot::UnityRoot;
+use crate::chartab::{CharacterTable, SubspaceDecomposable};
 use crate::group::FiniteOrder;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::SymmetryElement;
 use crate::symmetry::symmetry_element_order::ORDER_1;
+use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
 #[cfg(test)]
 #[path = "symmetry_symbols_tests.rs"]
@@ -1375,4 +1382,54 @@ pub(super) fn deduce_sigma_symbol(
     } else {
         None
     }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+enum MirrorParity {
+    Even,
+    Odd,
+    Neither,
+}
+
+fn deduce_mirror_parity<G, R>(group: &G, rep: &R) -> Vec<MirrorParity>
+where
+    G: SymmetryGroupProperties,
+    R: ReducibleLinearSpaceSymbol<
+        Subspace = <<G as CharacterProperties>::CharTab as CharacterTable>::RowSymbol,
+    >,
+{
+    let mirrors = group.filter_cc_symbols(|cc| cc.is_spatial_reflection());
+    mirrors.iter().map(|sigma_cc| {
+        let sigma_cc_chars = rep.subspaces()
+            .iter()
+            .map(|(irrep, _)| {
+                let char = group.character_table().get_character(irrep, sigma_cc);
+                let char_complex = char.complex_value();
+                if approx::relative_eq!(
+                    char_complex.im,
+                    0.0,
+                    epsilon = char.threshold(),
+                    max_relative = char.threshold()
+                ) && approx::relative_eq!(
+                    char_complex.re,
+                    char_complex.re.round(),
+                    epsilon = char.threshold(),
+                    max_relative = char.threshold()
+                ) {
+                    if char_complex.re > 0.0 {
+                        MirrorParity::Even
+                    } else {
+                        MirrorParity::Odd
+                    }
+                } else {
+                    MirrorParity::Neither
+                }
+            })
+            .collect::<HashSet<_>>();
+        if sigma_cc_chars.len() == 1 {
+            sigma_cc_chars.into_iter().next().expect("Unable to extract the mirror parity.")
+        } else {
+            MirrorParity::Neither
+        }
+    }).collect::<Vec<_>>()
 }

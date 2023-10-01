@@ -393,6 +393,19 @@ impl ClassProperties for PermutationGroup {
             .map(|conjugacy_classes| &conjugacy_classes[cc_idx])
     }
 
+    fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
+        &self,
+        predicate: P,
+    ) -> Vec<Self::ClassSymbol> {
+        self.conjugacy_class_symbols
+            .as_ref()
+            .expect("No class structure found.")
+            .iter()
+            .cloned()
+            .filter(predicate)
+            .collect::<Vec<_>>()
+    }
+
     fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize> {
         let perm = Permutation::from_lehmer_index(e_idx, self.rank)?;
         self.cycle_patterns
