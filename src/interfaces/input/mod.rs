@@ -12,6 +12,7 @@ use crate::drivers::symmetry_group_detection::{
 use crate::drivers::QSym2Driver;
 use crate::interfaces::input::analysis::{
     AnalysisTarget, SlaterDeterminantSource, SlaterDeterminantSourceHandle,
+    VibrationalCoordinateSource, VibrationalCoordinateSourceHandle,
 };
 use crate::interfaces::InputHandle;
 #[allow(unused_imports)]
@@ -137,6 +138,22 @@ impl InputHandle for Input {
                         log::debug!("Slater determinant source: binary files");
                         binaries_sd_source
                             .sd_source_handle(&pd_params_inp, &afa_params, &sda_params)
+                            .map(|_| ())
+                    }
+                }
+            }
+            AnalysisTarget::VibrationalCoordinates(vc_control) => {
+                log::debug!("Analysis target: vibrational coordinates");
+                let vc_source = &vc_control.source;
+                let vca_params = &vc_control.control;
+                afa_params.linear_independence_threshold = vca_params.linear_independence_threshold;
+                afa_params.integrality_threshold = vca_params.integrality_threshold;
+                match vc_source {
+                    #[cfg(feature = "qchem")]
+                    VibrationalCoordinateSource::QChemArchive(qchemarchive_vc_source) => {
+                        log::debug!("Vibrational coordinate source: Q-Chem archive");
+                        qchemarchive_vc_source
+                            .vc_source_handle(&pd_params_inp, &afa_params, &vca_params)
                             .map(|_| ())
                     }
                 }

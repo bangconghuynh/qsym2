@@ -74,6 +74,20 @@ pub(crate) fn log_macsec_end(sectitle: &str) {
     qsym2_output!("❭❭❭❭❭ [ End ] {sectitle_space:❭<width$}");
 }
 
+/// Logs a nicely formatted micro-section beginning to the `qsym2-output` logger.
+pub(crate) fn log_micsec_begin(sectitle: &str) {
+    let width = QSYM2_BANNER_LENGTH - 14;
+    let sectitle_space = sectitle.to_string() + " ";
+    qsym2_output!("‹‹‹‹‹ [Begin] {sectitle_space:‹<width$}");
+}
+
+/// Logs a nicely formatted micro-section ending to the `qsym2-output` logger.
+pub(crate) fn log_micsec_end(sectitle: &str) {
+    let width = QSYM2_BANNER_LENGTH - 14;
+    let sectitle_space = sectitle.to_string() + " ";
+    qsym2_output!("››››› [ End ] {sectitle_space:›<width$}");
+}
+
 /// Turns a boolean into a string of `yes` or `no`.
 pub(crate) fn nice_bool(b: bool) -> String {
     if b {
