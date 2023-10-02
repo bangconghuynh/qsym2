@@ -81,6 +81,7 @@ pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     /// Boolean indicating if molecular orbital mirror parities are to be analysed alongside
     /// molecular orbital symmetries.
     #[builder(default = "false")]
+    #[serde(default)]
     pub analyse_mo_mirror_parities: bool,
 
     /// Boolean indicating if density symmetries are to be analysed alongside wavefunction symmetries
