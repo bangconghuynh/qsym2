@@ -580,7 +580,7 @@ fn test_integrals_shell_tuple_overlap_2c_cr2() {
     // Cr2, 6-31G*
     // Reference: Q-Chem
     // ~~~~~~~~~~~~~~~~~
-    let bs_cs = BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)));
+    // let bs_cs = BasisShell::new(0, ShellOrder::Cart(CartOrder::qchem(0)));
     let bs_cp = BasisShell::new(1, ShellOrder::Cart(CartOrder::qchem(1)));
     let bs_cd = BasisShell::new(2, ShellOrder::Cart(CartOrder::qchem(2)));
     let bs_pf = BasisShell::new(3, ShellOrder::Pure(PureOrder::increasingm(3)));
@@ -642,16 +642,16 @@ fn test_integrals_shell_tuple_overlap_2c_cr2() {
     //         (0.9856100000e-01, -0.1147506479e+01),
     //     ],
     // };
-    let gc_cr_631gs_4p = GaussianContraction::<f64, f64> {
-        primitives: vec![
-            (0.1571464000e+01, -0.1930100080e+00),
-            (0.6055800000e+00, 0.9605620398e-01),
-            (0.9856100000e-01, 0.9817609407e+00),
-        ],
-    };
-    let gc_cr_631gs_5s = GaussianContraction::<f64, f64> {
-        primitives: vec![(0.3645900000e-01, 0.1000000000e+01)],
-    };
+    // let gc_cr_631gs_4p = GaussianContraction::<f64, f64> {
+    //     primitives: vec![
+    //         (0.1571464000e+01, -0.1930100080e+00),
+    //         (0.6055800000e+00, 0.9605620398e-01),
+    //         (0.9856100000e-01, 0.9817609407e+00),
+    //     ],
+    // };
+    // let gc_cr_631gs_5s = GaussianContraction::<f64, f64> {
+    //     primitives: vec![(0.3645900000e-01, 0.1000000000e+01)],
+    // };
     let gc_cr_631gs_5p = GaussianContraction::<f64, f64> {
         primitives: vec![(0.3645900000e-01, 0.1000000000e+01)],
     };

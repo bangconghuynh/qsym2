@@ -1,4 +1,4 @@
-use log4rs;
+// use log4rs;
 use ndarray::array;
 use num_complex::Complex;
 use serial_test::serial;
@@ -35,7 +35,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_drivers_slater_determinant_analysis_vf6() {
-    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/vf6.xyz");
 
     let afa_params = AngularFunctionRepAnalysisParams::default();
@@ -143,7 +143,6 @@ fn test_drivers_slater_determinant_analysis_vf6() {
         .integrality_threshold(1e-10)
         .linear_independence_threshold(1e-10)
         .analyse_mo_symmetries(true)
-        .analyse_mo_mirror_parities(true)
         .use_magnetic_group(None)
         .use_double_group(false)
         .symmetry_transformation_kind(SymmetryTransformationKind::SpinSpatial)
