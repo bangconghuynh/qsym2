@@ -584,7 +584,8 @@ where
 /// represented and those that are antiunitary represented. This division of elements affects the
 /// class structure of the group via an equivalence relation defined in
 /// Newmarch, J. D. & Golding, R. M. The character table for the corepresentations of magnetic
-/// groups. *Journal of Mathematical Physics* **23**, 695–704 (1982).
+/// groups. *Journal of Mathematical Physics* **23**, 695–704 (1982),
+/// [DOI](http://aip.scitation.org/doi/10.1063/1.525423).
 #[derive(Clone, Builder, Serialize, Deserialize)]
 pub struct MagneticRepresentedGroup<T, UG, RowSymbol>
 where

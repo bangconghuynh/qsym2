@@ -1381,14 +1381,47 @@ pub(super) fn deduce_sigma_symbol(
     }
 }
 
+/// An enumerated type specifying the parity under a mirror plane.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum MirrorParity {
+    /// Variant for even parity.
     Even,
+
+    /// Variant for odd parity.
     Odd,
+
+    /// Variant for no parity.
     Neither,
 }
 
-pub(crate) fn deduce_mirror_parity<G, R>(
+impl fmt::Display for MirrorParity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MirrorParity::Even => write!(f, "(+)"),
+            MirrorParity::Odd => write!(f, "(-)"),
+            MirrorParity::Neither => write!(f, "(|)"),
+        }
+    }
+}
+
+/// Given a group with a character table, deduces the parities of a specified representation under
+/// all classes in the group that contain a spatial reflection.
+///
+/// # Arguments
+///
+/// * `group` - A group with a character table.
+/// * `rep` - A representation (that has been decomposed as irreps or ircoreps of `group`) for
+/// which mirror parities are to be deduced.
+///
+/// # Returns
+///
+/// An indexmap whose keys are reflection classes and whose values are the corresponding parities of
+/// `rep`.
+///
+/// # Panics
+///
+/// Panics on unexpected errors.
+pub(crate) fn deduce_mirror_parities<G, R>(
     group: &G,
     rep: &R,
 ) -> IndexMap<<<G as CharacterProperties>::CharTab as CharacterTable>::ColSymbol, MirrorParity>

@@ -693,7 +693,8 @@ impl<'a, T: Display + Debug> Error for Split2dSpaceError<'a, T> {}
 
 /// Splits a two-dimensional space using the trial-and-error approach suggested by
 /// Schneider, G. J. A. Dixon's character table algorithm revisited.
-/// *Journal of Symbolic Computation* **9**, 601–606 (1990).
+/// *Journal of Symbolic Computation* **9**, 601–606 (1990),
+/// [DOI](https://doi.org/10.1016/S0747-7171(08)80077-6).
 ///
 /// In cases of ambiguity, the Frobenius--Schur indicators of the prospective irreps are computed
 /// to help rule out invalid cases.

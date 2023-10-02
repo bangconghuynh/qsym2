@@ -143,9 +143,10 @@ where
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[pyclass]
 pub enum EigenvalueComparisonMode {
-    /// Attempt to compare the eigenvalues with a threshold as-is, and fall back on
-    /// [`EigenvalueComparisonMode::ForceAbsolute`] when some eigenvalues are non-real.
+    /// Compares the eigenvalues using only their real parts.
     Real,
+
+    /// Compares the eigenvalues using their moduli.
     Modulus,
 }
 
