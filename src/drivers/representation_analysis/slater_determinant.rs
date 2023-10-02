@@ -354,6 +354,14 @@ where
         }
 
         if let Some(mo_symmetries) = self.mo_symmetries.as_ref() {
+            let mo_spin_index_length = 4;
+            let mo_index_length = mo_symmetries
+                .iter()
+                .map(|spin_mo_symmetries| spin_mo_symmetries.len())
+                .max()
+                .and_then(|max_mo_length| usize::try_from(max_mo_length.ilog10() + 2).ok())
+                .unwrap_or(4);
+            let mo_occ_length = 5;
             let mo_symmetry_length = mo_symmetries
                 .iter()
                 .flat_map(|spin_mo_symmetries| {
@@ -382,12 +390,6 @@ where
                 })
                 .unwrap_or(0)
                 .max(6);
-            let mo_index_length = mo_symmetries
-                .iter()
-                .map(|spin_mo_symmetries| spin_mo_symmetries.len())
-                .max()
-                .and_then(|max_mo_length| usize::try_from(max_mo_length.ilog10() + 2).ok())
-                .unwrap_or(4);
 
             let mo_eig_above_length: usize = self
                 .mo_symmetries_thresholds
@@ -432,6 +434,21 @@ where
                 })
                 .unwrap_or(10);
 
+            let mirrors = self
+                .group
+                .filter_cc_symbols(|cc| cc.is_spatial_reflection());
+            let mo_mirror_parities_length_opt = self.mo_mirror_parities.as_ref().map(|_| {
+                let mirror_heading = mirrors.iter().map(|sigma| format!("p[{sigma}]")).join("  ");
+                let length = mirror_heading.chars().count();
+                (mirror_heading, length)
+            });
+            let mo_mirror_parities_gap = mo_mirror_parities_length_opt
+                .as_ref()
+                .map(|_| 2)
+                .unwrap_or(0);
+            let (mo_mirror_parities_heading, mo_mirror_parities_length) =
+                mo_mirror_parities_length_opt.unwrap_or((String::new(), 0));
+
             let mo_den_symss_str_opt = self.mo_density_symmetries.as_ref().map(|mo_den_symss| {
                 mo_den_symss
                     .iter()
@@ -460,6 +477,23 @@ where
                     .unwrap_or(13)
                     .max(13)
             });
+            let mo_density_length = mo_density_length_opt.unwrap_or(0);
+            let mo_density_gap = mo_density_length_opt.map(|_| 2).unwrap_or(0);
+            let mo_density_heading = mo_density_length_opt.map(|_| "Density sym.").unwrap_or("");
+
+            let table_width = 14
+                + mo_spin_index_length
+                + mo_index_length
+                + mo_occ_length
+                + mo_energy_length
+                + mo_symmetry_length
+                + mo_mirror_parities_gap
+                + mo_mirror_parities_length
+                + mo_eig_above_length
+                + mo_eig_below_length
+                + mo_density_gap
+                + mo_density_length;
+
             writeln!(f, "> Molecular orbital results")?;
             writeln!(
                 f,
@@ -469,507 +503,668 @@ where
                     .to_string()
                     .to_lowercase()
             )?;
+            writeln!(f, "{}", "┈".repeat(table_width))?;
+            writeln!(
+                f,
+                " {:>mo_spin_index_length$}  {:>mo_index_length$}  {:<mo_occ_length$}  {:<mo_energy_length$}  {:<mo_symmetry_length$}{}{:mo_mirror_parities_length$}  {:<mo_eig_above_length$}  {:<mo_eig_below_length$}{}{}",
+                "Spin",
+                "MO",
+                "Occ.",
+                "Energy",
+                "Symmetry",
+                " ".repeat(mo_mirror_parities_gap),
+                mo_mirror_parities_heading,
+                "Eig. above",
+                "Eig. below",
+                " ".repeat(mo_density_gap),
+                mo_density_heading
+            )?;
+            writeln!(f, "{}", "┈".repeat(table_width))?;
 
-            if let Some(mo_density_length) = mo_density_length_opt {
-                // Includes MO density symmetries
-                if let Some(mo_mirror_paritiess) = self.mo_mirror_parities.as_ref() {
-                    // Includes MO mirror parities
-                    let mirrors = self
-                        .group
-                        .filter_cc_symbols(|cc| cc.is_spatial_reflection());
-                    let mirror_heading =
-                        mirrors.iter().map(|sigma| format!("p({sigma})")).join("  ");
-                    let mo_mirror_parities_length = mirror_heading.chars().count();
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            27 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_mirror_parities_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                                + mo_density_length
-                        )
-                    )?;
-                    writeln!(
-                        f,
-                        "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {:<mo_symmetry_length$}  {:mo_mirror_parities_length$} {:<mo_eig_above_length$}  {:<mo_eig_below_length$}  Den. symmetry",
-                        "Spin", "MO", "Occ.", "Energy", "Symmetry", mirror_heading, "Eig. above", "Eig. below"
-                    )?;
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            27 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_mirror_parities_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                                + mo_density_length
-                        )
-                    )?;
-                    for (
-                        spini,
-                        ((spin_mo_symmetries, spin_mo_den_symmetries), spin_mo_mirror_parities),
-                    ) in mo_symmetries
-                        .iter()
-                        .zip(
-                            mo_den_symss_str_opt
-                                .expect("No MO density symmetries found.")
-                                .iter(),
-                        )
-                        .zip(mo_mirror_paritiess.iter())
-                        .enumerate()
-                    {
-                        writeln!(f, " Spin {spini}")?;
-                        for (moi, ((mo_sym, mo_den_sym_str), mo_mirror_parities_opt)) in
-                            spin_mo_symmetries
-                                .iter()
-                                .zip(spin_mo_den_symmetries.iter())
-                                .zip(spin_mo_mirror_parities.iter())
-                                .enumerate()
-                        {
-                            let occ_str = self
-                                .determinant
-                                .occupations()
+            let empty_string = String::new();
+            for (spini, spin_mo_symmetries) in mo_symmetries.iter().enumerate() {
+                writeln!(f, " Spin {spini}")?;
+                for (moi, mo_sym) in spin_mo_symmetries.iter().enumerate() {
+                    let occ_str = self
+                        .determinant
+                        .occupations()
+                        .get(spini)
+                        .and_then(|spin_occs| spin_occs.get(moi))
+                        .map(|occ| format!("{occ:>.3}"))
+                        .unwrap_or("--".to_string());
+                    let mo_energy_str = mo_energies_opt
+                        .and_then(|mo_energies| mo_energies.get(spini))
+                        .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
+                        .map(|mo_energy| format!("{mo_energy:>+mo_energy_length$.7}"))
+                        .unwrap_or("--".to_string());
+                    let mo_sym_str = mo_sym
+                        .as_ref()
+                        .map(|sym| sym.to_string())
+                        .unwrap_or("--".to_string());
+
+                    let mo_mirror_parities_str = self
+                        .mo_mirror_parities
+                        .as_ref()
+                        .and_then(|mo_mirror_paritiess| {
+                            mo_mirror_paritiess
                                 .get(spini)
-                                .and_then(|spin_occs| spin_occs.get(moi))
-                                .map(|occ| format!("{occ:>.3}"))
-                                .unwrap_or("--".to_string());
-                            let mo_energy_str = mo_energies_opt
-                                .and_then(|mo_energies| mo_energies.get(spini))
-                                .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
-                                .map(|mo_energy| format!("{mo_energy:>+mo_energy_length$.7}"))
-                                .unwrap_or("--".to_string());
-                            let mo_sym_str = mo_sym
-                                .as_ref()
-                                .map(|sym| sym.to_string())
-                                .unwrap_or("--".to_string());
-                            let mo_mirror_parities_str = mo_mirror_parities_opt
-                                .as_ref()
-                                .map(|mo_mirror_parities| {
-                                    mirrors
-                                        .iter()
-                                        .map(|sigma| {
-                                            let sigma_length =
-                                                sigma.to_string().chars().count() + 3;
-                                            mo_mirror_parities
-                                                .get(sigma)
-                                                .map(|parity| match parity {
-                                                    MirrorParity::Odd => {
-                                                        format!("{:^sigma_length$}", "(-)")
-                                                    }
-                                                    MirrorParity::Even => {
-                                                        format!("{:^sigma_length$}", "(+)")
-                                                    }
-                                                    MirrorParity::Neither => {
-                                                        format!("{:^sigma_length$}", "(|)")
-                                                    }
+                                .and_then(|spin_mo_mirror_parities| {
+                                    spin_mo_mirror_parities
+                                        .get(moi)
+                                        .map(|mo_mirror_parities_opt| {
+                                            mo_mirror_parities_opt
+                                                .as_ref()
+                                                .map(|mo_mirror_parities| {
+                                                    mirrors
+                                                        .iter()
+                                                        .map(|sigma| {
+                                                            let sigma_length =
+                                                                sigma.to_string().chars().count()
+                                                                    + 3;
+                                                            mo_mirror_parities
+                                                                .get(sigma)
+                                                                .map(|parity| match parity {
+                                                                    MirrorParity::Odd => {
+                                                                        format!(
+                                                                            "{:^sigma_length$}",
+                                                                            "(-)"
+                                                                        )
+                                                                    }
+                                                                    MirrorParity::Even => {
+                                                                        format!(
+                                                                            "{:^sigma_length$}",
+                                                                            "(+)"
+                                                                        )
+                                                                    }
+                                                                    MirrorParity::Neither => {
+                                                                        format!(
+                                                                            "{:^sigma_length$}",
+                                                                            "(|)"
+                                                                        )
+                                                                    }
+                                                                })
+                                                                .unwrap_or_else(|| {
+                                                                    format!(
+                                                                        "{:^sigma_length$}",
+                                                                        "--"
+                                                                    )
+                                                                })
+                                                        })
+                                                        .join("  ")
                                                 })
-                                                .unwrap_or_else(|| {
-                                                    format!("{:^sigma_length$}", "--")
-                                                })
+                                                .unwrap_or(String::new())
                                         })
-                                        .join("  ")
                                 })
-                                .unwrap_or_else(|| " ".repeat(mo_mirror_parities_length));
-                            let (eig_above_str, eig_below_str) = self
-                                .mo_symmetries_thresholds
-                                .as_ref()
-                                .map(|mo_symmetries_thresholds| {
-                                    mo_symmetries_thresholds
-                                        .get(spini)
-                                        .and_then(|spin_mo_symmetries_thresholds| {
-                                            spin_mo_symmetries_thresholds.get(moi)
-                                        })
-                                        .map(|(eig_above_opt, eig_below_opt)| {
-                                            (
-                                                eig_above_opt
-                                                    .map(|eig_above| format!("{eig_above:>+.3e}"))
-                                                    .unwrap_or("--".to_string()),
-                                                eig_below_opt
-                                                    .map(|eig_below| format!("{eig_below:>+.3e}"))
-                                                    .unwrap_or("--".to_string()),
-                                            )
-                                        })
-                                        .unwrap_or(("--".to_string(), "--".to_string()))
-                                })
-                                .unwrap_or(("--".to_string(), "--".to_string()));
-                            writeln!(
-                                f,
-                                "{spini:>5}  \
-                                {moi:>mo_index_length$}  \
-                                {occ_str:<5}  \
-                                {mo_energy_str:<mo_energy_length$}  \
-                                {mo_sym_str:<mo_symmetry_length$}  \
-                                {mo_mirror_parities_str:<mo_mirror_parities_length$}  \
-                                {eig_above_str:<mo_eig_above_length$}  \
-                                {eig_below_str:<mo_eig_below_length$}  \
-                                {mo_den_sym_str}"
-                            )?;
-                        }
-                    }
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            27 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_mirror_parities_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                                + mo_density_length
-                        )
-                    )?;
-                } else {
-                    // No MO mirror parities
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            25 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                                + mo_density_length
-                        )
-                    )?;
-                    writeln!(
-                        f,
-                        "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {:<mo_symmetry_length$}  {:<mo_eig_above_length$}  {:<mo_eig_below_length$}  Den. symmetry",
-                        "Spin", "MO", "Occ.", "Energy", "Symmetry", "Eig. above", "Eig. below"
-                    )?;
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            25 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                                + mo_density_length
-                        )
-                    )?;
-                    for (spini, (spin_mo_symmetries, spin_mo_den_symmetries)) in mo_symmetries
-                        .iter()
-                        .zip(
-                            mo_den_symss_str_opt
-                                .expect("No MO density symmetries found.")
-                                .iter(),
-                        )
-                        .enumerate()
-                    {
-                        writeln!(f, " Spin {spini}")?;
-                        for (moi, (mo_sym, mo_den_sym_str)) in spin_mo_symmetries
-                            .iter()
-                            .zip(spin_mo_den_symmetries.iter())
-                            .enumerate()
-                        {
-                            let occ_str = self
-                                .determinant
-                                .occupations()
+                        })
+                        .unwrap_or(String::new());
+
+                    let (eig_above_str, eig_below_str) = self
+                        .mo_symmetries_thresholds
+                        .as_ref()
+                        .map(|mo_symmetries_thresholds| {
+                            mo_symmetries_thresholds
                                 .get(spini)
-                                .and_then(|spin_occs| spin_occs.get(moi))
-                                .map(|occ| format!("{occ:>.3}"))
-                                .unwrap_or("--".to_string());
-                            let mo_energy_str = mo_energies_opt
-                                .and_then(|mo_energies| mo_energies.get(spini))
-                                .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
-                                .map(|mo_energy| format!("{mo_energy:>+mo_energy_length$.7}"))
-                                .unwrap_or("--".to_string());
-                            let mo_sym_str = mo_sym
-                                .as_ref()
-                                .map(|sym| sym.to_string())
-                                .unwrap_or("--".to_string());
-                            let (eig_above_str, eig_below_str) = self
-                                .mo_symmetries_thresholds
-                                .as_ref()
-                                .map(|mo_symmetries_thresholds| {
-                                    mo_symmetries_thresholds
-                                        .get(spini)
-                                        .and_then(|spin_mo_symmetries_thresholds| {
-                                            spin_mo_symmetries_thresholds.get(moi)
-                                        })
-                                        .map(|(eig_above_opt, eig_below_opt)| {
-                                            (
-                                                eig_above_opt
-                                                    .map(|eig_above| format!("{eig_above:>+.3e}"))
-                                                    .unwrap_or("--".to_string()),
-                                                eig_below_opt
-                                                    .map(|eig_below| format!("{eig_below:>+.3e}"))
-                                                    .unwrap_or("--".to_string()),
-                                            )
-                                        })
-                                        .unwrap_or(("--".to_string(), "--".to_string()))
+                                .and_then(|spin_mo_symmetries_thresholds| {
+                                    spin_mo_symmetries_thresholds.get(moi)
                                 })
-                                .unwrap_or(("--".to_string(), "--".to_string()));
-                            writeln!(
-                                f,
-                                "{spini:>5}  \
-                                {moi:>mo_index_length$}  \
-                                {occ_str:<5}  \
-                                {mo_energy_str:<mo_energy_length$}  \
-                                {mo_sym_str:<mo_symmetry_length$}  \
-                                {eig_above_str:<mo_eig_above_length$}  \
-                                {eig_below_str:<mo_eig_below_length$}  \
-                                {mo_den_sym_str}"
-                            )?;
-                        }
+                                .map(|(eig_above_opt, eig_below_opt)| {
+                                    (
+                                        eig_above_opt
+                                            .map(|eig_above| format!("{eig_above:>+.3e}"))
+                                            .unwrap_or("--".to_string()),
+                                        eig_below_opt
+                                            .map(|eig_below| format!("{eig_below:>+.3e}"))
+                                            .unwrap_or("--".to_string()),
+                                    )
+                                })
+                                .unwrap_or(("--".to_string(), "--".to_string()))
+                        })
+                        .unwrap_or(("--".to_string(), "--".to_string()));
+
+                    let mo_density_symmetries_str = mo_den_symss_str_opt
+                        .as_ref()
+                        .and_then(|mo_density_symmetriess| {
+                            mo_density_symmetriess.get(spini).and_then(
+                                |spin_mo_density_symmetries| spin_mo_density_symmetries.get(moi),
+                            )
+                        })
+                        .unwrap_or(&empty_string);
+
+                    if mo_density_length == 0 {
+                        writeln!(
+                            f,
+                            " {spini:>mo_spin_index_length$}  \
+                            {moi:>mo_index_length$}  \
+                            {occ_str:<mo_occ_length$}  \
+                            {mo_energy_str:<mo_energy_length$}  \
+                            {mo_sym_str:<mo_symmetry_length$}\
+                            {}{:mo_mirror_parities_length$}  \
+                            {eig_above_str:<mo_eig_above_length$}  \
+                            {eig_below_str}",
+                            " ".repeat(mo_mirror_parities_gap),
+                            mo_mirror_parities_str,
+                        )?;
+                    } else {
+                        writeln!(
+                            f,
+                            " {spini:>mo_spin_index_length$}  \
+                            {moi:>mo_index_length$}  \
+                            {occ_str:<mo_occ_length$}  \
+                            {mo_energy_str:<mo_energy_length$}  \
+                            {mo_sym_str:<mo_symmetry_length$}\
+                            {}{:mo_mirror_parities_length$}  \
+                            {eig_above_str:<mo_eig_above_length$}  \
+                            {eig_below_str:<mo_eig_below_length$}  \
+                            {mo_density_symmetries_str}",
+                            " ".repeat(mo_mirror_parities_gap),
+                            mo_mirror_parities_str,
+                        )?;
                     }
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            25 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                                + mo_density_length
-                        )
-                    )?;
-                }
-            } else {
-                // No MO density symmetries
-                if let Some(mo_mirror_paritiess) = self.mo_mirror_parities.as_ref() {
-                    // Includes MO mirror parities
-                    let mirrors = self
-                        .group
-                        .filter_cc_symbols(|cc| cc.is_spatial_reflection());
-                    let mirror_heading =
-                        mirrors.iter().map(|sigma| format!("p({sigma})")).join("  ");
-                    let mo_mirror_parities_length = mirror_heading.chars().count();
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            25 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_mirror_parities_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                        )
-                    )?;
-                    writeln!(
-                        f,
-                        "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {:<mo_symmetry_length$}  {:mo_mirror_parities_length$} {:<mo_eig_above_length$}  Eig. below",
-                        "Spin", "MO", "Occ.", "Energy", "Symmetry", mirror_heading, "Eig. above",
-                    )?;
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            25 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_mirror_parities_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                        )
-                    )?;
-                    for (spini, (spin_mo_symmetries, spin_mo_mirror_parities)) in mo_symmetries
-                        .iter()
-                        .zip(mo_mirror_paritiess.iter())
-                        .enumerate()
-                    {
-                        writeln!(f, " Spin {spini}")?;
-                        for (moi, (mo_sym, mo_mirror_parities_opt)) in spin_mo_symmetries
-                            .iter()
-                            .zip(spin_mo_mirror_parities.iter())
-                            .enumerate()
-                        {
-                            let occ_str = self
-                                .determinant
-                                .occupations()
-                                .get(spini)
-                                .and_then(|spin_occs| spin_occs.get(moi))
-                                .map(|occ| format!("{occ:>.3}"))
-                                .unwrap_or("--".to_string());
-                            let mo_energy_str = mo_energies_opt
-                                .and_then(|mo_energies| mo_energies.get(spini))
-                                .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
-                                .map(|mo_energy| format!("{mo_energy:>+mo_energy_length$.7}"))
-                                .unwrap_or("--".to_string());
-                            let mo_sym_str = mo_sym
-                                .as_ref()
-                                .map(|sym| sym.to_string())
-                                .unwrap_or("--".to_string());
-                            let mo_mirror_parities_str = mo_mirror_parities_opt
-                                .as_ref()
-                                .map(|mo_mirror_parities| {
-                                    mirrors
-                                        .iter()
-                                        .map(|sigma| {
-                                            let sigma_length =
-                                                sigma.to_string().chars().count() + 3;
-                                            mo_mirror_parities
-                                                .get(sigma)
-                                                .map(|parity| match parity {
-                                                    MirrorParity::Odd => {
-                                                        format!("{:^sigma_length$}", "(-)")
-                                                    }
-                                                    MirrorParity::Even => {
-                                                        format!("{:^sigma_length$}", "(+)")
-                                                    }
-                                                    MirrorParity::Neither => {
-                                                        format!("{:^sigma_length$}", "(|)")
-                                                    }
-                                                })
-                                                .unwrap_or_else(|| {
-                                                    format!("{:^sigma_length$}", "--")
-                                                })
-                                        })
-                                        .join("  ")
-                                })
-                                .unwrap_or_else(|| " ".repeat(mo_mirror_parities_length));
-                            let (eig_above_str, eig_below_str) = self
-                                .mo_symmetries_thresholds
-                                .as_ref()
-                                .map(|mo_symmetries_thresholds| {
-                                    mo_symmetries_thresholds
-                                        .get(spini)
-                                        .and_then(|spin_mo_symmetries_thresholds| {
-                                            spin_mo_symmetries_thresholds.get(moi)
-                                        })
-                                        .map(|(eig_above_opt, eig_below_opt)| {
-                                            (
-                                                eig_above_opt
-                                                    .map(|eig_above| format!("{eig_above:>+.3e}"))
-                                                    .unwrap_or("--".to_string()),
-                                                eig_below_opt
-                                                    .map(|eig_below| format!("{eig_below:>+.3e}"))
-                                                    .unwrap_or("--".to_string()),
-                                            )
-                                        })
-                                        .unwrap_or(("--".to_string(), "--".to_string()))
-                                })
-                                .unwrap_or(("--".to_string(), "--".to_string()));
-                            writeln!(
-                                f,
-                                "{spini:>5}  \
-                                {moi:>mo_index_length$}  \
-                                {occ_str:<5}  \
-                                {mo_energy_str:<mo_energy_length$}  \
-                                {mo_sym_str:<mo_symmetry_length$}  \
-                                {mo_mirror_parities_str:<mo_mirror_parities_length$}  \
-                                {eig_above_str:<mo_eig_above_length$}  \
-                                {eig_below_str}"
-                            )?;
-                        }
-                    }
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            25 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_mirror_parities_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                        )
-                    )?;
-                } else {
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            23 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                        )
-                    )?;
-                    writeln!(
-                        f,
-                        "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {:<mo_symmetry_length$}  {:<mo_eig_above_length$}  Eig. below",
-                        "Spin", "MO", "Occ.", "Energy", "Symmetry", "Eig. above"
-                    )?;
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            23 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                        )
-                    )?;
-                    for (spini, spin_mo_symmetries) in mo_symmetries.iter().enumerate() {
-                        writeln!(f, " Spin {spini}")?;
-                        for (moi, mo_sym) in spin_mo_symmetries.iter().enumerate() {
-                            let occ_str = self
-                                .determinant
-                                .occupations()
-                                .get(spini)
-                                .and_then(|spin_occs| spin_occs.get(moi))
-                                .map(|occ| format!("{occ:>.3}"))
-                                .unwrap_or("--".to_string());
-                            let mo_energy_str = mo_energies_opt
-                                .and_then(|mo_energies| mo_energies.get(spini))
-                                .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
-                                .map(|mo_energy| format!("{mo_energy:>+mo_energy_length$.7}"))
-                                .unwrap_or("--".to_string());
-                            let mo_sym_str = mo_sym
-                                .as_ref()
-                                .map(|sym| sym.to_string())
-                                .unwrap_or("--".to_string());
-                            let (eig_above_str, eig_below_str) = self
-                                .mo_symmetries_thresholds
-                                .as_ref()
-                                .map(|mo_symmetries_thresholds| {
-                                    mo_symmetries_thresholds
-                                        .get(spini)
-                                        .and_then(|spin_mo_symmetries_thresholds| {
-                                            spin_mo_symmetries_thresholds.get(moi)
-                                        })
-                                        .map(|(eig_above_opt, eig_below_opt)| {
-                                            (
-                                                eig_above_opt
-                                                    .map(|eig_above| format!("{eig_above:>+.3e}"))
-                                                    .unwrap_or("--".to_string()),
-                                                eig_below_opt
-                                                    .map(|eig_below| format!("{eig_below:>+.3e}"))
-                                                    .unwrap_or("--".to_string()),
-                                            )
-                                        })
-                                        .unwrap_or(("--".to_string(), "--".to_string()))
-                                })
-                                .unwrap_or(("--".to_string(), "--".to_string()));
-                            writeln!(
-                                f,
-                                "{spini:>5}  \
-                                {moi:>mo_index_length$}  \
-                                {occ_str:<5}  \
-                                {mo_energy_str:<mo_energy_length$}  \
-                                {mo_sym_str:<mo_symmetry_length$}  \
-                                {eig_above_str:<mo_eig_above_length$}  \
-                                {eig_below_str}"
-                            )?;
-                        }
-                    }
-                    writeln!(
-                        f,
-                        "{}",
-                        "┈".repeat(
-                            23 + mo_index_length
-                                + mo_energy_length
-                                + mo_symmetry_length
-                                + mo_eig_above_length
-                                + mo_eig_below_length
-                        )
-                    )?;
                 }
             }
+
+            writeln!(f, "{}", "┈".repeat(table_width))?;
+
+            // if let Some(mo_density_length) = mo_density_length_opt {
+            //     // Includes MO density symmetries
+            //     if let Some(mo_mirror_paritiess) = self.mo_mirror_parities.as_ref() {
+            //         // Includes MO mirror parities
+            //         let mirrors = self
+            //             .group
+            //             .filter_cc_symbols(|cc| cc.is_spatial_reflection());
+            //         let mirror_heading =
+            //             mirrors.iter().map(|sigma| format!("p({sigma})")).join("  ");
+            //         let mo_mirror_parities_length = mirror_heading.chars().count();
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 27 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_mirror_parities_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //                     + mo_density_length
+            //             )
+            //         )?;
+            //         writeln!(
+            //             f,
+            //             "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {:<mo_symmetry_length$}  {:mo_mirror_parities_length$} {:<mo_eig_above_length$}  {:<mo_eig_below_length$}  Den. symmetry",
+            //             "Spin", "MO", "Occ.", "Energy", "Symmetry", mirror_heading, "Eig. above", "Eig. below"
+            //         )?;
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 27 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_mirror_parities_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //                     + mo_density_length
+            //             )
+            //         )?;
+            //         for (
+            //             spini,
+            //             ((spin_mo_symmetries, spin_mo_den_symmetries), spin_mo_mirror_parities),
+            //         ) in mo_symmetries
+            //             .iter()
+            //             .zip(
+            //                 mo_den_symss_str_opt
+            //                     .expect("No MO density symmetries found.")
+            //                     .iter(),
+            //             )
+            //             .zip(mo_mirror_paritiess.iter())
+            //             .enumerate()
+            //         {
+            //             writeln!(f, " Spin {spini}")?;
+            //             for (moi, ((mo_sym, mo_den_sym_str), mo_mirror_parities_opt)) in
+            //                 spin_mo_symmetries
+            //                     .iter()
+            //                     .zip(spin_mo_den_symmetries.iter())
+            //                     .zip(spin_mo_mirror_parities.iter())
+            //                     .enumerate()
+            //             {
+            //                 let occ_str = self
+            //                     .determinant
+            //                     .occupations()
+            //                     .get(spini)
+            //                     .and_then(|spin_occs| spin_occs.get(moi))
+            //                     .map(|occ| format!("{occ:>.3}"))
+            //                     .unwrap_or("--".to_string());
+            //                 let mo_energy_str = mo_energies_opt
+            //                     .and_then(|mo_energies| mo_energies.get(spini))
+            //                     .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
+            //                     .map(|mo_energy| format!("{mo_energy:>+mo_energy_length$.7}"))
+            //                     .unwrap_or("--".to_string());
+            //                 let mo_sym_str = mo_sym
+            //                     .as_ref()
+            //                     .map(|sym| sym.to_string())
+            //                     .unwrap_or("--".to_string());
+            //                 let mo_mirror_parities_str = mo_mirror_parities_opt
+            //                     .as_ref()
+            //                     .map(|mo_mirror_parities| {
+            //                         mirrors
+            //                             .iter()
+            //                             .map(|sigma| {
+            //                                 let sigma_length =
+            //                                     sigma.to_string().chars().count() + 3;
+            //                                 mo_mirror_parities
+            //                                     .get(sigma)
+            //                                     .map(|parity| match parity {
+            //                                         MirrorParity::Odd => {
+            //                                             format!("{:^sigma_length$}", "(-)")
+            //                                         }
+            //                                         MirrorParity::Even => {
+            //                                             format!("{:^sigma_length$}", "(+)")
+            //                                         }
+            //                                         MirrorParity::Neither => {
+            //                                             format!("{:^sigma_length$}", "(|)")
+            //                                         }
+            //                                     })
+            //                                     .unwrap_or_else(|| {
+            //                                         format!("{:^sigma_length$}", "--")
+            //                                     })
+            //                             })
+            //                             .join("  ")
+            //                     })
+            //                     .unwrap_or_else(|| " ".repeat(mo_mirror_parities_length));
+            //                 let (eig_above_str, eig_below_str) = self
+            //                     .mo_symmetries_thresholds
+            //                     .as_ref()
+            //                     .map(|mo_symmetries_thresholds| {
+            //                         mo_symmetries_thresholds
+            //                             .get(spini)
+            //                             .and_then(|spin_mo_symmetries_thresholds| {
+            //                                 spin_mo_symmetries_thresholds.get(moi)
+            //                             })
+            //                             .map(|(eig_above_opt, eig_below_opt)| {
+            //                                 (
+            //                                     eig_above_opt
+            //                                         .map(|eig_above| format!("{eig_above:>+.3e}"))
+            //                                         .unwrap_or("--".to_string()),
+            //                                     eig_below_opt
+            //                                         .map(|eig_below| format!("{eig_below:>+.3e}"))
+            //                                         .unwrap_or("--".to_string()),
+            //                                 )
+            //                             })
+            //                             .unwrap_or(("--".to_string(), "--".to_string()))
+            //                     })
+            //                     .unwrap_or(("--".to_string(), "--".to_string()));
+            //                 writeln!(
+            //                     f,
+            //                     "{spini:>5}  \
+            //                     {moi:>mo_index_length$}  \
+            //                     {occ_str:<5}  \
+            //                     {mo_energy_str:<mo_energy_length$}  \
+            //                     {mo_sym_str:<mo_symmetry_length$}  \
+            //                     {mo_mirror_parities_str:<mo_mirror_parities_length$}  \
+            //                     {eig_above_str:<mo_eig_above_length$}  \
+            //                     {eig_below_str:<mo_eig_below_length$}  \
+            //                     {mo_den_sym_str}"
+            //                 )?;
+            //             }
+            //         }
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 27 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_mirror_parities_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //                     + mo_density_length
+            //             )
+            //         )?;
+            //     } else {
+            //         // No MO mirror parities
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 25 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //                     + mo_density_length
+            //             )
+            //         )?;
+            //         writeln!(
+            //             f,
+            //             "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {:<mo_symmetry_length$}  {:<mo_eig_above_length$}  {:<mo_eig_below_length$}  Den. symmetry",
+            //             "Spin", "MO", "Occ.", "Energy", "Symmetry", "Eig. above", "Eig. below"
+            //         )?;
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 25 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //                     + mo_density_length
+            //             )
+            //         )?;
+            //         for (spini, (spin_mo_symmetries, spin_mo_den_symmetries)) in mo_symmetries
+            //             .iter()
+            //             .zip(
+            //                 mo_den_symss_str_opt
+            //                     .expect("No MO density symmetries found.")
+            //                     .iter(),
+            //             )
+            //             .enumerate()
+            //         {
+            //             writeln!(f, " Spin {spini}")?;
+            //             for (moi, (mo_sym, mo_den_sym_str)) in spin_mo_symmetries
+            //                 .iter()
+            //                 .zip(spin_mo_den_symmetries.iter())
+            //                 .enumerate()
+            //             {
+            //                 let occ_str = self
+            //                     .determinant
+            //                     .occupations()
+            //                     .get(spini)
+            //                     .and_then(|spin_occs| spin_occs.get(moi))
+            //                     .map(|occ| format!("{occ:>.3}"))
+            //                     .unwrap_or("--".to_string());
+            //                 let mo_energy_str = mo_energies_opt
+            //                     .and_then(|mo_energies| mo_energies.get(spini))
+            //                     .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
+            //                     .map(|mo_energy| format!("{mo_energy:>+mo_energy_length$.7}"))
+            //                     .unwrap_or("--".to_string());
+            //                 let mo_sym_str = mo_sym
+            //                     .as_ref()
+            //                     .map(|sym| sym.to_string())
+            //                     .unwrap_or("--".to_string());
+            //                 let (eig_above_str, eig_below_str) = self
+            //                     .mo_symmetries_thresholds
+            //                     .as_ref()
+            //                     .map(|mo_symmetries_thresholds| {
+            //                         mo_symmetries_thresholds
+            //                             .get(spini)
+            //                             .and_then(|spin_mo_symmetries_thresholds| {
+            //                                 spin_mo_symmetries_thresholds.get(moi)
+            //                             })
+            //                             .map(|(eig_above_opt, eig_below_opt)| {
+            //                                 (
+            //                                     eig_above_opt
+            //                                         .map(|eig_above| format!("{eig_above:>+.3e}"))
+            //                                         .unwrap_or("--".to_string()),
+            //                                     eig_below_opt
+            //                                         .map(|eig_below| format!("{eig_below:>+.3e}"))
+            //                                         .unwrap_or("--".to_string()),
+            //                                 )
+            //                             })
+            //                             .unwrap_or(("--".to_string(), "--".to_string()))
+            //                     })
+            //                     .unwrap_or(("--".to_string(), "--".to_string()));
+            //                 writeln!(
+            //                     f,
+            //                     "{spini:>5}  \
+            //                     {moi:>mo_index_length$}  \
+            //                     {occ_str:<5}  \
+            //                     {mo_energy_str:<mo_energy_length$}  \
+            //                     {mo_sym_str:<mo_symmetry_length$}  \
+            //                     {eig_above_str:<mo_eig_above_length$}  \
+            //                     {eig_below_str:<mo_eig_below_length$}  \
+            //                     {mo_den_sym_str}"
+            //                 )?;
+            //             }
+            //         }
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 25 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //                     + mo_density_length
+            //             )
+            //         )?;
+            //     }
+            // } else {
+            //     // No MO density symmetries
+            //     if let Some(mo_mirror_paritiess) = self.mo_mirror_parities.as_ref() {
+            //         // Includes MO mirror parities
+            //         let mirrors = self
+            //             .group
+            //             .filter_cc_symbols(|cc| cc.is_spatial_reflection());
+            //         let mirror_heading =
+            //             mirrors.iter().map(|sigma| format!("p({sigma})")).join("  ");
+            //         let mo_mirror_parities_length = mirror_heading.chars().count();
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 25 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_mirror_parities_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //             )
+            //         )?;
+            //         writeln!(
+            //             f,
+            //             "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {:<mo_symmetry_length$}  {:mo_mirror_parities_length$} {:<mo_eig_above_length$}  Eig. below",
+            //             "Spin", "MO", "Occ.", "Energy", "Symmetry", mirror_heading, "Eig. above",
+            //         )?;
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 25 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_mirror_parities_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //             )
+            //         )?;
+            //         for (spini, (spin_mo_symmetries, spin_mo_mirror_parities)) in mo_symmetries
+            //             .iter()
+            //             .zip(mo_mirror_paritiess.iter())
+            //             .enumerate()
+            //         {
+            //             writeln!(f, " Spin {spini}")?;
+            //             for (moi, (mo_sym, mo_mirror_parities_opt)) in spin_mo_symmetries
+            //                 .iter()
+            //                 .zip(spin_mo_mirror_parities.iter())
+            //                 .enumerate()
+            //             {
+            //                 let occ_str = self
+            //                     .determinant
+            //                     .occupations()
+            //                     .get(spini)
+            //                     .and_then(|spin_occs| spin_occs.get(moi))
+            //                     .map(|occ| format!("{occ:>.3}"))
+            //                     .unwrap_or("--".to_string());
+            //                 let mo_energy_str = mo_energies_opt
+            //                     .and_then(|mo_energies| mo_energies.get(spini))
+            //                     .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
+            //                     .map(|mo_energy| format!("{mo_energy:>+mo_energy_length$.7}"))
+            //                     .unwrap_or("--".to_string());
+            //                 let mo_sym_str = mo_sym
+            //                     .as_ref()
+            //                     .map(|sym| sym.to_string())
+            //                     .unwrap_or("--".to_string());
+            //                 let mo_mirror_parities_str = mo_mirror_parities_opt
+            //                     .as_ref()
+            //                     .map(|mo_mirror_parities| {
+            //                         mirrors
+            //                             .iter()
+            //                             .map(|sigma| {
+            //                                 let sigma_length =
+            //                                     sigma.to_string().chars().count() + 3;
+            //                                 mo_mirror_parities
+            //                                     .get(sigma)
+            //                                     .map(|parity| match parity {
+            //                                         MirrorParity::Odd => {
+            //                                             format!("{:^sigma_length$}", "(-)")
+            //                                         }
+            //                                         MirrorParity::Even => {
+            //                                             format!("{:^sigma_length$}", "(+)")
+            //                                         }
+            //                                         MirrorParity::Neither => {
+            //                                             format!("{:^sigma_length$}", "(|)")
+            //                                         }
+            //                                     })
+            //                                     .unwrap_or_else(|| {
+            //                                         format!("{:^sigma_length$}", "--")
+            //                                     })
+            //                             })
+            //                             .join("  ")
+            //                     })
+            //                     .unwrap_or_else(|| " ".repeat(mo_mirror_parities_length));
+            //                 let (eig_above_str, eig_below_str) = self
+            //                     .mo_symmetries_thresholds
+            //                     .as_ref()
+            //                     .map(|mo_symmetries_thresholds| {
+            //                         mo_symmetries_thresholds
+            //                             .get(spini)
+            //                             .and_then(|spin_mo_symmetries_thresholds| {
+            //                                 spin_mo_symmetries_thresholds.get(moi)
+            //                             })
+            //                             .map(|(eig_above_opt, eig_below_opt)| {
+            //                                 (
+            //                                     eig_above_opt
+            //                                         .map(|eig_above| format!("{eig_above:>+.3e}"))
+            //                                         .unwrap_or("--".to_string()),
+            //                                     eig_below_opt
+            //                                         .map(|eig_below| format!("{eig_below:>+.3e}"))
+            //                                         .unwrap_or("--".to_string()),
+            //                                 )
+            //                             })
+            //                             .unwrap_or(("--".to_string(), "--".to_string()))
+            //                     })
+            //                     .unwrap_or(("--".to_string(), "--".to_string()));
+            //                 writeln!(
+            //                     f,
+            //                     "{spini:>5}  \
+            //                     {moi:>mo_index_length$}  \
+            //                     {occ_str:<5}  \
+            //                     {mo_energy_str:<mo_energy_length$}  \
+            //                     {mo_sym_str:<mo_symmetry_length$}  \
+            //                     {mo_mirror_parities_str:<mo_mirror_parities_length$}  \
+            //                     {eig_above_str:<mo_eig_above_length$}  \
+            //                     {eig_below_str}"
+            //                 )?;
+            //             }
+            //         }
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 25 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_mirror_parities_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //             )
+            //         )?;
+            //     } else {
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 23 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //             )
+            //         )?;
+            //         writeln!(
+            //             f,
+            //             "{:>5}  {:>mo_index_length$}  {:<5}  {:<mo_energy_length$}  {:<mo_symmetry_length$}  {:<mo_eig_above_length$}  Eig. below",
+            //             "Spin", "MO", "Occ.", "Energy", "Symmetry", "Eig. above"
+            //         )?;
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 23 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //             )
+            //         )?;
+            //         for (spini, spin_mo_symmetries) in mo_symmetries.iter().enumerate() {
+            //             writeln!(f, " Spin {spini}")?;
+            //             for (moi, mo_sym) in spin_mo_symmetries.iter().enumerate() {
+            //                 let occ_str = self
+            //                     .determinant
+            //                     .occupations()
+            //                     .get(spini)
+            //                     .and_then(|spin_occs| spin_occs.get(moi))
+            //                     .map(|occ| format!("{occ:>.3}"))
+            //                     .unwrap_or("--".to_string());
+            //                 let mo_energy_str = mo_energies_opt
+            //                     .and_then(|mo_energies| mo_energies.get(spini))
+            //                     .and_then(|spin_mo_energies| spin_mo_energies.get(moi))
+            //                     .map(|mo_energy| format!("{mo_energy:>+mo_energy_length$.7}"))
+            //                     .unwrap_or("--".to_string());
+            //                 let mo_sym_str = mo_sym
+            //                     .as_ref()
+            //                     .map(|sym| sym.to_string())
+            //                     .unwrap_or("--".to_string());
+            //                 let (eig_above_str, eig_below_str) = self
+            //                     .mo_symmetries_thresholds
+            //                     .as_ref()
+            //                     .map(|mo_symmetries_thresholds| {
+            //                         mo_symmetries_thresholds
+            //                             .get(spini)
+            //                             .and_then(|spin_mo_symmetries_thresholds| {
+            //                                 spin_mo_symmetries_thresholds.get(moi)
+            //                             })
+            //                             .map(|(eig_above_opt, eig_below_opt)| {
+            //                                 (
+            //                                     eig_above_opt
+            //                                         .map(|eig_above| format!("{eig_above:>+.3e}"))
+            //                                         .unwrap_or("--".to_string()),
+            //                                     eig_below_opt
+            //                                         .map(|eig_below| format!("{eig_below:>+.3e}"))
+            //                                         .unwrap_or("--".to_string()),
+            //                                 )
+            //                             })
+            //                             .unwrap_or(("--".to_string(), "--".to_string()))
+            //                     })
+            //                     .unwrap_or(("--".to_string(), "--".to_string()));
+            //                 writeln!(
+            //                     f,
+            //                     "{spini:>5}  \
+            //                     {moi:>mo_index_length$}  \
+            //                     {occ_str:<5}  \
+            //                     {mo_energy_str:<mo_energy_length$}  \
+            //                     {mo_sym_str:<mo_symmetry_length$}  \
+            //                     {eig_above_str:<mo_eig_above_length$}  \
+            //                     {eig_below_str}"
+            //                 )?;
+            //             }
+            //         }
+            //         writeln!(
+            //             f,
+            //             "{}",
+            //             "┈".repeat(
+            //                 23 + mo_index_length
+            //                     + mo_energy_length
+            //                     + mo_symmetry_length
+            //                     + mo_eig_above_length
+            //                     + mo_eig_below_length
+            //             )
+            //         )?;
+            //     }
+            // }
         }
 
         Ok(())
