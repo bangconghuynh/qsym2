@@ -36,7 +36,9 @@ use crate::symmetry::symmetry_element::symmetry_operation::{
 use crate::symmetry::symmetry_group::{
     MagneticRepresentedSymmetryGroup, SymmetryGroupProperties, UnitaryRepresentedSymmetryGroup,
 };
-use crate::symmetry::symmetry_symbols::{deduce_mirror_parities, MirrorParity, SymmetryClassSymbol};
+use crate::symmetry::symmetry_symbols::{
+    deduce_mirror_parities, MirrorParity, SymmetryClassSymbol,
+};
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 use crate::target::density::density_analysis::DensitySymmetryOrbit;
 use crate::target::density::Density;
@@ -503,6 +505,16 @@ where
                     .to_string()
                     .to_lowercase()
             )?;
+            if self.mo_mirror_parities.as_ref().is_some() {
+                writeln!(f, "")?;
+                writeln!(
+                    f,
+                    "Column p[σ] gives the parity under the reflection class σ: {} => even, {} => odd, {} => neither.",
+                    MirrorParity::Even,
+                    MirrorParity::Odd,
+                    MirrorParity::Neither
+                )?;
+            }
             writeln!(f, "{}", "┈".repeat(table_width))?;
             writeln!(
                 f,
@@ -563,25 +575,11 @@ where
                                                                     + 3;
                                                             mo_mirror_parities
                                                                 .get(sigma)
-                                                                .map(|parity| match parity {
-                                                                    MirrorParity::Odd => {
-                                                                        format!(
-                                                                            "{:^sigma_length$}",
-                                                                            "(-)"
-                                                                        )
-                                                                    }
-                                                                    MirrorParity::Even => {
-                                                                        format!(
-                                                                            "{:^sigma_length$}",
-                                                                            "(+)"
-                                                                        )
-                                                                    }
-                                                                    MirrorParity::Neither => {
-                                                                        format!(
-                                                                            "{:^sigma_length$}",
-                                                                            "(|)"
-                                                                        )
-                                                                    }
+                                                                .map(|parity| {
+                                                                    format!(
+                                                                        "{:^sigma_length$}",
+                                                                        parity.to_string()
+                                                                    )
                                                                 })
                                                                 .unwrap_or_else(|| {
                                                                     format!(

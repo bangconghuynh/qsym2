@@ -1399,7 +1399,7 @@ impl fmt::Display for MirrorParity {
         match self {
             MirrorParity::Even => write!(f, "(+)"),
             MirrorParity::Odd => write!(f, "(-)"),
-            MirrorParity::Neither => write!(f, "(|)"),
+            MirrorParity::Neither => write!(f, "( )"),
         }
     }
 }
