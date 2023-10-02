@@ -1,3 +1,4 @@
+// use log4rs;
 use ndarray::array;
 use num_complex::Complex;
 use serial_test::serial;

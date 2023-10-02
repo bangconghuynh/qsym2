@@ -572,10 +572,6 @@ where
 )]
 impl<'a> VibrationalCoordinateRepAnalysisDriver<'a, gtype_, dtype_> {
     #[doc = doc_sub_]
-    ///
-    /// Linear independence is checked using the moduli of the overlap eigenvalues. Complex
-    /// eigenvalues outside the threshold radius centred at the origin on the Argand diagram are
-    /// thus allowed.
     fn analyse_fn_(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         let group = construct_group_;

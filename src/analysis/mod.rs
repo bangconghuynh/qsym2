@@ -143,9 +143,10 @@ where
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[pyclass]
 pub enum EigenvalueComparisonMode {
-    /// Attempt to compare the eigenvalues with a threshold as-is, and fall back on
-    /// [`EigenvalueComparisonMode::ForceAbsolute`] when some eigenvalues are non-real.
+    /// Compares the eigenvalues using only their real parts.
     Real,
+
+    /// Compares the eigenvalues using their moduli.
     Modulus,
 }
 
@@ -661,9 +662,9 @@ macro_rules! fn_calc_xmat_complex {
 pub(crate) use fn_calc_xmat_complex;
 pub(crate) use fn_calc_xmat_real;
 
-// -----------------
+// =================
 // Utility functions
-// -----------------
+// =================
 
 /// Logs overlap eigenvalues nicely and indicates where the threshold has been crossed.
 ///

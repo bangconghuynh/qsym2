@@ -417,6 +417,7 @@ pub enum PySlaterDeterminant {
     sao_spatial,
     sao_spatial_4c=None,
     analyse_mo_symmetries=true,
+    analyse_mo_mirror_parities=false,
     analyse_density_symmetries=false,
     write_overlap_eigenvalues=true,
     write_character_table=true,
@@ -439,6 +440,7 @@ pub fn rep_analyse_slater_determinant(
     sao_spatial: PyArray2RC,
     sao_spatial_4c: Option<PyArray4RC>,
     analyse_mo_symmetries: bool,
+    analyse_mo_mirror_parities: bool,
     analyse_density_symmetries: bool,
     write_overlap_eigenvalues: bool,
     write_character_table: bool,
@@ -473,6 +475,25 @@ pub fn rep_analyse_slater_determinant(
         .max_angular_momentum(angular_function_max_angular_momentum)
         .build()
         .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
+    let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
+        .integrality_threshold(integrality_threshold)
+        .linear_independence_threshold(linear_independence_threshold)
+        .use_magnetic_group(use_magnetic_group.clone())
+        .use_double_group(use_double_group)
+        .symmetry_transformation_kind(symmetry_transformation_kind)
+        .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
+        .analyse_mo_symmetries(analyse_mo_symmetries)
+        .analyse_mo_mirror_parities(analyse_mo_mirror_parities)
+        .analyse_density_symmetries(analyse_density_symmetries)
+        .write_overlap_eigenvalues(write_overlap_eigenvalues)
+        .write_character_table(if write_character_table {
+            Some(CharacterTableDisplay::Symbolic)
+        } else {
+            None
+        })
+        .infinite_order_to_finite(infinite_order_to_finite)
+        .build()
+        .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
     match (&pydet, &sao_spatial) {
         (PySlaterDeterminant::Real(pydet_r), PyArray2RC::Real(pysao_r)) => {
             let sao_spatial = pysao_r.to_owned_array();
@@ -491,24 +512,6 @@ pub fn rep_analyse_slater_determinant(
                     .to_qsym2(&bao, mol)
                     .map_err(|err| PyRuntimeError::new_err(err.to_string()))?
             };
-            let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
-                .integrality_threshold(integrality_threshold)
-                .linear_independence_threshold(linear_independence_threshold)
-                .use_magnetic_group(use_magnetic_group.clone())
-                .use_double_group(use_double_group)
-                .symmetry_transformation_kind(symmetry_transformation_kind)
-                .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
-                .analyse_mo_symmetries(analyse_mo_symmetries)
-                .analyse_density_symmetries(analyse_density_symmetries)
-                .write_overlap_eigenvalues(write_overlap_eigenvalues)
-                .write_character_table(if write_character_table {
-                    Some(CharacterTableDisplay::Symbolic)
-                } else {
-                    None
-                })
-                .infinite_order_to_finite(infinite_order_to_finite)
-                .build()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
             match &use_magnetic_group {
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -568,24 +571,6 @@ pub fn rep_analyse_slater_determinant(
                 PyArray4RC::Real(_) => None,
                 PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
             });
-            let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
-                .integrality_threshold(integrality_threshold)
-                .linear_independence_threshold(linear_independence_threshold)
-                .use_magnetic_group(use_magnetic_group.clone())
-                .use_double_group(use_double_group)
-                .symmetry_transformation_kind(symmetry_transformation_kind)
-                .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
-                .analyse_mo_symmetries(analyse_mo_symmetries)
-                .analyse_density_symmetries(analyse_density_symmetries)
-                .write_overlap_eigenvalues(write_overlap_eigenvalues)
-                .write_character_table(if write_character_table {
-                    Some(CharacterTableDisplay::Symbolic)
-                } else {
-                    None
-                })
-                .infinite_order_to_finite(infinite_order_to_finite)
-                .build()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
             match &use_magnetic_group {
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<
@@ -647,24 +632,6 @@ pub fn rep_analyse_slater_determinant(
                 PyArray4RC::Real(pysao4c_r) => Some(pysao4c_r.to_owned_array().mapv(Complex::from)),
                 PyArray4RC::Complex(pysao4c_c) => Some(pysao4c_c.to_owned_array()),
             });
-            let sda_params = SlaterDeterminantRepAnalysisParams::<f64>::builder()
-                .integrality_threshold(integrality_threshold)
-                .linear_independence_threshold(linear_independence_threshold)
-                .use_magnetic_group(use_magnetic_group.clone())
-                .use_double_group(use_double_group)
-                .symmetry_transformation_kind(symmetry_transformation_kind)
-                .eigenvalue_comparison_mode(eigenvalue_comparison_mode)
-                .analyse_mo_symmetries(analyse_mo_symmetries)
-                .analyse_density_symmetries(analyse_density_symmetries)
-                .write_overlap_eigenvalues(write_overlap_eigenvalues)
-                .write_character_table(if write_character_table {
-                    Some(CharacterTableDisplay::Symbolic)
-                } else {
-                    None
-                })
-                .infinite_order_to_finite(infinite_order_to_finite)
-                .build()
-                .map_err(|err| PyRuntimeError::new_err(err.to_string()))?;
             match &use_magnetic_group {
                 Some(MagneticSymmetryAnalysisKind::Corepresentation) => {
                     let mut sda_driver = SlaterDeterminantRepAnalysisDriver::<

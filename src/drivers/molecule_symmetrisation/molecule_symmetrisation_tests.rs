@@ -1,4 +1,4 @@
-use log4rs;
+// use log4rs;
 use nalgebra::{Point3, Vector3};
 use serial_test::serial;
 

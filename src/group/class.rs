@@ -106,6 +106,22 @@ where
     #[must_use]
     fn get_cc_symbol_of_index(&self, cc_idx: usize) -> Option<Self::ClassSymbol>;
 
+    /// Given a predicate, returns conjugacy class symbols satisfying it.
+    ///
+    /// # Arguments
+    ///
+    /// * `predicate` - A predicate to filter conjugacy class symbols.
+    ///
+    /// # Returns
+    ///
+    /// Returns conjugacy class symbols satisfying `predicate`, or `None` if such a symbol does not
+    /// exist for the class.
+    #[must_use]
+    fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
+        &self,
+        predicate: P,
+    ) -> Vec<Self::ClassSymbol>;
+
     /// Sets the conjugacy class symbols for this group.
     ///
     /// # Arguments
@@ -693,6 +709,21 @@ where
             .map(|(cc_sym, _)| cc_sym.clone())
     }
 
+    #[must_use]
+    fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
+        &self,
+        predicate: P,
+    ) -> Vec<Self::ClassSymbol> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_class_symbols
+            .keys()
+            .cloned()
+            .filter(predicate)
+            .collect::<Vec<_>>()
+    }
+
     fn set_class_symbols(&mut self, cc_symbols: &[Self::ClassSymbol]) {
         self.class_structure
             .as_mut()
@@ -879,6 +910,21 @@ where
             .conjugacy_class_symbols
             .get_index(cc_idx)
             .map(|(cc_sym, _)| cc_sym.clone())
+    }
+
+    #[must_use]
+    fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
+        &self,
+        predicate: P,
+    ) -> Vec<Self::ClassSymbol> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_class_symbols
+            .keys()
+            .cloned()
+            .filter(predicate)
+            .collect::<Vec<_>>()
     }
 
     fn set_class_symbols(&mut self, cc_symbols: &[Self::ClassSymbol]) {

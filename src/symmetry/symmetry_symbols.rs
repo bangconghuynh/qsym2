@@ -4,6 +4,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
+use approx;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -15,16 +16,19 @@ use phf::{phf_map, phf_set};
 use serde::{Deserialize, Serialize};
 
 use crate::chartab::character::Character;
+use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
     disambiguate_linspace_symbols, CollectionSymbol, DecomposedSymbol,
     DecomposedSymbolBuilderError, GenericSymbol, GenericSymbolParsingError, LinearSpaceSymbol,
     MathematicalSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::unityroot::UnityRoot;
+use crate::chartab::CharacterTable;
 use crate::group::FiniteOrder;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::SymmetryElement;
 use crate::symmetry::symmetry_element_order::ORDER_1;
+use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
 #[cfg(test)]
 #[path = "symmetry_symbols_tests.rs"]
@@ -1375,4 +1379,89 @@ pub(super) fn deduce_sigma_symbol(
     } else {
         None
     }
+}
+
+/// An enumerated type specifying the parity under a mirror plane.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub enum MirrorParity {
+    /// Variant for even parity.
+    Even,
+
+    /// Variant for odd parity.
+    Odd,
+
+    /// Variant for no parity.
+    Neither,
+}
+
+impl fmt::Display for MirrorParity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MirrorParity::Even => write!(f, "(+)"),
+            MirrorParity::Odd => write!(f, "(-)"),
+            MirrorParity::Neither => write!(f, "( )"),
+        }
+    }
+}
+
+/// Given a group with a character table, deduces the parities of a specified representation under
+/// all classes in the group that contain a spatial reflection.
+///
+/// # Arguments
+///
+/// * `group` - A group with a character table.
+/// * `rep` - A representation (that has been decomposed as irreps or ircoreps of `group`) for
+/// which mirror parities are to be deduced.
+///
+/// # Returns
+///
+/// An indexmap whose keys are reflection classes and whose values are the corresponding parities of
+/// `rep`.
+///
+/// # Panics
+///
+/// Panics on unexpected errors.
+pub(crate) fn deduce_mirror_parities<G, R>(
+    group: &G,
+    rep: &R,
+) -> IndexMap<<<G as CharacterProperties>::CharTab as CharacterTable>::ColSymbol, MirrorParity>
+where
+    G: SymmetryGroupProperties,
+    R: ReducibleLinearSpaceSymbol<
+        Subspace = <<G as CharacterProperties>::CharTab as CharacterTable>::RowSymbol,
+    >,
+{
+    let id_cc = group
+        .get_cc_symbol_of_index(0)
+        .expect("Unable to obtain the conjugacy class symbol of the identity.");
+    let mirrors = group.filter_cc_symbols(|cc| cc.is_spatial_reflection());
+    mirrors
+        .iter()
+        .map(|sigma_cc| {
+            let sigma_cc_chars = rep
+                .subspaces()
+                .iter()
+                .map(|(irrep, _)| {
+                    let id_char = group.character_table().get_character(irrep, &id_cc);
+                    let char = group.character_table().get_character(irrep, sigma_cc);
+                    if *char == *id_char {
+                        MirrorParity::Even
+                    } else if *char == -id_char {
+                        MirrorParity::Odd
+                    } else {
+                        MirrorParity::Neither
+                    }
+                })
+                .collect::<HashSet<_>>();
+            let sigma_cc_parity = if sigma_cc_chars.len() == 1 {
+                sigma_cc_chars
+                    .into_iter()
+                    .next()
+                    .expect("Unable to extract the mirror parity.")
+            } else {
+                MirrorParity::Neither
+            };
+            (sigma_cc.clone(), sigma_cc_parity)
+        })
+        .collect::<IndexMap<_, _>>()
 }

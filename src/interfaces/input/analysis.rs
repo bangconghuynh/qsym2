@@ -42,6 +42,7 @@ pub enum AnalysisTarget {
 
     /// Variant representing the choice of vibrational coordinates as the target for representation
     /// analysis. The associated structure contains the control parameters for this.
+    #[cfg(feature = "qchem")]
     VibrationalCoordinates(VibrationalCoordinateControl),
 }
 
@@ -103,6 +104,7 @@ impl Default for SlaterDeterminantSource {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 /// A trait for the handling of vibrational coordinate input sources.
+#[cfg(feature = "qchem")]
 pub(crate) trait VibrationalCoordinateSourceHandle {
     type Outcome;
 
@@ -117,6 +119,7 @@ pub(crate) trait VibrationalCoordinateSourceHandle {
 
 /// A serialisable/deserialisable structure containing control parameters for vibrational
 /// coordinate representation analysis.
+#[cfg(feature = "qchem")]
 #[derive(Clone, Serialize, Deserialize, Default)]
 pub struct VibrationalCoordinateControl {
     /// The source of vibrational coordinate(s).
@@ -128,14 +131,15 @@ pub struct VibrationalCoordinateControl {
 
 /// A serialisable/deserialisable enumerated type representing possibilities of vibrational
 /// coordinates sources.
+#[cfg(feature = "qchem")]
 #[derive(Clone, Serialize, Deserialize)]
 pub enum VibrationalCoordinateSource {
     /// Vibrational coordinates from Q-Chem HDF5 archive. This is only available when the `qchem`
     /// feature is enabled.
-    #[cfg(feature = "qchem")]
     QChemArchive(QChemArchiveVibrationalCoordinateSource),
 }
 
+#[cfg(feature = "qchem")]
 impl Default for VibrationalCoordinateSource {
     fn default() -> Self {
         VibrationalCoordinateSource::QChemArchive(QChemArchiveVibrationalCoordinateSource::default())

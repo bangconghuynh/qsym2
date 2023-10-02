@@ -2,15 +2,24 @@ use std::collections::HashSet;
 
 use nalgebra::Vector3;
 
-use crate::chartab::chartab_symbols::{CollectionSymbol, MathematicalSymbol};
+use crate::auxiliary::molecule::Molecule;
+use crate::chartab::chartab_group::CharacterProperties;
+use crate::chartab::chartab_symbols::{CollectionSymbol, DecomposedSymbol, MathematicalSymbol};
+use crate::group::class::ClassProperties;
+use crate::group::UnitaryRepresentedGroup;
+use crate::symmetry::symmetry_core::{PreSymmetry, Symmetry};
 use crate::symmetry::symmetry_element::symmetry_operation::{
     SpecialSymmetryTransformation, SymmetryOperation,
 };
 use crate::symmetry::symmetry_element::{RotationGroup, SymmetryElement, ROT, SIG};
 use crate::symmetry::symmetry_element_order::ElementOrder;
+use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 use crate::symmetry::symmetry_symbols::{
-    MullikenIrcorepSymbol, MullikenIrrepSymbol, SymmetryClassSymbol,
+    deduce_mirror_parities, MirrorParity, MullikenIrcorepSymbol, MullikenIrrepSymbol,
+    SymmetryClassSymbol,
 };
+
+const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_symmetry_symbols_mulliken() {
@@ -134,4 +143,97 @@ fn test_symmetry_symbols_mulliken_ircorep_hashability() {
     assert_eq!(ds.len(), 3);
     ds.insert(d5);
     assert_eq!(ds.len(), 3);
+}
+
+#[test]
+fn test_deduce_mirror_parities_d6h() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene.xyz");
+    let thresh = 1e-7;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(&mol)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+
+    let sh = group.get_cc_symbol_of_index(11).unwrap();
+    let sv = group.get_cc_symbol_of_index(9).unwrap();
+    let svd = group.get_cc_symbol_of_index(10).unwrap();
+
+    let rep_a1g = DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(1g)|").unwrap();
+    let rep_a1g_ps = deduce_mirror_parities(&group, &rep_a1g);
+    assert!(rep_a1g_ps.values().all(|p| *p == MirrorParity::Even));
+
+    let rep_a2g = DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|_(2g)|").unwrap();
+    let rep_a2g_ps = deduce_mirror_parities(&group, &rep_a2g);
+    assert_eq!(*rep_a2g_ps.get(&sh).unwrap(), MirrorParity::Even);
+    assert_eq!(*rep_a2g_ps.get(&sv).unwrap(), MirrorParity::Odd);
+    assert_eq!(*rep_a2g_ps.get(&svd).unwrap(), MirrorParity::Odd);
+
+    let rep_b1g = DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(1g)|").unwrap();
+    let rep_b1g_ps = deduce_mirror_parities(&group, &rep_b1g);
+    assert_eq!(*rep_b1g_ps.get(&sh).unwrap(), MirrorParity::Odd);
+    assert_eq!(*rep_b1g_ps.get(&sv).unwrap(), MirrorParity::Even);
+    assert_eq!(*rep_b1g_ps.get(&svd).unwrap(), MirrorParity::Odd);
+
+    let rep_b2g = DecomposedSymbol::<MullikenIrrepSymbol>::new("||B|_(2g)|").unwrap();
+    let rep_b2g_ps = deduce_mirror_parities(&group, &rep_b2g);
+    assert_eq!(*rep_b2g_ps.get(&sh).unwrap(), MirrorParity::Odd);
+    assert_eq!(*rep_b2g_ps.get(&sv).unwrap(), MirrorParity::Odd);
+    assert_eq!(*rep_b2g_ps.get(&svd).unwrap(), MirrorParity::Even);
+
+    let rep_e1g = DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(1g)|").unwrap();
+    let rep_e1g_ps = deduce_mirror_parities(&group, &rep_e1g);
+    assert_eq!(*rep_e1g_ps.get(&sh).unwrap(), MirrorParity::Odd);
+    assert_eq!(*rep_e1g_ps.get(&sv).unwrap(), MirrorParity::Neither);
+    assert_eq!(*rep_e1g_ps.get(&svd).unwrap(), MirrorParity::Neither);
+
+    let rep_e2g = DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(2g)|").unwrap();
+    let rep_e2g_ps = deduce_mirror_parities(&group, &rep_e2g);
+    assert_eq!(*rep_e2g_ps.get(&sh).unwrap(), MirrorParity::Even);
+    assert_eq!(*rep_e2g_ps.get(&sv).unwrap(), MirrorParity::Neither);
+    assert_eq!(*rep_e2g_ps.get(&svd).unwrap(), MirrorParity::Neither);
+
+    let rep_e1ge2g =
+        DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|_(1g)| ⊕ ||E|_(2g)|").unwrap();
+    let rep_e1ge2g_ps = deduce_mirror_parities(&group, &rep_e1ge2g);
+    assert_eq!(*rep_e1ge2g_ps.get(&sh).unwrap(), MirrorParity::Neither);
+    assert_eq!(*rep_e1ge2g_ps.get(&sv).unwrap(), MirrorParity::Neither);
+    assert_eq!(*rep_e1ge2g_ps.get(&svd).unwrap(), MirrorParity::Neither);
+}
+
+#[test]
+fn test_deduce_mirror_parities_d5h() {
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/eclipsed_ferrocene.xyz");
+    let thresh = 1e-6;
+    let mol = Molecule::from_xyz(&path, thresh);
+    let presym = PreSymmetry::builder()
+        .moi_threshold(thresh)
+        .molecule(&mol)
+        .build()
+        .unwrap();
+    let mut sym = Symmetry::new();
+    sym.analyse(&presym, false).unwrap();
+    let group = UnitaryRepresentedGroup::from_molecular_symmetry(&sym, None).unwrap();
+    println!("{}", group.character_table());
+
+    let sh = group.get_cc_symbol_of_index(6).unwrap();
+    let sv = group.get_cc_symbol_of_index(7).unwrap();
+
+    let rep_a1d = DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|^(')_(1)|").unwrap();
+    let rep_a1d_ps = deduce_mirror_parities(&group, &rep_a1d);
+    assert!(rep_a1d_ps.values().all(|p| *p == MirrorParity::Even));
+
+    let rep_a2d = DecomposedSymbol::<MullikenIrrepSymbol>::new("||A|^(')_(2)|").unwrap();
+    let rep_a2d_ps = deduce_mirror_parities(&group, &rep_a2d);
+    assert_eq!(*rep_a2d_ps.get(&sh).unwrap(), MirrorParity::Even);
+    assert_eq!(*rep_a2d_ps.get(&sv).unwrap(), MirrorParity::Odd);
+
+    let rep_e1d = DecomposedSymbol::<MullikenIrrepSymbol>::new("||E|^(')_(1)|").unwrap();
+    let rep_e1d_ps = deduce_mirror_parities(&group, &rep_e1d);
+    assert_eq!(*rep_e1d_ps.get(&sh).unwrap(), MirrorParity::Even);
+    assert_eq!(*rep_e1d_ps.get(&sv).unwrap(), MirrorParity::Neither);
 }
