@@ -192,4 +192,4 @@ An example Python script that performs symmetry analysis for self-consistent-fie
 
 QSym² was developed by Dr Bang C. Huynh at the University of Nottingham, UK with scientific support from Prof. Andrew M. Wibowo-Teale and Dr Meilani Wibowo-Teale and financial support from the ERC grant under the *topDFT* project.
 
-The logo for QSym², which is a stylised stellated octahedron and thus has $`\mathcal{O}_h`$ unitary symmetry in the absence of any external fields, was designed with artistic support from Mr [Thinh Nguyen](https://www.linkedin.com/in/thinh-nguyen-a38b7856/).
+The logo for QSym², which is a stylised stellated octahedron, was designed with artistic support from Mr [Thinh Nguyen](https://www.linkedin.com/in/thinh-nguyen-a38b7856/).
