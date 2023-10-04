@@ -9,7 +9,8 @@ use log4rs::config::{Appender, Config, Logger, Root};
 use log4rs::encode::pattern::PatternEncoder;
 
 use qsym2::interfaces::cli::{
-    qsym2_output_calculation_summary, qsym2_output_contributors, qsym2_output_heading, Cli, Commands
+    qsym2_output_calculation_summary, qsym2_output_contributors, qsym2_output_heading, Cli,
+    Commands,
 };
 use qsym2::io::{read_qsym2_yaml, write_qsym2_yaml};
 
@@ -22,11 +23,20 @@ fn try_main() -> Result<(), anyhow::Error> {
 
     match &cli.command {
         Commands::Template { name } => {
-            let name = name.clone().unwrap_or(PathBuf::from("template_config.yml"));
+            let name = name.clone().unwrap_or(PathBuf::from("template_config"));
             let default_input = Input::default();
-            write_qsym2_yaml(name, &default_input)
+            write_qsym2_yaml(&name, &default_input)?;
+            println!(
+                "The default YAML configuration has been written to {}.yml.",
+                name.display()
+            );
+            Ok(())
         }
-        Commands::Run { config, output, debug } => {
+        Commands::Run {
+            config,
+            output,
+            debug,
+        } => {
             let config_path = config;
             let output_path = output;
             let mut debug_path = output_path.to_path_buf();
@@ -53,7 +63,9 @@ fn try_main() -> Result<(), anyhow::Error> {
                     // Warnings and errors to stdout
                     let output_log_config = Config::builder()
                         .appender(Appender::builder().build("stdout", Box::new(stdout)))
-                        .appender(Appender::builder().build("output_ap", Box::new(output_log_appender)))
+                        .appender(
+                            Appender::builder().build("output_ap", Box::new(output_log_appender)),
+                        )
                         .logger(
                             Logger::builder()
                                 .appender("output_ap")
@@ -75,8 +87,12 @@ fn try_main() -> Result<(), anyhow::Error> {
                         .build(debug_path)?;
                     let output_log_config = Config::builder()
                         .appender(Appender::builder().build("stdout", Box::new(stdout)))
-                        .appender(Appender::builder().build("output_ap", Box::new(output_log_appender)))
-                        .appender(Appender::builder().build("debug_ap", Box::new(debug_log_appender)))
+                        .appender(
+                            Appender::builder().build("output_ap", Box::new(output_log_appender)),
+                        )
+                        .appender(
+                            Appender::builder().build("debug_ap", Box::new(debug_log_appender)),
+                        )
                         .logger(
                             Logger::builder()
                                 .appender("output_ap")
@@ -104,8 +120,12 @@ fn try_main() -> Result<(), anyhow::Error> {
                         .build(debug_path)?;
                     let output_log_config = Config::builder()
                         .appender(Appender::builder().build("stdout", Box::new(stdout)))
-                        .appender(Appender::builder().build("output_ap", Box::new(output_log_appender)))
-                        .appender(Appender::builder().build("debug_ap", Box::new(debug_log_appender)))
+                        .appender(
+                            Appender::builder().build("output_ap", Box::new(output_log_appender)),
+                        )
+                        .appender(
+                            Appender::builder().build("debug_ap", Box::new(debug_log_appender)),
+                        )
                         .logger(
                             Logger::builder()
                                 .appender("output_ap")
