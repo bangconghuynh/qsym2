@@ -186,3 +186,10 @@ This method is currently able to perform symmetry analysis of:
 that can be computed directly in Python or read into Python from calculation files of quantum-chemistry packages, such as by the use of [cclib](https://cclib.github.io/). The main driver functions of QSym² are all exposed to Python, which means that they can be used and integrated into existing workflows flexibly. 
 
 An example Python script that performs symmetry analysis for self-consistent-field calculations from Orca output files (parsed by [cclib](https://cclib.github.io/)) can be found at `utils/qsym2_orca.py`.
+
+
+## Authors and acknowledgement
+
+QSym² was developed by Dr Bang C. Huynh at the University of Nottingham, UK with scientific support from Prof. Andrew M. Wibowo-Teale and Dr Meilani Wibowo-Teale and financial support from the ERC grant under the *topDFT* project.
+
+The logo for QSym², which is a stylised stellated octahedron and thus has $`\mathcal{O}_h`$ unitary symmetry in the absence of any external fields, was designed with artistic support from Mr [Thinh Nguyen](https://www.linkedin.com/in/thinh-nguyen-a38b7856/).
