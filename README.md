@@ -127,13 +127,13 @@ This method is currently able to perform symmetry analysis of:
 - Hartree--Fock or Kohn--Sham molecular orbitals, and
 - vibrational coordinates
 
-that have been exported by Q-Chem 6 in a HDF5 file named `qarchive.h5` saved in the job's scratch directory,
+that have been exported by Q-Chem 6 to a HDF5 file named `qarchive.h5` saved in the job's scratch directory,
 
 or
 - Slater determinants, and
 - Hartree--Fock or Kohn--Sham molecular orbitals
 
-that have been stored in binary files, alongside the overlap matrix of the uderlying atomic-orbital basis functions that has also been stored in a binary format.
+that have been stored in binary files, together with other basis-set-related data.
 
 The command-line interface supports several subcommands and options:
 ```bash
@@ -185,7 +185,7 @@ This method is currently able to perform symmetry analysis of:
 
 that can be computed directly in Python or read into Python from calculation files of quantum-chemistry packages, such as by the use of [cclib](https://cclib.github.io/). The main driver functions of QSym² are all exposed to Python, which means that they can be used and integrated into existing workflows flexibly. 
 
-An example Python script that performs symmetry analysis for self-consistent-field calculations from Orca output files (parsed by [cclib](https://cclib.github.io/)) can be found at `utils/qsym2_orca.py`.
+An example Python script that performs symmetry analysis for self-consistent-field calculations from Orca output files (parsed by [cclib](https://cclib.github.io/)) can be found at [`utils/qsym2_orca.py`](/utils/qsym2_orca.py).
 
 
 ## Authors and acknowledgement
