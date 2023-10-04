@@ -2,7 +2,7 @@ use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use lazy_static::lazy_static;
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
@@ -17,40 +17,64 @@ const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 // Structs
 // =======
 
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    /// Generates a template YAML configuration file and exits.
+    Template {
+        /// The name for the generated template YAML configuration file.
+        #[arg(short, long)]
+        name: Option<PathBuf>,
+    },
+
+    /// Runs an analysis calculation and exits.
+    Run {
+        /// The configuration YAML file specifying parameters for the calculation.
+        #[arg(short, long, required = true)]
+        config: PathBuf,
+
+        /// The output filename.
+        #[arg(short, long, required = true)]
+        output: PathBuf,
+
+        /// Turn debugging information on.
+        #[arg(short, long, action = clap::ArgAction::Count)]
+        debug: u8,
+    },
+}
+
 /// A structure to handle command-line interface parsing.
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 #[command(next_line_help = true)]
 pub struct Cli {
-    /// The configuration YAML file specifying parameters for the calculation.
-    #[arg(short, long, required = true)]
-    pub config: PathBuf,
-
-    /// The output filename.
-    #[arg(short, long, required = true)]
-    pub output: PathBuf,
-
-    /// Turn debugging information on.
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    pub debug: u8,
+    /// Subcommands.
+    #[command(subcommand)]
+    pub command: Commands,
 }
 
 impl fmt::Display for Cli {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "{:<11}: {}",
-            "Config file",
-            self.config.display().to_string()
-        )?;
-        writeln!(
-            f,
-            "{:<11}: {}",
-            "Output file",
-            self.output.display().to_string()
-        )?;
-        writeln!(f, "{:<11}: {}", "Debug level", self.debug)?;
-        Ok(())
+        match &self.command {
+            Commands::Template { name } => {
+                writeln!(
+                    f,
+                    "Generate a template configuration YAML file: {}",
+                    name.as_ref()
+                        .map(|name| name.display().to_string())
+                        .unwrap_or("no name specified".to_string())
+                )
+            }
+            Commands::Run {
+                config,
+                output,
+                debug,
+            } => {
+                writeln!(f, "{:<11}: {}", "Config file", config.display().to_string())?;
+                writeln!(f, "{:<11}: {}", "Output file", output.display().to_string())?;
+                writeln!(f, "{:<11}: {}", "Debug level", debug)?;
+                Ok(())
+            }
+        }
     }
 }
 
