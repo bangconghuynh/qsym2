@@ -1,5 +1,7 @@
 # QSym²
 
+![QSym² Logo](/images/qsym2_logo.pdf)
+
 QSym² is a Rust program for **Q**uantum **Sym**bolic **Sym**metry analysis of quantum-chemical calculations.
 
 [[_TOC_]]
@@ -170,13 +172,17 @@ qsym2 run -c path/to/config -o output_name
 ```
 takes a configuration YAML file as a parameter, performs the specified symmetry analysis, and displays the results in the specified output file.
 
-Examples of symmetry analysis performed by QSym² for several Q-Chem calculations can be found in the *Tutorials* section.
+Examples of symmetry analysis performed by QSym² for several Q-Chem calculations can be found in the *Tutorials* section of the project's Wiki page.
 
 
 ### Python interface
 
+This method is currently able to perform symmetry analysis of:
+- Slater determinants,
+- Hartree--Fock or Kohn--Sham molecular orbitals,
+- vibrational coordinates, and
+- one-electron densities
 
-## Contributing
+that can be computed directly in Python or read into Python from calculation files of quantum-chemistry packages, such as by the use of [cclib](https://cclib.github.io/). The main driver functions of QSym² are all exposed to Python, which means that they can be used and integrated into existing workflows flexibly. 
 
-
-## License
+An example Python script that performs symmetry analysis for self-consistent-field calculations from Orca output files (parsed by [cclib](https://cclib.github.io/)) can be found at `utils/qsym2_orca.py`.
