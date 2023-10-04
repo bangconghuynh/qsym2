@@ -187,6 +187,8 @@ that can be computed directly in Python or read into Python from calculation fil
 
 An example Python script that performs symmetry analysis for self-consistent-field calculations from Orca output files (parsed by [cclib](https://cclib.github.io/)) can be found at [`utils/qsym2_orca.py`](/utils/qsym2_orca.py).
 
+Another example where the Python bindings of QSym² are used extensively for the analysis of unitary and magnetic symmetry in the presence of external fields can be found in [QUEST](https://quest.codes/) and its complementary GUI, [QuestView](https://gitlab.com/Bspeake/questview).
+
 
 ## Authors and acknowledgement
 
