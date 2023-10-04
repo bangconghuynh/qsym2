@@ -386,6 +386,8 @@ pub enum PySlaterDeterminant {
 /// Python type: `EigenvalueComparisonMode`.
 /// * `analyse_mo_symmetries` - A boolean indicating if the symmetries of individual molecular
 /// orbitals are to be analysed. Python type: `bool`.
+/// * `analyse_mo_mirror_parities` - A boolean indicating if the mirror parities of individual
+/// molecular orbitals are to be printed. Python type: `bool`.
 /// * `analyse_density_symmetries` - A boolean indicating if the symmetries of densities are to be
 /// analysed. Python type: `bool`.
 /// * `write_overlap_eigenvalues` - A boolean indicating if the eigenvalues of the determinant
