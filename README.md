@@ -2,6 +2,8 @@
 
 QSym² is a Rust program for **Q**uantum **Sym**bolic **Sym**metry analysis of quantum-chemical calculations.
 
+[[_TOC_]]
+
 ## Installation from Source
 
 The following instructions for installing QSym² from source are specific to Unix-like operating systems. On Microsoft Windows platforms, Windows Subsystem for Linux is recommended.
@@ -24,11 +26,11 @@ There are six features defining six different ways a linear algebra backend can 
 - `python`: Enables the Python bindings for several core functionalities
 
 #### Integrals
-- `integrals`: Enables the computation of $n$-centre overlap integrals and $n$-centre overlap integral derivatives within QSym²
+- `integrals`: Enables the computation of $`n`$-centre overlap integrals and $`n`$-centre overlap integral derivatives within QSym²
 
 #### Composite
-- `standard`: Enables `openblas-static` and `qchem` features
-- `full`: Enables `standard` and `integrals` features
+- `standard`: Enables the `openblas-static` and `qchem` features
+- `full`: Enables the `standard` and `integrals` features
 
 ### Dependencies
 
@@ -51,7 +53,7 @@ The installation of QSym² requires the following:
 | `intel-mkl-static` | <ul><li> `pkg-config` (Debian/Ubuntu)</li> <li>`pkgconfig` (Rocky/Fedora/RHEL)</li></ul>          | Finds and links existing static Intel MKL in the system, or downloads and links statically if not found (see  [ndarray-linalg documentation](https://github.com/rust-ndarray/ndarray-linalg) |
 | `intel-mkl-system` | <ul><li> `pkg-config` (Debian/Ubuntu)</li> <li>`pkgconfig` (Rocky/Fedora/RHEL)</li></ul>          | Finds and links existing shared Intel MKL in the system (see  [ndarray-linalg documentation](https://github.com/rust-ndarray/ndarray-linalg)                                                 |
 | `qchem`            | `cmake`, `gcc`                                                                                    | Builds the HDF5 C library and links statically                                                                                                                                               |
-| `integrals`        | <ul><li> `libssl-dev` (Debian/Ubuntu)</li> <li>`openssl-devel` (Rocky/Fedora/RHEL)</li></ul>      | Installs the TLS framework required for [`reqwest`](https://github.com/seanmonstar/reqwest)                                                                                                  |
+| `integrals`        | <ul><li> `libssl-dev` (Debian/Ubuntu)</li> <li>`openssl-devel` (Rocky/Fedora/RHEL)</li></ul>      | Installs the TLS framework required for [reqwest](https://github.com/seanmonstar/reqwest)                                                                                                  |
 | `python`           | Python, which is best managed via Anaconda                                                        | Installs the Python bindings for core functionalities of QSym²                                                                                                                               |
 
 ### Binary compilation
@@ -60,7 +62,7 @@ The following instructions assume that the `full` feature is to be installed on 
 1. Install the basic dependencies by running the following commands (sudo priveleges required):
     ```bash
     sudo apt-get update
-    sudo apt-get install curl git
+    sudo apt-get install curl git libssl-dev pkg-config
     ```
 
 2. Install the Rust compiler by running the command below and following the on-screen instructions:
@@ -71,7 +73,7 @@ The following instructions assume that the `full` feature is to be installed on 
 
 3. Install the feature-specific dependencies by running the following commands (sudo priveleges required):
     ```bash
-    sudo apt-get install build-essential gfortran cmake libssl-dev
+    sudo apt-get install build-essential gfortran cmake
     ```
 4. Obtain the source code of QSym² either via `git`:
     ```bash
@@ -87,12 +89,12 @@ The following instructions assume that the `full` feature is to be installed on 
     
     It is possible to install the `qsym2` binary into a different path by running
     ```bash
-        cargo install --features full --path . --root /custom/install/path/for/qsym2
+        cargo install --features full --path . --root custom/install/path/for/qsym2
     ```
     instead. The custom path `/custom/install/path/for/qsym2` must then be added to the `$PATH` environment variable to make `qsym2` discoverable by the operating system.
 
 ### Python-library compilation
-The following instructions assume that the `full` and `python` features are to be compiled on a Debian/Ubuntu distro and then installed as a Python library inside a conda environment.
+The following instructions assume that the `openblas-static`, `integrals`, and `python` features are to be compiled on a Debian/Ubuntu distro and then installed as a Python library inside a conda environment. These features are specified in the `pyproject.toml` file.
 
 1. Follow steps 1 to 4 under the *Binary compilation* section above to install the required prerequisites.
 2. Make sure that the Anaconda package manager is available on your system. Instructions for installing Anaconda on a Linux system can be found [here](https://docs.anaconda.com/free/anaconda/install/linux/).
@@ -108,11 +110,70 @@ The following instructions assume that the `full` and `python` features are to b
     ```bash
     pip install .
     ```
-    This command calls `pip` which automatically acquires the build tool `maturin` to compile and install QSym² as a Python library into the `qsym2-python` conda environment.
+    This command calls `pip` which automatically acquires the build tool `maturin` to compile and install QSym² as a Python library into the `qsym2-python` conda environment. This library has the `openblas-static`, `integrals`, and `python` features enabled due to the specification in the `pyproject.toml` file.
 
     The Python library `qsym2` can now be imported by any Python scripts running inside the `qsym2-python` conda environment.
 
 ## Usage
+
+There are two main ways of running QSym²: either via the command-line interface provided by the binary `qsym2`, or via the exposed Python bindings.
+
+### Command-line interface
+
+This method is currently able to perform symmetry analysis of:
+- Slater determinants,
+- Hartree--Fock or Kohn--Sham molecular orbitals, and
+- vibrational coordinates
+
+that have been exported by Q-Chem 6 in a HDF5 file named `qarchive.h5` saved in the job's scratch directory,
+
+or
+- Slater determinants, and
+- Hartree--Fock or Kohn--Sham molecular orbitals
+
+that have been stored in binary files, alongside the overlap matrix of the uderlying atomic-orbital basis functions that has also been stored in a binary format.
+
+The command-line interface supports several subcommands and options:
+```bash
+qsym2 -h
+```
+
+```
+A program for Quantum Symbolic Symmetry
+
+Usage: qsym2 <COMMAND>
+
+Commands:
+  template
+          Generates a template YAML configuration file and exits
+  run
+          Runs an analysis calculation and exits
+  help
+          Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help
+          Print help
+  -V, --version
+          Print version
+```
+
+The subcommand `template`, runnable as
+```bash
+qsym2 template
+```
+generates a template configuration YAML file populated with some default control parameters. This file can be modified to adjust the parameters to suit the calculation at hand.
+
+The subcommand `run`, runnable as
+```bash
+qsym2 run -c path/to/config -o output_name
+```
+takes a configuration YAML file as a parameter, performs the specified symmetry analysis, and displays the results in the specified output file.
+
+Examples of symmetry analysis performed by QSym² for several Q-Chem calculations can be found in the *Tutorials* section.
+
+
+### Python interface
 
 
 ## Contributing
