@@ -190,6 +190,6 @@ An example Python script that performs symmetry analysis for self-consistent-fie
 
 ## Authors and acknowledgement
 
-QSym² was developed by Dr Bang C. Huynh at the University of Nottingham, UK with scientific support from Prof. Andrew M. Wibowo-Teale and Dr Meilani Wibowo-Teale and financial support from the ERC grant under the *topDFT* project.
+QSym² was developed by Dr [Bang C. Huynh](https://orcid.org/0000-0002-5226-4054) at the University of Nottingham, UK with scientific support from Prof. [Andrew M. Wibowo-Teale](https://orcid.org/0000-0001-9617-1143) and Dr [Meilani Wibowo-Teale](https://orcid.org/0000-0003-2462-3328) and financial support from the ERC grant under the *topDFT* project.
 
 The logo for QSym², which is a stylised stellated octahedron, was designed with artistic support from Mr [Thinh Nguyen](https://www.linkedin.com/in/thinh-nguyen-a38b7856/).
