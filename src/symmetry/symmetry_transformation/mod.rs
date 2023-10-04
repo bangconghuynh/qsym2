@@ -4,6 +4,7 @@ use std::fmt;
 use nalgebra::Vector3;
 use ndarray::{Array, Array2, Axis, RemoveAxis};
 use num_complex::Complex;
+#[cfg(feature = "python")]
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +27,7 @@ mod symmetry_transformation_tests;
 
 /// An enumerated type for managing the kind of symmetry transformation on an object.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[pyclass]
+#[cfg_attr(feature = "python", pyclass)]
 pub enum SymmetryTransformationKind {
     /// Spatial-only transformation.
     Spatial,

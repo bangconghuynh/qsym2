@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[cfg(feature = "python")]
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +39,7 @@ impl fmt::Display for CharacterTableDisplay {
 /// An enumerated type indicating the type of magnetic symmetry to be used for representation
 /// analysis.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[pyclass]
+#[cfg_attr(feature = "python", pyclass)]
 pub enum MagneticSymmetryAnalysisKind {
     /// Variant indicating that unitary representations should be used for magnetic symmetry
     /// analysis.
