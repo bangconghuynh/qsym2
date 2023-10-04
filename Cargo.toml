@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Bang C. Huynh <bang.cong.huynh@gmail.com>"]
 description = "A program for Quantum Symbolic Symmetry"
 repository = "https://gitlab.com/bangconghuynh/qsym2"
+license = "LGPL-3.0-or-later"
 
 [dependencies]
 anyhow = "1.0.71"
