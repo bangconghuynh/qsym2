@@ -15,7 +15,7 @@ The following instructions for installing QSym² from source are specific to Uni
 The QSym² crate defines the following features that can be specified at compilation via `cargo`. Some of these features are mutually exclusive.
 
 #### Linear algebra backend
-There are six features defining six different ways a linear algebra backend can be configured for QSym². These are inherited from the (ndarray-linalg)[https://github.com/rust-ndarray/ndarray-linalg] crate. One (and only one) of these must be specified:
+There are six features defining six different ways a linear algebra backend can be configured for QSym². These are inherited from the [ndarray-linalg](https://github.com/rust-ndarray/ndarray-linalg) crate. One (and only one) of these must be specified:
 - `openblas-static`: Downloads, builds OpenBLAS, and links statically
 - `openblas-system`: Finds and links existing OpenBLAS in the system
 - `netlib-static`: Downloads, builds LAPACK, and links statically
@@ -91,7 +91,7 @@ The following instructions assume that the `full` feature is to be installed on 
     
     It is possible to install the `qsym2` binary into a different path by running
     ```bash
-        cargo install --features full --path . --root custom/install/path/for/qsym2
+    cargo install --features full --path . --root custom/install/path/for/qsym2
     ```
     instead. The custom path `/custom/install/path/for/qsym2` must then be added to the `$PATH` environment variable to make `qsym2` discoverable by the operating system.
 
