@@ -46,6 +46,22 @@ pub enum AnalysisTarget {
     VibrationalCoordinates(VibrationalCoordinateControl),
 }
 
+impl AnalysisTarget {
+    /// Returns a vector containing of all possible analysis targets populated with their default
+    /// settings.
+    pub(crate) fn all_default() -> Vec<Self> {
+        vec![
+            AnalysisTarget::MolecularSymmetry {
+                xyz: PathBuf::from("path/to/xyz"),
+                symmetrisation: Some(MoleculeSymmetrisationParams::default()),
+            },
+            AnalysisTarget::SlaterDeterminant(SlaterDeterminantControl::default()),
+            #[cfg(feature = "qchem")]
+            AnalysisTarget::VibrationalCoordinates(VibrationalCoordinateControl::default()),
+        ]
+    }
+}
+
 impl Default for AnalysisTarget {
     fn default() -> Self {
         AnalysisTarget::SlaterDeterminant(SlaterDeterminantControl::default())
@@ -93,6 +109,14 @@ pub enum SlaterDeterminantSource {
     Binaries(BinariesSlaterDeterminantSource),
 }
 
+#[cfg(feature = "qchem")]
+impl Default for SlaterDeterminantSource {
+    fn default() -> Self {
+        SlaterDeterminantSource::QChemArchive(QChemArchiveSlaterDeterminantSource::default())
+    }
+}
+
+#[cfg(not(feature = "qchem"))]
 impl Default for SlaterDeterminantSource {
     fn default() -> Self {
         SlaterDeterminantSource::Binaries(BinariesSlaterDeterminantSource::default())

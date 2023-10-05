@@ -9,6 +9,7 @@ use ndarray_einsum_beta::*;
 use ndarray_linalg::{solve::Inverse, types::Lapack};
 use num_complex::ComplexFloat;
 use num_traits::ToPrimitive;
+#[cfg(feature = "python")]
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -141,7 +142,7 @@ where
 /// An enumerated type specifying the comparison mode for filtering out orbit overlap
 /// eigenvalues.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[pyclass]
+#[cfg_attr(feature = "python", pyclass)]
 pub enum EigenvalueComparisonMode {
     /// Compares the eigenvalues using only their real parts.
     Real,

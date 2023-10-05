@@ -73,10 +73,16 @@ impl BinariesSlaterDeterminantSource {
 impl Default for BinariesSlaterDeterminantSource {
     fn default() -> Self {
         BinariesSlaterDeterminantSource {
-            xyz: PathBuf::default(),
-            sao: PathBuf::default(),
-            coefficients: vec![PathBuf::default(), PathBuf::default()],
-            occupations: vec![PathBuf::default(), PathBuf::default()],
+            xyz: PathBuf::from("path/to/xyz"),
+            sao: PathBuf::from("path/to/ao/overlap/matrix"),
+            coefficients: vec![
+                PathBuf::from("path/to/alpha/coeffs"),
+                PathBuf::from("path/to/beta/coeffs"),
+            ],
+            occupations: vec![
+                PathBuf::from("path/to/alpha/occupations"),
+                PathBuf::from("path/to/beta/occupations"),
+            ],
             bao: InputBasisAngularOrder::default(),
             spin_constraint: SpinConstraint::Unrestricted(2, false),
             matrix_order: MatrixOrder::default(),

@@ -1,54 +1,55 @@
 symmetry_group_detection: !Parameters
 
-analysis_target: !SlaterDeterminant
-  source: !Binaries
-    xyz: path/to/xyz
-    sao: path/to/sao
-    coefficients: [path/to/ca, path/to/cb]
-    occupations: [path/to/occa, path/to/occb]
-    spin_constraint: !Unrestricted
-    - 2
-    - false
-    matrix_order: RowMajor
-    byte_order: LittleEndian
-    bao:
-    - atom: [0, "O"]
-      basis_shells:
-      - l: 0
-        shell_order: !PureIncreasingm
-      - l: 1
-        shell_order: !CartLexicographic
-      - l: 2
-        shell_order: !CartCustom
-        - [2, 0, 0]
-        - [1, 1, 0]
-        - [1, 0, 1]
-        - [0, 2, 0]
-        - [0, 1, 1]
-        - [0, 0, 2]
-      - l: 3
-        shell_order: !CartQChem
-    - atom: [1, "H"]
-      basis_shells:
-      - l: 0
-        shell_order: !PureDecreasingm
-      - l: 2
-        shell_order: !CartQChem
-    - atom: [1, "H"]
-      basis_shells:
-      - l: 0
-        shell_order: !PureIncreasingm
-      - l: 2
-        shell_order: !CartLexicographic
-      - l: 3
-        shell_order: !PureCustom
-        - 0
-        - 1
-        - -1
-        - 2
-        - -2
-        - 3
-        - -3
-  control:
-    integrality_threshold: 1e-7
-    linear_independence_threshold: 1e-7
+analysis_targets:
+  - !SlaterDeterminant
+    source: !Binaries
+      xyz: path/to/xyz
+      sao: path/to/sao
+      coefficients: [path/to/ca, path/to/cb]
+      occupations: [path/to/occa, path/to/occb]
+      spin_constraint: !Unrestricted
+      - 2
+      - false
+      matrix_order: RowMajor
+      byte_order: LittleEndian
+      bao:
+      - atom: [0, "O"]
+        basis_shells:
+        - l: 0
+          shell_order: !PureIncreasingm
+        - l: 1
+          shell_order: !CartLexicographic
+        - l: 2
+          shell_order: !CartCustom
+          - [2, 0, 0]
+          - [1, 1, 0]
+          - [1, 0, 1]
+          - [0, 2, 0]
+          - [0, 1, 1]
+          - [0, 0, 2]
+        - l: 3
+          shell_order: !CartQChem
+      - atom: [1, "H"]
+        basis_shells:
+        - l: 0
+          shell_order: !PureDecreasingm
+        - l: 2
+          shell_order: !CartQChem
+      - atom: [1, "H"]
+        basis_shells:
+        - l: 0
+          shell_order: !PureIncreasingm
+        - l: 2
+          shell_order: !CartLexicographic
+        - l: 3
+          shell_order: !PureCustom
+          - 0
+          - 1
+          - -1
+          - 2
+          - -2
+          - 3
+          - -3
+    control:
+      integrality_threshold: 1e-7
+      linear_independence_threshold: 1e-7
