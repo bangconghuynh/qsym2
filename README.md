@@ -8,7 +8,7 @@ QSym² is a Rust program for **Q**uantum **Sym**bolic **Sym**metry analysis of q
 
 ## Installation from Source
 
-The following instructions for installing QSym² from source are specific to Unix-like operating systems. On Microsoft Windows platforms, Windows Subsystem for Linux is recommended.
+The following instructions for installing QSym² from source are specific to Debian/Ubuntu operating systems. On Microsoft Windows platforms, Windows Subsystem for Linux is recommended.
 
 ### Features
 
@@ -61,7 +61,7 @@ The installation of QSym² requires the following:
 ### Binary compilation
 The following instructions assume that the `full` feature is to be installed on a Debian/Ubuntu distro to make available the `qsym2` binary.
 
-1. Install the basic dependencies by running the following commands (sudo priveleges required):
+1. Install the basic dependencies by running the following commands (sudo privileges required):
     ```bash
     sudo apt-get update
     sudo apt-get install curl git libssl-dev pkg-config
@@ -73,7 +73,7 @@ The following instructions assume that the `full` feature is to be installed on 
     ```
     The default configurations should suffice in most cases. Ensure that the current shell is restarted or the command `source "$HOME/.cargo/env"` is run upon installation completion so that the Rust compiler and the `cargo` package manager can be found.
 
-3. Install the feature-specific dependencies by running the following commands (sudo priveleges required):
+3. Install the feature-specific dependencies by running the following commands (sudo privileges required):
     ```bash
     sudo apt-get install build-essential gfortran cmake
     ```
