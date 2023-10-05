@@ -1,6 +1,8 @@
 # QSym²
 
+<div align="center">
 ![QSym² Logo](/images/qsym2_logo_no_text.svg)
+</div>
 
 QSym² is a Rust program for **Q**uantum **Sym**bolic **Sym**metry analysis of quantum-chemical calculations.
 
