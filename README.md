@@ -4,11 +4,24 @@
 ![QSym² Logo](/images/qsym2_logo_no_text.svg)
 </div>
 
-QSym² is a Rust program for **Q**uantum **Sym**bolic **Sym**metry analysis of quantum-chemical calculations.
+QSym² is a program for **Q**uantum **Sym**bolic **Sym**metry analysis of quantum-chemical calculations written in Rust with the following capabilities:
+- on-the-fly generation of symbolic character tables,
+- analysis of degeneracy and symmetry breaking effects in Abelian and non-Abelian groups,
+- analysis of symmetry in external magnetic and electric fields,
+- inclusion of antiunitary symmetry based on corepresentation theory, and
+- inclusion of double-valued representations and corepresentations via explicit spin rotations
+
+for the following targets:
+- Slater determinants,
+- molecular orbitals,
+- electron densities, and
+- vibrational coordinates.
+
+## Table of contents
 
 [[_TOC_]]
 
-## Installation from Source
+## Installation from source
 
 The following instructions for installing QSym² from source are specific to Debian/Ubuntu operating systems. On Microsoft Windows platforms, Windows Subsystem for Linux is recommended.
 
