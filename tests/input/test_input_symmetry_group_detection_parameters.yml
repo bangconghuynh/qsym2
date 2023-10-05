@@ -14,29 +14,30 @@ symmetry_group_detection: !Parameters
   # write_symmetry_elements: false
   # result_save_name: null
 
-analysis_target: !SlaterDeterminant
-  source: !Binaries
-    xyz: path/to/xyz
-    sao: path/to/sao
-    coefficients: [path/to/ca, path/to/cb]
-    occupations: [path/to/occa, path/to/occb]
-    spin_constraint: !Unrestricted
-    - 2
-    - false
-    matrix_order: RowMajor
-    byte_order: LittleEndian
-    bao:
-    - atom: [0, "H"]
-      basis_shells:
-      - l: 0
-        shell_order: !PureIncreasingm
-  control:
-    integrality_threshold: 1e-8
-    linear_independence_threshold: 1e-7
-    # analyse_mo_symmetries: true
-    # use_magnetic_group: false
-    # use_double_group: false
-    # symmetry_transformation_kind: Spatial
-    write_character_table: Numerical
-    write_overlap_eigenvalues: true
-    infinite_order_to_finite: 8
+analysis_targets:
+  - !SlaterDeterminant
+    source: !Binaries
+      xyz: path/to/xyz
+      sao: path/to/sao
+      coefficients: [path/to/ca, path/to/cb]
+      occupations: [path/to/occa, path/to/occb]
+      spin_constraint: !Unrestricted
+      - 2
+      - false
+      matrix_order: RowMajor
+      byte_order: LittleEndian
+      bao:
+      - atom: [0, "H"]
+        basis_shells:
+        - l: 0
+          shell_order: !PureIncreasingm
+    control:
+      integrality_threshold: 1e-8
+      linear_independence_threshold: 1e-7
+      # analyse_mo_symmetries: true
+      # use_magnetic_group: false
+      # use_double_group: false
+      # symmetry_transformation_kind: Spatial
+      write_character_table: Numerical
+      write_overlap_eigenvalues: true
+      infinite_order_to_finite: 8
