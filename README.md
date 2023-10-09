@@ -115,7 +115,7 @@ The following instructions assume that the `openblas-static`, `integrals`, and `
 
 1. Follow steps 1 to 4 under the *Binary compilation* section above to install the required prerequisites.
 2. Make sure that the Anaconda package manager is available on your system. Instructions for installing Anaconda on a Linux system can be found [here](https://docs.anaconda.com/free/anaconda/install/linux/).
-3. Create a new conda environment named `qsym2-python` (or a different name of your choice) running Python 3.11 (or a different version your your choice):
+3. Create a new conda environment named `qsym2-python` (or a different name of your choice) running Python 3.11 (or a different version of your choice):
     ```bash
     conda create -n qsym2-python python=3.11
     ```
@@ -187,7 +187,7 @@ qsym2 run -c path/to/config -o output_name
 ```
 takes a configuration YAML file as a parameter, performs the specified symmetry analysis, and displays the results in the specified output file.
 
-Examples of symmetry analysis performed by QSym² for several Q-Chem calculations can be found in the *Tutorials* section of the project's Wiki page.
+Examples of symmetry analysis performed by QSym² for several Q-Chem calculations can be found in the project's [Wiki](wikis/home) page.
 
 
 ### Python interface
