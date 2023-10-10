@@ -206,7 +206,7 @@ import qsym2
 help(qsym2)
 ```
 
-An example Python script that performs symmetry analysis for self-consistent-field calculations from Orca output files (parsed by [cclib](https://cclib.github.io/)) can be found at [`utils/qsym2_orca.py`](/utils/qsym2_orca.py). This script requires the Python packages `mendeleev`, `cclib`, and `numpy` to run.
+An example Python script that performs symmetry analysis for self-consistent-field calculations from Orca output files (parsed by [cclib](https://cclib.github.io/)) can be found at [`utils/qsym2-orca.py`](/utils/qsym2-orca.py). This script requires the Python packages `mendeleev`, `cclib`, and `numpy` to run.
 
 Another example where the Python bindings of QSym² are used extensively for the analysis of unitary and magnetic symmetry in the presence of external fields can be found in [QUEST](https://quest.codes/) and its complementary GUI, [QuestView](https://gitlab.com/Bspeake/questview).
 
