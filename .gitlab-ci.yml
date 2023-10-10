@@ -101,7 +101,7 @@ pages:
   script:
     - cargo doc --no-deps --features full,python
     - mv target/doc public
-    - echo '<meta http-equiv="refresh" content="0; url={{ qsym2 }}">' > public/index.html
+    - echo '<meta http-equiv="refresh" content="0; url=qsym2/index.html">' > public/index.html
   artifacts:
     paths:
       - public
