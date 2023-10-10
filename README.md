@@ -111,9 +111,9 @@ The following instructions assume that the `full` feature is to be installed on 
     instead. The custom path `/custom/install/path/for/qsym2` must then be added to the `$PATH` environment variable to make `qsym2` discoverable by the operating system.
 
 ### Python-library compilation
-The following instructions assume that the `openblas-static`, `integrals`, and `python` features are to be compiled on a Debian/Ubuntu distro and then installed as a Python library inside a conda environment. These features are specified in the `pyproject.toml` file.
+The following instructions assume that the `openblas-static`, `integrals`, and `python` features are to be compiled on a Debian/Ubuntu distro and then installed as a Python library inside a conda environment. These features are specified in the [`pyproject.toml`](/pyproject.toml) file.
 
-1. Follow steps 1 to 4 under the *Binary compilation* section above to install the required prerequisites.
+1. Follow steps 1 to 4 under the [*Binary compilation*](#binary-compilation) section above to install the required prerequisites.
 2. Make sure that the Anaconda package manager is available on your system. Instructions for installing Anaconda on a Linux system can be found [here](https://docs.anaconda.com/free/anaconda/install/linux/).
 3. Create a new conda environment named `qsym2-python` (or a different name of your choice) running Python 3.11 (or a different version of your choice):
     ```bash
@@ -187,7 +187,7 @@ qsym2 run -c path/to/config -o output_name
 ```
 takes a configuration YAML file as a parameter, performs the specified symmetry analysis, and displays the results in the specified output file.
 
-Examples of symmetry analysis performed by QSym² for several Q-Chem calculations can be found in the project's [Wiki](wikis/home) page.
+Examples of symmetry analysis performed by QSym² for several Q-Chem calculations can be found in the project's [Wiki](https://gitlab.com/bangconghuynh/qsym2/-/wikis/home) page.
 
 
 ### Python interface
@@ -198,7 +198,13 @@ This method is currently able to perform symmetry analysis of:
 - vibrational coordinates, and
 - one-electron densities
 
-that can be computed directly in Python or read into Python from calculation files of quantum-chemistry packages, such as by the use of [cclib](https://cclib.github.io/). The main driver functions of QSym² are all exposed to Python, which means that they can be used and integrated into existing workflows flexibly. 
+that can be computed directly in Python or read into Python from calculation files of quantum-chemistry packages, such as by the use of [cclib](https://cclib.github.io/). The main driver functions of QSym² are all exposed to Python, which means that they can be used and integrated into existing workflows flexibly.
+
+To view the documentation for the Python API, execute the following Python commands inside the `qsym2-python` conda environment (see [above](#python-library-compilation)), either interactively or in a Python script:
+```python
+import qsym2
+help(qsym2)
+```
 
 An example Python script that performs symmetry analysis for self-consistent-field calculations from Orca output files (parsed by [cclib](https://cclib.github.io/)) can be found at [`utils/qsym2_orca.py`](/utils/qsym2_orca.py).
 
