@@ -1,3 +1,8 @@
+#![doc(
+    html_logo_url = "https://api.qsym2.dev/images/qsym2_logo_no_text_no_background.svg",
+    html_favicon_url = "https://api.qsym2.dev/images/qsym2_icon.png"
+)]
+
 macro_rules! count_exprs {
     () => (0);
     ($head:expr) => (1);
@@ -5,7 +10,9 @@ macro_rules! count_exprs {
 }
 
 macro_rules! replace_expr {
-    ($_t:tt $sub:expr) => {$sub};
+    ($_t:tt $sub:expr) => {
+        $sub
+    };
 }
 
 pub mod analysis;
