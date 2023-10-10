@@ -93,6 +93,11 @@ def orca_rep_analyse_slater_determinant(
     )
 
     def pure_order(l_symbol: str) -> list[int]:
+        r"""Generates the Orca order of spherical functions in a given shell.
+
+        The spherical functions in a given shell of angular momentum :math:`l`
+        are ordered in Orca according to :math:`0, +1, -1, \ldots, +l, -l`.
+        """
         l = ANGS.index(l_symbol)
         ms = []
         for m in range(l+1):
@@ -103,6 +108,8 @@ def orca_rep_analyse_slater_determinant(
                 ms.append(-m)
         return ms
 
+    # Orca only uses spherical functions, so there is no pure/Cartesian
+    # ambiguity here.
     bao = [
         (
             mendeleev.element(int(atomic_number)).symbol,
