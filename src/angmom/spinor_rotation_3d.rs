@@ -1,3 +1,5 @@
+//! Three-dimensional rotations of spinors.
+
 use std::cmp;
 use std::fmt;
 

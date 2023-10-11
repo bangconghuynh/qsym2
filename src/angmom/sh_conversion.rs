@@ -1,3 +1,5 @@
+//! Conversions between spherical/solid harmonics and Cartesian functions.
+
 use std::cmp::Ordering;
 
 use factorial::Factorial;

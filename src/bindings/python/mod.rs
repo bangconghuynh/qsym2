@@ -1,3 +1,5 @@
+//! Python bindings for QSym².
+
 use pyo3::prelude::*;
 
 pub mod integrals;

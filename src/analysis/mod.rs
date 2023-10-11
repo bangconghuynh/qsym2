@@ -1,3 +1,5 @@
+//! Symmetry analysis via representation and corepresentation theories.
+
 use std::cmp::Ordering;
 use std::fmt;
 

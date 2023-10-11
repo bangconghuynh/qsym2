@@ -1,3 +1,5 @@
+//! Python bindings for QSym² symmetry analysis via representation and corepresentation theories.
+
 use num_complex::Complex;
 use numpy::{PyArray2, PyArray4};
 use pyo3::prelude::*;

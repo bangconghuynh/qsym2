@@ -1,3 +1,5 @@
+//! Python bindings for QSym² molecule symmetrisation.
+
 use std::path::PathBuf;
 
 use anyhow::format_err;

@@ -1,3 +1,5 @@
+//! Molecular structures.
+
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs;

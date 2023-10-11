@@ -1,3 +1,5 @@
+//! Geometrical objects and manipulations.
+
 use std::collections::HashSet;
 use std::fmt;
 
@@ -33,7 +35,10 @@ pub enum ImproperRotationKind {
     InversionCentre,
 }
 
+/// Mirror-plane improper rotation kind.
 pub const IMSIG: ImproperRotationKind = ImproperRotationKind::MirrorPlane;
+
+/// Inversion-centre improper rotation kind.
 pub const IMINV: ImproperRotationKind = ImproperRotationKind::InversionCentre;
 
 // =================
@@ -386,6 +391,7 @@ fn get_anticlockwise_angle(
     angle
 }
 
+/// Geometrical transformability in three dimensions.
 pub trait Transform {
     /// Transforms in-place the coordinates about the origin by a given
     /// transformation.

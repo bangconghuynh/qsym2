@@ -19,6 +19,8 @@ for the following targets:
 
 QSym² has been integrated with [QUEST](https://quest.codes/) and its complementary GUI, [QuestView](https://gitlab.com/Bspeake/questview). QSym² can also work with [Q-Chem](https://www.q-chem.com/) HDF5 archive files and [Orca](https://orcaforum.kofo.mpg.de/index.php) output files.
 
+The public API documentation for QSym² can be found [here](https://api.qsym2.dev/).
+
 ## Table of contents
 
 [[_TOC_]]
@@ -39,6 +41,8 @@ There are six features defining six different ways a linear algebra backend can 
 - `netlib-system`: Finds and links existing LAPACK in the system
 - `intel-mkl-static`: Finds and links existing static Intel MKL in the system, or downloads and links statically if not found
 - `intel-mkl-system`: Finds and links existing shared Intel MKL in the system
+
+If the `*-static` backends give rise to numerical problems, please try installing the linear algebra backends directly (either via your system's package manager or by compiling from source) and then using the corresponding `*-system` backends.
 
 #### Interfaces
 - `qchem`: Enables Q-Chem's HDF5 archive files to be read in and analysed

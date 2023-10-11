@@ -1,3 +1,5 @@
+//! Items to assist with integral evaluations on atomic-orbital basis functions.
+
 use std::collections::HashMap;
 use std::ops::Index;
 
@@ -44,7 +46,10 @@ impl<E, C> GaussianContraction<E, C> {
 // Deserialisable structs for BSE data retrieval
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+/// Base API address of Basis Set Exchange.
 const BSE_BASE_API: &str = "https://www.basissetexchange.org/api";
+
+/// Threshold for filtering out primitives in a basis function contraction.
 const CONTRACTION_COEFF_THRESH: f64 = 1e-16;
 
 /// A structure to represent the REST API result fro, BasisSetExchange.

@@ -1,3 +1,5 @@
+//! Python bindings for QSym² symmetry analysis of Slater determinants.
+
 use std::path::PathBuf;
 
 use anyhow::format_err;

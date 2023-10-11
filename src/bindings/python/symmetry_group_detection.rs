@@ -1,3 +1,5 @@
+//! Python bindings for QSym² symmetry-group detection.
+
 use std::collections::HashMap;
 use std::fmt;
 use std::path::PathBuf;

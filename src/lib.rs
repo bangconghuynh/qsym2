@@ -56,6 +56,10 @@
 //! links statically if not found
 //! - `intel-mkl-system`: Finds and links existing shared Intel MKL in the system
 //!
+//! If the `*-static` backends give rise to numerical problems, please try installing the linear
+//! algebra backends directly (either via your system's package manager or by compiling from source)
+//! and then using the corresponding `*-system` backends.
+//!
 //! ### Interfaces
 //! - `qchem`: Enables Q-Chem's HDF5 archive files to be read in and analysed
 //! - `python`: Enables the Python bindings for several core functionalities

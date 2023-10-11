@@ -1,3 +1,5 @@
+//! Template molecules for testing purposes.
+
 use crate::auxiliary::atom::{Atom, AtomKind, ElementMap};
 use crate::auxiliary::molecule::Molecule;
 use nalgebra::Point3;

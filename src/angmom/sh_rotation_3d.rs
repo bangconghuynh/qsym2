@@ -1,3 +1,5 @@
+//! Three-dimensional rotations of spherical harmonics.
+
 use std::cmp::Ordering;
 
 use approx;

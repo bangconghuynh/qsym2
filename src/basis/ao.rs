@@ -1,3 +1,5 @@
+//! Atomic-orbital basis functions.
+
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;

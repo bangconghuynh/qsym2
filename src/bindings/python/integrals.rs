@@ -1,3 +1,5 @@
+//! Python bindings for QSym² atomic-orbital integral evaluations.
+
 use anyhow::{self, bail, ensure};
 #[cfg(feature = "integrals")]
 use nalgebra::{Point3, Vector3};
