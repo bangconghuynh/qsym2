@@ -1,3 +1,5 @@
+//! Abstract groups of symmetry operations.
+
 use anyhow::{self, ensure};
 use counter::Counter;
 use indexmap::IndexMap;
@@ -35,12 +37,17 @@ mod symmetry_chartab_tests;
 // Type alias definitions
 // ======================
 
+/// Type for symmetry groups in which all elements are represented as mathematical unitary
+/// operators. These groups admit unitary irreducible representations.
 pub type UnitaryRepresentedSymmetryGroup = UnitaryRepresentedGroup<
     SymmetryOperation,
     MullikenIrrepSymbol,
     SymmetryClassSymbol<SymmetryOperation>,
 >;
 
+/// Type for symmetry groups in which half of the elements are represented as mathematical unitary
+/// operators, and the other half as mathematical antiunitary operators. These groups admit
+/// irreducible corepresentations.
 pub type MagneticRepresentedSymmetryGroup = MagneticRepresentedGroup<
     SymmetryOperation,
     UnitaryRepresentedSymmetryGroup,
@@ -51,6 +58,7 @@ pub type MagneticRepresentedSymmetryGroup = MagneticRepresentedGroup<
 // Trait definitions
 // =================
 
+/// Trait defining behaviours of symmetry groups.
 pub trait SymmetryGroupProperties:
     ClassProperties<
         GroupElement = SymmetryOperation,

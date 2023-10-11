@@ -1,3 +1,5 @@
+//! Symbols for enumerating rows and columns of character tables of symmetry groups.
+
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
@@ -38,6 +40,7 @@ mod symmetry_symbols_tests;
 // Constants
 // =========
 
+/// Map from Mulliken degeneracy labels to degeneracy degrees.
 static MULLIKEN_IRREP_DEGENERACIES: phf::Map<&'static str, u64> = phf_map! {
     "A" => 1u64,
     "B" => 1u64,
@@ -73,6 +76,7 @@ static MULLIKEN_IRREP_DEGENERACIES: phf::Map<&'static str, u64> = phf_map! {
     "M~" => 10u64,
 };
 
+/// Map from degeneracy degrees to Mulliken degeneracy labels.
 static INV_MULLIKEN_IRREP_DEGENERACIES: phf::Map<u64, &'static str> = phf_map! {
      2u64 => "E",
      3u64 => "T",
@@ -85,6 +89,7 @@ static INV_MULLIKEN_IRREP_DEGENERACIES: phf::Map<u64, &'static str> = phf_map! {
      10u64 => "M",
 };
 
+/// Set of groups for which the principal axes are forced to be $`C_3`$ to satisfy conventions.
 pub static FORCED_C3_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
     "O",
     "Oh",
@@ -108,7 +113,7 @@ pub static FORCED_C3_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
 // MullikenIrrepSymbol
 // -------------------
 
-/// A structure to handle Mulliken irreducible representation symbols.
+/// Structure to handle Mulliken irreducible representation symbols.
 #[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct MullikenIrrepSymbol {
     /// The generic part of the symbol.
@@ -146,7 +151,7 @@ impl MullikenIrrepSymbol {
 // MullikenIrcorepSymbol
 // ---------------------
 
-/// A structure to handle Mulliken irreducible corepresentation symbols.
+/// Structure to handle Mulliken irreducible corepresentation symbols.
 #[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct MullikenIrcorepSymbol {
     /// The decomposed symbol containing the irreps inducing this ircorep.
@@ -180,7 +185,7 @@ impl MullikenIrcorepSymbol {
 // SymmetryClassSymbol
 // -------------------
 
-/// A structure to handle conjugacy class symbols.
+/// Structure to handle conjugacy class symbols.
 #[derive(Builder, Debug, Clone, Serialize, Deserialize)]
 pub struct SymmetryClassSymbol<R: Clone + Serialize> {
     /// The generic part of the symbol.
@@ -1381,7 +1386,7 @@ pub(super) fn deduce_sigma_symbol(
     }
 }
 
-/// An enumerated type specifying the parity under a mirror plane.
+/// Enumerated type specifying the parity under a mirror plane.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum MirrorParity {
     /// Variant for even parity.

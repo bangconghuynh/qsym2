@@ -1,3 +1,5 @@
+//! Transformations under symmetry operations//! Transformations under symmetry operations..
+
 use std::error::Error;
 use std::fmt;
 
@@ -25,7 +27,7 @@ mod symmetry_transformation_tests;
 // Enum definitions
 // ================
 
-/// An enumerated type for managing the kind of symmetry transformation on an object.
+/// Enumerated type for managing the kind of symmetry transformation on an object.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "python", pyclass)]
 pub enum SymmetryTransformationKind {
@@ -70,7 +72,7 @@ impl fmt::Display for TransformationError {
 
 impl Error for TransformationError {}
 
-/// A trait for spatial unitary transformation. A spatial unitary transformation also permutes
+/// Trait for spatial unitary transformation. A spatial unitary transformation also permutes
 /// off-origin sites.
 pub trait SpatialUnitaryTransformable: Clone {
     // ----------------
@@ -110,7 +112,7 @@ pub trait SpatialUnitaryTransformable: Clone {
     }
 }
 
-/// A trait for spin unitary transformations. A spin unitary transformation has no spatial effects.
+/// Trait for spin unitary transformations. A spin unitary transformation has no spatial effects.
 pub trait SpinUnitaryTransformable: Clone {
     // ----------------
     // Required methods
@@ -146,7 +148,7 @@ pub trait SpinUnitaryTransformable: Clone {
     }
 }
 
-/// A trait for complex-conjugation transformations.
+/// Trait for complex-conjugation transformations.
 pub trait ComplexConjugationTransformable: Clone {
     // ----------------
     // Required methods
@@ -169,7 +171,7 @@ pub trait ComplexConjugationTransformable: Clone {
     }
 }
 
-/// A trait for time-reversal transformations.
+/// Trait for time-reversal transformations.
 ///
 /// This trait has a blanket implementation for any implementor of the [`SpinUnitaryTransformable`]
 /// trait and the [`ComplexConjugationTransformable`] trait.
@@ -208,7 +210,7 @@ pub trait TimeReversalTransformable:
 // Blanket implementation
 // ----------------------
 
-/// A marker trait indicating that the implementing type should get the blanket implementation for
+/// Marker trait indicating that the implementing type should get the blanket implementation for
 /// [`TimeReversalTransformable`].
 pub trait DefaultTimeReversalTransformable:
 {}
@@ -218,7 +220,7 @@ impl<T> TimeReversalTransformable for T where
 {
 }
 
-/// A trait for transformations using [`SymmetryOperation`].
+/// Trait for transformations using [`SymmetryOperation`].
 pub trait SymmetryTransformable: SpatialUnitaryTransformable + TimeReversalTransformable {
     // ----------------
     // Required methods

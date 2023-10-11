@@ -1,3 +1,5 @@
+//! Molecular symmetry element detection for linear systems.
+
 use anyhow::{self, ensure, format_err};
 
 use super::{PreSymmetry, Symmetry};

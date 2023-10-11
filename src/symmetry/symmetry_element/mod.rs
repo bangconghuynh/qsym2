@@ -1,3 +1,5 @@
+//! Geometrical symmetry elements.
+
 use std::convert::TryInto;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -27,7 +29,7 @@ mod symmetry_element_tests;
 // Enum definitions and implementations
 // ====================================
 
-/// An enumerated type to classify the type of the antiunitary term that contributes to a symmetry
+/// Enumerated type to classify the type of the antiunitary term that contributes to a symmetry
 /// element.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AntiunitaryKind {
@@ -38,7 +40,7 @@ pub enum AntiunitaryKind {
     TimeReversal,
 }
 
-/// An enumerated type to classify the types of symmetry element.
+/// Enumerated type to classify the types of symmetry element.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SymmetryElementKind {
     /// Proper symmetry element which consists of just a proper rotation axis.
@@ -117,7 +119,7 @@ impl SymmetryElementKind {
     }
 }
 
-/// An enumerated type to signify whether a spatial symmetry operation has an associated spin
+/// Enumerated type to signify whether a spatial symmetry operation has an associated spin
 /// rotation.
 #[derive(Clone, Hash, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum RotationGroup {
@@ -218,7 +220,7 @@ impl fmt::Display for SymmetryElementKind {
     }
 }
 
-/// A structure for storing and managing symmetry elements.
+/// Structure for storing and managing symmetry elements.
 ///
 /// Each symmetry element is a geometrical object in $`\mathbb{R}^3`$ that encodes the following
 /// pieces of information:
@@ -1726,13 +1728,32 @@ impl Hash for SymmetryElement {
     }
 }
 
+/// Time-reversal antiunitary kind.
 pub const TR: AntiunitaryKind = AntiunitaryKind::TimeReversal;
+
+/// Proper rotation symmetry element kind.
 pub const ROT: SymmetryElementKind = SymmetryElementKind::Proper(None);
+
+/// Improper symmetry element kind in the mirror-plane convention.
 pub const SIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane(None);
+
+/// Improper symmetry element kind in the inversion-centre convention.
 pub const INV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre(None);
+
+/// Time-reversed proper rotation symmetry element kind.
 pub const TRROT: SymmetryElementKind = SymmetryElementKind::Proper(Some(TR));
+
+/// Time-reversed improper symmetry element kind in the mirror-plane convention.
 pub const TRSIG: SymmetryElementKind = SymmetryElementKind::ImproperMirrorPlane(Some(TR));
+
+/// Time-reversed improper symmetry element kind in the inversion-centre convention.
 pub const TRINV: SymmetryElementKind = SymmetryElementKind::ImproperInversionCentre(Some(TR));
+
+/// Rotation group $`\mathsf{SO}(3)`$.
 pub const SO3: RotationGroup = RotationGroup::SO3;
+
+/// Rotation group $`\mathsf{SU}(2)`$, homotopy path of class 0.
 pub const SU2_0: RotationGroup = RotationGroup::SU2(true);
+
+/// Rotation group $`\mathsf{SU}(2)`$, homotopy path of class 1.
 pub const SU2_1: RotationGroup = RotationGroup::SU2(false);

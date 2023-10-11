@@ -1,3 +1,5 @@
+//! Molecular symmetry element detection for asymmetric tops.
+
 use anyhow::{self, ensure, format_err};
 use itertools::Itertools;
 use log;
