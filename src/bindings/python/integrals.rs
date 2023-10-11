@@ -22,7 +22,7 @@ use crate::basis::ao_integrals::{BasisSet, BasisShellContraction, GaussianContra
 #[cfg(feature = "integrals")]
 use crate::integrals::shell_tuple::build_shell_tuple_collection;
 
-/// A Python-exposed enumerated type to handle the union type `bool | list[int]` in Python.
+/// Python-exposed enumerated type to handle the union type `bool | list[int]` in Python.
 #[derive(Clone, FromPyObject)]
 pub enum PyPureOrder {
     /// Variant for standard pure shell order. The associated boolean indicates if the functions
@@ -34,7 +34,7 @@ pub enum PyPureOrder {
     Custom(Vec<i32>),
 }
 
-/// A Python-exposed enumerated type to handle the `ShellOrder` union type `bool |
+/// Python-exposed enumerated type to handle the `ShellOrder` union type `bool |
 /// Optional[list[tuple[int, int, int]]]` in Python.
 #[derive(Clone, FromPyObject)]
 pub enum PyShellOrder {
@@ -53,7 +53,7 @@ pub enum PyShellOrder {
     CartOrder(Option<Vec<(u32, u32, u32)>>),
 }
 
-/// A Python-exposed structure to marshal basis angular order information between Python and Rust.
+/// Python-exposed structure to marshal basis angular order information between Python and Rust.
 ///
 /// # Constructor arguments
 ///
@@ -166,7 +166,7 @@ impl PyBasisAngularOrder {
     }
 }
 
-/// A Python-exposed enumerated type to marshall basis spin constraint information between Rust and
+/// Python-exposed enumerated type to marshall basis spin constraint information between Rust and
 /// Python.
 #[pyclass]
 #[derive(Clone)]
@@ -196,7 +196,7 @@ impl From<PySpinConstraint> for SpinConstraint {
 #[cfg(feature = "integrals")]
 #[pyclass]
 #[derive(Clone)]
-/// A Python-exposed structure to marshall basis shell contraction information between Rust and
+/// Python-exposed structure to marshall basis shell contraction information between Rust and
 /// Python.
 ///
 /// # Constructor arguments

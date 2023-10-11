@@ -43,7 +43,7 @@ fn default_target_threshold() -> f64 {
     1e-7
 }
 
-/// A structure containing control parameters for molecule symmetrisation.
+/// Structure containing control parameters for molecule symmetrisation.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct MoleculeSymmetrisationParams {
     /// Boolean indicating if any available magnetic group should be used for symmetrisation
@@ -175,7 +175,7 @@ impl fmt::Display for MoleculeSymmetrisationParams {
 // Result
 // ------
 
-/// A structure to contain molecule symmetrisation results.
+/// Structure to contain molecule symmetrisation results.
 #[derive(Clone, Builder, Debug)]
 pub struct MoleculeSymmetrisationResult<'a> {
     /// The control parameters used to obtain this set of molecule symmetrisation results.
@@ -195,7 +195,7 @@ impl<'a> MoleculeSymmetrisationResult<'a> {
 // Driver
 // ------
 
-/// A driver for iterative molecule symmetrisation.
+/// Driver for iterative molecule symmetrisation.
 ///
 /// Each symmetrisation iteration involves applying the totally symmetric projection operator of
 /// the target group to the molecule. This process is repeated until the molecule attains the

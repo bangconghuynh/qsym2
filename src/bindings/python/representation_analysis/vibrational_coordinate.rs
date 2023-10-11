@@ -34,7 +34,7 @@ type C128 = Complex<f64>;
 // Struct definitions
 // ==================
 
-/// A Python-exposed structure to marshall real vibrational coordinate collections between Rust and
+/// Python-exposed structure to marshall real vibrational coordinate collections between Rust and
 /// Python.
 ///
 /// # Constructor arguments
@@ -113,7 +113,7 @@ impl PyVibrationalCoordinateCollectionReal {
     }
 }
 
-/// A Python-exposed structure to marshall complex vibrational coordinate collections between Rust
+/// Python-exposed structure to marshall complex vibrational coordinate collections between Rust
 /// and Python.
 ///
 /// # Constructor arguments
@@ -197,7 +197,7 @@ impl PyVibrationalCoordinateCollectionComplex {
 // Enum definitions
 // ================
 
-/// A Python-exposed enumerated type to handle the union type
+/// Python-exposed enumerated type to handle the union type
 /// `PyVibrationalCoordinateCollectionReal | PyVibrationalCoordinateCollectionComplex` in Python.
 #[derive(FromPyObject)]
 pub enum PyVibrationalCoordinateCollection {
@@ -212,7 +212,7 @@ pub enum PyVibrationalCoordinateCollection {
 // Functions definitions
 // =====================
 
-/// A Python-exposed function to perform representation symmetry analysis for real and complex
+/// Python-exposed function to perform representation symmetry analysis for real and complex
 /// vibrational coordinate collections and log the result via the `qsym2-output` logger at the
 /// `INFO` level.
 ///

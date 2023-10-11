@@ -311,7 +311,7 @@ where
 // Struct definitions and implementations
 // ======================================
 
-/// Struct for managing class structures eagerly, *i.e.* all elements and their class maps are
+/// Structure for managing class structures eagerly, *i.e.* all elements and their class maps are
 /// stored.
 #[derive(Builder, Clone, Serialize, Deserialize)]
 pub(super) struct EagerClassStructure<T, ClassSymbol>

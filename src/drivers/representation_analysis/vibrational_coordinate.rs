@@ -51,7 +51,7 @@ const fn default_symbolic() -> Option<CharacterTableDisplay> {
     Some(CharacterTableDisplay::Symbolic)
 }
 
-/// A structure containing control parameters for vibrational coordinate representation analysis.
+/// Structure containing control parameters for vibrational coordinate representation analysis.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct VibrationalCoordinateRepAnalysisParams<T: From<f64>> {
     /// Threshold for checking if subspace multiplicities are integral.
@@ -179,7 +179,7 @@ where
 // Result
 // ------
 
-/// A structure to contain vibrational coordinate representation analysis results.
+/// Structure to contain vibrational coordinate representation analysis results.
 #[derive(Clone, Builder)]
 pub struct VibrationalCoordinateRepAnalysisResult<'a, G, T>
 where
@@ -428,7 +428,7 @@ where
 // Struct definition
 // ~~~~~~~~~~~~~~~~~
 
-/// A driver structure for performing representation analysis on vibrational coordinates.
+/// Driver structure for performing representation analysis on vibrational coordinates.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct VibrationalCoordinateRepAnalysisDriver<'a, G, T>

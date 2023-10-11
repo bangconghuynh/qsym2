@@ -36,7 +36,7 @@ use crate::group::{
 // Trait definitions
 // =================
 
-/// A trait to indicate the presence of character properties in a group and enable access to the
+/// Trait to indicate the presence of character properties in a group and enable access to the
 /// character table of the group.
 pub trait CharacterProperties: ClassProperties
 where
@@ -61,7 +61,7 @@ where
     fn unitary_represented(&self) -> bool;
 }
 
-/// A trait for the ability to construct an irrep character table for the group.
+/// Trait for the ability to construct an irrep character table for the group.
 ///
 /// This trait comes with a default implementation of character table calculation based on the
 /// Burnside--Dixon algorithm with Schneider optimisation.
@@ -612,7 +612,7 @@ where
     }
 }
 
-/// A trait for the ability to construct an ircorep character table for the group.
+/// Trait for the ability to construct an ircorep character table for the group.
 ///
 /// This trait comes with a default implementation of ircorep character table calculation based on
 /// the irreps of the unitary subgroup.

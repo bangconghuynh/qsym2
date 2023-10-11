@@ -67,7 +67,7 @@ const fn default_symbolic() -> Option<CharacterTableDisplay> {
     Some(CharacterTableDisplay::Symbolic)
 }
 
-/// A structure containing control parameters for Slater determinant representation analysis.
+/// Structure containing control parameters for Slater determinant representation analysis.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct SlaterDeterminantRepAnalysisParams<T: From<f64>> {
     /// Threshold for checking if subspace multiplicities are integral.
@@ -234,7 +234,7 @@ where
 // Result
 // ------
 
-/// A structure to contain Slater determinant representation analysis results.
+/// Structure to contain Slater determinant representation analysis results.
 #[derive(Clone, Builder)]
 pub struct SlaterDeterminantRepAnalysisResult<'a, G, T>
 where
@@ -705,7 +705,7 @@ where
 // Struct definition
 // ~~~~~~~~~~~~~~~~~
 
-/// A driver structure for performing representation analysis on Slater determinants.
+/// Driver structure for performing representation analysis on Slater determinants.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct SlaterDeterminantRepAnalysisDriver<'a, G, T>

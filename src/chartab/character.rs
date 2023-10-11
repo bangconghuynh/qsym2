@@ -25,7 +25,7 @@ mod character_tests;
 // Struct definitions
 // ==================
 
-/// A struct to represent algebraic group characters.
+/// Structure to represent algebraic group characters.
 ///
 /// Partial orders between characters are based on their complex moduli and
 /// phases in the interval $`[0, 2\pi)`$ with $`0`$ being the smallest.

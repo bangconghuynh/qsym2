@@ -37,7 +37,7 @@ type C128 = Complex<f64>;
 // Struct definitions
 // ==================
 
-/// A Python-exposed structure to marshall real Slater determinant information between Rust and
+/// Python-exposed structure to marshall real Slater determinant information between Rust and
 /// Python.
 ///
 /// # Constructor arguments
@@ -186,7 +186,7 @@ impl PySlaterDeterminantReal {
     }
 }
 
-/// A Python-exposed structure to marshall complex Slater determinant information between Rust and
+/// Python-exposed structure to marshall complex Slater determinant information between Rust and
 /// Python.
 ///
 /// # Constructor arguments
@@ -339,7 +339,7 @@ impl PySlaterDeterminantComplex {
 // Enum definitions
 // ================
 
-/// A Python-exposed enumerated type to handle the union type
+/// Python-exposed enumerated type to handle the union type
 /// `PySlaterDeterminantReal | PySlaterDeterminantComplex` in Python.
 #[derive(FromPyObject)]
 pub enum PySlaterDeterminant {
@@ -354,7 +354,7 @@ pub enum PySlaterDeterminant {
 // Functions definitions
 // =====================
 
-/// A Python-exposed function to perform representation symmetry analysis for real and complex
+/// Python-exposed function to perform representation symmetry analysis for real and complex
 /// Slater determinants and log the result via the `qsym2-output` logger at the `INFO` level.
 ///
 /// If `symmetry_transformation_kind` includes spin transformation, the provided determinant will

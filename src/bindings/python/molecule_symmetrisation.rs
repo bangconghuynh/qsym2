@@ -15,7 +15,7 @@ use crate::drivers::symmetry_group_detection::SymmetryGroupDetectionResult;
 use crate::drivers::QSym2Driver;
 use crate::io::{read_qsym2_binary, QSym2FileType};
 
-/// A Python-exposed function to perform molecule symmetrisation and log the result via the
+/// Python-exposed function to perform molecule symmetrisation and log the result via the
 /// `qsym2-output` logger at the `INFO` level.
 ///
 /// # Arguments

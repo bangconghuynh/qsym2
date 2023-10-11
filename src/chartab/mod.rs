@@ -31,7 +31,7 @@ pub mod unityroot;
 // Trait definitions
 // =================
 
-/// A trait to contain essential methods for a character table.
+/// Trait to contain essential methods for a character table.
 pub trait CharacterTable: Clone
 where
     Self::RowSymbol: LinearSpaceSymbol,
@@ -122,7 +122,7 @@ where
     ) -> fmt::Result;
 }
 
-/// A trait for character tables that support decomposing a space into its irreducible subspaces
+/// Trait for character tables that support decomposing a space into its irreducible subspaces
 /// using characters.
 pub trait SubspaceDecomposable<T>: CharacterTable
 where
@@ -169,7 +169,7 @@ impl Error for DecompositionError {}
 // RepCharacterTable
 // -----------------
 
-/// A structure to manage character tables of irreducible representations.
+/// Structure to manage character tables of irreducible representations.
 #[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct RepCharacterTable<RowSymbol, ColSymbol>
 where
@@ -649,7 +649,7 @@ where
 // CorepCharacterTable
 // -------------------
 
-/// A structure to manage character tables of irreducible corepresentations of magnetic groups.
+/// Structure to manage character tables of irreducible corepresentations of magnetic groups.
 #[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct CorepCharacterTable<RowSymbol, UC>
 where

@@ -10,7 +10,7 @@ use log;
 use ndarray::{stack, Array1, Array2, Axis};
 use num_complex::ComplexFloat;
 
-/// A trait to enable floating point numbers to be hashed.
+/// Trait to enable floating point numbers to be hashed.
 pub trait HashableFloat {
     /// Returns a float rounded after being multiplied by a factor.
     ///
@@ -77,7 +77,7 @@ pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-/// A trait for performing repeated products of iterators.
+/// Trait for performing repeated products of iterators.
 pub trait ProductRepeat: Iterator + Clone
 where
     Self::Item: Clone,
@@ -106,6 +106,7 @@ impl<T: Iterator + Clone> ProductRepeat for T where T::Item: Clone {}
 // Gram--Schmidt
 // =============
 
+/// Error during Gram--Schmidt orthogonalisation.
 #[derive(Debug, Clone)]
 pub struct GramSchmidtError<'a, T> {
     pub mat: Option<&'a Array2<T>>,

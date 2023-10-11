@@ -36,7 +36,7 @@ fn default_thresholds() -> Vec<f64> {
     vec![1.0e-4, 1e-5, 1.0e-6]
 }
 
-/// A structure containing control parameters for symmetry-group detection.
+/// Structure containing control parameters for symmetry-group detection.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct SymmetryGroupDetectionParams {
     /// Thresholds for moment-of-inertia comparisons.
@@ -213,7 +213,7 @@ impl fmt::Display for SymmetryGroupDetectionParams {
 // Result
 // ------
 
-/// A structure to contain symmetry-group detection results.
+/// Structure to contain symmetry-group detection results.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct SymmetryGroupDetectionResult {
     /// The control parameters used to obtain this set of results.
@@ -340,7 +340,7 @@ impl fmt::Display for SymmetryGroupDetectionResult {
 // Driver
 // ------
 
-/// A driver for symmetry-group detection.
+/// Driver for symmetry-group detection.
 #[derive(Clone, Builder)]
 pub struct SymmetryGroupDetectionDriver<'a> {
     /// The control parameters for symmetry group detection.

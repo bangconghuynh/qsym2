@@ -31,7 +31,7 @@ use crate::symmetry::symmetry_element_order::ElementOrder;
 // PyMolecule
 // ----------
 
-/// A Python-exposed structure to marshall molecular structure information between Rust and Python.
+/// Python-exposed structure to marshall molecular structure information between Rust and Python.
 ///
 /// # Constructor arguments
 ///
@@ -122,7 +122,7 @@ impl From<PyMolecule> for Molecule {
 // PySymmetryElementKind
 // ---------------------
 
-/// A Python-exposed structure to marshall symmetry element kind information one-way from Rust to
+/// Python-exposed structure to marshall symmetry element kind information one-way from Rust to
 /// Python.
 #[pyclass]
 #[derive(Clone, Hash, PartialEq, Eq)]
@@ -177,7 +177,7 @@ impl TryFrom<&SymmetryElementKind> for PySymmetryElementKind {
 // PySymmetry
 // ----------
 
-/// A Python-exposed structure to marshall symmetry information one-way from Rust to Python.
+/// Python-exposed structure to marshall symmetry information one-way from Rust to Python.
 #[pyclass]
 #[derive(Clone, Builder)]
 pub struct PySymmetry {
@@ -351,7 +351,7 @@ impl TryFrom<&Symmetry> for PySymmetry {
 // Functions
 // =========
 
-/// A Python-exposed function to perform symmetry-group detection and log the result via the
+/// Python-exposed function to perform symmetry-group detection and log the result via the
 /// `qsym2-output` logger at the `INFO` level.
 ///
 /// # Arguments
