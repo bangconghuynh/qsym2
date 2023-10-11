@@ -113,6 +113,8 @@ The following instructions assume that the `full` feature is to be installed on 
     cargo install --features full --path .
     ```
     which will compile and install the `qsym2` binary into `$HOME/.cargo/bin` to allow for system-wide availability.
+
+    Note that the `--features` option in the command above specifies that the `full` feature is to be installed. This option accepts a comma-separated list of features listed in the [*Features*][#features] section and can be modified to select other features to be installed as appropriate.
     
     It is possible to install the `qsym2` binary into a different path by running
     ```bash
