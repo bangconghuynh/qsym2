@@ -1,3 +1,5 @@
+//! Nice QSym² output formatting.
+
 use std::fmt;
 
 use log;

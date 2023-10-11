@@ -1,3 +1,5 @@
+//! Rotational symmetry based on moments of inertia.
+
 use std::fmt;
 
 use approx;
@@ -9,8 +11,8 @@ use serde::{Deserialize, Serialize};
 #[path = "rotsym_tests.rs"]
 mod rotsym_tests;
 
-/// An enum to classify the types of rotational symmetry of a molecular system
-/// based on its principal moments of inertia.
+/// Enumerated type to classify the types of rotational symmetry of a molecular system based on its
+/// principal moments of inertia.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum RotationalSymmetry {
     /// All three principal moments of inertia are identical.

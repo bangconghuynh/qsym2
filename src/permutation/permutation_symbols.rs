@@ -1,3 +1,5 @@
+//! Symbols for permutations, conjugacy classes, and irreducible representations.
+
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
@@ -24,7 +26,7 @@ use crate::permutation::{Permutation, PermutationRank};
 // PermutationClassSymbol
 // ----------------------
 
-/// A struct to handle conjugacy class symbols.
+/// Structure to handle conjugacy class symbols.
 #[derive(Builder, Debug, Clone, Serialize, Deserialize)]
 pub struct PermutationClassSymbol<T: PermutationRank> {
     /// The generic part of the symbol.
@@ -173,7 +175,7 @@ impl<T: PermutationRank> fmt::Display for PermutationClassSymbol<T> {
 // PermutationIrrepSymbol
 // ----------------------
 
-/// A struct to handle permutation irreducible representation symbols. This will be converted to a
+/// Structure to handle permutation irreducible representation symbols. This will be converted to a
 /// suitable representation of Young tableaux symbols in the future.
 #[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct PermutationIrrepSymbol {

@@ -1,3 +1,5 @@
+//! Symmetric groups of permutations.
+
 use std::collections::{HashSet, VecDeque};
 use std::fmt;
 use std::ops::Range;
@@ -29,7 +31,7 @@ mod permutation_group_tests;
 // Struct definitions
 // ==================
 
-/// A lazy iterator for permutations of a particular rank enumerated by their Lehmer encoding
+/// Lazy iterator for permutations of a particular rank enumerated by their Lehmer encoding
 /// integers.
 #[derive(Clone)]
 pub struct PermutationIterator<T: PermutationRank> {
@@ -54,7 +56,7 @@ where
     }
 }
 
-/// A dedicated structure for managing permutation groups efficiently. Only permutation groups of
+/// Dedicated structure for managing permutation groups efficiently. Only permutation groups of
 /// ranks up to 20 are supported, as higher-rank permutation groups have too large orders not
 /// representable with `usize` which is `u64` on most modern machines.
 #[derive(Clone, Builder)]
@@ -97,7 +99,7 @@ impl PermutationGroup {
 // Trait definitions
 // =================
 
-/// A trait for permutation groups. Only permutation groups of ranks up to 20 are supported, as
+/// Trait for permutation groups. Only permutation groups of ranks up to 20 are supported, as
 /// higher-rank permutation groups have too large orders not representable with `usize` which is
 /// `u64` on most modern machines.
 pub trait PermutationGroupProperties:

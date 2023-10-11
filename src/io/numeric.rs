@@ -1,3 +1,5 @@
+//! Numeric reader from binary files.
+
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::marker::PhantomData;
@@ -11,7 +13,7 @@ use num_complex::Complex;
 #[path = "numeric_tests.rs"]
 mod numeric_tests;
 
-/// An iterable structure for reading numeric binary files.
+/// Iterable structure for reading numeric binary files.
 pub(crate) struct NumericReader<R: BufRead, B: ByteOrder, T> {
     /// The inner file reader.
     inner: R,

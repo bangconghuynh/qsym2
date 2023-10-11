@@ -1,3 +1,5 @@
+//! QSym² I/O operations.
+
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::Path;
@@ -10,7 +12,7 @@ use serde_yaml;
 pub(crate) mod format;
 pub(crate) mod numeric;
 
-/// An enumerated type for `QSym2` file types.
+/// Enumerated type for `QSym2` file types.
 pub enum QSym2FileType {
     /// Variant for binary files containing symmetry-group detection results.
     Sym,
