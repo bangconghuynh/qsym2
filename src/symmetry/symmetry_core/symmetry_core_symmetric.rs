@@ -1,3 +1,5 @@
+//! Molecular symmetry element detection for symmetric tops.
+
 use std::collections::HashMap;
 
 use anyhow::{self, ensure, format_err};

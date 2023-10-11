@@ -1,3 +1,5 @@
+//! Orbitals.
+
 use std::fmt;
 
 use anyhow::{self, format_err};
@@ -24,7 +26,7 @@ mod orbital_transformation;
 // Struct definitions
 // ==================
 
-/// A structure to manage molecular orbitals. Each molecular orbital is essentially a one-electron
+/// Structure to manage molecular orbitals. Each molecular orbital is essentially a one-electron
 /// Slater determinant.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]

@@ -1,9 +1,12 @@
+//! Symbols for enumerating rows and columns of character tables of symmetry groups.
+
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
+use approx;
 use derive_builder::Builder;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
@@ -15,16 +18,19 @@ use phf::{phf_map, phf_set};
 use serde::{Deserialize, Serialize};
 
 use crate::chartab::character::Character;
+use crate::chartab::chartab_group::CharacterProperties;
 use crate::chartab::chartab_symbols::{
     disambiguate_linspace_symbols, CollectionSymbol, DecomposedSymbol,
     DecomposedSymbolBuilderError, GenericSymbol, GenericSymbolParsingError, LinearSpaceSymbol,
     MathematicalSymbol, ReducibleLinearSpaceSymbol,
 };
 use crate::chartab::unityroot::UnityRoot;
+use crate::chartab::CharacterTable;
 use crate::group::FiniteOrder;
 use crate::symmetry::symmetry_element::symmetry_operation::SpecialSymmetryTransformation;
 use crate::symmetry::symmetry_element::SymmetryElement;
 use crate::symmetry::symmetry_element_order::ORDER_1;
+use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 
 #[cfg(test)]
 #[path = "symmetry_symbols_tests.rs"]
@@ -34,6 +40,7 @@ mod symmetry_symbols_tests;
 // Constants
 // =========
 
+/// Map from Mulliken degeneracy labels to degeneracy degrees.
 static MULLIKEN_IRREP_DEGENERACIES: phf::Map<&'static str, u64> = phf_map! {
     "A" => 1u64,
     "B" => 1u64,
@@ -69,6 +76,7 @@ static MULLIKEN_IRREP_DEGENERACIES: phf::Map<&'static str, u64> = phf_map! {
     "M~" => 10u64,
 };
 
+/// Map from degeneracy degrees to Mulliken degeneracy labels.
 static INV_MULLIKEN_IRREP_DEGENERACIES: phf::Map<u64, &'static str> = phf_map! {
      2u64 => "E",
      3u64 => "T",
@@ -81,6 +89,7 @@ static INV_MULLIKEN_IRREP_DEGENERACIES: phf::Map<u64, &'static str> = phf_map! {
      10u64 => "M",
 };
 
+/// Set of groups for which the principal axes are forced to be $`C_3`$ to satisfy conventions.
 pub static FORCED_C3_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
     "O",
     "Oh",
@@ -104,7 +113,7 @@ pub static FORCED_C3_PRINCIPAL_GROUPS: phf::Set<&'static str> = phf_set! {
 // MullikenIrrepSymbol
 // -------------------
 
-/// A structure to handle Mulliken irreducible representation symbols.
+/// Structure to handle Mulliken irreducible representation symbols.
 #[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct MullikenIrrepSymbol {
     /// The generic part of the symbol.
@@ -142,7 +151,7 @@ impl MullikenIrrepSymbol {
 // MullikenIrcorepSymbol
 // ---------------------
 
-/// A structure to handle Mulliken irreducible corepresentation symbols.
+/// Structure to handle Mulliken irreducible corepresentation symbols.
 #[derive(Builder, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Serialize, Deserialize)]
 pub struct MullikenIrcorepSymbol {
     /// The decomposed symbol containing the irreps inducing this ircorep.
@@ -176,7 +185,7 @@ impl MullikenIrcorepSymbol {
 // SymmetryClassSymbol
 // -------------------
 
-/// A structure to handle conjugacy class symbols.
+/// Structure to handle conjugacy class symbols.
 #[derive(Builder, Debug, Clone, Serialize, Deserialize)]
 pub struct SymmetryClassSymbol<R: Clone + Serialize> {
     /// The generic part of the symbol.
@@ -1375,4 +1384,89 @@ pub(super) fn deduce_sigma_symbol(
     } else {
         None
     }
+}
+
+/// Enumerated type specifying the parity under a mirror plane.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub enum MirrorParity {
+    /// Variant for even parity.
+    Even,
+
+    /// Variant for odd parity.
+    Odd,
+
+    /// Variant for no parity.
+    Neither,
+}
+
+impl fmt::Display for MirrorParity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MirrorParity::Even => write!(f, "(+)"),
+            MirrorParity::Odd => write!(f, "(-)"),
+            MirrorParity::Neither => write!(f, "( )"),
+        }
+    }
+}
+
+/// Given a group with a character table, deduces the parities of a specified representation under
+/// all classes in the group that contain a spatial reflection.
+///
+/// # Arguments
+///
+/// * `group` - A group with a character table.
+/// * `rep` - A representation (that has been decomposed as irreps or ircoreps of `group`) for
+/// which mirror parities are to be deduced.
+///
+/// # Returns
+///
+/// An indexmap whose keys are reflection classes and whose values are the corresponding parities of
+/// `rep`.
+///
+/// # Panics
+///
+/// Panics on unexpected errors.
+pub(crate) fn deduce_mirror_parities<G, R>(
+    group: &G,
+    rep: &R,
+) -> IndexMap<<<G as CharacterProperties>::CharTab as CharacterTable>::ColSymbol, MirrorParity>
+where
+    G: SymmetryGroupProperties,
+    R: ReducibleLinearSpaceSymbol<
+        Subspace = <<G as CharacterProperties>::CharTab as CharacterTable>::RowSymbol,
+    >,
+{
+    let id_cc = group
+        .get_cc_symbol_of_index(0)
+        .expect("Unable to obtain the conjugacy class symbol of the identity.");
+    let mirrors = group.filter_cc_symbols(|cc| cc.is_spatial_reflection());
+    mirrors
+        .iter()
+        .map(|sigma_cc| {
+            let sigma_cc_chars = rep
+                .subspaces()
+                .iter()
+                .map(|(irrep, _)| {
+                    let id_char = group.character_table().get_character(irrep, &id_cc);
+                    let char = group.character_table().get_character(irrep, sigma_cc);
+                    if *char == *id_char {
+                        MirrorParity::Even
+                    } else if *char == -id_char {
+                        MirrorParity::Odd
+                    } else {
+                        MirrorParity::Neither
+                    }
+                })
+                .collect::<HashSet<_>>();
+            let sigma_cc_parity = if sigma_cc_chars.len() == 1 {
+                sigma_cc_chars
+                    .into_iter()
+                    .next()
+                    .expect("Unable to extract the mirror parity.")
+            } else {
+                MirrorParity::Neither
+            };
+            (sigma_cc.clone(), sigma_cc_parity)
+        })
+        .collect::<IndexMap<_, _>>()
 }

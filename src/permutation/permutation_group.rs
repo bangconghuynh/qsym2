@@ -1,3 +1,5 @@
+//! Symmetric groups of permutations.
+
 use std::collections::{HashSet, VecDeque};
 use std::fmt;
 use std::ops::Range;
@@ -29,7 +31,7 @@ mod permutation_group_tests;
 // Struct definitions
 // ==================
 
-/// A lazy iterator for permutations of a particular rank enumerated by their Lehmer encoding
+/// Lazy iterator for permutations of a particular rank enumerated by their Lehmer encoding
 /// integers.
 #[derive(Clone)]
 pub struct PermutationIterator<T: PermutationRank> {
@@ -54,7 +56,7 @@ where
     }
 }
 
-/// A dedicated structure for managing permutation groups efficiently. Only permutation groups of
+/// Dedicated structure for managing permutation groups efficiently. Only permutation groups of
 /// ranks up to 20 are supported, as higher-rank permutation groups have too large orders not
 /// representable with `usize` which is `u64` on most modern machines.
 #[derive(Clone, Builder)]
@@ -97,7 +99,7 @@ impl PermutationGroup {
 // Trait definitions
 // =================
 
-/// A trait for permutation groups. Only permutation groups of ranks up to 20 are supported, as
+/// Trait for permutation groups. Only permutation groups of ranks up to 20 are supported, as
 /// higher-rank permutation groups have too large orders not representable with `usize` which is
 /// `u64` on most modern machines.
 pub trait PermutationGroupProperties:
@@ -391,6 +393,19 @@ impl ClassProperties for PermutationGroup {
         self.conjugacy_classes
             .as_ref()
             .map(|conjugacy_classes| &conjugacy_classes[cc_idx])
+    }
+
+    fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
+        &self,
+        predicate: P,
+    ) -> Vec<Self::ClassSymbol> {
+        self.conjugacy_class_symbols
+            .as_ref()
+            .expect("No class structure found.")
+            .iter()
+            .cloned()
+            .filter(predicate)
+            .collect::<Vec<_>>()
     }
 
     fn get_cc_of_element_index(&self, e_idx: usize) -> Option<usize> {

@@ -1,3 +1,5 @@
+//! Three-dimensional rotations of spinors.
+
 use std::cmp;
 use std::fmt;
 
@@ -17,7 +19,7 @@ mod spinor_rotation_3d_tests;
 // Enum definitions
 // ================
 
-/// An enumerated type to manage spin constraints and spin space information.
+/// Enumerated type to manage spin constraints and spin space information.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SpinConstraint {
     /// Variant for restricted spin constraint: the spatial parts of all spin spaces are identical.

@@ -1,3 +1,5 @@
+//! Electron densities.
+
 use std::fmt;
 use std::iter::Sum;
 use std::ops::{Add, Sub, Index};
@@ -24,7 +26,7 @@ mod density_transformation;
 // Struct definitions
 // ==================
 
-/// A wrapper structure to manage references to multiple densities of a single state.
+/// Wrapper structure to manage references to multiple densities of a single state.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct Densities<'a, T>
@@ -103,7 +105,7 @@ where
     }
 }
 
-/// A wrapper structure to manage multiple owned densities of a single state.
+/// Wrapper structure to manage multiple owned densities of a single state.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct DensitiesOwned<'a, T>
@@ -182,7 +184,7 @@ where
     }
 }
 
-/// A structure to manage particle spatial densities.
+/// Structure to manage particle spatial densities.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct Density<'a, T>

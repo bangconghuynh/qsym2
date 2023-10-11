@@ -1,3 +1,5 @@
+//! Atoms and chemical elements.
+
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -12,10 +14,13 @@ use crate::auxiliary::geometry::{self, ImproperRotationKind, Transform};
 use crate::auxiliary::misc::{self, HashableFloat};
 
 // https://physics.nist.gov/cgi-bin/cuu/Value?bohrrada0
+/// Constant for converting $`a_0`$ to $`Å`$.
 pub(crate) const BOHR_TO_ANGSTROM: f64 = 0.529177210903;
+
+/// Constant for converting $`Å`$ to $`a_0`$.
 pub(crate) const ANGSTROM_TO_BOHR: f64 = 1.889726124626;
 
-/// A structure storing a look-up of element symbols to give atomic numbers
+/// Structure storing a look-up of element symbols to give atomic numbers
 /// and atomic masses.
 pub struct ElementMap<'a> {
     /// A [`HashMap`] from a symbol string to a tuple of atomic number and atomic mass.
@@ -47,8 +52,7 @@ impl ElementMap<'static> {
     }
 }
 
-/// An auxiliary function that parses the atomic mass string in the format of
-/// [`periodic_table`] to a single float value.
+/// Parses the atomic mass string in the format of [`periodic_table`] to a single float value.
 ///
 /// # Arguments
 ///
@@ -65,7 +69,7 @@ fn parse_atomic_mass(mass_str: &str) -> f64 {
         .unwrap_or_else(|_| panic!("Unable to parse atomic mass string {mass}."))
 }
 
-/// A structure representing an atom.
+/// Structure representing an atom.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Atom {
     /// The atom kind.
@@ -258,7 +262,7 @@ impl fmt::Debug for Atom {
     }
 }
 
-/// An enum describing the atom kind.
+/// Enumerated type describing the atom kind.
 #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AtomKind {
     /// An ordinary atom.

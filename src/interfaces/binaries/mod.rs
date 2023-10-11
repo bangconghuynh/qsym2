@@ -1,3 +1,5 @@
+//! QSym² interface with binary data files.
+
 use std::path::PathBuf;
 
 use anyhow::{format_err, Context};
@@ -32,7 +34,7 @@ mod binaries_tests;
 // Input target: Slater determinant; source: binaries
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-/// A serialisable/deserialisable structure containing control parameters for acquiring Slater
+/// Serialisable/deserialisable structure containing control parameters for acquiring Slater
 /// determinant(s) from a custom specification.
 #[derive(Clone, Builder, Serialize, Deserialize)]
 pub struct BinariesSlaterDeterminantSource {
@@ -73,10 +75,16 @@ impl BinariesSlaterDeterminantSource {
 impl Default for BinariesSlaterDeterminantSource {
     fn default() -> Self {
         BinariesSlaterDeterminantSource {
-            xyz: PathBuf::default(),
-            sao: PathBuf::default(),
-            coefficients: vec![PathBuf::default(), PathBuf::default()],
-            occupations: vec![PathBuf::default(), PathBuf::default()],
+            xyz: PathBuf::from("path/to/xyz"),
+            sao: PathBuf::from("path/to/ao/overlap/matrix"),
+            coefficients: vec![
+                PathBuf::from("path/to/alpha/coeffs"),
+                PathBuf::from("path/to/beta/coeffs"),
+            ],
+            occupations: vec![
+                PathBuf::from("path/to/alpha/occupations"),
+                PathBuf::from("path/to/beta/occupations"),
+            ],
             bao: InputBasisAngularOrder::default(),
             spin_constraint: SpinConstraint::Unrestricted(2, false),
             matrix_order: MatrixOrder::default(),
@@ -325,7 +333,7 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
     }
 }
 
-/// An enumerated type indicating the order the matrix elements are traversed when stored into or
+/// Enumerated type indicating the order the matrix elements are traversed when stored into or
 /// read in from a binary file.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum MatrixOrder {
@@ -339,7 +347,7 @@ impl Default for MatrixOrder {
     }
 }
 
-/// An enumerated type indicating the byte order of numerical values in binary files.
+/// Enumerated type indicating the byte order of numerical values in binary files.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum ByteOrder {
     LittleEndian,

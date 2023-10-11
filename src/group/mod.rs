@@ -1,3 +1,5 @@
+//! Abstract group structures.
+
 use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;
@@ -24,7 +26,7 @@ pub mod class;
 // Trait definitions
 // =================
 
-/// A trait for order finiteness of group elements.
+/// Trait for order finiteness of group elements.
 pub trait FiniteOrder {
     /// The integer type for the order of the element.
     type Int: Integer;
@@ -33,7 +35,7 @@ pub trait FiniteOrder {
     fn order(&self) -> Self::Int;
 }
 
-/// A trait for purely group-theoretic properties.
+/// Trait for purely group-theoretic properties.
 pub trait GroupProperties
 where
     Self::GroupElement: Mul<Output = Self::GroupElement>
@@ -79,7 +81,7 @@ where
     fn cayley_table(&self) -> Option<&Array2<usize>>;
 }
 
-/// A trait for indicating that a group can be partitioned into a unitary halving subgroup and and
+/// Trait for indicating that a group can be partitioned into a unitary halving subgroup and and
 /// antiunitary coset.
 pub trait HasUnitarySubgroup: GroupProperties
 where
@@ -111,7 +113,7 @@ where
 // Enum definitions and implementations
 // ====================================
 
-/// An enumerated type to contain information about the type of a group.
+/// Enumerated type for the type of a group.
 #[derive(Clone, Hash, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum GroupType {
     /// Variant for an ordinary group which contains no time-reversed operations.
@@ -144,11 +146,22 @@ impl fmt::Display for GroupType {
     }
 }
 
+/// Ordinary group.
 pub const ORGRP: GroupType = GroupType::Ordinary(false);
+
+/// Ordinary double group.
 pub const ORGRP2: GroupType = GroupType::Ordinary(true);
+
+/// Black-and-white magnetic group.
 pub const BWGRP: GroupType = GroupType::MagneticBlackWhite(false);
+
+/// Black-and-white magnetic double group.
 pub const BWGRP2: GroupType = GroupType::MagneticBlackWhite(true);
+
+/// Grey magnetic group.
 pub const GRGRP: GroupType = GroupType::MagneticGrey(false);
+
+/// Grey magnetic double group.
 pub const GRGRP2: GroupType = GroupType::MagneticGrey(true);
 
 // ======================================
@@ -159,7 +172,7 @@ pub const GRGRP2: GroupType = GroupType::MagneticGrey(true);
 // Abstract group
 // --------------
 
-/// A structure for managing abstract groups eagerly, *i.e.* all group elements are stored.
+/// Structure for managing abstract groups eagerly, *i.e.* all group elements are stored.
 #[derive(Builder, Clone, Serialize, Deserialize)]
 pub struct EagerGroup<T>
 where
@@ -412,7 +425,7 @@ where
 // Unitary-represented group
 // -------------------------
 
-/// A structure for managing groups with unitary representations.
+/// Structure for managing groups with unitary representations.
 #[derive(Clone, Builder, Serialize, Deserialize)]
 pub struct UnitaryRepresentedGroup<T, RowSymbol, ColSymbol>
 where
@@ -578,13 +591,14 @@ where
 // Magnetic-represented group
 // --------------------------
 
-/// A structure for managing groups with magnetic corepresentations.
+/// Structure for managing groups with magnetic corepresentations.
 ///
 /// Such a group consists of two types of elements in equal numbers: those that are unitary
 /// represented and those that are antiunitary represented. This division of elements affects the
 /// class structure of the group via an equivalence relation defined in
 /// Newmarch, J. D. & Golding, R. M. The character table for the corepresentations of magnetic
-/// groups. *Journal of Mathematical Physics* **23**, 695–704 (1982).
+/// groups. *Journal of Mathematical Physics* **23**, 695–704 (1982),
+/// [DOI](http://aip.scitation.org/doi/10.1063/1.525423).
 #[derive(Clone, Builder, Serialize, Deserialize)]
 pub struct MagneticRepresentedGroup<T, UG, RowSymbol>
 where

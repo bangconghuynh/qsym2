@@ -1,3 +1,5 @@
+//! Python bindings for QSym².
+
 use pyo3::prelude::*;
 
 pub mod integrals;
@@ -10,7 +12,7 @@ use crate::drivers::representation_analysis::MagneticSymmetryAnalysisKind;
 use crate::interfaces::cli::{qsym2_output_contributors, qsym2_output_heading};
 use crate::symmetry::symmetry_transformation::SymmetryTransformationKind;
 
-/// A Python module for `QSym2` implemented in Rust.
+/// Python module for QSym² implemented in Rust.
 #[pymodule]
 pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     // --------------

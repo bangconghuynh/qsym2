@@ -1,3 +1,5 @@
+//! Molecular symmetry element detection for spherical tops.
+
 use std::collections::HashSet;
 
 use anyhow::{self, ensure, format_err};

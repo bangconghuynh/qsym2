@@ -1,3 +1,5 @@
+//! Symbolic representation of roots of unity for characters.
+
 use std::fmt;
 use std::ops::Mul;
 
@@ -13,7 +15,7 @@ type F = fraction::GenericFraction<u32>;
 #[path = "unityroot_tests.rs"]
 mod unityroot_tests;
 
-/// A struct to represent roots of unity symbolically.
+/// Structure to represent roots of unity symbolically.
 ///
 /// Partial orders between roots of unity are based on their angular positions
 /// on the unit circle in the Argand diagram, with unity being the smallest.

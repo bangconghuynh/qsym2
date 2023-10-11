@@ -1,3 +1,5 @@
+//! Human-readable QSym² input configuration.
+
 use std::path::PathBuf;
 
 use anyhow::{self, bail, Context};
@@ -10,8 +12,13 @@ use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
 };
 use crate::drivers::QSym2Driver;
+use crate::io::format::qsym2_output;
 use crate::interfaces::input::analysis::{
     AnalysisTarget, SlaterDeterminantSource, SlaterDeterminantSourceHandle,
+};
+#[cfg(feature = "qchem")]
+use crate::interfaces::input::analysis::{
+    VibrationalCoordinateSource, VibrationalCoordinateSourceHandle,
 };
 use crate::interfaces::InputHandle;
 #[allow(unused_imports)]
@@ -32,7 +39,7 @@ mod input_tests;
 // SymmetryGroupDetectionInputKind
 // -------------------------------
 
-/// An enumerated type representing possible input kinds for symmetry-group detection from a YAML
+/// Enumerated type representing possible input kinds for symmetry-group detection from a YAML
 /// input file.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum SymmetryGroupDetectionInputKind {
@@ -56,7 +63,7 @@ impl Default for SymmetryGroupDetectionInputKind {
 // Main input
 // ==========
 
-/// A structure containing `QSym2` input parameters which can be serialised into and deserialised
+/// Structure containing `QSym2` input parameters which can be serialised into and deserialised
 /// from a YAML input file.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Input {
@@ -66,7 +73,7 @@ pub struct Input {
     pub symmetry_group_detection: SymmetryGroupDetectionInputKind,
 
     /// Specification for analysis target.
-    pub analysis_target: AnalysisTarget,
+    pub analysis_targets: Vec<AnalysisTarget>,
 }
 
 impl InputHandle for Input {
@@ -74,11 +81,12 @@ impl InputHandle for Input {
     fn handle(&self) -> Result<(), anyhow::Error> {
         let pd_params_inp = &self.symmetry_group_detection;
         let mut afa_params = AngularFunctionRepAnalysisParams::default();
-        match &self.analysis_target {
+        self.analysis_targets.iter().map(|target| match target {
             AnalysisTarget::MolecularSymmetry {
                 xyz,
                 symmetrisation,
             } => {
+                qsym2_output!("");
                 log::debug!("Analysis target: Molecular symmetry");
                 let pd_params = match pd_params_inp {
                     SymmetryGroupDetectionInputKind::Parameters(pd_params) => pd_params,
@@ -120,6 +128,7 @@ impl InputHandle for Input {
                 }
             }
             AnalysisTarget::SlaterDeterminant(sd_control) => {
+                qsym2_output!("");
                 log::debug!("Analysis target: Slater determinant");
                 let sd_source = &sd_control.source;
                 let sda_params = &sd_control.control;
@@ -141,7 +150,24 @@ impl InputHandle for Input {
                     }
                 }
             }
-        }
+            #[cfg(feature = "qchem")]
+            AnalysisTarget::VibrationalCoordinates(vc_control) => {
+                qsym2_output!("");
+                log::debug!("Analysis target: vibrational coordinates");
+                let vc_source = &vc_control.source;
+                let vca_params = &vc_control.control;
+                afa_params.linear_independence_threshold = vca_params.linear_independence_threshold;
+                afa_params.integrality_threshold = vca_params.integrality_threshold;
+                match vc_source {
+                    VibrationalCoordinateSource::QChemArchive(qchemarchive_vc_source) => {
+                        log::debug!("Vibrational coordinate source: Q-Chem archive");
+                        qchemarchive_vc_source
+                            .vc_source_handle(&pd_params_inp, &afa_params, &vca_params)
+                            .map(|_| ())
+                    }
+                }
+            }
+        }).collect::<Result<_, _>>()
     }
 }
 
@@ -149,7 +175,7 @@ impl Default for Input {
     fn default() -> Self {
         Input {
             symmetry_group_detection: SymmetryGroupDetectionInputKind::default(),
-            analysis_target: AnalysisTarget::default(),
+            analysis_targets: AnalysisTarget::all_default(),
         }
     }
 }

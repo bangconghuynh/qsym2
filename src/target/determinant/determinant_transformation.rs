@@ -1,3 +1,5 @@
+//! Implementation of symmetry transformations for Slater determinants.
+
 use std::ops::Mul;
 
 use approx;

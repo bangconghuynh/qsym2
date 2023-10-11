@@ -1,3 +1,5 @@
+//! Symmetry operations.
+
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Mul;
@@ -34,7 +36,7 @@ mod symmetry_operation_tests;
 // Trait definitions
 // =================
 
-/// A trait for special symmetry transformations.
+/// Trait for special symmetry transformations.
 pub trait SpecialSymmetryTransformation {
     // =================
     // Group-theoretical
@@ -157,7 +159,7 @@ pub trait SpecialSymmetryTransformation {
 // Struct definitions and implementations
 // ======================================
 
-/// A structure for managing symmetry operations generated from symmetry elements.
+/// Structure for managing symmetry operations generated from symmetry elements.
 ///
 /// A symmetry element serves as a generator for symmetry operations. Thus, a symmetry element
 /// together with a signed integer indicating the number of times the symmetry element is applied

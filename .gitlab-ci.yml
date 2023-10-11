@@ -110,3 +110,25 @@ release:
   needs:
     - job: cibuildwheel-linux
       artifacts: true
+
+pages:
+  stage: Deploy
+  tags:
+    - archon
+  variables:
+    RUSTDOCFLAGS: --html-in-header katex.html
+  before_script:
+    - apt-get update
+    - apt-get install gfortran build-essential cmake -y
+  script:
+    - cargo doc --no-deps --features full,python
+    - mv target/doc public
+    - mkdir public/images
+    - cp images/qsym2_logo_no_text_no_background.svg public/images
+    - cp images/qsym2_icon.png public/images
+    - echo '<meta http-equiv="refresh" content="0; url=qsym2/index.html">' > public/index.html
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_TAG

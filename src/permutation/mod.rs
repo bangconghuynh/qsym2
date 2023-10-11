@@ -1,3 +1,5 @@
+//! Permutations as elements in symmetric groups.
+
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fmt;
 use std::hash::Hash;
@@ -24,7 +26,7 @@ mod permutation_tests;
 // Trait definitions
 // =================
 
-/// A trait defining a permutable collection consisting of discrete and distinguishable items that
+/// Trait defining a permutable collection consisting of discrete and distinguishable items that
 /// can be permuted.
 pub trait PermutableCollection
 where
@@ -44,7 +46,7 @@ where
     fn permute_mut(&mut self, perm: &Permutation<Self::Rank>);
 }
 
-/// A trait defining an action on a permutable collection that can be converted into an equivalent
+/// Trait defining an action on a permutable collection that can be converted into an equivalent
 /// permutation acting on that collection.
 pub trait IntoPermutation<C: PermutableCollection> {
     /// Determines the permutation of `rhs` considered as a collection induced by the action of
@@ -53,7 +55,7 @@ pub trait IntoPermutation<C: PermutableCollection> {
     fn act_permute(&self, rhs: &C) -> Option<Permutation<C::Rank>>;
 }
 
-/// A trait for generic permutation rank types.
+/// Trait for generic permutation rank types.
 pub trait PermutationRank:
     Integer + Unsigned + BitStore + PrimInt + Hash + TryFrom<usize> + Into<usize> + Serialize
 {
@@ -75,7 +77,7 @@ where
 // Struct definitions
 // ==================
 
-/// A structure to manage permutation actions of a finite set.
+/// Structure to manage permutation actions of a finite set.
 #[derive(Builder, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Permutation<T: PermutationRank> {
     /// If the permutation is to act on an ordered sequence of $`n`$ integers, $`0, 1, \ldots, n`$,

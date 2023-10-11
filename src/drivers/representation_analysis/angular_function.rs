@@ -1,3 +1,5 @@
+//! Driver for symmetry analysis of angular functions.
+
 use anyhow::{self, format_err};
 use derive_builder::Builder;
 use nalgebra::{Point3, Vector3};
@@ -31,7 +33,7 @@ use crate::target::tensor::axialvector::{AxialVector3, TimeParity};
 // Parameters
 // ----------
 
-/// A structure containing control parameters for angular function representation analysis.
+/// Structure containing control parameters for angular function representation analysis.
 #[derive(Clone, Builder, Debug)]
 pub struct AngularFunctionRepAnalysisParams {
     /// Threshold for checking if subspace multiplicities are integral.

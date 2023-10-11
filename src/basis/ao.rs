@@ -1,3 +1,5 @@
+//! Atomic-orbital basis functions.
+
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
@@ -26,7 +28,7 @@ mod ao_tests;
 // PureOrder
 // ~~~~~~~~~
 
-/// A structure to contain information about the ordering of pure Gaussians of a certain rank.
+/// Structure to contain information about the ordering of pure Gaussians of a certain rank.
 #[derive(Clone, Builder, PartialEq, Eq, Hash)]
 pub struct PureOrder {
     /// A sequence of $`m_l`$ values giving the ordering of the pure Gaussians.
@@ -224,7 +226,7 @@ impl PermutableCollection for PureOrder {
 // CartOrder
 // ~~~~~~~~~
 
-/// A structure to contain information about the ordering of Cartesian Gaussians of a certain rank.
+/// Structure to contain information about the ordering of Cartesian Gaussians of a certain rank.
 #[derive(Clone, Builder, PartialEq, Eq, Hash)]
 pub struct CartOrder {
     /// A sequence of $`(l_x, l_y, l_z)`$ tuples giving the ordering of the Cartesian Gaussians.
@@ -536,7 +538,7 @@ pub(crate) fn cart_tuple_to_str(cart_tuple: &(u32, u32, u32), flat: bool) -> Str
 // ShellOrder
 // ----------
 
-/// An enumerated type to indicate the type of the angular functions in a shell and how they are
+/// Enumerated type to indicate the type of the angular functions in a shell and how they are
 /// ordered.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum ShellOrder {
@@ -573,7 +575,7 @@ impl fmt::Display for ShellOrder {
 // BasisShell
 // ----------
 
-/// A structure representing a shell in an atomic-orbital basis set.
+/// Structure representing a shell in an atomic-orbital basis set.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisShell {
     /// A non-negative integer indicating the rank of the shell.
@@ -646,7 +648,7 @@ impl BasisShell {
 // BasisAtom
 // ---------
 
-/// A structure containing the ordered sequence of the shells for an atom.
+/// Structure containing the ordered sequence of the shells for an atom.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisAtom<'a> {
     /// An atom in the basis set.
@@ -712,7 +714,7 @@ impl<'a> BasisAtom<'a> {
 // BasisAngularOrder
 // -----------------
 
-/// A structure containing the angular momentum information of an atomic-orbital basis set that is
+/// Structure containing the angular momentum information of an atomic-orbital basis set that is
 /// required for symmetry transformation to be performed.
 #[derive(Clone, Builder, PartialEq, Eq, Hash, Debug)]
 pub struct BasisAngularOrder<'a> {

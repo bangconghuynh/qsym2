@@ -1,3 +1,5 @@
+//! Driver for symmetry analysis of vibrational coordinates.
+
 use std::fmt;
 use std::ops::Mul;
 
@@ -49,7 +51,7 @@ const fn default_symbolic() -> Option<CharacterTableDisplay> {
     Some(CharacterTableDisplay::Symbolic)
 }
 
-/// A structure containing control parameters for vibrational coordinate representation analysis.
+/// Structure containing control parameters for vibrational coordinate representation analysis.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct VibrationalCoordinateRepAnalysisParams<T: From<f64>> {
     /// Threshold for checking if subspace multiplicities are integral.
@@ -177,7 +179,7 @@ where
 // Result
 // ------
 
-/// A structure to contain vibrational coordinate representation analysis results.
+/// Structure to contain vibrational coordinate representation analysis results.
 #[derive(Clone, Builder)]
 pub struct VibrationalCoordinateRepAnalysisResult<'a, G, T>
 where
@@ -426,7 +428,7 @@ where
 // Struct definition
 // ~~~~~~~~~~~~~~~~~
 
-/// A driver structure for performing representation analysis on vibrational coordinates.
+/// Driver structure for performing representation analysis on vibrational coordinates.
 #[derive(Clone, Builder)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct VibrationalCoordinateRepAnalysisDriver<'a, G, T>
@@ -572,10 +574,6 @@ where
 )]
 impl<'a> VibrationalCoordinateRepAnalysisDriver<'a, gtype_, dtype_> {
     #[doc = doc_sub_]
-    ///
-    /// Linear independence is checked using the moduli of the overlap eigenvalues. Complex
-    /// eigenvalues outside the threshold radius centred at the origin on the Argand diagram are
-    /// thus allowed.
     fn analyse_fn_(&mut self) -> Result<(), anyhow::Error> {
         let params = self.parameters;
         let group = construct_group_;
@@ -720,6 +718,8 @@ where
 impl<'a> QSym2Driver
     for VibrationalCoordinateRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, f64>
 {
+    type Params = VibrationalCoordinateRepAnalysisParams<f64>;
+
     type Outcome = VibrationalCoordinateRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, f64>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
@@ -742,6 +742,8 @@ impl<'a> QSym2Driver
 impl<'a> QSym2Driver
     for VibrationalCoordinateRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>
 {
+    type Params = VibrationalCoordinateRepAnalysisParams<f64>;
+
     type Outcome =
         VibrationalCoordinateRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>;
 
@@ -765,6 +767,8 @@ impl<'a> QSym2Driver
 impl<'a> QSym2Driver
     for VibrationalCoordinateRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, f64>
 {
+    type Params = VibrationalCoordinateRepAnalysisParams<f64>;
+
     type Outcome =
         VibrationalCoordinateRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, f64>;
 
@@ -788,6 +792,8 @@ impl<'a> QSym2Driver
 impl<'a> QSym2Driver
     for VibrationalCoordinateRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>
 {
+    type Params = VibrationalCoordinateRepAnalysisParams<f64>;
+
     type Outcome =
         VibrationalCoordinateRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>;
 

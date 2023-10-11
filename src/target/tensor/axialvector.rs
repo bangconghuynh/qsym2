@@ -1,3 +1,5 @@
+//! Axial vectors.
+
 use std::fmt;
 
 use approx;
@@ -16,7 +18,7 @@ pub mod axialvector_analysis;
 #[path = "axialvector_transformation.rs"]
 mod axialvector_transformation;
 
-/// an enumerated type to handle the two possible time parities.
+/// Enumerated type to handle the two possible time parities.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TimeParity {
     /// Variant for time-even.
@@ -42,7 +44,7 @@ impl fmt::Display for TimeParity {
 // Struct definitions
 // ==================
 
-/// A structure to manage axial vectors in three dimensions.
+/// Structure to manage axial vectors in three dimensions.
 #[derive(Builder, Clone)]
 pub struct AxialVector3<T>
 where

@@ -1,3 +1,5 @@
+//! Human-readable specification of atomic-orbital basis information in QSym² input configuration.
+
 use anyhow::{self, ensure, format_err};
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
@@ -9,7 +11,7 @@ use crate::auxiliary::molecule::Molecule;
 // InputShellOrder
 // ---------------
 
-/// A serialisable/deserialisable enumerated type to indicate the type of the angular functions in
+/// Serialisable/deserialisable enumerated type to indicate the type of the angular functions in
 /// a shell and how they are ordered.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum InputShellOrder {
@@ -60,7 +62,7 @@ impl InputShellOrder {
 // InputBasisShell
 // ---------------
 
-/// A serialisable/deserialisable structure representing a shell in an atomic-orbital basis set.
+/// Serialisable/deserialisable structure representing a shell in an atomic-orbital basis set.
 #[derive(Clone, Debug, Builder, Serialize, Deserialize)]
 pub struct InputBasisShell {
     /// A non-negative integer indicating the rank of the shell.
@@ -99,7 +101,7 @@ impl InputBasisShell {
 // InputBasisAtom
 // --------------
 
-/// A serialisable/deserialisable structure containing the ordered sequence of the shells for an
+/// Serialisable/deserialisable structure containing the ordered sequence of the shells for an
 /// atom. However, unlike [`BasisAtom`], this structure does not contain a reference to the atom it
 /// is describing, but instead it only contains an index and an owned string giving the element
 /// name of the atom. This is only for serialisation/deserialisation purposes.
@@ -168,7 +170,7 @@ impl InputBasisAtom {
 // InputBasisAngularOrder
 // ----------------------
 
-/// A serialisable/deserialisable structure containing the angular momentum information of an
+/// Serialisable/deserialisable structure containing the angular momentum information of an
 /// atomic-orbital basis set that is required for symmetry transformation to be performed.However,
 /// unlike [`BasisAngularOrder`], this structure does not contain references to the atoms it is
 /// describing. This is only for serialisation/deserialisation purposes.

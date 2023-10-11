@@ -1,3 +1,5 @@
+//! Management of symmetry element order.
+
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -6,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::auxiliary::misc::HashableFloat;
 
-/// An enumerated type to handle symmetry element orders.
+/// Enumerated type to handle symmetry element orders.
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum ElementOrder {
     /// Positive integer order.
@@ -119,6 +121,12 @@ impl fmt::Display for ElementOrder {
     }
 }
 
+/// Element integer order 1.
 pub const ORDER_1: ElementOrder = ElementOrder::Int(1);
+
+/// Element integer order 2.
 pub const ORDER_2: ElementOrder = ElementOrder::Int(2);
+
+
+/// Element infinite order.
 pub const ORDER_I: ElementOrder = ElementOrder::Inf;

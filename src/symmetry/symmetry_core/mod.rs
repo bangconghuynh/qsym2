@@ -1,3 +1,5 @@
+//! Molecular symmetry elements and their detections.
+
 use std::collections::hash_map::Entry::Vacant;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
@@ -42,7 +44,7 @@ impl fmt::Display for PointGroupDetectionError {
 
 impl Error for PointGroupDetectionError {}
 
-/// A struct for storing and managing information required for symmetry analysis.
+/// Structure for storing and managing information required for symmetry analysis.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct PreSymmetry {
     /// The original molecule.
@@ -272,7 +274,7 @@ impl PreSymmetry {
     }
 }
 
-/// A structure for storing and managing symmetry analysis results.
+/// Structure for storing and managing symmetry analysis results.
 #[derive(Builder, Clone, Debug, Serialize, Deserialize)]
 pub struct Symmetry {
     /// The determined point group in Schönflies notation.

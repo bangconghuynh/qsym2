@@ -1,3 +1,5 @@
+//! Symbols enumerating rows and columns of character tables.
+
 use std::cmp::Ordering;
 use std::collections::{HashMap, VecDeque};
 use std::error::Error;
@@ -13,6 +15,7 @@ use phf::phf_map;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
+/// Symbols for Frobenius--Schur classifications of irreducible representations.
 pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
     1i8 => "r",
     0i8 => "c",
@@ -27,7 +30,7 @@ pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
 // MathematicalSymbol
 // ------------------
 
-/// A trait for general mathematical symbols. See [`GenericSymbol`] for the definitions of the
+/// Trait for general mathematical symbols. See [`GenericSymbol`] for the definitions of the
 /// parts.
 pub trait MathematicalSymbol: Clone + Hash + Eq + fmt::Display {
     /// The main part of the symbol.
@@ -60,7 +63,7 @@ pub trait MathematicalSymbol: Clone + Hash + Eq + fmt::Display {
 // LinearSpaceSymbol
 // -----------------
 
-/// A trait for symbols describing linear spaces.
+/// Trait for symbols describing linear spaces.
 pub trait LinearSpaceSymbol: MathematicalSymbol + FromStr {
     /// The dimensionality of the linear space.
     fn dimensionality(&self) -> usize;
@@ -85,7 +88,7 @@ pub trait LinearSpaceSymbol: MathematicalSymbol + FromStr {
 // Trait definition
 // ~~~~~~~~~~~~~~~~
 
-/// A trait for symbols describing reducible linear spaces.
+/// Trait for symbols describing reducible linear spaces.
 pub trait ReducibleLinearSpaceSymbol: LinearSpaceSymbol
 where
     Self::Subspace: LinearSpaceSymbol + PartialOrd,
@@ -202,7 +205,7 @@ where
 // CollectionSymbol
 // ----------------
 
-/// A trait for symbols describing collections of objects such as conjugacy classes.
+/// Trait for symbols describing collections of objects such as conjugacy classes.
 pub trait CollectionSymbol: MathematicalSymbol {
     /// The type of the elements in the collection.
     type CollectionElement;
@@ -257,7 +260,7 @@ pub trait CollectionSymbol: MathematicalSymbol {
 // Struct definition
 // ~~~~~~~~~~~~~~~~~
 
-/// A structure to handle generic mathematical symbols.
+/// Structure to handle generic mathematical symbols.
 ///
 /// Each generic symbol has the format
 ///
@@ -502,7 +505,7 @@ impl Error for GenericSymbolParsingError {}
 // Trait implementation for DecomposedSymbol
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-/// A struct to handle symbols consisting of multiple sub-symbols.
+/// Structure to handle symbols consisting of multiple sub-symbols.
 #[derive(Builder, Debug, Clone, Eq, Serialize, Deserialize)]
 pub struct DecomposedSymbol<S>
 where

@@ -1,3 +1,5 @@
+//! Reduced integers for modular arithmetic.
+
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::{Add, Div, Mul, Neg, Sub};
@@ -16,7 +18,7 @@ mod reducedint_tests;
 // Enum definitions
 // ================
 
-/// A wrapper enum to represent an integer in a modulo ring, with added additive
+/// Wrapper enumerated type to represent an integer in a modulo ring, with added additive
 /// and multiplicative identities to support linear algebra operations.
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum LinAlgReducedInt<T, R: Reducer<T>> {
@@ -667,7 +669,7 @@ where
 // ====
 // Wrap
 // ====
-/// A trait allowing [`ReducedInt`] to be converted into [`LinAlgReducedInt`].
+/// Trait allowing [`ReducedInt`] to be converted into [`LinAlgReducedInt`].
 pub(crate) trait IntoLinAlgReducedInt {
     /// The intrinsic numeric type of [`Self`].
     type InnerT;

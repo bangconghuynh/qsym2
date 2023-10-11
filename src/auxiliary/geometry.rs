@@ -1,3 +1,5 @@
+//! Geometrical objects and manipulations.
+
 use std::collections::HashSet;
 use std::fmt;
 
@@ -22,7 +24,7 @@ mod geometry_tests;
 // Enum definitions
 // ================
 
-/// An enumerated type to classify the type of improper rotation given an angle and axis.
+/// Enumerated type to classify the type of improper rotation given an angle and axis.
 pub enum ImproperRotationKind {
     /// The improper rotation is a rotation by the specified angle and axis followed by a
     /// reflection in a mirror plane perpendicular to the axis.
@@ -33,7 +35,10 @@ pub enum ImproperRotationKind {
     InversionCentre,
 }
 
+/// Mirror-plane improper rotation kind.
 pub const IMSIG: ImproperRotationKind = ImproperRotationKind::MirrorPlane;
+
+/// Inversion-centre improper rotation kind.
 pub const IMINV: ImproperRotationKind = ImproperRotationKind::InversionCentre;
 
 // =================
@@ -386,6 +391,7 @@ fn get_anticlockwise_angle(
     angle
 }
 
+/// Geometrical transformability in three dimensions.
 pub trait Transform {
     /// Transforms in-place the coordinates about the origin by a given
     /// transformation.
@@ -506,7 +512,7 @@ pub trait Transform {
 // ImproperOrdering
 // ----------------
 
-/// An enumerated type to handle comparisons symbolically.
+/// Enumerated type to handle comparisons symbolically.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 enum ImproperOrdering {
     Greater,
@@ -536,7 +542,7 @@ impl fmt::Display for ImproperOrdering {
 Coordinates
 ***/
 
-/// An enumerated type to handle Cartesian coordinates symbolically.
+/// Enumerated type to handle Cartesian coordinates symbolically.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 enum CartesianCoordinate {
     X,
@@ -569,7 +575,7 @@ impl fmt::Display for CartesianCoordinate {
 Conditions
 ***/
 
-/// A structure to handle inequality conditions written in terms of Cartesian coordinates.
+/// Structure to handle inequality conditions written in terms of Cartesian coordinates.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CartesianConditions {
     /// The Cartesian conditions. The condititions are satisfied if all of the tuples in any of the
@@ -652,7 +658,7 @@ impl fmt::Display for CartesianConditions {
 Coordinates
 ***/
 
-/// An enumerated type to handle spherical angular coordinates.
+/// Enumerated type to handle spherical angular coordinates.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SphericalCoordinate {
     Theta,
@@ -672,7 +678,7 @@ impl fmt::Display for SphericalCoordinate {
 Conditions
 ***/
 
-/// A structure to handle inequality conditions written in terms of spherical angular coordinates.
+/// Structure to handle inequality conditions written in terms of spherical angular coordinates.
 #[derive(Debug, Clone, Builder, PartialEq, Serialize, Deserialize)]
 pub struct SphericalConditions {
     /// The polar axis relative to which the polar angle $`\theta`$ is defined.
@@ -938,7 +944,7 @@ impl fmt::Display for SphericalConditions {
 // PositiveHemisphere
 // ------------------
 
-/// An enumerated type to handle positive hemispheres in Cartesian or spherical conditions.
+/// Enumerated type to handle positive hemispheres in Cartesian or spherical conditions.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum PositiveHemisphere {
     Cartesian(CartesianConditions),

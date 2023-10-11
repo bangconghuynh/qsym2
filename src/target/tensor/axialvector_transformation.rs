@@ -1,3 +1,5 @@
+//! Implementation of symmetry transformation for axial vectors.
+
 use nalgebra::Vector3;
 use ndarray::{Axis, Array1, Array2, LinalgScalar, ScalarOperand};
 use ndarray_linalg::solve::Determinant;

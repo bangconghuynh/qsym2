@@ -1,3 +1,5 @@
+//! Slater determinants.
+
 use std::fmt;
 use std::iter::Sum;
 
@@ -27,7 +29,7 @@ mod determinant_transformation;
 // Struct definitions
 // ==================
 
-/// A structure to manage single-determinantal wavefunctions.
+/// Structure to manage single-determinantal wavefunctions.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct SlaterDeterminant<'a, T>

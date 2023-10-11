@@ -1,5 +1,8 @@
+//! Driver for symmetry analysis via representation and corepresentation theories.
+
 use std::fmt;
 
+#[cfg(feature = "python")]
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -16,7 +19,7 @@ pub mod vibrational_coordinate;
 // Enum definitions
 // ================
 
-/// An enumerated type indicating the format of character table print-out.
+/// Enumerated type indicating the format of character table print-out.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum CharacterTableDisplay {
     /// Prints the character table symbolically showing explicitly the roots of unity.
@@ -35,10 +38,10 @@ impl fmt::Display for CharacterTableDisplay {
     }
 }
 
-/// An enumerated type indicating the type of magnetic symmetry to be used for representation
+/// Enumerated type indicating the type of magnetic symmetry to be used for representation
 /// analysis.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[pyclass]
+#[cfg_attr(feature = "python", pyclass)]
 pub enum MagneticSymmetryAnalysisKind {
     /// Variant indicating that unitary representations should be used for magnetic symmetry
     /// analysis.

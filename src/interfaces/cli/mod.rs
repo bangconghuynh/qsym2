@@ -1,55 +1,84 @@
+//! Command-line interface for QSym².
+
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use lazy_static::lazy_static;
+#[cfg(feature = "python")]
 use pyo3::prelude::*;
 use regex::Regex;
 
 use crate::auxiliary::contributors::CONTRIBUTORS;
 use crate::io::format::{log_subtitle, log_title, qsym2_output, QSym2Output};
 
+/// The current version of QSym².
 const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 
 // =======
 // Structs
 // =======
 
-/// A structure to handle command-line interface parsing.
+/// Enumerated type for subcommands.
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    /// Generates a template YAML configuration file and exits.
+    Template {
+        /// The name for the generated template YAML configuration file.
+        #[arg(short, long)]
+        name: Option<PathBuf>,
+    },
+
+    /// Runs an analysis calculation and exits.
+    Run {
+        /// The configuration YAML file specifying parameters for the calculation.
+        #[arg(short, long, required = true)]
+        config: PathBuf,
+
+        /// The output filename.
+        #[arg(short, long, required = true)]
+        output: PathBuf,
+
+        /// Turn debugging information on.
+        #[arg(short, long, action = clap::ArgAction::Count)]
+        debug: u8,
+    },
+}
+
+/// Structure to handle command-line interface parsing.
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 #[command(next_line_help = true)]
 pub struct Cli {
-    /// The configuration YAML file specifying parameters for the calculation.
-    #[arg(short, long, required = true)]
-    pub config: PathBuf,
-
-    /// The output filename.
-    #[arg(short, long, required = true)]
-    pub output: PathBuf,
-
-    /// Turn debugging information on.
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    pub debug: u8,
+    /// Subcommands.
+    #[command(subcommand)]
+    pub command: Commands,
 }
 
 impl fmt::Display for Cli {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "{:<11}: {}",
-            "Config file",
-            self.config.display().to_string()
-        )?;
-        writeln!(
-            f,
-            "{:<11}: {}",
-            "Output file",
-            self.output.display().to_string()
-        )?;
-        writeln!(f, "{:<11}: {}", "Debug level", self.debug)?;
-        Ok(())
+        match &self.command {
+            Commands::Template { name } => {
+                writeln!(
+                    f,
+                    "Generate a template configuration YAML file: {}",
+                    name.as_ref()
+                        .map(|name| name.display().to_string())
+                        .unwrap_or("no name specified".to_string())
+                )
+            }
+            Commands::Run {
+                config,
+                output,
+                debug,
+            } => {
+                writeln!(f, "{:<11}: {}", "Config file", config.display().to_string())?;
+                writeln!(f, "{:<11}: {}", "Output file", output.display().to_string())?;
+                writeln!(f, "{:<11}: {}", "Debug level", debug)?;
+                Ok(())
+            }
+        }
     }
 }
 
@@ -58,7 +87,7 @@ impl fmt::Display for Cli {
 // =========
 
 /// Outputs a nicely formatted QSym2 heading to the `qsym2-output` logger.
-#[pyfunction]
+#[cfg_attr(feature = "python", pyfunction)]
 pub fn qsym2_output_heading() {
     let version = if let Some(ver) = VERSION {
         format!("v{ver}")
@@ -99,11 +128,12 @@ pub fn qsym2_output_heading() {
 }
 
 lazy_static! {
+    /// Regular expression pattern for lines commented out with `#`.
     static ref COMMENT_RE: Regex = Regex::new(r"^\s*#.*?").expect("Regex pattern invalid.");
 }
 
 /// Outputs a nicely formatted list of contributors.
-#[pyfunction]
+#[cfg_attr(feature = "python", pyfunction)]
 pub fn qsym2_output_contributors() {
     qsym2_output!("    Contributors (in alphabetical order):");
     CONTRIBUTORS.iter().for_each(|contrib| {

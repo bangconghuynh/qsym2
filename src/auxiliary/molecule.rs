@@ -1,3 +1,5 @@
+//! Molecular structures.
+
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs;
@@ -29,7 +31,7 @@ mod molecule_tests;
 // Struct definitions
 // ==================
 
-/// A struct containing the atoms constituting a molecule.
+/// Structure containing the atoms constituting a molecule.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Molecule {
     /// The atoms constituting this molecule.

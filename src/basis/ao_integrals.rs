@@ -1,3 +1,5 @@
+//! Items to assist with integral evaluations on atomic-orbital basis functions.
+
 use std::collections::HashMap;
 use std::ops::Index;
 
@@ -20,7 +22,7 @@ mod ao_integrals_tests;
 // GaussianContraction
 // -------------------
 
-/// A structure to handle primitives in a Gaussian contraction.
+/// Structure to handle primitives in a Gaussian contraction.
 #[derive(Clone, Builder, Debug)]
 pub struct GaussianContraction<E, C> {
     /// Constituent primitives in the contraction. Each primitive has the form
@@ -44,10 +46,13 @@ impl<E, C> GaussianContraction<E, C> {
 // Deserialisable structs for BSE data retrieval
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+/// Base API address of Basis Set Exchange.
 const BSE_BASE_API: &str = "https://www.basissetexchange.org/api";
+
+/// Threshold for filtering out primitives in a basis function contraction.
 const CONTRACTION_COEFF_THRESH: f64 = 1e-16;
 
-/// A structure to represent the REST API result fro, BasisSetExchange.
+/// Structure to represent the REST API result fro, BasisSetExchange.
 #[derive(Serialize, Deserialize, Debug)]
 struct BSEResponse {
     /// Name of the basis set.
@@ -60,14 +65,14 @@ struct BSEResponse {
     elements: HashMap<u32, BSEElement>,
 }
 
-/// A structure to handle basis set information for an element.
+/// Structure to handle basis set information for an element.
 #[derive(Serialize, Deserialize, Debug)]
 struct BSEElement {
     /// A vector of basis set information for the shells in this element.
     electron_shells: Vec<BSEElectronShell>,
 }
 
-/// A structure to handle basis set information for a shell.
+/// Structure to handle basis set information for a shell.
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(try_from = "BSEElectronShellRaw")]
 struct BSEElectronShell {
@@ -89,7 +94,7 @@ struct BSEElectronShell {
     coefficients: Vec<Vec<f64>>,
 }
 
-/// A structure to handle basis set information for a shell, as obtained raw from BasisSetExchange.
+/// Structure to handle basis set information for a shell, as obtained raw from BasisSetExchange.
 #[derive(Deserialize)]
 struct BSEElectronShellRaw {
     /// The type of basis functions in this shell.
@@ -141,7 +146,7 @@ impl TryFrom<BSEElectronShellRaw> for BSEElectronShell {
 // BasisShellContraction definition
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-/// A structure to handle all shell information for integrals.
+/// Structure to handle all shell information for integrals.
 #[derive(Clone, Builder, Debug)]
 pub struct BasisShellContraction<E, C> {
     /// Basis function ordering information.
@@ -345,7 +350,7 @@ impl BasisShellContraction<f64, f64> {
 // --------
 // BasisSet
 // --------
-/// A structure to manage basis information for a molecule.
+/// Structure to manage basis information for a molecule.
 #[derive(Clone, Debug)]
 pub struct BasisSet<E, C> {
     /// A vector of vectors containing basis information for the atoms in this molecule. Each inner

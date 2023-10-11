@@ -1,3 +1,5 @@
+//! Conjugacy class structures.
+
 use std::collections::HashSet;
 use std::fmt;
 use std::hash::Hash;
@@ -23,7 +25,7 @@ use crate::group::{
 // Trait definitions
 // =================
 
-/// A trait for conjugacy class properties of a finite group.
+/// Trait for conjugacy class properties of a finite group.
 pub trait ClassProperties: GroupProperties
 where
     Self::ClassSymbol: CollectionSymbol<CollectionElement = Self::GroupElement>,
@@ -105,6 +107,22 @@ where
     /// or if the class index is out of range.
     #[must_use]
     fn get_cc_symbol_of_index(&self, cc_idx: usize) -> Option<Self::ClassSymbol>;
+
+    /// Given a predicate, returns conjugacy class symbols satisfying it.
+    ///
+    /// # Arguments
+    ///
+    /// * `predicate` - A predicate to filter conjugacy class symbols.
+    ///
+    /// # Returns
+    ///
+    /// Returns conjugacy class symbols satisfying `predicate`, or `None` if such a symbol does not
+    /// exist for the class.
+    #[must_use]
+    fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
+        &self,
+        predicate: P,
+    ) -> Vec<Self::ClassSymbol>;
 
     /// Sets the conjugacy class symbols for this group.
     ///
@@ -233,7 +251,7 @@ where
     }
 }
 
-/// A trait for outputting summaries of conjugacy class properties.
+/// Trait for outputting summaries of conjugacy class properties.
 pub trait ClassPropertiesSummary: ClassProperties
 where
     <Self as GroupProperties>::GroupElement: fmt::Display,
@@ -293,7 +311,7 @@ where
 // Struct definitions and implementations
 // ======================================
 
-/// A struct for managing class structures eagerly, *i.e.* all elements and their class maps are
+/// Structure for managing class structures eagerly, *i.e.* all elements and their class maps are
 /// stored.
 #[derive(Builder, Clone, Serialize, Deserialize)]
 pub(super) struct EagerClassStructure<T, ClassSymbol>
@@ -693,6 +711,21 @@ where
             .map(|(cc_sym, _)| cc_sym.clone())
     }
 
+    #[must_use]
+    fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
+        &self,
+        predicate: P,
+    ) -> Vec<Self::ClassSymbol> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_class_symbols
+            .keys()
+            .cloned()
+            .filter(predicate)
+            .collect::<Vec<_>>()
+    }
+
     fn set_class_symbols(&mut self, cc_symbols: &[Self::ClassSymbol]) {
         self.class_structure
             .as_mut()
@@ -879,6 +912,21 @@ where
             .conjugacy_class_symbols
             .get_index(cc_idx)
             .map(|(cc_sym, _)| cc_sym.clone())
+    }
+
+    #[must_use]
+    fn filter_cc_symbols<P: FnMut(&Self::ClassSymbol) -> bool>(
+        &self,
+        predicate: P,
+    ) -> Vec<Self::ClassSymbol> {
+        self.class_structure
+            .as_ref()
+            .expect("No class structure found.")
+            .conjugacy_class_symbols
+            .keys()
+            .cloned()
+            .filter(predicate)
+            .collect::<Vec<_>>()
     }
 
     fn set_class_symbols(&mut self, cc_symbols: &[Self::ClassSymbol]) {
