@@ -17,6 +17,8 @@ for the following targets:
 - electron densities, and
 - vibrational coordinates.
 
+QSym² has been integrated with [QUEST](https://quest.codes/) and its complementary GUI, [QuestView](https://gitlab.com/Bspeake/questview). QSym² can also work with [Q-Chem](https://www.q-chem.com/) HDF5 archive files and [Orca](https://orcaforum.kofo.mpg.de/index.php) output files.
+
 ## Table of contents
 
 [[_TOC_]]
