@@ -114,7 +114,7 @@ The following instructions assume that the `full` feature is to be installed on 
     ```
     which will compile and install the `qsym2` binary into `$HOME/.cargo/bin` to allow for system-wide availability.
 
-    Note that the `--features` option in the command above specifies that the `full` feature is to be installed. This option accepts a comma-separated list of features listed in the [*Features*][#features] section and can be modified to select other features to be installed as appropriate.
+    Note that the `--features` option in the command above specifies that the `full` feature is to be installed. This option accepts a comma-separated list of features listed in the [**Features**](#features) section and can be modified to select other features to be installed as appropriate.
     
     It is possible to install the `qsym2` binary into a different path by running
     ```bash
@@ -125,7 +125,7 @@ The following instructions assume that the `full` feature is to be installed on 
 ### Python-library compilation
 The following instructions assume that the `openblas-static`, `integrals`, and `python` features are to be compiled on a Debian/Ubuntu distro and then installed as a Python library inside a conda environment. These features are specified in the [`pyproject.toml`](/pyproject.toml) file.
 
-1. Follow steps 1 to 4 under the [*Binary compilation*](#binary-compilation) section above to install the required prerequisites.
+1. Follow steps 1 to 4 under the [**Binary compilation**](#binary-compilation) section above to install the required prerequisites.
 2. Make sure that the Anaconda package manager is available on your system. Instructions for installing Anaconda on a Linux system can be found [here](https://docs.anaconda.com/free/anaconda/install/linux/).
 3. Create a new conda environment named `qsym2-python` (or a different name of your choice) running Python 3.11 (or a different version of your choice):
     ```bash
