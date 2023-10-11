@@ -1,3 +1,5 @@
+//! Vibrational coordinates for normal modes.
+
 use std::fmt;
 
 use approx;
@@ -23,7 +25,7 @@ mod vibration_transformation;
 // VibrationalCoordinate
 // ---------------------
 
-/// A structure to manage vibrational coordinates.
+/// Structure to manage vibrational coordinates.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct VibrationalCoordinate<'a, T>
@@ -183,7 +185,7 @@ where
 // VibrationalCoordinateCollection
 // -------------------------------
 
-/// A structure to manage multiple vibrational coordinates of a single molecule.
+/// Structure to manage multiple vibrational coordinates of a single molecule.
 #[derive(Builder, Clone)]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct VibrationalCoordinateCollection<'a, T>

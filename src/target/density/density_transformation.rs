@@ -1,3 +1,5 @@
+//! Implementation of symmetry transformations for electron densities.
+
 use ndarray::{concatenate, s, Array2, Axis, LinalgScalar, ScalarOperand};
 use ndarray_linalg::types::Lapack;
 use num_complex::{Complex, ComplexFloat};

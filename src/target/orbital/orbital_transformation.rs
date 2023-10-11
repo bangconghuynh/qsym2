@@ -1,3 +1,5 @@
+//! Implementation of symmetry transformations for orbitals.
+
 use std::ops::Mul;
 
 use approx;
