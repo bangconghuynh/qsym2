@@ -1,3 +1,5 @@
+//! Symmetry analysis target controls from QSym² input configuration.
+
 use std::path::PathBuf;
 
 use anyhow;
@@ -22,7 +24,7 @@ use crate::interfaces::qchem::{
 // Representation analysis target choice
 // -------------------------------------
 
-/// A serialisable/deserialisable enumerated type representing possibilities of representation
+/// Serialisable/deserialisable enumerated type representing possibilities of representation
 /// analysis targets.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum AnalysisTarget {
@@ -72,7 +74,7 @@ impl Default for AnalysisTarget {
 // Target: Slater determinant
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-/// A trait for the handling of vibrational coordinate input sources.
+/// Trait for the handling of vibrational coordinate input sources.
 pub(crate) trait SlaterDeterminantSourceHandle {
     type Outcome;
 
@@ -85,7 +87,7 @@ pub(crate) trait SlaterDeterminantSourceHandle {
     ) -> Result<Self::Outcome, anyhow::Error>;
 }
 
-/// A serialisable/deserialisable structure containing control parameters for Slater determinant
+/// Serialisable/deserialisable structure containing control parameters for Slater determinant
 /// representation analysis.
 #[derive(Clone, Serialize, Deserialize, Default)]
 pub struct SlaterDeterminantControl {
@@ -96,7 +98,7 @@ pub struct SlaterDeterminantControl {
     pub control: SlaterDeterminantRepAnalysisParams<f64>,
 }
 
-/// A serialisable/deserialisable enumerated type representing possibilities of Slater determinant
+/// Serialisable/deserialisable enumerated type representing possibilities of Slater determinant
 /// sources.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum SlaterDeterminantSource {
@@ -127,7 +129,7 @@ impl Default for SlaterDeterminantSource {
 // Target: Vibrational coordinates
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-/// A trait for the handling of vibrational coordinate input sources.
+/// Trait for the handling of vibrational coordinate input sources.
 #[cfg(feature = "qchem")]
 pub(crate) trait VibrationalCoordinateSourceHandle {
     type Outcome;
@@ -141,7 +143,7 @@ pub(crate) trait VibrationalCoordinateSourceHandle {
     ) -> Result<Self::Outcome, anyhow::Error>;
 }
 
-/// A serialisable/deserialisable structure containing control parameters for vibrational
+/// Serialisable/deserialisable structure containing control parameters for vibrational
 /// coordinate representation analysis.
 #[cfg(feature = "qchem")]
 #[derive(Clone, Serialize, Deserialize, Default)]
@@ -153,7 +155,7 @@ pub struct VibrationalCoordinateControl {
     pub control: VibrationalCoordinateRepAnalysisParams<f64>,
 }
 
-/// A serialisable/deserialisable enumerated type representing possibilities of vibrational
+/// Serialisable/deserialisable enumerated type representing possibilities of vibrational
 /// coordinates sources.
 #[cfg(feature = "qchem")]
 #[derive(Clone, Serialize, Deserialize)]

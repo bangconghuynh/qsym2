@@ -1,3 +1,5 @@
+//! Driver for symmetry analysis of vibrational coordinates.
+
 use std::fmt;
 use std::ops::Mul;
 

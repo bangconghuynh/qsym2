@@ -1,3 +1,5 @@
+//! Traits enabling groups to construct and possess character tables.
+
 use std::fmt;
 use std::hash::Hash;
 use std::ops::Mul;

@@ -1,3 +1,5 @@
+//! Vibrational coordinates from Q-Chem HDF5 archives.
+
 use std::fmt;
 use std::marker::PhantomData;
 use std::path::PathBuf;
@@ -56,7 +58,7 @@ lazy_static! {
 // Struct definition
 // -----------------
 
-/// A driver to perform symmetry-group detection and vibration representation symmetry analysis for
+/// Driver to perform symmetry-group detection and vibration representation symmetry analysis for
 /// all discoverable single-point calculation data stored in a Q-Chem's `qarchive.h5` file.
 #[derive(Clone, Builder)]
 pub(crate) struct QChemVibrationH5Driver<'a, T>
@@ -285,7 +287,7 @@ impl<'a> QSym2Driver for QChemVibrationH5Driver<'a, f64> {
 // Struct definition
 // -----------------
 
-/// A driver to perform symmetry-group detection and vibration representation analysis for a
+/// Driver to perform symmetry-group detection and vibration representation analysis for a
 /// single-point calculation result in a Q-Chem's `qarchive.h5` file.
 #[derive(Clone, Builder)]
 struct QChemVibrationH5SinglePointDriver<'a, G, T>

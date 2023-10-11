@@ -1,3 +1,5 @@
+//! Symbols enumerating rows and columns of character tables.
+
 use std::cmp::Ordering;
 use std::collections::{HashMap, VecDeque};
 use std::error::Error;
@@ -13,6 +15,7 @@ use phf::phf_map;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
+/// Symbols for Frobenius--Schur classifications of irreducible representations.
 pub static FROBENIUS_SCHUR_SYMBOLS: phf::Map<i8, &'static str> = phf_map! {
     1i8 => "r",
     0i8 => "c",

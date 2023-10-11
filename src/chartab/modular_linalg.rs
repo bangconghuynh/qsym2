@@ -1,3 +1,5 @@
+//! Modular linear algebra.
+
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt::{self, Debug, Display};

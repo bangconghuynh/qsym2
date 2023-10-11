@@ -1,3 +1,5 @@
+//! QSym² interfaces with Q-Chem.
+
 use std::path::PathBuf;
 
 use anyhow::Context;

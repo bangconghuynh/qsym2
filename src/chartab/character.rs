@@ -1,3 +1,5 @@
+//! Symbolic characters as algebraic integers that are sums of unity roots.
+
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};

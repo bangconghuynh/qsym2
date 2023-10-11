@@ -1,3 +1,5 @@
+//! Driver for molecule symmetrisation in QSym².
+
 use std::fmt;
 use std::path::PathBuf;
 

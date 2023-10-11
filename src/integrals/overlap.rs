@@ -1,3 +1,5 @@
+//! Atomic-orbital $`n`$-centre overlap evaluations.
+
 /// Implements the `overlap` method for [`crate::integrals::shell_tuple::ShellTuple`] and
 /// [`crate::integrals::shell_tuple::ShellTupleCollection`] of a specified pattern.
 macro_rules! impl_shell_tuple_overlap {

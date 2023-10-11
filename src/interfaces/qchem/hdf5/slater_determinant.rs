@@ -1,3 +1,5 @@
+//! Slater determinants from Q-Chem HDF5 archives.
+
 use std::fmt;
 use std::marker::PhantomData;
 use std::path::PathBuf;
@@ -61,7 +63,7 @@ lazy_static! {
 // Struct definition
 // -----------------
 
-/// A driver to perform symmetry-group detection and Slater determinant representation symmetry
+/// Driver to perform symmetry-group detection and Slater determinant representation symmetry
 /// analysis for all discoverable single-point calculation data stored in a Q-Chem's `qarchive.h5`
 /// file.
 #[derive(Clone, Builder)]
@@ -316,7 +318,7 @@ impl<'a> QSym2Driver for QChemSlaterDeterminantH5Driver<'a, f64> {
 // Enum definition
 // ---------------
 
-/// An enumerated type to distinguish different kinds of molecular orbitals.
+/// Enumerated type to distinguish different kinds of molecular orbitals.
 enum OrbitalType {
     /// Canonical molecular orbitals as obtained by diagonalising Fock matrices.
     Canonical,
@@ -329,7 +331,7 @@ enum OrbitalType {
 // Struct definition
 // -----------------
 
-/// A driver to perform symmetry-group detection and representation analysis for a single-point
+/// Driver to perform symmetry-group detection and representation analysis for a single-point
 /// calculation result in a Q-Chem's `qarchive.h5` file.
 #[derive(Clone, Builder)]
 struct QChemSlaterDeterminantH5SinglePointDriver<'a, G, T>

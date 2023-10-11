@@ -1,3 +1,5 @@
+//! QSym² interface with binary data files.
+
 use std::path::PathBuf;
 
 use anyhow::{format_err, Context};
@@ -32,7 +34,7 @@ mod binaries_tests;
 // Input target: Slater determinant; source: binaries
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-/// A serialisable/deserialisable structure containing control parameters for acquiring Slater
+/// Serialisable/deserialisable structure containing control parameters for acquiring Slater
 /// determinant(s) from a custom specification.
 #[derive(Clone, Builder, Serialize, Deserialize)]
 pub struct BinariesSlaterDeterminantSource {
@@ -331,7 +333,7 @@ impl SlaterDeterminantSourceHandle for BinariesSlaterDeterminantSource {
     }
 }
 
-/// An enumerated type indicating the order the matrix elements are traversed when stored into or
+/// Enumerated type indicating the order the matrix elements are traversed when stored into or
 /// read in from a binary file.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum MatrixOrder {
@@ -345,7 +347,7 @@ impl Default for MatrixOrder {
     }
 }
 
-/// An enumerated type indicating the byte order of numerical values in binary files.
+/// Enumerated type indicating the byte order of numerical values in binary files.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum ByteOrder {
     LittleEndian,

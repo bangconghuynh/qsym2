@@ -1,3 +1,5 @@
+//! Command-line interface for QSym².
+
 use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -11,12 +13,14 @@ use regex::Regex;
 use crate::auxiliary::contributors::CONTRIBUTORS;
 use crate::io::format::{log_subtitle, log_title, qsym2_output, QSym2Output};
 
+/// The current version of QSym².
 const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 
 // =======
 // Structs
 // =======
 
+/// Enumerated type for subcommands.
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Generates a template YAML configuration file and exits.
@@ -42,7 +46,7 @@ pub enum Commands {
     },
 }
 
-/// A structure to handle command-line interface parsing.
+/// Structure to handle command-line interface parsing.
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
 #[command(next_line_help = true)]
@@ -124,6 +128,7 @@ pub fn qsym2_output_heading() {
 }
 
 lazy_static! {
+    /// Regular expression pattern for lines commented out with `#`.
     static ref COMMENT_RE: Regex = Regex::new(r"^\s*#.*?").expect("Regex pattern invalid.");
 }
 

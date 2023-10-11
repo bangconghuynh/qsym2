@@ -1,3 +1,5 @@
+//! Driver for symmetry analysis via representation and corepresentation theories.
+
 use std::fmt;
 
 #[cfg(feature = "python")]

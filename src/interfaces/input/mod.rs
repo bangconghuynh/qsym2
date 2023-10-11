@@ -1,3 +1,5 @@
+//! Human-readable QSym² input configuration.
+
 use std::path::PathBuf;
 
 use anyhow::{self, bail, Context};
@@ -37,7 +39,7 @@ mod input_tests;
 // SymmetryGroupDetectionInputKind
 // -------------------------------
 
-/// An enumerated type representing possible input kinds for symmetry-group detection from a YAML
+/// Enumerated type representing possible input kinds for symmetry-group detection from a YAML
 /// input file.
 #[derive(Clone, Serialize, Deserialize)]
 pub enum SymmetryGroupDetectionInputKind {
@@ -61,7 +63,7 @@ impl Default for SymmetryGroupDetectionInputKind {
 // Main input
 // ==========
 
-/// A structure containing `QSym2` input parameters which can be serialised into and deserialised
+/// Structure containing `QSym2` input parameters which can be serialised into and deserialised
 /// from a YAML input file.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Input {

@@ -1,3 +1,5 @@
+//! Drivers to carry out QSym² functionalities.
+
 use anyhow;
 
 pub mod molecule_symmetrisation;
@@ -8,7 +10,7 @@ pub mod symmetry_group_detection;
 // Trait definitions
 // =================
 
-/// A trait for `QSym2` drivers.
+/// Trait defining behaviours of `QSym2` drivers.
 pub trait QSym2Driver {
     /// The type of the parameter structure controlling the driver.
     type Params;

@@ -1,3 +1,5 @@
+//! Symbolic representation of roots of unity for characters.
+
 use std::fmt;
 use std::ops::Mul;
 

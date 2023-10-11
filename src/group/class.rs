@@ -1,3 +1,5 @@
+//! Conjugacy class structures.
+
 use std::collections::HashSet;
 use std::fmt;
 use std::hash::Hash;
@@ -23,7 +25,7 @@ use crate::group::{
 // Trait definitions
 // =================
 
-/// A trait for conjugacy class properties of a finite group.
+/// Trait for conjugacy class properties of a finite group.
 pub trait ClassProperties: GroupProperties
 where
     Self::ClassSymbol: CollectionSymbol<CollectionElement = Self::GroupElement>,
@@ -249,7 +251,7 @@ where
     }
 }
 
-/// A trait for outputting summaries of conjugacy class properties.
+/// Trait for outputting summaries of conjugacy class properties.
 pub trait ClassPropertiesSummary: ClassProperties
 where
     <Self as GroupProperties>::GroupElement: fmt::Display,
@@ -309,7 +311,7 @@ where
 // Struct definitions and implementations
 // ======================================
 
-/// A struct for managing class structures eagerly, *i.e.* all elements and their class maps are
+/// Struct for managing class structures eagerly, *i.e.* all elements and their class maps are
 /// stored.
 #[derive(Builder, Clone, Serialize, Deserialize)]
 pub(super) struct EagerClassStructure<T, ClassSymbol>

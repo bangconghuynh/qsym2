@@ -1,3 +1,5 @@
+//! Management of shell tuples for generic $`n`$-centre integrals.
+
 use std::marker::PhantomData;
 
 use derive_builder::Builder;
@@ -9,7 +11,7 @@ use rayon::prelude::*;
 
 use crate::basis::ao_integrals::{BasisSet, BasisShellContraction};
 
-/// A structure to handle pre-computed properties of a tuple of shells consisting of
+/// Structure to handle pre-computed properties of a tuple of shells consisting of
 /// non-integration primitives.
 #[derive(Builder)]
 pub(crate) struct ShellTuple<'a, const RANK: usize, T: Clone> {
@@ -167,7 +169,7 @@ impl<'a, const RANK: usize, T: Clone> ShellTuple<'a, RANK, T> {
     }
 }
 
-/// A structure to handle all possible shell tuples for a particular type of integral.
+/// Structure to handle all possible shell tuples for a particular type of integral.
 #[derive(Builder)]
 pub(crate) struct ShellTupleCollection<'a, const RANK: usize, T: Clone> {
     /// The data type of the overlap values from shell tuples in this collection.
@@ -335,7 +337,7 @@ impl<'a, const RANK: usize, T: Clone> ShellTupleCollection<'a, RANK, T> {
     }
 }
 
-/// An iterator over unique shell tuples in a collection.
+/// Iterator over unique shell tuples in a collection.
 struct UniqueShellTupleIterator<'it, 'a: 'it, const RANK: usize, T: Clone> {
     /// The current index of iteration.
     index: usize,

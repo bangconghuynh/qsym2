@@ -1,3 +1,5 @@
+//! Driver for symmetry analysis of angular functions.
+
 use anyhow::{self, format_err};
 use derive_builder::Builder;
 use nalgebra::{Point3, Vector3};

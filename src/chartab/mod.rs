@@ -1,3 +1,5 @@
+//! Symbolic computation and management of character tables.
+
 use std::cmp::max;
 use std::error::Error;
 use std::fmt;

@@ -1,3 +1,5 @@
+//! Driver for symmetry analysis of Slater determinants.
+
 use std::fmt;
 use std::ops::Mul;
 
