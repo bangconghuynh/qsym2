@@ -35,7 +35,7 @@
 //! [GitLab](https://gitlab.com/bangconghuynh/qsym2). For scientific enquiries such as how to run
 //! the program QSym² for a particular quantum-chemical calculation or how to interpret
 //! the results of QSym², please join the dedicated [Slack](https://qsym2.slack.com)
-//! workspace.
+//! workspace using this [invite link](https://join.slack.com/t/qsym2/shared_invite/zt-24thj1y1x-JqvLtEA1xfQ9AylNRCDH9w).
 //!
 //! ## Getting started
 //!

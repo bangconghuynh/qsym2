@@ -25,6 +25,10 @@ The public API documentation for QSym² can be found [here](https://api.qsym2.de
 
 [[_TOC_]]
 
+## Help and support
+
+Developmental and programming issues with the crate `qsym2` can be reported on [GitLab](https://gitlab.com/bangconghuynh/qsym2). For scientific enquiries such as how to run the program QSym² for a particular quantum-chemical calculation or how to interpret the results of QSym², please join the dedicated [Slack](https://qsym2.slack.com) workspace using this [invite link](https://join.slack.com/t/qsym2/shared_invite/zt-24thj1y1x-JqvLtEA1xfQ9AylNRCDH9w).
+
 ## Installation from source
 
 The following instructions for installing QSym² from source are specific to Debian/Ubuntu operating systems. On Microsoft Windows platforms, Windows Subsystem for Linux is recommended.
@@ -215,7 +219,6 @@ help(qsym2)
 An example Python script that performs symmetry analysis for self-consistent-field calculations from Orca output files (parsed by [cclib](https://cclib.github.io/)) can be found at [`utils/qsym2-orca.py`](/utils/qsym2-orca.py). This script requires the Python packages `mendeleev`, `cclib`, and `numpy` to run.
 
 Another example where the Python bindings of QSym² are used extensively for the analysis of unitary and magnetic symmetry in the presence of external fields can be found in [QUEST](https://quest.codes/) and its complementary GUI, [QuestView](https://gitlab.com/Bspeake/questview).
-
 
 ## Authors and acknowledgement
 
