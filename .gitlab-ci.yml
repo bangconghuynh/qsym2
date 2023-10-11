@@ -101,11 +101,10 @@ pages:
   script:
     - cargo doc --no-deps --features full,python
     - mv target/doc public
-    - mv public/qsym2 public/doc
     - mkdir public/images
     - cp images/qsym2_logo_no_text_no_background.svg public/images
     - cp images/qsym2_icon.png public/images
-    - echo '<meta http-equiv="refresh" content="0; url=doc/index.html">' > public/index.html
+    - echo '<meta http-equiv="refresh" content="0; url=qsym2/index.html">' > public/index.html
   artifacts:
     paths:
       - public
