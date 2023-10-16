@@ -366,7 +366,7 @@ pub enum PySlaterDeterminant {
 /// result for the system. This will be used to construct abstract groups and character tables for
 /// representation analysis. Python type: `str`.
 /// * `pydet` - A Python-exposed Slater determinant whose coefficients are of type `float64` or
-/// `complex128`. Python type: `PySlaterDeterminantReal | PySlaterDeterminantComplex`
+/// `complex128`. Python type: `PySlaterDeterminantReal | PySlaterDeterminantComplex`.
 /// * `sao_spatial` - The atomic-orbital overlap matrix whose elements are of type `float64` or
 /// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
@@ -398,7 +398,7 @@ pub enum PySlaterDeterminant {
 /// symmetry group is to be printed out. Python type: `bool`.
 /// * `infinite_order_to_finite` - The finite order with which infinite-order generators are to be
 /// interpreted to form a finite subgroup of the prevailing infinite group. This finite subgroup
-/// will be used for the symmetrisation. Python type: `Optional[int]`.
+/// will be used for symmetry analysis. Python type: `Optional[int]`.
 /// * `angular_function_integrality_threshold` - The threshold for verifying if subspace
 /// multiplicities are integral for the symmetry analysis of angular functions. Python type:
 /// `float`.
