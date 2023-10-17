@@ -4,6 +4,7 @@ use num_complex::Complex;
 use numpy::{PyArray2, PyArray4};
 use pyo3::prelude::*;
 
+pub mod density;
 pub mod slater_determinant;
 pub mod vibrational_coordinate;
 

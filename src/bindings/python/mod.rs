@@ -39,6 +39,10 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
         m
     )?)?;
     m.add_function(wrap_pyfunction!(
+        representation_analysis::density::rep_analyse_densities,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
         representation_analysis::slater_determinant::rep_analyse_slater_determinant,
         m
     )?)?;
@@ -61,6 +65,8 @@ pub fn qsym2(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<symmetry_group_detection::PyMolecule>()?;
     m.add_class::<symmetry_group_detection::PySymmetry>()?;
     m.add_class::<symmetry_group_detection::PySymmetryElementKind>()?;
+    m.add_class::<representation_analysis::density::PyDensityReal>()?;
+    m.add_class::<representation_analysis::density::PyDensityComplex>()?;
     m.add_class::<representation_analysis::slater_determinant::PySlaterDeterminantReal>()?;
     m.add_class::<representation_analysis::slater_determinant::PySlaterDeterminantComplex>()?;
     m.add_class::<representation_analysis::vibrational_coordinate::PyVibrationalCoordinateCollectionReal>()?;

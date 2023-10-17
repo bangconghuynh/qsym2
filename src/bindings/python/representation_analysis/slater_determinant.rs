@@ -67,7 +67,7 @@ pub struct PySlaterDeterminantReal {
     /// Python type: `bool`.
     complex_symmetric: bool,
 
-    /// The real coefficien`bool`ts for the molecular orbitals of this determinant.
+    /// The real coefficients for the molecular orbitals of this determinant.
     ///
     /// Python type: `list[numpy.2darray[float]]`.
     coefficients: Vec<Array2<f64>>,
@@ -369,6 +369,9 @@ pub enum PySlaterDeterminant {
 /// `complex128`. Python type: `PySlaterDeterminantReal | PySlaterDeterminantComplex`.
 /// * `sao_spatial` - The atomic-orbital overlap matrix whose elements are of type `float64` or
 /// `complex128`. Python type: `numpy.2darray[float] | numpy.2darray[complex]`.
+/// * `sao_spatial_4c` - The optional atomic-orbital four-centre overlap matrix whose elements are
+/// of type `float64` or `complex128`.
+/// Python type: `numpy.2darray[float] | numpy.2darray[complex] | None`.
 /// * `integrality_threshold` - The threshold for verifying if subspace multiplicities are
 /// integral. Python type: `float`.
 /// * `linear_independence_threshold` - The threshold for determining the linear independence

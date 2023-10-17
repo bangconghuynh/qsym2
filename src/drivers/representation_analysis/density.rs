@@ -259,7 +259,7 @@ where
                 den_sym_res
                     .as_ref()
                     .map(|sym| sym.to_string())
-                    .unwrap_or("--".to_string())
+                    .unwrap_or_else(|err| err.clone())
                     .chars()
                     .count()
             })
