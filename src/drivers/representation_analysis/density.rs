@@ -48,9 +48,6 @@ mod density_tests;
 // Parameters
 // ----------
 
-const fn default_true() -> bool {
-    true
-}
 const fn default_symbolic() -> Option<CharacterTableDisplay> {
     Some(CharacterTableDisplay::Symbolic)
 }
@@ -75,7 +72,7 @@ pub struct DensityRepAnalysisParams<T: From<f64>> {
     #[serde(default)]
     pub use_double_group: bool,
 
-    /// The kind of symmetry transformation to be applied on the reference determinant to generate
+    /// The kind of symmetry transformation to be applied on the reference density to generate
     /// the orbit for symmetry analysis.
     #[builder(default = "SymmetryTransformationKind::Spatial")]
     #[serde(default)]
@@ -359,7 +356,7 @@ where
     T: ComplexFloat + Lapack,
     <T as ComplexFloat>::Real: From<f64> + fmt::LowerExp + fmt::Debug + fmt::Display,
 {
-    /// Returns the determinant symmetry obtained from the analysis result.
+    /// Returns the symmetries of the specified densities obtained from the analysis result.
     pub fn density_symmetries(
         &self,
     ) -> &Vec<Result<<G::CharTab as SubspaceDecomposable<T>>::Decomposition, String>> {
@@ -402,7 +399,7 @@ where
     /// The control parameters for symmetry analysis of angular functions.
     angular_function_parameters: &'a AngularFunctionRepAnalysisParams,
 
-    /// The result of the Slater determinant representation analysis.
+    /// The result of the electron density representation analysis.
     #[builder(setter(skip), default = "None")]
     result: Option<DensityRepAnalysisResult<'a, G, T>>,
 }
@@ -479,8 +476,8 @@ where
 // Struct implementations
 // ~~~~~~~~~~~~~~~~~~~~~~
 
-// Generic for all symmetry groups G and determinant numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Generic for all symmetry groups G and density numeric type T
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 impl<'a, G, T> DensityRepAnalysisDriver<'a, G, T>
 where
@@ -495,8 +492,8 @@ where
     }
 }
 
-// Specific for unitary-represented symmetry groups, but generic for determinant numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Specific for unitary-represented symmetry groups, but generic for density numeric type T
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 impl<'a, T> DensityRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, T>
 where
@@ -570,7 +567,6 @@ impl<'a> DensityRepAnalysisDriver<'a, gtype_, dtype_> {
             })?;
         log_bao(bao);
 
-        // Determinant and orbital symmetries
         let (den_symmetries, den_symmetries_thresholds): (Vec<_>, Vec<_>) =
             self.densities.iter().map(|(_, den)| {
                 DensitySymmetryOrbit::builder()
@@ -663,8 +659,8 @@ impl<'a> DensityRepAnalysisDriver<'a, gtype_, dtype_> {
 // Trait implementations
 // ~~~~~~~~~~~~~~~~~~~~~
 
-// Generic for all symmetry groups G and determinant numeric type T
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+// Generic for all symmetry groups G and density numeric type T
+// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 impl<'a, G, T> fmt::Display for DensityRepAnalysisDriver<'a, G, T>
 where
@@ -693,93 +689,41 @@ where
     }
 }
 
-// Specific for unitary-represented symmetry groups and determinant numeric type f64
-// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-impl<'a> QSym2Driver for DensityRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, f64> {
-    type Params = DensityRepAnalysisParams<f64>;
-
-    type Outcome = DensityRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, f64>;
-
-    fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
-        self.result
-            .as_ref()
-            .ok_or_else(|| format_err!("No representation analysis results found."))
-    }
-
-    fn run(&mut self) -> Result<(), anyhow::Error> {
-        self.log_output_display();
-        self.analyse_representation()?;
-        self.result()?.log_output_display();
-        Ok(())
-    }
-}
-
-// Specific for unitary-represented symmetry groups and determinant numeric type Complex<f64>
+// Specific for unitary/magnetic-represented groups and density numeric type f64/Complex<f64>
 // ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-impl<'a> QSym2Driver
-    for DensityRepAnalysisDriver<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>
-{
+#[duplicate_item(
+    duplicate!{
+        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            gtype_ [ UnitaryRepresentedSymmetryGroup ]
+            dtype_ [ dtype_nested ]
+            analyse_fn_ [ analyse_representation ]
+        ]
+    }
+    duplicate!{
+        [ dtype_nested; [f64]; [Complex<f64>] ]
+        [
+            gtype_ [ MagneticRepresentedSymmetryGroup ]
+            dtype_ [ dtype_nested ]
+            analyse_fn_ [ analyse_corepresentation ]
+        ]
+    }
+)]
+impl<'a> QSym2Driver for DensityRepAnalysisDriver<'a, gtype_, dtype_> {
     type Params = DensityRepAnalysisParams<f64>;
 
-    type Outcome = DensityRepAnalysisResult<'a, UnitaryRepresentedSymmetryGroup, Complex<f64>>;
+    type Outcome = DensityRepAnalysisResult<'a, gtype_, dtype_>;
 
     fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
         self.result
             .as_ref()
-            .ok_or_else(|| format_err!("No representation analysis results found."))
+            .ok_or_else(|| format_err!("No electron density representation analysis results found."))
     }
 
     fn run(&mut self) -> Result<(), anyhow::Error> {
         self.log_output_display();
-        self.analyse_representation()?;
-        self.result()?.log_output_display();
-        Ok(())
-    }
-}
-
-// Specific for magnetic-represented symmetry groups and determinant numeric type f64
-// ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-impl<'a> QSym2Driver for DensityRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, f64> {
-    type Params = DensityRepAnalysisParams<f64>;
-
-    type Outcome = DensityRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, f64>;
-
-    fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
-        self.result
-            .as_ref()
-            .ok_or_else(|| format_err!("No representation analysis results found."))
-    }
-
-    fn run(&mut self) -> Result<(), anyhow::Error> {
-        self.log_output_display();
-        self.analyse_corepresentation()?;
-        self.result()?.log_output_display();
-        Ok(())
-    }
-}
-
-// Specific for magnetic-represented symmetry groups and determinant numeric type Complex<f64>
-// '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-impl<'a> QSym2Driver
-    for DensityRepAnalysisDriver<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>
-{
-    type Params = DensityRepAnalysisParams<f64>;
-
-    type Outcome = DensityRepAnalysisResult<'a, MagneticRepresentedSymmetryGroup, Complex<f64>>;
-
-    fn result(&self) -> Result<&Self::Outcome, anyhow::Error> {
-        self.result
-            .as_ref()
-            .ok_or_else(|| format_err!("No representation analysis results found."))
-    }
-
-    fn run(&mut self) -> Result<(), anyhow::Error> {
-        self.log_output_display();
-        self.analyse_corepresentation()?;
+        self.analyse_fn_()?;
         self.result()?.log_output_display();
         Ok(())
     }
