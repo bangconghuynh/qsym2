@@ -331,7 +331,7 @@ where
                 eig_below_opt
                     .map(|eig_below| format!("{eig_below:>+.3e}"))
                     .unwrap_or("--".to_string()),
-            );
+            )?;
         }
         writeln!(f, "{}", "┈".repeat(table_width))?;
         writeln!(f)?;
@@ -429,6 +429,7 @@ where
 
         let dens = self
             .densities
+            .as_ref()
             .ok_or("No electron densities found.".to_string())?;
 
         let sym = if params.use_magnetic_group.is_some() {
@@ -647,7 +648,7 @@ impl<'a> DensityRepAnalysisDriver<'a, gtype_, dtype_> {
 
         let result = DensityRepAnalysisResult::builder()
             .parameters(params)
-            .densities(self.densities)
+            .densities(self.densities.clone())
             .group(group)
             .density_symmetries(den_symmetries)
             .density_symmetries_thresholds(den_symmetries_thresholds)
