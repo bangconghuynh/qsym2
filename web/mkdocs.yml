@@ -1,6 +1,7 @@
 site_name: QSym²
-repo_url: https://gitlab.com/bangconghuynh/qsym2
+site_url: https://qsym2.dev
 repo_name: bangconghuynh/qsym2
+repo_url: https://gitlab.com/bangconghuynh/qsym2
 copyright: Copyright &copy; 2023 Bang C. Huynh
 theme:
   name: material
@@ -47,8 +48,11 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+  - attr_list
+  - md_in_html
 plugins:
   - search
+  - social
 extra:
   social:
     - icon: fontawesome/brands/gitlab

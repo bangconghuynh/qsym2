@@ -1,4 +1,15 @@
-# Welcome to QSym²
+---
+title: QSym²
+description: "QSym²: a program for Quantum Symbolic Symmetry"
+---
+
+<figure markdown>
+  ![QSym²](assets/logos/qsym2_logo_no_text_no_background.svg){ width="150" }
+</figure>
+
+-------
+
+# A program for **Q**uantum **Sym**bolic **Sym**metry
 
 For full documentation visit [mkdocs.org](https://www.mkdocs.org).
 
