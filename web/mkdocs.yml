@@ -1,12 +1,16 @@
 site_name: QSym²
 repo_url: https://gitlab.com/bangconghuynh/qsym2
 repo_name: bangconghuynh/qsym2
+copyright: Copyright &copy; 2023 Bang C. Huynh
 theme:
   name: material
   logo: assets/logos/qsym2_logo_no_text_no_background.svg
   favicon: assets/logos/qsym2_icon.png
   icon:
     repo: fontawesome/brands/gitlab
+  font:
+    text: Outfit
+    code: Fira Mono
   palette:
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
@@ -17,22 +21,21 @@ theme:
 
     # Palette toggle for dark mode
     - media: "(prefers-color-scheme: dark)"
-      scheme: slate
-      primary: black
-      # accent: purple
+      scheme: qsym2-dark
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
   features:
-    - navigation.tabs
-    - navigation.top
     - content.code.annotate
     - content.code.copy
+    - navigation.footer
+    - navigation.tabs
+    - navigation.top
     - search.suggest
-extra_css:
-  - stylesheets/extra.css
 markdown_extensions:
   - admonition
+  # - pymdownx.arithmatex:
+  #     generic: true
   - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
@@ -42,5 +45,29 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
 plugins:
   - search
+extra:
+  social:
+    - icon: fontawesome/brands/gitlab
+      link: https://gitlab.com/bangconghuynh
+      name: bangconghuynh on GitLab
+    - icon: fontawesome/brands/slack
+      link: https://qsym2.slack.com
+      name: QSym² workspace on Slack
+    - icon: fontawesome/brands/orcid
+      link: https://orcid.org/0000-0002-5226-4054
+      name: Bang C. Huynh's ORCID
+extra_css:
+  - stylesheets/qsym2-light.css
+  - stylesheets/qsym2-dark.css
+  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.css
+extra_javascript:
+  - javascripts/katex.js
+  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.js
+  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/contrib/auto-render.min.js
+    # - javascripts/mathjax.js
+    # - https://polyfill.io/v3/polyfill.min.js?features=es6
+    # - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

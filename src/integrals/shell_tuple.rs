@@ -420,6 +420,7 @@ macro_rules! impl_shell_tuple {
                     })
                     .collect::<Vec<_>>();
 
+                log::debug!("Generated unique permutation: {ordered_shell_index:?}");
                 self.index += 1;
                 Some((shell_tuple, ordered_shell_index, equiv_perms))
             }

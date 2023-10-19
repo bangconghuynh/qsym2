@@ -12,8 +12,8 @@
     --md-primary-bg-color--lightest:     hsla(0, 0%, 100%, 0.12);
 
     /* Accent color shades */
-    --md-accent-fg-color:                hsla(122.45, 37.40%, 74.31%, 1);
-    --md-accent-fg-color--transparent:   hsla(122.45, 37.40%, 74.31%, 0.2);
+    --md-accent-fg-color:                hsla(122.45, 37.40%, 54.31%, 1);
+    --md-accent-fg-color--transparent:   hsla(122.45, 37.40%, 54.31%, 0.2);
     --md-accent-bg-color:                var(--md-primary-bg-color);
     --md-accent-bg-color--light:         var(--md-primary-bg-color--light);
 
@@ -74,8 +74,8 @@
     --md-admonition-bg-color:            var(--md-default-bg-color);
 
     /* Warning color shades */
-    --md-warning-fg-color:              hsla(0, 0%, 0%, 0.87);
-    --md-warning-bg-color:              hsla(60, 100%, 80%, 1);
+    --md-warning-fg-color:               hsla(0, 0%, 0%, 0.87);
+    --md-warning-bg-color:               hsla(60, 100%, 80%, 1);
 
     /* Footer color shades */
     --md-footer-fg-color:                hsla(0, 0%, 100%, 1);
@@ -83,47 +83,4 @@
     --md-footer-fg-color--lighter:       hsla(0, 0%, 100%, 0.45);
     --md-footer-bg-color:                hsla(0, 0%, 0%, 0.87);
     --md-footer-bg-color--dark:          hsla(0, 0%, 0%, 0.32);
-
-    /* Shadow depth 1 */
-    /* --md-shadow-z1: */
-    /*   0 #{px2rem(4px)} #{px2rem(10px)} hsla(0, 0%, 0%, 0.05), */
-    /*   0 0              #{px2rem(1px)}  hsla(0, 0%, 0%, 0.1); */
-
-    /* Shadow depth 2 */
-    /* --md-shadow-z2: */
-    /*   0 #{px2rem(4px)} #{px2rem(10px)} hsla(0, 0%, 0%, 0.1), */
-    /*   0 0              #{px2rem(1px)}  hsla(0, 0%, 0%, 0.25); */
-
-    /* Shadow depth 3 */
-    /* --md-shadow-z3: */
-    /*   0 #{px2rem(4px)} #{px2rem(10px)} hsla(0, 0%, 0%, 0.2), */
-    /*   0 0              #{px2rem(1px)}  hsla(0, 0%, 0%, 0.35); */
-
-    /* Header: title color shade */
-    /* .md-header { */
-    /*     color: hsla(169.87, 100.00%, 13.10%, 1); */
-    /* } */
-
-    /* Navigation tabs: text color shades */
-    /* .md-tabs { */
-    /*     color: hsla(169.87, 100.00%, 13.10%, 1); */
-    /* } */
-
-    /* Search box */
-    /* .md-search { */
-    /*     /* Search icon color shade */ */
-    /*     .md-search__icon { */
-    /*         color: hsla(169.87, 100.00%, 13.10%, 1); */
-    /*     } */
-    /**/
-    /*     /* Search placeholder text color shade */ */
-    /*     ::placeholder { */
-    /*         color: hsla(169.87, 100.00%, 13.10%, 1); */
-    /*     } */
-    /* } */
-
-    /* Annotation tooltips */
-    /* .md-tooltip { */
-    /*     background-color: hsla(169.87, 100.00%, 13.10%, 1); */
-    /* } */
 }
