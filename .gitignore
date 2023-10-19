@@ -1,5 +1,9 @@
+# Rust
 /target
 /wheelhouse
 
-# vim
+# mim
 *.swp
+
+# mkdocs
+**/site/
