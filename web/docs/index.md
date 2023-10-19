@@ -7,6 +7,10 @@ description: "QSym²: a program for Quantum Symbolic Symmetry"
   ![QSym²](assets/logos/qsym2_logo_no_text_no_background.svg){ width="150" }
 </figure>
 
+<p style="text-align: center;">
+  A program for <b>Q</b>uantum <b>Sym</b>bolic <b>Sym</b>metry
+</p>
+
 -------
 
 # A program for **Q**uantum **Sym**bolic **Sym**metry
