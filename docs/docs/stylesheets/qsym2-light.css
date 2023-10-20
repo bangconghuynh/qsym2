@@ -84,3 +84,8 @@
     --md-footer-bg-color:                hsla(0, 0%, 0%, 0.87);
     --md-footer-bg-color--dark:          hsla(0, 0%, 0%, 0.32);
 }
+
+[data-md-color-scheme="qsym2-light"] img[src$="#only-dark"],
+[data-md-color-scheme="qsym2-light"] img[src$="#gh-dark-mode-only"] {
+    display: none; /* Hide dark images in light mode */
+}
