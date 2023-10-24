@@ -60,7 +60,7 @@
     --md-typeset-kbd-border-color:     hsla(var(--md-hue), 15%, 14%, 1);
 
     /* Typeset `mark` color shades */
-    --md-typeset-mark-color:           hsla(#{hex2hsl($clr-blue-a200)}, 0.3);
+    /* --md-typeset-mark-color:           hsla(#{hex2hsl($clr-blue-a200)}, 0.3); */
 
     /* Typeset `table` color shades */
     --md-typeset-table-color:          hsla(var(--md-hue), 15%, 95%, 0.12);
@@ -73,6 +73,27 @@
     /* Footer color shades */
     --md-footer-bg-color:              hsla(var(--md-hue), 15%, 10%, 0.87);
     --md-footer-bg-color--dark:        hsla(var(--md-hue), 15%, 8%, 1);
+
+    /* Banner */
+    --md-primary-banner-fg-color:      hsla(169.00, 46.00%, 64.00%, 1);
+    --md-emphasised-button-bg-color:   var(--md-primary-banner-fg-color);
+    --md-emphasised-button-fg-color:   hsla(0.00, 0.00%, 0.00%, 1);
+    --md-accent-button-bg-color:       hsla(48.90, 98.04%, 50.00%, 1);
+    --md-primary-button-fg-color:      var(--md-primary-banner-fg-color);
+
+    /* Special heading */
+    --md-primary-special-h1-color:     var(--md-primary-banner-fg-color);
+
+    /* Card */
+    --md-primary-card-bg-color:        hsla(0.00, 0.00%, 0%, 1);
+    --md-primary-card-border-color:    hsla(0.00, 0.00%, 20%, 1);
+    --md-primary-card-text-color:      hsla(0.00, 0.00%, 80%, 1);
+    --md-primary-card-title-color:     hsla(0.00, 0.00%, 80%, 1);
+    --md-accent-card-border-color:     var(--md-accent-button-bg-color);
+    --md-accent-card-text-color:       hsla(0.00, 0.00%, 100%, 1);
+    --md-accent-card-title-color:      hsla(0.00, 0.00%, 100%, 1);
+    --md-primary-card-shadow:          0 0 0 0 rgba(136, 144, 195, 0.2);
+    --md-accent-card-shadow:           0 0 0 0 rgba(136, 144, 195, 0.2);
 }
 
 [data-md-color-scheme="qsym2-dark"] img[src$="#only-light"],

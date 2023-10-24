@@ -83,6 +83,21 @@
     --md-footer-fg-color--lighter:       hsla(0, 0%, 100%, 0.45);
     --md-footer-bg-color:                hsla(0, 0%, 0%, 0.87);
     --md-footer-bg-color--dark:          hsla(0, 0%, 0%, 0.32);
+
+    /* Card */
+    --md-primary-card-bg-color:        hsla(0, 0%, 100%, 1);
+    --md-primary-card-border-color:    hsla(0.00, 0.00%, 74.12%, 1);
+    --md-primary-card-text-color:      hsla(0.00, 0.00%, 20%, 1);
+    --md-primary-card-title-color:     hsla(0.00, 0.00%, 20%, 1);
+    --md-accent-card-border-color:     hsla(339.61, 82.19%, 45.57%, 1);
+    --md-accent-card-text-color:       hsla(0.00, 0.00%, 0%, 1);
+    --md-accent-card-title-color:      hsla(0.00, 0.00%, 0%, 1);
+    --md-primary-card-shadow:
+        2px 2px 4px 0 rgba(136, 144, 195, 0.2),
+        0 5px 10px 0 rgba(37, 44, 97, 0.15);
+    --md-accent-card-shadow:
+        2px 2px 6px 2px rgba(136, 144, 195, 0.2),
+        0 5px 12px 2px rgba(37, 44, 97, 0.15);
 }
 
 [data-md-color-scheme="qsym2-light"] img[src$="#only-dark"],

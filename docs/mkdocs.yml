@@ -30,6 +30,7 @@ theme:
     - content.code.annotate
     - content.code.copy
     - navigation.footer
+    - navigation.indexes
     - navigation.tabs
     - navigation.top
     - search.suggest
@@ -65,6 +66,8 @@ extra:
       link: https://orcid.org/0000-0002-5226-4054
       name: Bang C. Huynh's ORCID
 extra_css:
+  - stylesheets/card.css
+  - stylesheets/elements.css
   - stylesheets/qsym2-light.css
   - stylesheets/qsym2-dark.css
   - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.css
