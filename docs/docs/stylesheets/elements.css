@@ -22,7 +22,7 @@
     padding: 0.7em 2em;
     margin-inline: 0.4em;
     margin-top: 0.7em;
-    margin-bottom: 2em;
+    margin-bottom: 0.7em;
     border: 1px solid var(--md-emphasised-button-bg-color);
     border-radius: 5px;
     box-shadow: var(--box-shadow);
@@ -55,8 +55,9 @@
     opacity: 0;
     content: '';
     border-radius: 5px;
+    box-sizing: border-box;
     background-color: var(--md-accent-button-bg-color);
-    border: 1px solid var(--md-accent-button-bg-color);
+    box-shadow: 0 0 0 1px var(--md-accent-button-bg-color);
     z-index: -1;
 }
 
@@ -83,4 +84,14 @@
     font-weight: bold;
     margin-top: 1em;
     margin-bottom: 0.5em;
+}
+
+#quest-logo {
+    width: auto;
+    height: 5em;
+}
+
+#questview-logo {
+    width: auto;
+    height: 5em;
 }

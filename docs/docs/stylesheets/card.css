@@ -13,7 +13,7 @@
     flex: 1 30%;
     background: var(--md-primary-card-bg-color);
     box-shadow: var(--md-primary-card-shadow);
-    border-radius: 7px;
+    border-radius: 5px;
     border: 1.5px solid var(--md-primary-card-border-color);
     margin: 8px;
     padding: 10px 15px;

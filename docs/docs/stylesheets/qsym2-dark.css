@@ -78,7 +78,7 @@
     --md-primary-banner-fg-color:      hsla(169.00, 46.00%, 64.00%, 1);
     --md-emphasised-button-bg-color:   var(--md-primary-banner-fg-color);
     --md-emphasised-button-fg-color:   hsla(0.00, 0.00%, 0.00%, 1);
-    --md-accent-button-bg-color:       hsla(48.90, 98.04%, 50.00%, 1);
+    --md-accent-button-bg-color:       hsla(48.90, 98.04%, 55.00%, 1);
     --md-primary-button-fg-color:      var(--md-primary-banner-fg-color);
 
     /* Special heading */
@@ -87,11 +87,11 @@
     /* Card */
     --md-primary-card-bg-color:        hsla(0.00, 0.00%, 0%, 1);
     --md-primary-card-border-color:    hsla(0.00, 0.00%, 20%, 1);
-    --md-primary-card-text-color:      hsla(0.00, 0.00%, 80%, 1);
-    --md-primary-card-title-color:     hsla(0.00, 0.00%, 80%, 1);
+    --md-primary-card-text-color:      hsla(0.00, 0.00%, 75%, 1);
+    --md-primary-card-title-color:     var(--md-primary-card-text-color);
     --md-accent-card-border-color:     var(--md-accent-button-bg-color);
     --md-accent-card-text-color:       hsla(0.00, 0.00%, 100%, 1);
-    --md-accent-card-title-color:      hsla(0.00, 0.00%, 100%, 1);
+    --md-accent-card-title-color:      var(--md-accent-card-text-color);
     --md-primary-card-shadow:          0 0 0 0 rgba(136, 144, 195, 0.2);
     --md-accent-card-shadow:           0 0 0 0 rgba(136, 144, 195, 0.2);
 }
