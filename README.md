@@ -33,7 +33,7 @@ Developmental and programming issues with the crate `qsym2` can be reported on [
 
 The following instructions for installing QSym² from source are specific to Debian/Ubuntu operating systems. On Microsoft Windows platforms, Windows Subsystem for Linux is recommended.
 
-### Features
+### Rust features
 
 The QSym² crate defines the following features that can be specified at compilation via `cargo`. Some of these features are mutually exclusive.
 
@@ -114,7 +114,7 @@ The following instructions assume that the `full` feature is to be installed on 
     ```
     which will compile and install the `qsym2` binary into `$HOME/.cargo/bin` to allow for system-wide availability.
 
-    Note that the `--features` option in the command above specifies that the `full` feature is to be installed. This option accepts a comma-separated list of features listed in the [**Features**](#features) section and can be modified to select other features to be installed as appropriate.
+    Note that the `--features` option in the command above specifies that the `full` feature is to be installed. This option accepts a comma-separated list of features listed in the [**Rust features**](#rust-features) section and can be modified to select other features to be installed as appropriate.
     
     It is possible to install the `qsym2` binary into a different path by running
     ```bash
@@ -224,6 +224,6 @@ Another example where the Python bindings of QSym² are used extensively for the
 
 ## Authors and acknowledgement
 
-QSym² is developed and maintained by Dr [Bang C. Huynh](https://orcid.org/0000-0002-5226-4054) at the University of Nottingham, UK with scientific support from Prof. [Andrew M. Wibowo-Teale](https://orcid.org/0000-0001-9617-1143) and Dr [Meilani Wibowo-Teale](https://orcid.org/0000-0003-2462-3328) and financial support from the ERC grant under the *topDFT* project.
+QSym² has been developed and maintained by Dr [Bang C. Huynh](https://orcid.org/0000-0002-5226-4054) at the University of Nottingham, UK since July 2022 with scientific support from Prof. [Andrew M. Wibowo-Teale](https://orcid.org/0000-0001-9617-1143) and Dr [Meilani Wibowo-Teale](https://orcid.org/0000-0003-2462-3328) and financial support from the ERC grant under the *topDFT* project.
 
 The logo for QSym², which is a stylised stellated octahedron, was designed with artistic support from Mr [Thinh Nguyen](https://www.linkedin.com/in/thinh-nguyen-a38b7856/).

@@ -18,20 +18,19 @@ hide:
     <p>
         A program for <b>Q</b>uantum <b>Sym</b>bolic <b>Sym</b>metry
     </p>
-
     <div class="container"; style="margin-bottom:3em;">
         <div class="row">
             <div class="col-sl-2 col-sl-2">
-                <button class="emphasised">Get Started</button>
-                <button class="primary" onclick="location.href='#features'">Learn More</button>
+                <button class="emphasised" onclick="location.href='getting-started/prerequisites'">Get started</button>
+                <button class="primary" onclick="location.href='#capabilities'">Learn more</button>
             </div>
         </div>
     </div>
 </div>
 <hr/>
-<section id="features">
+<section id="capabilities">
     <div class="qsym2_heading">
-        <h1>Features</h1>
+        <h1>Capabilities</h1>
     </div>
     <div class="container"; style="margin-bottom:3em;">
         <div class="row">
@@ -89,7 +88,7 @@ hide:
                         </div>
                         <div class="card_description">
                             <p>
-                                Via proper treatment of anti-unitary operators, QSym² can analyse magnetic symmetry using Wigner's corepresentation theory.
+                                Via a proper treatment of anti-unitary operators, QSym² can analyse magnetic symmetry using Wigner's corepresentation theory.
                             </p>
                         </div>
                     </div>
@@ -112,9 +111,9 @@ hide:
 
 <hr>
 
-<section id="implementors">
+<section id="adoptors">
     <div class="qsym2_heading">
-        <h1 align="right">Implementors</h1>
+        <h1>Adoptors</h1>
     </div>
     <div class="container"; style="margin-bottom:3em;">
         <div class="row">

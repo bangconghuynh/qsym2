@@ -37,21 +37,21 @@ theme:
 markdown_extensions:
   - admonition
   - attr_list
+  - md_in_html
   - pymdownx.details
-  - pymdownx.emoji:
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
       auto_title: true
       line_spans: __span
+      use_pygments: true
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
-  - md_in_html
+  - toc:
+      permalink: true
 plugins:
   - search
   - social
@@ -76,6 +76,12 @@ extra_javascript:
   - javascripts/katex.js
   - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.js
   - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/contrib/auto-render.min.js
-    # - javascripts/mathjax.js
-    # - https://polyfill.io/v3/polyfill.min.js?features=es6
-    # - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+nav:
+  - 'index.md'
+  - Getting started:
+    - 'getting-started/prerequisites.md'
+    - 'getting-started/installation.md'
+  - About:
+    - 'about/authors.md'
+    - 'about/license.md'
+  - API documentation: "https://api.qsym2.dev/"

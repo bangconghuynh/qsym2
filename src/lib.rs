@@ -107,10 +107,11 @@
 //!
 //! ## Authors and acknowledgement
 //!
-//! QSym² is developed and maintained by
+//! QSym² has been developed and maintained by
 //! Dr [Bang C. Huynh](https://orcid.org/0000-0002-5226-4054) at the University of Nottingham, UK
-//! with scientific support from Prof. [Andrew M. Wibowo-Teale](https://orcid.org/0000-0001-9617-1143)
-//! and Dr [Meilani Wibowo-Teale](https://orcid.org/0000-0003-2462-3328) and financial support from
+//! since July 2022 with scientific support from Prof.
+//! [Andrew M. Wibowo-Teale](https://orcid.org/0000-0001-9617-1143) and Dr
+//! [Meilani Wibowo-Teale](https://orcid.org/0000-0003-2462-3328) and financial support from
 //! the ERC grant under the *topDFT* project.
 //!
 //! The logo for QSym², which is a stylised stellated octahedron, was designed with
