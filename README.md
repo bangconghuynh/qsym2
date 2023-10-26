@@ -155,14 +155,14 @@ There are two main ways of running QSym²:
 
 This method is currently able to perform symmetry analysis of:
 - Slater determinants,
-- Hartree--Fock or Kohn--Sham molecular orbitals, and
+- Hartree&ndash;Fock or Kohn&ndash;Sham molecular orbitals, and
 - vibrational coordinates
 
 that have been exported by Q-Chem 6 to a HDF5 file named `qarchive.h5` saved in the job's scratch directory,
 
 or
 - Slater determinants, and
-- Hartree--Fock or Kohn--Sham molecular orbitals
+- Hartree&ndash;Fock or Kohn&ndash;Sham molecular orbitals
 
 that have been stored in binary files, together with other basis-set-related data.
 
@@ -214,7 +214,7 @@ Examples of symmetry analysis performed by QSym² for several Q-Chem calculation
 
 This method is currently able to perform symmetry analysis of:
 - Slater determinants,
-- Hartree--Fock or Kohn--Sham molecular orbitals,
+- Hartree&ndash;Fock or Kohn&ndash;Sham molecular orbitals,
 - vibrational coordinates, and
 - one-electron densities
 
