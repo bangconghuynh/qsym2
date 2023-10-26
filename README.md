@@ -145,9 +145,13 @@ The following instructions assume that the `openblas-static`, `integrals`, and `
 
 ## Usage
 
-There are two main ways of running QSym²: either via the command-line interface provided by the binary `qsym2`, or via the exposed Python bindings.
+There are two main ways of running QSym²:
+- via the command-line interface provided by the binary `qsym2`, or
+- via the exposed Python bindings.
 
 ### Command-line interface
+
+#### Scope
 
 This method is currently able to perform symmetry analysis of:
 - Slater determinants,
@@ -161,6 +165,8 @@ or
 - Hartree--Fock or Kohn--Sham molecular orbitals
 
 that have been stored in binary files, together with other basis-set-related data.
+
+#### Instructions
 
 The command-line interface supports several subcommands and options:
 ```bash
@@ -204,6 +210,8 @@ Examples of symmetry analysis performed by QSym² for several Q-Chem calculation
 
 ### Python interface
 
+#### Scope
+
 This method is currently able to perform symmetry analysis of:
 - Slater determinants,
 - Hartree--Fock or Kohn--Sham molecular orbitals,
@@ -211,6 +219,8 @@ This method is currently able to perform symmetry analysis of:
 - one-electron densities
 
 that can be computed directly in Python or read into Python from calculation files of quantum-chemistry packages, such as by the use of [cclib](https://cclib.github.io/). The main driver functions of QSym² are all exposed to Python, which means that they can be used and integrated into existing workflows flexibly.
+
+#### Instructions
 
 To view the documentation for the Python API, execute the following Python commands inside the `qsym2-python` conda environment (see [above](#python-library-compilation)), either interactively or in a Python script:
 ```python

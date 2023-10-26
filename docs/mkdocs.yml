@@ -81,6 +81,7 @@ nav:
   - Getting started:
     - 'getting-started/prerequisites.md'
     - 'getting-started/installation.md'
+    - 'getting-started/basic-usage.md'
   - About:
     - 'about/authors.md'
     - 'about/license.md'
