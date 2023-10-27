@@ -139,10 +139,10 @@ pages:
   script:
     - cargo doc --no-deps --features full,python
     - mv target/doc public/api
-    - mkdir public/api/images
-    - cp images/qsym2_logo_no_text_no_background.svg public/api/images
-    - cp images/qsym2_icon.png public/api/images
-    # - echo '<meta http-equiv="refresh" content="0; url=qsym2/index.html">' > public/index.html
+    # - mkdir public/api/images
+    # - cp images/qsym2_logo_no_text_no_background.svg public/api/images
+    # - cp images/qsym2_icon.png public/api/images
+    - echo '<meta http-equiv="refresh" content="0; url=api/qsym2/index.html">' > public/api/index.html
   needs:
     - job: mkdocs
       artifacts: true

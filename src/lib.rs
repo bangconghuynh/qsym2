@@ -1,6 +1,6 @@
 #![doc(
-    html_logo_url = "https://api.qsym2.dev/images/qsym2_logo_no_text_no_background.svg",
-    html_favicon_url = "https://api.qsym2.dev/images/qsym2_icon.png"
+    html_logo_url = "https://www.qsym2.dev/assets/logos/qsym2_logo_no_text_no_background.svg",
+    html_favicon_url = "https://www.qsym2.dev/assets/logos/qsym2_icon.png"
 )]
 
 //! # QSym²: A Program for Quantum Symbolic Symmetry
