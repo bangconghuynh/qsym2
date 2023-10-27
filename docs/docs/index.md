@@ -1,13 +1,10 @@
 ---
-title: Home
+title: QSym²
 description: "QSym²: a program for Quantum Symbolic Symmetry"
 icon: material/home
 hide:
   - navigation
   - toc
-social:
-  cards_layout_options:
-    title: Welcome to QSym²!
 ---
 
 <div class="qsym2_banner">

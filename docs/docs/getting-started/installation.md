@@ -1,3 +1,8 @@
+---
+title: Installation
+description: Installation instructions for QSym²
+---
+
 # Installation
 
 The following instructions for installing QSym² from source are specific to Linux operating systems. On Microsoft Windows platforms, Windows Subsystem for Linux is recommended.

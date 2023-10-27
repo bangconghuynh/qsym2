@@ -1,3 +1,10 @@
+---
+title: Prerequisites
+description: Requirements for installing QSym²
+---
+
+# Prerequisites
+
 ## Rust features
 
 The QSym² crate defines the following features that can be specified at compilation via `cargo`. Some of these features are mutually exclusive.

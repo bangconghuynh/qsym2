@@ -1,3 +1,8 @@
+---
+title: Symmetry group detection
+description: Configurable parameters for symmetry group detection
+---
+
 # Symmetry group detection
 
 === "Binary"

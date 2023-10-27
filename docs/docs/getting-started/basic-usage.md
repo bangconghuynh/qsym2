@@ -1,3 +1,8 @@
+---
+title: Basic usage
+description: Basic usage of QSym²
+---
+
 # Basic usage
 
 There are two main ways of running QSym²:

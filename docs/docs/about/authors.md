@@ -1,3 +1,8 @@
+---
+title: Authors
+description: Authors of QSym²
+---
+
 # Development
 
 ## Authors
