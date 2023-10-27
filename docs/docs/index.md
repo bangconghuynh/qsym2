@@ -1,16 +1,11 @@
 ---
 title: Home
 description: "QSym²: a program for Quantum Symbolic Symmetry"
+icon: material/home
 hide:
   - navigation
   - toc
 ---
-
-<!-- <style> -->
-<!--     .md-typeset h1 { -->
-<!--         display: none; -->
-<!--     } -->
-<!-- </style> -->
 
 <div class="qsym2_banner">
     <img src="assets/logos/qsym2_logo_no_background_light.svg#only-dark" alt="QSym² logo (light)">
