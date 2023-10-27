@@ -99,7 +99,7 @@ nav:
       - user-guide/representation-analysis/vibrational-coordinates.md
       - user-guide/representation-analysis/electron-densities.md
   - Developer guide:
-    - API documentation: https://api.qsym2.dev/
+    - API documentation: https://www.qsym2.dev/api
   - About:
     - about/authors.md
     - about/license.md
