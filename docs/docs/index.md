@@ -1,7 +1,6 @@
 ---
-title: QSym²
+title: Home
 description: "QSym²: a program for Quantum Symbolic Symmetry"
-icon: material/home
 hide:
   - navigation
   - toc
