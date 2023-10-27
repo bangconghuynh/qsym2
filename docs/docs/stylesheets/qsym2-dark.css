@@ -41,7 +41,7 @@
     --md-code-hl-function-color:       hsla(291, 57%, 65%, 1);
     --md-code-hl-constant-color:       hsla(41, 88%, 50%, 1);
     --md-code-hl-keyword-color:        hsla(353, 82%, 60%, 1);
-    --md-code-hl-string-color:         hsla(150, 58%, 44%, 1);
+    --md-code-hl-string-color:         hsla(58, 98%, 50%, 1);
     --md-code-hl-name-color:           hsla(193, 100%, 69%, 1);
     --md-code-hl-operator-color:       hsla(130, 89%, 45%, 1);
     --md-code-hl-punctuation-color:    var(--md-default-fg-color--light);
