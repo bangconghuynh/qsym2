@@ -60,7 +60,6 @@ markdown_extensions:
 plugins:
   - search
   - social:
-      cards_layout: default/variant
       cards_layout_options:
         color: hsl(169.00, 46.00%, 64.00%)
         background_color: hsl(173.15, 3%, 12%)
