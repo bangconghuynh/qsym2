@@ -59,7 +59,11 @@ markdown_extensions:
       permalink: true
 plugins:
   - search
-  - social
+  - social:
+      cards_layout_options:
+        color: hsl(169.00, 46.00%, 64.00%)
+        background_color: hsla(173.15, 3%, 12%);
+        font_family: Outfit
 extra:
   social:
     - icon: fontawesome/brands/gitlab
