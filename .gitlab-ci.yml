@@ -115,7 +115,7 @@ mkdocs:
   stage: Deploy
   image: python:latest
   script:
-    - pip install mkdocs-material
+    - pip install "mkdocs-material[imaging]"
     - cd docs
     - mkdocs build --site-dir public
   artifacts:
