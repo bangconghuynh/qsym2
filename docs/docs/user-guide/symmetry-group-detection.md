@@ -5,6 +5,8 @@ description: Configurable parameters for symmetry group detection
 
 # Symmetry group detection
 
+## Parameters
+
 === "Binary"
     === "Parameter specification"
         ```yaml
@@ -22,7 +24,7 @@ description: Configurable parameters for symmetry group detection
           - [[0, 0, 0], [0, 0, 1]]
           fictitious_electric_fields: null #(6)!
           field_origin_com: true #(7)!
-          write_symmetry_elements: false #(8)!
+          write_symmetry_elements: true #(8)!
           result_save_name: null #(9)!
         ```
 
@@ -55,22 +57,32 @@ description: Configurable parameters for symmetry group detection
             ("H", [0.0000000,  0.5383520, -0.7830361]),
             ("H", [0.0000000,  0.5383520,  0.7830361]),
         ],
-        threshold=1e-7,
+        threshold=1e-7, #(3)!
     )
 
-    unisym, magsym = detect_symmetry_group( #(3)!
-        inp_xyz=None,
-        inp_mol=pymol,
-        out_sym="mol",
-        moi_thresholds=[1e-2, 1e-4, 1e-6],
-        distance_thresholds=[1e-2, 1e-4, 1e-6],
-        time_reversal=False,
-        write_symmetry_elements=True,
-        fictitious_magnetic_field=None,
-        fictitious_electric_field=None
+    unisym, magsym = detect_symmetry_group( #(4)!
+        inp_xyz=None, #(5)!
+        inp_mol=pymol, #(6)!
+        out_sym="mol", #(7)!
+        moi_thresholds=[1e-2, 1e-4, 1e-6], #(8)!
+        distance_thresholds=[1e-2, 1e-4, 1e-6], #(9)!
+        time_reversal=False, #(10)!
+        fictitious_magnetic_field=[0, 0, 1], #(11)!
+        fictitious_electric_field=None, #(12)!
+        write_symmetry_elements=True, #(13)!
     )
     ```
 
     1. :fontawesome-solid-laptop-code: :fontawesome-solid-users: The [`PyMolecule`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/struct.PyMolecule.html) class, constructible in Python, contains geometry information that can be interpreted by QSym² on the Rust side. The API documentation for this class can be consulted for further information.
     2. :fontawesome-solid-users: The coordinates of the atoms specified in this list can be in any units. QSym² does not care what the actual units are &mdash; symmetry properties are invariant to any change in length scale. The only exception is when QSym² evaluates molecular integrals: here, atomic units will be assumed.
-    3. :fontawesome-solid-users: The [`detect_symmetry_group`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/fn.detect_symmetry_group.html) function performs symmetry group detection and logs the result via the `qsym2-output` logger at the `INFO` level. The API documentation for this function can be consulted for further information.
+    3. :fontawesome-solid-users: This specifies the threshold for comparing molecules. Note that this threshold is not the same as those specified in `detect_symmetry_group` below.
+    4. :fontawesome-solid-users: The [`detect_symmetry_group`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/fn.detect_symmetry_group.html) function performs symmetry group detection and logs the result via the `qsym2-output` logger at the `INFO` level. The API documentation for this function can be consulted for further information.
+    5. :fontawesome-solid-users: This specifies an optional path to an XYZ file containing the geometry of the molecule whose symmetry group is to be determined. One and only one of `inp_xyz` and `inp_mol` must be specified.
+    6. :fontawesome-solid-users: This specifies an optional [`PyMolecule`](https://qsym2.dev/api/qsym2/bindings/python/symmetry_group_detection/struct.PyMolecule.html) object containing the geometry of the molecule whose symmetry group is to be determined. One and only one of `inp_xyz` and `inp_mol` must be specified.
+    7. :fontawesome-solid-users: This specifies an optional name for the `.qsym2.sym` file to be saved that contains the serialised results of the symmetry-group detection. This name does not need to contain the `.qsym2.sym` extension.
+    8. :fontawesome-solid-users: Each element in this list is a threshold for moment-of-inertia comparisons. All pairs of thresholds, one from `moi_thresholds` and one from `distance_thresholds`, will be considered.
+    9. :fontawesome-solid-users: Each element in this list is a threshold for distance and geometry comparisons. All pairs of thresholds, one from `moi_thresholds` and one from `distance_thresholds`, will be considered.
+    10. :fontawesome-solid-users: This boolean indicates if time reversal is to be taken into account.
+    11. :fontawesome-solid-users: This list gives the components of an optional fictitious uniform external magnetic field.
+    12. :fontawesome-solid-users: This list gives the components of an optional fictitious uniform external electric field.
+    13. :fontawesome-solid-users: This boolean indicates if a summary of the located symmetry elements is to be written to the output file.

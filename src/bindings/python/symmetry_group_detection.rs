@@ -386,7 +386,7 @@ impl TryFrom<&Symmetry> for PySymmetry {
     time_reversal,
     write_symmetry_elements=true,
     fictitious_magnetic_field=None,
-    fictitious_electric_field=None
+    fictitious_electric_field=None,
 ))]
 pub fn detect_symmetry_group(
     py: Python<'_>,
