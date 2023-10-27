@@ -50,6 +50,8 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
   - toc:
       permalink: true
 plugins:
@@ -73,16 +75,31 @@ extra_css:
   - stylesheets/qsym2-dark.css
   - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.css
 extra_javascript:
-  - javascripts/katex.js
-  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.js
-  - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/contrib/auto-render.min.js
+  # - javascripts/katex.js
+  # - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/katex.min.js
+  # - https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.7/contrib/auto-render.min.js
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 nav:
-  - 'index.md'
+  - index.md
   - Getting started:
-    - 'getting-started/prerequisites.md'
-    - 'getting-started/installation.md'
-    - 'getting-started/basic-usage.md'
+    - getting-started/prerequisites.md
+    - getting-started/installation.md
+    - getting-started/basic-usage.md
+  - Methodologies:
+    - methodologies/character-table-generation.md
+    - methodologies/external-fields.md
+    - methodologies/orbit-based-representation-analysis.md
+  - User guide:
+    - user-guide/symmetry-group-detection.md
+    - user-guide/molecule-symmetrisation.md
+    - Representation analysis:
+      - user-guide/representation-analysis/slater-determinant.md
+      - user-guide/representation-analysis/vibrational-coordinates.md
+      - user-guide/representation-analysis/electron-densities.md
+  - Developer guide:
+    - API documentation: https://api.qsym2.dev/
   - About:
-    - 'about/authors.md'
-    - 'about/license.md'
-  - API documentation: "https://api.qsym2.dev/"
+    - about/authors.md
+    - about/license.md

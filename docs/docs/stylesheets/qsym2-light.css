@@ -115,7 +115,3 @@
 [data-md-color-scheme="qsym2-light"] img[src$="#gh-dark-mode-only"] {
     display: none; /* Hide dark images in light mode */
 }
-
-[data-md-color-scheme="qsym2-light"] pre > code {
-    color: var(--md-codeblock-fg-color);
-}

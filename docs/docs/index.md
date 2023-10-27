@@ -36,7 +36,7 @@ hide:
         <div class="row">
             <div class="col-md-3 col-md-3 col-md-3">
                 <div class="card_box">
-                    <div onclick="location.href='#test-maths'" class="card">
+                    <div onclick="location.href='methodologies/character-table-generation'" class="card">
                         <div class="card_title">
                             <div><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m0 4v4h6V8H5m8 0v4h6V8h-6m-8 6v4h6v-4H5m8 0v4h6v-4h-6Z"/></svg></span> Character table generation</div>
                             <hr>
@@ -48,7 +48,7 @@ hide:
                             </p>
                         </div>
                     </div>
-                    <div onclick="location.href='#test-maths'" class="card">
+                    <div onclick="location.href='methodologies/orbit-based-representation-analysis'" class="card">
                         <div class="card_title">
                             <div><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 22v-2h3v-3h2v3.5c0 .39-.16.74-.46 1.04-.3.3-.65.46-1.04.46H17M7 22H3.5c-.39 0-.74-.16-1.04-.46-.3-.3-.46-.65-.46-1.04V17h2v3h3v2M17 2h3.5c.39 0 .74.16 1.04.46.3.3.46.65.46 1.04V7h-2V4h-3V2M7 2v2H4v3H2V3.5c0-.39.16-.74.46-1.04.3-.3.65-.46 1.04-.46H7m6 15.25 4-2.3v-4.59l-4 2.3v4.59m-1-6.33 4-2.29-4-2.35-4 2.35 4 2.29m-5 4.03 4 2.3v-4.59l-4-2.3v4.59m11.23-7.36c.5.32.77.75.77 1.32v6.32c0 .57-.27 1-.77 1.32l-5.48 3.18c-.5.32-1 .32-1.5 0l-5.48-3.18c-.5-.32-.77-.75-.77-1.32V8.91c0-.57.27-1 .77-1.32l5.48-3.18c.25-.13.5-.19.75-.19s.5.06.75.19l5.48 3.18Z"/></svg></span> Degeneracy detection</div>
                             <hr>
@@ -59,7 +59,7 @@ hide:
                             </p>
                         </div>
                     </div>
-                    <div onclick="location.href='#test-maths'" class="card">
+                    <div onclick="location.href='methodologies/orbit-based-representation-analysis'" class="card">
                         <div class="card_title">
                             <div><span class="twemoji lg middle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M192 64v64c0 17.7 14.3 32 32 32h64c17.7 0 32-14.3 32-32V64c0-17.7-14.3-32-32-32h-64c-17.7 0-32 14.3-32 32zM82.7 207c-15.3 8.8-20.5 28.4-11.7 43.7l32 55.4c8.8 15.3 28.4 20.5 43.7 11.7l55.4-32c15.3-8.8 20.5-28.4 11.7-43.7l-32-55.4c-8.8-15.3-28.4-20.5-43.7-11.7l-55.4 32zM288 192c-17.7 0-32 14.3-32 32v64c0 17.7 14.3 32 32 32h64c17.7 0 32-14.3 32-32v-64c0-17.7-14.3-32-32-32h-64zm64 160c-17.7 0-32 14.3-32 32v64c0 17.7 14.3 32 32 32h64c17.7 0 32-14.3 32-32v-64c0-17.7-14.3-32-32-32h-64zm-192 32v64c0 17.7 14.3 32 32 32h64c17.7 0 32-14.3 32-32v-64c0-17.7-14.3-32-32-32h-64c-17.7 0-32 14.3-32 32zM32 352c-17.7 0-32 14.3-32 32v64c0 17.7 14.3 32 32 32h64c17.7 0 32-14.3 32-32v-64c0-17.7-14.3-32-32-32H32z"/></svg></span> Symmetry breaking analysis</div>
                             <hr>
@@ -70,7 +70,7 @@ hide:
                             </p>
                         </div>
                     </div>
-                    <div onclick="location.href='#test-maths'" class="card">
+                    <div onclick="location.href='methodologies/external-fields'" class="card">
                         <div class="card_title">
                             <div><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m10 12 4 4-4 4v-3.1c-4.56-.46-8-2.48-8-4.9 0-2.42 3.44-4.44 8-4.9v1.99C6.55 9.43 4 10.6 4 12c0 1.4 2.55 2.57 6 2.91V12m10 0c0-1.4-2.55-2.57-6-2.91V7.1c4.56.46 8 2.48 8 4.9 0 2.16-2.74 4-6.58 4.7l.7-.7-1.2-1.21C17.89 14.36 20 13.27 20 12M11 2h2v11l-2-2V2m0 20v-1l2-2v3h-2Z"/></svg></span> Symmetry in external fields</div>
                             <hr>
@@ -81,7 +81,7 @@ hide:
                             </p>
                         </div>
                     </div>
-                    <div onclick="location.href='#test-maths'" class="card">
+                    <div onclick="location.href='#'" class="card">
                         <div class="card_title">
                             <div><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" transform="rotate(30)"><path d="M19 4h1V1h-4v3s2 4 2 8-2 7-6 7-6-3-6-7 2-8 2-8V1H4v3h1S2 8 2 14c0 5 5 9 10 9s10-4 10-9c0-6-3-10-3-10M4 13c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1m2 6c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1m6 3c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1m6-3c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1m2-6c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1Z"/></svg></span> Magnetic corepresentations</div>
                             <hr>
@@ -92,7 +92,7 @@ hide:
                             </p>
                         </div>
                     </div>
-                    <div onclick="location.href='#test-maths'" class="card">
+                    <div onclick="location.href='#'" class="card">
                         <div class="card_title">
                             <div><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.807 18.285 13.553.756a1.324 1.324 0 0 0-1.129-.754 1.31 1.31 0 0 0-1.206.626l-8.952 14.5a1.356 1.356 0 0 0 .016 1.455l4.376 6.778a1.408 1.408 0 0 0 1.58.581l12.703-3.757c.389-.115.707-.39.873-.755s.164-.783-.007-1.145zm-1.848.752L9.18 22.224a.452.452 0 0 1-.575-.52l3.85-18.438c.072-.345.549-.4.699-.08l7.129 15.138a.515.515 0 0 1-.325.713z"/></svg></span> Projective (co)representations</div>
                             <hr>

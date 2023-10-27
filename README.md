@@ -33,6 +33,12 @@ Developmental and programming issues with the crate `qsym2` can be reported on [
 
 The following instructions for installing QSym² from source are specific to Debian/Ubuntu operating systems. On Microsoft Windows platforms, Windows Subsystem for Linux is recommended.
 
+There are two main ways of installing QSym²:
+- as a binary named `qsym2` providing the command-line interface, or
+- as a Python library named `qsym2` providing the exposed Python bindings.
+
+Both methods can be configured via Rust features.
+
 ### Rust features
 
 The QSym² crate defines the following features that can be specified at compilation via `cargo`. Some of these features are mutually exclusive.
@@ -84,6 +90,7 @@ The installation of QSym² requires the following:
 | `python`           | Python, which is best managed via Anaconda                                                        | Installs the Python bindings for core functionalities of QSym²                                                                                                                               |
 
 ### Binary compilation
+
 The following instructions assume that the `full` feature is to be installed on a Debian/Ubuntu distro to make available the `qsym2` binary.
 
 1. Install the basic dependencies by running the following commands (sudo privileges required):
@@ -123,6 +130,7 @@ The following instructions assume that the `full` feature is to be installed on 
     instead. The custom path `/custom/install/path/for/qsym2` must then be added to the `$PATH` environment variable to make `qsym2` discoverable by the operating system.
 
 ### Python-library compilation
+
 The following instructions assume that the `openblas-static`, `integrals`, and `python` features are to be compiled on a Debian/Ubuntu distro and then installed as a Python library inside a conda environment. These features are specified in the [`pyproject.toml`](/pyproject.toml) file.
 
 1. Follow steps 1 to 4 under the [**Binary compilation**](#binary-compilation) section above to install the required prerequisites.
@@ -147,7 +155,7 @@ The following instructions assume that the `openblas-static`, `integrals`, and `
 
 There are two main ways of running QSym²:
 - via the command-line interface provided by the binary `qsym2`, or
-- via the exposed Python bindings.
+- via the exposed Python bindings provided by the Python library `qsym2`.
 
 ### Command-line interface
 

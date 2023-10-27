@@ -111,3 +111,7 @@
 .md-typeset h4 {
     font-weight: 500;
 }
+
+.md-typeset pre > code {
+    color: var(--md-codeblock-fg-color);
+}

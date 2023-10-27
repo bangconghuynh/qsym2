@@ -3,7 +3,7 @@
 There are two main ways of running QSym²:
 
 - via the command-line interface provided by the binary `qsym2`, or
-- via the exposed Python bindings.
+- via the exposed Python bindings provided by the Python library `qsym2`.
 
 ## Command-line interface
 
