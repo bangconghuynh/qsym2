@@ -118,6 +118,7 @@ mkdocs:
     - pip install "mkdocs-material[imaging]"
     - cd docs
     - mkdocs build --site-dir public
+    - cd ..
     - mv docs/public .
   artifacts:
     paths:
