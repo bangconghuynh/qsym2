@@ -116,6 +116,7 @@ mkdocs:
   image: python:latest
   script:
     - pip install mkdocs-material
+    - cd docs
     - mkdocs build --site-dir public
   artifacts:
     paths:
