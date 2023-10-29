@@ -38,6 +38,7 @@ markdown_extensions:
   - admonition
   - attr_list
   - md_in_html
+  - pymdownx.caret
   - pymdownx.details
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
@@ -49,8 +50,10 @@ markdown_extensions:
       use_pygments: true
       pygments_lang_class: true
   - pymdownx.inlinehilite
+  - pymdownx.mark
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.tilde
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.arithmatex:
