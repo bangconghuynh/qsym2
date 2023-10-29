@@ -7,8 +7,8 @@ hide:
 ---
 
 <div class="qsym2_banner">
-    <img src="assets/logos/qsym2_logo_no_background_light.svg#only-dark" alt="QSym² logo (light)">
-    <img src="assets/logos/qsym2_logo_no_background_dark.svg#only-light" alt="QSym² logo (dark)">
+    <img src="assets/logos/qsym2_logo_no_background_light_new.svg#only-dark" alt="QSym² logo (light)">
+    <img src="assets/logos/qsym2_logo_no_background_dark_new.svg#only-light" alt="QSym² logo (dark)">
     <p>
         A program for <b>Q</b>uantum <b>Sym</b>bolic <b>Sym</b>metry
     </p>
