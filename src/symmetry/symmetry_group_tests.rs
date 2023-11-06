@@ -9503,6 +9503,16 @@ fn test_ur_group_asymmetric_azulene_magnetic_field_bw_c2v_cs_class_order() {
 }
 
 #[test]
+fn test_ur_group_asymmetric_hf_magnetic_field_bw_c2v_cs() {
+    env_logger::init();
+    let path: String = format!("{}{}", ROOT, "/tests/xyz/hf.xyz");
+    let thresh = 1e-7;
+    let mut mol = Molecule::from_xyz(&path, thresh);
+    mol.set_magnetic_field(Some(Vector3::new(0.1, 0.0, 0.0)));
+    test_ur_magnetic_group(&mol, thresh, "C2v", 4, 4, true, BWGRP);
+}
+
+#[test]
 fn test_ur_group_asymmetric_cis_cocl2h4o2_magnetic_field_cs() {
     let path: String = format!("{}{}", ROOT, "/tests/xyz/cis-cocl2h4o2.xyz");
     let thresh = 1e-7;
