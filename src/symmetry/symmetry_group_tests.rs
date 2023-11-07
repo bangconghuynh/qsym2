@@ -9504,7 +9504,7 @@ fn test_ur_group_asymmetric_azulene_magnetic_field_bw_c2v_cs_class_order() {
 
 #[test]
 fn test_ur_group_asymmetric_hf_magnetic_field_bw_c2v_cs() {
-    env_logger::init();
+    // env_logger::init();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/hf.xyz");
     let thresh = 1e-7;
     let mut mol = Molecule::from_xyz(&path, thresh);
