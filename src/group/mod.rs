@@ -535,7 +535,7 @@ where
             .abstract_group(abstract_group?)
             .build()
             .expect("Unable to construct a unitary group.");
-        unitary_group.compute_class_structure();
+        unitary_group.compute_class_structure()?;
         Ok(unitary_group)
     }
 }
@@ -752,7 +752,7 @@ where
             .unitary_subgroup(unitary_subgroup)
             .build()
             .expect("Unable to construct a magnetic group.");
-        magnetic_group.compute_class_structure();
+        magnetic_group.compute_class_structure()?;
         Ok(magnetic_group)
     }
 }

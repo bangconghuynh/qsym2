@@ -4,7 +4,7 @@ use std::collections::{HashSet, VecDeque};
 use std::fmt;
 use std::ops::Range;
 
-use anyhow;
+use anyhow::{self, format_err};
 use derive_builder::Builder;
 use factorial::Factorial;
 use indexmap::IndexSet;
@@ -348,7 +348,7 @@ impl ClassProperties for PermutationGroup {
     type ClassSymbol = PermutationClassSymbol<u8>;
 
     /// Computes the class structure of this permutation group based on cycle patterns.
-    fn compute_class_structure(&mut self) {
+    fn compute_class_structure(&mut self) -> Result<(), anyhow::Error> {
         log::debug!("Finding all partitions of {}...", self.rank);
         self.cycle_patterns = Some(partitions(self.rank));
         log::debug!("Finding all partitions of {}... Done.", self.rank);
@@ -358,35 +358,34 @@ impl ClassProperties for PermutationGroup {
 
         // For ranks up to 20, the number of classes is at most 627. `u16` is then plenty to store
         // each class index. This helps reduce memory cost a little bit.
-        let mut e2ccs: Vec<(usize, u16)> = Vec::with_capacity(self.order());
-        (0..self.order())
+        let e2ccs: Vec<(usize, u16)> = (0..self.order())
             .into_par_iter()
             .map(|i| {
-                let p_i = Permutation::from_lehmer_index(i, self.rank).unwrap_or_else(|| {
-                    panic!(
+                let p_i = Permutation::from_lehmer_index(i, self.rank).ok_or_else(|| {
+                    format_err!(
                         "Unable to construct a permutation of rank {} with Lehmer index {i}.",
                         self.rank
-                    );
-                });
+                    )
+                })?;
                 let cycle_pattern = p_i.cycle_pattern();
-                let c_i = u16::try_from(
-                    self.cycle_patterns
-                        .as_ref()
-                        .expect("Cycle patterns not found.")
-                        .get_index_of(&cycle_pattern)
-                        .unwrap_or_else(|| {
-                            panic!("Cycle pattern {cycle_pattern:?} is not valid in this group.");
-                        }),
-                )
-                .expect("A class index cannot fit within a `u16`.");
-                (i, c_i)
+                let c_i = self
+                    .cycle_patterns
+                    .as_ref()
+                    .expect("Cycle patterns not found.")
+                    .get_index_of(&cycle_pattern)
+                    .ok_or_else(|| {
+                        format_err!("Cycle pattern {cycle_pattern:?} is not valid in this group.")
+                    })
+                    .and_then(|index| u16::try_from(index).map_err(|err| format_err!(err)))?;
+                Ok::<_, anyhow::Error>((i, c_i))
             })
-            .collect_into_vec(&mut e2ccs);
+            .collect::<Result<Vec<_>, _>>()?;
         e2ccs.into_iter().for_each(|(i, c_i)| {
             conjugacy_classes[usize::from(c_i)].insert(i);
         });
         self.conjugacy_classes = Some(conjugacy_classes);
         log::debug!("Finding conjugacy classes based on cycle patterns in parallel... Done.");
+        Ok(())
     }
 
     fn get_cc_index(&self, cc_idx: usize) -> Option<&HashSet<usize>> {
@@ -539,7 +538,7 @@ impl PermutationGroupProperties for PermutationGroup {
             .build()
             .expect("Unable to construct a `PermutationGroup`.");
         log::debug!("Initialising lazy iterator for permutations of rank {rank}... Done.");
-        group.compute_class_structure();
+        group.compute_class_structure()?;
         group.set_class_symbols_from_cycle_patterns();
         group.construct_irrep_character_table();
         group.canonicalise_character_table();
