@@ -3,6 +3,7 @@
 use anyhow;
 
 pub mod molecule_symmetrisation;
+pub mod molecule_symmetrisation_by_distance_matrix;
 pub mod representation_analysis;
 pub mod symmetry_group_detection;
 
