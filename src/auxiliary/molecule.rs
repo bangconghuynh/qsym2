@@ -380,11 +380,80 @@ impl Molecule {
                 ),
             ],
         );
-        result.0.iter().zip(result.1.iter()).for_each(|(moi, axis)| {
-            log::debug!("Principal moment of inertia: {moi:.14}");
-            log::debug!("  -- Principal axis:\n{axis}");
-        });
         result
+            .0
+            .iter()
+            .zip(result.1.iter())
+            .for_each(|(moi, axis)| {
+                log::debug!("Principal moment of inertia: {moi:.14}");
+                log::debug!("  -- Principal axis:\n{axis}");
+            });
+        result
+    }
+
+    /// Determines the interatomic distance matrix and the indices of symmetry-equivalent atoms.
+    ///
+    /// This *does* take into account fictitious special atoms.
+    ///
+    /// # Returns
+    ///
+    /// * A vector of columns of *sorted* distances. Column $`j`$ contains the mass-weighted
+    /// interatomic distances from atom $`j`$ to all other atoms (both ordinary and fictitious) in
+    /// the molecule. So the overall distance matrix is tall and thin when fictitious atoms are
+    /// present. Note that the distances in each column are sorted in ascending order.
+    /// * A vector of vectors of symmetry-equivalent atom indices. Each inner vector contains
+    /// indices of atoms in one SEA group. Only *ordinary* atoms are contained here.
+    fn calc_interatomic_distance_matrix(&self) -> (Vec<DVector<f64>>, Vec<Vec<usize>>) {
+        let atoms = &self.atoms;
+        let all_atoms = &self.get_all_atoms();
+        // let ord_coords: Vec<_> = atoms.iter().map(|atm| atm.coordinates).collect();
+        let all_coords: Vec<_> = all_atoms.iter().map(|atm| atm.coordinates).collect();
+        let all_masses: Vec<_> = all_atoms.iter().map(|atm| atm.atomic_mass).collect();
+        let mut dist_columns: Vec<DVector<f64>> = vec![];
+
+        // Determine indices of symmetry-equivalent atoms
+        let mut equiv_indicess: Vec<Vec<usize>> = vec![vec![0]];
+        for (j, coord_j) in all_coords.iter().enumerate() {
+            // column_j is the j-th column in the mass-weighted interatomic
+            // distance matrix. This column contains distances from ordinary atom j
+            // to all other atoms (both ordinary and fictitious) in the molecule.
+            // So this distance matrix is tall and thin when fictitious atoms are present.
+            let mut column_j: Vec<f64> = vec![];
+            for (i, coord_i) in all_coords.iter().enumerate() {
+                let diff = coord_j - coord_i;
+                column_j.push(diff.norm() / all_masses[i]);
+            }
+            column_j.sort_by(|a, b| {
+                a.partial_cmp(b).unwrap_or_else(|| {
+                    panic!("Mass-weighted interatomic distances {a} and {b} cannot be compared.")
+                })
+            });
+            let column_j_vec = DVector::from_vec(column_j);
+            if j == 0 {
+                dist_columns.push(column_j_vec);
+            } else {
+                let equiv_set_search = equiv_indicess.iter().position(|equiv_indices| {
+                    dist_columns[equiv_indices[0]].relative_eq(
+                        &column_j_vec,
+                        self.threshold,
+                        self.threshold,
+                    ) && match (&all_atoms[j].kind, &all_atoms[equiv_indices[0]].kind) {
+                        (AtomKind::Ordinary, AtomKind::Ordinary)
+                        | (AtomKind::Magnetic(_), AtomKind::Magnetic(_))
+                        | (AtomKind::Electric(_), AtomKind::Electric(_)) => true,
+                        _ => false,
+                    }
+                });
+                dist_columns.push(column_j_vec);
+                if let Some(index) = equiv_set_search {
+                    equiv_indicess[index].push(j);
+                } else {
+                    equiv_indicess.push(vec![j]);
+                };
+            }
+        }
+
+        (dist_columns, equiv_indicess)
     }
 
     /// Determines the sets of symmetry-equivalent atoms.
@@ -401,108 +470,112 @@ impl Molecule {
     /// Panics when the any of the mass-weighted interatomic distances cannot be compared.
     #[must_use]
     pub fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
+        // Ordinary atoms only
         let atoms = &self.atoms;
         let all_atoms = &self.get_all_atoms();
-        let ord_coords: Vec<_> = atoms.iter().map(|atm| atm.coordinates).collect();
-        let all_coords: Vec<_> = all_atoms.iter().map(|atm| atm.coordinates).collect();
-        let all_masses: Vec<_> = all_atoms.iter().map(|atm| atm.atomic_mass).collect();
-        let mut dist_columns: Vec<DVector<f64>> = vec![];
-
-        // Determine indices of symmetry-equivalent atoms
-        let mut equiv_indicess: Vec<Vec<usize>> = vec![vec![0]];
-        for (j, coord_j) in ord_coords.iter().enumerate() {
-            // column_j is the j-th column in the mass-weighted interatomic
-            // distance matrix. This column contains distances from ordinary atom j
-            // to all other atoms (both ordinary and fictitious) in the molecule.
-            // So this distance matrix is tall and thin when fictitious atoms are present.
-            let mut column_j: Vec<f64> = vec![];
-            for (i, coord_i) in all_coords.iter().enumerate() {
-                let diff = coord_j - coord_i;
-                column_j.push(diff.norm() / all_masses[i]);
-            }
-            column_j.sort_by(|a, b| {
-                a.partial_cmp(b)
-                    .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
-            });
-            let column_j_vec = DVector::from_vec(column_j);
-            if j == 0 {
-                dist_columns.push(column_j_vec);
-            } else {
-                let equiv_set_search = equiv_indicess.iter().position(|equiv_indices| {
-                    dist_columns[equiv_indices[0]].relative_eq(
-                        &column_j_vec,
-                        self.threshold,
-                        self.threshold,
-                    )
-                });
-                dist_columns.push(column_j_vec);
-                if let Some(index) = equiv_set_search {
-                    equiv_indicess[index].push(j);
-                } else {
-                    equiv_indicess.push(vec![j]);
-                };
-            }
-        }
-        let mut sea_groups: Vec<Vec<Atom>> = equiv_indicess
+        // let ord_coords: Vec<_> = atoms.iter().map(|atm| atm.coordinates).collect();
+        // let all_coords: Vec<_> = all_atoms.iter().map(|atm| atm.coordinates).collect();
+        // let all_masses: Vec<_> = all_atoms.iter().map(|atm| atm.atomic_mass).collect();
+        // let mut dist_columns: Vec<DVector<f64>> = vec![];
+        //
+        // // Determine indices of symmetry-equivalent atoms
+        // let mut equiv_indicess: Vec<Vec<usize>> = vec![vec![0]];
+        // for (j, coord_j) in ord_coords.iter().enumerate() {
+        //     // column_j is the j-th column in the mass-weighted interatomic
+        //     // distance matrix. This column contains distances from ordinary atom j
+        //     // to all other atoms (both ordinary and fictitious) in the molecule.
+        //     // So this distance matrix is tall and thin when fictitious atoms are present.
+        //     let mut column_j: Vec<f64> = vec![];
+        //     for (i, coord_i) in all_coords.iter().enumerate() {
+        //         let diff = coord_j - coord_i;
+        //         column_j.push(diff.norm() / all_masses[i]);
+        //     }
+        //     column_j.sort_by(|a, b| {
+        //         a.partial_cmp(b)
+        //             .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
+        //     });
+        //     let column_j_vec = DVector::from_vec(column_j);
+        //     if j == 0 {
+        //         dist_columns.push(column_j_vec);
+        //     } else {
+        //         let equiv_set_search = equiv_indicess.iter().position(|equiv_indices| {
+        //             dist_columns[equiv_indices[0]].relative_eq(
+        //                 &column_j_vec,
+        //                 self.threshold,
+        //                 self.threshold,
+        //             )
+        //         });
+        //         dist_columns.push(column_j_vec);
+        //         if let Some(index) = equiv_set_search {
+        //             equiv_indicess[index].push(j);
+        //         } else {
+        //             equiv_indicess.push(vec![j]);
+        //         };
+        //     }
+        // }
+        let (_, equiv_indicess) = self.calc_interatomic_distance_matrix();
+        let sea_groups: Vec<Vec<Atom>> = equiv_indicess
             .iter()
             .map(|equiv_indices| {
                 equiv_indices
                     .iter()
-                    .map(|index| atoms[*index].clone())
+                    .map(|index| all_atoms[*index].clone())
                     .collect()
             })
             .collect();
 
-        if let Some(magnetic_atoms) = &self.magnetic_atoms {
-            // sea_groups.push(vec![magnetic_atoms[0].clone(), magnetic_atoms[1].clone()]);
+        // if let Some(magnetic_atoms) = &self.magnetic_atoms {
+        //     let mag_coords: Vec<_> = magnetic_atoms.iter().map(|atm| atm.coordinates).collect();
+        //     let mut equiv_mag_indicess: Vec<Vec<usize>> = vec![vec![0]];
+        //     let mut mag_dist_columns: Vec<DVector<f64>> = vec![];
+        //     for (j, coord_j) in mag_coords.iter().enumerate() {
+        //         // column_j is the j-th column in the mass-weighted interatomic
+        //         // distance matrix. This column contains distances from ordinary atom j
+        //         // to all other atoms (both ordinary and fictitious) in the molecule.
+        //         // So this distance matrix is tall and thin when fictitious atoms are present.
+        //         let mut column_j: Vec<f64> = vec![];
+        //         for (i, coord_i) in all_coords.iter().enumerate() {
+        //             let diff = coord_j - coord_i;
+        //             column_j.push(diff.norm() / all_masses[i]);
+        //         }
+        //         column_j.sort_by(|a, b| {
+        //             a.partial_cmp(b)
+        //                 .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
+        //         });
+        //         let column_j_vec = DVector::from_vec(column_j);
+        //         if j == 0 {
+        //             mag_dist_columns.push(column_j_vec);
+        //         } else {
+        //             let equiv_set_search = equiv_mag_indicess.iter().position(|equiv_indices| {
+        //                 mag_dist_columns[equiv_indices[0]].relative_eq(
+        //                     &column_j_vec,
+        //                     self.threshold,
+        //                     self.threshold,
+        //                 )
+        //             });
+        //             mag_dist_columns.push(column_j_vec);
+        //             if let Some(index) = equiv_set_search {
+        //                 equiv_mag_indicess[index].push(j);
+        //             } else {
+        //                 equiv_mag_indicess.push(vec![j]);
+        //             };
+        //         }
+        //     }
+        //     equiv_mag_indicess.iter().for_each(|equiv_mag_indices| {
+        //         let equiv_mag_atoms = equiv_mag_indices
+        //             .iter()
+        //             .map(|index| magnetic_atoms[*index].clone())
+        //             .collect();
+        //         sea_groups.push(equiv_mag_atoms);
+        //     });
+        // }
+        //
+        // if let Some(electric_atoms) = &self.electric_atoms {
+        //     for electric_atom in electric_atoms {
+        //         sea_groups.push(vec![electric_atom.clone()]);
+        //     }
+        // }
 
-            let mag_coords: Vec<_> = magnetic_atoms.iter().map(|atm| atm.coordinates).collect();
-            let mut equiv_mag_indicess: Vec<Vec<usize>> = vec![vec![0]];
-            let mut mag_dist_columns: Vec<DVector<f64>> = vec![];
-            for (j, coord_j) in mag_coords.iter().enumerate() {
-                // column_j is the j-th column in the mass-weighted interatomic
-                // distance matrix. This column contains distances from ordinary atom j
-                // to all other atoms (both ordinary and fictitious) in the molecule.
-                // So this distance matrix is tall and thin when fictitious atoms are present.
-                let mut column_j: Vec<f64> = vec![];
-                for (i, coord_i) in all_coords.iter().enumerate() {
-                    let diff = coord_j - coord_i;
-                    column_j.push(diff.norm() / all_masses[i]);
-                }
-                column_j.sort_by(|a, b| {
-                    a.partial_cmp(b)
-                        .unwrap_or_else(|| panic!("{a} and {b} cannot be compared."))
-                });
-                let column_j_vec = DVector::from_vec(column_j);
-                if j == 0 {
-                    mag_dist_columns.push(column_j_vec);
-                } else {
-                    let equiv_set_search = equiv_mag_indicess.iter().position(|equiv_indices| {
-                        mag_dist_columns[equiv_indices[0]].relative_eq(
-                            &column_j_vec,
-                            self.threshold,
-                            self.threshold,
-                        )
-                    });
-                    mag_dist_columns.push(column_j_vec);
-                    if let Some(index) = equiv_set_search {
-                        equiv_mag_indicess[index].push(j);
-                    } else {
-                        equiv_mag_indicess.push(vec![j]);
-                    };
-                }
-            }
-            equiv_mag_indicess.iter().for_each(|equiv_mag_indices| {
-                let equiv_mag_atoms = equiv_mag_indices
-                    .iter()
-                    .map(|index| magnetic_atoms[*index].clone())
-                    .collect();
-                sea_groups.push(equiv_mag_atoms);
-            });
-        }
-        if let Some(electric_atoms) = &self.electric_atoms {
-            sea_groups.push(vec![electric_atoms[0].clone()]);
-        }
         log::debug!("Number of SEA groups: {}", sea_groups.len());
         sea_groups
     }
