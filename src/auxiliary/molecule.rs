@@ -8,6 +8,7 @@ use std::path::Path;
 use std::process;
 
 use anyhow;
+use itertools::Itertools;
 use log;
 use nalgebra::{DVector, Matrix3, Point3, Vector3};
 use ndarray::{Array2, ShapeBuilder};
@@ -398,30 +399,27 @@ impl Molecule {
     /// # Returns
     ///
     /// * The interatomic distance matrix where the distances in each column are sorted in ascending
-    /// order. Column $`j`$ contains the mass-weighted interatomic distances from atom $`j`$ to all
-    /// other atoms (both ordinary and fictitious) in the molecule. Also note that all atoms (both
-    /// ordinary and fictitious) are included here, so the matrix is square.
+    /// order. Column $`j`$ contains the interatomic distances from atom $`j`$ to all other atoms
+    /// (both ordinary and fictitious) in the molecule. Also note that all atoms (both ordinary and
+    /// fictitious) are included here, so the matrix is square.
     /// * A vector of vectors of symmetry-equivalent atom indices. Each inner vector contains
     /// indices of atoms in one SEA group.
     pub fn calc_interatomic_distance_matrix(&self) -> (Array2<f64>, Vec<Vec<usize>>) {
         let all_atoms = &self.get_all_atoms();
         let all_coords: Vec<_> = all_atoms.iter().map(|atm| atm.coordinates).collect();
-        let all_masses: Vec<_> = all_atoms.iter().map(|atm| atm.atomic_mass).collect();
         let mut dist_columns: Vec<Vec<f64>> = vec![];
         let mut sorted_dist_columns: Vec<DVector<f64>> = vec![];
 
         // Determine indices of symmetry-equivalent atoms
         let mut equiv_indicess: Vec<Vec<usize>> = vec![vec![0]];
         for (j, coord_j) in all_coords.iter().enumerate() {
-            // column_j is the j-th column in the mass-weighted interatomic
-            // distance matrix. This column contains distances from ordinary atom j
-            // to all other atoms (both ordinary and fictitious) in the molecule.
-            // So this distance matrix is tall and thin when fictitious atoms are present.
-            let mut column_j: Vec<f64> = vec![];
-            for (i, coord_i) in all_coords.iter().enumerate() {
-                let diff = coord_j - coord_i;
-                column_j.push(diff.norm());
-            }
+            // column_j is the j-th column in the interatomic distance matrix. This column contains
+            // distances from ordinary atom j to all other atoms (both ordinary and fictitious) in
+            // the molecule.
+            let mut column_j = all_coords
+                .iter()
+                .map(|coord_i| (coord_j - coord_i).norm())
+                .collect_vec();
             dist_columns.push(column_j.clone());
 
             column_j.sort_by(|a, b| {
