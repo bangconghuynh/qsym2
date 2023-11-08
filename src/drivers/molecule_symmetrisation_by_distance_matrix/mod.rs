@@ -5,7 +5,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 use anyhow::{ensure, format_err};
-use argmin::core::{CostFunction, Executor, Gradient};
+use argmin::core::{CostFunction, Executor, Gradient, State};
 use argmin::solver::gradientdescent::SteepestDescent;
 use argmin::solver::{
     linesearch::condition::ArmijoCondition, linesearch::BacktrackingLineSearch, quasinewton::BFGS,
@@ -14,10 +14,12 @@ use derive_builder::Builder;
 use itertools::Itertools;
 use nalgebra::{Point3, Vector3};
 use ndarray::{Array1, Array2, Axis, ShapeBuilder};
+use ndarray_linalg::Norm;
 use num_traits::ToPrimitive;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use crate::auxiliary::geometry::Transform;
 use crate::auxiliary::misc::HashableFloat;
 use crate::auxiliary::molecule::Molecule;
 use crate::drivers::symmetry_group_detection::{
@@ -57,22 +59,16 @@ fn default_tight_threshold() -> f64 {
 /// Structure containing control parameters for molecule symmetrisation by distance matrix.
 #[derive(Clone, Builder, Debug, Serialize, Deserialize)]
 pub struct MoleculeSymmetrisationDistMatParams {
-    /// The loose distance threshold for comparing values in non-symmetric distance matrices.
+    /// The loose distance threshold for comparing values in the unsymmetrised distance matrix.
     #[builder(default = "1e-3")]
     #[serde(default = "default_loose_threshold")]
     pub loose_distance_threshold: f64,
 
-    /// The target moment-of-inertia threshold for the symmetrisation, *i.e.* the symmetrised
-    /// molecule will have the target symmetry group at this target moment-of-inertia threshold.
+    /// The convergence threshold for the symmetrisation, *i.e.* the gradient tolerance for the
+    /// BFGS search for atomic positions that satisfy the symmetrised distance matrix.
     #[builder(default = "1e-7")]
     #[serde(default = "default_tight_threshold")]
-    pub target_moi_threshold: f64,
-
-    /// The target distance threshold for the symmetrisation, *i.e.* the symmetrised molecule will
-    /// have the target symmetry group at this target distance threshold.
-    #[builder(default = "1e-7")]
-    #[serde(default = "default_tight_threshold")]
-    pub target_distance_threshold: f64,
+    pub symmetrisation_threshold: f64,
 
     /// Boolean indicating if the symmetrised molecule is also reoriented to align its principal
     /// axes with the space-fixed Cartesian axes.
@@ -82,7 +78,7 @@ pub struct MoleculeSymmetrisationDistMatParams {
     #[serde(default = "default_true")]
     pub reorientate_molecule: bool,
 
-    /// The maximum number of symmetrisation iterations.
+    /// The maximum number of BFGS iterations.
     #[builder(default = "5")]
     #[serde(default = "default_max_iterations")]
     pub max_iterations: usize,
@@ -127,12 +123,12 @@ impl fmt::Display for MoleculeSymmetrisationDistMatParams {
             "Loose distance threshold: {:.3e}",
             self.loose_distance_threshold
         )?;
-        writeln!(f)?;
         writeln!(
             f,
-            "Maximum symmetrisation iterations: {}",
-            self.max_iterations
+            "BFGS gradient tolerance: {:.3e}",
+            self.symmetrisation_threshold
         )?;
+        writeln!(f, "Maximum BFGS iterations: {}", self.max_iterations)?;
         writeln!(f, "Output level: {}", self.verbose)?;
         writeln!(
             f,
@@ -244,22 +240,22 @@ impl<'a> MoleculeSymmetrisationDistMatDriver<'a> {
 
         let loose_dist_threshold = params.loose_distance_threshold;
 
-        let unsymmetrised_mol = self.molecule.adjust_threshold(loose_dist_threshold);
+        let mut unsymmetrised_mol = self.molecule.adjust_threshold(loose_dist_threshold);
 
         qsym2_output!("Unsymmetrised molecule:");
         unsymmetrised_mol.log_output_display();
         qsym2_output!("");
-        // if params.reorientate_molecule {
-        //     // If reorientation is requested, the trial molecule is reoriented prior to
-        //     // symmetrisation, so that the symmetrisation procedure acts on the reoriented molecule
-        //     // itself. The molecule might become disoriented during the symmetrisation process, but
-        //     // any such disorientation is likely to be fairly small, and post-symmetrisation
-        //     // corrections on small disorientation are better than on large disorientation.
-        //     trial_mol.reorientate_mut(tight_moi_threshold);
-        //     qsym2_output!("Unsymmetrised recentred and reoriented molecule:");
-        //     trial_mol.log_output_display();
-        //     qsym2_output!("");
-        // };
+        if params.reorientate_molecule {
+            // If reorientation is requested, the trial molecule is reoriented prior to
+            // symmetrisation, so that the symmetrisation procedure acts on the reoriented molecule
+            // itself. The molecule might become disoriented during the symmetrisation process, but
+            // any such disorientation is likely to be fairly small, and post-symmetrisation
+            // corrections on small disorientation are better than on large disorientation.
+            unsymmetrised_mol.reorientate_mut(params.symmetrisation_threshold);
+            qsym2_output!("Unsymmetrised recentred and reoriented molecule:");
+            unsymmetrised_mol.log_output_display();
+            qsym2_output!("");
+        };
 
         // if params.verbose >= 1 {
         //     let orig_mol = self
@@ -279,95 +275,84 @@ impl<'a> MoleculeSymmetrisationDistMatDriver<'a> {
         let original_atoms = unsymmetrised_mol.get_all_atoms();
         let n_atoms = original_atoms.len();
 
-        let (unsymmetrised_sorted_distmat, sort_indicess, equiv_col_indicess) =
+        let (unsymmetrised_distmat, equiv_col_indicess) =
             unsymmetrised_mol.calc_interatomic_distance_matrix();
         println!("n seas: {}", equiv_col_indicess.len());
+        println!("{:?}", equiv_col_indicess);
 
-        let unsorted_indicess = sort_indicess
-            .iter()
-            .map(|sorted_indices| {
-                let mut unsorted_indices = (0..sorted_indices.len()).collect_vec();
-                unsorted_indices.sort_by_key(|&i| sorted_indices[i]);
-                unsorted_indices
-            })
-            .collect_vec();
+        println!("Unsorted:\n {unsymmetrised_distmat}");
 
-        let unsymmetrised_distmat = Array2::from_shape_vec(
-            (n_atoms, n_atoms).f(),
-            unsymmetrised_sorted_distmat
-                .columns()
-                .into_iter()
-                .enumerate()
-                .flat_map(|(j, col)| col.select(Axis(0), &unsorted_indicess[j]))
-                .collect_vec(),
-        )?;
-        println!("Sorted:\n {unsymmetrised_sorted_distmat}");
-        // println!("Unsorted:\n {unsymmetrised_distmat}");
-
-        // Symmetrise `distmat` based on `self.loose_distance_threshold`.
-        let mut symmetrised_sorted_distmat = unsymmetrised_sorted_distmat.clone();
+        let mut symmetrised_distmat = Array2::<f64>::zeros((n_atoms, n_atoms));
         equiv_col_indicess.iter().for_each(|equiv_col_indices| {
-            // Consider each SEA group
-            // let hashable_dist_col = unsymmetrised_sorted_distmat
-            //     .column(equiv_col_indices[0])
-            //     .map(|dist| dist.round_factor(loose_dist_threshold).integer_decode());
-            // let mut equiv_row_indicess: HashMap<&(u64, i16, i8), Vec<usize>> = HashMap::new();
-            // hashable_dist_col.indexed_iter().for_each(|(index, dist)| {
-            //     equiv_row_indicess
-            //         .entry(dist)
-            //         .and_modify(|indices| indices.push(index))
-            //         .or_insert(vec![index]);
-            // });
-            let equiv_row_indicess = unsymmetrised_sorted_distmat
-                .column(equiv_col_indices[0])
-                .indexed_iter()
-                .tuple_windows()
-                .fold(vec![vec![0]], |mut acc, ((_, disti), (j, distj))| {
-                    if approx::relative_eq!(
-                        disti,
-                        distj,
-                        epsilon = loose_dist_threshold,
-                        max_relative = loose_dist_threshold
-                    ) {
-                        let n = acc.len();
-                        acc[n - 1].push(j);
-                    } else {
-                        acc.push(vec![j]);
-                    }
-                    acc
-                });
-
-            equiv_row_indicess.iter().for_each(|equiv_row_indices| {
-                let n_elements = (equiv_row_indices.len() * equiv_col_indices.len())
-                    .to_f64()
-                    .expect("Unable to convert the number of averaging distances to `f64`.");
-                let ave_dist = unsymmetrised_sorted_distmat
-                    .select(Axis(0), equiv_row_indices)
-                    .select(Axis(1), equiv_col_indices)
+            let unsymmetrised_distmat_sea_j =
+                unsymmetrised_distmat.select(Axis(1), equiv_col_indices);
+            equiv_col_indicess.iter().for_each(|equiv_row_indices| {
+                let unsymmetrised_distmat_sea_ij =
+                    unsymmetrised_distmat_sea_j.select(Axis(0), equiv_row_indices);
+                let (sum_sorted_cols, sort_indicess) = unsymmetrised_distmat_sea_ij
+                    .columns()
+                    .into_iter()
+                    .fold((Array1::<f64>::zeros(equiv_row_indices.len()), vec![]), |mut acc, col| {
+                        let col = col.into_iter().collect_vec();
+                        let mut col_argsort = (0..col.len()).collect_vec();
+                        col_argsort.sort_by(|&i, &j| {
+                            col[i].partial_cmp(&col[j]).unwrap_or_else(|| {
+                                panic!(
+                                    "Interatomic distances {} and {} cannot be compared.",
+                                    col[i], col[j]
+                                )
+                            })
+                        });
+                        let sorted_col = Array1::from_iter(col_argsort.iter().map(|i| col[*i]));
+                        acc.0 = acc.0 + sorted_col;
+                        acc.1.push(col_argsort);
+                        acc
+                    });
+                let scaled_sum_sorted_cols = sum_sorted_cols.clone()
+                    / equiv_col_indices
+                        .len()
+                        .to_f64()
+                        .expect("Unable to convert the number of SEAs in this set to `f64`.");
+                println!("For equiv cols {equiv_col_indices:?} and equiv rows {equiv_row_indices:?}, scaled_sum_sorted_cols is {scaled_sum_sorted_cols:?}.");
+                let sub_equiv_row_indicess = scaled_sum_sorted_cols.indexed_iter().tuple_windows().fold(
+                    vec![vec![0]],
+                    |mut acc, ((_, disti), (j, distj))| {
+                        if approx::abs_diff_eq!(
+                            disti,
+                            distj,
+                            epsilon = loose_dist_threshold,
+                        ) {
+                            println!("{disti} == {distj}");
+                            let n = acc.len();
+                            acc[n - 1].push(j);
+                        } else {
+                            acc.push(vec![j]);
+                        }
+                        acc
+                    },
+                );
+                println!("For equiv cols {equiv_col_indices:?} and equiv rows {equiv_row_indices:?}, sub_equiv_row_indicess are {sub_equiv_row_indicess:?}.");
+                sub_equiv_row_indicess
                     .iter()
-                    .sum::<f64>()
-                    / n_elements;
-                equiv_row_indices
-                    .iter()
-                    .cartesian_product(equiv_col_indices.iter())
-                    .for_each(|(row_index, col_index)| {
-                        symmetrised_sorted_distmat
-                            .get_mut((*row_index, *col_index))
-                            .map(|v| *v = ave_dist);
+                    .for_each(|sub_equiv_row_indices| {
+                        let ave_dist = sum_sorted_cols
+                            .select(Axis(0), sub_equiv_row_indices)
+                            .iter()
+                            .sum::<f64>()
+                            / (sub_equiv_row_indices.len() * equiv_col_indices.len()).to_f64().expect(
+                                "Unable to convert the number averaging distances to `f64`.",
+                            );
+                        sub_equiv_row_indices.iter().for_each(|i| {
+                            equiv_col_indices.iter().zip(sort_indicess.iter()).for_each(|(j, sort_indices_j)| {
+                                println!("For equiv cols {equiv_col_indices:?} and equiv rows {equiv_row_indices:?}, setting {}, {j} to {ave_dist}.", equiv_row_indices[sort_indices_j[*i]]);
+                                symmetrised_distmat[(equiv_row_indices[sort_indices_j[*i]], *j)] = ave_dist;
+                            })
+                        });
                     });
             });
         });
-        println!("Symmetrised sorted:\n {symmetrised_sorted_distmat}");
-        let symmetrised_distmat = Array2::from_shape_vec(
-            (n_atoms, n_atoms).f(),
-            symmetrised_sorted_distmat
-                .columns()
-                .into_iter()
-                .enumerate()
-                .flat_map(|(j, col)| col.select(Axis(0), &unsorted_indicess[j]))
-                .collect_vec(),
-        )?;
-        // println!("Symmetrised unsorted:\n {symmetrised_distmat}");
+
+        println!("Symmetrised unsorted:\n {symmetrised_distmat}");
 
         let r0 = Array1::from_vec(
             original_atoms
@@ -379,27 +364,82 @@ impl<'a> MoleculeSymmetrisationDistMatDriver<'a> {
 
         let problem = MoleculeSymmetrisationDistMatProblem {
             symmetrised_distmat,
-            symmetrised_sorted_distmat,
             unsymmetrised_mol,
         };
 
         let linesearch = BacktrackingLineSearch::<Array1<f64>, Array1<f64>, _, f64>::new(
-            ArmijoCondition::new(1e-6).unwrap(),
+            ArmijoCondition::new(1e-9).unwrap(),
         );
-        let solver: BFGS<_, f64> = BFGS::new(linesearch);
-        let res = Executor::new(problem, solver)
+        let solver: BFGS<_, f64> = BFGS::new(linesearch)
+            .with_tolerance_grad(1e-13)?
+            .with_tolerance_cost(1e-13)?;
+        let res = Executor::new(problem.clone(), solver)
             .configure(|state| {
                 state
                     .param(r0)
                     .inv_hessian(Array2::<f64>::eye(3 * n_atoms))
-                    .target_cost(1e-9)
-                    .max_iters(100)
+                    .target_cost(0.0)
+                    .max_iters(1000)
             })
             .run()?;
         println!("{}", res);
+        println!("{}", res.state().grad.as_ref().unwrap().norm_l2());
+        let symmetrised_r = res.state().get_best_param().ok_or(format_err!(
+            "Unable to retrieved the converged atomic positions."
+        ))?;
+        let symmetrised_mol = if params.reorientate_molecule {
+            let mut symmetrised_mol = problem.create_molecule_from_param(symmetrised_r);
+            symmetrised_mol.reorientate_mut(params.symmetrisation_threshold);
+            qsym2_output!("Symmetrised reoriented molecule:");
+            symmetrised_mol.log_output_display();
+            qsym2_output!("");
+            symmetrised_mol
+        } else {
+            let symmetrised_mol = problem.create_molecule_from_param(symmetrised_r);
+            qsym2_output!("Symmetrised molecule:");
+            symmetrised_mol.log_output_display();
+            qsym2_output!("");
+            symmetrised_mol
+        };
 
-        // let r = bfgs(r0, f, g)?;
-        // println!("{r}");
+        // Re-analyse symmetry of the symmetrised molecule
+        let symmetrised_presym = PreSymmetry::builder()
+            .moi_threshold(self.parameters.symmetrisation_threshold)
+            .molecule(&symmetrised_mol)
+            .build()
+            .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
+        let mut symmetrised_unisym = Symmetry::new();
+        let _unires = symmetrised_unisym.analyse(&symmetrised_presym, false);
+        println!("{:?}", symmetrised_unisym.group_name);
+        // symmetrised_magsym.as_mut().map(|tri_magsym| {
+        //     *tri_magsym = Symmetry::new();
+        //     let _magres = tri_magsym.analyse(&symmetrised_presym, true);
+        //     tri_magsym
+        // });
+
+        // unisym_check = symmetrised_unisym.group_name == target_unisym.group_name;
+        // magsym_check = match (symmetrised_magsym.as_ref(), target_magsym) {
+        //     (Some(tri_magsym), Some(tar_magsym)) => {
+        //         tri_magsym.group_name == tar_magsym.group_name
+        //     }
+        //     _ => true,
+        // };
+        //
+        // qsym2_output!(
+        //     "{:>count_length$} {:>12.3e} {:>12.3e} {:>14} {:>12}",
+        //     symmetrisation_count,
+        //     tight_moi_threshold,
+        //     tight_dist_threshold,
+        //     symmetrised_magsym
+        //         .as_ref()
+        //         .map(|magsym| magsym.group_name.as_ref())
+        //         .unwrap_or(None)
+        //         .unwrap_or(&"--".to_string()),
+        //     symmetrised_unisym
+        //         .group_name
+        //         .as_ref()
+        //         .unwrap_or(&"--".to_string()),
+        // );
 
         Ok(())
     }
@@ -421,10 +461,41 @@ impl<'a> QSym2Driver for MoleculeSymmetrisationDistMatDriver<'a> {
     }
 }
 
+#[derive(Clone)]
 struct MoleculeSymmetrisationDistMatProblem {
     symmetrised_distmat: Array2<f64>,
-    symmetrised_sorted_distmat: Array2<f64>,
     unsymmetrised_mol: Molecule,
+}
+
+impl MoleculeSymmetrisationDistMatProblem {
+    /// Adjusts the coordinates of [`Self::unsymmetrised_mol`] based on an input coordinate
+    /// parameter and generates a new [`Molecule`].
+    ///
+    /// # Arguments
+    ///
+    /// * `r` - An input coordinate parameter.
+    ///
+    /// # Returns
+    ///
+    /// A new molecule with atomic coordinates specified by `r`.
+    fn create_molecule_from_param(&self, r: &Array1<f64>) -> Molecule {
+        debug_assert!({
+            let original_atoms = self.unsymmetrised_mol.get_all_atoms();
+            let n_atoms = original_atoms.len();
+            r.len() == 3 * n_atoms
+        });
+
+        let mut mol = self.unsymmetrised_mol.clone();
+        mol.get_all_atoms_mut()
+            .iter_mut()
+            .zip(r.iter().chunks(3).into_iter())
+            .for_each(|(atom, trial_coords)| {
+                let trial_coords = trial_coords.into_iter().collect_vec();
+                atom.coordinates =
+                    Point3::new(*trial_coords[0], *trial_coords[1], *trial_coords[2]);
+            });
+        mol
+    }
 }
 
 impl CostFunction for MoleculeSymmetrisationDistMatProblem {
@@ -433,22 +504,10 @@ impl CostFunction for MoleculeSymmetrisationDistMatProblem {
 
     fn cost(&self, r: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let original_atoms = self.unsymmetrised_mol.get_all_atoms();
-        let n_atoms = original_atoms.len();
+        let trial_mol = self.create_molecule_from_param(r);
+        let (trial_distmat, _) = trial_mol.calc_interatomic_distance_matrix();
 
-        let mut trial_mol = self.unsymmetrised_mol.clone();
-        debug_assert_eq!(r.len(), 3 * n_atoms);
-        trial_mol
-            .get_all_atoms_mut()
-            .iter_mut()
-            .zip(r.iter().chunks(3).into_iter())
-            .for_each(|(atom, trial_coords)| {
-                let trial_coords = trial_coords.into_iter().collect_vec();
-                atom.coordinates =
-                    Point3::new(*trial_coords[0], *trial_coords[1], *trial_coords[2]);
-            });
-        let (trial_sorted_distmat, _, _) = trial_mol.calc_interatomic_distance_matrix();
-
-        let distmat_diff = (trial_sorted_distmat - &self.symmetrised_sorted_distmat)
+        let distmat_diff = (trial_distmat - &self.symmetrised_distmat)
             .iter()
             .map(|v| v.powi(2))
             .sum::<f64>()
@@ -503,31 +562,11 @@ impl Gradient for MoleculeSymmetrisationDistMatProblem {
 
     fn gradient(&self, r: &Self::Param) -> Result<Self::Gradient, argmin::core::Error> {
         let original_atoms = self.unsymmetrised_mol.get_all_atoms();
-        let mut trial_mol = self.unsymmetrised_mol.clone();
-        let n_atoms = trial_mol.get_all_atoms().len();
-        debug_assert_eq!(r.len(), 3 * n_atoms);
-        trial_mol
-            .get_all_atoms_mut()
-            .iter_mut()
-            .zip(r.iter().chunks(3).into_iter())
-            .for_each(|(atom, trial_coords)| {
-                let trial_coords = trial_coords.into_iter().collect_vec();
-                atom.coordinates =
-                    Point3::new(*trial_coords[0], *trial_coords[1], *trial_coords[2]);
-            });
-
+        let n_atoms = original_atoms.len();
+        let trial_mol = self.create_molecule_from_param(r);
         let trial_atoms = trial_mol.get_all_atoms();
 
-        let (trial_sorted_distmat, trial_sort_indicess, _) =
-            trial_mol.calc_interatomic_distance_matrix();
-        let trial_unsorted_indicess = trial_sort_indicess
-            .iter()
-            .map(|sorted_indices| {
-                let mut unsorted_indices = (0..sorted_indices.len()).collect_vec();
-                unsorted_indices.sort_by_key(|&i| sorted_indices[i]);
-                unsorted_indices
-            })
-            .collect_vec();
+        let (trial_distmat, _) = trial_mol.calc_interatomic_distance_matrix();
 
         let delta_coordinates = trial_mol
             .get_all_atoms()
@@ -556,16 +595,6 @@ impl Gradient for MoleculeSymmetrisationDistMatProblem {
             })
             .collect_vec();
 
-        let trial_distmat = Array2::from_shape_vec(
-            (n_atoms, n_atoms).f(),
-            trial_sorted_distmat
-                .columns()
-                .into_iter()
-                .enumerate()
-                .flat_map(|(j, col)| col.select(Axis(0), &trial_unsorted_indicess[j]))
-                .collect_vec(),
-        )
-        .expect("Unable to construct the unsorted trial distance matrix.");
         let dfdr = (0..n_atoms)
             .cartesian_product(0..3)
             .map(|(k, a)| {
@@ -581,16 +610,16 @@ impl Gradient for MoleculeSymmetrisationDistMatProblem {
                             }
                         })
                         .sum::<f64>();
+
                 let translation_diff_grad = 2.0
                     * trial_atoms[k].atomic_mass
                     * delta_coordinates
                         .iter()
                         .map(|delta_coords_i| delta_coords_i[a])
                         .sum::<f64>();
+
                 let b = (a + 1).rem_euclid(3);
-                let pb = if b.rem_euclid(2) == 0 { 1.0 } else { -1.0 };
                 let c = (a + 2).rem_euclid(3);
-                let pc = if c.rem_euclid(2) == 0 { 1.0 } else { -1.0 };
                 let rotation_diff_grad = -2.0
                     * original_atoms[k].coordinates[b]
                     * trial_atoms[k].atomic_mass
@@ -598,15 +627,13 @@ impl Gradient for MoleculeSymmetrisationDistMatProblem {
                         .iter()
                         .map(|rot_coords_i| rot_coords_i[c])
                         .sum::<f64>()
-                    * pc
-                    - 2.0
+                    + 2.0
                         * original_atoms[k].coordinates[c]
                         * trial_atoms[k].atomic_mass
                         * rot_coordinates
                             .iter()
                             .map(|rot_coords_i| rot_coords_i[b])
-                            .sum::<f64>()
-                        * pb;
+                            .sum::<f64>();
                 distmat_diff_grad + translation_diff_grad + rotation_diff_grad
             })
             .collect_vec();

@@ -429,11 +429,11 @@ impl Molecule {
     /// fictitious) are included here, so the matrix is square.
     /// * A vector of vectors of symmetry-equivalent atom indices. Each inner vector contains
     /// indices of atoms in one SEA group.
-    pub fn calc_interatomic_distance_matrix(&self) -> (Array2<f64>, Vec<Vec<usize>>, Vec<Vec<usize>>) {
+    pub fn calc_interatomic_distance_matrix(&self) -> (Array2<f64>, Vec<Vec<usize>>) {
         let all_atoms = &self.get_all_atoms();
         let all_coords: Vec<_> = all_atoms.iter().map(|atm| atm.coordinates).collect();
+        let mut dist_columns: Vec<DVector<f64>> = vec![];
         let mut sorted_dist_columns: Vec<DVector<f64>> = vec![];
-        let mut argsort_dist_columns: Vec<Vec<usize>> = vec![];
 
         // Determine indices of symmetry-equivalent atoms
         let mut equiv_indicess: Vec<Vec<usize>> = vec![vec![0]];
@@ -441,33 +441,25 @@ impl Molecule {
             // column_j is the j-th column in the interatomic distance matrix. This column contains
             // distances from ordinary atom j to all other atoms (both ordinary and fictitious) in
             // the molecule.
-            let mut column_j = all_coords
+            let column_j = all_coords
                 .iter()
                 .map(|coord_i| (coord_j - coord_i).norm())
                 .collect_vec();
+            let mut sorted_column_j = column_j.clone();
+            dist_columns.push(DVector::from_vec(column_j));
 
-            let mut column_j_argsort = (0..column_j.len()).collect_vec();
-            column_j_argsort.sort_by(|&i, &j| {
-                column_j[i].partial_cmp(&column_j[j]).unwrap_or_else(|| {
-                    panic!(
-                        "Interatomic distances {} and {} cannot be compared.",
-                        column_j[i], column_j[j]
-                    )
-                })
-            });
-            argsort_dist_columns.push(column_j_argsort);
-            column_j.sort_by(|a, b| {
+            sorted_column_j.sort_by(|a, b| {
                 a.partial_cmp(b).unwrap_or_else(|| {
                     panic!("Mass-weighted interatomic distances {a} and {b} cannot be compared.")
                 })
             });
-            let column_j_vec = DVector::from_vec(column_j);
+            let sorted_column_j_vec = DVector::from_vec(sorted_column_j);
             if j == 0 {
-                sorted_dist_columns.push(column_j_vec);
+                sorted_dist_columns.push(sorted_column_j_vec);
             } else {
                 let equiv_set_search = equiv_indicess.iter().position(|equiv_indices| {
                     sorted_dist_columns[equiv_indices[0]].relative_eq(
-                        &column_j_vec,
+                        &sorted_column_j_vec,
                         self.threshold,
                         self.threshold,
                     ) && match (&all_atoms[j].kind, &all_atoms[equiv_indices[0]].kind) {
@@ -479,7 +471,7 @@ impl Molecule {
                         _ => false,
                     }
                 });
-                sorted_dist_columns.push(column_j_vec);
+                sorted_dist_columns.push(sorted_column_j_vec);
                 if let Some(index) = equiv_set_search {
                     equiv_indicess[index].push(j);
                 } else {
@@ -488,17 +480,17 @@ impl Molecule {
             }
         }
 
-        let dist_elements_f = sorted_dist_columns
+        let dist_elements_f = dist_columns
             .iter()
             .flatten()
             .cloned()
             .collect::<Vec<_>>();
         let n_atoms = all_atoms.len();
-        let sorted_dist_matrix =
+        let dist_matrix =
             Array2::<f64>::from_shape_vec((n_atoms, n_atoms).f(), dist_elements_f)
                 .expect("Unable to collect the interatomic distances into a square matrix.");
 
-        (sorted_dist_matrix, argsort_dist_columns, equiv_indicess)
+        (dist_matrix, equiv_indicess)
     }
 
     /// Determines the sets of symmetry-equivalent atoms.
@@ -516,7 +508,7 @@ impl Molecule {
     #[must_use]
     pub fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
         let all_atoms = &self.get_all_atoms();
-        let (_, _, equiv_indicess) = self.calc_interatomic_distance_matrix();
+        let (_, equiv_indicess) = self.calc_interatomic_distance_matrix();
         let sea_groups: Vec<Vec<Atom>> = equiv_indicess
             .iter()
             .map(|equiv_indices| {

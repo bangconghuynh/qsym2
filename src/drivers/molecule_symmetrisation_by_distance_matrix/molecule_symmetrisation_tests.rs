@@ -41,9 +41,8 @@ fn test_drivers_molecule_symmetrisation_distmat_vf6_magnetic_field() {
     // let pd_res = pd_driver.result().unwrap();
 
     let ms_params = MoleculeSymmetrisationDistMatParams::builder()
-        .loose_distance_threshold(1e-1)
-        .target_moi_threshold(1e-8)
-        .target_distance_threshold(1e-8)
+        .loose_distance_threshold(1.5e-1)
+        .symmetrisation_threshold(1e-8)
         .reorientate_molecule(true)
         .max_iterations(10)
         .verbose(2)
