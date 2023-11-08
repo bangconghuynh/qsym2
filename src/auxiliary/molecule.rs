@@ -241,6 +241,31 @@ impl Molecule {
         atoms
     }
 
+    /// Retrieves a vector of mutable references to all atoms in this molecule, including special
+    /// ones, if any.
+    ///
+    /// # Returns
+    ///
+    /// All atoms in this molecule.
+    #[must_use]
+    pub fn get_all_atoms_mut(&mut self) -> Vec<&mut Atom> {
+        let mut atoms: Vec<&mut Atom> = vec![];
+        for atom in &mut self.atoms {
+            atoms.push(atom);
+        }
+        if let Some(magnetic_atoms) = &mut self.magnetic_atoms {
+            for magnetic_atom in magnetic_atoms.iter_mut() {
+                atoms.push(magnetic_atom);
+            }
+        }
+        if let Some(electric_atoms) = &mut self.electric_atoms {
+            for electric_atom in electric_atoms.iter_mut() {
+                atoms.push(electric_atom);
+            }
+        }
+        atoms
+    }
+
     /// Calculates the centre of mass of the molecule.
     ///
     /// This does not take into account fictitious special atoms.
@@ -404,11 +429,11 @@ impl Molecule {
     /// fictitious) are included here, so the matrix is square.
     /// * A vector of vectors of symmetry-equivalent atom indices. Each inner vector contains
     /// indices of atoms in one SEA group.
-    pub fn calc_interatomic_distance_matrix(&self) -> (Array2<f64>, Vec<Vec<usize>>) {
+    pub fn calc_interatomic_distance_matrix(&self) -> (Array2<f64>, Vec<Vec<usize>>, Vec<Vec<usize>>) {
         let all_atoms = &self.get_all_atoms();
         let all_coords: Vec<_> = all_atoms.iter().map(|atm| atm.coordinates).collect();
-        let mut dist_columns: Vec<Vec<f64>> = vec![];
         let mut sorted_dist_columns: Vec<DVector<f64>> = vec![];
+        let mut argsort_dist_columns: Vec<Vec<usize>> = vec![];
 
         // Determine indices of symmetry-equivalent atoms
         let mut equiv_indicess: Vec<Vec<usize>> = vec![vec![0]];
@@ -420,8 +445,17 @@ impl Molecule {
                 .iter()
                 .map(|coord_i| (coord_j - coord_i).norm())
                 .collect_vec();
-            dist_columns.push(column_j.clone());
 
+            let mut column_j_argsort = (0..column_j.len()).collect_vec();
+            column_j_argsort.sort_by(|&i, &j| {
+                column_j[i].partial_cmp(&column_j[j]).unwrap_or_else(|| {
+                    panic!(
+                        "Interatomic distances {} and {} cannot be compared.",
+                        column_j[i], column_j[j]
+                    )
+                })
+            });
+            argsort_dist_columns.push(column_j_argsort);
             column_j.sort_by(|a, b| {
                 a.partial_cmp(b).unwrap_or_else(|| {
                     panic!("Mass-weighted interatomic distances {a} and {b} cannot be compared.")
@@ -454,12 +488,17 @@ impl Molecule {
             }
         }
 
-        let dist_elements_f = dist_columns.iter().flatten().cloned().collect::<Vec<_>>();
+        let dist_elements_f = sorted_dist_columns
+            .iter()
+            .flatten()
+            .cloned()
+            .collect::<Vec<_>>();
         let n_atoms = all_atoms.len();
-        let dist_matrix = Array2::<f64>::from_shape_vec((n_atoms, n_atoms).f(), dist_elements_f)
-            .expect("Unable to collect the interatomic distances into a square matrix.");
+        let sorted_dist_matrix =
+            Array2::<f64>::from_shape_vec((n_atoms, n_atoms).f(), dist_elements_f)
+                .expect("Unable to collect the interatomic distances into a square matrix.");
 
-        (dist_matrix, equiv_indicess)
+        (sorted_dist_matrix, argsort_dist_columns, equiv_indicess)
     }
 
     /// Determines the sets of symmetry-equivalent atoms.
@@ -477,7 +516,7 @@ impl Molecule {
     #[must_use]
     pub fn calc_sea_groups(&self) -> Vec<Vec<Atom>> {
         let all_atoms = &self.get_all_atoms();
-        let (_, equiv_indicess) = self.calc_interatomic_distance_matrix();
+        let (_, _, equiv_indicess) = self.calc_interatomic_distance_matrix();
         let sea_groups: Vec<Vec<Atom>> = equiv_indicess
             .iter()
             .map(|equiv_indices| {

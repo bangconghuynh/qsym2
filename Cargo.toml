@@ -10,6 +10,8 @@ license = "LGPL-3.0-or-later"
 [dependencies]
 anyhow = "1.0.71"
 approx = "0.5.1"
+argmin = "0.8.1"
+argmin-math = { version = "0.3.0", features = ["ndarray_latest-serde", "nalgebra_latest-serde"] }
 bincode = "1.3.3"
 bitvec = "1.0.1"
 byteorder = "1.4.3"
