@@ -3,8 +3,9 @@ use nalgebra::{Point3, Vector3};
 use serial_test::serial;
 
 use crate::auxiliary::molecule::Molecule;
-use crate::drivers::molecule_symmetrisation_by_distance_matrix::{
-    MoleculeSymmetrisationDistMatDriver, MoleculeSymmetrisationDistMatParams,
+use crate::drivers::molecule_sprucing::{MoleculeSprucingDriver, MoleculeSprucingParams};
+use crate::drivers::molecule_symmetrisation::{
+    MoleculeSymmetrisationDriver, MoleculeSymmetrisationParams,
 };
 use crate::drivers::symmetry_group_detection::{
     SymmetryGroupDetectionDriver, SymmetryGroupDetectionParams,
@@ -16,7 +17,7 @@ use crate::symmetry::symmetry_group::SymmetryGroupProperties;
 const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
-fn test_drivers_molecule_symmetrisation_distmat_vf6_magnetic_field() {
+fn test_drivers_molecule_sprucing_vf6_magnetic_field() {
     log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene_imperfect.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
@@ -40,35 +41,73 @@ fn test_drivers_molecule_symmetrisation_distmat_vf6_magnetic_field() {
     // assert!(pd_driver.run().is_ok());
     // let pd_res = pd_driver.result().unwrap();
 
-    let ms_params = MoleculeSymmetrisationDistMatParams::builder()
-        .loose_distance_threshold(1.5e-1)
-        .symmetrisation_threshold(1e-8)
+    let msp_params = MoleculeSprucingParams::builder()
+        .sprucing_tolerance(1.4e-1)
+        .reorientate_molecule(true)
+        .optimisation_gradient_threshold(1e-8)
+        .optimisation_max_iterations(1000)
+        .verbose(2)
+        .spruced_result_xyz(Some("sprucing_test".into()))
+        .build()
+        .unwrap();
+    let mut msp_driver = MoleculeSprucingDriver::builder()
+        .parameters(&msp_params)
+        .molecule(&mol)
+        .build()
+        .unwrap();
+    assert!(msp_driver.run().is_ok());
+
+    let pd_params = SymmetryGroupDetectionParams::builder()
+        .moi_thresholds(&[1.4e-1, 1e-2, 1e-3, 1e-4])
+        .distance_thresholds(&[1.4e-1, 1e-2, 1e-3, 1e-4])
+        .fictitious_magnetic_fields(None)
+        .field_origin_com(false)
+        .time_reversal(false)
+        .write_symmetry_elements(false)
+        .build()
+        .unwrap();
+    let mut pd_driver = SymmetryGroupDetectionDriver::builder()
+        .parameters(&pd_params)
+        .molecule(
+            msp_driver
+                .result()
+                .ok()
+                .map(|res| &res.symmetrised_molecule),
+        )
+        .build()
+        .unwrap();
+    assert!(pd_driver.run().is_ok());
+    let pd_res = pd_driver.result().unwrap();
+
+    let ms_params = MoleculeSymmetrisationParams::builder()
+        .use_magnetic_group(false)
+        .target_moi_threshold(1e-8)
+        .target_distance_threshold(1e-8)
         .reorientate_molecule(true)
         .max_iterations(10)
         .verbose(2)
         .build()
         .unwrap();
-    let mut ms_driver = MoleculeSymmetrisationDistMatDriver::builder()
+    let mut ms_driver = MoleculeSymmetrisationDriver::builder()
         .parameters(&ms_params)
-        .molecule(&mol)
+        .target_symmetry_result(pd_res)
         .build()
         .unwrap();
-    ms_driver.run();
-    // assert!(ms_driver.run().is_ok());
+    assert!(ms_driver.run().is_ok());
 
-    // let verifying_pd_params = SymmetryGroupDetectionParams::builder()
-    //     .moi_thresholds(&[ms_params.target_moi_threshold])
-    //     .distance_thresholds(&[ms_params.target_distance_threshold])
-    //     .time_reversal(true)
-    //     .write_symmetry_elements(true)
-    //     .build()
-    //     .unwrap();
-    // let mut verifying_pd_driver = SymmetryGroupDetectionDriver::builder()
-    //     .parameters(&verifying_pd_params)
-    //     .molecule(ms_driver.result().ok().map(|res| &res.symmetrised_molecule))
-    //     .build()
-    //     .unwrap();
-    // assert!(verifying_pd_driver.run().is_ok());
+    let verifying_pd_params = SymmetryGroupDetectionParams::builder()
+        .moi_thresholds(&[ms_params.target_moi_threshold])
+        .distance_thresholds(&[ms_params.target_distance_threshold])
+        .time_reversal(true)
+        .write_symmetry_elements(true)
+        .build()
+        .unwrap();
+    let mut verifying_pd_driver = SymmetryGroupDetectionDriver::builder()
+        .parameters(&verifying_pd_params)
+        .molecule(ms_driver.result().ok().map(|res| &res.symmetrised_molecule))
+        .build()
+        .unwrap();
+    assert!(verifying_pd_driver.run().is_ok());
     // let verifying_pd_res = verifying_pd_driver.result().unwrap();
     // assert_eq!(
     //     verifying_pd_res
