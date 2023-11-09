@@ -17,7 +17,7 @@ const ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 #[test]
 fn test_drivers_molecule_symmetrisation_distmat_vf6_magnetic_field() {
-    // log4rs::init_file("log4rs.yml", Default::default()).unwrap();
+    log4rs::init_file("log4rs.yml", Default::default()).unwrap();
     let path: String = format!("{}{}", ROOT, "/tests/xyz/benzene_imperfect.xyz");
     let mol = Molecule::from_xyz(&path, 1e-7);
     // let pd_params = SymmetryGroupDetectionParams::builder()

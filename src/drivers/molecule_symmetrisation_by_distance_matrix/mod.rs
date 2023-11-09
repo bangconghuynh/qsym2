@@ -240,6 +240,24 @@ impl<'a> MoleculeSymmetrisationDistMatDriver<'a> {
 
         let loose_dist_threshold = params.loose_distance_threshold;
 
+        let loose_precision = loose_dist_threshold
+            .log10()
+            .abs()
+            .round()
+            .to_usize()
+            .unwrap_or(7)
+            + 1;
+        let loose_length = (loose_precision + loose_precision.div_euclid(2)).max(6);
+        let tight_precision = params
+            .symmetrisation_threshold
+            .log10()
+            .abs()
+            .round()
+            .to_usize()
+            .unwrap_or(7)
+            + 1;
+        let tight_length = (tight_precision + tight_precision.div_euclid(2)).max(6);
+
         let mut unsymmetrised_mol = self.molecule.adjust_threshold(loose_dist_threshold);
 
         qsym2_output!("Unsymmetrised molecule:");
@@ -257,31 +275,25 @@ impl<'a> MoleculeSymmetrisationDistMatDriver<'a> {
             qsym2_output!("");
         };
 
-        // if params.verbose >= 1 {
-        //     let orig_mol = self
-        //         .target_symmetry_result
-        //         .pre_symmetry
-        //         .original_molecule
-        //         .adjust_threshold(tight_dist_threshold);
-        //     qsym2_output!("Unsymmetrised original molecule:");
-        //     orig_mol.log_output_display();
-        //     qsym2_output!("");
-        //
-        //     qsym2_output!("Unsymmetrised recentred molecule:");
-        //     trial_mol.log_output_display();
-        //     qsym2_output!("");
-        // }
-
         let original_atoms = unsymmetrised_mol.get_all_atoms();
         let n_atoms = original_atoms.len();
 
         let (unsymmetrised_distmat, equiv_col_indicess) =
             unsymmetrised_mol.calc_interatomic_distance_matrix();
-        println!("n seas: {}", equiv_col_indicess.len());
-        println!("{:?}", equiv_col_indicess);
+        qsym2_output!("Symmetry-equivalent (unsymmetrised) atoms at distance threshold {loose_dist_threshold:+.3e}:");
+        for (i, equiv_col_indices) in equiv_col_indicess.iter().enumerate() {
+            qsym2_output!("  Group {i}:");
+            for atom_index in equiv_col_indices.iter() {
+                qsym2_output!("  {}", original_atoms[*atom_index]);
+            }
+        }
+        qsym2_output!("");
 
-        println!("Unsorted:\n {unsymmetrised_distmat}");
+        qsym2_output!("Unsymmetrised interatomic distance matrix:");
+        qsym2_output!("{unsymmetrised_distmat:loose_length$.loose_precision$}");
+        qsym2_output!("");
 
+        // Symmetrise distance matrix
         let mut symmetrised_distmat = Array2::<f64>::zeros((n_atoms, n_atoms));
         equiv_col_indicess.iter().for_each(|equiv_col_indices| {
             let unsymmetrised_distmat_sea_j =
@@ -352,8 +364,11 @@ impl<'a> MoleculeSymmetrisationDistMatDriver<'a> {
             });
         });
 
-        println!("Symmetrised unsorted:\n {symmetrised_distmat}");
+        qsym2_output!("Symmetrised interatomic distance matrix:");
+        qsym2_output!("{symmetrised_distmat:tight_length$.tight_precision$}");
+        qsym2_output!("");
 
+        // BFGS search for atomic positions satisfying the symmetrised distance matrix
         let r0 = Array1::from_vec(
             original_atoms
                 .iter()
@@ -382,64 +397,36 @@ impl<'a> MoleculeSymmetrisationDistMatDriver<'a> {
                     .max_iters(1000)
             })
             .run()?;
-        println!("{}", res);
-        println!("{}", res.state().grad.as_ref().unwrap().norm_l2());
+
         let symmetrised_r = res.state().get_best_param().ok_or(format_err!(
             "Unable to retrieved the converged atomic positions."
         ))?;
+
         let symmetrised_mol = if params.reorientate_molecule {
-            let mut symmetrised_mol = problem.create_molecule_from_param(symmetrised_r);
+            let mut symmetrised_mol = problem
+                .create_molecule_from_param(symmetrised_r)
+                .adjust_threshold(params.symmetrisation_threshold);
             symmetrised_mol.reorientate_mut(params.symmetrisation_threshold);
-            qsym2_output!("Symmetrised reoriented molecule:");
+            qsym2_output!("Reoriented symmetrised molecule:");
             symmetrised_mol.log_output_display();
             qsym2_output!("");
             symmetrised_mol
         } else {
-            let symmetrised_mol = problem.create_molecule_from_param(symmetrised_r);
+            let symmetrised_mol = problem
+                .create_molecule_from_param(symmetrised_r)
+                .adjust_threshold(params.symmetrisation_threshold);
             qsym2_output!("Symmetrised molecule:");
             symmetrised_mol.log_output_display();
             qsym2_output!("");
             symmetrised_mol
         };
 
-        // Re-analyse symmetry of the symmetrised molecule
-        let symmetrised_presym = PreSymmetry::builder()
-            .moi_threshold(self.parameters.symmetrisation_threshold)
-            .molecule(&symmetrised_mol)
-            .build()
-            .map_err(|_| format_err!("Cannot construct a pre-symmetry structure."))?;
-        let mut symmetrised_unisym = Symmetry::new();
-        let _unires = symmetrised_unisym.analyse(&symmetrised_presym, false);
-        println!("{:?}", symmetrised_unisym.group_name);
-        // symmetrised_magsym.as_mut().map(|tri_magsym| {
-        //     *tri_magsym = Symmetry::new();
-        //     let _magres = tri_magsym.analyse(&symmetrised_presym, true);
-        //     tri_magsym
-        // });
-
-        // unisym_check = symmetrised_unisym.group_name == target_unisym.group_name;
-        // magsym_check = match (symmetrised_magsym.as_ref(), target_magsym) {
-        //     (Some(tri_magsym), Some(tar_magsym)) => {
-        //         tri_magsym.group_name == tar_magsym.group_name
-        //     }
-        //     _ => true,
-        // };
-        //
-        // qsym2_output!(
-        //     "{:>count_length$} {:>12.3e} {:>12.3e} {:>14} {:>12}",
-        //     symmetrisation_count,
-        //     tight_moi_threshold,
-        //     tight_dist_threshold,
-        //     symmetrised_magsym
-        //         .as_ref()
-        //         .map(|magsym| magsym.group_name.as_ref())
-        //         .unwrap_or(None)
-        //         .unwrap_or(&"--".to_string()),
-        //     symmetrised_unisym
-        //         .group_name
-        //         .as_ref()
-        //         .unwrap_or(&"--".to_string()),
-        // );
+        self.result = Some(
+            MoleculeSymmetrisationDistMatResult::builder()
+                .parameters(self.parameters)
+                .symmetrised_molecule(symmetrised_mol)
+                .build()?,
+        );
 
         Ok(())
     }
